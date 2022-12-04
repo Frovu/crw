@@ -1,0 +1,20 @@
+{
+	"time": {
+		"name": "Time",
+		"type": "time",
+		"description": "Event onset time"
+	},
+	"onset_type": {
+		"name": "Onset type",
+		"short_name": "OType",
+		"type": "integer"
+	},
+	"source_time": {
+		"name": "Source time",
+		"short_name": "STime",
+		"type": "time"
+	},
+	"v_max": {
+		"name": "Vmax"
+	}
+}
