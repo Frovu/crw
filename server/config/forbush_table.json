@@ -16,5 +16,8 @@
 	},
 	"v_max": {
 		"name": "Vmax"
+	},
+	"h_max": {
+		"name": "Hmax"
 	}
 }

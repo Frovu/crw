@@ -6,5 +6,7 @@
 ```
 FLASK_APP=server
 
+DB_HOST=localhost
+DB_PASSWORD=
 
 ```
