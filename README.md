@@ -1,2 +1,2 @@
-# aid
-Apprehend Interplanetary Disturbances - An interactive Furbush effect catalog
+# cr-aid
+**A**pprehend **I**nterplanetary **D**isturbances - An interactive Furbush effect catalog
