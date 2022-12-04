@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../core'))
-from database import list_columns, get_column_type, get_short_name
+from database import list_columns, get_column_type, get_short_name, insert_parsed
 
 # if target_columns contains field with Time, its corresponding Date column is parsed autoamtically
 def parse_whole_file(fname: str, target_columns: list):
@@ -13,25 +13,28 @@ def parse_whole_file(fname: str, target_columns: list):
 		result = []
 		for line in file:
 			split = line.split()
-			def get_datetime(column):
-				date, time = split[columns.index(column.replace('Time', 'Date'))], split[columns.index(column)]
-				if not '.' in date or not ':' in time:
-					return None
-				return datetime(*[int(i) for i in date.split('.')+time.split(':')], tzinfo=timezone.utc)
 			def get_value(column):
-				value = split[columns.index(column)]
+				col = get_short_name(column)
+				col_type = get_column_type(column)
+				value = split[columns.index(col)]
 				if value == 'None': return None
+				if col_type == 'time':
+					date, time = split[columns.index(col.replace('Time', 'Date'))], value
+					if not '.' in date or not ':' in time: return None
+					return datetime(*[int(i) for i in date.split('.')+time.split(':')], tzinfo=timezone.utc)
 				try:
-					return value if column in ['Source', 'Fdata'] else float(value)
+					return value if col_type == 'text' else float(value)
 				except:
 					return None
-			target = [get_short_name(col) for col in ['time'] + target_columns]
-			data = [get_datetime(c) if 'Time' in c else get_value(c) for c in target]
+			data = [get_value(col) for col in target_columns]
 			result.append(data)
 	return result
 
 
 if __name__ == '__main__':
-	result = parse_whole_file('data/FDs_fulltable.txt', list_columns())
-	for i in result[-20:]:
-		print('    '.join([str(a) for a in i]))
+	columns = list_columns()
+	result = parse_whole_file('data/FDs_fulltable.txt', columns)
+	print(f'Parsed {len(result)} lines, insert? [y/n]')
+	if input() == 'y':
+		insert_parsed(columns, result)
+		print('done')

@@ -2,10 +2,10 @@ import json, os
 import psycopg2
 import psycopg2.extras
 pg_conn = psycopg2.connect(
-    dbname = 'cr_aid',
-    user = 'cr_aid',
-    password = os.environ.get('DB_PASSWORD'),
-    host = os.environ.get('DB_HOST')
+	dbname = 'cr_aid',
+	user = 'cr_aid',
+	password = os.environ.get('DB_PASSWORD'),
+	host = os.environ.get('DB_HOST')
 )
 
 dirname = os.path.dirname(__file__)
@@ -23,3 +23,9 @@ def get_column_type(column):
 
 def list_columns():
 	return list(columns_info.keys())
+
+def insert_parsed(columns, data):
+	with pg_conn.cursor() as cursor:
+		query = f'INSERT INTO {TABLE_NAME} ({",".join(columns)}) VALUES %s ON CONFLICT (time) DO NOTHING'
+		psycopg2.extras.execute_values(cursor, query, data)
+		pg_conn.commit()
