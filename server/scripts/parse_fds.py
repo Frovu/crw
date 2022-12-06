@@ -4,7 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../cor
 from database import pg_conn, tables_info
 
 def _parse_value(value, description):
-	col_type = description.get('type') or 'real'
+	col_type = description.get('type', 'real')
 	if parse_val := description.get('parse_value'):
 		value = parse_val.get(value)
 	if stub := description.get('parse_stub') and value == stub:
@@ -31,9 +31,11 @@ def parse_whole_file(fname: str):
 		count = dict([(k, 0) for k in tables_info])
 		for line in file:
 			split, inserted_ids = line.split(), dict()
-			for table, columns_desc in tables_info.items()[::-1]:
+			for table, columns_desc in list(tables_info.items())[::-1]:
+				columns = [k for k in columns_desc if not k.startswith('_')]
 				values = list()
-				for col_name, col_desc in columns_desc.items():
+				for col_name in columns:
+					col_desc = columns_desc[column]
 					if references := col_desc.get('references'):
 						val = inserted_ids.get(references)
 					else:
@@ -42,7 +44,7 @@ def parse_whole_file(fname: str):
 					values.append(val)
 				if any(values):
 					count[table] += 1
-					query = f'INSERT INTO {table} VALUES ({",".join(["%s" for c in columns_desc])})'
+					query = f'INSERT INTO {table}() VALUES ({",".join(["%s" for c in columns])})'
 					cursor.execute(query, values)
 		for table, cnt in count.items():
 			print(f'[{cnt}] -> {table}')

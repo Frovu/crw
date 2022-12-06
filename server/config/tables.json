@@ -1,7 +1,8 @@
 {
 	"forbush_effects": {
+		"_constraint": "UNIQUE(time)",
 		"time": {
-			"constraint": "NOT NULL UNIQUE",
+			"not_null":true,
 			"type": "time",
 			"description": "Event onset time",
 			"parse_name": "Time"
@@ -166,7 +167,7 @@
 	},
 	"magnetic_clouds": {
 		"time": {
-			"constraint": "NOT NULL",
+			"not_null": true,
 			"type": "time",
 			"parse_name": "MCStartTime"
 		},
