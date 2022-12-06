@@ -73,7 +73,8 @@
 		"dst_max": {
 			"name": "Dst max",
 			"description": "Minimum Dst-index value during the event",
-			"parse_name": "Dstmin"
+			"parse_name": "Dstmin",
+			"parse_stub": "9999"
 		},
 		"axy_max": {
 			"name": "Axy max",
@@ -98,8 +99,7 @@
 		},
 		"comment": {
 			"type": "text",
-			"description": "Additional commentary",
-			"parse_name": "Rem"
+			"description": "Additional commentary"
 		}
 	},
 	"solar_sources": {
@@ -162,7 +162,12 @@
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parse_name": "Fdata"
+			"parse_name": "Fdata",
+			"parse_stub": "None"
+		},
+		"magnitude": {
+			"parse_name": "Xmagn",
+			"description": "Maximum X-ray power (W/m/m)"
 		}
 	},
 	"magnetic_clouds": {
@@ -181,6 +186,6 @@
 		"size": {
 			"parse_name": "RMC"
 		},
-		"_constraint": "UNIQUE(time, originator)"
+		"_constraint": "UNIQUE (time, originator)"
 	}
 }
