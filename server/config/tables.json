@@ -1,0 +1,184 @@
+{
+	"forbush_effects": {
+		"time": {
+			"constraint": "NOT NULL UNIQUE",
+			"type": "time",
+			"description": "Event onset time",
+			"parse_name": "Time"
+		},
+		"onset_type": {
+			"name": "onset type",
+			"type": "enum",
+			"enum": ["SSC", "iSW", "SI"],
+			"description": "Onset time origin: SSC; SI - Sudden impulse, ground data; iSW - satellite data",
+			"parse_name": "OType",
+			"parse_value": {
+				"1": "SSC",
+				"2": "iSW",
+				"3": "SI",
+				"9": null
+			}
+		},
+		"source_id": {
+			"references": "solar_sources"
+		},
+		"magnitude": {
+			"name": "magnitude",
+			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
+			"parse_name": "MagnM"
+		},
+		"v_max": {
+			"name": "V max",
+			"description": "Maximum solar wind velocity during the event",
+			"parse_name": "Vmax"
+		},
+		"h_max": {
+			"name": "V max",
+			"description": "Maximum IMF induction value",
+			"parse_name": "HMax"
+		},
+		"bz_min": {
+			"name": "Bz min",
+			"description": "Minimum IMF Bz-component value",
+			"parse_name": "Bzmin",
+			"parse_stub": 999.0
+		},
+		"bz_abs_max": {
+			"name": "abs(Bz) max",
+			"description": "Minimum absolute value of IMF Bz-component",
+			"parse_name": "ABzmax"
+		},
+		"time_to_min": {
+			"name": "time to min",
+			"type": "integer",
+			"description": "Time in hours between the onset and density minimum",
+			"parse_name": "TMinM"
+		},
+		"gamma": {
+			"name": "gamma",
+			"description": "rigidity spectrum exponent during the hour of minimum CR density",
+			"parse_name": "GammaM"
+		},
+		"kp_max": {
+			"name": "Kp max",
+			"description": "Maximum Kp index during the event",
+			"parse_name": "Kpmax"
+		},
+		"ap_max": {
+			"name": "Ap max",
+			"description": "Maximum Ap index during the event",
+			"parse_name": "Apmax"
+		},
+		"dst_max": {
+			"name": "Dst max",
+			"description": "Minimum Dst-index value during the event",
+			"parse_name": "Dstmin"
+		},
+		"axy_max": {
+			"name": "Axy max",
+			"description": "Maximum equatorial component of the CR vector anisotropy (%)",
+			"parse_name": "Axym"
+		},
+		"az_range": {
+			"name": "Az range",
+			"description": "North-south IMF component variation range",
+			"parse_name": "Azrange"
+		},
+		"time_to_min_raw": {
+			"name": "time to min",
+			"type": "integer",
+			"description": "Time in hours between the onset and density minimum (non corrected)",
+			"parse_name": "TMin"
+		},
+		"magnitude_raw": {
+			"name": "magnitude raw",
+			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM",
+			"parse_name": "Magn"
+		},
+		"comment": {
+			"type": "text",
+			"description": "Additional commentary",
+			"parse_name": "Rem"
+		}
+	},
+	"solar_sources": {
+		"time": {
+			"type": "time",
+			"parse_name": "STime"
+		},
+		"type": {
+			"type": "real",
+			"range": [1, 99],
+			"description": "It's complicated",
+			"parse_name": "SType"
+		},
+		"description": {
+			"name": "info",
+			"type": "text",
+			"parse_name": "Source"
+		},
+		"confidence": {
+			"type": "enum",
+			"enum": ["low", "okay", "high"],
+			"parse_name": "Qs",
+			"parse_value": {
+				"3": "low",
+				"4": "okay",
+				"5": "high"
+			}
+		},
+		"cme_id": {
+			"references": "coronal_mass_ejections"
+		},
+		"ch_id": {
+			"references": "coronal_holes"
+		},
+		"sf_id": {
+			"references": "solar_flares"
+		}
+	},
+	"coronal_mass_ejections": {
+		"time": {
+			"type": "time",
+			"parse_name": "CMETime"
+		},
+		"width": {
+			"description": "Angular width",
+			"parse_name": "CMEWidth"
+		},
+		"angle": {
+			"description": "Direction of the maximum velocity",
+			"parse_name": "CMEAngle"
+		}
+	},
+	"coronal_holes": {
+		"polarity": {
+			"parse_name": "SPol"
+		}
+	},
+	"solar_flares": {
+		"description": {
+			"name": "info",
+			"type": "text",
+			"parse_name": "Fdata"
+		}
+	},
+	"magnetic_clouds": {
+		"time": {
+			"constraint": "NOT NULL",
+			"type": "time",
+			"parse_name": "MCStartTime"
+		},
+		"originator": {
+			"type": "text"
+		},
+		"duration": {
+			"type": "integer",
+			"parse_name": "MCDur"
+		},
+		"size": {
+			"parse_name": "RMC"
+		},
+		"_constraint": "UNIQUE(time, originator)"
+	}
+}
