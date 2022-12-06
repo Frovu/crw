@@ -12,4 +12,7 @@ dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
 	tables_info = json.load(file)
 
-
+def select_all():
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT * FROM default_view')
+		return cursor.fetchall(), [desc[0] for desc in curs.description]

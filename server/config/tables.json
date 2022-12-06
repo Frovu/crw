@@ -23,6 +23,9 @@
 		"source_id": {
 			"references": "solar_sources"
 		},
+		"mc_id": {
+			"references": "magnetic_clouds"
+		},
 		"magnitude": {
 			"name": "magnitude",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
