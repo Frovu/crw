@@ -46,8 +46,10 @@ if __name__ == '__main__':
 				if ref := desc.get('references'):
 					joins.append(f'LEFT JOIN {ref} ON {ref}.id = {table}.{column}')
 				else:
+					col = f'{table}.{column}'
+					value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
 					name = f'{table}_{column}' if table != first_table else column
-					columns.append(f'{table}.{column} as {name}')
+					columns.append(f'{value} as {name}')
 		select_query = f'SELECT\n{", ".join(columns)}\nFROM {first_table}\n' + '\n'.join(joins)
 		view_query = 'CREATE VIEW default_view AS\n' + select_query
 		print(view_query)
