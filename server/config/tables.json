@@ -41,7 +41,7 @@
 			"name": "Bz min",
 			"description": "Minimum IMF Bz-component value",
 			"parse_name": "Bzmin",
-			"parse_stub": 999.0
+			"parse_stub": "999.0"
 		},
 		"bz_abs_max": {
 			"name": "abs(Bz) max",
@@ -115,7 +115,8 @@
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parse_name": "Source"
+			"parse_name": "Source",
+			"parse_stub": "_None____"
 		},
 		"confidence": {
 			"type": "enum",
