@@ -12,6 +12,27 @@ dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
 	tables_info = json.load(file)
 
+def render_tables_info():
+	info = dict()
+	for i, (table, table_info) in enumerate(tables_info.items()):
+		info[table] = dict()
+		for col, col_desc in table_info.items():
+			if col.startswith('_') or col_desc.get('references'):
+				continue
+			tag = ((table + '_') if i > 0 else '') + col
+			info[table][tag] = {
+				'name': col_desc.get('name', col),
+				'type': col_desc.get('type', 'real')
+			}
+			if enum := col_desc.get('enum'):
+				info[table][tag]['enum'] = enum
+			if description := col_desc.get('description'):
+				info[table][tag]['description'] = description
+	with open(os.path.join(dirname, '../data/tables_rendered.json'), 'w') as file:
+		json.dump(info, file)
+	
+render_tables_info()
+
 def select_all(t_from=None, t_to=None):
 	with pg_conn.cursor() as cursor:
 		cond = ' WHERE time >= %s' if t_from else ''
