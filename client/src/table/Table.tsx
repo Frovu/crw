@@ -16,14 +16,14 @@ function Cell({ value, def }: { value: number | string | null, def: ColumnDef })
 }
 
 function Table({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
-	const viewSize = 10;
+	const viewSize = 15;
 	const ref = useRef<HTMLDivElement>(null);
+	const [viewIndex, setViewIndex] = useState(0);
+	console.log(viewIndex)
 	useEffect(() => {
 		if (!ref.current) return;
-		ref.current.addEventListener('scroll', console.log)
-
-	}, [ref.current]);
-	const [viewIndex, setViewIndex] = useState(0);
+		ref.current.onwheel = e => setViewIndex(idx => idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2));
+	}, [ref]);
 	return (
 		<div ref={ref}>
 			<table>
