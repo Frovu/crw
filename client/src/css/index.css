@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+:root {
+	--color-bg: black;
+	--color-text: darkgrey;
+	--color-text-dark: rgb(76,76,76);
+	--color-border: grey;
+  --color-active: gold;
+
+	font-size: 16px;
+	font-family: 'Roboto Mono', monospace;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	color-scheme: dark;
+}
+
+body {
+	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
+	box-sizing: border-box;         /* Opera/IE 8+ */
+	margin: 0;
+}
