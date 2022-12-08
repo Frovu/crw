@@ -15,7 +15,7 @@ export type ColumnDef = {
 export type Filter = (r: any[]) => boolean;
 
 function Cell({ value, def }: { value: number | string | null, def: ColumnDef }) {
-	return <td>{value}</td>;
+	return <span>{value}</span>;
 
 }
 
@@ -33,11 +33,11 @@ function TableView() {
 			<table>
 				<thead>
 					<tr>
-						{columns.map(col => <td>{col.name}</td>)}
+						{columns.map(col => <td key={col.table+col.name}>{col.name}</td>)}
 					</tr>
 				</thead>
 				<tbody>
-					{data.slice(viewIndex, viewIndex+viewSize).map(row => <tr>{row.map((value, i) => <Cell {...{ value, def: columns[i] }}/>)}</tr>)}
+					{data.slice(viewIndex, viewIndex+viewSize).map((row, idx) => <tr key={viewIndex+idx}>{row.map((value, i) => <td key={i}><Cell {...{ value, def: columns[i] }}/></td>)}</tr>) /* eslint-disable-line react/no-array-index-key */}
 				</tbody>
 			</table>
 		</div>
