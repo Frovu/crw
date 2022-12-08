@@ -1,29 +1,33 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import '../css/Table.css';
+import { FiltersView } from './TableControls';
 
-type ColumnDef = {
+export const TableContext = createContext<{ data: any[][], columns: ColumnDef[] }>({ data: [], columns: [] });
+
+export type ColumnDef = {
 	name: string,
 	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
 	description?: string,
 	enum?: string[],
 	table?: string
 };
+export type Filter = (r: any[]) => boolean;
 
 function Cell({ value, def }: { value: number | string | null, def: ColumnDef }) {
 	return <td>{value}</td>;
 
 }
 
-function Table({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
-	const viewSize = 15;
+function TableView() {
+	const { data, columns } = useContext(TableContext);
+	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
-	console.log(viewIndex)
 	useEffect(() => {
 		if (!ref.current) return;
-		ref.current.onwheel = e => setViewIndex(idx => idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2));
-	}, [ref]);
+		ref.current.onwheel = e => setViewIndex(idx => Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length - viewSize));
+	}, [data.length, ref]);
 	return (
 		<div ref={ref}>
 			<table>
@@ -40,7 +44,28 @@ function Table({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
 	);
 }
 
-function DataWrapper({ columns }: { columns: {[col: string]: ColumnDef} }) {
+function FilterDataWrapper() {
+	const [filters, setFilters] = useState<Filter[]>([]);
+	const [enabledColumns, setEnabledColumns] = useState([0, 1, 2, 3]);
+	const [changes, setChanges] = useState(new Map<number, number[]>());
+
+	const { data, columns } = useContext(TableContext);
+	const renderedData = useMemo(() => {
+		const rendered = [];
+		for (const row of data) {
+
+		}
+	}, [filters, enabledColumns]);
+
+	return (
+		<div>
+			<FiltersView {...{ setFilters }}/>
+			<TableView/>
+		</div>
+	);
+}
+
+function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} }) {
 	const query = useQuery(['tableData'], async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/forbush/`, { credentials: 'include' });
 		if (res.status !== 200)
@@ -54,7 +79,11 @@ function DataWrapper({ columns }: { columns: {[col: string]: ColumnDef} }) {
 		return <div>Loading data..</div>;
 	if (!query.data)
 		return <div>Failed to load data</div>;
-	return <Table {...query.data}/>;
+	return (
+		<TableContext.Provider value={query.data}>
+			<FilterDataWrapper/>
+		</TableContext.Provider>
+	);
 }
 
 export default function TableWrapper() {
@@ -71,5 +100,5 @@ export default function TableWrapper() {
 		return <div>Loading tables..</div>;
 	if (!query.data)
 		return <div>Failed to load tables</div>;
-	return <DataWrapper columns={query.data}/>;
+	return <SourceDataWrapper columns={query.data}/>;
 }

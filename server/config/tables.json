@@ -37,7 +37,7 @@
 			"parse_name": "Vmax"
 		},
 		"h_max": {
-			"name": "V max",
+			"name": "H max",
 			"description": "Maximum IMF induction value",
 			"parse_name": "HMax"
 		},
@@ -90,7 +90,7 @@
 			"parse_name": "Azrange"
 		},
 		"time_to_min_raw": {
-			"name": "time to min",
+			"name": "time to min (raw)",
 			"type": "integer",
 			"description": "Time in hours between the onset and density minimum (non corrected)",
 			"parse_name": "TMin"
