@@ -12,7 +12,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 
 	useEffect(() => {
 		if (operation === 'not null')
-			return callback(v => v != null);
+			return callback(row => row[columnIdx] != null);
 		const column = columns[columnIdx];
 		const inp = input.trim().split(/[\s,|/]+/g);
 		const values = inp.map((val) => {
@@ -44,19 +44,20 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 				case 'in list': return (v: any) => values.includes(v);
 			}
 		})();
-		const filter: Filter = (row: any[]) => filterFn(row);
+		const filter: Filter = (row: any[]) => filterFn(row[columnIdx]);
 		callback(filter);
 	}, [columnIdx, input, operation, columns, setInvalid]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<div className='FilterCard'>
-			<select style={{ textAlign: 'right', width: '12em' }} value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
+			<select style={{ textAlign: 'right', width: '12em', border: '0' }} 
+				value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
 				{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + col.table : ''}</option>)}
 			</select>
 			<select style={{ textAlign: 'center' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 			</select>
-			{operation !== 'not null' && <input type='text' style={{ width: '12em' }}
+			{operation !== 'not null' && <input type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && {borderColor: 'red'}) }}
 				value={input} onChange={e => setInput(e.target.value)}/>}
 			<button onClick={destruct}>delete</button>
 		</div>
@@ -73,12 +74,14 @@ export function FiltersView({ setFilters }: { setFilters: (val: Filter[]) => voi
 	}, [cards, setFilters]);
 
 	return (
-		<div style={{ width: '480px' }}>
-			<button onClick={() => setCards(crds => new Map(crds.set(nextKey(), null)))}>Add filter</button>
+		<div className='Filters'>
 			{Array.from(cards.keys()).map((idx) =>
 				<FilterCard key={idx}
 					destruct={() => setCards(crds => new Map(Array.from(crds.entries()).filter(([k,]) => k !== idx)))}
 					callback={fn => setCards(crds => new Map(crds.set(idx, fn)))}/>)}
+			<div className='AddFilter'>
+				<button onClick={() => setCards(crds => new Map(crds.set(nextKey(), null)))}>Add filter</button>
+			</div>
 		</div>
 	);
 

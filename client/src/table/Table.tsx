@@ -19,8 +19,7 @@ function Cell({ value, def }: { value: number | string | null, def: ColumnDef })
 
 }
 
-function TableView() {
-	const { data, columns } = useContext(TableContext);
+function TableView({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
@@ -51,17 +50,19 @@ function FilterDataWrapper() {
 
 	const { data, columns } = useContext(TableContext);
 	const renderedData = useMemo(() => {
-		console.log(filters)
-		const rendered = [];
-		for (const row of data) {
-
-		}
-	}, [filters, enabledColumns]);
+		const rendered = data.filter((row) => {
+			for (const filter of filters)
+				if (!filter(row)) return false;
+			return true;
+		}).map(row => enabledColumns.map(ci => row[ci]));
+		// TODO: sort
+		return rendered;
+	}, [data, filters, enabledColumns]);
 
 	return (
 		<div>
 			<FiltersView {...{ setFilters }}/>
-			<TableView/>
+			<TableView data={renderedData} columns={enabledColumns.map(ci => columns[ci])}/>
 		</div>
 	);
 }

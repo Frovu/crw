@@ -6,9 +6,28 @@ td {
 	border: 1px solid;
 }
 
+.Filters {
+	width: fit-content;
+	border: 1px solid;
+}
+
 .FilterCard {
+	display: flex;
+	gap: 4px;
 	border: 1px solid;
 	padding: 2px;
 	margin: 2px;
 	text-align: left;
+}
+
+.AddFilter {
+	margin: 2px;
+	text-align: right;
+}
+
+input, button, select {
+	text-align: center;
+	border: 1px var(--color-border) solid;
+	/* border-radius: 4px; */
+
 }
