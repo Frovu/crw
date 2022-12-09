@@ -18,11 +18,11 @@ export type ColumnDef = {
 export type Filter = (r: any[]) => boolean;
 
 function FilterDataWrapper() {
+	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
 	const [enabledColumns, setEnabledColumns] = useState([0, 1, 2, 3]);
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
-	const { data, columns } = useContext(TableContext);
 	const renderedData = useMemo(() => {
 		const rendered = data.filter((row) => {
 			for (const filter of filters)

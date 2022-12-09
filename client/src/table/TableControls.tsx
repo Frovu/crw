@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, Fragment } from 'react';
 import { Filter, TableContext, prettyName } from './Table';
 
 const FILTER_OPS = ['>=', '<=', '==', 'not null', 'in list'] as const;
@@ -101,14 +101,14 @@ export function ColumnsSelector({ enabledColumns, setEnabledColumns }: { enabled
 	const { columns } = useContext(TableContext);
 	const tables = [...new Set(columns.map(c => c.table as string))];
 	const columnChecks = columns.map((col, i) => [col,
-		<label style={{ marginLeft: '.5em' }}><input type='checkbox' checked={enabledColumns.includes(i)}
-			onChange={e=>setEnabledColumns(cols => [...cols.filter(c => c !== i), ...(e.target.checked ? [i] : [])])}/>{col.name}</label>]);
+		<label key={col.table+col.name} style={{ marginLeft: '.5em' }}><input type='checkbox' checked={enabledColumns.includes(i)}
+			onChange={e=>setEnabledColumns(cols => [...cols.filter(c => c !== i), ...(e.target.checked ? [i] : [])].sort((a, b) => a - b))}/>{col.name}</label>]);
 	return (
 		<div className='ColumnsSelector'>
-			{tables.map(table => <>
-				<b style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
-				{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}
-			</>)}
+			{tables.map(table => <Fragment key={table}>
+				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
+				<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
+			</Fragment>)}
 		</div>
 	);
 }

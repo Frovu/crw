@@ -23,7 +23,10 @@ export default function TableView({ data, columns }: { data: any[][], columns: C
 
 	return (
 		<div className='Table' ref={ref}>
-			<table>
+			<table style={{ tableLayout: 'fixed', width: '480px' }}>
+				<colgroup>
+					{columns.map(col => <col span={1} key={col.table+col.name} style={{ width: col.type === 'time' || col.type === 'text' ? '13em' : '5em', overflow: 'clip' }}></col>)}
+				</colgroup>
 				<thead>
 					<tr>
 						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyName(table)}</td>)}
