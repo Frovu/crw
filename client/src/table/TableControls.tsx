@@ -9,16 +9,19 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 	const [columnIdx, setColumnIdx] = useState(() => columns.findIndex(c => c.name === 'magnitude' && c.table === fisrtTable));
 	const [operation, setOperation] = useState<typeof FILTER_OPS[number]>(FILTER_OPS[0]);
 	const [invalid, setInvalid] = useState(false);
-	const [input, setInput] = useState('');
+	const [inputRaw, setInput] = useState('');
+
+	const isSelectInput = columns[columnIdx].type === 'enum' && operation !== 'in list';
+	const input = isSelectInput && !columns[columnIdx].enum?.includes(inputRaw) ? columns[columnIdx].enum?.[0] as string : inputRaw;
 
 	useEffect(() => {
 		if (operation === 'not null')
 			return callback(row => row[columnIdx] != null);
 		const column = columns[columnIdx];
-		const inp = input.trim().split(/[\s,|/]+/g);
+		const inp = input.trim().split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g);
 		const values = inp.map((val) => {
 			switch (column.type) {
-				case 'time': return new Date(val);
+				case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
 				case 'real': return parseFloat(val);
 				case 'integer': return parseInt(val);
 				default: return val;
@@ -26,7 +29,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 		});
 		const isValid = values.map((val) => {
 			switch (column.type) {
-				case 'time': return !isNaN((val as Date).getTime());
+				case 'time': return !isNaN(val as any);
 				case 'real':
 				case 'integer': return !isNaN(val as number);
 				case 'enum': return column.enum?.includes(val as string);
@@ -49,11 +52,10 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 		callback(filter);
 	}, [columnIdx, input, operation, columns, setInvalid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	const isSelectInput = columns[columnIdx].type === 'enum' && operation != 'in list'
 	return (
 		<div className='FilterCard'>
 			<div>
-				<select style={{ textAlign: 'right', width: '12em', borderColor: 'transparent' }} 
+				<select style={{ textAlign: 'right', width: '10em', borderColor: 'transparent' }} 
 					value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
 					{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table as any) : ''}</option>)}
 				</select>
@@ -61,10 +63,10 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 				</select>
 				{operation !== 'not null' && !isSelectInput &&
-				<input autoFocus type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
+				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
 					value={input} onChange={e => setInput(e.target.value)}/>}
 				{operation !== 'not null' && isSelectInput &&
-				<select value={columns[columnIdx].enum?.includes(input) ? input : columns[columnIdx].enum?.[0]} onChange={e => setInput(e.target.value)}>
+				<select style={{ width: '8em' }} value={input} onChange={e => setInput(e.target.value)}>
 					{columns[columnIdx].enum?.map(val => <option key={val} value={val}>{val}</option>)}
 				</select>}
 			</div>
