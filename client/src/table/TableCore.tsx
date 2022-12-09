@@ -11,8 +11,12 @@ export default function TableView({ data, columns }: { data: any[][], columns: C
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 	useEffect(() => {
+		setViewIndex(0);
+	}, [data]);
+	useEffect(() => {
 		if (!ref.current) return;
-		ref.current.onwheel = e => setViewIndex(idx => Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length - viewSize));
+		ref.current.onwheel = e => setViewIndex(idx =>
+			Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize));
 	}, [data.length, ref]);
 	return (
 		<div className='Table' ref={ref}>

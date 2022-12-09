@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import '../css/Table.css';
-import { FiltersView } from './TableControls';
+import { FiltersView, ColumnsSelector } from './TableControls';
 import TableView from './TableCore';
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], fisrtTable: string }>({ data: [], columns: [], fisrtTable: '' });
@@ -33,6 +33,7 @@ function FilterDataWrapper() {
 
 	return (
 		<div>
+			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
 			<FiltersView {...{ setFilters }}/>
 			<TableView data={renderedData} columns={enabledColumns.map(ci => columns[ci])}/>
 		</div>
@@ -53,7 +54,6 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 				return null;
 			const fisrtTable = Object.values(columns)[0].table as string;
 			const orderedColumns = resp.fields.map(f => columns[f]);
-			console.time('time')
 			for (const [i, col] of orderedColumns.entries()) {
 				if (col.type === 'time') {
 					for (const row of resp.data) {
@@ -63,7 +63,6 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 					}
 				}
 			}
-			console.timeEnd('time')
 			return { data: resp.data, columns: orderedColumns, fisrtTable } as const;
 		}
 	});
