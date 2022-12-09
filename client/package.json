@@ -86,10 +86,8 @@
         0,
         "always"
       ],
-      "indent": [
-        1,
-        "tab"
-      ]
+      "indent": "off",
+      "@typescript-eslint/indent": [1, "tab"]
     }
   },
   "browserslist": {

@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import '../css/Table.css';
 import { FiltersView } from './TableControls';
 
-export const TableContext = createContext<{ data: any[][], columns: ColumnDef[] }>({ data: [], columns: [] });
+export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], fisrtTable: string }>({ data: [], columns: [], fisrtTable: '' });
 
 export type ColumnDef = {
 	name: string,
@@ -51,6 +51,7 @@ function FilterDataWrapper() {
 
 	const { data, columns } = useContext(TableContext);
 	const renderedData = useMemo(() => {
+		console.log(filters)
 		const rendered = [];
 		for (const row of data) {
 
@@ -67,6 +68,7 @@ function FilterDataWrapper() {
 
 function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} }) {
 	const query = useQuery({
+		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
 		queryKey: ['tableData'], 
 		queryFn: async () => {
@@ -76,7 +78,8 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 			const resp: {data: any[][], fields: string[]} = await res.json();
 			if (!resp?.data.length)
 				return null;
-			return { data: resp.data, columns: resp.fields.map(f => columns[f]) };
+			const fisrtTable = Object.values(columns)[0].table as string;
+			return { data: resp.data, columns: resp.fields.map(f => columns[f]), fisrtTable } as const;
 		}
 	});
 	if (query.isLoading)
@@ -92,6 +95,7 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 
 export default function TableWrapper() {
 	const query = useQuery({
+		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
 		queryKey: ['tableStructure'],
 		queryFn: async () => {
