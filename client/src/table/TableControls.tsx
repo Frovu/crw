@@ -72,14 +72,14 @@ export function FiltersView({ setFilters }: { setFilters: (val: Filter[]) => voi
 	const nextKey = () => { setUid(uid+1); return uid; }; 
 
 	useEffect(() => {
-		setFilters(Array.from(cards.values()).filter((f): f is Filter => f != null));
+		setFilters([...cards.values()].filter((f): f is Filter => f != null));
 	}, [cards, setFilters]);
 
 	return (
 		<div className='Filters'>
-			{Array.from(cards.keys()).map((idx) =>
+			{[...cards.keys()].map((idx) =>
 				<FilterCard key={idx}
-					destruct={() => setCards(crds => new Map(Array.from(crds.entries()).filter(([k,]) => k !== idx)))}
+					destruct={() => setCards(crds => new Map([...crds.entries()].filter(([k,]) => k !== idx)))}
 					callback={fn => setCards(crds => new Map(crds.set(idx, fn)))}/>)}
 			<div className='AddFilter'>
 				<button onClick={() => setCards(crds => new Map(crds.set(nextKey(), null)))}>Add filter</button>

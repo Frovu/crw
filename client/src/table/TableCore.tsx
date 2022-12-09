@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, createContext, useContext, useMemo } from 'react';
 import { ColumnDef } from './Table';
 
-function Cell({ value, def }: { value: number | string | null, def: ColumnDef }) {
-	return <span>{value}</span>;
-
+function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
+	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
+	return <span>{val}</span>;
 }
 
 export default function TableView({ data, columns }: { data: any[][], columns: ColumnDef[] }) {

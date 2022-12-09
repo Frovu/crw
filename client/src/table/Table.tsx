@@ -52,7 +52,19 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 			if (!resp?.data.length)
 				return null;
 			const fisrtTable = Object.values(columns)[0].table as string;
-			return { data: resp.data, columns: resp.fields.map(f => columns[f]), fisrtTable } as const;
+			const orderedColumns = resp.fields.map(f => columns[f]);
+			console.time('time')
+			for (const [i, col] of orderedColumns.entries()) {
+				if (col.type === 'time') {
+					for (const row of resp.data) {
+						if (row[i] === null) continue;
+						const date = new Date(parseInt(row[i]) * 1e3);
+						row[i] = isNaN(date as any) ? null : date;
+					}
+				}
+			}
+			console.timeEnd('time')
+			return { data: resp.data, columns: orderedColumns, fisrtTable } as const;
 		}
 	});
 	if (query.isLoading)
