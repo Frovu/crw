@@ -6,13 +6,18 @@ td {
 	border: 1px solid;
 }
 
+.Table {
+	margin: 1em;
+}
+
 .Filters {
+	margin: 1em;
 	width: fit-content;
-	border: 1px solid;
 }
 
 .FilterCard {
 	display: flex;
+	justify-content: space-between;
 	gap: 4px;
 	border: 1px solid;
 	padding: 2px;

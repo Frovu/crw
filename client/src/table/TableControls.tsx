@@ -8,7 +8,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 	const [columnIdx, setColumnIdx] = useState(() => columns.findIndex(c => c.name === 'magnitude' && c.table === fisrtTable));
 	const [operation, setOperation] = useState<typeof FILTER_OPS[number]>(FILTER_OPS[0]);
 	const [invalid, setInvalid] = useState(false);
-	const [input, setInput] = useState('10');
+	const [input, setInput] = useState('');
 
 	useEffect(() => {
 		if (operation === 'not null')
@@ -50,15 +50,17 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 
 	return (
 		<div className='FilterCard'>
-			<select style={{ textAlign: 'right', width: '12em', border: '0' }} 
-				value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
-				{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + col.table : ''}</option>)}
-			</select>
-			<select style={{ textAlign: 'center' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
-				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
-			</select>
-			{operation !== 'not null' && <input type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && {borderColor: 'red'}) }}
-				value={input} onChange={e => setInput(e.target.value)}/>}
+			<div>
+				<select style={{ textAlign: 'right', width: '12em', borderColor: 'transparent' }} 
+					value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
+					{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + col.table : ''}</option>)}
+				</select>
+				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
+					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
+				</select>
+				{operation !== 'not null' && <input type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && {borderColor: 'red'}) }}
+					value={input} onChange={e => setInput(e.target.value)}/>}
+			</div>
 			<button onClick={destruct}>delete</button>
 		</div>
 	);
