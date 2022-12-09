@@ -49,6 +49,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 		callback(filter);
 	}, [columnIdx, input, operation, columns, setInvalid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+	const isSelectInput = columns[columnIdx].type === 'enum' && operation != 'in list'
 	return (
 		<div className='FilterCard'>
 			<div>
@@ -59,8 +60,13 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 				</select>
-				{operation !== 'not null' && <input type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
+				{operation !== 'not null' && !isSelectInput &&
+				<input autoFocus type='text' style={{ width: '6em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
 					value={input} onChange={e => setInput(e.target.value)}/>}
+				{operation !== 'not null' && isSelectInput &&
+				<select value={columns[columnIdx].enum?.includes(input) ? input : columns[columnIdx].enum?.[0]} onChange={e => setInput(e.target.value)}>
+					{columns[columnIdx].enum?.map(val => <option key={val} value={val}>{val}</option>)}
+				</select>}
 			</div>
 			<button onClick={destruct}>delete</button>
 		</div>
