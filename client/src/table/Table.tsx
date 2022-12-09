@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect, createContext, useContext, useMemo } from 'react';
+import { useState, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import '../css/Table.css';
 import { FiltersView, ColumnsSelector } from './TableControls';
 import TableView from './TableCore';
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], fisrtTable: string }>({ data: [], columns: [], fisrtTable: '' });
+
+export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
 export type ColumnDef = {
 	name: string,
@@ -18,7 +20,7 @@ export type Filter = (r: any[]) => boolean;
 function FilterDataWrapper() {
 	const [filters, setFilters] = useState<Filter[]>([]);
 	const [enabledColumns, setEnabledColumns] = useState([0, 1, 2, 3]);
-	const [changes, setChanges] = useState(new Map<number, number[]>());
+	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
 	const { data, columns } = useContext(TableContext);
 	const renderedData = useMemo(() => {

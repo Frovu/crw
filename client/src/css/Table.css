@@ -7,6 +7,7 @@ td {
 }
 
 .Table {
+	width: fit-content;
 	margin: 1em;
 }
 
@@ -17,19 +18,11 @@ td {
 	display: flex;
 	flex-flow: column wrap;
 	gap: 4px;
-	height: 50vh;
+	height: 18em;
 }
 
 .ColumnsSelector > * {
-
 	text-align: left;
-}
-
-.ColumnsSelectorTable {
-	display: flex;
-	flex-flow: column wrap;
-	max-height: 50vh;
-	justify-content: flex-end;
 }
 
 .Filters {

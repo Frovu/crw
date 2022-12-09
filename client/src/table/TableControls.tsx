@@ -1,8 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
-import { Filter, TableContext } from './Table';
+import { Filter, TableContext, prettyName } from './Table';
 
 const FILTER_OPS = ['>=', '<=', '==', 'not null', 'in list'] as const;
-const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
 function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void, destruct: () => void }) {
 	const { columns, fisrtTable } = useContext(TableContext);
@@ -107,7 +106,7 @@ export function ColumnsSelector({ enabledColumns, setEnabledColumns }: { enabled
 	return (
 		<div className='ColumnsSelector'>
 			{tables.map(table => <>
-				<b style={{ marginBottom: '4px', maxWidth: '9em' }}>{prettyName(table)}</b>
+				<b style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
 				{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}
 			</>)}
 		</div>
