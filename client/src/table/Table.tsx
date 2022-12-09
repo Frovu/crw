@@ -66,14 +66,18 @@ function FilterDataWrapper() {
 }
 
 function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} }) {
-	const query = useQuery(['tableData'], async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/forbush/`, { credentials: 'include' });
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		const resp: {data: any[][], fields: string[]} = await res.json();
-		if (!resp?.data.length)
-			return null;
-		return { data: resp.data, columns: resp.fields.map(f => columns[f]) };
+	const query = useQuery({
+		staleTime: Infinity,
+		queryKey: ['tableData'], 
+		queryFn: async () => {
+			const res = await fetch(`${process.env.REACT_APP_API}api/forbush/`, { credentials: 'include' });
+			if (res.status !== 200)
+				throw new Error('HTTP '+res.status);
+			const resp: {data: any[][], fields: string[]} = await res.json();
+			if (!resp?.data.length)
+				return null;
+			return { data: resp.data, columns: resp.fields.map(f => columns[f]) };
+		}
 	});
 	if (query.isLoading)
 		return <div>Loading data..</div>;
@@ -87,14 +91,18 @@ function SourceDataWrapper({ columns }: { columns: {[col: string]: ColumnDef} })
 }
 
 export default function TableWrapper() {
-	const query = useQuery(['tableStructure'], async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/forbush/info/`, { credentials: 'include' });
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();
-		const columns = Object.fromEntries(Object.entries(tables)
-			.map(([table, cols]) => Object.entries(cols).map(([col, desc]) => [col, { ...desc, table, col }])).flat());
-		return columns as {[col: string]: ColumnDef};
+	const query = useQuery({
+		staleTime: Infinity,
+		queryKey: ['tableStructure'],
+		queryFn: async () => {
+			const res = await fetch(`${process.env.REACT_APP_API}api/forbush/info/`, { credentials: 'include' });
+			if (res.status !== 200)
+				throw new Error('HTTP '+res.status);
+			const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();
+			const columns = Object.fromEntries(Object.entries(tables)
+				.map(([table, cols]) => Object.entries(cols).map(([col, desc]) => [col, { ...desc, table, col }])).flat());
+			return columns as {[col: string]: ColumnDef};
+		}
 	});
 	if (query.isLoading)
 		return <div>Loading tables..</div>;
