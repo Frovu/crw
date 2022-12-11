@@ -13,7 +13,8 @@ export type ColumnDef = {
 	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
 	description?: string,
 	enum?: string[],
-	table?: string
+	table: string,
+	width: number
 };
 export type Filter = (r: any[]) => boolean;
 
@@ -89,8 +90,17 @@ export default function TableWrapper() {
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
 			const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();
-			const columns = Object.fromEntries(Object.entries(tables)
-				.map(([table, cols]) => Object.entries(cols).map(([col, desc]) => [col, { ...desc, table, col }])).flat());
+			const columns = Object.fromEntries(Object.entries(tables).map(([table, cols]) => Object.entries(cols).map(([col, desc]) => {
+				const width = (()=>{
+					switch (desc.type) {
+						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
+						case 'time': return 19;
+						case 'text': return 14;
+						default: return 5;
+					}
+				})();
+				return [col, { ...desc, table, width }];
+			})).flat());
 			return columns as {[col: string]: ColumnDef};
 		}
 	});

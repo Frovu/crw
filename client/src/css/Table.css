@@ -6,6 +6,12 @@ td {
 	border: 1px solid;
 }
 
+.Cell {
+	padding: 0 4px 0 4px;
+	display: inline-block;
+	overflow: clip;
+}
+
 .Table {
 	width: fit-content;
 	margin: 1em;

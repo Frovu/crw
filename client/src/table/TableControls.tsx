@@ -56,7 +56,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 			<div>
 				<select style={{ textAlign: 'right', width: '10em', borderColor: 'transparent' }} 
 					value={columnIdx} onChange={e => setColumnIdx(parseInt(e.target.value))}>
-					{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table as any) : ''}</option>)}
+					{columns.map((col, i) => <option value={i} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table) : ''}</option>)}
 				</select>
 				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
@@ -104,11 +104,14 @@ export function ColumnsSelector({ enabledColumns, setEnabledColumns }: { enabled
 		<label key={col.table+col.name} style={{ marginLeft: '.5em' }}><input type='checkbox' checked={enabledColumns.includes(i)}
 			onChange={e=>setEnabledColumns(cols => [...cols.filter(c => c !== i), ...(e.target.checked ? [i] : [])].sort((a, b) => a - b))}/>{col.name}</label>]);
 	return (
-		<div className='ColumnsSelector'>
-			{tables.map(table => <Fragment key={table}>
-				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
-				<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
-			</Fragment>)}
-		</div>
+		<details>
+			<summary>Change columns</summary>
+			<div className='ColumnsSelector'>
+				{tables.map(table => <Fragment key={table}>
+					<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
+					<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
+				</Fragment>)}
+			</div>
+		</details>
 	);
 }

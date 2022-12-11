@@ -3,7 +3,7 @@ import { ColumnDef, prettyName } from './Table';
 
 function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
-	return <span>{val}</span>;
+	return <span className='Cell' style={{ width: def.width+'ch' }}>{val}</span>;
 }
 
 export default function TableView({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
@@ -23,16 +23,13 @@ export default function TableView({ data, columns }: { data: any[][], columns: C
 
 	return (
 		<div className='Table' ref={ref}>
-			<table style={{ tableLayout: 'fixed', width: '480px' }}>
-				<colgroup>
-					{columns.map(col => <col span={1} key={col.table+col.name} style={{ width: col.type === 'time' || col.type === 'text' ? '13em' : '5em', overflow: 'clip' }}></col>)}
-				</colgroup>
+			<table style={{ tableLayout: 'fixed' }}>
 				<thead>
 					<tr>
 						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyName(table)}</td>)}
 					</tr>
 					<tr>
-						{columns.map(col => <td key={col.table+col.name}>{col.name}</td>)}
+						{columns.map(col => <td key={col.table+col.name} title={col.description} style={{ maxWidth: col.width+'ch', wordBreak: 'break-word' }}>{col.name}</td>)}
 					</tr>
 				</thead>
 				<tbody>
@@ -40,7 +37,7 @@ export default function TableView({ data, columns }: { data: any[][], columns: C
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>
-				{viewIndex+1} to {viewIndex+viewSize+1} of {data.length}
+				{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
 			</div>
 		</div>
 	);
