@@ -1,16 +1,24 @@
 import { useState, useRef, useEffect } from 'react';
-import { ColumnDef, prettyName } from './Table';
+import { ColumnDef, Sort, prettyName } from './Table';
 
 function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
-	return <span className='Cell' style={{ width: def.width+'ch' }}>{val}</span>;
+	return <span className='Cell' style={{ width: def.width+.5+'ch' }}>{val}</span>;
 }
 
-// function ColumnHeader({ col, isSort, setSort }) {
+function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
+	return (
+		<td title={col.description} style={{ maxWidth: col.width+.5+'ch', position: 'relative', clipPath: 'border-box', wordBreak: 'break-word', cursor: 'pointer', userSelect: 'none' }}
+			onClick={()=>setSort({ column: col.id, direction: sort.column === col.id ? sort.direction * -1 as any : 1 })}>
+			{col.name}
+			{sort.column === col.id &&
+				<div style={{ backgroundColor: 'transparent', position: 'absolute', left: 0, width: '100%', height: 1,
+					[sort.direction < 0 ? 'top' : 'bottom']: -2, boxShadow: '0 0px 20px 6px var(--color-active)' }}/> }
+		</td>
+	);
+}
 
-// }
-
-export default function TableView({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
+export default function TableView({ data, columns, sort, setSort }: { data: any[][], columns: ColumnDef[], sort: Sort, setSort: (s: Sort) => void }) {
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
@@ -33,11 +41,12 @@ export default function TableView({ data, columns }: { data: any[][], columns: C
 						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyName(table)}</td>)}
 					</tr>
 					<tr>
-						{columns.map(col => <td key={col.table+col.name} title={col.description} style={{ maxWidth: col.width+'ch', wordBreak: 'break-word' }}>{col.name}</td>)}
+						{columns.map(col => <ColumnHeader key={col.id} {...{ col, sort, setSort }}/>)}
 					</tr>
 				</thead>
 				<tbody>
-					{data.slice(viewIndex, viewIndex+viewSize).map((row, idx) => <tr key={viewIndex+idx}>{row.map((value, i) => <td key={i}><Cell {...{ value, def: columns[i] }}/></td>)}</tr>) /* eslint-disable-line react/no-array-index-key */}
+					{data.slice(viewIndex, viewIndex+viewSize).map((row, idx) =>
+						<tr key={viewIndex+idx}>{row.map((value, i) =><td key={i}><Cell {...{ value, def: columns[i] }}/></td>)}</tr>) /* eslint-disable-line react/no-array-index-key */}
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>

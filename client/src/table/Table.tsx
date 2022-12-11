@@ -17,6 +17,7 @@ export type ColumnDef = {
 };
 export type Columns = { [id: string]: ColumnDef };
 export type Filter = (r: any[]) => boolean;
+export type Sort = { column: string, direction: 1 | -1 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable: string }>({ data: [], columns: {}, fisrtTable: '' });
 
@@ -27,25 +28,26 @@ function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
 	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
-	const [sort, setSort] = useState([0]);
+	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
 	const renderedData = useMemo(() => {
 		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
+		const sortIdx = enabledColumns.indexOf(sort.column);
 		const rendered = data.filter((row) => {
 			for (const filter of filters)
 				if (!filter(row)) return false;
 			return true;
-		}).map(row => enabledIdxs.map(ci => row[ci]));
-		// TODO: sort
+		}).map(row => enabledIdxs.map(ci => row[ci]))
+			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
 		return rendered;
-	}, [data, columns, filters, enabledColumns]);
+	}, [data, columns, filters, enabledColumns, sort]);
 
 	return (
 		<div>
 			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
 			<FiltersView {...{ setFilters }}/>
-			<TableView {...{ data: renderedData, columns: enabledColumns.map(ci => columns[ci]),  }}/>
+			<TableView {...{ data: renderedData, columns: enabledColumns.map(ci => columns[ci]), sort, setSort }}/>
 		</div>
 	);
 }
