@@ -1,27 +1,36 @@
 import { useState, useEffect, useContext, Fragment } from 'react';
-import { Filter, TableContext, prettyName } from './Table';
+import { TableContext, prettyName } from './Table';
 
-type FilterArgs = { filters: Filter[], setFilters: (val: Filter[]) => void };
+type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
 type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
 
-const FILTER_OPS = ['>=', '<=', '==', 'not null', 'includes', 'in list'] as const;
+const FILTER_OPS = ['>=' , '<=' , '==' , 'not null' , 'includes' , 'in list'] as const;
+export type Filter = {
+	column: string,
+	operation: typeof FILTER_OPS[number],
+	input: string,
+	id: number,
+	fn?: (row: any[]) => boolean 
+};
 
-function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void, destruct: () => void }) {
+function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
 	const { columns, fisrtTable } = useContext(TableContext);
-	const [column, setColumn] = useState(() => Object.values(columns).find(c => c.name === 'magnitude' && c.table === fisrtTable)!);
-	const [operation, setOperation] = useState<typeof FILTER_OPS[number]>(FILTER_OPS[0]);
+	const [ filter, setFilter ] = useState(filterOri);
 	const [invalid, setInvalid] = useState(false);
-	const [inputRaw, setInput] = useState('');
+
+	const { column: columnId, operation, input: inputRaw } = filter;
+	const column = columns[columnId];
 
 	const isSelectInput = column.type === 'enum' && operation !== 'includes' && operation !== 'in list';
 	const input = isSelectInput && !column.enum?.includes(inputRaw) ? column.enum?.[0] as string : inputRaw;
 
 	useEffect(() => {
+		const setFn = (fn: Filter['fn']) => setFilters(filters => filters.map(fl => fl.id !== filter.id ? fl : { ...filter, fn }));
 		const columnIdx = Object.keys(columns).indexOf(column.id);
 		if (operation === 'not null')
-			return callback(row => row[columnIdx] != null);
+			return setFn(row => row[columnIdx] != null);
 		if (operation === 'includes')
-			return callback(row => row[columnIdx]?.includes(input));
+			return setFn(row => row[columnIdx]?.includes(input));
 		const inp = input.trim().split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g);
 		const values = inp.map((val) => {
 			switch (column.type) {
@@ -52,54 +61,34 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 				case 'in list': return (v: any) => values.includes(v);
 			}
 		})();
-		const filter: Filter = (row: any[]) => filterFn(row[columnIdx]);
-		callback(filter);
-	}, [column, input, operation, columns, setInvalid]); // eslint-disable-line react-hooks/exhaustive-deps
+		setFn(row => filterFn(row[columnIdx]));
+	}, [columns, column, operation, input, filter.id, setFilters, filter]);
+
+	const destruct = () => setFilters(filters => filters.filter(fl => fl.id !== filter.id));
+	const set = (what: string) => (e: any) => setFilter({ ...filter, [what]: e.target.value });
 
 	return (
 		<div className='FilterCard'>
 			<div>
-				<select style={{ textAlign: 'right', width: '10em', borderColor: 'transparent' }} 
-					value={column.id} onChange={e => setColumn(columns[e.target.value])}>
-					{Object.values(columns).map(col => <option value={col.id} key={col.table+col.name}>{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table) : ''}</option>)}
+				<select style={{ textAlign: 'right', borderColor: 'transparent' }} 
+					value={column.id} onChange={set('column')}>
+					{Object.values(columns).map(col => <option value={col.id} key={col.table+col.name}>
+						{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : ''}</option>)}
 				</select>
-				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={e => setOperation(e.target.value as typeof FILTER_OPS[number])}>
+				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 				</select>
 				{operation !== 'not null' && !isSelectInput &&
 				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
-					value={input} onChange={e => setInput(e.target.value)}/>}
+					value={input} onChange={set('input')}/>}
 				{operation !== 'not null' && isSelectInput &&
-				<select style={{ width: '8em' }} value={input} onChange={e => setInput(e.target.value)}>
+				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 				</select>}
 			</div>
 			<button onClick={destruct}>delete</button>
 		</div>
 	);
-}
-
-function FiltersView({ setFilters }: { setFilters: FilterArgs['setFilters'] }) {
-	const [cards, setCards] = useState(new Map<number, Filter | null>([]));
-	const [uid, setUid] = useState(0);
-	const nextKey = () => { setUid(uid+1); return uid; }; 
-
-	useEffect(() => {
-		setFilters([...cards.values()].filter((f): f is Filter => f != null));
-	}, [cards, setFilters]);
-
-	return (
-		<div className='Filters'>
-			{[...cards.keys()].map((idx) =>
-				<FilterCard key={idx}
-					destruct={() => setCards(crds => new Map([...crds.entries()].filter(([k,]) => k !== idx)))}
-					callback={fn => setCards(crds => new Map(crds.set(idx, fn)))}/>)}
-			<div className='AddFilter'>
-				<button onClick={() => setCards(crds => new Map(crds.set(nextKey(), null)))}>Add filter</button>
-			</div>
-		</div>
-	);
-
 }
 
 function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
@@ -123,11 +112,15 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 	);
 }
 
-export default function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
+export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
+	const newFilter = () => setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]);
 	return (
 		<div>
 			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
-			<FiltersView {...{ setFilters }}/>
+			<div className='Filters'>
+				{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }
+			</div>
+			<button onClick={newFilter}>Add filter</button>
 		</div>
 	);
 }

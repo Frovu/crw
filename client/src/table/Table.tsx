@@ -1,7 +1,7 @@
 import { useState, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import '../css/Table.css';
-import Menu from './TableMenu';
+import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
@@ -16,35 +16,36 @@ export type ColumnDef = {
 	id: string
 };
 export type Columns = { [id: string]: ColumnDef };
-export type Filter = (r: any[]) => boolean;
 export type Sort = { column: string, direction: 1 | -1 };
 
-export const TableContext = createContext<{ data: any[][], columns: Columns, renderedData?: any[][], enabledColumns?: string[], fisrtTable?: string }>({ data: [], columns: {} });
+export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
+export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
 
 const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
 const defaultColumns = (columns: Columns) => Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);;
 
 function CoreWrapper() {
-	const tableContext = useContext(TableContext);
+	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
-	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(tableContext.columns));
+	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
 	const dataContext = useMemo(() => {
-		const enabledIdxs = enabledColumns.map(c => Object.keys(tableContext.columns).indexOf(c));
+		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
 		const sortIdx = enabledColumns.indexOf(sort.column);
-		const renderedData = tableContext.data.filter(row => !filters.some(filter => !filter(row)))
+		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
+		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
 			.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		return { ...tableContext, renderedData, enabledColumns };
-	}, [tableContext, filters, enabledColumns, sort]);
+		return { data: renderedData, columns: enabledColumns.map(id => columns[id]) };
+	}, [data, columns, filters, enabledColumns, sort]);
 
 	return (
-		<TableContext.Provider value={dataContext}>
+		<DataContext.Provider value={dataContext}>
 			<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
 			<TableView {...{ sort, setSort }}/>
-		</TableContext.Provider>
+		</DataContext.Provider>
 	);
 }
 

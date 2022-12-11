@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext } from 'react';
-import { ColumnDef, Sort, prettyName, TableContext } from './Table';
+import { ColumnDef, Sort, prettyName, DataContext } from './Table';
 
 function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
@@ -19,9 +19,7 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 }
 
 export default function TableView({ sort, setSort }: { sort: Sort, setSort: (s: Sort) => void }) {
-	const { renderedData, columns: columnsDef, enabledColumns } = useContext(TableContext);
-	const columns = enabledColumns!.map(col => columnsDef[col]);
-	const data = renderedData!;
+	const { data, columns } = useContext(DataContext);
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
