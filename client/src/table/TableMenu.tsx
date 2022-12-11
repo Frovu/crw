@@ -1,7 +1,10 @@
 import { useState, useEffect, useContext, Fragment } from 'react';
 import { Filter, TableContext, prettyName } from './Table';
 
-const FILTER_OPS = ['>=', '<=', '==', 'not null', 'in list'] as const;
+type FilterArgs = { filters: Filter[], setFilters: (val: Filter[]) => void };
+type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
+
+const FILTER_OPS = ['>=', '<=', '==', 'not null', 'includes', 'in list'] as const;
 
 function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void, destruct: () => void }) {
 	const { columns, fisrtTable } = useContext(TableContext);
@@ -10,13 +13,15 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 	const [invalid, setInvalid] = useState(false);
 	const [inputRaw, setInput] = useState('');
 
-	const isSelectInput = column.type === 'enum' && operation !== 'in list';
+	const isSelectInput = column.type === 'enum' && operation !== 'includes' && operation !== 'in list';
 	const input = isSelectInput && !column.enum?.includes(inputRaw) ? column.enum?.[0] as string : inputRaw;
 
 	useEffect(() => {
 		const columnIdx = Object.keys(columns).indexOf(column.id);
 		if (operation === 'not null')
 			return callback(row => row[columnIdx] != null);
+		if (operation === 'includes')
+			return callback(row => row[columnIdx]?.includes(input));
 		const inp = input.trim().split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g);
 		const values = inp.map((val) => {
 			switch (column.type) {
@@ -74,7 +79,7 @@ function FilterCard({ callback, destruct }: { callback: (filter: Filter) => void
 	);
 }
 
-export function FiltersView({ setFilters }: { setFilters: (val: Filter[]) => void }) {
+function FiltersView({ setFilters }: { setFilters: FilterArgs['setFilters'] }) {
 	const [cards, setCards] = useState(new Map<number, Filter | null>([]));
 	const [uid, setUid] = useState(0);
 	const nextKey = () => { setUid(uid+1); return uid; }; 
@@ -97,7 +102,7 @@ export function FiltersView({ setFilters }: { setFilters: (val: Filter[]) => voi
 
 }
 
-export function ColumnsSelector({ enabledColumns, setEnabledColumns }: { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void }) {
+function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 	const { columns: columnsMap } = useContext(TableContext);
 	const columns = Object.values(columnsMap);
 	const tables = [...new Set(columns.map(c => c.table as string))];
@@ -115,5 +120,14 @@ export function ColumnsSelector({ enabledColumns, setEnabledColumns }: { enabled
 				</Fragment>)}
 			</div>
 		</details>
+	);
+}
+
+export default function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
+	return (
+		<div>
+			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
+			<FiltersView {...{ setFilters }}/>
+		</div>
 	);
 }

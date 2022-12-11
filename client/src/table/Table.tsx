@@ -1,7 +1,7 @@
 import { useState, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import '../css/Table.css';
-import { FiltersView, ColumnsSelector } from './TableControls';
+import Menu from './TableMenu';
 import TableView from './TableCore';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
@@ -19,36 +19,32 @@ export type Columns = { [id: string]: ColumnDef };
 export type Filter = (r: any[]) => boolean;
 export type Sort = { column: string, direction: 1 | -1 };
 
-export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable: string }>({ data: [], columns: {}, fisrtTable: '' });
+export const TableContext = createContext<{ data: any[][], columns: Columns, renderedData?: any[][], enabledColumns?: string[], fisrtTable?: string }>({ data: [], columns: {} });
 
 const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
 const defaultColumns = (columns: Columns) => Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);;
 
 function CoreWrapper() {
-	const { data, columns } = useContext(TableContext);
+	const tableContext = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
-	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
+	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(tableContext.columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
-	const renderedData = useMemo(() => {
-		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
+	const dataContext = useMemo(() => {
+		const enabledIdxs = enabledColumns.map(c => Object.keys(tableContext.columns).indexOf(c));
 		const sortIdx = enabledColumns.indexOf(sort.column);
-		const rendered = data.filter((row) => {
-			for (const filter of filters)
-				if (!filter(row)) return false;
-			return true;
-		}).map(row => enabledIdxs.map(ci => row[ci]))
+		const renderedData = tableContext.data.filter(row => !filters.some(filter => !filter(row)))
+			.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		return rendered;
-	}, [data, columns, filters, enabledColumns, sort]);
+		return { ...tableContext, renderedData, enabledColumns };
+	}, [tableContext, filters, enabledColumns, sort]);
 
 	return (
-		<div>
-			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
-			<FiltersView {...{ setFilters }}/>
-			<TableView {...{ data: renderedData, columns: enabledColumns.map(ci => columns[ci]), sort, setSort }}/>
-		</div>
+		<TableContext.Provider value={dataContext}>
+			<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
+			<TableView {...{ sort, setSort }}/>
+		</TableContext.Provider>
 	);
 }
 
