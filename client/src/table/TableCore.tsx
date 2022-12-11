@@ -6,12 +6,16 @@ function Cell({ value, def }: { value: Date | number | string | null, def: Colum
 	return <span className='Cell' style={{ width: def.width+'ch' }}>{val}</span>;
 }
 
+// function ColumnHeader({ col, isSort, setSort }) {
+
+// }
+
 export default function TableView({ data, columns }: { data: any[][], columns: ColumnDef[] }) {
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 	useEffect(() => {
-		setViewIndex(0);
+		setViewIndex(data.length - viewSize);
 	}, [data]);
 	useEffect(() => {
 		if (!ref.current) return;
