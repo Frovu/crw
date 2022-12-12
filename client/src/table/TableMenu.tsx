@@ -105,8 +105,8 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 	const tables = [...new Set(columns.map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.map(col => [col,
-		<label key={col.table+col.name} style={{ marginLeft: '.5em' }}><input type='checkbox' checked={enabledColumns.includes(col.id)}
-			onChange={e=>setEnabledColumns(cols => [...cols.filter(c => c !== col.id), ...(e.target.checked ? [col.id] : [])].sort(sortFn))}/>{col.name}</label>]);
+		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)}
+			callback={checked => setEnabledColumns(cols => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>]);
 	return (
 		<div className='ColumnsSelector'>
 			{tables.map(table => <Fragment key={table}>
@@ -133,7 +133,7 @@ function MenuSection({ name, shownSection, setShownSection, children }: { name: 
 			<button onClick={e => {setShownSection(name); e.stopPropagation(); }}>
 				{name}
 			</button>
-			{name === shownSection && <div className='MenuDropdown' onClick={()=>setShownSection(null)}>
+			{name === shownSection && <div className='MenuDropdown' onClick={e => { setShownSection(null); e.stopPropagation(); }}>
 				{children}
 			</div>}
 		</div>
@@ -185,6 +185,8 @@ function ExportMenu() {
 function onKeydown(e: KeyboardEvent) {
 	if (e.key === 'Escape')
 		return dispatch('escape');
+	if (e.target instanceof HTMLInputElement)
+		return;
 	if (!e.ctrlKey || e.key === 'Control')
 		return;
 	console.log(e.ctrlKey ? 'ctrl' : '', e.key, );
@@ -201,7 +203,7 @@ export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }:
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
 	useEventListener('escape', () => { setShowColumns(false); setShownSection(null); });
-	useEventListener('click', (e) => {
+	useEventListener('click', () => {
 		setShowColumns(false);
 		setShownSection(null);
 	});

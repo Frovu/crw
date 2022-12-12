@@ -12,7 +12,7 @@ function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def
 			{!cursor?.editing &&
 			<span className='Cell' style={{ ...width }}>{val}</span>}
 			{cursor?.editing &&
-			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val}></input>}
+			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val} onChange={()=>{}}></input>}
 		</td>
 	);
 }
@@ -53,6 +53,7 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 	}, [data.length, ref]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
 		if (cursor && e.key === 'Enter')
 			return setCursor({ ...cursor, editing: true });

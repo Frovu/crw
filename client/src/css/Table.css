@@ -21,6 +21,7 @@ td {
 
 .ColumnsSelector {
 	position: absolute;
+	left: 1em;
 	display: flex;
 	flex-flow: column wrap;
 	width: 44em;
