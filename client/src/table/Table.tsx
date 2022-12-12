@@ -39,6 +39,7 @@ function CoreWrapper() {
 		setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]));
 
 	const dataContext = useMemo(() => {
+		setCursor(null);
 		console.time('render data');
 		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
 		const sortIdx = enabledColumns.indexOf(sort.column);

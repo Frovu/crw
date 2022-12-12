@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext, Fragment, ReactNode } from 'react';
-import { TableContext, prettyName } from './Table';
+import { useState, useEffect, useContext, Fragment, ReactNode, useMemo } from 'react';
+import { TableContext, DataContext, prettyName } from './Table';
 import { useEventListener, dispatch } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
@@ -125,19 +125,58 @@ function MenuButton({ text, action, callback }: { text: string, action: string, 
 	);
 }
 
-function MenuSection({ name, children }: { name: string, children: ReactNode }) {
-	const [open, setOpen] = useState(false);
-	useEventListener('escape', () => setOpen(false));
-
+function MenuSection({ name, shownSection, setShownSection, children }: { name: string, shownSection: string | null, setShownSection: (s: string | null) => void, children: ReactNode }) {
 	return (
 		<div>
-			<button onClick={()=>setOpen(!open)}>
+			<button onClick={e => {setShownSection(name); e.stopPropagation(); }}>
 				{name}
 			</button>
-			{open && <div className='MenuDropdown' onClick={() => setOpen(false)}>
+			{name === shownSection && <div className='MenuDropdown' onClick={()=>setShownSection(null)}>
 				{children}
 			</div>}
 		</div>
+	);
+}
+
+function MenuCheckbox({ text, value, callback, hide }: { text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void }) {
+	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
+		<input type='checkbox' checked={value} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
+	</label>);
+}
+
+function ExportMenu() {
+	const { data: rData, columns: rColumns } = useContext(TableContext);
+	const { data: fData, columns: fColumns } = useContext(DataContext);
+
+	const [ filtered, setFiltered ] = useState(true);
+	const [ format, setFormat ] = useState(false);
+	
+	const dataUrl = useMemo(() => {
+		const data = filtered ? fData : rData;
+		const columns = filtered ? fColumns : Object.values(rColumns);
+		if (!format)
+			return URL.createObjectURL(new Blob([JSON.stringify({ data, columns }, null, 2)], { type: 'application/json' }));
+
+		let text = 'Note: plaintext export option has limitations and you should consider using JSON instead\r\nAll whitespace in values is replaced by _\r\n';
+		text += columns.map(col => col.id.padStart(col.width + 4, ' '.repeat(col.width))).join(' ') + '\r\n';
+
+		for (const row of data) {
+			for (const [i, col] of columns.entries()) {
+				const val = col.type === 'time' ? row[i]?.toISOString().replace(/\..+/,'Z') : row[i];
+				text += (val == null ? 'N/A' : val).toString().replace(/\s/, '_').padStart(col.width + 4, ' '.repeat(col.width)) + ' ';
+			}
+			text += '\r\n';
+		};
+		return URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+	}, [fColumns, fData, filtered, format, rColumns, rData]);
+
+	const fname = (filtered ? 'some_' : 'all_') + 'events' + (format ? '.txt' : '.json');
+	return (
+		<>
+			<MenuCheckbox text={'format: '+(format?'plaintext':'JSON')} value={format} callback={setFormat} hide={true}/>
+			<MenuCheckbox text='apply filters' value={filtered} callback={setFiltered}/>
+			<a style={{ marginLeft: '.5em' }} href={dataUrl} download={fname}>download as a file</a>
+		</>
 	);
 }
 
@@ -155,18 +194,30 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
+	// const ref = useRef<HTMLDivElement>(null);
 	const [showColumns, setShowColumns] = useState(false);
-	useEventListener('escape', () => setShowColumns(false));
-	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
+	const [shownSection, setShownSection] = useState<string | null>(null);
 
+	useEventListener('escape', () => { setShowColumns(false); setShownSection(null); });
+	useEventListener('click', (e) => {
+		setShowColumns(false);
+		setShownSection(null);
+	});
+
+	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
 	useEventListener('keydown', onKeydown);
 
 	return (
-		<div className='Menu'>
-			<MenuSection name='View'>
-				<MenuButton text='Add filter' action='addFilter'/>
-				<MenuButton text='Set columns' action='openColumnsSelector'/>
-			</MenuSection>
+		<div>
+			<div className='Menu'>
+				<MenuSection name='View' {...{ shownSection, setShownSection }}>
+					<MenuButton text='Add filter' action='addFilter'/>
+					<MenuButton text='Set columns' action='openColumnsSelector'/>
+				</MenuSection>
+				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
+					<ExportMenu/>
+				</MenuSection>
+			</div>
 			{showColumns && <ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>}
 			{filters.length > 0 && <div className='Filters'>
 				{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }

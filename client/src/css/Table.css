@@ -1,10 +1,10 @@
 table {
 	text-align: center;
-	border: 1px solid;
+	border: 1px solid var(--color-border);
 }
 
 td {
-	border: 1px solid;
+	border: 1px solid var(--color-border);
 }
 
 .Cell {
@@ -59,6 +59,8 @@ td {
 }
 
 .Menu {
+	display: flex;
+	gap: 8px;
 	position: relative;
 	z-index: 10;
 	margin: 1em;
@@ -70,12 +72,26 @@ td {
 	flex-direction: column;
 	background-color: var(--color-bg);
 	z-index: 10;
+	border: 1px solid var(--color-border);
+	padding: .5em;
+	gap: 4px;
 }
 
 .MenuItem {
+	border-color: transparent;
 	padding: 2px 6px 2px 6px;
 	display: inline-flex;
 	justify-content: space-between;
+}
+
+.MenuInput {
+	border: 1px solid transparent;
+	cursor: pointer;
+	user-select: none;
+}
+.MenuInput:hover {
+	border: 1px solid var(--color-active);
+	
 }
 
 .keyComb {
