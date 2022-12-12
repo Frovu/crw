@@ -1,9 +1,18 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
-import { ColumnDef, Sort, prettyName, DataContext } from './Table';
+import { useEventListener } from '../util';
+import { ColumnDef, Sort, Cursor, prettyName, DataContext } from './Table';
 
-function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
+function Cell({ value, editing, def }: { value: any, editing: boolean, def: ColumnDef }) {
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
-	return <span className='Cell' style={{ width: def.width+.5+'ch' }}>{val}</span>;
+	if (!editing)
+		return <span className='Cell' style={{ width: def.width+.5+'ch' }}>{val}</span>;
+	return <input type='text' value={val}></input>;
+}
+
+function Row({ row, columns, cursor }: { row: any[], columns: ColumnDef[], cursor?: Cursor }) {
+
+	// eslint-disable-next-line react/no-array-index-key
+	return <tr>{row.map((value, i) =><td key={i}><Cell {...{ value, editing: cursor?.column === i, def: columns[i] }}/></td>)}</tr>;
 }
 
 function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
@@ -18,11 +27,12 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 	);
 }
 
-export default function TableView({ sort, setSort }: { sort: Sort, setSort: (s: Sort) => void }) {
+export default function TableView({ sort, setSort, cursor, setCursor }: { sort: Sort, setSort: (s: Sort) => void, cursor: Cursor, setCursor: (c: Cursor) => void }) {
 	const { data, columns } = useContext(DataContext);
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
+
 	useLayoutEffect(() => {
 		setViewIndex(data.length - viewSize);
 	}, [data]);
@@ -31,6 +41,11 @@ export default function TableView({ sort, setSort }: { sort: Sort, setSort: (s: 
 		ref.current.onwheel = e => setViewIndex(idx =>
 			Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize));
 	}, [data.length, ref]);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		console.log(e.key)
+	});
+
 	const tables = new Map<any, ColumnDef[]>();
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
@@ -46,8 +61,8 @@ export default function TableView({ sort, setSort }: { sort: Sort, setSort: (s: 
 					</tr>
 				</thead>
 				<tbody>
-					{data.slice(viewIndex, viewIndex+viewSize).map((row, idx) =>
-						<tr key={viewIndex+idx}>{row.map((value, i) =><td key={i}><Cell {...{ value, def: columns[i] }}/></td>)}</tr>) /* eslint-disable-line react/no-array-index-key */}
+					{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
+						<Row key={row[0].getTime()} {...{ row, columns, cursor: cursor?.row === viewIndex+i ? cursor : null }}/>)}
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>

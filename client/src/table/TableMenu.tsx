@@ -86,7 +86,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 				</select>
 				{operation !== 'not null' && !isSelectInput &&
 				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
-					value={input} onChange={set('input')}/>}
+					value={input} onChange={set('input')} onKeyDown={(e) => e.ctrlKey && e.key === 'Delete' && destruct()}/>}
 				{operation !== 'not null' && isSelectInput &&
 				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
@@ -144,8 +144,9 @@ function MenuSection({ name, children }: { name: string, children: ReactNode }) 
 function onKeydown(e: KeyboardEvent) {
 	if (e.key === 'Escape')
 		return dispatch('escape');
-	if (!e.ctrlKey)
+	if (!e.ctrlKey || e.key === 'Control')
 		return;
+	console.log(e.ctrlKey ? 'ctrl' : '', e.key, );
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === 'Ctrl+' + e.key.toUpperCase());
 	if (action) {
 		e.preventDefault();

@@ -18,6 +18,7 @@ export type ColumnDef = {
 };
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
+export type Cursor = { row: number, column: number, editing?: boolean } | null;
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
@@ -30,25 +31,29 @@ function CoreWrapper() {
 	const [filters, setFilters] = useState<Filter[]>([]);
 	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
+	const [cursor, setCursor] = useState<Cursor>(null);
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
+	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 	useEventListener('action+addFilter', () =>
 		setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]));
 
 	const dataContext = useMemo(() => {
+		console.time('render data');
 		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
 		const sortIdx = enabledColumns.indexOf(sort.column);
 		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
 		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
 			.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
+		console.timeEnd('render data');
 		return { data: renderedData, columns: enabledColumns.map(id => columns[id]) };
 	}, [data, columns, filters, enabledColumns, sort]);
 
 	return (
 		<DataContext.Provider value={dataContext}>
 			<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
-			<TableView {...{ sort, setSort }}/>
+			<TableView {...{ sort, setSort, cursor, setCursor }}/>
 		</DataContext.Provider>
 	);
 }
