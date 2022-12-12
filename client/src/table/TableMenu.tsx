@@ -16,7 +16,8 @@ export type Filter = {
 
 const KEY_COMB = {
 	'openColumnsSelector': 'Ctrl+R',
-	'addFilter': 'Ctrl+F'
+	'addFilter': 'Ctrl+F',
+	'removeFilter': 'Ctrl+G'
 } as { [action: string]: string };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
@@ -88,7 +89,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 				</select>
 				{!operation.includes('null') && !isSelectInput &&
 				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
-					value={input} onChange={set('input')} onKeyDown={(e) => e.ctrlKey && e.key === 'Delete' && destruct()}/>}
+					value={input} onChange={set('input')}/>}
 				{!operation.includes('null') && isSelectInput &&
 				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
@@ -198,7 +199,6 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
-	// const ref = useRef<HTMLDivElement>(null);
 	const [showColumns, setShowColumns] = useState(false);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
@@ -216,7 +216,8 @@ export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }:
 			<div className='Menu'>
 				<MenuSection name='View' {...{ shownSection, setShownSection }}>
 					<MenuButton text='Add filter' action='addFilter'/>
-					<MenuButton text='Set columns' action='openColumnsSelector'/>
+					<MenuButton text='Remove filter' action='removeFilter'/>
+					<MenuButton text='Select columns' action='openColumnsSelector'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
 					<ExportMenu/>

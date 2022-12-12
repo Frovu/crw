@@ -44,6 +44,7 @@ function CoreWrapper() {
 		const input = val?.toString() ?? '';
 		return [...fltrs, { column: column.id, operation, input, id: Date.now() }];
 	}));
+	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 
 	const dataContext = useMemo(() => {
 		setCursor(null);
