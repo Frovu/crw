@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, Fragment } from 'react';
+import { useState, useEffect, useContext, Fragment, ReactNode } from 'react';
 import { TableContext, prettyName } from './Table';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
@@ -86,7 +86,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 				</select>}
 			</div>
-			<button onClick={destruct}>delete</button>
+			<button style={{ marginLeft: '1em' }} onClick={destruct}>remove</button>
 		</div>
 	);
 }
@@ -112,14 +112,42 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 	);
 }
 
+function MenuButton({ text, keyComb, callback }: { text: string, keyComb: string, callback: () => void }) {
+	return (
+		<button className='MenuItem'>
+			<span>{text}</span>
+			<span className='keyComb'>{keyComb}</span>
+		</button>
+	);
+}
+
+function MenuSection({ name, children }: { name: string, children: ReactNode }) {
+	const [open, setOpen] = useState(false);
+	console.log(children)
+	return (
+		<div>
+			<button onClick={()=>setOpen(!open)}>
+				{name}
+			</button>
+			{open && <div className='MenuDropdown'>
+				{children}
+			</div>}
+		</div>
+	);
+}
+
 export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
 	const newFilter = () => setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]);
 	return (
-		<div>
-			<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>
-			<div className='Filters'>
+		<div className='Menu'>
+			<MenuSection name='View'>
+				<MenuButton text='Add filter' keyComb='Ctrl+F' callback={()=>console.log(123)}/>
+				<MenuButton text='Set columns' keyComb='Ctrl+Q' callback={()=>console.log(321)}/>
+			</MenuSection>
+			{<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>}
+			{filters.length > 0 && <div className='Filters'>
 				{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }
-			</div>
+			</div>}
 			<button onClick={newFilter}>Add filter</button>
 		</div>
 	);
