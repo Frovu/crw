@@ -1,4 +1,8 @@
 input, button, select {
+	-ms-box-sizing:content-box;
+	-moz-box-sizing:content-box;
+	-webkit-box-sizing:content-box; 
+	box-sizing:content-box;
 	background-color: inherit;
 	font-family: inherit;
 	font-size: inherit;

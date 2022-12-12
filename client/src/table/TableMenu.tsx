@@ -5,7 +5,7 @@ import { useEventListener, dispatch } from '../util';
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
 type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
 
-const FILTER_OPS = ['>=' , '<=' , '==' , 'not null' , 'includes' , 'in list'] as const;
+const FILTER_OPS = ['>=' , '<=' , '==' , 'is null', 'not null' , 'includes' , 'in list'] as const;
 export type Filter = {
 	column: string,
 	operation: typeof FILTER_OPS[number],
@@ -33,6 +33,8 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 	useEffect(() => {
 		const setFn = (fn: Filter['fn']) => setFilters(filters => filters.map(fl => fl.id !== filter.id ? fl : { ...filter, fn }));
 		const columnIdx = Object.keys(columns).indexOf(column.id);
+		if (operation === 'is null')
+			return setFn(row => row[columnIdx] == null);
 		if (operation === 'not null')
 			return setFn(row => row[columnIdx] != null);
 		if (operation === 'includes')
@@ -84,10 +86,10 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 				</select>
-				{operation !== 'not null' && !isSelectInput &&
+				{!operation.includes('null') && !isSelectInput &&
 				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
 					value={input} onChange={set('input')} onKeyDown={(e) => e.ctrlKey && e.key === 'Delete' && destruct()}/>}
-				{operation !== 'not null' && isSelectInput &&
+				{!operation.includes('null') && isSelectInput &&
 				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 				</select>}

@@ -35,8 +35,15 @@ function CoreWrapper() {
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
-	useEventListener('action+addFilter', () =>
-		setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]));
+	useEventListener('action+addFilter', () => setFilters(fltrs => {
+		if (!cursor)
+			return [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }];
+		const column = dataContext.columns[cursor.column];
+		const val = dataContext.data[cursor.row][cursor.column];
+		const operation = val == null ? 'is null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
+		const input = val?.toString() ?? '';
+		return [...fltrs, { column: column.id, operation, input, id: Date.now() }];
+	}));
 
 	const dataContext = useMemo(() => {
 		setCursor(null);

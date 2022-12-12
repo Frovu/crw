@@ -8,9 +8,9 @@ function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
 	const width = { width: def.width+.5+'ch' };
 	return (
-		<td style={{ ...(cursor && { borderColor: 'var(--color-active)' }) }}>
+		<td onClick={onClick} style={{ ...(cursor && { borderColor: 'var(--color-active)' }) }}>
 			{!cursor?.editing &&
-			<span onClick={onClick} className='Cell' style={{ ...width }}>{val}</span>}
+			<span className='Cell' style={{ ...width }}>{val}</span>}
 			{cursor?.editing &&
 			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val}></input>}
 		</td>
@@ -27,7 +27,7 @@ function Row({ index, row, columns, cursor, setCursor }: { index: number, row: a
 
 function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
 	return (
-		<td title={col.description} style={{ maxWidth: col.width+.5+'ch', position: 'relative', clipPath: 'border-box', wordBreak: 'break-word', cursor: 'pointer', userSelect: 'none' }}
+		<td title={col.description} style={{ maxWidth: col.width+.5+'ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', wordBreak: 'break-word', cursor: 'pointer', userSelect: 'none' }}
 			onClick={()=>setSort({ column: col.id, direction: sort.column === col.id ? sort.direction * -1 as any : 1 })}>
 			{col.name}
 			{sort.column === col.id &&
