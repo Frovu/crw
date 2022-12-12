@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext, Fragment, ReactNode } from 'react';
 import { TableContext, prettyName } from './Table';
+import { useEventListener, dispatch } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
 type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
@@ -11,6 +12,11 @@ export type Filter = {
 	input: string,
 	id: number,
 	fn?: (row: any[]) => boolean 
+};
+
+const KEY_COMB = {
+	'openColumnsSelector': 'Ctrl+Q',
+	'addFilter': 'Ctrl+F'
 };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
@@ -100,30 +106,29 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 		<label key={col.table+col.name} style={{ marginLeft: '.5em' }}><input type='checkbox' checked={enabledColumns.includes(col.id)}
 			onChange={e=>setEnabledColumns(cols => [...cols.filter(c => c !== col.id), ...(e.target.checked ? [col.id] : [])].sort(sortFn))}/>{col.name}</label>]);
 	return (
-		<details>
-			<summary>Change columns</summary>
-			<div className='ColumnsSelector'>
-				{tables.map(table => <Fragment key={table}>
-					<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
-					<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
-				</Fragment>)}
-			</div>
-		</details>
+		<div className='ColumnsSelector'>
+			{tables.map(table => <Fragment key={table}>
+				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
+				<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
+			</Fragment>)}
+		</div>
 	);
 }
 
-function MenuButton({ text, keyComb, callback }: { text: string, keyComb: string, callback: () => void }) {
+function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
+	const keyComb = KEY_COMB[action as keyof typeof KEY_COMB];
 	return (
-		<button className='MenuItem'>
+		<button className='MenuItem' onClick={() => dispatch('action+' + action)}>
 			<span>{text}</span>
-			<span className='keyComb'>{keyComb}</span>
+			{keyComb && <span className='keyComb'>{keyComb}</span>}
 		</button>
 	);
 }
 
 function MenuSection({ name, children }: { name: string, children: ReactNode }) {
 	const [open, setOpen] = useState(false);
-	console.log(children)
+	useEventListener('escape', () => setOpen(false));
+
 	return (
 		<div>
 			<button onClick={()=>setOpen(!open)}>
@@ -137,18 +142,19 @@ function MenuSection({ name, children }: { name: string, children: ReactNode }) 
 }
 
 export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
-	const newFilter = () => setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]);
+	const [showColumns, setShowColumns] = useState(false);
+	useEventListener('escape', () => setShowColumns(false));
+	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
 	return (
 		<div className='Menu'>
 			<MenuSection name='View'>
-				<MenuButton text='Add filter' keyComb='Ctrl+F' callback={()=>console.log(123)}/>
-				<MenuButton text='Set columns' keyComb='Ctrl+Q' callback={()=>console.log(321)}/>
+				<MenuButton text='Add filter' action='addFilter'/>
+				<MenuButton text='Set columns' action='openColumnsSelector'/>
 			</MenuSection>
-			{<ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>}
+			{showColumns && <ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>}
 			{filters.length > 0 && <div className='Filters'>
 				{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }
 			</div>}
-			<button onClick={newFilter}>Add filter</button>
 		</div>
 	);
 }

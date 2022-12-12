@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import '../css/Table.css';
 import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
+import { useEventListener } from '../util';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -30,6 +31,9 @@ function CoreWrapper() {
 	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
+
+	useEventListener('action+addFilter', () =>
+		setFilters(fltrs => [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }]));
 
 	const dataContext = useMemo(() => {
 		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));

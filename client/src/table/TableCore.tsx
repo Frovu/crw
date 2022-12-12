@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useContext } from 'react';
+import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
 import { ColumnDef, Sort, prettyName, DataContext } from './Table';
 
 function Cell({ value, def }: { value: Date | number | string | null, def: ColumnDef }) {
@@ -23,7 +23,7 @@ export default function TableView({ sort, setSort }: { sort: Sort, setSort: (s: 
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
-	useEffect(() => {
+	useLayoutEffect(() => {
 		setViewIndex(data.length - viewSize);
 	}, [data]);
 	useEffect(() => {
