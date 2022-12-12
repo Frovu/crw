@@ -15,9 +15,9 @@ export type Filter = {
 };
 
 const KEY_COMB = {
-	'openColumnsSelector': 'Ctrl+Q',
+	'openColumnsSelector': 'Ctrl+R',
 	'addFilter': 'Ctrl+F'
-};
+} as { [action: string]: string };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
 	const { columns, fisrtTable } = useContext(TableContext);
@@ -116,7 +116,7 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 }
 
 function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
-	const keyComb = KEY_COMB[action as keyof typeof KEY_COMB];
+	const keyComb = KEY_COMB[action];
 	return (
 		<button className='MenuItem' onClick={() => dispatch('action+' + action)}>
 			<span>{text}</span>
@@ -134,17 +134,32 @@ function MenuSection({ name, children }: { name: string, children: ReactNode }) 
 			<button onClick={()=>setOpen(!open)}>
 				{name}
 			</button>
-			{open && <div className='MenuDropdown'>
+			{open && <div className='MenuDropdown' onClick={() => setOpen(false)}>
 				{children}
 			</div>}
 		</div>
 	);
 }
 
+function onKeydown(e: KeyboardEvent) {
+	if (e.key === 'Escape')
+		return dispatch('escape');
+	if (!e.ctrlKey)
+		return;
+	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === 'Ctrl+' + e.key.toUpperCase());
+	if (action) {
+		e.preventDefault();
+		dispatch('action+' + action);
+	}
+}
+
 export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
 	const [showColumns, setShowColumns] = useState(false);
 	useEventListener('escape', () => setShowColumns(false));
 	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
+
+	useEventListener('keydown', onKeydown);
+
 	return (
 		<div className='Menu'>
 			<MenuSection name='View'>

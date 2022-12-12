@@ -18,13 +18,18 @@ td {
 }
 
 .ColumnsSelector {
-	margin: 1em;
-	width: max-content;
-	align-content: flex-start;
+	position: absolute;
 	display: flex;
 	flex-flow: column wrap;
+	width: 44em;
+	height: 24em;
+	z-index: 1;
+	background-color: var(--color-bg);
+	/* box-shadow: 0 0 48px 32px  var(--color-bg); */
+	border: 2px solid var(--color-border);
+	opacity: .9;
+	padding: 1em;
 	gap: 4px;
-	height: 18em;
 }
 
 .ColumnsSelector > * {
@@ -53,15 +58,16 @@ td {
 
 .Menu {
 	position: relative;
+	z-index: 10;
 	margin: 1em;
 }
 
 .MenuDropdown {
+	position: absolute;
 	display: flex;
 	flex-direction: column;
 	background-color: var(--color-bg);
-	z-index: 1;
-	position: absolute;
+	z-index: 10;
 }
 
 .MenuItem {

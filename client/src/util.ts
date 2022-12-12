@@ -4,7 +4,7 @@ export function dispatch(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
 
-export function useEventListener(eventName: string, callback: (e: CustomEvent) => any | (() => any)) {
+export function useEventListener(eventName: string, callback: (e: any) => any | (() => any)) {
 	const savedCallback = useRef(callback);
 	useEffect(() => { savedCallback.current = callback; }, [callback]);
 
