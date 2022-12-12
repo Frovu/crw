@@ -2,23 +2,27 @@ import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react'
 import { useEventListener } from '../util';
 import { ColumnDef, Sort, Cursor, prettyName, DataContext } from './Table';
 
-function Cell({ value, cursor, def }: { value: any, cursor: Cursor, def: ColumnDef }) {
+type CursorPara = { cursor: Cursor, setCursor: (c: Cursor) => void };
+
+function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def: ColumnDef, onClick: () => void }) {
 	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
 	const width = { width: def.width+.5+'ch' };
 	return (
 		<td style={{ ...(cursor && { borderColor: 'var(--color-active)' }) }}>
 			{!cursor?.editing &&
-			<span className='Cell' style={{ ...width }}>{val}</span>}
+			<span onClick={onClick} className='Cell' style={{ ...width }}>{val}</span>}
 			{cursor?.editing &&
 			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val}></input>}
 		</td>
 	);
 }
 
-function Row({ row, columns, cursor }: { row: any[], columns: ColumnDef[], cursor?: Cursor }) {
-
-	// eslint-disable-next-line react/no-array-index-key
-	return <tr>{row.map((value, i) =><Cell key={i} {...{ value, cursor: cursor?.column === i ? cursor : null, def: columns[i] }}/>)}</tr>;
+function Row({ index, row, columns, cursor, setCursor }: { index: number, row: any[], columns: ColumnDef[] } & CursorPara) {
+	const isSel = index === cursor?.row;
+	return (<tr>{row.map((value, i) =>
+		<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
+			{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>) 
+	}</tr>);
 }
 
 function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
@@ -33,7 +37,7 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 	);
 }
 
-export default function TableView({ sort, setSort, cursor, setCursor }: { sort: Sort, setSort: (s: Sort) => void, cursor: Cursor, setCursor: (c: Cursor) => void }) {
+export default function TableView({ sort, setSort, cursor, setCursor }: { sort: Sort, setSort: (s: Sort) => void } & CursorPara) {
 	const { data, columns } = useContext(DataContext);
 	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
@@ -75,8 +79,15 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 			'End': [0, columns.length]
 		}[e.key];
 		if (!delta) return;
-		const { row, column } = cursor ?? { row: Math.min(Math.round(viewIndex+viewSize/2), data.length), column: Math.round(columns.length/2) };
 		const [deltaRow, deltaCol] = delta;
+		const { row, column } = cursor ?? { row: Math.min(Math.round(viewIndex+viewSize/2), data.length), column: Math.round(columns.length/2) };
+
+		if (e.ctrlKey && deltaRow !== 0) {
+			let cur = row + deltaRow;
+			while (data[cur][column] === null && cur > 0 && cur < data.length - 1)
+				cur += deltaRow;
+			return set({ row: cur, column });
+		}
 		set({
 			row: Math.min(Math.max(0, row + deltaRow), data.length - 1),
 			column: Math.min(Math.max(0, column + deltaCol), columns.length - 1)
@@ -99,7 +110,7 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 				</thead>
 				<tbody>
 					{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-						<Row key={row[0].getTime()} {...{ row, columns, cursor: cursor?.row === viewIndex+i ? cursor : null }}/>)}
+						<Row key={row[0].getTime()} {...{ index: i + viewIndex, row, columns, cursor, setCursor }}/>)}
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>

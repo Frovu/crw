@@ -8,6 +8,8 @@ td {
 }
 
 .Cell {
+	cursor: pointer;
+	user-select: none;
 	display: inline-block;
 	overflow: clip;
 }
