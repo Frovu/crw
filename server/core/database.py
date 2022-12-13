@@ -37,5 +37,5 @@ def select_all(t_from=None, t_to=None):
 	with pg_conn.cursor() as cursor:
 		cond = ' WHERE time >= %s' if t_from else ''
 		if t_to: cond += (' AND' if cond else ' WHERE') + ' time < %s'
-		cursor.execute('SELECT * FROM default_view' + cond + ' ORDER BY time', [p for p in [t_from, t_to] if p is not None])
+		cursor.execute('SELECT * FROM events.default_view' + cond + ' ORDER BY time', [p for p in [t_from, t_to] if p is not None])
 		return cursor.fetchall(), [desc[0] for desc in cursor.description]

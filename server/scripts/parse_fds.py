@@ -40,10 +40,10 @@ def parse_one_column(fname: str, table: str, column: str):
 				if col_name.startswith('_'):
 					continue
 				if ref := col_desc.get('references'):
-					npath = f'(SELECT {col_name} FROM {tbl} WHERE id = {path})'
+					npath = f'(SELECT {col_name} FROM events.{tbl} WHERE id = {path})'
 					found = recursive_search(ref, target, npath)
 					if found: return found
-		select_id = recursive_search(first_table, table, f'(SELECT id FROM {first_table} WHERE time = data.time)')
+		select_id = recursive_search(first_table, table, f'(SELECT id FROM events.{first_table} WHERE time = data.time)')
 		data = []
 		time_col_desc = tables_info[first_table]['time']
 		time_col_name = time_col_desc['parse_name']
@@ -54,13 +54,13 @@ def parse_one_column(fname: str, table: str, column: str):
 			time = _parse_value(line_split, columns_order, time_col_name, time_col_desc)
 			value = _parse_value(line_split, columns_order, target_col_name, target_col_desc)
 			data.append((time, value))
-		diff_q = f'SELECT data.time, {column}, data.val FROM (VALUES %s) AS data(time, val) INNER JOIN {table} ON id = {select_id} WHERE {column} != data.val'
+		diff_q = f'SELECT data.time, {column}, data.val FROM (VALUES %s) AS data(time, val) INNER JOIN events.{table} ON id = {select_id} WHERE {column} != data.val'
 		psycopg2.extras.execute_values(cursor, diff_q, data, template='(%s, %s'+('::real' if target_col_desc.get('type', 'real') == 'real' else '')+')')
 		diff = cursor.fetchall()
 		if not len(diff):
 			print('already up to date')
 			return False
-		query = f'UPDATE {table} SET {column} = data.val FROM (VALUES %s) AS data(time, val) WHERE id = {select_id}'
+		query = f'UPDATE events.{table} SET {column} = data.val FROM (VALUES %s) AS data(time, val) WHERE id = {select_id}'
 		print('\n' + query)
 		if len(diff) > 30:
 			print(f'...\n[{len(diff)-30}]\n...')
@@ -84,7 +84,7 @@ def parse_whole_file(fname: str):
 			split, inserted_ids = line.split(), dict()
 			table = list(tables_info)[0]
 			time = _parse_value(split, columns_order, 'Time', {"type": "time"})
-			cursor.execute(f'SELECT 1 FROM {table} WHERE time = %s', [time])
+			cursor.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time])
 			if exists := cursor.fetchone():
 				exists_count += 1
 				continue
@@ -103,7 +103,7 @@ def parse_whole_file(fname: str):
 					values.append(val)
 				if any(values):
 					count[table] += 1
-					query = f'INSERT INTO {table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
+					query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
 					cursor.execute(query, values)
 					inserted = cursor.fetchone()
 					inserted_ids[table] = inserted and inserted[0]
