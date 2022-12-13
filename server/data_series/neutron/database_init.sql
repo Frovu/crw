@@ -1,19 +1,18 @@
 CREATE TABLE IF NOT EXISTS neutron_stations (
-	id SERIAL PRIMARY KEY,
-	short_name TEXT NOT NULL UNIQUE,
+	id TEXT PRIMARY KEY,
 	drift_longitude REAL
 );
 CREATE TABLE IF NOT EXISTS neutron_counts (
 	time TIMESTAMPTZ NOT NULL,
-	obtain_time TIMESTAMPTZ NOT NULL,
-	station_id INTEGER NOT NULL REFERENCES neutron_stations(id) ON DELETE CASCADE,
+	obtain_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	station TEXT NOT NULL REFERENCES neutron_stations(id) ON DELETE CASCADE,
 	original REAL,
 	corrected REAL,
 	pressure REAL,
-	UNIQUE(time, station_id)
+	UNIQUE(time, station)
 );
 
-INSERT INTO neutron_stations(short_name, drift_longitude) VALUES
+INSERT INTO neutron_stations(id, drift_longitude) VALUES
 ('APTY',  73.05),
 ('DRBS',  65.17),
 ('FSMT', 293.07),
@@ -27,4 +26,4 @@ INSERT INTO neutron_stations(short_name, drift_longitude) VALUES
 ('OULU',  67.42),
 ('PWNK', 349.56),
 ('YKTK', 174.02)
-ON CONFLICT(short_name) DO NOTHING;
+ON CONFLICT(id) DO NOTHING;

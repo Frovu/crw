@@ -1,11 +1,86 @@
-from core.database import pg_conn
-import os
+import os, logging, pymysql.cursors, numpy
+import psycopg2, psycopg2.extras
+from threading import Timer
+from datetime import datetime
 
-def init():
+from data_series.util import integrity_query
+from core.database import pg_conn
+
+PERIOD = 3600
+nmdb_conn = None
+discon_timer = None
+
+def _init():
 	path = os.path.join(os.path.dirname(__file__), './database_init.sql')
 	with open(path) as file, pg_conn.cursor() as cursor:
 		cursor.execute(file.read())
-init()
+	pg_conn.commit()
+_init()
 
-def select(t_from: int, t_to: int, stations: list[string]):
-	query = 'SELECT COASLESCE(corrected, original) FROM neutron_counts WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s)'
+def _disconnect_nmdb():
+	global nmdb_conn, discon_timer
+	logging.debug('Disconnecting NMDB')
+	nmdb_conn.close()
+	nmdb_conn = None
+	discon_timer = None
+
+def _connect_nmdb():
+	global nmdb_conn, discon_timer
+	if not nmdb_conn:
+		logging.info('Connecting to NMDB')
+		nmdb_conn = pymysql.connect(
+			host=os.environ.get('NMDB_HOST'),
+			port=int(os.environ.get('NMDB_PORT', 0)),
+			user=os.environ.get('NMDB_USER'),
+			password=os.environ.get('NMDB_PASS'),
+			database='nmdb')
+	if discon_timer:
+		discon_timer.cancel()
+		discon_timer = None
+	discon_timer = Timer(180, _disconnect_nmdb)
+	discon_timer.start()
+
+def _obtain_nmdb(interval, station, pg_cursor):
+	_connect_nmdb()
+	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
+	query = f'''SELECT date_add(date(start_date_time), interval extract(hour from start_date_time) hour) as time,
+		avg(corr_for_efficiency), avg(pressure_mbar)
+		FROM {station}_revori WHERE start_date_time >= %s AND start_date_time < %s + interval 1 hour
+		GROUP BY date(start_date_time), extract(hour from start_date_time)'''
+	with nmdb_conn.cursor() as cursor:
+		try:
+			cursor.execute(query, dt_interval)
+		except:
+			logging.warning('Failed to query nmdb, disconnecting');
+			return _disconnect_nmdb()
+		data = cursor.fetchall()
+	logging.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
+	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
+		INSERT INTO neutron_counts (time, station, original, pressure)
+		SELECT ts, \'{station}\', original, pressure
+		FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),'{PERIOD} s'::interval) ts
+		LEFT JOIN data ON ts = data.time
+		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original'''
+	psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(%s,%s,%s)')
+
+def _fetch_one(interval, station):
+	with pg_conn.cursor() as cursor:
+		if pg_conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
+			pg_conn.rollback()
+		# TODO: optionally mark all records older than certain time as bad
+		cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'obtain_time', where=f'station=\'{station}\'',
+			bad_condition=f'original IS NULL AND \'now\'::timestamp - obtain_time > \'{PERIOD} s\'::interval', bad_cond_columns=['original']))
+		if gaps := cursor.fetchall():
+			for gap in gaps:
+				_obtain_nmdb(gap, station, cursor)
+			pg_conn.commit()
+		cursor.execute(f'''SELECT COALESCE(corrected, original) FROM generate_series(to_timestamp(%s),to_timestamp(%s),'%s s'::interval) ts
+		LEFT JOIN neutron_counts n ON ts=n.time AND station=%s''', [*interval, PERIOD, station])
+		return numpy.array(cursor.fetchall(), dtype=numpy.float32)
+
+def fetch(interval: [int, int], stations: list[str]):
+	trim_future = datetime.now().timestamp() // PERIOD * PERIOD
+	t_from, t_to = interval
+	t_to = int(trim_future - PERIOD) if t_to >= trim_future else t_to
+	times = numpy.arange(t_from, t_to+1, PERIOD)
+	return numpy.column_stack([times]+[_fetch_one((t_from, t_to), s) for s in stations])
