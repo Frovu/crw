@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import '../css/Table.css';
 import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
-import { useEventListener } from '../util';
+import { useEventListener, usePersistedState } from '../util';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -29,7 +29,7 @@ const defaultColumns = (columns: Columns) => Object.values(columns).filter(col =
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
-	const [enabledColumns, setEnabledColumns] = useState(() => defaultColumns(columns));
+	const [enabledColumns, setEnabledColumns] = usePersistedState('tableColEnabled', () => defaultColumns(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [cursor, setCursor] = useState<Cursor>(null);
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
