@@ -22,7 +22,7 @@ log_rotate.setFormatter(formatter)
 sh = logging.StreamHandler()
 sh.setFormatter(formatter)
 
-logger = logging.getLogger()
+logger = logging.getLogger('aides')
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 

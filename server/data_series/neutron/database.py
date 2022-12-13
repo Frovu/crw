@@ -6,6 +6,8 @@ from datetime import datetime
 from data_series.util import integrity_query
 from core.database import pg_conn
 
+log = logging.getLogger('aides')
+
 PERIOD = 3600
 nmdb_conn = None
 discon_timer = None
@@ -19,7 +21,7 @@ _init()
 
 def _disconnect_nmdb():
 	global nmdb_conn, discon_timer
-	logging.debug('Disconnecting NMDB')
+	log.debug('Disconnecting NMDB')
 	nmdb_conn.close()
 	nmdb_conn = None
 	discon_timer = None
@@ -27,7 +29,7 @@ def _disconnect_nmdb():
 def _connect_nmdb():
 	global nmdb_conn, discon_timer
 	if not nmdb_conn:
-		logging.info('Connecting to NMDB')
+		log.info('Connecting to NMDB')
 		nmdb_conn = pymysql.connect(
 			host=os.environ.get('NMDB_HOST'),
 			port=int(os.environ.get('NMDB_PORT', 0)),
@@ -51,15 +53,19 @@ def _obtain_nmdb(interval, station, pg_cursor):
 		try:
 			cursor.execute(query, dt_interval)
 		except:
-			logging.warning('Failed to query nmdb, disconnecting');
+			log.warning('Failed to query nmdb, disconnecting')
 			return _disconnect_nmdb()
 		data = cursor.fetchall()
-	logging.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
+	log.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
+	if len(data) < 1:
+		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
+		q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
+		return pg_cursor.execute(q)
 	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
 		INSERT INTO neutron_counts (time, station, original, pressure)
-		SELECT ts, \'{station}\', original, pressure
+		SELECT ts, \'{station}\', data.original, data.pressure
 		FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),'{PERIOD} s'::interval) ts
-		LEFT JOIN data ON ts = data.time
+		RIGHT JOIN data ON ts = data.time
 		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original'''
 	psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(%s,%s,%s)')
 
@@ -83,4 +89,10 @@ def fetch(interval: [int, int], stations: list[str]):
 	t_from, t_to = interval
 	t_to = int(trim_future - PERIOD) if t_to >= trim_future else t_to
 	times = numpy.arange(t_from, t_to+1, PERIOD)
+	# log.debug(f'fetch {t_from}:{t_to} ' + ','.join(stations))
 	return numpy.column_stack([times]+[_fetch_one((t_from, t_to), s) for s in stations])
+
+def select_stations():
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT id, drift_longitude FROM neutron_stations')
+		return cursor.fetchall()
