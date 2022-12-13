@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext, Fragment, ReactNode, useMemo } from 'react';
 import { TableContext, DataContext, prettyName } from './Table';
-import { useEventListener, dispatch } from '../util';
+import { useEventListener, dispatchCustomEvent } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
 type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
@@ -15,9 +15,9 @@ export type Filter = {
 };
 
 const KEY_COMB = {
-	'openColumnsSelector': 'Ctrl+R',
-	'addFilter': 'Ctrl+F',
-	'removeFilter': 'Ctrl+G'
+	'openColumnsSelector': 'C',
+	'addFilter': 'F',
+	'removeFilter': 'R'
 } as { [action: string]: string };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
@@ -78,7 +78,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 
 	return (
 		<div className='FilterCard'>
-			<div>
+			<div onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
 				<select style={{ textAlign: 'right', borderColor: 'transparent' }} 
 					value={column.id} onChange={set('column')}>
 					{Object.values(columns).map(col => <option value={col.id} key={col.table+col.name}>
@@ -121,7 +121,7 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
 	const keyComb = KEY_COMB[action];
 	return (
-		<button className='MenuItem' onClick={() => dispatch('action+' + action)}>
+		<button className='MenuItem' onClick={() => dispatchCustomEvent('action+' + action)}>
 			<span>{text}</span>
 			{keyComb && <span className='keyComb'>{keyComb}</span>}
 		</button>
@@ -184,17 +184,15 @@ function ExportMenu() {
 }
 
 function onKeydown(e: KeyboardEvent) {
-	if (e.key === 'Escape')
-		return dispatch('escape');
+	if (e.code === 'Escape')
+		return dispatchCustomEvent('escape');
 	if (e.target instanceof HTMLInputElement)
 		return;
-	if (!e.ctrlKey || e.key === 'Control')
-		return;
-	console.log(e.ctrlKey ? 'ctrl' : '', e.key, );
-	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === 'Ctrl+' + e.key.toUpperCase());
+	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
+	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === keycomb);
 	if (action) {
 		e.preventDefault();
-		dispatch('action+' + action);
+		dispatchCustomEvent('action+' + action);
 	}
 }
 

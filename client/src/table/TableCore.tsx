@@ -53,10 +53,10 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 	}, [data.length, ref]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (cursor && ['Enter', 'Insert'].includes(e.code))
+			return setCursor({ ...cursor, editing: !cursor.editing });
 		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
-		if (cursor && e.key === 'Enter')
-			return setCursor({ ...cursor, editing: true });
 
 		const set = (curs: Exclude<Cursor, null>) => {
 			const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
@@ -64,9 +64,9 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 			setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
 			setCursor(curs);
 		};
-		if (e.ctrlKey && e.key === 'Home')
+		if (e.ctrlKey && e.code === 'Home')
 			return set({ row: 0, column: cursor?.column ?? 0 });
-		if (e.ctrlKey && e.key === 'End')
+		if (e.ctrlKey && e.code === 'End')
 			return set({ row: data.length - 1, column: cursor?.column ?? 0 });
 
 		const delta = {
@@ -78,7 +78,7 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 			'PageDown': [viewSize, 0],
 			'Home': [0, -columns.length],
 			'End': [0, columns.length]
-		}[e.key];
+		}[e.code];
 		if (!delta) return;
 		const [deltaRow, deltaCol] = delta;
 		const { row, column } = cursor ?? { row: Math.min(Math.round(viewIndex+viewSize/2), data.length), column: Math.round(columns.length/2) };

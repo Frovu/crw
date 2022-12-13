@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export function dispatch(eventName: string, detail?: {}) {
+export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
 
