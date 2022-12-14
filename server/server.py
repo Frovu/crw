@@ -25,13 +25,14 @@ sh.setFormatter(formatter)
 logger = logging.getLogger('aides')
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
+logger.propagate = False
 
-# logging.getLogger('werkzeug').setLevel(logging.WARNING)
-# import requests
-# logging.getLogger('urllib3').setLevel(logging.WARNING)
-# logging.getLogger('urllib3').propagate = False
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+import requests
+logging.getLogger('urllib3').setLevel(logging.WARNING)
+logging.getLogger('urllib3').propagate = False
 
-logging.critical('STARTING SERVER')
+logger.critical('STARTING SERVER')
 
 from flask import Flask, session
 from routers import admin

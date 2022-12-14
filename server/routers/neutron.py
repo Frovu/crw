@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from datetime import datetime
 
-from data_series.neutron import database
+from data_series.neutron import ring_of_stations
 from routers.utils import route_shielded
 
 bp = Blueprint('neutron', __name__, url_prefix='/api/neutron')
@@ -33,5 +33,5 @@ def get_circles():
 	if t_to - t_from < 86400 * 2:
 		raise ValueError()
 
-	body = circles.get(t_from, t_to, exclude, details, window, minamp, base)
+	body = ring_of_stations.get(t_from, t_to, exclude, details, window, minamp, base)
 	return body
