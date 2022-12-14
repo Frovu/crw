@@ -37,32 +37,31 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, S
 }
  
 type ResizeInfo = { width: number, height: number };
-export function useResizeObserver<T extends HTMLElement>(target: React.RefObject<T>, callback: (e: ResizeInfo) => void, parent?: any) {
+export function useResizeObserver<T extends HTMLElement>(target: T | null | undefined, callback: (e: ResizeInfo) => void) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
-
+	
 	useLayoutEffect(() => {
-		if (!target.current) return;
-		const element = parent ? target.current.parentElement! : target.current;
+		if (!target) return;
 		const observer = new ResizeObserver(() => {
-			console.log('observe')
-			savedCallback.current({ width: element.offsetWidth, height: element.offsetHeight });
+			savedCallback.current({ width: target.offsetWidth, height: target.offsetHeight });
 		});
-		observer.observe(element);
-		return () => observer.unobserve(element);
-	}, [target, parent]);
+		observer.observe(target);
+		return () => observer.unobserve(target);
+	}, [target]);
 }
 
 export function useSize<T extends HTMLElement>(target: React.RefObject<T>, parent?: any) {
 	const [ size, setSize ] = useState({ width: 0, height: 0 });
 
-	useResizeObserver(target, newSize => {
+	const element = parent ? target.current?.parentElement : target.current;
+	useResizeObserver(element, newSize => {
 		setSize(oldSize => {
 			if (oldSize.width !== newSize.width || oldSize.height !== newSize.height)
 				return newSize;
 			return oldSize;
 		});
-	}, parent);
+	});
 
 	return size;
 }

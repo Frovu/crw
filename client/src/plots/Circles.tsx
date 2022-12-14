@@ -1,7 +1,7 @@
 import '../css/Circles.css';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSize } from '../util';
-import { linePaths, circlePaths } from './plotUtil';
+import { linePaths, circlePaths, color } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -15,16 +15,27 @@ type CirclesParams = {
 	minamp?: number 
 };
 
-function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options>): Partial<uPlot.Options> {
+type CirclesResponse = {
+	base: number,
+	time: number[],
+	variation: (number | null)[][],
+	shift: number[],
+	station: string[],
+	precursor_idx: [number[], number[]], // eslint-disable-line camelcase
+	filtered: number,
+	excluded: string[]
+};
+
+function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
-	const legendValue = u => {
+	const legendValue = (u: uPlot) => {
 		if (u.data == null || hoveredRect == null)
 			return '';
-		const d = u.data[hoveredRect.sidx];
+		const d = u.data[hoveredRect.sidx] as any;
 		const stIdx = d[3][hoveredRect.didx], lon = d[1][hoveredRect.didx].toFixed(2);
 		const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-		return `[ ${stations[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
+		return `[ ${data.stations[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
 	return {
 		...initial,
@@ -53,13 +64,13 @@ function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options
 		hooks: {
 			drawClear: [
 				u => {
-					u.setSelect({
-						left: u.valToPos(base, 'x'),
-						top: 0,
-						width: u.valToPos(base + 86400, 'x') - u.valToPos(base, 'x'),
-						height: u.over.offsetHeight
-					});
-					qt = qt || new Quadtree(0, 0, u.bbox.width, u.bbox.height);
+					// u.setSelect({
+					// 	left: u.valToPos(base, 'x'),
+					// 	top: 0,
+					// 	width: u.valToPos(base + 86400, 'x') - u.valToPos(base, 'x'),
+					// 	height: u.over.offsetHeight
+					// });
+					qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 					qt.clear();
 					u.series.forEach((s, i) => {
 						if (i > 0) (s as any)._paths = null;
@@ -69,10 +80,10 @@ function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options
 		},
 		axes: [
 			{
-				font: style.font,
-				stroke: style.text,
-				grid: { stroke: style.grid, width: 1 },
-				ticks: { stroke: style.grid, width: 1 },
+				font: color('text'),
+				stroke: color('text'),
+				grid: { stroke: color('grid'), width: 1 },
+				ticks: { stroke: color('grid'), width: 1 },
 				space: 70,
 				size: 40,
 				values: (u, vals) => vals.map(v => {
@@ -85,11 +96,11 @@ function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options
 			{
 				// label: 'asimptotic longitude, deg',
 				scale: 'y',
-				font: style.font,
-				stroke: style.text,
+				font: color('text'),
+				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
-				ticks: { stroke: style.grid, width: 1 },
-				grid: { stroke: style.grid, width: 1 }
+				ticks: { stroke: color('grid'), width: 1 },
+				grid: { stroke: color('grid'), width: 1 }
 			},
 			{
 				scale: 'idx',
@@ -116,7 +127,7 @@ function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options
 				stroke: 'rgba(0,255,255,1)',
 				fill: 'rgba(0,255,255,0.5)',
 				value: legendValue,
-				paths: drawCircles
+				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
 				label: '-',
@@ -124,15 +135,15 @@ function circlesPlotOptions(interactive: boolean, initial: Partial<uPlot.Options
 				stroke: 'rgba(255,10,110,1)',
 				fill: 'rgba(255,10,110,0.5)',
 				value: legendValue,
-				paths: drawCircles
+				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
 				scale: 'idx',
 				label: 'idx',
 				stroke: 'rgba(255,170,0,0.9)',
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
-				value: (u, v, si, di) => u.data[3][1][di] || 'NaN',
-				paths: uPlot.linePaths(1.75)
+				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
+				paths: linePaths(1.75)
 			}
 		]
 	};
@@ -149,8 +160,53 @@ async function queryCircles(params: CirclesParams) {
 	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
 	if (res.status !== 200)
 		throw new Error('HTTP '+res.status);
-	const data = await res.json();
-	return data;
+	const resp = await res.json() as CirclesResponse;
+	
+	const slen = resp.shift.length, tlen = resp.time.length;
+	if (tlen < 10) return;
+	const data = Array.from(Array(4), () => new Array(slen*tlen));
+	let posCount = 0, nullCount = 0;
+	for (let ti = 0; ti < tlen; ++ti) {
+		for (let si = 0; si < slen; ++si) {
+			const time = resp.time[ti], vv = resp.variation[ti][si];
+			const idx = ti*slen + si;
+			// if (vv < maxVar) maxVar = vv;
+			if (vv == null) ++nullCount;
+			else if (vv >= 0) ++posCount;
+			data[0][idx] = time;
+			data[1][idx] = (time / 86400 * 360 + resp.shift[si]) % 360;
+			data[2][idx] = vv;
+			data[3][idx] = si;
+		}
+	}
+	// maxVar = Math.abs(maxVar);
+	// if (maxVar < MAX_VAR) maxVar = MAX_VAR;
+	const ndata = Array.from(Array(4), () => new Array(slen*tlen - posCount - nullCount));
+	const pdata = Array.from(Array(4), () => new Array(posCount));
+	let pi = 0, ni = 0;
+	for (let idx = 0; idx < slen*tlen; ++idx) {
+		const vv = data[2][idx];
+		if (vv == null) continue;
+		if (vv >= 0) {
+			pdata[0][pi] = data[0][idx];
+			pdata[1][pi] = data[1][idx];
+			pdata[2][pi] = vv;
+			pdata[3][pi] = data[3][idx];
+			pi++;
+		} else {
+			ndata[0][ni] = data[0][idx];
+			ndata[1][ni] = data[1][idx];
+			ndata[2][ni] = vv;
+			ndata[3][ni] = data[3][idx];
+			ni++;
+		}
+	}
+	const precIdx = resp.precursor_idx;
+	console.log(resp, [ precIdx[0], pdata, ndata, precIdx ]);
+	return {
+		...resp,
+		plotData: [ precIdx[0], pdata, ndata, precIdx ]
+	};
 }
 
 export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
@@ -159,30 +215,31 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 	const query = useQuery('ros'+JSON.stringify(params), () => queryCircles(params));
 
 	const [ uplot, setUplot ] = useState<uPlot>();
-	const data = query.data;
+	const plotData = query.data?.plotData;
 
 	useLayoutEffect(() => {
-		if (uplot) uplot.setData(data);
-	}, [uplot, data]);
+		if (uplot && plotData) uplot.setData(plotData as any);
+	}, [uplot, plotData]);
 
 	useLayoutEffect(() => {
 		if (uplot) uplot.setSize(size);
 	}, [uplot, size]);
 
 	const plotComponent = useMemo(() => {
-		if (!query.data) return;
-		const options = circlesPlotOptions(interactive, { ...size });
-		return <UplotReact {...{ options, data: query.data, onCreate: setUplot }}/>;
-	}, [interactive]); // eslint-disable-line react-hooks/exhaustive-deps
+		if (!plotData) return;
+		const options = circlesPlotOptions({ ...size }, interactive, query.data) as uPlot.Options;
+		console.log(options);
+		return <UplotReact target={ref.current!} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
+	}, [interactive, plotData]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div>Loading...</div>;
 	if (!query.data)
 		return <div>Failed to obrain data</div>;
-	return <div ref={ref}>{plotComponent}</div>;
+	return <div ref={ref} style={{ position: 'absolute' }}>{plotComponent}</div>;
 }
 
 export default function PlotCirclesStandalone() {
 	const params: CirclesParams = { interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] };
-	return <div style={{ resize: 'both', height: '100vh', width: '100vw' }}><PlotCircles {...{ params }}/></div>;
+	return <div style={{ position: 'relative', height: '100vh', width: '100vw' }}><PlotCircles {...{ params }}/></div>;
 }
