@@ -35,7 +35,7 @@ logging.critical('STARTING SERVER')
 
 from flask import Flask, session
 from routers import admin
-from routers import forbush
+from routers import events
 
 app = Flask('aides')
 
@@ -49,4 +49,4 @@ def after_request(response):
     return response
 
 app.register_blueprint(admin.bp)
-app.register_blueprint(forbush.bp)
+app.register_blueprint(events.bp)

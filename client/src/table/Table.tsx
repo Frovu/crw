@@ -73,7 +73,7 @@ function SourceDataWrapper({ columns }: { columns: Columns }) {
 		staleTime: Infinity,
 		queryKey: ['tableData'], 
 		queryFn: async () => {
-			const res = await fetch(`${process.env.REACT_APP_API}api/forbush/`, { credentials: 'include' });
+			const res = await fetch(`${process.env.REACT_APP_API}api/events/`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
 			const resp: {data: any[][], fields: string[]} = await res.json();
@@ -110,7 +110,7 @@ export default function TableWrapper() {
 		staleTime: Infinity,
 		queryKey: ['tableStructure'],
 		queryFn: async () => {
-			const res = await fetch(`${process.env.REACT_APP_API}api/forbush/info/`, { credentials: 'include' });
+			const res = await fetch(`${process.env.REACT_APP_API}api/events/info/`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
 			const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();

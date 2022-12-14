@@ -3,7 +3,7 @@ from datetime import datetime
 from core import database
 from routers.utils import route_shielded
 
-bp = Blueprint('forbush', __name__, url_prefix='/api/forbush')
+bp = Blueprint('events', __name__, url_prefix='/api/events')
 
 @bp.route('/')
 @route_shielded
