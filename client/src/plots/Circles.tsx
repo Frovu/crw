@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
 import { useSize } from '../util';
-import { linePaths, circlePaths, color } from './plotUtil';
+import { linePaths, circlePaths, color, font } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -28,8 +28,7 @@ type CirclesResponse = {
 	excluded: string[]
 };
 
-function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any): Partial<uPlot.Options> {
-	const font = window.getComputedStyle(document.body).font;
+function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any, setBase: (b: Date) => void, clickCallback: (time: number) => void): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (u: uPlot) => {
@@ -45,35 +44,37 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 		padding: [0, 0, 0, 0],
 		mode: 2,
 		legend: { show: interactive },
-		cursor: !interactive ? undefined : {
+		cursor: {
 			drag: { x: false, y: false, setScale: false },
-			dataIdx: (u, seriesIdx) => {
-				if (seriesIdx > 2) {
-					return u.posToIdx(u.cursor.left! * devicePixelRatio);
-				} if (seriesIdx === 1) {
-					const cx = u.cursor.left! * devicePixelRatio;
-					const cy = u.cursor.top! * devicePixelRatio;
-					qt.hover(cx, cy, (o: any) => {
-						hoveredRect = o;
-					});
+			...(interactive && {
+				dataIdx: (u, seriesIdx) => {
+					if (seriesIdx > 2) {
+						return u.posToIdx(u.cursor.left! * devicePixelRatio);
+					} if (seriesIdx === 1) {
+						const cx = u.cursor.left! * devicePixelRatio;
+						const cy = u.cursor.top! * devicePixelRatio;
+						qt.hover(cx, cy, (o: any) => {
+							hoveredRect = o;
+						});
+					}
+					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : 0;
+				},
+				points: {
+					size: (u, seriesIdx) => {
+						return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.w / devicePixelRatio : 0;
+					}
 				}
-				return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : 0;
-			},
-			points: {
-				size: (u, seriesIdx) => {
-					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.w / devicePixelRatio : 0;
-				}
-			}
+			})
 		},
 		hooks: {
 			drawClear: [
 				u => {
-					// u.setSelect({
-					// 	left: u.valToPos(base, 'x'),
-					// 	top: 0,
-					// 	width: u.valToPos(base + 86400, 'x') - u.valToPos(base, 'x'),
-					// 	height: u.over.offsetHeight
-					// });
+					u.setSelect({
+						left: u.valToPos(data.base, 'x'),
+						top: 0,
+						width: u.valToPos(data.base + 86400, 'x') - u.valToPos(data.base, 'x'),
+						height: u.over.offsetHeight
+					});
 					qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 					qt.clear();
 					u.series.forEach((s, i) => {
@@ -81,10 +82,51 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 					});
 				},
 			],
+			ready: [
+				u => {
+					let currentBase = data.base;
+					const setSelect = (val: number) => u.setSelect({
+						left: u.valToPos(val, 'x'),
+						top: 0,
+						width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
+						height: u.over.offsetHeight
+					});
+					setSelect(currentBase);
+					let isDragged: boolean, clickX: number | undefined, clickY: number | undefined;
+					u.over.addEventListener('mousemove', e => {
+						if (isDragged) {
+							const dragValue = u.posToVal(e.clientX, 'x') - u.posToVal(clickX!, 'x');
+							currentBase = Math.round((data.base + dragValue) / 3600) * 3600;
+							if (currentBase < u.scales.x.min!)
+								currentBase = u.scales.x.min;
+							if (currentBase > u.scales.x.max! - 86400)
+								currentBase = u.scales.x.max! - 86400;
+						}
+						setSelect(currentBase);
+					});
+					u.over.addEventListener('mousedown', e => {
+						clickX = e.clientX;
+						clickY = e.clientY;
+						isDragged = u.valToPos(data.base, 'x', true) < clickX && clickX < u.valToPos(data.base + 86400, 'x', true);
+					});
+					u.over.addEventListener('mouseup', e => {
+						if (currentBase !== data.base) {
+							setBase(new Date(currentBase * 1e3));
+						} else if (Math.abs(e.clientX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
+							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
+							if (detailsIdx != null)
+								clickCallback(data.precursor_idx[0][detailsIdx]);
+						}
+						isDragged = false;
+						clickX = clickY = undefined;
+						// setSelect(currentBase);
+					});
+				}
+			]
 		},
 		axes: [
 			{
-				font,
+				font: font(14),
 				stroke: color('text'),
 				grid: { stroke: color('grid'), width: 1 },
 				ticks: { stroke: color('grid'), width: 1 },
@@ -100,7 +142,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 			{
 				// label: 'asimptotic longitude, deg',
 				scale: 'y',
-				font,
+				font: font(14),
 				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				ticks: { stroke: color('grid'), width: 1 },
@@ -128,23 +170,23 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 			{
 				label: '+',
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-				stroke: 'rgba(0,255,255,1)',
-				fill: 'rgba(0,255,255,0.5)',
+				stroke: color('cyan'),
+				fill: color('cyan', .5),
 				value: legendValue,
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
 				label: '-',
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-				stroke: 'rgba(255,10,110,1)',
-				fill: 'rgba(255,10,110,0.5)',
+				stroke: color('magenta'),
+				fill: color('magenta', .5),
 				value: legendValue,
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
 				scale: 'idx',
 				label: 'idx',
-				stroke: 'rgba(255,170,0,0.9)',
+				stroke: color('orange'),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
 				paths: linePaths(1.75)
@@ -157,6 +199,7 @@ async function queryCircles(params: CirclesParams) {
 	const urlPara = new URLSearchParams({
 		from: (params.interval[0].getTime() / 1000).toFixed(0),
 		to:   (params.interval[1].getTime() / 1000).toFixed(0),
+		...(params.base && { base: (params.base.getTime() / 1000).toFixed(0) }),
 		...(params.exclude && { exclude: params.exclude.join() }),
 		...(params.window && { window: params.window.toString() }),
 		...(params.minamp && { minamp: params.minamp.toString() }),
@@ -206,7 +249,7 @@ async function queryCircles(params: CirclesParams) {
 		}
 	}
 	const precIdx = resp.precursor_idx;
-	console.log(resp, [ precIdx[0], pdata, ndata, precIdx ]);
+	console.log('circles data', resp, [ precIdx[0], pdata, ndata, precIdx ]);
 	return {
 		...resp,
 		plotData: [ precIdx[0], pdata, ndata, precIdx ]
@@ -214,9 +257,16 @@ async function queryCircles(params: CirclesParams) {
 }
 
 export function PlotCircles({ params, interactive=false }: { params: CirclesParams, interactive?: boolean }) {
+	const [ base, setBase ] = useState(params.base);
+	const para = { ...params, base };
+	const query = useQuery({
+		queryKey: ['ros', JSON.stringify(para)],
+		queryFn: () => queryCircles(para),
+		keepPreviousData: true
+	});
+
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
-	const query = useQuery('ros'+JSON.stringify(params), () => queryCircles(params));
 
 	const [ uplot, setUplot ] = useState<uPlot>();
 	const plotData = query.data?.plotData;
@@ -231,8 +281,7 @@ export function PlotCircles({ params, interactive=false }: { params: CirclesPara
 
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container) return;
-		const options = circlesPlotOptions({ ...size }, interactive, query.data) as uPlot.Options;
-		console.log(options);
+		const options = circlesPlotOptions({ ...size }, interactive, query.data, setBase, () => {}) as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container]); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -1,17 +1,17 @@
 import uPlot from 'uplot';
 
-export function circlePaths(callback) {
+export function circlePaths(callback, minMaxMagn=5) {
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
 			const strokeWidth = 1;
 			const deg360 = 2 * Math.PI;
 			const d = u.data[seriesIdx];
 
-			const maxSize = 5 + u.height / 10;
-			console.log('max size', maxSize);
-			console.time('circles');
+			const maxSize = Math.min(64, 5 + u.height / 12);
+			// console.log('max size', maxSize);
+			// console.time('circles');
 
-			const maxMagn = Math.max.apply(null, d[2].map(Math.abs));
+			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
 
 			u.ctx.save();
 			u.ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
@@ -81,7 +81,17 @@ export function linePaths(width = 1) {
 	};
 }
 
-export function color(name) {
-	const style = window.getComputedStyle(document.body);
-	return style.getPropertyValue('--color-'+name) || 'red';
+export function color(name, opacity=1) {
+	const named = {
+		'cyan': ['0,255,255'],
+		'magenta': ['255,10,110'],
+		'orange': ['255,170,0'],
+	}[name];
+	const col = named && `rgba(${named},${opacity})`;
+	return col || window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
+}
+
+export function font(size=16) {
+	const fnt = window.getComputedStyle(document.body).font;
+	return fnt.replace(/\d+px/, size+'px');
 }
