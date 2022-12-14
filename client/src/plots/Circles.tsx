@@ -1,11 +1,13 @@
-import '../css/Circles.css';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useState } from 'react';
 import { useSize } from '../util';
 import { linePaths, circlePaths, color } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
+
+import 'uplot/dist/uPlot.min.css';
+import '../css/Circles.css';
 
 type CirclesParams = {
 	interval: [Date, Date],
@@ -27,6 +29,7 @@ type CirclesResponse = {
 };
 
 function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any): Partial<uPlot.Options> {
+	const font = window.getComputedStyle(document.body).font;
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (u: uPlot) => {
@@ -41,6 +44,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 		...initial,
 		padding: [0, 0, 0, 0],
 		mode: 2,
+		legend: { show: interactive },
 		cursor: !interactive ? undefined : {
 			drag: { x: false, y: false, setScale: false },
 			dataIdx: (u, seriesIdx) => {
@@ -80,7 +84,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 		},
 		axes: [
 			{
-				font: color('text'),
+				font,
 				stroke: color('text'),
 				grid: { stroke: color('grid'), width: 1 },
 				ticks: { stroke: color('grid'), width: 1 },
@@ -96,7 +100,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 			{
 				// label: 'asimptotic longitude, deg',
 				scale: 'y',
-				font: color('text'),
+				font,
 				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				ticks: { stroke: color('grid'), width: 1 },
@@ -209,9 +213,9 @@ async function queryCircles(params: CirclesParams) {
 	};
 }
 
-export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
-	const ref = useRef<HTMLDivElement>(null);
-	const size = useSize(ref, 'parent');
+export function PlotCircles({ params, interactive=false }: { params: CirclesParams, interactive?: boolean }) {
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const size = useSize(container?.parentElement);
 	const query = useQuery('ros'+JSON.stringify(params), () => queryCircles(params));
 
 	const [ uplot, setUplot ] = useState<uPlot>();
@@ -226,17 +230,17 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 	}, [uplot, size]);
 
 	const plotComponent = useMemo(() => {
-		if (!plotData) return;
+		if (!plotData || !container) return;
 		const options = circlesPlotOptions({ ...size }, interactive, query.data) as uPlot.Options;
 		console.log(options);
-		return <UplotReact target={ref.current!} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData]); // eslint-disable-line react-hooks/exhaustive-deps
+		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
+	}, [interactive, plotData, container]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div>Loading...</div>;
 	if (!query.data)
 		return <div>Failed to obrain data</div>;
-	return <div ref={ref} style={{ position: 'absolute' }}>{plotComponent}</div>;
+	return <div ref={node => setContainer(node)} style={{ position: 'absolute' }}>{plotComponent}</div>;
 }
 
 export default function PlotCirclesStandalone() {

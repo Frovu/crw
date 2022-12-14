@@ -1,9 +1,9 @@
-table {
+.Table > table {
 	text-align: center;
 	border: 1px solid var(--color-border);
 }
 
-td {
+.Table > td {
 	border: 1px solid var(--color-border);
 }
 

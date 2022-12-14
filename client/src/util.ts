@@ -51,11 +51,10 @@ export function useResizeObserver<T extends HTMLElement>(target: T | null | unde
 	}, [target]);
 }
 
-export function useSize<T extends HTMLElement>(target: React.RefObject<T>, parent?: any) {
+export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	const [ size, setSize ] = useState({ width: 0, height: 0 });
 
-	const element = parent ? target.current?.parentElement : target.current;
-	useResizeObserver(element, newSize => {
+	useResizeObserver(target, newSize => {
 		setSize(oldSize => {
 			if (oldSize.width !== newSize.width || oldSize.height !== newSize.height)
 				return newSize;
