@@ -36,6 +36,7 @@ logging.critical('STARTING SERVER')
 from flask import Flask, session
 from routers import admin
 from routers import events
+from routers import neutron
 
 app = Flask('aides')
 
@@ -50,3 +51,4 @@ def after_request(response):
 
 app.register_blueprint(admin.bp)
 app.register_blueprint(events.bp)
+app.register_blueprint(neutron.bp)
