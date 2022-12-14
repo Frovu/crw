@@ -31,13 +31,13 @@ type CirclesResponse = {
 function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any, setBase: (b: Date) => void, clickCallback: (time: number) => void): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
-	const legendValue = (u: uPlot) => {
-		if (u.data == null || hoveredRect == null)
+	const legendValue = (seriesIdx: number) => (u: uPlot) => {
+		if (u.data == null || seriesIdx !== hoveredRect?.sidx)
 			return '';
 		const d = u.data[hoveredRect.sidx] as any;
 		const stIdx = d[3][hoveredRect.didx], lon = d[1][hoveredRect.didx].toFixed(2);
 		const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-		return `[ ${data.stations[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
+		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
 	return {
 		...initial,
@@ -50,14 +50,16 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				dataIdx: (u, seriesIdx) => {
 					if (seriesIdx > 2) {
 						return u.posToIdx(u.cursor.left! * devicePixelRatio);
-					} if (seriesIdx === 1) {
+					} 
+					if (seriesIdx === 1) {
 						const cx = u.cursor.left! * devicePixelRatio;
 						const cy = u.cursor.top! * devicePixelRatio;
+						hoveredRect = null;
 						qt.hover(cx, cy, (o: any) => {
 							hoveredRect = o;
 						});
 					}
-					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : 0;
+					return (hoveredRect && seriesIdx === hoveredRect.sidx) ? hoveredRect.didx : -1;
 				},
 				points: {
 					size: (u, seriesIdx) => {
@@ -172,7 +174,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 				stroke: color('cyan'),
 				fill: color('cyan', .5),
-				value: legendValue,
+				value: legendValue(1),
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
@@ -180,7 +182,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 				stroke: color('magenta'),
 				fill: color('magenta', .5),
-				value: legendValue,
+				value: legendValue(2),
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
@@ -256,7 +258,7 @@ async function queryCircles(params: CirclesParams) {
 	};
 }
 
-export function PlotCircles({ params, interactive=false }: { params: CirclesParams, interactive?: boolean }) {
+export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
 	const [ base, setBase ] = useState(params.base);
 	const para = { ...params, base };
 	const query = useQuery({
@@ -276,12 +278,14 @@ export function PlotCircles({ params, interactive=false }: { params: CirclesPara
 	}, [uplot, plotData]);
 
 	useLayoutEffect(() => {
-		if (uplot) uplot.setSize(size);
-	}, [uplot, size]);
+		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - 32 })  });
+	}, [uplot, size, interactive]);
 
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container) return;
-		const options = circlesPlotOptions({ ...size }, interactive, query.data, setBase, () => {}) as uPlot.Options;
+		const options = circlesPlotOptions(
+			{ ...size, ...(interactive && { height: size.height - 32 })  }, 
+			interactive, query.data, setBase, console.log) as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container]); // eslint-disable-line react-hooks/exhaustive-deps
 

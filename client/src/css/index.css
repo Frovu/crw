@@ -7,8 +7,10 @@
 	--color-grid: rgb(48,48,48);
   	--color-active: gold;
 
+	--font: 'Roboto Mono', monospace;
+
 	font-size: 16px;
-	font-family: 'Roboto Mono', monospace;
+	font-family: var(--font);
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 

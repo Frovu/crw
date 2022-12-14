@@ -48,7 +48,7 @@ export function circlePaths(callback, minMaxMagn=5) {
 					});
 				}
 			}
-			console.timeEnd('circles');
+			// console.timeEnd('circles');
 			u.ctx.restore();
 		});
 		return null;
