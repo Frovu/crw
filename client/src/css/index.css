@@ -22,3 +22,30 @@ body {
 	box-sizing: border-box;         /* Opera/IE 8+ */
 	margin: 0;
 }
+
+input, button, select {
+	-ms-box-sizing:content-box;
+	-moz-box-sizing:content-box;
+	-webkit-box-sizing:content-box; 
+	box-sizing:content-box;
+	background-color: inherit;
+	font-family: inherit;
+	font-size: inherit;
+	color: inherit;
+	outline: none;
+}
+button {
+	cursor: pointer;
+	border-style: outset;
+}
+select {
+	cursor: pointer;
+}
+
+input:focus-visible, button:focus-visible, select:focus-visible {
+	border: 1px var(--color-active) solid;
+}
+
+button:hover, select:hover {
+	border: 1px var(--color-active) solid !important;
+}
