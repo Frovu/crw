@@ -8,10 +8,11 @@
   	--color-active: gold;
 	--color-area: rgba(95, 0, 175, 0.17);
 
-	--color-cyan: rgb(0,255,255);
-	--color-magenta: rgb(255,10,110);
+	--color-red: rgb(255, 0, 0);
+	--color-cyan: rgb(0, 255, 255);
+	--color-magenta: rgb(255, 10, 110);
 	--color-green: rgb(13, 255, 45);
-	--color-purple: rgb(100,0,200);
+	--color-purple: rgb(100, 0, 200);
 
 
 	--font: 'Roboto Mono', monospace;

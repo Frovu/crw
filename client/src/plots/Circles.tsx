@@ -1,6 +1,6 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { useEventListener, useSize } from '../util';
+import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, circlePaths, color, font, pointPaths } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -282,7 +282,7 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
 	if (res.status !== 200)
-		throw new Error('HTTP '+res.status);
+		return null;
 	return res.json();
 }
 
@@ -352,7 +352,6 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 
 	if (!query.data) return null;
 	const middle = params.interval.map(d => d.getTime() / 1000).reduce((a, b) => a + b, 0) / 2;
-	console.log(settingsOpen)
 	const pos = !settingsOpen && moment >= middle ? { left: 40 } : { right: 0 };
 	return (
 		<div style={{ position: 'absolute', top: 0, ...pos, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
@@ -378,6 +377,8 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 
 	const [ uplot, setUplot ] = useState<uPlot>();
 	const plotData = query.data?.plotData;
+	
+	useEffect(() => setMoment(null), [params.interval]);
 
 	useLayoutEffect(() => {
 		if (uplot && plotData) uplot.setData(plotData as any);
@@ -389,6 +390,7 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (!interactive) return;
+		if (e.target instanceof HTMLInputElement) return;
 		if (e.code === 'Escape') setMoment(() => null);
 		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
 		if (!move) return;
@@ -428,10 +430,27 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 }
 
 export function CirclesParamsInput({ params, setParams }: { params: CirclesParams, setParams: (p: CirclesParams) => void }) {
-	// const 
+	const callback = (what: string) => (value: any) => {
+		if (what === 'days') {
+			const from = new Date(+params.interval[1] - value * 86400000);
+			setParams({ ...params, interval: [ from, params.interval[1] ] });
+
+		} else if (what === 'date') {
+			const len = +params.interval[1] - +params.interval[0];
+			setParams({ ...params, interval: [ new Date(value - len), value ] });
+		}
+	};
 
 	return (
-		<div>
+		<div className='Settings'>
+			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
+			
+			Ending date: 
+			<ValidatedInput type='time' value={params.interval[1].toISOString().replace('T', ' ').replace(/:\d\d\..+/, '')}
+				callback={callback('date')}/>
+			<br/> Days count: 
+			<ValidatedInput type='number' value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
+				callback={callback('days')}/>
 
 		</div>
 	);

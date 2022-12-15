@@ -64,3 +64,25 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 
 	return size;
 }
+
+export function ValidatedInput({ type, value, callback }:
+{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void }) {
+	const [valid, setValid] = useState(true);
+
+	const onChange = (e: any) => {
+		const val = e.target.value;
+		const parsed = (() => {
+			switch (type) {
+				case 'text': return val;
+				case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+				case 'number': return parseFloat(val);
+			}
+		})();
+		if (type !== 'text' && isNaN(parsed))
+			return setValid(false);
+		setValid(true);
+		callback(parsed);
+	};
+
+	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' defaultValue={value} onChange={onChange}></input>;
+}

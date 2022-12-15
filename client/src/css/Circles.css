@@ -32,3 +32,20 @@
 	border-radius: 6px;
 	padding-bottom: 4px;
 }
+
+.Settings {
+	position: absolute;
+	z-index: 1;
+	line-height: 2.5em;
+	background-color: var(--color-bg);
+	text-align: right;
+	padding: 1em .5em 2em 2em;
+	box-shadow: 0 0 64px 56px var(--color-bg);
+	opacity: .95;
+}
+
+
+.Settings input {
+	border: 2px inset var(--color-border);
+	margin-left: .5em;
+}

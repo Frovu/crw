@@ -88,7 +88,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 				</select>
 				{!operation.includes('null') && !isSelectInput &&
-				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'red' }) }}
+				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'var(--color-red)' }) }}
 					value={input} onChange={set('input')}/>}
 				{!operation.includes('null') && isSelectInput &&
 				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
