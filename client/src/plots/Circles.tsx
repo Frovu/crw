@@ -112,24 +112,24 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 					let isDragged: boolean, clickX: number | undefined, clickY: number | undefined;
 					u.over.addEventListener('mousemove', e => {
 						if (isDragged) {
-							const dragValue = u.posToVal(e.clientX, 'x') - u.posToVal(clickX!, 'x');
+							const dragValue = u.posToVal(e.offsetX, 'x') - u.posToVal(clickX!, 'x');
 							currentBase = Math.round((data.base + dragValue) / 3600) * 3600;
 							if (currentBase < u.scales.x.min!)
 								currentBase = u.scales.x.min;
 							if (currentBase > u.scales.x.max! - 86400)
 								currentBase = u.scales.x.max! - 86400;
+							setSelect(currentBase);
 						}
-						setSelect(currentBase);
 					});
 					u.over.addEventListener('mousedown', e => {
-						clickX = e.clientX;
-						clickY = e.clientY;
+						clickX = e.offsetX;
+						clickY = e.offsetY;
 						isDragged = u.valToPos(data.base, 'x', true) < clickX && clickX < u.valToPos(data.base + 86400, 'x', true);
 					});
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
 							setBase(new Date(currentBase * 1e3));
-						} else if (interactive && Math.abs(e.clientX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
+						} else if (interactive && Math.abs(e.offsetX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
 							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
 							if (detailsIdx != null)
 								setMoment(data.precursor_idx[0][detailsIdx]);
