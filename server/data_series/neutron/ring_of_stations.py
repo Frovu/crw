@@ -10,6 +10,7 @@ def _determine_base(data):
 	time, data = data[:,0], data[:,1:]
 	with warnings.catch_warnings():
 		warnings.simplefilter('ignore', category=RuntimeWarning)
+		warnings.simplefilter('ignore', optimize.OptimizeWarning)
 		mean_val = np.nanmean(data, axis=0)
 		mean_var = np.nanmean(data / mean_val, axis=1)
 		indices = np.where(mean_var[:-1*b_len] > 1)[0]
@@ -23,6 +24,7 @@ def _filter(full_data):
 	time, data = full_data[:,0], full_data[:,1:]
 	with warnings.catch_warnings():
 		warnings.simplefilter('ignore', category=RuntimeWarning)
+		warnings.simplefilter('ignore', optimize.OptimizeWarning)
 		variation = data / np.nanmean(data, axis=0) * 100 - 100
 		mean_variation = np.nanmedian(variation, axis=1)
 	deviation = variation - mean_variation[:,None]
@@ -106,7 +108,7 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base):
 	if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
 	t_from = t_from // database.PERIOD * database.PERIOD
 
-	stations, directions = zip(*database.select_stations())
+	stations, directions = zip(*[s for s in database.select_stations() if s[0] not in exclude])
 	neutron_data = database.fetch((t_from, t_to), stations)
 	data, filtered, excluded = _filter(neutron_data)
 	if user_base and user_base >= t_from and user_base <= t_to - 3600 * BASE_LENGTH_H:

@@ -65,24 +65,35 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	return size;
 }
 
-export function ValidatedInput({ type, value, callback }:
-{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void }) {
+function parseInput(type: 'text' | 'time' | 'number', val: any) {
+	switch (type) {
+		case 'text': return val;
+		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+		case 'number': return parseFloat(val);
+	}
+}
+
+export function ValidatedInput({ type, value, callback, placeholder }:
+{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string }) {
 	const [valid, setValid] = useState(true);
+	const [input, setInput] = useState(value);
+	const ref = useRef<HTMLInputElement>(null);
+
+	useEventListener('keydown', (e) => {
+		if (e.code === 'Escape')
+			ref.current?.blur();
+		if (e.code === 'Enter')
+			valid && callback(parseInput(type, input));
+	}, ref);
 
 	const onChange = (e: any) => {
-		const val = e.target.value;
-		const parsed = (() => {
-			switch (type) {
-				case 'text': return val;
-				case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
-				case 'number': return parseFloat(val);
-			}
-		})();
-		if (type !== 'text' && isNaN(parsed))
+		setInput(e.target.value);
+		const val = parseInput(type, e.target.value);
+		if (type !== 'text' && isNaN(val))
 			return setValid(false);
 		setValid(true);
-		callback(parsed);
 	};
 
-	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' defaultValue={value} onChange={onChange}></input>;
+	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
+		ref={ref} onChange={onChange} onBlur={() => valid && callback(parseInput(type, input))}></input>;
 }

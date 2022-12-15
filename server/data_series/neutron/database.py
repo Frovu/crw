@@ -74,14 +74,19 @@ def _fetch_one(interval, station):
 		if pg_conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION:
 			pg_conn.rollback()
 		# TODO: optionally mark all records older than certain time as bad
-		cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'obtain_time', where=f'station=\'{station}\'',
-			bad_condition=f'original IS NULL AND \'now\'::timestamp - obtain_time > \'{PERIOD} s\'::interval', bad_cond_columns=['original']))
-		if gaps := cursor.fetchall():
-			for gap in gaps:
-				_obtain_nmdb(gap, station, cursor)
-			pg_conn.commit()
-		cursor.execute(f'''SELECT COALESCE(corrected, original) FROM generate_series(to_timestamp(%s),to_timestamp(%s),'%s s'::interval) ts
-		LEFT JOIN neutron_counts n ON ts=n.time AND station=%s''', [*interval, PERIOD, station])
+		try:
+			cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'obtain_time', where=f'station=\'{station}\'',
+				bad_condition=f'original IS NULL AND \'now\'::timestamp - obtain_time > \'{PERIOD} s\'::interval', bad_cond_columns=['original']))
+			if gaps := cursor.fetchall():
+				for gap in gaps:
+					_obtain_nmdb(gap, station, cursor)
+				pg_conn.commit()
+			cursor.execute(f'''SELECT COALESCE(corrected, original) FROM generate_series(to_timestamp(%s),to_timestamp(%s),'%s s'::interval) ts
+			LEFT JOIN neutron_counts n ON ts=n.time AND station=%s''', [*interval, PERIOD, station])
+		except psycopg2.errors.InFailedSqlTransaction:
+			pg_conn.rollback()
+			log.warning(f'Neutron: InFailedSqlTransaction, rolling back')
+			_fetch_one(interval, station)
 		return numpy.array(cursor.fetchall(), dtype=numpy.float32)
 
 def fetch(interval: [int, int], stations: list[str]):

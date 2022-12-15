@@ -216,7 +216,7 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 	return { // f=${body.angle.toFixed(2)}
 		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
 		width: 480,
-		height: 480,
+		height: 480 - 32,
 		mode: 2,
 		padding: [0, 16, 0, 0],
 		legend: { show: false, live: false },
@@ -410,7 +410,7 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 	if (query.isLoading)
 		return <div>Loading...</div>;
 	if (!query.data)
-		return <div>Failed to obrain data</div>;
+		return <div>Failed to obtain data</div>;
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}
@@ -421,8 +421,8 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 				, uplot.over)}
 			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
 				{query.isFetching ? 'Fetching...' : (
-					query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '' +
-					query.data.filtered ? ' Filtered: ' + query.data.filtered : ''
+					(query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
+					(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')
 				)}
 			</div>}
 		</div>
@@ -433,14 +433,18 @@ export function CirclesParamsInput({ params, setParams }: { params: CirclesParam
 	const callback = (what: string) => (value: any) => {
 		if (what === 'days') {
 			const from = new Date(+params.interval[1] - value * 86400000);
+			if (params.interval[0] === from) return;
 			setParams({ ...params, interval: [ from, params.interval[1] ] });
-
 		} else if (what === 'date') {
+			if (params.interval[1] === value) return;
 			const len = +params.interval[1] - +params.interval[0];
 			setParams({ ...params, interval: [ new Date(value - len), value ] });
+		} else if (what === 'exclude') {
+			setParams({ ...params, exclude: value.replace(/\s+/g, '').split(',') });
+		} else {
+			setParams({ ...params, [what]: value });
 		}
 	};
-
 	return (
 		<div className='Settings'>
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
@@ -451,6 +455,15 @@ export function CirclesParamsInput({ params, setParams }: { params: CirclesParam
 			<br/> Days count: 
 			<ValidatedInput type='number' value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
 				callback={callback('days')}/>
+			<br/> Exclude stations: 
+			<ValidatedInput type='text' value={params.exclude?.join()}
+				callback={callback('exclude')} placeholder='KIEL2,IRKT'/>
+			<br/> Idx window (h): 
+			<ValidatedInput type='number' value={params.window}
+				callback={callback('window')}/>
+			<br/> Idx threshold: 
+			<ValidatedInput type='number' value={params.minamp}
+				callback={callback('minamp')}/>
 
 		</div>
 	);
