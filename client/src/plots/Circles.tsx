@@ -366,7 +366,7 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params, interactive=true, settingsOpen }: { params: CirclesParams, interactive?: boolean, settingsOpen?: boolean }) {
+export function PlotCircles({ params, interactive=true, settingsOpen, onset }: { params: CirclesParams, interactive?: boolean, settingsOpen?: boolean, onset?: Date }) {
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -408,20 +408,29 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
 			...circlesPlotOptions(interactive, query.data, setBase, setMoment)
 		} as uPlot.Options;
-		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
+		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: (p) => setTimeout(() => setUplot(p)) }}/>;
 	}, [interactive, plotData, container, size.height <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
 	if (!query.data)
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
+
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
-				<div style={{  position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
+				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
 					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
+				, uplot.over)}
+			{uplot?.scales.x.min && onset && ReactDOM.createPortal(
+				<div style={{ position: 'absolute', left: uplot.valToPos(onset.getTime() / 1000, 'x') - 1,
+					width: 2, height: uplot.over.offsetHeight, backgroundColor: color('text'),  }}>
+					<div style={{ position: 'absolute', bottom: -16, left: -20, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 'bold' }}>
+						onset
+					</div>
+				</div>
 				, uplot.over)}
 			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
 				{query.isFetching ? 'Fetching...' : (
