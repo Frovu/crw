@@ -41,7 +41,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 	};
 	return {
 		...initial,
-		padding: [0, 0, 0, 0],
+		padding: [4, 4, 0, 0],
 		mode: 2,
 		legend: { show: interactive },
 		cursor: {
@@ -132,13 +132,14 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				stroke: color('text'),
 				grid: { stroke: color('grid'), width: 1 },
 				ticks: { stroke: color('grid'), width: 1 },
-				space: 70,
+				space: 64,
 				size: 40,
-				values: (u, vals) => vals.map(v => {
+				values: (u, vals) => vals.map((v, i) => {
+					console.log('val', vals)
 					const d = new Date(v * 1000);
 					const day = String(d.getUTCDate()).padStart(2, '0');
 					const hour =  String(d.getUTCHours()).padStart(2, '0');
-					return day + '\'' + hour;
+					return (i === 1 ? d.toLocaleString('en-us', { year: 'numeric', month: 'short' }) + ' ' : day + '\'' + hour);
 				})
 			},
 			{
@@ -148,7 +149,9 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				ticks: { stroke: color('grid'), width: 1 },
-				grid: { stroke: color('grid'), width: 1 }
+				grid: { stroke: color('grid'), width: 1 },
+				space: 48,
+				incrs: Array(360 / 15).fill(1).map((a,  i) => i * 15)
 			},
 			{
 				scale: 'idx',
@@ -188,7 +191,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 			{
 				scale: 'idx',
 				label: 'idx',
-				stroke: color('orange'),
+				stroke: color('orange', .9),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
 				paths: linePaths(1.75)
@@ -258,6 +261,7 @@ async function queryCircles(params: CirclesParams) {
 	};
 }
 
+const LEGEND_H = 32;
 export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
 	const [ base, setBase ] = useState(params.base);
 	const para = { ...params, base };
@@ -278,13 +282,13 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 	}, [uplot, plotData]);
 
 	useLayoutEffect(() => {
-		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - 32 })  });
+		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - LEGEND_H })  });
 	}, [uplot, size, interactive]);
 
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container) return;
 		const options = circlesPlotOptions(
-			{ ...size, ...(interactive && { height: size.height - 32 })  }, 
+			{ ...size, ...(interactive && { height: size.height - LEGEND_H })  }, 
 			interactive, query.data, setBase, console.log) as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -298,5 +302,5 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 
 export default function PlotCirclesStandalone() {
 	const params: CirclesParams = { interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] };
-	return <div style={{ position: 'relative', height: '100vh', width: '100vw' }}><PlotCircles {...{ params }}/></div>;
+	return <div style={{ position: 'relative', height: '98vh', width: '100vw' }}><PlotCircles {...{ params }}/></div>;
 }
