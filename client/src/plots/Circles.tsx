@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useEventListener, useSize } from '../util';
 import { linePaths, circlePaths, color, font, pointPaths } from './plotUtil';
 import { useQuery } from 'react-query';
@@ -258,11 +259,11 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 		series: [
 			{},
 			{
-				stroke: 'rgba(255,10,110,1)',
+				stroke: color('magenta'),
 				paths: pointPaths(10)
 			},
 			{
-				stroke: 'rgb(100,0,200)',
+				stroke: color('purple'),
 				paths: linePaths(2)
 			}
 		]
@@ -350,8 +351,10 @@ export function PlotCirclesMoment({ params, base, moment, setMoment }:
 	}, [query.data]);
 
 	if (!query.data) return null;
+	const middle = params.interval.map(d => d.getTime() / 1000).reduce((a, b) => a + b, 0) / 2;
+	const pos = moment >= middle ? { left: 40 } : { right: 0 };
 	return (
-		<div style={{ position: 'absolute', top: 0, left: 40, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
+		<div style={{ position: 'absolute', top: 0, ...pos, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
 			onClick={() => setMoment(null)}>
 			{plot}
 		</div>
@@ -409,6 +412,10 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment }}/>}
 			{plotComponent}
+			{uplot && moment && ReactDOM.createPortal(
+				<div style={{  position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
+					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
+				, uplot.over)}
 		</div>
 	);
 }
