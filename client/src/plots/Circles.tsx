@@ -28,7 +28,7 @@ type CirclesResponse = {
 	excluded: string[]
 };
 
-function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolean, data: any, setBase: (b: Date) => void, clickCallback: (time: number) => void): Partial<uPlot.Options> {
+function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) => void, clickCallback: (time: number) => void): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (seriesIdx: number) => (u: uPlot) => {
@@ -40,7 +40,6 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
 	return {
-		...initial,
 		padding: [4, 4, 0, 0],
 		mode: 2,
 		legend: { show: interactive },
@@ -77,6 +76,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 						width: u.valToPos(data.base + 86400, 'x') - u.valToPos(data.base, 'x'),
 						height: u.over.offsetHeight
 					});
+					u.setCursor({ left: -1, top: -1 });
 					qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 					qt.clear();
 					u.series.forEach((s, i) => {
@@ -135,7 +135,6 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 				space: 64,
 				size: 40,
 				values: (u, vals) => vals.map((v, i) => {
-					console.log('val', vals)
 					const d = new Date(v * 1000);
 					const day = String(d.getUTCDate()).padStart(2, '0');
 					const hour =  String(d.getUTCHours()).padStart(2, '0');
@@ -191,7 +190,7 @@ function circlesPlotOptions(initial: Partial<uPlot.Options>, interactive: boolea
 			{
 				scale: 'idx',
 				label: 'idx',
-				stroke: color('orange', .9),
+				stroke: color('green', .8),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
 				paths: linePaths(1.75)
@@ -286,12 +285,13 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 	}, [uplot, size, interactive]);
 
 	const plotComponent = useMemo(() => {
-		if (!plotData || !container) return;
-		const options = circlesPlotOptions(
-			{ ...size, ...(interactive && { height: size.height - LEGEND_H })  }, 
-			interactive, query.data, setBase, console.log) as uPlot.Options;
+		if (!plotData || !container || size.height <= 0) return;
+		const options = {
+			...size, ...(interactive && { height: size.height - LEGEND_H }),
+			...circlesPlotOptions(interactive, query.data, setBase, console.log)
+		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, container]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div>Loading...</div>;

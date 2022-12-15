@@ -8,7 +8,7 @@
 
 .u-select {
 	cursor: grab;
-	background: rgba(95, 0, 175, 0.17);
+	background: var(--color-area);
 }
 
 .u-over {

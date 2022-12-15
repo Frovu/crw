@@ -82,13 +82,8 @@ export function linePaths(width = 1) {
 }
 
 export function color(name, opacity=1) {
-	const named = {
-		'cyan': ['0,255,255'],
-		'magenta': ['255,10,110'],
-		'orange': ['255,170,0'],
-	}[name];
-	const col = named && `rgba(${named},${opacity})`;
-	return col || window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
+	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
+	return col.includes('rgb') ? `rgba(${col.match(/[\d.]+/g).slice(0,3).join(',')},${opacity})` : col;
 }
 
 export function font(size=16) {
