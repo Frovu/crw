@@ -411,9 +411,9 @@ export function PlotCircles({ params, interactive=true, settingsOpen }: { params
 	}, [interactive, plotData, container, size.height <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
-		return <div>Loading...</div>;
+		return <div className='Center'>LOADING...</div>;
 	if (!query.data)
-		return <div>Failed to obtain data</div>;
+		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}

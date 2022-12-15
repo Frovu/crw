@@ -40,8 +40,15 @@
 	opacity: .95;
 }
 
-
 .Settings input {
 	border: 2px inset var(--color-border);
 	margin-left: .5em;
+}
+
+.Center {
+	position: absolute;
+	width: fit-content;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
 }
