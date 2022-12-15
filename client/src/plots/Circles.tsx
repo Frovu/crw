@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
-import { useSize } from '../util';
+import { useEventListener, useSize } from '../util';
 import { linePaths, circlePaths, color, font, pointPaths } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -214,24 +214,30 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 	const moment = new Date(data.time * 1000).toISOString().replace(/\..*|T/g, ' ');
 	return { // f=${body.angle.toFixed(2)}
 		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
-		width: 256,
-		height: 256,
+		width: 480,
+		height: 480,
 		mode: 2,
-		padding: [10, 0, 0, 0],
+		padding: [0, 16, 0, 0],
 		legend: { show: false, live: false },
 		cursor: {
+			show: false,
 			drag: { x: false, y: false }
 		},
 		hooks: { },
 		axes: [
 			{
+				size: 36,
+				space: 36,
 				font: font(14),
 				stroke: color('text'),
 				grid: { stroke: color('grid'), width: 1 },
 				ticks: { stroke: color('grid'), width: 1 },
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
+				incrs: Array(360 / 45).fill(1).map((a,  i) => i * 45)
 			},
 			{
+				size: 54,
+				space: 36,
 				scale: 'y',
 				font: font(14),
 				stroke: color('text'),
@@ -327,21 +333,26 @@ async function queryCircles(params: CirclesParams, base?: Date) {
 	};
 }
 
-export function PlotCirclesMoment({ params, base, moment }: { params: CirclesParams, base?: Date, moment: number }) {
+export function PlotCirclesMoment({ params, base, moment, setMoment }:
+{ params: CirclesParams, base?: Date, moment: number, setMoment: (m: number | null) => void }) {
 	const query = useQuery({
 		staleTime: Infinity,
+		keepPreviousData: true,
 		queryKey: ['rosMoment', params, moment],
 		queryFn: (): Promise<CirclesMomentResponse | undefined> => fetchCircles(params, base, moment),
 	});
+
 	const plot = useMemo(() => {
-		if (!query.data) return null;
+		if (!query.data?.time) return null;
 		const options = circlesMomentPlotOptions(query.data);
 		const data = [[], [query.data.x, query.data.y], [query.data.fnx, query.data.fny]] as any;
 		return <UplotReact {...{ options, data }}/>;
 	}, [query.data]);
+
 	if (!query.data) return null;
 	return (
-		<div style={{ position: 'absolute', top: 0, zIndex: 1, backgroundColor: color('bg', .9) }}>
+		<div style={{ position: 'absolute', top: 0, left: 40, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
+			onClick={() => setMoment(null)}>
 			{plot}
 		</div>
 	);
@@ -372,6 +383,15 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - LEGEND_H })  });
 	}, [uplot, size, interactive]);
 
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (!interactive) return;
+		if (e.code === 'Escape') setMoment(() => null);
+		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
+		if (!move) return;
+		const [ min, max ] = params.interval.map(d => Math.floor(d.getTime() / 1000));
+		setMoment(mm => mm && Math.min(Math.max(mm + move, min), max));
+	});
+
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
@@ -387,7 +407,7 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		return <div>Failed to obrain data</div>;
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
-			{moment && <PlotCirclesMoment {...{ params, base, moment }}/>}
+			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment }}/>}
 			{plotComponent}
 		</div>
 	);

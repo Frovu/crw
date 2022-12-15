@@ -88,7 +88,6 @@ export function pointPaths(sizePx) {
 			const d = u.data[seriesIdx];
 			u.ctx.fillStyle = series.stroke();
 			const deg360 = 2 * Math.PI;
-			console.time('points');
 			const p = new Path2D();
 			for (let i = 0; i < d[0].length; i++) {
 				const xVal = d[0][i];
@@ -100,7 +99,6 @@ export function pointPaths(sizePx) {
 					arc(p, cx, cy, size/2, 0, deg360);
 				}
 			}
-			console.timeEnd('points');
 			u.ctx.fill(p);
 		});
 		return null;
