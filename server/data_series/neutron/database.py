@@ -46,7 +46,7 @@ def _obtain_nmdb(interval, station, pg_cursor):
 	_connect_nmdb()
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
 	query = f'''SELECT date_add(date(start_date_time), interval extract(hour from start_date_time) hour) as time,
-		avg(corr_for_efficiency), avg(pressure_mbar)
+		round(avg(corr_for_efficiency), 4), round(avg(pressure_mbar), 2)
 		FROM {station}_revori WHERE start_date_time >= %s AND start_date_time < %s + interval 1 hour
 		GROUP BY date(start_date_time), extract(hour from start_date_time)'''
 	with nmdb_conn.cursor() as cursor:
@@ -61,11 +61,12 @@ def _obtain_nmdb(interval, station, pg_cursor):
 		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
 		q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
 		return pg_cursor.execute(q)
+	print(interval)
 	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
 		INSERT INTO neutron_counts (time, station, original, pressure)
 		SELECT ts, \'{station}\', data.original, data.pressure
 		FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),'{PERIOD} s'::interval) ts
-		RIGHT JOIN data ON ts = data.time
+		LEFT JOIN data ON ts = data.time
 		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original'''
 	psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(%s,%s,%s)')
 
