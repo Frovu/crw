@@ -63,6 +63,10 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 				(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
 			setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
 			setCursor(curs);
+			e.preventDefault();
+			const cell = ref.current!.children[0]?.children[1].children[0].children[curs.column] as HTMLElement;
+			const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
+			ref.current?.scrollTo({ left });
 		};
 		if (e.ctrlKey && e.code === 'Home')
 			return set({ row: 0, column: cursor?.column ?? 0 });
@@ -114,7 +118,7 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 						<Row key={row[0].getTime()} {...{ index: i + viewIndex, row, columns, cursor, setCursor }}/>)}
 				</tbody>
 			</table>
-			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>
+			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px', padding: '0 0 2px 6px' }}>
 				{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
 			</div>
 		</div>

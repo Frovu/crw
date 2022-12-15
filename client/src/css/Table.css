@@ -1,9 +1,31 @@
-.Table > table {
-	text-align: center;
-	border: 1px solid var(--color-border);
+
+.TableApp {
+	width: 100vw;
+	display: grid;
+	gap: .5em;
 }
 
-.Table > td {
+.Plot1 {
+	grid-column: 2;
+}
+
+@media (min-width: 1250px) {
+	.TableApp {
+		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
+	}
+}
+
+@media (max-width: 1250px) {
+	.TableApp {
+		display: block;
+	}
+}
+
+.Table table {
+	text-align: center;
+}
+
+.Table td {
 	border: 1px solid var(--color-border);
 }
 
@@ -15,8 +37,16 @@
 }
 
 .Table {
-	width: fit-content;
+	border: 1px solid var(--color-border);
+	overflow-x: scroll;
+	-ms-overflow-style: none;  /* IE and Edge */
+	scrollbar-width: none;  /* Firefox */
+	scrollbar-base-color: red;
+	grid-column: 1;
 	margin: 1em;
+}
+.Table::-webkit-scrollbar {
+	display: none;
 }
 
 .ColumnsSelector {

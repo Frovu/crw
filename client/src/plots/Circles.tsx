@@ -10,7 +10,7 @@ import UplotReact from 'uplot-react';
 import 'uplot/dist/uPlot.min.css';
 import '../css/Circles.css';
 
-type CirclesParams = {
+export type CirclesParams = {
 	interval: [Date, Date],
 	base?: Date,
 	exclude?: string[],

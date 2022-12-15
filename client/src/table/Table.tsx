@@ -1,9 +1,10 @@
+import '../css/Table.css';
 import { useState, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
-import '../css/Table.css';
+import { useEventListener, usePersistedState } from '../util';
 import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
-import { useEventListener, usePersistedState } from '../util';
+import { PlotCircles, CirclesParams } from '../plots/Circles';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -62,7 +63,10 @@ function CoreWrapper() {
 	return (
 		<DataContext.Provider value={dataContext}>
 			<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
-			<TableView {...{ sort, setSort, cursor, setCursor }}/>
+			<div className='TableApp'>
+				<TableView {...{ sort, setSort, cursor, setCursor }}/>
+				<div className='Plot1' style={{ backgroundColor: 'red' }}>asd</div>
+			</div>
 		</DataContext.Provider>
 	);
 }
