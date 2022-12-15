@@ -52,7 +52,7 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
 	return {
-		padding: [4, 4, 0, 0],
+		padding: [4, 8, 0, 0],
 		mode: 2,
 		legend: { show: interactive },
 		cursor: {
@@ -334,8 +334,8 @@ async function queryCircles(params: CirclesParams, base?: Date) {
 	};
 }
 
-export function PlotCirclesMoment({ params, base, moment, setMoment }:
-{ params: CirclesParams, base?: Date, moment: number, setMoment: (m: number | null) => void }) {
+export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpen }:
+{ params: CirclesParams, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
 	const query = useQuery({
 		staleTime: Infinity,
 		keepPreviousData: true,
@@ -352,7 +352,8 @@ export function PlotCirclesMoment({ params, base, moment, setMoment }:
 
 	if (!query.data) return null;
 	const middle = params.interval.map(d => d.getTime() / 1000).reduce((a, b) => a + b, 0) / 2;
-	const pos = moment >= middle ? { left: 40 } : { right: 0 };
+	console.log(settingsOpen)
+	const pos = !settingsOpen && moment >= middle ? { left: 40 } : { right: 0 };
 	return (
 		<div style={{ position: 'absolute', top: 0, ...pos, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
 			onClick={() => setMoment(null)}>
@@ -362,7 +363,7 @@ export function PlotCirclesMoment({ params, base, moment, setMoment }:
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
+export function PlotCircles({ params, interactive=true, settingsOpen }: { params: CirclesParams, interactive?: boolean, settingsOpen?: boolean }) {
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -410,17 +411,41 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		return <div>Failed to obrain data</div>;
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
-			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment }}/>}
+			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
 				<div style={{  position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
 					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
 				, uplot.over)}
+			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
+				{query.isFetching ? 'Fetching...' : (
+					query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '' +
+					query.data.filtered ? ' Filtered: ' + query.data.filtered : ''
+				)}
+			</div>}
+		</div>
+	);
+}
+
+export function CirclesParamsInput({ params, setParams }: { params: CirclesParams, setParams: (p: CirclesParams) => void }) {
+	// const 
+
+	return (
+		<div>
+
 		</div>
 	);
 }
 
 export default function PlotCirclesStandalone() {
-	const params: CirclesParams = { interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] };
-	return <div style={{ position: 'relative', height: '98vh', width: '100vw' }}><PlotCircles {...{ params }}/></div>;
+	const [settingsOpen, setOpen] = useState(false);
+	const [params, setParams] = useState<CirclesParams>({ interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] });
+	return (
+		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
+			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
+			<PlotCircles {...{ params, settingsOpen }}/>
+			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
+				onClick={() => setOpen(o => !o)}>S</button>
+		</div>
+	);
 }
