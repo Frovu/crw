@@ -214,7 +214,7 @@ export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }:
 	return (
 		<div>
 			<div className='Menu'>
-				<MenuSection name='View' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Controls' {...{ shownSection, setShownSection }}>
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>

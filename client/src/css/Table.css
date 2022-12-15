@@ -2,18 +2,28 @@
 .TableApp {
 	margin: 4px;
 	width: calc(100vw - 8px);
-	display: grid;
-	gap: .5em;
+	height: calc(100vh - 8px);
+	gap: 4px;
 }
-
-.Plot1 {
-	grid-column: 2;
-}
-
 @media (min-width: 1250px) {
 	.TableApp {
+		display: grid;
 		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
+		grid-template-rows: auto minmax(360px, 1fr);
 	}
+	.PlotLeft {
+		grid-row: 2;
+		grid-column: 1;
+	}
+	.PlotTop {
+		grid-row: 1;
+		grid-column: 2;
+	}
+	.PlotBottom {
+		grid-row: 2;
+		grid-column: 2;
+	}
+		
 }
 
 @media (max-width: 1250px) {
@@ -43,7 +53,6 @@
 	-ms-overflow-style: none;  /* IE and Edge */
 	scrollbar-width: none;  /* Firefox */
 	scrollbar-base-color: red;
-	grid-column: 1;
 	max-width: fit-content;
 }
 .Table::-webkit-scrollbar {
@@ -59,7 +68,6 @@
 	height: 24em;
 	z-index: 1;
 	background-color: var(--color-bg);
-	/* box-shadow: 0 0 48px 32px  var(--color-bg); */
 	border: 2px solid var(--color-border);
 	opacity: .9;
 	padding: 1em;
@@ -95,7 +103,8 @@
 	gap: 8px;
 	position: relative;
 	z-index: 10;
-	margin: .75em;
+	margin-top: 4px;
+	margin-bottom: 8px;
 }
 
 .MenuDropdown {

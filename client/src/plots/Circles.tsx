@@ -291,6 +291,7 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 
 async function queryCircles(params: CirclesParams, base?: Date) {
 	const resp = await fetchCircles(params, base) as CirclesResponse;
+	if (!resp) return resp;
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));

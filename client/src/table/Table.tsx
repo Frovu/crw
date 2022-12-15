@@ -63,9 +63,11 @@ function CoreWrapper() {
 	const cursorDate = cursor && dataContext.data[cursor.row][dataContext.columns.findIndex(col => col.id === 'time')];
 	return (
 		<DataContext.Provider value={dataContext}>
-			<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
 			<div className='TableApp'>
-				<TableView {...{ sort, setSort, cursor, setCursor }}/>
+				<div>
+					<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
+					<TableView {...{ sort, setSort, cursor, setCursor }}/>
+				</div>
 				<div className='Plot1' style={{ position: 'relative', border: '1px solid' }}>
 					{cursor && <PlotCircles interactive={false} params={{
 						interval: [ new Date(cursorDate.getTime() - 3*86400000), new Date(cursorDate.getTime() + 2*86400000) ]
