@@ -106,7 +106,7 @@ function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
 	const tables = [...new Set(columns.map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.map(col => [col,
-		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)}
+		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
 			callback={checked => setEnabledColumns(cols => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>]);
 	return (
 		<div className='ColumnsSelector'>
@@ -128,7 +128,8 @@ function MenuButton({ text, action, callback }: { text: string, action: string, 
 	);
 }
 
-function MenuSection({ name, shownSection, setShownSection, children }: { name: string, shownSection: string | null, setShownSection: (s: string | null) => void, children: ReactNode }) {
+function MenuSection({ name, shownSection, setShownSection, children }:
+{ name: string, shownSection: string | null, setShownSection: (s: string | null) => void, children: ReactNode }) {
 	return (
 		<div>
 			<button onClick={e => {setShownSection(name); e.stopPropagation(); }}>
@@ -141,9 +142,10 @@ function MenuSection({ name, shownSection, setShownSection, children }: { name: 
 	);
 }
 
-function MenuCheckbox({ text, value, callback, hide }: { text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void }) {
+function MenuCheckbox({ text, value, callback, hide, disabled }:
+{ text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
 	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
-		<input type='checkbox' checked={value} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
+		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
 	</label>);
 }
 
@@ -186,7 +188,7 @@ function ExportMenu() {
 function onKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape')
 		return dispatchCustomEvent('escape');
-	if (e.target instanceof HTMLInputElement)
+	if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox')
 		return;
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === keycomb);

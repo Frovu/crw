@@ -1,6 +1,7 @@
 
 .TableApp {
-	width: 100vw;
+	margin: 4px;
+	width: calc(100vw - 8px);
 	display: grid;
 	gap: .5em;
 }
@@ -43,7 +44,7 @@
 	scrollbar-width: none;  /* Firefox */
 	scrollbar-base-color: red;
 	grid-column: 1;
-	margin: 1em;
+	max-width: fit-content;
 }
 .Table::-webkit-scrollbar {
 	display: none;
@@ -94,7 +95,7 @@
 	gap: 8px;
 	position: relative;
 	z-index: 10;
-	margin: 1em;
+	margin: .75em;
 }
 
 .MenuDropdown {

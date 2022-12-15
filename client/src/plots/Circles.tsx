@@ -52,10 +52,11 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
 	return {
-		padding: [4, 8, 0, 0],
+		padding: [8, 8, 0, 0],
 		mode: 2,
 		legend: { show: interactive },
 		cursor: {
+			show: interactive,
 			drag: { x: false, y: false, setScale: false },
 			...(interactive && {
 				dataIdx: (u, seriesIdx) => {
@@ -98,6 +99,8 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 			],
 			ready: [
 				u => {
+					if (interactive)
+						u.over.style.setProperty('cursor', 'pointer');
 					let currentBase = data.base;
 					const setSelect = (val: number) => u.setSelect({
 						left: u.valToPos(val, 'x'),
@@ -126,7 +129,7 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
 							setBase(new Date(currentBase * 1e3));
-						} else if (Math.abs(e.clientX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
+						} else if (interactive && Math.abs(e.clientX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
 							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
 							if (detailsIdx != null)
 								setMoment(data.precursor_idx[0][detailsIdx]);

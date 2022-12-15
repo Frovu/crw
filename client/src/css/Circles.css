@@ -12,10 +12,6 @@
 	background: var(--color-area);
 }
 
-.u-over {
-	cursor: pointer;
-}
-
 .Button {
 	z-index: 2;
 	user-select: none;

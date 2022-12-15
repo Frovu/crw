@@ -98,6 +98,11 @@ def fetch(interval: [int, int], stations: list[str]):
 	return numpy.column_stack([times]+[_fetch_one((t_from, t_to), s) for s in stations])
 
 def select_stations():
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT id, drift_longitude FROM neutron_stations')
-		return cursor.fetchall()
+	try:
+		with pg_conn.cursor() as cursor:
+			cursor.execute('SELECT id, drift_longitude FROM neutron_stations')
+			return cursor.fetchall()
+	except psycopg2.errors.InFailedSqlTransaction:
+		pg_conn.rollback()
+		log.warning(f'Neutron: InFailedSqlTransaction, rolling back')
+		return select_stations()
