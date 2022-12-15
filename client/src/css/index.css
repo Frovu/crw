@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 :root {
-	--color-bg: black;
+	--color-bg: rgb(0,0,0);
 	--color-text: darkgrey;
 	--color-text-dark: rgb(76,76,76);
 	--color-border: grey;

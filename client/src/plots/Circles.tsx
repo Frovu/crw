@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useState } from 'react';
 import { useSize } from '../util';
-import { linePaths, circlePaths, color, font } from './plotUtil';
+import { linePaths, circlePaths, color, font, pointPaths } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -28,7 +28,18 @@ type CirclesResponse = {
 	excluded: string[]
 };
 
-function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) => void, clickCallback: (time: number) => void): Partial<uPlot.Options> {
+type CirclesMomentResponse = {
+	time: number,
+	x: number[],
+	y: number[],
+	fnx: number[],
+	fny: number[],
+	index: number,
+	amplitude: number,
+	angle: number
+};
+
+function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (seriesIdx: number) => (u: uPlot) => {
@@ -117,7 +128,7 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 						} else if (Math.abs(e.clientX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
 							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
 							if (detailsIdx != null)
-								clickCallback(data.precursor_idx[0][detailsIdx]);
+								setMoment(data.precursor_idx[0][detailsIdx]);
 						}
 						isDragged = false;
 						clickX = clickY = undefined;
@@ -199,11 +210,65 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 	};
 }
 
-async function queryCircles(params: CirclesParams) {
+function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
+	const moment = new Date(data.time * 1000).toISOString().replace(/\..*|T/g, ' ');
+	return { // f=${body.angle.toFixed(2)}
+		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
+		width: 256,
+		height: 256,
+		mode: 2,
+		padding: [10, 0, 0, 0],
+		legend: { show: false, live: false },
+		cursor: {
+			drag: { x: false, y: false }
+		},
+		hooks: { },
+		axes: [
+			{
+				font: font(14),
+				stroke: color('text'),
+				grid: { stroke: color('grid'), width: 1 },
+				ticks: { stroke: color('grid'), width: 1 },
+				values: (u, vals) => vals.map(v => v.toFixed(0)),
+			},
+			{
+				scale: 'y',
+				font: font(14),
+				stroke: color('text'),
+				values: (u, vals) => vals.map(v => v.toFixed(1)),
+				ticks: { stroke: color('grid'), width: 1 },
+				grid: { stroke: color('grid'), width: 1 }
+			}
+		],
+		scales: {
+			x: {
+				time: false,
+				range: [0, 365],
+			},
+			y: {
+				range: (u, min, max) => [min, max],
+			}
+		},
+		series: [
+			{},
+			{
+				stroke: 'rgba(255,10,110,1)',
+				paths: pointPaths(10)
+			},
+			{
+				stroke: 'rgb(100,0,200)',
+				paths: linePaths(2)
+			}
+		]
+	};
+}
+
+async function fetchCircles(params: CirclesParams, base?: Date, moment?: number) {
 	const urlPara = new URLSearchParams({
 		from: (params.interval[0].getTime() / 1000).toFixed(0),
 		to:   (params.interval[1].getTime() / 1000).toFixed(0),
-		...(params.base && { base: (params.base.getTime() / 1000).toFixed(0) }),
+		...(moment && { details: moment.toFixed(0) }),
+		...(base && { base: (base.getTime() / 1000).toFixed(0) }),
 		...(params.exclude && { exclude: params.exclude.join() }),
 		...(params.window && { window: params.window.toString() }),
 		...(params.minamp && { minamp: params.minamp.toString() }),
@@ -211,8 +276,11 @@ async function queryCircles(params: CirclesParams) {
 	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
 	if (res.status !== 200)
 		throw new Error('HTTP '+res.status);
-	const resp = await res.json() as CirclesResponse;
-	
+	return res.json();
+}
+
+async function queryCircles(params: CirclesParams, base?: Date) {
+	const resp = await fetchCircles(params, base) as CirclesResponse;
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
@@ -230,8 +298,7 @@ async function queryCircles(params: CirclesParams) {
 			data[3][idx] = si;
 		}
 	}
-	// maxVar = Math.abs(maxVar);
-	// if (maxVar < MAX_VAR) maxVar = MAX_VAR;
+	
 	const ndata = Array.from(Array(4), () => new Array(slen*tlen - posCount - nullCount));
 	const pdata = Array.from(Array(4), () => new Array(posCount));
 	let pi = 0, ni = 0;
@@ -260,13 +327,34 @@ async function queryCircles(params: CirclesParams) {
 	};
 }
 
+export function PlotCirclesMoment({ params, base, moment }: { params: CirclesParams, base?: Date, moment: number }) {
+	const query = useQuery({
+		staleTime: Infinity,
+		queryKey: ['rosMoment', params, moment],
+		queryFn: (): Promise<CirclesMomentResponse | undefined> => fetchCircles(params, base, moment),
+	});
+	const plot = useMemo(() => {
+		if (!query.data) return null;
+		const options = circlesMomentPlotOptions(query.data);
+		const data = [[], [query.data.x, query.data.y], [query.data.fnx, query.data.fny]] as any;
+		return <UplotReact {...{ options, data }}/>;
+	}, [query.data]);
+	if (!query.data) return null;
+	return (
+		<div style={{ position: 'absolute', top: 0, zIndex: 1, backgroundColor: color('bg', .9) }}>
+			{plot}
+		</div>
+	);
+}
+
 const LEGEND_H = 32;
 export function PlotCircles({ params, interactive=true }: { params: CirclesParams, interactive?: boolean }) {
 	const [ base, setBase ] = useState(params.base);
-	const para = { ...params, base };
+	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
-		queryKey: ['ros', JSON.stringify(para)],
-		queryFn: () => queryCircles(para),
+		staleTime: 30 * 60 * 1000,
+		queryKey: ['ros', params, base],
+		queryFn: () => queryCircles(params, base),
 		keepPreviousData: true
 	});
 
@@ -288,7 +376,7 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(interactive, query.data, setBase, console.log)
+			...circlesPlotOptions(interactive, query.data, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container, size.height <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -297,7 +385,12 @@ export function PlotCircles({ params, interactive=true }: { params: CirclesParam
 		return <div>Loading...</div>;
 	if (!query.data)
 		return <div>Failed to obrain data</div>;
-	return <div ref={node => setContainer(node)} style={{ position: 'absolute' }}>{plotComponent}</div>;
+	return (
+		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
+			{moment && <PlotCirclesMoment {...{ params, base, moment }}/>}
+			{plotComponent}
+		</div>
+	);
 }
 
 export default function PlotCirclesStandalone() {
