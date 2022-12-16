@@ -29,7 +29,7 @@ export type Settings = {
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
-};
+} & Omit<CirclesParams, 'interval'>;
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
@@ -46,6 +46,19 @@ function defaultSettings(columns: Columns): Settings {
 	};
 }
 
+function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBottom', date: Date }) {
+	const { settings } = useContext(SettingsContext);
+	const type = settings[which];
+	if (!type || !date) return null;
+	const interval = settings.plotTimeOffset.map(days => new Date(date.getTime() + days * 864e5)) as [Date, Date];
+	return (
+		<div className={which} style={{ position: 'relative', border: '1px solid' }}>
+			{type === 'Ring of Stations' && <PlotCircles interactive={false} onset={date} params={{ ...settings, interval }}/>}
+			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
+		</div>
+	);
+}
+
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
@@ -60,9 +73,9 @@ function CoreWrapper() {
 		if (!cursor)
 			return [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }];
 		const column = dataContext.columns[cursor.column];
-		const val = dataContext.data[cursor.row][cursor.column];
+		const val = dataContext.data[cursor.row][cursor.column + 1];
 		const operation = val == null ? 'is null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
-		const input = val?.toString() ?? '';
+		const input = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
 		return [...fltrs, { column: column.id, operation, input, id: Date.now() }];
 	}));
 	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
@@ -89,19 +102,18 @@ function CoreWrapper() {
 	}, [settings, setSettings]);
 
 	const plotDate = plotIdx && data[plotIdx][Object.keys(columns).indexOf('time')];
+	const plotsMode = plotDate && (settings.plotTop || settings.plotLeft || settings.plotBottom);
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
-				<div className='TableApp' style={{ display: 'grid' }}>
+				<div className='TableApp' style={{ display: plotsMode ? 'grid' : 'block' }}>
 					<div>
 						<Menu {...{ filters, setFilters }}/>
 						<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor }}/>
 					</div>
-					<div className='PlotRight' style={{ position: 'relative', border: '1px solid' }}>
-						{plotDate && <PlotCircles interactive={false} onset={plotDate} params={{
-							interval: [ new Date(plotDate.getTime() - 3*86400000), new Date(plotDate.getTime() + 2*86400000) ]
-						}}/>}
-					</div>
+					<PlotWrapper which='plotTop' date={plotDate}/>
+					<PlotWrapper which='plotLeft' date={plotDate}/>
+					<PlotWrapper which='plotBottom' date={plotDate}/>
 				</div>
 			</DataContext.Provider>
 		</SettingsContext.Provider>

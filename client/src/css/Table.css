@@ -9,17 +9,17 @@
 	.TableApp {
 		display: grid;
 		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
-		grid-template-rows: auto minmax(360px, 1fr);
+		grid-template-rows: minmax(420px, auto) minmax(420px, 1fr);
 	}
-	.PlotLeft {
+	.plotLeft {
 		grid-row: 2;
 		grid-column: 1;
 	}
-	.PlotTop {
+	.plotTop {
 		grid-row: 1;
 		grid-column: 2;
 	}
-	.PlotBottom {
+	.plotBottom {
 		grid-row: 2;
 		grid-column: 2;
 	}

@@ -81,7 +81,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 			<div onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
 				<select style={{ textAlign: 'right', borderColor: 'transparent' }} 
 					value={column.id} onChange={set('column')}>
-					{Object.values(columns).map(col => <option value={col.id} key={col.table+col.name}>
+					{Object.values(columns).filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
 						{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : ''}</option>)}
 				</select>
 				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
