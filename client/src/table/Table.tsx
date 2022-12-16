@@ -20,17 +20,35 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
+export type PlotType = 'ros' | 'sw';
+
+export type Settings = {
+	enabledColumns: string[],
+	plotTimeOffset: [number, number], // as number of days
+	plotLeft?: PlotType,
+	plotTop?: PlotType,
+	plotBottom?: PlotType,
+};
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
+type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
+export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter }>({} as any);
 
-const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
-const defaultColumns = (columns: Columns) => Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);;
+function defaultSettings(columns: Columns): Settings {
+	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
+	const enabledColumns = Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);
+	return {
+		enabledColumns,
+		plotTimeOffset: [-2, 3],
+		plotTop: 'ros'
+	};
+}
 
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
-	const [enabledColumns, setEnabledColumns] = usePersistedState('tableColEnabled', () => defaultColumns(columns));
+	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [cursor, setCursor] = useState<Cursor>(null);
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
@@ -50,31 +68,39 @@ function CoreWrapper() {
 	const dataContext = useMemo(() => {
 		setCursor(null);
 		console.time('render data');
-		const enabledIdxs = enabledColumns.map(c => Object.keys(columns).indexOf(c));
-		const sortIdx = enabledColumns.indexOf(sort.column);
+		const cols = settings.enabledColumns;
+		const enabledIdxs = cols.map(c => Object.keys(columns).indexOf(c));
+		const sortIdx = cols.indexOf(sort.column);
 		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
 		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
 			.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
 		console.timeEnd('render data');
-		return { data: renderedData, columns: enabledColumns.map(id => columns[id]) };
-	}, [data, columns, filters, enabledColumns, sort]);
+		return { data: renderedData, columns: cols.map(id => columns[id]) };
+	}, [data, columns, filters, settings.enabledColumns, sort]);
+
+	const settingsContext = useMemo(() => {
+		const set: SettingsSetter = (key, fn) => setSettings(sets => ({ ...sets, [key]: fn(sets[key]) }));
+		return { settings, set };
+	}, [settings, setSettings]);
 
 	const cursorDate = cursor && dataContext.data[cursor.row][dataContext.columns.findIndex(col => col.id === 'time')];
 	return (
-		<DataContext.Provider value={dataContext}>
-			<div className='TableApp'>
-				<div>
-					<Menu {...{ filters, setFilters, enabledColumns, setEnabledColumns }}/>
-					<TableView {...{ sort, setSort, cursor, setCursor }}/>
+		<SettingsContext.Provider value={settingsContext}>
+			<DataContext.Provider value={dataContext}>
+				<div className='TableApp' style={{ display: 'grid' }}>
+					<div>
+						<Menu {...{ filters, setFilters }}/>
+						<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor }}/>
+					</div>
+					<div className='PlotRight' style={{ position: 'relative', border: '1px solid' }}>
+						{cursor && <PlotCircles interactive={false} onset={cursorDate} params={{
+							interval: [ new Date(cursorDate.getTime() - 3*86400000), new Date(cursorDate.getTime() + 2*86400000) ]
+						}}/>}
+					</div>
 				</div>
-				<div className='Plot1' style={{ position: 'relative', border: '1px solid' }}>
-					{cursor && <PlotCircles interactive={false} params={{
-						interval: [ new Date(cursorDate.getTime() - 3*86400000), new Date(cursorDate.getTime() + 2*86400000) ]
-					}}/>}
-				</div>
-			</div>
-		</DataContext.Provider>
+			</DataContext.Provider>
+		</SettingsContext.Provider>
 	);
 }
 

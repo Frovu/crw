@@ -1,9 +1,8 @@
 import { useState, useEffect, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, prettyName } from './Table';
+import { TableContext, DataContext, prettyName, SettingsContext } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
-type ColumnsArgs = { enabledColumns: string[], setEnabledColumns: (f: (c: string[]) => string[]) => void };
 
 const FILTER_OPS = ['>=' , '<=' , '==' , 'is null', 'not null' , 'includes' , 'in list'] as const;
 export type Filter = {
@@ -100,14 +99,15 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 	);
 }
 
-function ColumnsSelector({ enabledColumns, setEnabledColumns }: ColumnsArgs) {
+function ColumnsSelector() {
+	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
 	const { columns: columnsMap } = useContext(TableContext);
 	const columns = Object.values(columnsMap);
 	const tables = [...new Set(columns.map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
-			callback={checked => setEnabledColumns(cols => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>]);
+			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>]);
 	return (
 		<div className='ColumnsSelector'>
 			{tables.map(table => <Fragment key={table}>
@@ -198,7 +198,7 @@ function onKeydown(e: KeyboardEvent) {
 	}
 }
 
-export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }: FilterArgs & ColumnsArgs) {
+export function Menu({ filters, setFilters }: FilterArgs) {
 	const [showColumns, setShowColumns] = useState(false);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
@@ -223,7 +223,7 @@ export function Menu({ filters, setFilters, enabledColumns, setEnabledColumns }:
 					<ExportMenu/>
 				</MenuSection>
 			</div>
-			{showColumns && <ColumnsSelector {...{ enabledColumns, setEnabledColumns }}/>}
+			{showColumns && <ColumnsSelector/>}
 			{filters.length > 0 && <div className='Filters'>
 				{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }
 			</div>}
