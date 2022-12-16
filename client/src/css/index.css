@@ -1,18 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 :root {
+	--color-red: rgb(255, 0, 0);
+	--color-cyan: rgb(0, 255, 255);
+	--color-magenta: rgb(255, 10, 110);
+	--color-green: rgb(13, 255, 45);
+	--color-acid: rgb(217, 255, 0);
+	--color-purple: rgb(100, 0, 200);
+
 	--color-bg: rgb(0,0,0);
 	--color-text: darkgrey;
 	--color-text-dark: rgb(76,76,76);
 	--color-border: grey;
 	--color-grid: rgb(48,48,48);
-  	--color-active: gold;
+  	--color-active: rgb(255, 217, 0);
 	--color-area: rgba(95, 0, 175, 0.17);
-
-	--color-red: rgb(255, 0, 0);
-	--color-cyan: rgb(0, 255, 255);
-	--color-magenta: rgb(255, 10, 110);
-	--color-green: rgb(13, 255, 45);
-	--color-purple: rgb(100, 0, 200);
 
 
 	--font: 'Roboto Mono', monospace;

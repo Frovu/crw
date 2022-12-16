@@ -104,7 +104,7 @@ function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
 	const { columns: columnsMap } = useContext(TableContext);
 	const columns = Object.values(columnsMap);
-	const tables = [...new Set(columns.map(c => c.table as string))];
+	const tables = [...new Set(columns.filter(col => !col.hidden).map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}

@@ -199,7 +199,7 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 			{
 				scale: 'idx',
 				label: 'idx',
-				stroke: color('green', .8),
+				stroke: color('acid'),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
 				paths: linePaths(1.75)

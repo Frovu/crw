@@ -73,7 +73,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				label: 'axy',
 				stroke: color('magenta', .8),
 				fill: color('magenta', .5),
-				paths: uPlot.paths.bars?.({ size: [.4, 16] }),
+				paths: uPlot.paths.bars!({ size: [.4, 16] }),
 				points: { show: false }
 			},
 			{
@@ -81,6 +81,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				label: 'a10',
 				stroke: color('cyan'),
 				width: 2,
+				paths: uPlot.paths.spline!(),
 				points: { show: false }
 			},
 		]
