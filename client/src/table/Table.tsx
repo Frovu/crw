@@ -20,14 +20,14 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export type PlotType = 'ros' | 'sw';
+export const plotTypes = [ 'Ring of Stations', 'Solar Wind' ] as const;
 
 export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
-	plotLeft?: PlotType,
-	plotTop?: PlotType,
-	plotBottom?: PlotType,
+	plotLeft?: typeof plotTypes[number],
+	plotTop?: typeof plotTypes[number],
+	plotBottom?: typeof plotTypes[number],
 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
@@ -41,7 +41,7 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		enabledColumns,
 		plotTimeOffset: [-2, 3],
-		plotTop: 'ros'
+		plotTop: 'Ring of Stations'
 	};
 }
 

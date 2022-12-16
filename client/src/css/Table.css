@@ -61,16 +61,16 @@
 
 .ColumnsSelector {
 	position: absolute;
-	left: 1em;
+	left: 4px;
 	display: flex;
 	flex-flow: column wrap;
 	width: 44em;
-	height: 24em;
+	height: 29.7em;
 	z-index: 1;
 	background-color: var(--color-bg);
 	border: 2px solid var(--color-border);
 	opacity: .9;
-	padding: 1em;
+	padding: 1em 1em 1em 2em;
 	gap: 4px;
 }
 
@@ -79,9 +79,10 @@
 }
 
 .Filters {
-	margin: 1em;
-	width: fit-content;
+	max-width: fit-content;
+	margin-bottom: 4px;
 	border: 1px solid var(--color-border);
+	border-radius: 8px;
 }
 
 .FilterCard {
@@ -143,6 +144,4 @@
 input, button, select {
 	text-align: center;
 	border: 1px var(--color-border) solid;
-	/* border-radius: 4px; */
-
 }

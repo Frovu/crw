@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, prettyName, SettingsContext } from './Table';
+import { TableContext, DataContext, prettyName, SettingsContext, Settings, plotTypes } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
@@ -16,7 +16,8 @@ export type Filter = {
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
 	'addFilter': 'F',
-	'removeFilter': 'R'
+	'removeFilter': 'R',
+	'plot': 'P',
 } as { [action: string]: string };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
@@ -94,7 +95,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 				</select>}
 			</div>
-			<button style={{ marginLeft: '1em' }} onClick={destruct}>remove</button>
+			<button style={{ marginLeft: '1em', padding: '0 8px 0 8px', borderRadius: '8px' }} onClick={destruct}>remove</button>
 		</div>
 	);
 }
@@ -118,6 +119,13 @@ function ColumnsSelector() {
 	);
 }
 
+function MenuCheckbox({ text, value, callback, hide, disabled }:
+{ text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
+	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
+		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
+	</label>);
+}
+
 function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
 	const keyComb = KEY_COMB[action];
 	return (
@@ -125,6 +133,23 @@ function MenuButton({ text, action, callback }: { text: string, action: string, 
 			<span>{text}</span>
 			{keyComb && <span className='keyComb'>{keyComb}</span>}
 		</button>
+	);
+}
+
+function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
+	const { settings, set } = useContext(SettingsContext);
+	
+	return (
+		<span>
+			{what}:
+			<select style={{ paddingLeft: '8px', marginLeft: '4px' }}
+				value={settings[what] as any} onClick={e => e.stopPropagation()}
+				onChange={(e) => set(what, () => e.target.value === '--none' ? undefined : e.target.value as any)}> 
+				{/* set(what, () => e.target.value as any)}> */}
+				{allowEmpty && <option value='--none'>-- None --</option>}
+				{options.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)}
+			</select>
+		</span>
 	);
 }
 
@@ -140,13 +165,6 @@ function MenuSection({ name, shownSection, setShownSection, children }:
 			</div>}
 		</div>
 	);
-}
-
-function MenuCheckbox({ text, value, callback, hide, disabled }:
-{ text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
-	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
-		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
-	</label>);
 }
 
 function ExportMenu() {
@@ -218,9 +236,13 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
+					<MenuButton text='Plot selected' action='plot'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
 					<ExportMenu/>
+				</MenuSection>
+				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
+					<SettingsSelect what='plotTop' options={plotTypes}/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
