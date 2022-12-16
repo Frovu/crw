@@ -169,6 +169,14 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 				ticks: { stroke: color('grid'), width: 1 },
 				space: 64,
 				size: 40,
+				splits: (u, ax, min, max, incr, space) => {
+					const num = Math.floor(u.over.offsetWidth / 76);
+					const width = Math.ceil((max - min) / num);
+					const split = ([ 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
+					const start = Math.ceil(min / split) * split;
+					const limit = Math.ceil((max - start) / split);
+					return Array(limit).fill(1).map((a, i) => start + i * split);
+				},
 				values: (u, vals) => vals.map((v, i) => {
 					const d = new Date(v * 1000);
 					const day = String(d.getUTCDate()).padStart(2, '0');
@@ -184,7 +192,7 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 				ticks: { stroke: color('grid'), width: 1 },
 				grid: { stroke: color('grid'), width: 1 },
 				space: 48,
-				incrs: Array(360 / 15).fill(1).map((a,  i) => i * 15)
+				incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
 			},
 			{
 				scale: 'idx',
