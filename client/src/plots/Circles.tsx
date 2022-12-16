@@ -362,7 +362,7 @@ export function PlotCircles({ params, interactive=true, settingsOpen }:
 		staleTime: 30 * 60 * 1000,
 		queryKey: ['ros', params, base],
 		queryFn: () => queryCircles(params, base),
-		keepPreviousData: true
+		keepPreviousData: interactive
 	});
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);

@@ -81,7 +81,6 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				label: 'a10',
 				stroke: color('cyan'),
 				width: 2,
-				paths: uPlot.paths.spline!(),
 				points: { show: false }
 			},
 		]

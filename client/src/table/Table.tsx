@@ -116,7 +116,7 @@ function CoreWrapper() {
 				<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
 					<div>
 						<Menu {...{ filters, setFilters }}/>
-						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor }}/>
+						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 					</div>
 					<PlotWrapper which='plotTop' date={plotDate}/>
 					<PlotWrapper which='plotLeft' date={plotDate}/>

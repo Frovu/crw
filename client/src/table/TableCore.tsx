@@ -17,9 +17,9 @@ function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def
 	);
 }
 
-function Row({ index, row, columns, cursor, setCursor }: { index: number, row: any[], columns: ColumnDef[] } & CursorPara) {
+function Row({ index, row, columns, cursor, setCursor, highlight }: { index: number, row: any[], columns: ColumnDef[], highlight: boolean } & CursorPara) {
 	const isSel = index === cursor?.row;
-	return (<tr>{row.map((value, i) =>
+	return (<tr {...(highlight && { style: { color: 'var(--color-cyan)' } })}>{row.map((value, i) =>
 		<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
 			{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>) 
 	}</tr>);
@@ -37,7 +37,8 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 	);
 }
 
-export default function TableView({ viewSize, sort, setSort, cursor, setCursor }: { viewSize: number, sort: Sort, setSort: (s: Sort) => void } & CursorPara) {
+export default function TableView({ viewSize, sort, setSort, cursor, setCursor, plotId }:
+{ viewSize: number, sort: Sort, setSort: (s: Sort) => void, plotId: null | number } & CursorPara ) {
 	const { data, columns } = useContext(DataContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
@@ -100,7 +101,6 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor }
 
 	const tables = new Map<any, ColumnDef[]>();
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
-
 	return (
 		<div className='Table' ref={ref}>
 			<table style={{ tableLayout: 'fixed' }}>
@@ -114,7 +114,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor }
 				</thead>
 				<tbody>
 					{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-						<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor }}/>)}
+						<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px', padding: '0 0 2px 6px' }}>
