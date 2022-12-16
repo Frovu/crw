@@ -12,6 +12,7 @@ import '../css/Circles.css';
 
 export type CirclesParams = {
 	interval: [Date, Date],
+	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
 	window?: number,
@@ -452,8 +453,8 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 		} else if (what === 'date') {
 			const val = value || new Date(Math.floor(Date.now() / 36e5) * 36e5);
 			if (params.interval[1].getTime() === val.getTime()) return;
-			const len = +params.interval[1] - +params.interval[0];
-			setParams({ ...params, interval: [ new Date(val - len), val ] });
+			const len = params.interval[1].getTime() - params.interval[0].getTime();
+			setParams({ ...params, interval: [ new Date(val - len), val ], realtime: !value });
 		} else if (what === 'exclude') {
 			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
 		} else {
@@ -466,8 +467,8 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
 			
 			Ending date: 
-			<ValidatedInput type='time' value={showDate}
-				callback={callback('date')} placeholder='now' allowEmpty={true}/>
+			<ValidatedInput type='time' value={!params.realtime && showDate}
+				callback={callback('date')} placeholder={showDate} allowEmpty={true}/>
 			<br/> Days count: 
 			<ValidatedInput type='number' value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
 				callback={callback('days')}/>
@@ -481,7 +482,7 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 			<ValidatedInput type='number' value={params.minamp}
 				callback={callback('minamp')}/>
 			<br/> Draw onset: 
-			<ValidatedInput type='time' value={params.minamp}
+			<ValidatedInput type='time' value={onset}
 				callback={val => setOnset(val || null)} allowEmpty={true}/>
 
 		</div>
@@ -491,7 +492,25 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 export default function PlotCirclesStandalone() {
 	const [settingsOpen, setOpen] = useState(false);
 	const [onset, setOnset] = useState<Date | null>(null);
-	const [params, setParams] = useState<CirclesParams>({ interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] });
+
+	const [params, setParams] = useState<CirclesParams>({
+		interval: [
+			new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
+			new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
+		realtime: true,
+		window: 3,
+		minamp: .7
+	});
+
+	useEventListener('visibilitychange', () => {
+		if (document.hidden) return;
+		setParams(para => {
+			if (!para.realtime) return para;
+			const diff = para.interval[1].getTime() - para.interval[0].getTime();
+			const now = Math.floor(Date.now() / 36e5) * 36e5;
+			return { ...para, interval: [new Date(now - diff), new Date(now)] };
+		});
+	});
 
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>

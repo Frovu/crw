@@ -85,7 +85,7 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 		if (e.code === 'Escape')
 			ref.current?.blur();
 		if (e.code === 'Enter')
-			valid && callback(parseInput(type, input));
+			valid && callback(input && parseInput(type, input));
 	}, ref);
 
 	const onChange = (e: any) => {
