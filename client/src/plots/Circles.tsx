@@ -41,7 +41,8 @@ type CirclesMomentResponse = {
 	angle: number
 };
 
-function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
+function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null | undefined,
+	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (seriesIdx: number) => (u: uPlot) => {
@@ -97,6 +98,24 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 						if (i > 0) (s as any)._paths = null;
 					});
 				},
+			],
+			draw: [
+				u => {
+					if (onset) {
+						const OnsetX = u.valToPos(onset.getTime() / 1e3, 'x');
+						u.ctx.save();
+						u.ctx.strokeStyle = color('text');
+						u.ctx.fillStyle = color('text');
+						u.ctx.font = font(16).replace('400', '600');
+						u.ctx.lineWidth = 2;
+						u.ctx.beginPath();
+						u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
+						u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
+						u.ctx.stroke();
+						u.ctx.fillText('onset', u.bbox.left + OnsetX, u.bbox.top + u.bbox.height + 6);
+						u.ctx.restore();
+					}
+				}
 			],
 			ready: [
 				u => {
@@ -158,7 +177,6 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 				})
 			},
 			{
-				// label: 'asimptotic longitude, deg',
 				scale: 'y',
 				font: font(14),
 				stroke: color('text'),
@@ -217,7 +235,7 @@ function circlesPlotOptions(interactive: boolean, data: any, setBase: (b: Date) 
 
 function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 	const moment = new Date(data.time * 1000).toISOString().replace(/\..*|T/g, ' ');
-	return { // f=${body.angle.toFixed(2)}
+	return {
 		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
 		width: 480,
 		height: 480 - 32,
@@ -367,7 +385,8 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params, interactive=true, settingsOpen, onset }: { params: CirclesParams, interactive?: boolean, settingsOpen?: boolean, onset?: Date }) {
+export function PlotCircles({ params, interactive=true, settingsOpen, onset }:
+{ params: CirclesParams, interactive?: boolean, settingsOpen?: boolean, onset?: Date | null }) {
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -407,10 +426,10 @@ export function PlotCircles({ params, interactive=true, settingsOpen, onset }: {
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(interactive, query.data, setBase, setMoment)
+			...circlesPlotOptions(interactive, query.data, onset, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: (p) => setTimeout(() => setUplot(p)) }}/>;
-	}, [interactive, plotData, container, size.height <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0, onset]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -424,14 +443,6 @@ export function PlotCircles({ params, interactive=true, settingsOpen, onset }: {
 			{uplot && moment && ReactDOM.createPortal(
 				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
 					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
-				, uplot.over)}
-			{uplot?.scales.x.min && onset && ReactDOM.createPortal(
-				<div style={{ position: 'absolute', left: uplot.valToPos(onset.getTime() / 1000, 'x') - 1,
-					width: 2, height: uplot.over.offsetHeight, backgroundColor: color('text'),  }}>
-					<div style={{ position: 'absolute', bottom: -16, left: -20, fontFamily: 'var(--font)', fontSize: 14, fontWeight: 'bold' }}>
-						onset
-					</div>
-				</div>
 				, uplot.over)}
 			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
 				{query.isFetching ? 'Fetching...' : (
@@ -461,14 +472,14 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 			setParams({ ...params, [what]: value });
 		}
 	};
-	const showDate = params.interval[1].toISOString().replace('T', ' ').replace(/:\d\d\..+/, '');
+	const showDate = (d: Date) => d.toISOString().replace('T', ' ').replace(/:\d\d\..+/, '');
 	return (
 		<div className='Settings'>
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
 			
 			Ending date: 
-			<ValidatedInput type='time' value={!params.realtime && showDate}
-				callback={callback('date')} placeholder={showDate} allowEmpty={true}/>
+			<ValidatedInput type='time' value={!params.realtime && showDate(params.interval[1])}
+				callback={callback('date')} placeholder={showDate(params.interval[1])} allowEmpty={true}/>
 			<br/> Days count: 
 			<ValidatedInput type='number' value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
 				callback={callback('days')}/>
@@ -482,7 +493,7 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 			<ValidatedInput type='number' value={params.minamp}
 				callback={callback('minamp')}/>
 			<br/> Draw onset: 
-			<ValidatedInput type='time' value={onset}
+			<ValidatedInput type='time' value={onset && showDate(onset)}
 				callback={val => setOnset(val || null)} allowEmpty={true}/>
 
 		</div>
@@ -515,7 +526,7 @@ export default function PlotCirclesStandalone() {
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams, onset, setOnset }}/>}
-			<PlotCircles {...{ params, settingsOpen }}/>
+			<PlotCircles {...{ params, settingsOpen, onset }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
 		</div>
