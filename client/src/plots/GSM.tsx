@@ -67,7 +67,7 @@ async function queryGSM(params: GSMParams) {
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + 'api/gsm/?' + urlPara);
 	if (res.status !== 200)
-		return null;
+		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
 	if (!body?.data.length) return null;
 	return body.fields.map((f, i) => body.data.map(row => row[i]));
@@ -85,6 +85,7 @@ export default function PlotGSM(params: GSMParams) {
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
+
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 		<UplotReact {...{ options: gsmPlotOptions(size, params), data: query.data as any }}/>
 	</div>);

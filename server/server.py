@@ -35,9 +35,7 @@ logging.getLogger('urllib3').propagate = False
 logger.critical('STARTING SERVER')
 
 from flask import Flask, session
-from routers import admin
-from routers import events
-from routers import neutron
+from routers import admin, events, neutron, gsm
 
 app = Flask('aides')
 
@@ -50,6 +48,7 @@ def after_request(response):
         response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
+app.register_blueprint(gsm.bp)
 app.register_blueprint(admin.bp)
 app.register_blueprint(events.bp)
 app.register_blueprint(neutron.bp)

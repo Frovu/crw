@@ -5,6 +5,7 @@ import { useEventListener, usePersistedState } from '../util';
 import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
 import { PlotCircles } from '../plots/Circles';
+import PlotGSM from '../plots/GSM';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -21,7 +22,7 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Ring of Stations', 'Solar Wind' ] as const;
+export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'Cosmic Rays (GSM)' ] as const;
 
 export type Settings = {
 	enabledColumns: string[],
@@ -57,6 +58,7 @@ function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBot
 		<div className={which} style={{ position: 'relative', minHeight: 320, border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles interactive={false} params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
+			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params}/>}
 			{type === 'Ring of Stations' && <a style={{ position: 'absolute', bottom: 8, left: 8 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
