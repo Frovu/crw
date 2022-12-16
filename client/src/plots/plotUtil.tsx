@@ -18,11 +18,11 @@ export function drawOnset(u: uPlot, onset: Date) {
 export function customTimeSplits(): Partial<uPlot.Axis> {
 	return {
 		splits: (u, ax, min, max, incr, space) => {
-			const num = Math.floor(u.width / 76);
+			const num = Math.floor(u.width / 72);
 			const width = Math.ceil((max - min) / num);
 			const split = ([ 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
 			const start = Math.ceil(min / split) * split;
-			const limit = Math.ceil((max - start) / split);
+			const limit = Math.ceil((max - split/4 - start) / split);
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, vals) => vals.map((v, i) => {

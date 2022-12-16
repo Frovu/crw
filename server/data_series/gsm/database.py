@@ -8,8 +8,8 @@ with pg_conn.cursor() as cursor:
 	pg_conn.commit()
 
 def select(interval, what=None):
-	if not what: what = 'Ax,Ay,Az,Axy'
+	if not what: what = 'A10,Ax,Ay,Az,Axy'
 	with pg_conn.cursor() as cursor:
-		q = f'SELECT EXTRACT(EPOCH FROM time), {what} FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'
+		q = f'SELECT EXTRACT(EPOCH FROM time) as time, {what} FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'
 		cursor.execute(q, interval)
 		return numpy.array(cursor.fetchall()), [desc[0] for desc in cursor.description]

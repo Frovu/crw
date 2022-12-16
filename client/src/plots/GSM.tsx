@@ -14,7 +14,7 @@ type GSMParams = {
 function gsmPlotOptions(size: { width: number, height: number }, params: GSMParams): uPlot.Options {
 	return {
 		...size,
-		padding: [8, 8, 0, 0],
+		padding: [8, 4, 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
@@ -34,7 +34,8 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				scale: 'y',
 				gap: 0,
 				size: 46,
-				values: (u, vals) => vals.map(v => v.toFixed(1)),
+				space: 36,
+				values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
 			}
 		],
 		scales: {
@@ -51,6 +52,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				label: 'a10',
 				stroke: color('cyan'),
 				width: 2,
+				points: { show: false }
 			}
 		]
 	};
@@ -66,7 +68,7 @@ async function queryGSM(params: GSMParams) {
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
 	if (!body?.data.length) return null;
-	return body.fields.map((f, i) => body.data.map(row => row[i]));
+	return body.fields.filter(f => true).map((f, i) => body.data.map(row => row[i]));
 }	
 
 export default function PlotGSM(params: GSMParams) {
