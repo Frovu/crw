@@ -109,6 +109,7 @@
 }
 
 .MenuDropdown {
+	text-align: right;
 	position: absolute;
 	display: flex;
 	flex-direction: column;

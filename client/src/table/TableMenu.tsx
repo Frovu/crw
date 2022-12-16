@@ -122,7 +122,8 @@ function ColumnsSelector() {
 function MenuCheckbox({ text, value, callback, hide, disabled }:
 { text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
 	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
-		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginRight: '8px', display: hide ? 'none' : 'inline-block' }}/>{text}
+		{text}
+		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginLeft: '8px', display: hide ? 'none' : 'inline-block' }}/>
 	</label>);
 }
 
@@ -138,7 +139,7 @@ function MenuButton({ text, action, callback }: { text: string, action: string, 
 
 function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
 	const { settings, set } = useContext(SettingsContext);
-	
+
 	return (
 		<span>
 			{what}:
@@ -237,12 +238,15 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
 					<MenuButton text='Plot selected' action='plot'/>
+					<MenuButton text='Reset settings' action='resetSettings'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
+					<SettingsSelect what='plotBottom' options={plotTypes}/>
+					<SettingsSelect what='plotLeft' options={plotTypes}/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
