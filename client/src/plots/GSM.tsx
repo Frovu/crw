@@ -31,29 +31,53 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			{
 				...axisDefaults(),
-				scale: 'y',
+				grid: undefined,
+				side: 1,
+				scale: 'axy',
 				gap: 0,
 				size: 46,
 				space: 36,
 				values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
-			}
+			},
+			{
+				...axisDefaults(),
+				scale: 'var',
+				gap: 0,
+				size: 46,
+				space: 36,
+				values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
+			},
 		],
 		scales: {
 			x: {
 				// time: false,
 			},
-			y: {
+			var: {
+				key: 'var'
 				// range: [-5, 365],
+			},
+			axy: {
+				key: 'axy',
+				range: (u, min, max) => [min, max * 2] //[min, min + (max - min) / 2]
 			}
 		},
 		series: [
 			{ },
 			{
+				scale: 'axy',
+				label: 'axy',
+				stroke: color('magenta', .8),
+				fill: color('magenta', .5),
+				paths: uPlot.paths.bars?.({ size: [.3, 50] }),
+				points: { show: false }
+			},
+			{
+				scale: 'var',
 				label: 'a10',
 				stroke: color('cyan'),
 				width: 2,
 				points: { show: false }
-			}
+			},
 		]
 	};
 }
@@ -68,7 +92,8 @@ async function queryGSM(params: GSMParams) {
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
 	if (!body?.data.length) return null;
-	return body.fields.filter(f => true).map((f, i) => body.data.map(row => row[i]));
+	const fieldsIdx = ['time', 'axy', 'a10'].map(f => body.fields.indexOf(f));
+	return fieldsIdx.map(i => body.data.map(row => row[i]));
 }	
 
 export default function PlotGSM(params: GSMParams) {

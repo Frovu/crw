@@ -21,9 +21,10 @@ _init()
 
 def _disconnect_nmdb():
 	global nmdb_conn, discon_timer
-	log.debug('Disconnecting NMDB')
-	nmdb_conn.close()
-	nmdb_conn = None
+	if nmdb_conn:
+		log.debug('Disconnecting NMDB')
+		nmdb_conn.close()
+		nmdb_conn = None
 	discon_timer = None
 
 def _connect_nmdb():
