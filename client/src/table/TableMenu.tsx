@@ -143,8 +143,8 @@ function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=tr
 	return (
 		<span>
 			{what}:
-			<select style={{ paddingLeft: '8px', marginLeft: '4px' }}
-				value={settings[what] as any} onClick={e => e.stopPropagation()}
+			<select style={{ paddingLeft: '8px', marginLeft: '4px', ...(!settings[what] && { color: 'var(--color-text-dark)' }) }}
+				value={settings[what] as any || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => set(what, () => e.target.value === '--none' ? undefined : e.target.value as any)}> 
 				{/* set(what, () => e.target.value as any)}> */}
 				{allowEmpty && <option value='--none'>-- None --</option>}
@@ -245,8 +245,8 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 				</MenuSection>
 				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
-					<SettingsSelect what='plotBottom' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
+					<SettingsSelect what='plotBottom' options={plotTypes}/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}

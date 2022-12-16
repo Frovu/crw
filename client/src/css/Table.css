@@ -9,10 +9,10 @@
 	.TableApp {
 		display: grid;
 		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
-		grid-template-rows: minmax(420px, auto) minmax(420px, 1fr);
+		grid-template-rows: 421px 1fr 1fr;
 	}
 	.plotLeft {
-		grid-row: 2;
+		grid-row: 2 span;
 		grid-column: 1;
 	}
 	.plotTop {
@@ -20,7 +20,7 @@
 		grid-column: 2;
 	}
 	.plotBottom {
-		grid-row: 2;
+		grid-row: 2 span;
 		grid-column: 2;
 	}
 		

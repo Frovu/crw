@@ -51,8 +51,9 @@ function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBot
 	const type = settings[which];
 	if (!type || !date) return null;
 	const interval = settings.plotTimeOffset.map(days => new Date(date.getTime() + days * 864e5)) as [Date, Date];
+	const stretchTop = which === 'plotTop' && !settings.plotBottom && { gridRow: '1 / 3' };
 	return (
-		<div className={which} style={{ position: 'relative', border: '1px solid' }}>
+		<div className={which} style={{ position: 'relative', minHeight: 320, border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles interactive={false} onset={date} params={{ ...settings, interval }}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
 		</div>
@@ -103,13 +104,14 @@ function CoreWrapper() {
 
 	const plotDate = plotIdx && data[plotIdx][Object.keys(columns).indexOf('time')];
 	const plotsMode = plotDate && (settings.plotTop || settings.plotLeft || settings.plotBottom);
+	const longTable = !plotsMode || !settings.plotLeft;
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
-				<div className='TableApp' style={{ display: plotsMode ? 'grid' : 'block' }}>
+				<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
 					<div>
 						<Menu {...{ filters, setFilters }}/>
-						<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor }}/>
+						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor }}/>
 					</div>
 					<PlotWrapper which='plotTop' date={plotDate}/>
 					<PlotWrapper which='plotLeft' date={plotDate}/>
