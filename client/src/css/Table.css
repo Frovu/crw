@@ -120,6 +120,11 @@
 	gap: 4px;
 }
 
+.MenuDropdown h4 {
+	text-align: center;
+	margin: 4px 0 8px 0;
+}
+
 .MenuItem {
 	border-color: transparent;
 	padding: 2px 6px 2px 6px;

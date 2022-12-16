@@ -119,6 +119,11 @@ function ColumnsSelector() {
 	);
 }
 
+function MenuInput(props: any) { //onChange={e => props.onChange?.(e.target.value)} 
+	return <input style={{ width: '4em', margin: '0 4px 0 4px', ...props.style }} {...props} 
+		onClick={e => e.stopPropagation()}/>;
+}
+
 function MenuCheckbox({ text, value, callback, hide, disabled }:
 { text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
 	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
@@ -218,6 +223,7 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 export function Menu({ filters, setFilters }: FilterArgs) {
+	const { settings, set } = useContext(SettingsContext);
 	const [showColumns, setShowColumns] = useState(false);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
@@ -229,7 +235,6 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 
 	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
 	useEventListener('keydown', onKeydown);
-
 	return (
 		<div>
 			<div className='Menu'>
@@ -244,9 +249,20 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
+					<h4>Select plots</h4>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
+					<h4>Options</h4>
+					<div>
+						± Days:
+						<MenuInput type='number' min='-3' max='-1' step='1' value={settings.plotTimeOffset[0]}
+							onChange={(e: any) => set('plotTimeOffset', (prev) => [e.target.valueAsNumber, prev[1]])}/>
+						/
+						<MenuInput type='number' min='1' max='7' step='1' value={settings.plotTimeOffset[1]}
+							onChange={(e: any) => set('plotTimeOffset', (prev) => [prev[0], e.target.valueAsNumber])}/>
+					</div>
+					<h4>Ring of stations</h4>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
