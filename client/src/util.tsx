@@ -65,10 +65,10 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	return size;
 }
 
-function parseInput(type: 'text' | 'time' | 'number', val: any) {
+function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
 		case 'text': return val;
-		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+		case 'time': return val && new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
 		case 'number': return parseFloat(val);
 	}
 }

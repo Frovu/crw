@@ -16,7 +16,8 @@ export type CirclesParams = {
 	base?: Date,
 	exclude?: string[],
 	window?: number,
-	minamp?: number 
+	minamp?: number,
+	onset?: Date
 };
 
 type CirclesResponse = {
@@ -393,8 +394,8 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params, interactive=true, settingsOpen, onset }:
-{ params: CirclesParams, interactive?: boolean, settingsOpen?: boolean, onset?: Date | null }) {
+export function PlotCircles({ params, interactive=true, settingsOpen }:
+{ params: CirclesParams, interactive?: boolean, settingsOpen?: boolean }) {
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -434,10 +435,10 @@ export function PlotCircles({ params, interactive=true, settingsOpen, onset }:
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(interactive, query.data, onset, setBase, setMoment)
+			...circlesPlotOptions(interactive, query.data, params.onset, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: (p) => setTimeout(() => setUplot(p)) }}/>;
-	}, [interactive, plotData, container, size.height <= 0, onset]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0, params.onset]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -462,8 +463,8 @@ export function PlotCircles({ params, interactive=true, settingsOpen, onset }:
 	);
 }
 
-export function CirclesParamsInput({ params, setParams, onset, setOnset }:
-{ params: CirclesParams, setParams: (p: CirclesParams) => void , onset: Date | null, setOnset: (d: Date | null) => void }) {
+export function CirclesParamsInput({ params, setParams }:
+{ params: CirclesParams, setParams: (p: CirclesParams) => void  }) {
 	const callback = (what: string) => (value: any) => {
 		if (what === 'days') {
 			const from = new Date(+params.interval[1] - value * 86400000);
@@ -501,8 +502,8 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 			<ValidatedInput type='number' value={params.minamp}
 				callback={callback('minamp')}/>
 			<br/> Draw onset: 
-			<ValidatedInput type='time' value={onset && showDate(onset)}
-				callback={val => setOnset(val || null)} allowEmpty={true}/>
+			<ValidatedInput type='time' value={params.onset && showDate(params.onset)}
+				callback={callback('onset')} allowEmpty={true}/>
 
 		</div>
 	);
@@ -510,15 +511,23 @@ export function CirclesParamsInput({ params, setParams, onset, setOnset }:
 
 export default function PlotCirclesStandalone() {
 	const [settingsOpen, setOpen] = useState(false);
-	const [onset, setOnset] = useState<Date | null>(null);
 
-	const [params, setParams] = useState<CirclesParams>({
-		interval: [
-			new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
-			new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
-		realtime: true,
-		window: 3,
-		minamp: .7
+	const [params, setParams] = useState<CirclesParams>(() => {
+		const stored = window.localStorage.getItem('plotRefParams');
+		setTimeout(() => window.localStorage.removeItem('plotRefParams'));
+		const referred = stored && JSON.parse(stored);
+		if (referred)
+			referred.interval = referred.interval.map((d: any) => new Date(d));
+		if (referred?.onset)
+			referred.onset = new Date(referred.onset);
+		return referred || {
+			interval: [
+				new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
+				new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
+			realtime: true,
+			window: 3,
+			minamp: .7
+		};
 	});
 
 	useEventListener('visibilitychange', () => {
@@ -533,8 +542,8 @@ export default function PlotCirclesStandalone() {
 
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
-			{settingsOpen && <CirclesParamsInput {...{ params, setParams, onset, setOnset }}/>}
-			<PlotCircles {...{ params, settingsOpen, onset }}/>
+			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
+			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
 		</div>

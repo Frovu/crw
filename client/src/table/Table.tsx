@@ -4,7 +4,7 @@ import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState } from '../util';
 import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
-import { PlotCircles, CirclesParams } from '../plots/Circles';
+import { PlotCircles } from '../plots/Circles';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -29,7 +29,7 @@ export type Settings = {
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
-} & Omit<CirclesParams, 'interval'>;
+};
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
@@ -52,10 +52,13 @@ function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBot
 	if (!type || !date) return null;
 	const interval = settings.plotTimeOffset.map(days => new Date(date.getTime() + days * 864e5)) as [Date, Date];
 	const stretchTop = which === 'plotTop' && !settings.plotBottom && { gridRow: '1 / 3' };
+	const params = { interval, onset: date };
 	return (
 		<div className={which} style={{ position: 'relative', minHeight: 320, border: '1px solid', ...stretchTop }}>
-			{type === 'Ring of Stations' && <PlotCircles interactive={false} onset={date} params={{ ...settings, interval }}/>}
+			{type === 'Ring of Stations' && <PlotCircles interactive={false} params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
+			{type === 'Ring of Stations' && <a style={{ position: 'absolute', bottom: 8, left: 8 }} href='./ros' target='_blank'
+				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
 	);
 }
