@@ -138,13 +138,13 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 								currentBase = u.scales.x.min;
 							if (currentBase > u.scales.x.max! - 86400)
 								currentBase = u.scales.x.max! - 86400;
-							setSelect(currentBase);
 						}
+						setSelect(currentBase);
 					});
 					u.over.addEventListener('mousedown', e => {
 						clickX = e.offsetX;
 						clickY = e.offsetY;
-						isDragged = u.valToPos(data.base, 'x', true) < clickX && clickX < u.valToPos(data.base + 86400, 'x', true);
+						isDragged = u.valToPos(data.base, 'x') < clickX && clickX < u.valToPos(data.base + 86400, 'x');
 					});
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
