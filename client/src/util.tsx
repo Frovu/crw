@@ -73,11 +73,13 @@ function parseInput(type: 'text' | 'time' | 'number', val: any) {
 	}
 }
 
-export function ValidatedInput({ type, value, callback, placeholder }:
-{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string }) {
+export function ValidatedInput({ type, value, callback, placeholder, allowEmpty }:
+{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean }) {
 	const [valid, setValid] = useState(true);
 	const [input, setInput] = useState(value);
 	const ref = useRef<HTMLInputElement>(null);
+
+	useEffect(() => setInput(value), [value]);
 
 	useEventListener('keydown', (e) => {
 		if (e.code === 'Escape')
@@ -88,6 +90,8 @@ export function ValidatedInput({ type, value, callback, placeholder }:
 
 	const onChange = (e: any) => {
 		setInput(e.target.value);
+		if (!e.target.value && allowEmpty)
+			return setValid(true);
 		const val = parseInput(type, e.target.value);
 		if (type !== 'text' && isNaN(val))
 			return setValid(false);
@@ -95,5 +99,5 @@ export function ValidatedInput({ type, value, callback, placeholder }:
 	};
 
 	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
-		ref={ref} onChange={onChange} onBlur={() => valid && callback(parseInput(type, input))}></input>;
+		ref={ref} onChange={onChange} onBlur={() => valid && callback(input && parseInput(type, input))}></input>;
 }

@@ -442,29 +442,32 @@ export function PlotCircles({ params, interactive=true, settingsOpen, onset }: {
 	);
 }
 
-export function CirclesParamsInput({ params, setParams }: { params: CirclesParams, setParams: (p: CirclesParams) => void }) {
+export function CirclesParamsInput({ params, setParams, onset, setOnset }:
+{ params: CirclesParams, setParams: (p: CirclesParams) => void , onset: Date | null, setOnset: (d: Date | null) => void }) {
 	const callback = (what: string) => (value: any) => {
 		if (what === 'days') {
 			const from = new Date(+params.interval[1] - value * 86400000);
 			if (params.interval[0] === from) return;
 			setParams({ ...params, interval: [ from, params.interval[1] ] });
 		} else if (what === 'date') {
-			if (params.interval[1] === value) return;
+			const val = value || new Date(Math.floor(Date.now() / 36e5) * 36e5);
+			if (params.interval[1].getTime() === val.getTime()) return;
 			const len = +params.interval[1] - +params.interval[0];
-			setParams({ ...params, interval: [ new Date(value - len), value ] });
+			setParams({ ...params, interval: [ new Date(val - len), val ] });
 		} else if (what === 'exclude') {
-			setParams({ ...params, exclude: value.replace(/\s+/g, '').split(',') });
+			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
 		} else {
 			setParams({ ...params, [what]: value });
 		}
 	};
+	const showDate = params.interval[1].toISOString().replace('T', ' ').replace(/:\d\d\..+/, '');
 	return (
 		<div className='Settings'>
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
 			
 			Ending date: 
-			<ValidatedInput type='time' value={params.interval[1].toISOString().replace('T', ' ').replace(/:\d\d\..+/, '')}
-				callback={callback('date')}/>
+			<ValidatedInput type='time' value={showDate}
+				callback={callback('date')} placeholder='now' allowEmpty={true}/>
 			<br/> Days count: 
 			<ValidatedInput type='number' value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
 				callback={callback('days')}/>
@@ -477,6 +480,9 @@ export function CirclesParamsInput({ params, setParams }: { params: CirclesParam
 			<br/> Idx threshold: 
 			<ValidatedInput type='number' value={params.minamp}
 				callback={callback('minamp')}/>
+			<br/> Draw onset: 
+			<ValidatedInput type='time' value={params.minamp}
+				callback={val => setOnset(val || null)} allowEmpty={true}/>
 
 		</div>
 	);
@@ -484,10 +490,12 @@ export function CirclesParamsInput({ params, setParams }: { params: CirclesParam
 
 export default function PlotCirclesStandalone() {
 	const [settingsOpen, setOpen] = useState(false);
+	const [onset, setOnset] = useState<Date | null>(null);
 	const [params, setParams] = useState<CirclesParams>({ interval: [ new Date('2021-12-06'), new Date('2021-12-12') ] });
+
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
-			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
+			{settingsOpen && <CirclesParamsInput {...{ params, setParams, onset, setOnset }}/>}
 			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
