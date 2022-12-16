@@ -104,13 +104,3 @@ export function pointPaths(sizePx) {
 		return null;
 	};
 }
-
-export function color(name, opacity=1) {
-	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
-	return col.includes('rgb') ? `rgba(${col.match(/[\d.]+/g).slice(0,3).join(',')},${opacity})` : col;
-}
-
-export function font(size=16) {
-	const fnt = window.getComputedStyle(document.body).font;
-	return fnt.replace(/\d+px/, size+'px');
-}

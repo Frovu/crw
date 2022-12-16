@@ -60,3 +60,11 @@ input:focus-visible, button:focus-visible, select:focus-visible {
 button:hover, select:hover {
 	border: 1px var(--color-active) solid !important;
 }
+
+.Center {
+	position: absolute;
+	width: fit-content;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+}

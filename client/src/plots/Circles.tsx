@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
-import { linePaths, circlePaths, color, font, pointPaths } from './plotUtil';
+import { linePaths, circlePaths, pointPaths } from './plotPaths';
+import { color, font } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -437,7 +438,7 @@ export function PlotCircles({ params, interactive=true, settingsOpen }:
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
 			...circlesPlotOptions(interactive, query.data, params.onset, setBase, setMoment)
 		} as uPlot.Options;
-		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: (p) => setTimeout(() => setUplot(p)) }}/>;
+		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container, size.height <= 0, params.onset]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
