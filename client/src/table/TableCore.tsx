@@ -37,20 +37,19 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 	);
 }
 
-export default function TableView({ sort, setSort, cursor, setCursor }: { sort: Sort, setSort: (s: Sort) => void } & CursorPara) {
+export default function TableView({ viewSize, sort, setSort, cursor, setCursor }: { viewSize: number, sort: Sort, setSort: (s: Sort) => void } & CursorPara) {
 	const { data, columns } = useContext(DataContext);
-	const viewSize = 10;
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
 	useLayoutEffect(() => {
 		setViewIndex(Math.max(0, data.length - viewSize));
-	}, [data.length]);
+	}, [data.length, viewSize]);
 	useEffect(() => {
 		if (!ref.current) return;
 		ref.current.onwheel = e => setViewIndex(idx =>
 			Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize));
-	}, [data.length, ref]);
+	}, [data.length, viewSize]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (cursor && ['Enter', 'Insert'].includes(e.code))
@@ -115,7 +114,7 @@ export default function TableView({ sort, setSort, cursor, setCursor }: { sort: 
 				</thead>
 				<tbody>
 					{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-						<Row key={row[0].getTime()} {...{ index: i + viewIndex, row, columns, cursor, setCursor }}/>)}
+						<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor }}/>)}
 				</tbody>
 			</table>
 			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px', padding: '0 0 2px 6px' }}>

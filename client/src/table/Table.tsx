@@ -15,7 +15,8 @@ export type ColumnDef = {
 	enum?: string[],
 	table: string,
 	width: number,
-	id: string
+	id: string,
+	hidden?: boolean
 };
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
@@ -50,6 +51,7 @@ function CoreWrapper() {
 	const [filters, setFilters] = useState<Filter[]>([]);
 	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
+	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
 	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
@@ -65,18 +67,19 @@ function CoreWrapper() {
 	}));
 	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 	useEventListener('action+resetSettings', () => setSettings(defaultSettings(columns)));
+	useEventListener('action+plot', () => cursor &&
+		setPlotIdx(data.findIndex(r => r[0] === dataContext.data[cursor.row][0])));
 
+	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);
-		console.time('render data');
 		const cols = settings.enabledColumns;
-		const enabledIdxs = cols.map(c => Object.keys(columns).indexOf(c));
+		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
 		const sortIdx = cols.indexOf(sort.column);
 		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
 		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
 			.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		console.timeEnd('render data');
 		return { data: renderedData, columns: cols.map(id => columns[id]) };
 	}, [data, columns, filters, settings.enabledColumns, sort]);
 
@@ -85,7 +88,7 @@ function CoreWrapper() {
 		return { settings, set };
 	}, [settings, setSettings]);
 
-	const cursorDate = cursor && dataContext.data[cursor.row][dataContext.columns.findIndex(col => col.id === 'time')];
+	const plotDate = plotIdx && data[plotIdx][Object.keys(columns).indexOf('time')];
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
@@ -95,8 +98,8 @@ function CoreWrapper() {
 						<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor }}/>
 					</div>
 					<div className='PlotRight' style={{ position: 'relative', border: '1px solid' }}>
-						{cursor && <PlotCircles interactive={false} onset={cursorDate} params={{
-							interval: [ new Date(cursorDate.getTime() - 3*86400000), new Date(cursorDate.getTime() + 2*86400000) ]
+						{plotDate && <PlotCircles interactive={false} onset={plotDate} params={{
+							interval: [ new Date(plotDate.getTime() - 3*86400000), new Date(plotDate.getTime() + 2*86400000) ]
 						}}/>}
 					</div>
 				</div>
@@ -105,7 +108,7 @@ function CoreWrapper() {
 	);
 }
 
-function SourceDataWrapper({ columns }: { columns: Columns }) {
+function SourceDataWrapper({ columns, table }: { columns: Columns, table: string }) {
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -117,7 +120,6 @@ function SourceDataWrapper({ columns }: { columns: Columns }) {
 			const resp: {data: any[][], fields: string[]} = await res.json();
 			if (!resp?.data.length)
 				return null;
-			const fisrtTable = Object.values(columns)[0].table as string;
 			const orderedColumns = Object.fromEntries(resp.fields.map(f => [f, columns[f]]));
 			for (const [i, col] of Object.values(orderedColumns).entries()) {
 				if (col.type === 'time') {
@@ -128,7 +130,7 @@ function SourceDataWrapper({ columns }: { columns: Columns }) {
 					}
 				}
 			}
-			return { data: resp.data, columns: orderedColumns, fisrtTable } as const;
+			return { data: resp.data, columns: orderedColumns, fisrtTable: table } as const;
 		}
 	});
 	if (query.isLoading)
@@ -152,23 +154,24 @@ export default function TableWrapper() {
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
 			const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();
-			const columns = Object.fromEntries(Object.entries(tables).map(([table, cols]) => Object.entries(cols).map(([name, desc]) => {
-				const width = (()=>{
-					switch (desc.type) {
-						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
-						case 'time': return 19;
-						case 'text': return 14;
-						default: return 5;
-					}
-				})();
-				return [name, { ...desc, table, width, id: name }];
-			})).flat());
-			return columns as Columns;
+			const columns = Object.fromEntries(
+				Object.entries(tables).map(([table, cols]) => Object.entries(cols).map(([name, desc]) => {
+					const width = (()=>{
+						switch (desc.type) {
+							case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
+							case 'time': return 19;
+							case 'text': return 14;
+							default: return 5;
+						}
+					})();
+					return [name, { ...desc, table, width, id: name }];
+				})).flat());
+			return { id: { id: 'id', hidden: true }, ...columns } as Columns;
 		}
 	});
 	if (query.isLoading)
 		return <div>Loading tables..</div>;
 	if (!query.data)
 		return <div>Failed to load tables</div>;
-	return <SourceDataWrapper columns={query.data}/>;
+	return <SourceDataWrapper columns={query.data} table={'forbush_effects'}/>;
 }

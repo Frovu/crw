@@ -61,7 +61,6 @@ def _obtain_nmdb(interval, station, pg_cursor):
 		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
 		q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
 		return pg_cursor.execute(q)
-	print(interval)
 	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
 		INSERT INTO neutron_counts (time, station, original, pressure)
 		SELECT ts, \'{station}\', data.original, data.pressure

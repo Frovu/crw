@@ -51,7 +51,7 @@ if __name__ == '__main__':
 					value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
 					name = f'{table}_{column}' if table != first_table else column
 					columns.append(f'{value} as {name}')
-		select_query = f'SELECT\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
+		select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
 		view_query = 'CREATE VIEW events.default_view AS\n' + select_query
 		print(view_query)
 		cursor.execute('DROP VIEW IF EXISTS events.default_view')
