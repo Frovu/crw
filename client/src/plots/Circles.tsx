@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, circlePaths, pointPaths } from './plotPaths';
-import { color, font } from './plotUtil';
+import { axisDefaults, color, customTimeSplits, drawOnset } from './plotUtil';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -101,24 +101,7 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 					});
 				},
 			],
-			draw: [
-				u => {
-					if (onset) {
-						const OnsetX = u.valToPos(onset.getTime() / 1e3, 'x');
-						u.ctx.save();
-						u.ctx.strokeStyle = color('text');
-						u.ctx.fillStyle = color('text');
-						u.ctx.font = font(16).replace('400', '600');
-						u.ctx.lineWidth = 2;
-						u.ctx.beginPath();
-						u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
-						u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
-						u.ctx.stroke();
-						u.ctx.fillText('onset', u.bbox.left + OnsetX, u.bbox.top + u.bbox.height + 6);
-						u.ctx.restore();
-					}
-				}
-			],
+			draw: [ u => (onset) && drawOnset(u, onset) ],
 			ready: [
 				u => {
 					if (interactive)
@@ -165,35 +148,17 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 		},
 		axes: [
 			{
-				font: font(14),
-				stroke: color('text'),
-				grid: { stroke: color('grid'), width: 1 },
-				ticks: { stroke: color('grid'), width: 1 },
-				space: 64,
+				...axisDefaults(),
 				size: 40,
-				splits: (u, ax, min, max, incr, space) => {
-					const num = Math.floor(u.over.offsetWidth / 76);
-					const width = Math.ceil((max - min) / num);
-					const split = ([ 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
-					const start = Math.ceil(min / split) * split;
-					const limit = Math.ceil((max - start) / split);
-					return Array(limit).fill(1).map((a, i) => start + i * split);
-				},
-				values: (u, vals) => vals.map((v, i) => {
-					const d = new Date(v * 1000);
-					const day = String(d.getUTCDate()).padStart(2, '0');
-					const hour =  String(d.getUTCHours()).padStart(2, '0');
-					return (i === 1 ? d.toLocaleString('en-us', { year: 'numeric', month: 'short' }) + ' ' : day + '\'' + hour);
-				})
+				...customTimeSplits()
 			},
 			{
+				...axisDefaults(),
 				scale: 'y',
-				font: font(14),
-				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
-				ticks: { stroke: color('grid'), width: 1 },
-				grid: { stroke: color('grid'), width: 1 },
 				space: 48,
+				gap: 2,
+				size: 42,
 				incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
 			},
 			{
@@ -259,24 +224,18 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 		hooks: { },
 		axes: [
 			{
+				...axisDefaults(),
 				size: 36,
 				space: 36,
-				font: font(14),
-				stroke: color('text'),
-				grid: { stroke: color('grid'), width: 1 },
-				ticks: { stroke: color('grid'), width: 1 },
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				incrs: Array(360 / 45).fill(1).map((a,  i) => i * 45)
 			},
 			{
+				...axisDefaults(),
 				size: 54,
 				space: 36,
 				scale: 'y',
-				font: font(14),
-				stroke: color('text'),
 				values: (u, vals) => vals.map(v => v.toFixed(1)),
-				ticks: { stroke: color('grid'), width: 1 },
-				grid: { stroke: color('grid'), width: 1 }
 			}
 		],
 		scales: {

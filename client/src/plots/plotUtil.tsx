@@ -15,7 +15,26 @@ export function drawOnset(u: uPlot, onset: Date) {
 	u.ctx.restore();
 }
 
-export function axisDefaults() {
+export function customTimeSplits(): Partial<uPlot.Axis> {
+	return {
+		splits: (u, ax, min, max, incr, space) => {
+			const num = Math.floor(u.width / 76);
+			const width = Math.ceil((max - min) / num);
+			const split = ([ 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
+			const start = Math.ceil(min / split) * split;
+			const limit = Math.ceil((max - start) / split);
+			return Array(limit).fill(1).map((a, i) => start + i * split);
+		},
+		values: (u, vals) => vals.map((v, i) => {
+			const d = new Date(v * 1000);
+			const day = String(d.getUTCDate()).padStart(2, '0');
+			const hour =  String(d.getUTCHours()).padStart(2, '0');
+			return (i === 1 ? d.toLocaleString('en-us', { year: 'numeric', month: 'short' }) + ' ' : day + '\'' + hour);
+		})
+	};
+}
+
+export function axisDefaults(): Partial<uPlot.Axis> {
 	return {
 		font: font(14),
 		stroke: color('text'),

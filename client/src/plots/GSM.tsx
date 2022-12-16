@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { useSize } from '../util';
-import { axisDefaults, color, drawOnset } from './plotUtil';
+import { axisDefaults, color, customTimeSplits, drawOnset } from './plotUtil';
 
 type GSMParams = {
 	interval: [Date, Date],
@@ -26,20 +26,15 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 		axes: [
 			{
 				...axisDefaults(),
-				space: 64,
 				size: 40,
-				values: (u, vals) => vals.map((v, i) => {
-					const d = new Date(v * 1000);
-					const day = String(d.getUTCDate()).padStart(2, '0');
-					const hour =  String(d.getUTCHours()).padStart(2, '0');
-					return (i === 1 ? d.toLocaleString('en-us', { year: 'numeric', month: 'short' }) + ' ' : day + '\'' + hour);
-				})
+				...customTimeSplits()
 			},
 			{
 				...axisDefaults(),
 				scale: 'y',
-				space: 48,
-				values: (u, vals) => vals.map(v => v.toFixed(2)),
+				gap: 0,
+				size: 46,
+				values: (u, vals) => vals.map(v => v.toFixed(1)),
 			}
 		],
 		scales: {
@@ -55,6 +50,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			{
 				label: 'a10',
 				stroke: color('cyan'),
+				width: 2,
 			}
 		]
 	};
