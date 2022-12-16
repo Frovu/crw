@@ -34,10 +34,15 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				grid: undefined,
 				side: 1,
 				scale: 'axy',
-				gap: 0,
+				gap: 2,
 				size: 46,
 				space: 36,
-				values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
+				splits: (u, ax, min, max) => {
+					const div = max > 4 ? (max > 8 ? 1 : .5) : .3;
+					const splits = Array(1 + Math.floor(max / 2 / div)).fill(0).map((a, i) => i * div);
+					return splits.concat(splits[splits.length-1] + max / 20);
+				},
+				values: (u, vals) => vals.slice(0, -1).map(v => v.toFixed(1)).concat('Axy'),
 			},
 			{
 				...axisDefaults(),
@@ -68,7 +73,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				label: 'axy',
 				stroke: color('magenta', .8),
 				fill: color('magenta', .5),
-				paths: uPlot.paths.bars?.({ size: [.3, 50] }),
+				paths: uPlot.paths.bars?.({ size: [.4, 16] }),
 				points: { show: false }
 			},
 			{
