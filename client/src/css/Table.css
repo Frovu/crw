@@ -5,31 +5,32 @@
 	height: calc(100vh - 8px);
 	gap: 4px;
 }
+
+.AppColumn {
+	display: grid;
+	grid-template-rows: auto auto 1fr;
+	gap: 4px;
+}
+
+.plotTop, .plotLeft, .plotBottom {
+	max-height: 60vh;
+}
+
 @media (min-width: 1250px) {
 	.TableApp {
 		display: grid;
 		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
-		grid-template-rows: 421px 1fr 1fr;
 	}
-	.plotLeft {
-		grid-row: 2 span;
-		grid-column: 1;
-	}
-	.plotTop {
-		grid-row: 1;
-		grid-column: 2;
-	}
-	.plotBottom {
-		grid-row: 2 span;
-		grid-column: 2;
-	}
-		
 }
 
 @media (max-width: 1250px) {
 	.TableApp {
 		display: block;
 	}
+	.plotTop, .plotLeft, .plotBottom {
+		height: 80vw;
+	}
+	
 }
 
 .Table table {
@@ -48,6 +49,7 @@
 }
 
 .Table {
+	height: fit-content;
 	border: 1px solid var(--color-border);
 	overflow-x: scroll;
 	-ms-overflow-style: none;  /* IE and Edge */
@@ -105,7 +107,7 @@
 	position: relative;
 	z-index: 10;
 	margin-top: 4px;
-	margin-bottom: 8px;
+	margin-bottom: 4px;
 }
 
 .MenuDropdown {

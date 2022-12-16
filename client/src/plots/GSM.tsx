@@ -39,8 +39,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				space: 36,
 				splits: (u, ax, min, max) => {
 					const div = max > 4 ? (max > 8 ? 1 : .5) : .3;
-					const splits = Array(1 + Math.floor(max / 2 / div)).fill(0).map((a, i) => i * div);
-					return splits.concat(splits[splits.length-1] + max / 20);
+					return Array(2 + Math.floor(max / 2 / div)).fill(0).map((a, i) => i * div);
 				},
 				values: (u, vals) => vals.slice(0, -1).map(v => v.toFixed(1)).concat('Axy'),
 			},

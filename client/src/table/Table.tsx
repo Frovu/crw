@@ -94,7 +94,7 @@ function CoreWrapper() {
 		setCursor(null);
 		const cols = settings.enabledColumns;
 		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
-		const sortIdx = cols.indexOf(sort.column);
+		const sortIdx = 1 + cols.indexOf(sort.column);
 		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
 		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
 			.map(row => enabledIdxs.map(ci => row[ci]))
@@ -114,13 +114,15 @@ function CoreWrapper() {
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
 				<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
-					<div>
+					<div className='AppColumn'>
 						<Menu {...{ filters, setFilters }}/>
 						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+						<PlotWrapper which='plotLeft' date={plotDate}/>
 					</div>
-					<PlotWrapper which='plotTop' date={plotDate}/>
-					<PlotWrapper which='plotLeft' date={plotDate}/>
-					<PlotWrapper which='plotBottom' date={plotDate}/>
+					<div className='AppColumn' style={{ gridTemplateRows: '60fr 40fr' }}>
+						<PlotWrapper which='plotTop' date={plotDate}/>
+						<PlotWrapper which='plotBottom' date={plotDate}/>
+					</div>
 				</div>
 			</DataContext.Provider>
 		</SettingsContext.Provider>
