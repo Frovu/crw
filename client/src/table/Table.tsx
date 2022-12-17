@@ -30,6 +30,7 @@ export type Settings = {
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
+	plotBottomSize: number
 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
@@ -43,7 +44,8 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		enabledColumns,
 		plotTimeOffset: [-2, 3],
-		plotTop: 'Ring of Stations'
+		plotTop: 'Ring of Stations',
+		plotBottomSize: 40
 	};
 }
 
@@ -55,7 +57,7 @@ function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBot
 	const stretchTop = which === 'plotTop' && !settings.plotBottom && { gridRow: '1 / 3' };
 	const params = { interval, onset: date };
 	return (
-		<div className={which} style={{ position: 'relative', minHeight: 320, border: '1px solid', ...stretchTop }}>
+		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles interactive={false} params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
 			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params}/>}
@@ -119,7 +121,7 @@ function CoreWrapper() {
 						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 						<PlotWrapper which='plotLeft' date={plotDate}/>
 					</div>
-					<div className='AppColumn' style={{ gridTemplateRows: '60fr 40fr' }}>
+					<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
 						<PlotWrapper which='plotTop' date={plotDate}/>
 						<PlotWrapper which='plotBottom' date={plotDate}/>
 					</div>

@@ -12,14 +12,13 @@
 	gap: 4px;
 }
 
-.plotTop, .plotLeft, .plotBottom {
-	max-height: 60vh;
-}
-
 @media (min-width: 1250px) {
 	.TableApp {
 		display: grid;
 		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
+	}
+	.plotTop {
+		grid-row: 1;
 	}
 }
 

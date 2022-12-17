@@ -148,7 +148,7 @@ function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=tr
 	return (
 		<span>
 			{what}:
-			<select style={{ paddingLeft: '8px', marginLeft: '4px', ...(!settings[what] && { color: 'var(--color-text-dark)' }) }}
+			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(!settings[what] && { color: 'var(--color-text-dark)' }) }}
 				value={settings[what] as any || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => set(what, () => e.target.value === '--none' ? undefined : e.target.value as any)}> 
 				{/* set(what, () => e.target.value as any)}> */}
@@ -253,6 +253,11 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
+					<div>
+					bottom plot height (%)
+						<MenuInput type='number' min='20' max='70' step='5' value={settings.plotBottomSize}
+							onChange={(e: any) => set('plotBottomSize', () => e.target.valueAsNumber)}/>
+					</div>
 					<h4>Options</h4>
 					<div>
 						± Days:
