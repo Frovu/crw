@@ -45,7 +45,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 
 	useLayoutEffect(() => {
 		setViewIndex(Math.max(0, data.length - viewSize));
-	}, [data.length, viewSize]);
+	}, [data.length, viewSize, sort]);
 	useEffect(() => {
 		if (!ref.current) return;
 		ref.current.onwheel = e => setViewIndex(idx =>
