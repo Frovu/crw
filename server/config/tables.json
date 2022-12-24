@@ -183,7 +183,6 @@
 			"type": "text"
 		},
 		"duration": {
-			"type": "integer",
 			"parse_name": "MCDur"
 		},
 		"size": {

@@ -24,6 +24,9 @@ export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
 export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'Cosmic Rays (GSM)' ] as const;
 
+export type Onset = { time: Date, type: string | null, secondary?: boolean };
+export type MagneticCloud = { start: Date, end: Date };
+
 export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
@@ -35,6 +38,7 @@ export type Settings = {
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
+export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter }>({} as any);
 
@@ -49,16 +53,15 @@ function defaultSettings(columns: Columns): Settings {
 	};
 }
 
-function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBottom', date: Date }) {
+function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) {
 	const { settings } = useContext(SettingsContext);
+	const params = useContext(PlotContext);
 	const type = settings[which];
-	if (!type || !date) return null;
-	const interval = settings.plotTimeOffset.map(days => new Date(date.getTime() + days * 864e5)) as [Date, Date];
-	const stretchTop = which === 'plotTop' && !settings.plotBottom && { gridRow: '1 / 3' };
-	const params = { interval, onset: date };
+	if (!type || !params) return null;
+	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
 		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
-			{type === 'Ring of Stations' && <PlotCircles interactive={false} params={params}/>}
+			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
 			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
@@ -74,7 +77,6 @@ function CoreWrapper() {
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
-	// const [changes, setChanges] = useState(new Map<number, number[]>());
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
@@ -109,24 +111,45 @@ function CoreWrapper() {
 		return { settings, set };
 	}, [settings, setSettings]);
 
-	const plotDate = plotIdx && data[plotIdx][Object.keys(columns).indexOf('time')];
-	const plotsMode = plotDate && (settings.plotTop || settings.plotLeft || settings.plotBottom);
+	const plotContext = useMemo(() => {
+		if (!plotIdx) return null;
+		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => Object.keys(columns).indexOf(c));
+		const plotDate = plotIdx && data[plotIdx][timeIdx];
+		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
+		const rows = data.slice(Math.max(0, plotIdx - 2), Math.min(data.length, plotIdx + 4));
+		const onsets = rows.filter(r => interval[0] < r[timeIdx] && r[timeIdx] < interval[1])
+			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotIdx }) as Onset);
+		const clouds = rows.map(r => {
+			const time = r[cloudTime], dur = r[cloudDur];
+			if (!time || !dur) return null;
+			if (time < interval[0] || interval[1] < time + dur * 36e5)
+				return null;
+			const start = new Date(Math.max(interval[0], time));
+			const end = new Date(Math.min(interval[1], time + dur * 36e5));
+			return { start, end };
+		}).filter((v): v is MagneticCloud => v != null);
+		return { interval: interval.map(t => new Date(t)) as [Date, Date], onsets, clouds };
+	}, [data, columns, plotIdx, settings]);
+
+	const plotsMode = plotIdx && (settings.plotTop || settings.plotLeft || settings.plotBottom);
 	const longTable = !plotsMode || !settings.plotLeft;
 	const viewSize = Math.max(3, (longTable ? 16 : 10) - filters.length);
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
-				<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
-					<div className='AppColumn'>
-						<Menu {...{ filters, setFilters }}/>
-						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
-						<PlotWrapper which='plotLeft' date={plotDate}/>
+				<PlotContext.Provider value={plotContext}>
+					<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
+						<div className='AppColumn'>
+							<Menu {...{ filters, setFilters }}/>
+							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+							<PlotWrapper which='plotLeft'/>
+						</div>
+						<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
+							<PlotWrapper which='plotTop'/>
+							<PlotWrapper which='plotBottom'/>
+						</div>
 					</div>
-					<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
-						<PlotWrapper which='plotTop' date={plotDate}/>
-						<PlotWrapper which='plotBottom' date={plotDate}/>
-					</div>
-				</div>
+				</PlotContext.Provider>
 			</DataContext.Provider>
 		</SettingsContext.Provider>
 	);

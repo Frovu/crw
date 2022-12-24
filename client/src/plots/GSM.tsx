@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
+import { Onset } from '../table/Table';
 import { useSize } from '../util';
-import { axisDefaults, color, customTimeSplits, drawOnset } from './plotUtil';
+import { axisDefaults, color, customTimeSplits, drawOnsets } from './plotUtil';
 
 type GSMParams = {
 	interval: [Date, Date],
-	onset: Date,
+	onsets: Onset[],
 	interactive?: boolean
 };
 
@@ -21,7 +22,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			drag: { x: false, y: false, setScale: false }
 		},
 		hooks: {
-			draw: [ u => (params.onset) && drawOnset(u, params.onset) ],
+			draw: [ u => (params.onsets?.length) && drawOnsets(u, params.onsets) ],
 		},
 		axes: [
 			{

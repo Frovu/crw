@@ -1,18 +1,23 @@
 import uPlot from 'uplot';
 
-export function drawOnset(u: uPlot, onset: Date) {
-	const OnsetX = u.valToPos(onset.getTime() / 1e3, 'x');
-	u.ctx.save();
-	u.ctx.strokeStyle = color('text');
-	u.ctx.fillStyle = color('text');
-	u.ctx.font = font(16).replace('400', '600');
-	u.ctx.lineWidth = 2;
-	u.ctx.beginPath();
-	u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
-	u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
-	u.ctx.stroke();
-	u.ctx.fillText('onset', u.bbox.left + OnsetX, u.bbox.top + u.bbox.height + 6);
-	u.ctx.restore();
+import { Onset } from '../table/Table';
+
+export function drawOnsets(u: uPlot, onsets: Onset[]) {
+	for (const onset of onsets) {
+		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x');
+		u.ctx.save();
+		u.ctx.strokeStyle = color('text');
+		u.ctx.fillStyle = color('text');
+		u.ctx.font = font(16).replace('400', '600');
+		u.ctx.lineWidth = 2;
+		u.ctx.beginPath();
+		u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
+		u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
+		u.ctx.stroke();
+		u.ctx.fillText(onset.type?.toLowerCase() || 'event',
+			u.bbox.left + OnsetX, u.bbox.top + u.bbox.height + 6);
+		u.ctx.restore();
+	}
 }
 
 export function customTimeSplits(): Partial<uPlot.Axis> {

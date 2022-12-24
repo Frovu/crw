@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, circlePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, customTimeSplits, drawOnset } from './plotUtil';
+import { axisDefaults, color, customTimeSplits, drawOnsets } from './plotUtil';
+import { Onset } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -12,13 +13,14 @@ import 'uplot/dist/uPlot.min.css';
 import '../css/Circles.css';
 
 export type CirclesParams = {
+	interactive?: boolean,
 	interval: [Date, Date],
 	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
 	window?: number,
 	minamp?: number,
-	onset?: Date
+	onsets?: Onset[]
 };
 
 type CirclesResponse = {
@@ -43,8 +45,9 @@ type CirclesMomentResponse = {
 	angle: number
 };
 
-function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null | undefined,
+function circlesPlotOptions(data: any, params: CirclesParams,
 	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
+	const interactive = params.interactive;
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
 	const legendValue = (seriesIdx: number) => (u: uPlot) => {
@@ -101,7 +104,7 @@ function circlesPlotOptions(interactive: boolean, data: any, onset: Date | null 
 					});
 				},
 			],
-			draw: [ u => (onset) && drawOnset(u, onset) ],
+			draw: [ u => (params.onsets?.length) && drawOnsets(u, params.onsets) ],
 			ready: [
 				u => {
 					if (interactive)
@@ -354,8 +357,9 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params, interactive=true, settingsOpen }:
-{ params: CirclesParams, interactive?: boolean, settingsOpen?: boolean }) {
+export function PlotCircles({ params, settingsOpen }:
+{ params: CirclesParams, settingsOpen?: boolean }) {
+	const interactive = params.interactive;
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -395,10 +399,10 @@ export function PlotCircles({ params, interactive=true, settingsOpen }:
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(interactive, query.data, params.onset, setBase, setMoment)
+			...circlesPlotOptions(query.data, params, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, container, size.height <= 0, params.onset]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0, params.onsets]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -437,6 +441,8 @@ export function CirclesParamsInput({ params, setParams }:
 			setParams({ ...params, interval: [ new Date(val - len), val ], realtime: !value });
 		} else if (what === 'exclude') {
 			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
+		} else if (what === 'onset') {
+			setParams({ ...params, onsets: [{ time: value, type: null } as Onset] });
 		} else {
 			setParams({ ...params, [what]: value });
 		}
@@ -462,7 +468,7 @@ export function CirclesParamsInput({ params, setParams }:
 			<ValidatedInput type='number' value={params.minamp}
 				callback={callback('minamp')}/>
 			<br/> Draw onset: 
-			<ValidatedInput type='time' value={params.onset && showDate(params.onset)}
+			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
 
 		</div>
