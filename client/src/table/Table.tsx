@@ -112,13 +112,14 @@ function CoreWrapper() {
 	const plotDate = plotIdx && data[plotIdx][Object.keys(columns).indexOf('time')];
 	const plotsMode = plotDate && (settings.plotTop || settings.plotLeft || settings.plotBottom);
 	const longTable = !plotsMode || !settings.plotLeft;
+	const viewSize = Math.max(3, (longTable ? 16 : 10) - filters.length);
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
 				<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
 					<div className='AppColumn'>
 						<Menu {...{ filters, setFilters }}/>
-						<TableView {...{ viewSize: longTable ? 16 : 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 						<PlotWrapper which='plotLeft' date={plotDate}/>
 					</div>
 					<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
