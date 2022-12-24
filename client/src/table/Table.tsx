@@ -116,9 +116,9 @@ function CoreWrapper() {
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => Object.keys(columns).indexOf(c));
 		const plotDate = plotIdx && data[plotIdx][timeIdx];
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
-		const rows = data.slice(Math.max(0, plotIdx - 2), Math.min(data.length, plotIdx + 4));
+		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
 		const onsets = rows.filter(r => interval[0] < r[timeIdx] && r[timeIdx] < interval[1])
-			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotIdx }) as Onset);
+			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
 		const clouds = rows.map(r => {
 			const time = r[cloudTime], dur = r[cloudDur];
 			if (!time || !dur) return null;

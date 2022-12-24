@@ -63,7 +63,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			axy: {
 				key: 'axy',
-				range: (u, min, max) => [min, max * 2] //[min, min + (max - min) / 2]
+				range: (u, min, max) => [min, Math.max(max, 3) * 2]
 			}
 		},
 		series: [

@@ -5,17 +5,17 @@ import { Onset } from '../table/Table';
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
 	for (const onset of onsets) {
 		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x');
+		const useColor = onset.secondary ? color('text', .6) : color('white');
 		u.ctx.save();
-		u.ctx.strokeStyle = color('text');
-		u.ctx.fillStyle = color('text');
-		u.ctx.font = font(16).replace('400', '600');
+		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
+		u.ctx.font = font(14).replace('400', '600');
 		u.ctx.lineWidth = 2;
 		u.ctx.beginPath();
 		u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
 		u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
 		u.ctx.stroke();
-		u.ctx.fillText(onset.type?.toLowerCase() || 'event',
-			u.bbox.left + OnsetX, u.bbox.top + u.bbox.height + 6);
+		u.ctx.fillText(onset.type || 'E',
+			u.bbox.left + OnsetX + 4, u.bbox.top + u.bbox.height + 8);
 		u.ctx.restore();
 	}
 }
@@ -34,7 +34,7 @@ export function customTimeSplits(): Partial<uPlot.Axis> {
 			if (v % 86400 !== 0)
 				return null;
 			const d = new Date(v * 1e3);
-			const month = String(d.getUTCMonth()).padStart(2, '0');
+			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
 			const day = String(d.getUTCDate()).padStart(2, '0');
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;

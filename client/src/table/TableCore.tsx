@@ -12,7 +12,7 @@ function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def
 			{!cursor?.editing &&
 			<span className='Cell' style={{ ...width }}>{val}</span>}
 			{cursor?.editing &&
-			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val} onChange={()=>{}}></input>}
+			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val || ''} onChange={()=>{}}></input>}
 		</td>
 	);
 }
