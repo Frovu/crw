@@ -2,27 +2,29 @@ import { useState } from 'react';
 import { useQuery } from 'react-query';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { Onset } from '../table/Table';
+import { MagneticCloud, Onset } from '../table/Table';
 import { useSize } from '../util';
-import { axisDefaults, color, customTimeSplits, drawOnsets } from './plotUtil';
+import { axisDefaults, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = {
 	interval: [Date, Date],
 	onsets: Onset[],
+	clouds: MagneticCloud[],
 	interactive?: boolean
 };
 
 function gsmPlotOptions(size: { width: number, height: number }, params: GSMParams): uPlot.Options {
 	return {
 		...size,
-		padding: [8, 4, 0, 0],
+		padding: [10, 4, 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
 			drag: { x: false, y: false, setScale: false }
 		},
 		hooks: {
-			draw: [ u => (params.onsets?.length) && drawOnsets(u, params.onsets) ],
+			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
+			draw: [u => (params.onsets?.length) && drawOnsets(u, params.onsets)],
 		},
 		axes: [
 			{

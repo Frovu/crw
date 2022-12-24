@@ -120,7 +120,7 @@ function CoreWrapper() {
 		const onsets = rows.filter(r => interval[0] < r[timeIdx] && r[timeIdx] < interval[1])
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
 		const clouds = rows.map(r => {
-			const time = r[cloudTime], dur = r[cloudDur];
+			const time = r[cloudTime]?.getTime(), dur = r[cloudDur];
 			if (!time || !dur) return null;
 			if (time < interval[0] || interval[1] < time + dur * 36e5)
 				return null;

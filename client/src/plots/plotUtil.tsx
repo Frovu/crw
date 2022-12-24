@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 
-import { Onset } from '../table/Table';
+import { MagneticCloud, Onset } from '../table/Table';
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
 	for (const onset of onsets) {
@@ -16,6 +16,17 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 		u.ctx.stroke();
 		u.ctx.fillText(onset.type || 'E',
 			u.bbox.left + OnsetX + 4, u.bbox.top + u.bbox.height + 8);
+		u.ctx.restore();
+	}
+}
+
+export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
+	for (const cloud of clouds) {
+		const startX = u.valToPos(cloud.start.getTime() / 1e3, 'x', true);
+		const endX = u.valToPos(cloud.end.getTime() / 1e3, 'x', true);
+		u.ctx.save();
+		u.ctx.fillStyle = u.ctx.strokeStyle = color('green', .12);
+		u.ctx.fillRect(startX, u.over.offsetTop, endX - startX, u.over.offsetHeight);
 		u.ctx.restore();
 	}
 }
