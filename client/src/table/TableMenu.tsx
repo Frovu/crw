@@ -4,7 +4,7 @@ import { useEventListener, dispatchCustomEvent } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
 
-const FILTER_OPS = ['>=' , '<=' , '==' , 'is null', 'not null' , 'includes' , 'in list'] as const;
+const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'includes' , 'in list'] as const;
 export type Filter = {
 	column: string,
 	operation: typeof FILTER_OPS[number],
@@ -39,7 +39,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 		if (operation === 'not null')
 			return setFn(row => row[columnIdx] != null);
 		if (operation === 'includes')
-			return setFn(row => row[columnIdx]?.includes(input));
+			return setFn(row => row[columnIdx]?.toString().includes(input));
 		const inp = input.trim().split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g);
 		const values = inp.map((val) => {
 			switch (column.type) {
@@ -67,6 +67,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 				case '>=': return (v: any) => v >= value;
 				case '<=': return (v: any) => v <= value;
 				case '==': return (v: any) => v === value;
+				case '<>': return (v: any) => v !== value;
 				case 'in list': return (v: any) => values.includes(v);
 			}
 		})();
