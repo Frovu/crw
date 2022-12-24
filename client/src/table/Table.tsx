@@ -122,7 +122,7 @@ function CoreWrapper() {
 		const clouds = rows.map(r => {
 			const time = r[cloudTime]?.getTime(), dur = r[cloudDur];
 			if (!time || !dur) return null;
-			if (time < interval[0] || interval[1] < time + dur * 36e5)
+			if (time + dur * 36e5 < interval[0] || interval[1] < time)
 				return null;
 			const start = new Date(Math.max(interval[0], time));
 			const end = new Date(Math.min(interval[1], time + dur * 36e5));
