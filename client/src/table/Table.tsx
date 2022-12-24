@@ -61,7 +61,7 @@ function PlotWrapper({ which, date }: { which: 'plotLeft' | 'plotTop' | 'plotBot
 			{type === 'Ring of Stations' && <PlotCircles interactive={false} params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
 			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params}/>}
-			{type === 'Ring of Stations' && <a style={{ position: 'absolute', bottom: 8, left: 8 }} href='./ros' target='_blank'
+			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
 	);

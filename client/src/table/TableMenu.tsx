@@ -261,10 +261,10 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<h4>Options</h4>
 					<div>
 						± Days:
-						<MenuInput type='number' min='-3' max='-1' step='1' value={settings.plotTimeOffset[0]}
+						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset[0]}
 							onChange={(e: any) => set('plotTimeOffset', (prev) => [e.target.valueAsNumber, prev[1]])}/>
 						/
-						<MenuInput type='number' min='1' max='7' step='1' value={settings.plotTimeOffset[1]}
+						<MenuInput type='number' min='1' max='9' step='1' value={settings.plotTimeOffset[1]}
 							onChange={(e: any) => set('plotTimeOffset', (prev) => [prev[0], e.target.valueAsNumber])}/>
 					</div>
 					<h4>Ring of stations</h4>
