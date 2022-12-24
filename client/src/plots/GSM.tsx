@@ -10,10 +10,12 @@ type GSMParams = {
 	interval: [Date, Date],
 	onsets: Onset[],
 	clouds: MagneticCloud[],
+	showAz?: boolean,
 	interactive?: boolean
 };
 
 function gsmPlotOptions(size: { width: number, height: number }, params: GSMParams): uPlot.Options {
+	const az = params.showAz;
 	return {
 		...size,
 		padding: [10, 4, 0, 0],
@@ -34,17 +36,15 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			{
 				...axisDefaults(),
-				grid: undefined,
+				grid: { show: false },
 				side: 1,
 				scale: 'axy',
 				gap: 2,
-				size: 46,
-				space: 36,
-				splits: (u, ax, min, max) => {
-					const div = max > 4 ? (max > 8 ? 1 : .5) : .3;
-					return Array(2 + Math.floor(max / 2 / div)).fill(0).map((a, i) => i * div);
-				},
-				values: (u, vals) => vals.slice(0, -1).map(v => v.toFixed(1)).concat('Axy'),
+				size: 40,
+				space: 20,
+				ticks: { ...axisDefaults().ticks, filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!) },
+				filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!),
+				values: (u, vals) => vals.map(v => v.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)).concat('Axy'),
 			},
 			{
 				...axisDefaults(),
@@ -56,16 +56,13 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 		],
 		scales: {
-			x: {
-				// time: false,
-			},
+			x: { },
 			var: {
 				key: 'var'
-				// range: [-5, 365],
 			},
 			axy: {
 				key: 'axy',
-				range: (u, min, max) => [min, Math.max(max, 3) * 2]
+				range: (u, min, max) => [min, (Math.max(max, 3) - min) * 2 - min]
 			}
 		},
 		series: [
@@ -74,8 +71,17 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				scale: 'axy',
 				label: 'axy',
 				stroke: color('magenta', .8),
-				fill: color('magenta', .5),
+				fill: color('magenta', .3),
 				paths: uPlot.paths.bars!({ size: [.4, 16] }),
+				points: { show: false }
+			},
+			{
+				show: az,
+				scale: 'axy',
+				label: 'az',
+				stroke: color('purple', .8),
+				fill: color('purple', .6),
+				paths: uPlot.paths.bars!({ size: [.2, 10] }),
 				points: { show: false }
 			},
 			{
@@ -99,7 +105,7 @@ async function queryGSM(params: GSMParams) {
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
 	if (!body?.data.length) return null;
-	const fieldsIdx = ['time', 'axy', 'a10'].map(f => body.fields.indexOf(f));
+	const fieldsIdx = ['time', 'axy', 'az', 'a10'].map(f => body.fields.indexOf(f));
 	return fieldsIdx.map(i => body.data.map(row => row[i]));
 }	
 

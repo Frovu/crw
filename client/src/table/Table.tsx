@@ -63,7 +63,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
-			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params}/>}
+			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params} showAz={true}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>

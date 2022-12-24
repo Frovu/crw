@@ -14,7 +14,7 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 		u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
 		u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
 		u.ctx.stroke();
-		u.ctx.fillText(onset.type || 'E',
+		u.ctx.fillText(onset.type || 'ons',
 			u.bbox.left + OnsetX + 4, u.bbox.top + u.bbox.height + 8);
 		u.ctx.restore();
 	}
