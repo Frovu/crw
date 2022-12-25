@@ -92,6 +92,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	if (res.status !== 200)
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
+	console.log(path, '=>', body);
 	if (!body?.data.length) return null;
 	const fieldsIdxs = fields.map(f => body.fields.indexOf(f));
 	return fieldsIdxs.map(i => body.data.map(row => row[i]));
@@ -99,7 +100,11 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 
 export function BasicPlot({ queryKey, queryFn, optionsFn }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }) => uPlot.Options}) {
-	const query = useQuery(queryKey, queryFn);
+	const query = useQuery({
+		queryKey,
+		queryFn,
+		staleTime: 36e5,
+	});
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);

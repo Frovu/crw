@@ -6,6 +6,7 @@ import { Filter, Menu } from './TableMenu';
 import TableView from './TableCore';
 import { PlotCircles } from '../plots/Circles';
 import PlotGSM from '../plots/GSM';
+import PlotIMF from '../plots/IMF';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -63,7 +64,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	return (
 		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
-			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
+			{type === 'Solar Wind' && <PlotIMF {...params} interactive={true}/>}
 			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params} showAz={settings.plotAz}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}

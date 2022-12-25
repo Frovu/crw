@@ -1,13 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 :root {
-	--color-red: rgb(255, 0, 0);
-	--color-cyan: rgb(0, 255, 255);
 	--color-magenta: rgb(255, 10, 110);
+	--color-red: rgb(255, 0, 0);
+	--color-skyblue: rgb(155, 255, 255);
+	--color-cyan: rgb(0, 255, 255);
+	--color-blue: rgb(0, 0, 255);
 	--color-green: rgb(13, 255, 45);
 	--color-acid: rgb(217, 255, 0);
 	--color-purple: rgb(100, 0, 200);
 	--color-white: rgb(255,255,255);
-	--color-skyblue: rgb(155, 255, 255);
 
 	--color-bg: rgb(0,0,0);
 	--color-text: rgb(190,190,190);
