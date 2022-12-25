@@ -1,4 +1,4 @@
-import os, json, logging, requests
+import os, json, logging, requests, re
 import psycopg2, psycopg2.extras
 from datetime import datetime, timedelta, timezone
 from core.database import pg_conn
@@ -41,8 +41,8 @@ def _init():
 _init()
 
 
-def _obtain_omniweb(t_from: int, t_to: int):
-	dstart, dend = [datetime.utcfromtimestamp(t).strftime('%Y%m%d') for t in [t_from, t_to]]
+def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
+	dstart, dend = [d.strftime('%Y%m%d') for d in [dt_from, dt_to]]
 	log.debug(f'Omniweb: querying {dstart}:{dend}')
 	r = requests.post(omniweb_url, stream=True, data = {
 		'activity': 'retrieve',
@@ -69,6 +69,11 @@ def _obtain_omniweb(t_from: int, t_to: int):
 				log.error('Omniweb: failed to parse line:\n' + line)
 		elif 'YEAR DOY HR' in line:
 			data = [] # start reading data
+		elif 'INVALID' in line:
+			correct_range = re.findall(r' (\d+)', line)
+			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]} ')
+			correct_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
+			return _obtain_omniweb(max(correct_range[0], dt_from), min(correct_range[1], dt_to))
 
 	query = f'''INSERT INTO omni (time, {",".join([c.name for c in omni_columns])}) VALUES %s
 		ON CONFLICT (time) DO UPDATE SET {",".join([f"{c.name} = EXCLUDED.{c.name}" for c in omni_columns])}'''
@@ -77,15 +82,16 @@ def _obtain_omniweb(t_from: int, t_to: int):
 	pg_conn.commit()
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}:{dend}')
 
-def fetch(interval: [int, int]):
+def fetch(interval: [int, int], epoch=True):
 	columns = [c.name for c in omni_columns]
 	with pg_conn.cursor() as cursor:
-		cursor.execute(integrity_query(*interval, PERIOD, 'omni', columns))
+		cursor.execute(integrity_query(*interval, PERIOD, 'omni', columns, return_epoch=False))
 		if gaps := cursor.fetchall():
 			for gap in gaps:
 				try:
 					_obtain_omniweb(*gap)
 				except Exception as e:
-					log.error(f'Omniweb: failed to obtain {gap[0]}:{gap[1]}: {str(e)}')
-		cursor.execute(f'SELECT {",".join(columns)} FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s)', interval)
+					log.error(f'Omniweb: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
+		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
+			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s)', interval)
 		return cursor.fetchall(), [desc[0] for desc in cursor.description]
