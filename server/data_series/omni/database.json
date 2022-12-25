@@ -1,0 +1,18 @@
+{
+	"time": ["TIMESTAMPTZ PRIMARY KEY", null],
+	"spacecraft_id_imf": ["SMALLINT", 5],
+	"spacecraft_id_sw": ["SMALLINT", 6],
+	"count_imf": ["SMALLINT", 7],
+	"count_sw": ["SMALLINT", 8],
+	"imf_scalar": ["REAL", 9],
+	"imf_x": ["REAL", 13],
+	"imf_y": ["REAL", 16],
+	"imf_z": ["REAL", 17],
+	"sw_temperature": ["REAL", 23],
+	"sw_density": ["REAL", 24],
+	"sw_speed": ["REAL", 25],
+	"plasma_beta": ["REAL", 37],
+	"dst_index": ["SMALLINT", 41],
+	"kp_index": ["SMALLINT", 39],
+	"ap_index": ["SMALLINT", 50]
+}
