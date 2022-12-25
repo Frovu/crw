@@ -71,9 +71,12 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 			data = [] # start reading data
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
-			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]} ')
-			correct_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
-			return _obtain_omniweb(max(correct_range[0], dt_from), min(correct_range[1], dt_to))
+			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
+			if dt_to < new_range[0] or new_range[1] < dt_from:
+				log.info(f'Omniweb: out of bounds')
+				return 
+			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]}')
+			return _obtain_omniweb(max(new_range[0], dt_from), min(new_range[1], dt_to))
 
 	query = f'''INSERT INTO omni (time, {",".join([c.name for c in omni_columns])}) VALUES %s
 		ON CONFLICT (time) DO UPDATE SET {",".join([f"{c.name} = EXCLUDED.{c.name}" for c in omni_columns])}'''
