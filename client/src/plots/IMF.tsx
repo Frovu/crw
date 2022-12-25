@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type IMFParams = BasicPlotParams & {
 	showVector?: boolean,
@@ -16,6 +16,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			drag: { x: false, y: false, setScale: false }
 		},
 		hooks: {
+			drawClear: [drawCustomLabels({ imf: ['IMF(|B|,Bx,By,Bz), nT', 0] })],
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [u => (params.onsets?.length) && drawOnsets(u, params.onsets)],
 		},
@@ -39,7 +40,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			},
 			{
 				...axisDefaults(),
-				label: '|B|,Bx,By,Bz, nT',
+				label: '',
 				scale: 'imf',
 			},
 			{

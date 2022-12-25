@@ -42,6 +42,46 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 	}
 }
 
+export function drawCustomLabels(scales: {[scale: string]: [string, number]}) {
+	return (u: uPlot) => {
+		for (const [scale, [label, shift]] of Object.entries(scales)) {
+			const axis = u.axes.find(ax => ax.scale === scale);
+			if (!axis) continue;
+			if (axis.side && axis.side % 2 === 0)
+				return console.error('only implemented left or right axis');
+
+			const rec = (txt: string): string[][] => {
+				if (!txt) return [];
+				const si = u.series.findIndex(s => txt.includes(s.label!));
+				const series = si >= 0 && u.series[si];
+				if (!series) return [[txt, color('text')]];
+				const split = txt.split(series.label!);
+				const stroke = typeof series.stroke === 'function' ? series.stroke(u, si) : series.stroke;
+				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
+			};
+			
+			const shiftDir = axis.side === 0 || axis.side === 3 ? -1 : 1;
+			u.ctx.save();
+			u.ctx.translate(
+				Math.round((axis as any)._lpos + axis.labelGap! * shiftDir),
+				Math.round(u.bbox.top + u.bbox.height / 2 + shift + u.ctx.measureText(label).width / 2),
+			);
+			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
+			u.ctx.font = font(14);
+			u.ctx.textBaseline = 'bottom';
+			let x = 0;
+			for (const [text, stroke] of rec(label)) {
+				u.ctx.fillStyle = stroke;
+				u.ctx.fillText(text, x, 0);
+				x += u.ctx.measureText(text).width;
+			}
+			u.ctx.restore();
+
+		}
+
+	};
+}
+
 export function customTimeSplits(): Partial<uPlot.Axis> {
 	return {
 		splits: (u, ax, min, max, incr, space) => {
