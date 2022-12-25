@@ -83,6 +83,20 @@ export function font(size=16) {
 	return fnt.replace(/\d+px/, size+'px');
 }
 
+export async function basicDataQuery(path: string, interval: [Date, Date], fields: string[]) {
+	const urlPara = new URLSearchParams({
+		from: (interval[0].getTime() / 1000).toFixed(0),
+		to:   (interval[1].getTime() / 1000).toFixed(0),
+	}).toString();
+	const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
+	if (res.status !== 200)
+		throw Error('HTTP '+res.status);
+	const body = await res.json() as { data: any[][], fields: string[] };
+	if (!body?.data.length) return null;
+	const fieldsIdxs = fields.map(f => body.fields.indexOf(f));
+	return fieldsIdxs.map(i => body.data.map(row => row[i]));
+}
+
 export function BasicPlot({ queryKey, queryFn, optionsFn }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }) => uPlot.Options}) {
 	const query = useQuery(queryKey, queryFn);

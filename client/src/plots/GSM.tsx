@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { axisDefaults, BasicPlot, BasicPlotParams, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = BasicPlotParams & {
 	showAz?: boolean
@@ -86,24 +86,10 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 	};
 }
 
-async function queryGSM(params: GSMParams) {
-	const urlPara = new URLSearchParams({
-		from: (params.interval[0].getTime() / 1000).toFixed(0),
-		to:   (params.interval[1].getTime() / 1000).toFixed(0),
-	}).toString();
-	const res = await fetch(process.env.REACT_APP_API + 'api/gsm/?' + urlPara);
-	if (res.status !== 200)
-		throw Error('HTTP '+res.status);
-	const body = await res.json() as { data: any[][], fields: string[] };
-	if (!body?.data.length) return null;
-	const fieldsIdx = ['time', 'axy', 'az', 'a10'].map(f => body.fields.indexOf(f));
-	return fieldsIdx.map(i => body.data.map(row => row[i]));
-}	
-
 export default function PlotGSM(params: GSMParams) {
 	return (<BasicPlot {...{
 		queryKey: ['GSM', params.interval],
-		queryFn: () => queryGSM(params),
+		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10']),
 		optionsFn: size => gsmPlotOptions(size, params)
 	}}/>);
 }
