@@ -6,7 +6,7 @@ type IMFParams = BasicPlotParams & {
 };
 
 function imfPlotOptions(size: { width: number, height: number }, params: IMFParams): uPlot.Options {
-	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > u.scales.speed.max! / 2 - 150 + u.scales.speed.min! ? sp : null);
+	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > u.scales.speed.max! / 2 + u.scales.speed.min! ? sp : null);
 	return {
 		...size,
 		padding: [10, 4, 0, 0],
@@ -33,7 +33,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				filter: filterV,
 				values: (u, vals) => {
 					const vv = vals.map(v => v?.toFixed(0));
-					vv.splice(vals.findIndex(v => v), 1, 'V,\n1e3\nm/s');
+					vv.splice(vals.findIndex(v => v) - 1, 1, 'V,\n1e3\nm/s');
 					return vv;
 				},
 			},
@@ -77,7 +77,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			{
 				label: 'Bx',
 				scale: 'imf',
-				stroke: color('blue'),
+				stroke: color('cyan'),
 				points: { show: false },
 			},
 			{
@@ -89,7 +89,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			{
 				label: 'Bz',
 				scale: 'imf',
-				stroke: color('red'),
+				stroke: color('magenta'),
 				points: { show: false },
 			}
 		]

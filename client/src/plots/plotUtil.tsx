@@ -60,7 +60,9 @@ export function customTimeSplits(): Partial<uPlot.Axis> {
 			const day = String(d.getUTCDate()).padStart(2, '0');
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
-		})
+		}),
+		gap: 6,
+		size: 36,
 	};
 }
 

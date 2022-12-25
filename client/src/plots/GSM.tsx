@@ -6,6 +6,7 @@ type GSMParams = BasicPlotParams & {
 };
 
 function gsmPlotOptions(size: { width: number, height: number }, params: GSMParams): uPlot.Options {
+	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min! ? sp : null);
 	const az = params.showAz;
 	return {
 		...size,
@@ -22,7 +23,6 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 		axes: [
 			{
 				...axisDefaults(),
-				size: 40,
 				...customTimeSplits()
 			},
 			{
@@ -30,20 +30,22 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				grid: { show: false },
 				side: 1,
 				scale: 'axy',
-				gap: 2,
-				size: 40,
 				space: 20,
-				ticks: { ...axisDefaults().ticks, filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!) },
-				filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!),
-				values: (u, vals) => vals.map(v => v.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)).concat('Axy' + (az ? '\n Az' : '')),
+				ticks: { ...axisDefaults().ticks, filter: filterAxy },
+				filter: filterAxy,
+				values: (u, vals) => {
+					const vv = vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0));
+					vv.splice(vv.findIndex(v => v == null), 1, 'Axy' + (az ? '\n Az' : ''));
+					return vv;
+				},
 			},
 			{
 				...axisDefaults(),
+				label: 'A10(GSM), %',
 				scale: 'var',
-				gap: 0,
-				size: 46,
 				space: 36,
-				values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
+				filter: (u, splits) => splits.map(sp => sp % 1 === 0 ? sp : null),
+				values: (u, vals) => vals.map(v => v?.toFixed()),
 			},
 		],
 		scales: {
