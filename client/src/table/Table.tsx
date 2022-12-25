@@ -30,6 +30,7 @@ export type MagneticCloud = { start: Date, end: Date };
 export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
+	plotAz?: boolean,
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
@@ -63,7 +64,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <div style={{  backgroundColor: 'red' }}></div>}
-			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params} showAz={true}/>}
+			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params} showAz={settings.plotAz}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>

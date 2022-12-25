@@ -44,7 +44,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				space: 20,
 				ticks: { ...axisDefaults().ticks, filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!) },
 				filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!),
-				values: (u, vals) => vals.map(v => v.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)).concat('Axy'),
+				values: (u, vals) => vals.map(v => v.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)).concat('Axy' + (az ? '\n Az' : '')),
 			},
 			{
 				...axisDefaults(),
@@ -62,7 +62,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			axy: {
 				key: 'axy',
-				range: (u, min, max) => [min, (Math.max(max, 3) - min) * 2 - min]
+				range: (u, min, max) => [Math.min(0, min), (Math.max(max, 3.5) - min) * 2 - min]
 			}
 		},
 		series: [

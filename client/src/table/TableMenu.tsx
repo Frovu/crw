@@ -268,7 +268,8 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 						<MenuInput type='number' min='1' max='9' step='1' value={settings.plotTimeOffset[1]}
 							onChange={(e: any) => set('plotTimeOffset', (prev) => [prev[0], e.target.valueAsNumber])}/>
 					</div>
-					<h4>Ring of stations</h4>
+					<h4>Cosmic Rays</h4>
+					<MenuCheckbox text='Plot Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
