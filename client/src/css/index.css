@@ -72,3 +72,25 @@ button:hover, select:hover {
 	top: 50%;
 	transform: translate(-50%, -50%);
 }
+
+.u-series, .u-value, .u-title {
+	font-family: var(--font);
+}
+
+.u-value {
+	min-width: 6ch;
+}
+
+.u-series {
+	margin-right: 4px !important;
+}
+
+.u-title {
+	font-size: 16px;
+	margin: 10px 0 6px 16px;
+}
+
+.u-select {
+	cursor: grab;
+	background: var(--color-area);
+}

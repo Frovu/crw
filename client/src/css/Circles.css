@@ -1,16 +1,3 @@
-.u-series, .u-value, .u-title {
-	font-family: var(--font);
-}
-
-.u-title {
-	font-size: 16px;
-	margin: 10px 0 6px 16px;
-}
-
-.u-select {
-	cursor: grab;
-	background: var(--color-area);
-}
 
 .Button {
 	z-index: 2;

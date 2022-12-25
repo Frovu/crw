@@ -6,6 +6,7 @@ type IMFParams = BasicPlotParams & {
 };
 
 function imfPlotOptions(size: { width: number, height: number }, params: IMFParams): uPlot.Options {
+	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > u.scales.speed.max! / 2 - 150 + u.scales.speed.min! ? sp : null);
 	return {
 		...size,
 		padding: [10, 4, 0, 0],
@@ -21,17 +22,24 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 		axes: [
 			{
 				...axisDefaults(),
-				size: 40,
 				...customTimeSplits()
 			},
 			{
 				...axisDefaults(),
 				grid: { show: false },
 				scale: 'speed',
-				// values: (u, vals) => vals.map(v => v.toFixed(vals[0] <= -10 ? 0 : 1)),
+				side: 1,
+				ticks: { ...axisDefaults().ticks, filter: filterV },
+				filter: filterV,
+				values: (u, vals) => {
+					const vv = vals.map(v => v?.toFixed(0));
+					vv.splice(vals.findIndex(v => v), 1, 'V,\n1e3\nm/s');
+					return vv;
+				},
 			},
 			{
 				...axisDefaults(),
+				label: '|B|,Bx,By,Bz, nT',
 				scale: 'imf',
 			},
 			{
@@ -40,38 +48,49 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			}
 		],
 		scales: {
+			imf: {
+				range: (u, min, max) => [min, max * 3 / 2]
+			},
+			speed: {
+				range: (u, min, max) => [min - (max-min), max]
+			}
 		},
 		series: [
-			{ label: 't' },
 			{
-				label: 'v,km/s',
+				label: 't',
+				value: '{YYYY}-{MM}-{DD} {HH}:{mm}'
+			},
+			{
+				label: 'v',
 				scale: 'speed',
 				stroke: color('acid'),
-				points: { show: false }
+				width: 2,
+				points: { show: false },
 			},
 			{
-				label: '|B|,nT',
+				label: '|B|',
 				scale: 'imf',
 				stroke: color('purple'),
-				points: { show: false }
+				width: 2,
+				points: { show: false },
 			},
 			{
-				label: 'Bx,nT',
-				scale: 'vector',
+				label: 'Bx',
+				scale: 'imf',
 				stroke: color('blue'),
-				points: { show: false }
+				points: { show: false },
 			},
 			{
-				label: 'By,nT',
-				scale: 'vector',
+				label: 'By',
+				scale: 'imf',
 				stroke: color('green'),
-				points: { show: false }
+				points: { show: false },
 			},
 			{
-				label: 'Bz,nT',
-				scale: 'vector',
-				stroke: color('magenta'),
-				points: { show: false }
+				label: 'Bz',
+				scale: 'imf',
+				stroke: color('red'),
+				points: { show: false },
 			}
 		]
 	};

@@ -67,7 +67,12 @@ export function customTimeSplits(): Partial<uPlot.Axis> {
 export function axisDefaults(): Partial<uPlot.Axis> {
 	return {
 		font: font(14),
+		labelFont: font(14),
 		stroke: color('text'),
+		labelSize: 16,
+		labelGap: -4,
+		size: 40,
+		gap: 2,
 		grid: { stroke: color('grid'), width: 1 },
 		ticks: { stroke: color('grid'), width: 1 },
 	};
