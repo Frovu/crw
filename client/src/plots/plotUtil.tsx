@@ -1,6 +1,17 @@
+import { useState } from 'react';
+import { useQuery } from 'react-query';
+import { useSize } from '../util';
 import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../table/Table';
+import UplotReact from 'uplot-react';
+
+export type BasicPlotParams = {
+	interval: [Date, Date],
+	onsets?: Onset[],
+	clouds?: MagneticCloud[],
+	interactive?: boolean
+};
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
 	for (const onset of onsets) {
@@ -70,4 +81,24 @@ export function color(name: string, opacity=1) {
 export function font(size=16) {
 	const fnt = window.getComputedStyle(document.body).font;
 	return fnt.replace(/\d+px/, size+'px');
+}
+
+export function BasicPlot({ queryKey, queryFn, optionsFn }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }) => uPlot.Options}) {
+	const query = useQuery(queryKey, queryFn);
+
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const size = useSize(container?.parentElement);
+
+	if (query.isLoading)
+		return <div className='Center'>LOADING...</div>;
+	if (query.isError)
+		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
+	if (!query.data)
+		return <div className='Center'>NO DATA</div>;
+
+	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
+		<UplotReact {...{ options: optionsFn(size), data: query.data as any }}/>
+	</div>);
+
 }

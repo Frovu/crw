@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, circlePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, customTimeSplits, drawOnsets } from './plotUtil';
+import { axisDefaults, BasicPlotParams, color, customTimeSplits, drawOnsets } from './plotUtil';
 import { Onset } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -12,15 +12,12 @@ import UplotReact from 'uplot-react';
 import 'uplot/dist/uPlot.min.css';
 import '../css/Circles.css';
 
-export type CirclesParams = {
-	interactive?: boolean,
-	interval: [Date, Date],
+export type CirclesParams = BasicPlotParams & {
 	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
 	window?: number,
 	minamp?: number,
-	onsets?: Onset[]
 };
 
 type CirclesResponse = {

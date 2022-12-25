@@ -1,12 +1,10 @@
 import uPlot from 'uplot';
 import { axisDefaults, BasicPlot, BasicPlotParams, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
 
-type GSMParams = BasicPlotParams & {
-	showAz?: boolean
+type SWParams = BasicPlotParams & {
 };
 
-function gsmPlotOptions(size: { width: number, height: number }, params: GSMParams): uPlot.Options {
-	const az = params.showAz;
+function gsmPlotOptions(size: { width: number, height: number }, params: SWParams): uPlot.Options {
 	return {
 		...size,
 		padding: [10, 4, 0, 0],
@@ -24,18 +22,6 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				...axisDefaults(),
 				size: 40,
 				...customTimeSplits()
-			},
-			{
-				...axisDefaults(),
-				grid: { show: false },
-				side: 1,
-				scale: 'axy',
-				gap: 2,
-				size: 40,
-				space: 20,
-				ticks: { ...axisDefaults().ticks, filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!) },
-				filter: (u, splits) => splits.filter(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min!),
-				values: (u, vals) => vals.map(v => v.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)).concat('Axy' + (az ? '\n Az' : '')),
 			},
 			{
 				...axisDefaults(),
@@ -67,7 +53,6 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				points: { show: false }
 			},
 			{
-				show: az,
 				scale: 'axy',
 				label: 'az',
 				stroke: color('purple', .8),
@@ -86,7 +71,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 	};
 }
 
-async function queryGSM(params: GSMParams) {
+async function querySW(params: SWParams) {
 	const urlPara = new URLSearchParams({
 		from: (params.interval[0].getTime() / 1000).toFixed(0),
 		to:   (params.interval[1].getTime() / 1000).toFixed(0),
@@ -100,10 +85,10 @@ async function queryGSM(params: GSMParams) {
 	return fieldsIdx.map(i => body.data.map(row => row[i]));
 }	
 
-export default function PlotGSM(params: GSMParams) {
+export default function PlotSW(params: SWParams) {
 	return (<BasicPlot {...{
-		queryKey: ['GSM', params.interval],
-		queryFn: () => queryGSM(params),
+		queryKey: ['IMF', params.interval],
+		queryFn: () => querySW(params),
 		optionsFn: size => gsmPlotOptions(size, params)
 	}}/>);
 }
