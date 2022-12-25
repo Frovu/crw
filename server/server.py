@@ -35,7 +35,7 @@ logging.getLogger('urllib3').propagate = False
 logger.critical('STARTING SERVER')
 
 from flask import Flask, session
-from routers import admin, events, neutron, gsm
+from routers import admin, events, neutron, gsm, omni
 
 app = Flask('aides')
 
@@ -49,6 +49,7 @@ def after_request(response):
     return response
 
 app.register_blueprint(gsm.bp)
+app.register_blueprint(omni.bp)
 app.register_blueprint(admin.bp)
 app.register_blueprint(events.bp)
 app.register_blueprint(neutron.bp)

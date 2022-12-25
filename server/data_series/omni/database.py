@@ -96,5 +96,5 @@ def fetch(interval: [int, int], epoch=True):
 				except Exception as e:
 					log.error(f'Omniweb: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
 		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
-			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s)', interval)
+			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) ORDER BY time', interval)
 		return cursor.fetchall(), [desc[0] for desc in cursor.description]
