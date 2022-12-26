@@ -98,7 +98,7 @@ function CoreWrapper() {
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);
-		const cols = settings.enabledColumns;
+		const cols = settings.enabledColumns.filter(n => !!columns[n]);
 		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
 		const sortIdx = 1 + cols.indexOf(sort.column);
 		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);

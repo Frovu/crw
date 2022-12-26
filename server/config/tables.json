@@ -36,8 +36,8 @@
 			"description": "Maximum solar wind velocity during the event",
 			"parse_name": "Vmax"
 		},
-		"h_max": {
-			"name": "H max",
+		"b_max": {
+			"name": "B max",
 			"description": "Maximum IMF induction value",
 			"parse_name": "HMax"
 		},

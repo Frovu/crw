@@ -149,10 +149,11 @@ if __name__ == '__main__':
 	main()
 
 '''
-DELETE FROM forbush_effects;
-DELETE FROM solar_sources;
-DELETE FROM coronal_mass_ejections;
-DELETE FROM coronal_holes;
-DELETE FROM solar_flares;
-DELETE FROM magnetic_clouds;
+DROP TABLE IF EXISTS events.magnetic_clouds CASCADE;
+DROP TABLE IF EXISTS events.solar_flares CASCADE;
+DROP TABLE IF EXISTS events.coronal_holes CASCADE;
+DROP TABLE IF EXISTS events.forbush_effects CASCADE;
+DROP TABLE IF EXISTS events.coronal_mass_ejections CASCADE;
+DROP TABLE IF EXISTS events.solar_sources CASCADE;
+DROP TABLE IF EXISTS events.coronal_holes CASCADE;
 '''
