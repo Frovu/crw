@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = BasicPlotParams & {
 	showAz?: boolean
@@ -18,7 +18,10 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 		},
 		hooks: {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
-			draw: [u => (params.onsets?.length) && drawOnsets(u, params.onsets)],
+			draw: [
+				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+				drawCustomLabels({ var: 'A0(GSM) var, %' })
+			],
 		},
 		axes: [
 			{
@@ -41,7 +44,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			{
 				...axisDefaults(),
-				label: 'A10(GSM), %',
+				label: '',
 				scale: 'var',
 				space: 36,
 				filter: (u, splits) => splits.map(sp => sp % 1 === 0 ? sp : null),
@@ -79,7 +82,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			},
 			{
 				scale: 'var',
-				label: 'a10',
+				label: 'A0(GSM)',
 				stroke: color('cyan'),
 				width: 2,
 				points: { show: false }

@@ -42,9 +42,10 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 	}
 }
 
-export function drawCustomLabels(scales: {[scale: string]: [string, number]}) {
+export function drawCustomLabels(scales: {[scale: string]: string | [string, number]}) {
 	return (u: uPlot) => {
-		for (const [scale, [label, shift]] of Object.entries(scales)) {
+		for (const [scale, value] of Object.entries(scales)) {
+			const [label, shift] = typeof value === 'string' ? [value, 0] : value;
 			const axis = u.axes.find(ax => ax.scale === scale);
 			if (!axis) continue;
 			if (axis.side && axis.side % 2 === 0)
@@ -62,13 +63,16 @@ export function drawCustomLabels(scales: {[scale: string]: [string, number]}) {
 			
 			const shiftDir = axis.side === 0 || axis.side === 3 ? -1 : 1;
 			u.ctx.save();
+			u.ctx.font = font(14);
 			u.ctx.translate(
 				Math.round((axis as any)._lpos + axis.labelGap! * shiftDir),
-				Math.round(u.bbox.top + u.bbox.height / 2 + shift + u.ctx.measureText(label).width / 2),
+				Math.round(u.bbox.top + u.bbox.height / 2 + u.ctx.measureText(label).width / 2 + shift ),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
-			u.ctx.font = font(14);
 			u.ctx.textBaseline = 'bottom';
+			u.ctx.textAlign = 'left';
+			// u.ctx.fillStyle = 'red'
+			// u.ctx.fillRect(0, 0, 2, 2)
 			let x = 0;
 			for (const [text, stroke] of rec(label)) {
 				u.ctx.fillStyle = stroke;

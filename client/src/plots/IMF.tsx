@@ -16,7 +16,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			drag: { x: false, y: false, setScale: false }
 		},
 		hooks: {
-			drawClear: [drawCustomLabels({ imf: ['IMF(|B|,Bx,By,Bz), nT', 0] })],
+			drawClear: [drawCustomLabels({ imf: 'IMF(|B|,Bx,By,Bz), nT' })],
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [u => (params.onsets?.length) && drawOnsets(u, params.onsets)],
 		},
@@ -33,8 +33,8 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				ticks: { ...axisDefaults().ticks, filter: filterV },
 				filter: filterV,
 				values: (u, vals) => {
-					const vv = vals.map(v => v?.toFixed(0));
-					vv.splice(vals.findIndex(v => v) - 1, 1, 'V,\n1e3\nm/s');
+					const vv = vals.map(v => v === 1000 ? '1e3' : v?.toFixed(0));
+					vv.splice(vals.findIndex(v => v) - 1, 1, 'Vsw,\n1e3\nm/s');
 					return vv;
 				},
 			},
@@ -42,6 +42,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				...axisDefaults(),
 				label: '',
 				scale: 'imf',
+				incrs: [1, 2, 3, 5, 10, 20, 25, 50, 100],
 			},
 			{
 				...axisDefaults(),
