@@ -329,7 +329,7 @@ async function queryCircles(params: CirclesParams, base?: Date) {
 export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpen }:
 { params: CirclesParams, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
 	const query = useQuery({
-		staleTime: Infinity,
+		staleTime: 0,
 		keepPreviousData: true,
 		queryKey: ['rosMoment', params, moment],
 		queryFn: (): Promise<CirclesMomentResponse | undefined> => fetchCircles(params, base, moment),
@@ -360,7 +360,7 @@ export function PlotCircles({ params, settingsOpen }:
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
-		staleTime: 30 * 60 * 1000,
+		staleTime: params.interactive ? 0 : 60 * 60 * 1000,
 		queryKey: ['ros', params, base],
 		queryFn: () => queryCircles(params, base),
 		keepPreviousData: interactive
@@ -439,7 +439,7 @@ export function CirclesParamsInput({ params, setParams }:
 		} else if (what === 'exclude') {
 			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
 		} else if (what === 'onset') {
-			setParams({ ...params, onsets: [{ time: value, type: null } as Onset] });
+			setParams({ ...params, onsets: [{ time: value, type: null, secondary: true } as Onset] });
 		} else {
 			setParams({ ...params, [what]: value });
 		}
@@ -483,13 +483,16 @@ export default function PlotCirclesStandalone() {
 			referred.interval = referred.interval.map((d: any) => new Date(d));
 		if (referred?.onset)
 			referred.onset = new Date(referred.onset);
-		return referred || {
-			interval: [
-				new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
-				new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
-			realtime: true,
-			window: 3,
-			minamp: .7
+		return {
+			...(referred || {
+				interval: [
+					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
+					new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
+				realtime: true,
+				window: 3,
+				minamp: .7
+			}),
+			interactive: true
 		};
 	});
 

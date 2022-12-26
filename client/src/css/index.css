@@ -78,14 +78,6 @@ button:hover, select:hover {
 	font-family: var(--font);
 }
 
-.u-value {
-	min-width: 6ch;
-}
-
-.u-series {
-	margin-right: 4px !important;
-}
-
 .u-title {
 	font-size: 16px;
 	margin: 10px 0 6px 16px;
@@ -93,5 +85,4 @@ button:hover, select:hover {
 
 .u-select {
 	cursor: grab;
-	background: var(--color-area);
 }

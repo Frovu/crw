@@ -31,3 +31,7 @@
 	border: 2px inset var(--color-border);
 	margin-left: .5em;
 }
+
+.u-select {
+	background-color: var(--color-area);
+}
