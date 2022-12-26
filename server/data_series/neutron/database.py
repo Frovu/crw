@@ -3,7 +3,7 @@ import psycopg2, psycopg2.extras
 from threading import Timer
 from datetime import datetime
 
-from data_series.util import integrity_query
+from data_series.util import integrity_query, align_interval
 from core.database import pg_conn
 
 log = logging.getLogger('aides')
@@ -57,6 +57,7 @@ def _obtain_nmdb(interval, station, pg_cursor):
 			log.warning('Failed to query nmdb, disconnecting')
 			return _disconnect_nmdb()
 		data = cursor.fetchall()
+
 	log.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
 	if len(data) < 1:
 		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
@@ -64,11 +65,9 @@ def _obtain_nmdb(interval, station, pg_cursor):
 		return pg_cursor.execute(q)
 	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
 		INSERT INTO neutron_counts (time, station, original, pressure)
-		SELECT ts, \'{station}\', data.original, data.pressure
-		FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),'{PERIOD} s'::interval) ts
-		LEFT JOIN data ON ts = data.time
-		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original'''
-	psycopg2.extras.execute_values(pg_cursor, query, data, template=f'(%s,%s,%s)')
+		SELECT time, \'{station}\', original, pressure FROM data
+		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original, pressure = EXCLUDED.pressure'''
+	psycopg2.extras.execute_values(pg_cursor, query, data)
 
 def _fetch_one(interval, station):
 	with pg_conn.cursor() as cursor:
@@ -92,8 +91,8 @@ def _fetch_one(interval, station):
 
 def fetch(interval: [int, int], stations: list[str]):
 	trim_future = datetime.now().timestamp() // PERIOD * PERIOD
-	t_from, t_to = interval
-	t_to = int(trim_future - PERIOD) if t_to >= trim_future else t_to
+	t_from, t_to = align_interval(interval, PERIOD)
+	t_to = min(trim_future - PERIOD, t_to)
 	times = numpy.arange(t_from, t_to+1, PERIOD)
 	# log.debug(f'fetch {t_from}:{t_to} ' + ','.join(stations))
 	return numpy.column_stack([times]+[_fetch_one((t_from, t_to), s) for s in stations])
