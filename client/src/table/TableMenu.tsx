@@ -265,8 +265,13 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
 					<div>
 					bottom plot height (%)
-						<MenuInput type='number' min='20' max='70' step='5' value={settings.plotBottomSize}
+						<MenuInput type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
 							onChange={(e: any) => set('plotBottomSize', () => e.target.valueAsNumber)}/>
+					</div>
+					<div>
+					right plots width (%)
+						<MenuInput type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
+							onChange={(e: any) => set('plotsRightSize', () => e.target.valueAsNumber)}/>
 					</div>
 					<h4>Options</h4>
 					<div>

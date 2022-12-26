@@ -23,7 +23,7 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'Cosmic Rays (GSM)' ] as const;
+export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'Cosmic Rays' ] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -35,7 +35,8 @@ export type Settings = {
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
-	plotBottomSize: number
+	plotBottomSize: number,
+	plotsRightSize: number
 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
@@ -50,8 +51,10 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		enabledColumns,
 		plotTimeOffset: [-2, 3],
-		plotTop: 'Ring of Stations',
-		plotBottomSize: 40
+		plotTop: 'Cosmic Rays',
+		plotBottom: 'Solar Wind',
+		plotBottomSize: 40,
+		plotsRightSize: 65
 	};
 }
 
@@ -65,7 +68,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
-			{type === 'Cosmic Rays (GSM)' && <PlotGSM {...params} showAz={settings.plotAz}/>}
+			{type === 'Cosmic Rays' && <PlotGSM {...params} showAz={settings.plotAz}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
@@ -148,7 +151,8 @@ function CoreWrapper() {
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
 				<PlotContext.Provider value={plotContext}>
-					<div className='TableApp' style={{ ...(!plotsMode && { display: 'block' }) }}>
+					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
+						 ...(!plotsMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
 							<Menu {...{ filters, setFilters }}/>
 							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>

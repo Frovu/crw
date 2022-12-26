@@ -15,7 +15,7 @@
 @media (min-width: 1250px) {
 	.TableApp {
 		display: grid;
-		grid-template-columns: minmax(480px, 820px) minmax(720px, 1fr);
+		grid-template-columns: 1fr 1fr;
 	}
 	.plotTop {
 		grid-row: 1;
@@ -101,7 +101,7 @@
 
 .Menu {
 	display: flex;
-	gap: 8px;
+	gap: 4px;
 	position: relative;
 	z-index: 10;
 	margin-top: 4px;
