@@ -10,7 +10,8 @@ export type BasicPlotParams = {
 	interval: [Date, Date],
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
-	interactive?: boolean
+	interactive?: boolean,
+	paddingBottom?: number
 };
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
