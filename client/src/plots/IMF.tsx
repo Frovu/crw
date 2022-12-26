@@ -16,9 +16,11 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			drag: { x: false, y: false, setScale: false }
 		},
 		hooks: {
-			drawClear: [drawCustomLabels({ imf: 'IMF(|B|,Bx,By,Bz), nT' })],
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
-			draw: [u => (params.onsets?.length) && drawOnsets(u, params.onsets)],
+			draw: [
+				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+				u => drawCustomLabels({ imf: 'IMF(|B|,Bx,By,Bz), nT', speed: ['Vsw, km/s', u.height / 4] })(u)
+			],
 		},
 		axes: [
 			{
@@ -32,11 +34,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				side: 1,
 				ticks: { ...axisDefaults().ticks, filter: filterV },
 				filter: filterV,
-				values: (u, vals) => {
-					const vv = vals.map(v => v === 1000 ? '1e3' : v?.toFixed(0));
-					vv.splice(vals.findIndex(v => v) - 1, 1, 'Vsw,\n1e3\nm/s');
-					return vv;
-				},
+				values: (u, vals) => vals.map(v => v === 1000 ? '1e3' : v),
 			},
 			{
 				...axisDefaults(),
@@ -63,7 +61,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm}'
 			},
 			{
-				label: 'v',
+				label: 'Vsw',
 				scale: 'speed',
 				stroke: color('acid'),
 				width: 2,

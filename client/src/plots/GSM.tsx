@@ -20,7 +20,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				drawCustomLabels({ var: 'A0(GSM) var, %' })
+				u => drawCustomLabels({ var: 'A0(GSM) var, %', axy: ['Axy' + (az ? ',Az' : '') + ',%', Math.max(-u.height / 2 + 38, -10 + -4800 / u.height)] })(u)
 			],
 		},
 		axes: [
@@ -34,13 +34,10 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				side: 1,
 				scale: 'axy',
 				space: 20,
+				incrs: [.5, 1, 2, 2.5, 5, 10, 20],
 				ticks: { ...axisDefaults().ticks, filter: filterAxy },
 				filter: filterAxy,
-				values: (u, vals) => {
-					const vv = vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0));
-					vv.splice(vv.findIndex(v => v == null), 1, 'Axy' + (az ? '\n Az' : ''));
-					return vv;
-				},
+				values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
 			},
 			{
 				...axisDefaults(),
@@ -65,7 +62,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			{ },
 			{
 				scale: 'axy',
-				label: 'axy',
+				label: 'Axy',
 				stroke: color('magenta', .8),
 				fill: color('magenta', .3),
 				paths: uPlot.paths.bars!({ size: [.4, 16] }),
@@ -74,7 +71,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			{
 				show: az,
 				scale: 'axy',
-				label: 'az',
+				label: 'Az',
 				stroke: color('purple', .8),
 				fill: color('purple', .6),
 				paths: uPlot.paths.bars!({ size: [.2, 10] }),

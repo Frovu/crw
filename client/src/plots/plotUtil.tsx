@@ -61,18 +61,17 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
 			
-			const shiftDir = axis.side === 0 || axis.side === 3 ? -1 : 1;
+			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
+			const baseX = axis.label != null ? (axis as any)._lpos : (axis as any)._pos + (axis as any)._size / 2;
 			u.ctx.save();
 			u.ctx.font = font(14);
 			u.ctx.translate(
-				Math.round((axis as any)._lpos + axis.labelGap! * shiftDir),
-				Math.round(u.bbox.top + u.bbox.height / 2 + u.ctx.measureText(label).width / 2 + shift ),
+				Math.round(baseX + axis.labelGap! * flowDir * -1),
+				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2 + shift ),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
-			u.ctx.textBaseline = 'bottom';
+			u.ctx.textBaseline = axis.label != null ? 'bottom' : 'middle';
 			u.ctx.textAlign = 'left';
-			// u.ctx.fillStyle = 'red'
-			// u.ctx.fillRect(0, 0, 2, 2)
 			let x = 0;
 			for (const [text, stroke] of rec(label)) {
 				u.ctx.fillStyle = stroke;
@@ -115,8 +114,8 @@ export function axisDefaults(): Partial<uPlot.Axis> {
 		font: font(14),
 		labelFont: font(14),
 		stroke: color('text'),
-		labelSize: 16,
-		labelGap: -4,
+		labelSize: 20,
+		labelGap: 0,
 		size: 40,
 		gap: 2,
 		grid: { stroke: color('grid'), width: 1 },
