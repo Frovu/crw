@@ -127,7 +127,9 @@ export function axisDefaults(): Partial<uPlot.Axis> {
 
 export function color(name: string, opacity=1) {
 	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
-	return col.includes('rgb') ? `rgba(${col.match(/[\d.]+/g)!.slice(0,3).join(',')},${opacity})` : col;
+	const parts = col.includes('rgb') ? col.match(/[\d.]+/g)!.slice(0,3) :
+		(col.startsWith('#') ? [1,2,3].map(d => parseInt(col.length===7 ? col.slice(1+(d-1)*2, 1+d*2) : col.slice(d, 1+d), 16) * (col.length===7 ? 1 : 17 )) : null);
+	return parts ? `rgba(${parts.join(',')},${opacity})` : col;
 }
 
 export function font(size=16) {
