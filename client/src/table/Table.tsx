@@ -31,7 +31,8 @@ export type MagneticCloud = { start: Date, end: Date };
 export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
-	plotAz?: boolean,
+	plotAz: boolean,
+	plotImfVector: boolean,
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
@@ -50,6 +51,8 @@ function defaultSettings(columns: Columns): Settings {
 	const enabledColumns = Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);
 	return {
 		enabledColumns,
+		plotAz: false,
+		plotImfVector: true,
 		plotTimeOffset: [-2, 3],
 		plotTop: 'Cosmic Rays',
 		plotBottom: 'Solar Wind',
@@ -65,9 +68,9 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	if (!type || !params) return null;
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
-		<div className={which} style={{ position: 'relative', border: '1px solid', ...stretchTop }}>
+		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
-			{type === 'Solar Wind' && <PlotIMF {...params}/>}
+			{type === 'Solar Wind' && <PlotIMF {...params} showVector={settings.plotImfVector}/>}
 			{type === 'Cosmic Rays' && <PlotGSM {...params} showAz={settings.plotAz}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}

@@ -283,7 +283,12 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 							onChange={(e: any) => set('plotTimeOffset', (prev) => [prev[0], e.target.valueAsNumber])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
-					<MenuCheckbox text='Plot Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
+					<MenuCheckbox text='Show Az component' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
+					{/* <MenuCheckbox text='Show geomagnetism' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/> */}
+					<h4>Solar Wind</h4>
+					<MenuCheckbox text='Show IMF components' value={!!settings.plotImfVector} callback={v => set('plotImfVector', () => v)}/>
+					{/* <MenuCheckbox text='Show plasma plot' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/> */}
+
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}

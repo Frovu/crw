@@ -19,7 +19,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ imf: 'IMF(|B|,Bx,By,Bz), nT', speed: ['Vsw, km/s', u.height / 4] })(u)
+				u => drawCustomLabels({ imf: (params.showVector ?'IMF(|B|,Bx,By,Bz)':'IMF |B|') + ', nT', speed: ['Vsw, km/s', u.height / 4] })(u)
 			],
 		},
 		axes: [
@@ -74,24 +74,13 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 				width: 2,
 				points: { show: false },
 			},
-			{
-				label: 'Bx',
+			...[['Bx', 'cyan'], ['By', 'green'], ['Bz', 'magenta']].map(([label, stroke]) => ({
+				show: params.showVector,
+				label,
 				scale: 'imf',
-				stroke: color('cyan'),
+				stroke: color(stroke),
 				points: { show: false },
-			},
-			{
-				label: 'By',
-				scale: 'imf',
-				stroke: color('green'),
-				points: { show: false },
-			},
-			{
-				label: 'Bz',
-				scale: 'imf',
-				stroke: color('magenta'),
-				points: { show: false },
-			}
+			}))
 		]
 	};
 }
