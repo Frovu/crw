@@ -8,6 +8,7 @@ import { PlotCircles } from '../plots/Circles';
 import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
+import PlotGeoMagn from '../plots/Geomagn';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -69,7 +70,12 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	const context = useContext(PlotContext);
 	const type = settings[which];
 	if (!type || !context) return null;
-	const params = { showBz: settings.plotImfBz, showBxBy: settings.plotImfBxBy, ...context! };
+	const params = {
+		showAz: settings.plotAz,
+		showBz: settings.plotImfBz,
+		showBxBy: settings.plotImfBxBy,
+		...context!
+	};
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
@@ -79,7 +85,11 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 				<div style={{ height: '50%' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
 				<div style={{ height: '50%' }}><PlotSW {...params}/></div> 
 			</>}
-			{type === 'Cosmic Rays' && <PlotGSM {...params} showAz={settings.plotAz}/>}
+			{type === 'Cosmic Rays' && <PlotGSM {...params}/>}
+			{type === 'CR + Geomagn' && <>
+				<div style={{ height: '75%' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
+				<div style={{ height: '25%' }}><PlotGeoMagn {...params}/></div> 
+			</>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
