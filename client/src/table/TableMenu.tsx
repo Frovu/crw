@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, prettyName, SettingsContext, Settings, plotTypes } from './Table';
+import { TableContext, DataContext, prettyName, SettingsContext, Settings, plotTypes, ColumnDef } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 
 type FilterArgs = { filters: Filter[], setFilters: (fn: (val: Filter[]) => Filter[]) => void };
@@ -111,12 +111,17 @@ function ColumnsSelector() {
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
-			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>]);
+			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>] as [ColumnDef, any]);
 	return (
 		<div className='ColumnsSelector'>
 			{tables.map(table => <Fragment key={table}>
-				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>{prettyName(table)}</b>
-				<>{columnChecks.filter(([col,]) => (col as any).table === table).map(([col, el]) => el)}</>
+				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
+					<MenuCheckbox text={prettyName(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
+						callback={chck => set('enabledColumns', (cols) => [
+							...cols.filter(c => chck || c === 'time' || columnsMap[c].table !== table),
+							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])].sort(sortFn))}/>
+				</b>
+				<>{columnChecks.filter(([col,]) => col.table === table).map(([col, el]) => el)}</>
 			</Fragment>)}
 		</div>
 	);
