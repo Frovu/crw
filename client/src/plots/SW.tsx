@@ -80,7 +80,7 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 export default function PlotSW(params: SWParams) {
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval],
-		queryFn: () => basicDataQuery('api/omni', params.interval, ['time', 'sw_temperature', 'sw_density', 'plasma_beta']),
+		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_temperature', 'sw_density', 'plasma_beta']),
 		optionsFn: size => plotOptions(size, params)
 	}}/>);
 }

@@ -107,7 +107,7 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 export default function PlotGeoMagn(params: MagnParams) {
 	return (<BasicPlot {...{
 		queryKey: ['Magn', params.interval],
-		queryFn: () => basicDataQuery('api/omni', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
+		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		optionsFn: size => plotOptions(size, params)
 	}}/>);
 }

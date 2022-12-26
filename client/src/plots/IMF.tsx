@@ -90,7 +90,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 export default function PlotIMF(params: IMFParams) {
 	return (<BasicPlot {...{
 		queryKey: ['IMF', params.interval],
-		queryFn: () => basicDataQuery('api/omni', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
+		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 		optionsFn: size => imfPlotOptions(size, params)
 	}}/>);
 }
