@@ -8,7 +8,7 @@ type SWParams = BasicPlotParams & {
 function plotOptions(size: { width: number, height: number }, params: SWParams): uPlot.Options {
 	return {
 		...size,
-		padding: [7, 4, 12, 0],
+		padding: [7, 0, 12, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,

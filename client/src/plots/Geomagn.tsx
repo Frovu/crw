@@ -16,7 +16,7 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 			return lastColor;
 		});
 		return uPlot.paths.bars!({
-			size: [1, Infinity],
+			size: [1.1, Infinity],
 			disp: {
 				stroke: {
 					unit: 3,
@@ -31,7 +31,7 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 	};
 	return {
 		...size,
-		padding: [4, 4, 8, 0],
+		padding: [4, 0, 4, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
@@ -52,19 +52,24 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 				label: '',
 				scale: 'idx',
 				grid: { show: false },
+				splits: (u, aidx, min, max) => [Math.max(10, min), Math.round(max / 2 / 10) * 10],
 				values: (u, vals) => vals.map(v => (params.useAp ? v : v / 10).toFixed(0))
 			},
 			{
 				side: 1,
 				...axisDefaults(),
+				gap: -1,
 				label: '',
 				scale: 'dst',
+				splits: (u, aidx, min, max) => [Math.round(min / 2), 0],
 			},
 		],
 		scales: {
 			idx: {
+				range: (u, min, max) => [min, max*2]
 			},
 			dst: {
+				range: (u, min, max) => [min - (max-min), max]
 			}
 		},
 		series: [
