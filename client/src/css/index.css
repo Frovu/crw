@@ -2,6 +2,7 @@
 :root {
 	--color-magenta: rgb(255, 10, 110);
 	--color-red: rgb(255, 0, 0);
+	--color-peach: rgb(255, 91, 62);
 	--color-skyblue: rgb(155, 255, 255);
 	--color-cyan: rgb(0, 255, 255);
 	--color-blue: rgb(0, 0, 255);
@@ -17,7 +18,6 @@
 	--color-grid: rgb(48,48,48);
   	--color-active: rgb(255, 217, 0);
 	--color-area: rgba(95, 0, 175, 0.17);
-
 
 	--font: 'Roboto Mono', monospace;
 

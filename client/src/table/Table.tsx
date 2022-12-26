@@ -7,6 +7,7 @@ import TableView from './TableCore';
 import { PlotCircles } from '../plots/Circles';
 import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
+import PlotSW from '../plots/SW';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -23,7 +24,7 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'Cosmic Rays' ] as const;
+export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -71,6 +72,10 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params} showVector={settings.plotImfVector}/>}
+			{type === 'SW + Plasma' && <>
+				<div style={{ height: '50%' }}><PlotIMF {...params} showVector={settings.plotImfVector} paddingBottom={-4}/></div> 
+				<div style={{ height: '50%' }}><PlotSW {...params}/></div> 
+			</>}
 			{type === 'Cosmic Rays' && <PlotGSM {...params} showAz={settings.plotAz}/>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
