@@ -18,6 +18,8 @@ const KEY_COMB = {
 	'addFilter': 'F',
 	'removeFilter': 'R',
 	'plot': 'P',
+	'plotPrev': 'BracketLeft%[',
+	'plotNext': 'BracketRight%]',
 } as { [action: string]: string };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: FilterArgs['setFilters'] }) {
@@ -134,11 +136,11 @@ function MenuCheckbox({ text, value, callback, hide, disabled }:
 }
 
 function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
-	const keyComb = KEY_COMB[action];
+	const keyComb = KEY_COMB[action]?.split('%');
 	return (
 		<button className='MenuItem' onClick={() => dispatchCustomEvent('action+' + action)}>
 			<span>{text}</span>
-			{keyComb && <span className='keyComb'>{keyComb}</span>}
+			{keyComb && <span className='keyComb'>{keyComb[1] || keyComb[0]}</span>}
 		</button>
 	);
 }
@@ -216,7 +218,7 @@ function onKeydown(e: KeyboardEvent) {
 	if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox')
 		return;
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
-	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k] === keycomb);
+	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
 	if (action) {
 		e.preventDefault();
 		dispatchCustomEvent('action+' + action);
@@ -244,6 +246,8 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
 					<MenuButton text='Plot selected' action='plot'/>
+					<MenuButton text='Plot previous' action='plotPrev'/>
+					<MenuButton text='Plot next' action='plotNext'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>

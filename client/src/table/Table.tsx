@@ -95,6 +95,14 @@ function CoreWrapper() {
 	useEventListener('action+plot', () => cursor &&
 		setPlotIdx(data.findIndex(r => r[0] === dataContext.data[cursor.row][0])));
 
+	const plotMove = (dir: -1 | 1) => () => setPlotIdx(current => {
+		if (!current)
+			return cursor ? data.findIndex(r => r[0] === dataContext.data[cursor.row][0]) : null;
+		return Math.max(0, Math.min(current + dir, data.length - 1));
+	});
+	useEventListener('action+plotPrev', plotMove(-1));
+	useEventListener('action+plotNext', plotMove(+1));
+
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);
