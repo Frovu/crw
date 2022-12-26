@@ -6,9 +6,32 @@ type MagnParams = BasicPlotParams & {
 };
 
 function plotOptions(size: { width: number, height: number }, params: MagnParams): uPlot.Options {
+	const myBars = (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
+		const colors = [color('green'), color('gold'), color('red')];
+		const lastColor = color('magenta');
+		const range = params.useAp ? [18, 56, 154] : [33, 53, 73];
+		const values = (u: uPlot, sidx: number) => (u.data[sidx] as number[]).map(v => {
+			for (const [i, mx] of range.entries())
+				if (v < mx) return colors[i];
+			return lastColor;
+		});
+		return uPlot.paths.bars!({
+			size: [1, Infinity],
+			disp: {
+				stroke: {
+					unit: 3,
+					values,
+				},
+				fill: {
+					unit: 3,
+					values
+				}
+			}
+		})(upl, seriesIdx, i0, i1);
+	};
 	return {
 		...size,
-		padding: [2, 4, 12, 0],
+		padding: [4, 4, 8, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
@@ -53,17 +76,17 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 				show: !params.useAp,
 				label: 'Kp',
 				scale: 'idx',
-				stroke: color('cyan'),
+				stroke: color('gold'),
 				points: { show: false },
-				paths: uPlot.paths.bars!({ size: [.2, 10] }),
+				paths: myBars,
 			},
 			{
 				show: params.useAp,
 				label: 'Ap',
 				scale: 'idx',
-				stroke: color('magenta'),
+				stroke: color('gold'),
 				points: { show: false },
-				paths: uPlot.paths.bars!({ size: [.2, 10] }),
+				paths: myBars,
 			},
 			{
 				label: 'Dst',

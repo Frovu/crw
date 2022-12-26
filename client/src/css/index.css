@@ -3,11 +3,12 @@
 	--color-magenta: rgb(255, 10, 110);
 	--color-red: rgb(255, 0, 0);
 	--color-peach: rgb(255, 99, 72);
+	--color-gold: rgb(255, 217, 0);
+	--color-acid: rgb(217, 255, 0);
+	--color-green: rgb(13, 255, 45);
 	--color-skyblue: rgb(155, 255, 255);
 	--color-cyan: rgb(0, 255, 255);
 	--color-blue: rgb(0, 0, 255);
-	--color-green: rgb(13, 255, 45);
-	--color-acid: rgb(217, 255, 0);
 	--color-purple: rgb(100, 0, 200);
 	--color-white: rgb(255,255,255);
 
@@ -16,7 +17,7 @@
 	--color-text-dark: rgb(76,76,76);
 	--color-border: grey;
 	--color-grid: rgb(48,48,48);
-  	--color-active: rgb(255, 217, 0);
+  	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
 
 	--font: 'Roboto Mono', monospace;
