@@ -33,6 +33,7 @@ export type MagneticCloud = { start: Date, end: Date };
 export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
+	plotIndexAp: boolean,
 	plotAz: boolean,
 	plotImfBz: boolean,
 	plotImfBxBy: boolean,
@@ -55,6 +56,7 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		enabledColumns,
 		plotAz: false,
+		plotIndexAp: false,
 		plotImfBz: true,
 		plotImfBxBy: false,
 		plotTimeOffset: [-2, 3],
@@ -71,6 +73,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	const type = settings[which];
 	if (!type || !context) return null;
 	const params = {
+		useAp: settings.plotIndexAp,
 		showAz: settings.plotAz,
 		showBz: settings.plotImfBz,
 		showBxBy: settings.plotImfBxBy,
