@@ -286,7 +286,8 @@ export function Menu({ filters, setFilters }: FilterArgs) {
 					<MenuCheckbox text='Show Az component' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
 					{/* <MenuCheckbox text='Show geomagnetism' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/> */}
 					<h4>Solar Wind</h4>
-					<MenuCheckbox text='Show IMF components' value={!!settings.plotImfVector} callback={v => set('plotImfVector', () => v)}/>
+					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
+					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
 					{/* <MenuCheckbox text='Show plasma plot' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/> */}
 
 				</MenuSection>

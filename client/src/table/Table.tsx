@@ -33,7 +33,8 @@ export type Settings = {
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
 	plotAz: boolean,
-	plotImfVector: boolean,
+	plotImfBz: boolean,
+	plotImfBxBy: boolean,
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
@@ -53,7 +54,8 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		enabledColumns,
 		plotAz: false,
-		plotImfVector: true,
+		plotImfBz: true,
+		plotImfBxBy: false,
 		plotTimeOffset: [-2, 3],
 		plotTop: 'Cosmic Rays',
 		plotBottom: 'Solar Wind',
@@ -64,16 +66,17 @@ function defaultSettings(columns: Columns): Settings {
 
 function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) {
 	const { settings } = useContext(SettingsContext);
-	const params = useContext(PlotContext);
+	const context = useContext(PlotContext);
 	const type = settings[which];
-	if (!type || !params) return null;
+	if (!type || !context) return null;
+	const params = { showBz: settings.plotImfBz, showBxBy: settings.plotImfBxBy, ...context! };
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
-			{type === 'Solar Wind' && <PlotIMF {...params} showVector={settings.plotImfVector}/>}
+			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%' }}><PlotIMF {...params} showVector={settings.plotImfVector} paddingBottom={-4}/></div> 
+				<div style={{ height: '50%' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
 				<div style={{ height: '50%' }}><PlotSW {...params}/></div> 
 			</>}
 			{type === 'Cosmic Rays' && <PlotGSM {...params} showAz={settings.plotAz}/>}
