@@ -3,7 +3,6 @@ import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, custom
 
 type SWParams = BasicPlotParams & {
 	useTemperatureIndex?: boolean,
-	showTimeAxis?: boolean
 };
 
 function plotOptions(size: { width: number, height: number }, params: SWParams): uPlot.Options {
@@ -25,18 +24,13 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 		axes: [
 			{
 				...axisDefaults(),
-				...customTimeSplits(),
-				size: 2
-				
+				...customTimeSplits(params),
 			},
 			{
 				...axisDefaults(),
 				label: '',
 				scale: 'y',
 				side: 1,
-				// ticks: { ...axisDefaults().ticks, filter: filterV },
-				// filter: filterV,
-				// values: (u, vals) => vals.map(v => v === 1000 ? '1e3' : v),
 			},
 			{
 				...axisDefaults(),
@@ -50,7 +44,6 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 			y: {
 			},
 			temp: {
-				// range: (u, min, max) => [min, max],
 				distr: 3
 			}
 		},

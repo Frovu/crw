@@ -11,7 +11,8 @@ export type BasicPlotParams = {
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
-	paddingBottom?: number
+	paddingBottom?: number,
+	showTimeAxis?: boolean,
 };
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
@@ -86,7 +87,7 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 	};
 }
 
-export function customTimeSplits(): Partial<uPlot.Axis> {
+export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / 76);
@@ -106,7 +107,7 @@ export function customTimeSplits(): Partial<uPlot.Axis> {
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		size: 32,
+		size: !params || params.showTimeAxis ? 32 : 2,
 	};
 }
 
@@ -143,10 +144,11 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	if (res.status !== 200)
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
-	console.log(path, '=>', body);
 	if (!body?.data.length) return null;
 	const fieldsIdxs = fields.map(f => body.fields.indexOf(f));
-	return fieldsIdxs.map(i => body.data.map(row => row[i]));
+	const ordered = fieldsIdxs.map(i => body.data.map(row => row[i]));
+	console.log(path, '=>', ordered);
+	return ordered;
 }
 
 export function BasicPlot({ queryKey, queryFn, optionsFn }:
