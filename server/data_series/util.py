@@ -1,5 +1,14 @@
-def integrity_query(t_from, t_to, period, tables, test_columns, time_column='time',
+from math import floor, ceil
+
+def align_interval(interval: [int, int], period: int):
+	return [ 
+		floor(interval[0] / period) * period,
+		 ceil(interval[1] / period) * period,
+	]
+
+def integrity_query(interval, period, tables, test_columns, time_column='time',
 	bad_condition=False, bad_cond_columns=[], join_overwrite=False, where='', return_epoch=True):
+	t_from, t_to = align_interval(interval, period)
 	if type(test_columns) is not list:
 		test_columns = [test_columns]
 	if not join_overwrite and type(tables) is not list:
@@ -13,11 +22,11 @@ input (t_from, t_to, t_interval) AS (
 	VALUES (to_timestamp({t_from}), to_timestamp({t_to}), interval \'{period} s\')
 ), filled AS (
 	SELECT
-		ser.tm as time, {','.join(test_columns + bad_cond_columns)}
+		ser.tm as ser_time, {','.join(test_columns + bad_cond_columns)}
 	FROM
 		(SELECT generate_series(t_from, t_to, t_interval) tm FROM input) ser
 		{join_tables}
-	ORDER BY time
+	ORDER BY ser_time
 ), rec AS (
 	SELECT
 		t_from AS gap_start, t_from-t_interval AS gap_end
@@ -25,13 +34,13 @@ input (t_from, t_to, t_interval) AS (
 	UNION
 	SELECT
 		gap_start,
-		COALESCE((SELECT time-t_interval FROM filled
+		COALESCE((SELECT ser_time-t_interval FROM filled
 			WHERE ({f"NOT ({bad_condition}) AND" if bad_condition else ""} {not_null_cond})
-				AND time > gap_start LIMIT 1),t_to) AS gap_end
+				AND ser_time > gap_start LIMIT 1),t_to) AS gap_end
 	FROM (
 		SELECT
-			(SELECT time FROM filled WHERE ({f"({bad_condition}) OR" if bad_condition else ""} {null_cond})
-				AND time > gap_end LIMIT 1) AS gap_start
+			(SELECT ser_time FROM filled WHERE ({f"({bad_condition}) OR" if bad_condition else ""} {null_cond})
+				AND ser_time > gap_end LIMIT 1) AS gap_start
 		FROM rec, input
 		WHERE gap_end < t_to
 	) r, input )

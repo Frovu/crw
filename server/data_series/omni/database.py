@@ -88,7 +88,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 def fetch(interval: [int, int], epoch=True):
 	columns = [c.name for c in omni_columns]
 	with pg_conn.cursor() as cursor:
-		cursor.execute(integrity_query(*interval, PERIOD, 'omni', columns, return_epoch=False))
+		cursor.execute(integrity_query(interval, PERIOD, 'omni', ['time'], return_epoch=False))
 		if gaps := cursor.fetchall():
 			for gap in gaps:
 				try:

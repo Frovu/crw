@@ -76,7 +76,7 @@ def _fetch_one(interval, station):
 			pg_conn.rollback()
 		# TODO: optionally mark all records older than certain time as bad
 		try:
-			cursor.execute(integrity_query(*interval, PERIOD, 'neutron_counts', 'obtain_time', where=f'station=\'{station}\'',
+			cursor.execute(integrity_query(interval, PERIOD, 'neutron_counts', 'obtain_time', where=f'station=\'{station}\'',
 				bad_condition=f'original IS NULL AND \'now\'::timestamp - obtain_time > \'{PERIOD} s\'::interval', bad_cond_columns=['original']))
 			if gaps := cursor.fetchall():
 				for gap in gaps:
