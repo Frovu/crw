@@ -10,7 +10,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 	const az = params.showAz;
 	return {
 		...size,
-		padding: [10, 4, params.paddingBottom ?? 0, 0],
+		padding: [10, 0, params.paddingBottom ?? 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
