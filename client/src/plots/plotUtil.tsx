@@ -105,7 +105,7 @@ export function customTimeSplits(): Partial<uPlot.Axis> {
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		size: 36,
+		size: 32,
 	};
 }
 

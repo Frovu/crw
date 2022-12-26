@@ -44,7 +44,7 @@ export function useResizeObserver<T extends HTMLElement>(target: T | null | unde
 	useLayoutEffect(() => {
 		if (!target) return;
 		const observer = new ResizeObserver(() => {
-			savedCallback.current({ width: target.offsetWidth, height: target.offsetHeight });
+			savedCallback.current({ width: target.offsetWidth - 2, height: target.offsetHeight - 2 });
 		});
 		observer.observe(target);
 		return () => observer.unobserve(target);

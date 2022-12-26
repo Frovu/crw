@@ -20,7 +20,7 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ var: 'A0(GSM) var, %', axy: ['Axy' + (az ? ',Az' : '') + ',%', Math.max(-u.height / 2 + 38, -10 + -4800 / u.height)] })(u)
+				u => drawCustomLabels({ var: 'A0(GSM) var, %', axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u)
 			],
 		},
 		axes: [
@@ -32,8 +32,9 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				...axisDefaults(),
 				grid: { show: false },
 				side: 1,
+				label: '',
 				scale: 'axy',
-				space: 20,
+				space: 26,
 				incrs: [.5, 1, 2, 2.5, 5, 10, 20],
 				ticks: { ...axisDefaults().ticks, filter: filterAxy },
 				filter: filterAxy,

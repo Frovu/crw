@@ -9,7 +9,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > u.scales.speed.max! / 2 + u.scales.speed.min! ? sp : null);
 	return {
 		...size,
-		padding: [10, 4, 0, 0],
+		padding: [10, 4, 4, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
@@ -19,7 +19,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ imf: (params.showVector ?'IMF(|B|,Bx,By,Bz)':'IMF |B|') + ', nT', speed: ['Vsw, km/s', u.height / 4] })(u)
+				u => drawCustomLabels({ imf: (params.showVector ?'IMF(|B|,Bx,By,Bz)':'IMF |B|') + ', nT', speed: ['Vsw, km/s', 16 + -u.height / 4] })(u)
 			],
 		},
 		axes: [
@@ -30,6 +30,7 @@ function imfPlotOptions(size: { width: number, height: number }, params: IMFPara
 			{
 				...axisDefaults(),
 				grid: { show: false },
+				label: '',
 				scale: 'speed',
 				side: 1,
 				ticks: { ...axisDefaults().ticks, filter: filterV },
