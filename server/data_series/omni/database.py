@@ -1,5 +1,6 @@
 import os, json, logging, requests, re
 import psycopg2, psycopg2.extras
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from core.database import pg_conn
 from data_series.util import integrity_query
@@ -9,6 +10,7 @@ omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
 
 omni_columns = None
+obtains_cache = dict()
 
 class OmniColumn:
 	def __init__(self, name: str, owid: int, stub: str, is_int: bool=False):
@@ -85,18 +87,25 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	pg_conn.commit()
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}:{dend}')
 
-def fetch(interval: [int, int], query, epoch=True):
+def _obtain(gap):
+	if not (future := obtains_cache.get(gap)):
+		with ThreadPoolExecutor() as executor:
+			obtains_cache[gap] = future = executor.submit(_obtain_omniweb, *gap)
+	future.result()
+	obtains_cache.pop(gap, None)
+
+def fetch(interval: [int, int], query, refetch=False, epoch=True):
 	columns = [c.name for c in omni_columns if not query or c.name in query]
 	if len(columns) < 1:
 		raise ValueError('Zero fields match query')
 	with pg_conn.cursor() as cursor:
-		cursor.execute(integrity_query(interval, PERIOD, 'omni', ['time'], return_epoch=False))
+		cursor.execute(integrity_query(interval, PERIOD, 'omni', columns if refetch else ['time'], return_epoch=False))
 		if gaps := cursor.fetchall():
 			for gap in gaps:
 				try:
-					_obtain_omniweb(*gap)
+					_obtain(gap)
 				except Exception as e:
-					log.error(f'Omniweb: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
+					log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
 		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
 			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) ORDER BY time', interval)
 		return cursor.fetchall(), [desc[0] for desc in cursor.description]
