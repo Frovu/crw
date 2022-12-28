@@ -2,8 +2,9 @@ import '../css/Table.css';
 import { useState, createContext, useContext, useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState } from '../util';
-import { Filter, Menu } from './TableMenu';
-import TableView from './TableCore';
+import { TableSampleInput } from './Sample';
+import { Menu } from './TableMenu';
+import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
 import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
@@ -101,23 +102,13 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
-	const [filters, setFilters] = useState<Filter[]>([]);
+	const [sample, setSample] = useState(data);
 	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
-	useEventListener('action+addFilter', () => setFilters(fltrs => {
-		if (!cursor)
-			return [...fltrs, { column: 'magnitude', operation: '>=', input: '', id: Date.now() }];
-		const column = dataContext.columns[cursor.column];
-		const val = dataContext.data[cursor.row][cursor.column + 1];
-		const operation = val == null ? 'is null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
-		const input = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
-		return [...fltrs, { column: column.id, operation, input, id: Date.now() }];
-	}));
-	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 	useEventListener('action+resetSettings', () => setSettings(defaultSettings(columns)));
 	useEventListener('action+plot', () => cursor &&
 		setPlotIdx(data.findIndex(r => r[0] === dataContext.data[cursor.row][0])));
@@ -136,12 +127,10 @@ function CoreWrapper() {
 		const cols = settings.enabledColumns.filter(n => !!columns[n]);
 		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
 		const sortIdx = 1 + cols.indexOf(sort.column);
-		const filterFns = filters.map(fl => fl.fn!).filter(fl => fl);
-		const renderedData = data.filter(row => !filterFns.some(filter => !filter(row)))
-			.map(row => enabledIdxs.map(ci => row[ci]))
+		const renderedData = sample.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
 		return { data: renderedData, columns: cols.map(id => columns[id]) };
-	}, [data, columns, filters, settings.enabledColumns, sort]);
+	}, [sample, columns, settings.enabledColumns, sort]);
 
 	const settingsContext = useMemo(() => {
 		const set: SettingsSetter = (key, fn) => setSettings(sets => ({ ...sets, [key]: fn(sets[key]) }));
@@ -169,8 +158,6 @@ function CoreWrapper() {
 	}, [data, columns, plotIdx, settings]);
 
 	const plotsMode = plotIdx && (settings.plotTop || settings.plotLeft || settings.plotBottom);
-	const longTable = !plotsMode || !settings.plotLeft;
-	const viewSize = Math.max(3, (longTable ? 16 : 10) - filters.length);
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
@@ -178,8 +165,12 @@ function CoreWrapper() {
 					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
 						 ...(!plotsMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
-							<Menu {...{ filters, setFilters }}/>
-							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+							<Menu/>
+							<TableSampleInput {...{
+								cursorColumn: cursor && dataContext.columns[cursor?.column],
+								cursorValue: cursor && dataContext.data[cursor?.row][cursor?.column],
+								setSample }}/>
+							<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 							<PlotWrapper which='plotLeft'/>
 						</div>
 						<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
