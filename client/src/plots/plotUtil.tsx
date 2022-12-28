@@ -17,18 +17,19 @@ export type BasicPlotParams = {
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
 	for (const onset of onsets) {
-		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x');
+		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 		const useColor = onset.secondary ? color('text', .6) : color('white');
 		u.ctx.save();
 		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
-		u.ctx.font = font(14).replace('400', '600');
+		u.ctx.font = font(14, true).replace('400', '600');
+		u.ctx.textBaseline = 'top';
 		u.ctx.lineWidth = 2;
 		u.ctx.beginPath();
-		u.ctx.moveTo(u.bbox.left + OnsetX, u.bbox.top);
-		u.ctx.lineTo(u.bbox.left + OnsetX, u.bbox.top + u.bbox.height);
+		u.ctx.moveTo(OnsetX, u.bbox.top);
+		u.ctx.lineTo(OnsetX, u.bbox.top + u.bbox.height);
 		u.ctx.stroke();
 		u.ctx.fillText(onset.type || 'ons',
-			u.bbox.left + OnsetX + 4, u.bbox.top + u.bbox.height + 8);
+			OnsetX + 4, u.bbox.top + u.bbox.height + 2);
 		u.ctx.restore();
 	}
 }
@@ -65,11 +66,12 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = axis.label != null ? (axis as any)._lpos : (axis as any)._pos + (axis as any)._size / 2;
+			console.log(devicePixelRatio || 1, u.bbox.height, u.bbox.width)
 			u.ctx.save();
-			u.ctx.font = font(14);
+			u.ctx.font = font(14, true);
 			u.ctx.translate(
-				Math.round(baseX + axis.labelGap! * flowDir * -1),
-				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2 + shift ),
+				Math.round((baseX + axis.labelGap! * flowDir * -1) * (devicePixelRatio || 1)),
+				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2 + shift * devicePixelRatio),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = axis.label != null ? 'bottom' : 'middle';
@@ -132,9 +134,9 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.join(',')},${opacity})` : col;
 }
 
-export function font(size=16) {
+export function font(size=16, scale=false) {
 	const fnt = window.getComputedStyle(document.body).font;
-	return fnt.replace(/\d+px/, size+'px');
+	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
 
 export function superScript(digit: number) {
