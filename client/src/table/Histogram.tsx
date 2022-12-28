@@ -1,18 +1,20 @@
-import { useContext, useMemo, useRef, useState, createContext } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { DataContext, SettingsContext, TableContext } from './Table';
 import { useSize } from '../util';
 import { axisDefaults, color } from '../plots/plotUtil';
-import { MenuSelect } from './TableMenu';
+import { MenuInput, MenuSelect } from './TableMenu';
 
 const yScaleOptions = ['count', 'log', '%'] as const;
 
 export type HistOptions = {
-	yScale: typeof yScaleOptions[number]
+	binCount: number,
+	yScale: typeof yScaleOptions[number],
 };
 
 export const defaultHistOptions: HistOptions = {
+	binCount: 10,
 	yScale: '%',
 };
 
@@ -20,10 +22,14 @@ export function HistogramMenu() {
 	const { options: { hist }, setOptions } = useContext(SettingsContext);
 
 	const set = (key: keyof HistOptions) => (value: any) => setOptions('hist', opts => ({ ...opts, [key]: value }));
-
+	console.log(hist)
 	return (<>
 		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
-
+		<div>
+			Bins count:
+			<MenuInput type='number' min='2' step='1' value={hist.binCount}
+				onChange={set('binCount')}/>
+		</div>
 	</>);
 }
 

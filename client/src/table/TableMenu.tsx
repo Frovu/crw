@@ -1,6 +1,7 @@
 import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
 import { TableContext, DataContext, prettyName, SettingsContext, Settings, plotTypes, ColumnDef } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
+import { HistogramMenu } from './Histogram';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -35,9 +36,12 @@ function ColumnsSelector() {
 	);
 }
 
-export function MenuInput(props: any) { //onChange={e => props.onChange?.(e.target.value)} 
-	return <input style={{ width: '4em', margin: '0 4px 0 4px', ...props.style }} {...props} 
-		onClick={e => e.stopPropagation()}/>;
+export function MenuInput(props: any) {
+	return (<span>
+		{props.text || ''}
+		<input style={{ width: '4em', margin: '0 4px 0 4px', ...props.style }} {...props} 
+			onClick={e => e.stopPropagation()} onChange={(e) => props.onChange?.(props.type === 'number' ? e.target.valueAsNumber : e.target.value)}/>
+	</span>);
 }
 
 export function MenuCheckbox({ text, value, callback, hide, disabled }:
@@ -168,7 +172,7 @@ export function Menu() {
 	return (
 		<div>
 			<div className='Menu'>
-				<MenuSection name='Controls' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Table' {...{ shownSection, setShownSection }}>
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
@@ -185,24 +189,18 @@ export function Menu() {
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
-					<div>
-					bottom plot height (%)
-						<MenuInput type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
-							onChange={(e: any) => set('plotBottomSize', () => e.target.valueAsNumber)}/>
-					</div>
-					<div>
-					right plots width (%)
-						<MenuInput type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
-							onChange={(e: any) => set('plotsRightSize', () => e.target.valueAsNumber)}/>
-					</div>
+					<MenuInput text='bottom plot height (%)' type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
+						onChange={(v: any) => set('plotBottomSize', () => v)}/>
+					<MenuInput text='right plots width (%)' type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
+						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
 					<div>
 						± Days:
 						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset[0]}
-							onChange={(e: any) => set('plotTimeOffset', (prev) => [e.target.valueAsNumber, prev[1]])}/>
+							onChange={(v: any) => set('plotTimeOffset', (prev) => [v, prev[1]])}/>
 						/
 						<MenuInput type='number' min='1' max='9' step='1' value={settings.plotTimeOffset[1]}
-							onChange={(e: any) => set('plotTimeOffset', (prev) => [prev[0], e.target.valueAsNumber])}/>
+							onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
 					<MenuCheckbox text='Show Az component' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
@@ -211,6 +209,9 @@ export function Menu() {
 					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
 					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
 
+				</MenuSection>
+				<MenuSection name='Histogram' {...{ shownSection, setShownSection }}>
+					<HistogramMenu/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
