@@ -73,8 +73,8 @@
 			"description": "Maximum Ap index during the event",
 			"parse_name": "Apmax"
 		},
-		"dst_max": {
-			"name": "Dst max",
+		"dst_min": {
+			"name": "Dst min",
 			"description": "Minimum Dst-index value during the event",
 			"parse_name": "Dstmin",
 			"parse_stub": "9999"
