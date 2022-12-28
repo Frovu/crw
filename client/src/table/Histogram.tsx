@@ -18,12 +18,12 @@ export type HistOptions = {
 };
 
 export const defaultHistOptions: HistOptions = {
-	binCount: 10,
+	binCount: 20,
 	yScale: 'count',
 	sample0: 'current',
 	sample1: null,
 	sample2: null,
-	column0: 'magnitude',
+	column0: 'kp_max',
 	column1: 'magnitude',
 	column2: 'magnitude'
 };
@@ -38,7 +38,8 @@ export function HistogramMenu() {
 		<MenuInput text='Bin count' type='number' min='2' step='1' value={hist.binCount} onChange={set('binCount')}/>
 		<h4>First sample</h4>
 		<MenuSelect text='Type' value={hist.sample0} width='10em' options={histSampleOptions} callback={set('sample0')}/>
-		<MenuSelect text='Column' value={hist.column0} width='10em' options={Object.keys(columns)} callback={set('column0')}/>
+		{hist.sample0 && 
+			<MenuSelect text='Column' value={hist.column0} width='10em' options={Object.keys(columns)} callback={set('column0')}/>}
 		<h4>Second sample</h4>
 		<MenuSelect text='Type' value={hist.sample1} width='10em' options={histSampleOptions} callback={set('sample1')}/>
 		{hist.sample1 && 

@@ -81,8 +81,23 @@
 		},
 		"axy_max": {
 			"name": "Axy max",
-			"description": "Maximum equatorial component of the CR vector anisotropy (%)",
+			"description": "Maximum value of equatorial component of the CR vector anisotropy (%)",
 			"parse_name": "Axym"
+		},
+		"phi_axy_max": {
+			"name": "Phi Axy max",
+			"description": "Direction of the maximum value of equatorial CR anisotropy vector (deg)",
+			"parse_name": "Pxym"
+		},
+		"ax_max": {
+			"name": "Ax max",
+			"description": "Maximum value of radial component of the CR vector anisotropy (%)",
+			"parse_name": "Axm"
+		},
+		"ay_max": {
+			"name": "Ay max",
+			"description": "Maximum value of azimuthal component of the CR vector anisotropy (%)",
+			"parse_name": "Aym"
 		},
 		"az_range": {
 			"name": "Az range",

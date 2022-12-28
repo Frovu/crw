@@ -54,9 +54,8 @@ def parse_one_column(fname: str, table: str, column: str):
 			time = _parse_value(line_split, columns_order, time_col_name, time_col_desc)
 			value = _parse_value(line_split, columns_order, target_col_name, target_col_desc)
 			data.append((time, value))
-		diff_q = f'SELECT data.time, {column}, data.val FROM (VALUES %s) AS data(time, val) INNER JOIN events.{table} ON id = {select_id} WHERE {column} != data.val'
-		psycopg2.extras.execute_values(cursor, diff_q, data, template='(%s, %s'+('::real' if target_col_desc.get('type', 'real') == 'real' else '')+')')
-		diff = cursor.fetchall()
+		diff_q = f'SELECT data.time, {column}, data.val FROM (VALUES %s) AS data(time, val) INNER JOIN events.{table} ON id = {select_id} WHERE {column} IS NULL OR {column} != data.val'
+		diff = psycopg2.extras.execute_values(cursor, diff_q, data, template='(%s, %s'+('::real' if target_col_desc.get('type', 'real') == 'real' else '')+')', fetch=True)
 		if not len(diff):
 			print('already up to date')
 			return False
@@ -68,7 +67,7 @@ def parse_one_column(fname: str, table: str, column: str):
 			t, p, n = d
 			print(t, p, '->', n)
 		print(f'\nabout to change {len(diff)} rows')
-		psycopg2.extras.execute_values(cursor, query, data)
+		psycopg2.extras.execute_values(cursor, query, data, template='(%s, %s'+('::real' if target_col_desc.get('type', 'real') == 'real' else '')+')')
 		return True
 		
 # if target_columns contains field with Time, its corresponding Date column is parsed automatically

@@ -28,7 +28,7 @@ export default function HistogramPlot() {
 		const binCount = options.binCount;
 		const binSize = (max - min) / binCount;
 		const samplesBins = samples.map(sample => {
-			if (!sample.length) return [];
+			if (!sample.length) return null;
 			const bins = Array(binCount).fill(0);
 			for (const val of sample) {
 				const bin = Math.floor((val - min) / binSize);
@@ -37,9 +37,10 @@ export default function HistogramPlot() {
 			}
 			return bins;
 		});
-		const binsValues = samplesBins[0].map((v,i) => i*binSize);
-		const maxLength = Math.max.apply(null, samples.map(s => s.length));
-		const transformed = samplesBins.map(bins => options.yScale === '%' ? bins.map(b => b / maxLength) : bins);
+		const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
+		const transformed = samplesBins.filter(b => b).map(bins => options.yScale === '%' ? bins!.map(b => b / maxLength) : bins);
+		const binsValues = transformed[0]?.map((v,i) => i*binSize) || [];
+
 		return (asize: { width: number, height: number }) => ({
 			options: {
 				...asize,
@@ -54,7 +55,8 @@ export default function HistogramPlot() {
 					{
 						...axisDefaults(),
 						size: 30,
-						labelSize: 20, 
+						labelSize: 20,
+						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i]).join(', ')
 					},
 					{
 						...axisDefaults(),
@@ -74,7 +76,7 @@ export default function HistogramPlot() {
 				},
 				series: [
 					{},
-					{
+					...[{
 						stroke: color('magenta'),
 						fill: color('magenta', .7),
 						points: { show: false },
@@ -91,7 +93,7 @@ export default function HistogramPlot() {
 						fill: color('cyan'),
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
-					}
+					}].filter((ser, i) => samplesBins[i])
 				]
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
