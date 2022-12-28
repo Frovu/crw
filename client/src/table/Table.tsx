@@ -10,6 +10,7 @@ import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
+import Histogram from './Histogram';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -26,7 +27,7 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
+export const plotTypes = [ 'Histogram', 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -46,7 +47,7 @@ export type Settings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
-export const DataContext = createContext<{ data: any[][], columns: ColumnDef[] }>({} as any);
+export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter }>({} as any);
@@ -83,6 +84,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
+			{type === 'Histogram' && <Histogram/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
@@ -132,7 +134,7 @@ function CoreWrapper() {
 		const sortIdx = 1 + cols.indexOf(sort.column);
 		const renderedData = sample.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		return { data: renderedData, columns: cols.map(id => columns[id]) };
+		return { sample, data: renderedData, columns: cols.map(id => columns[id]) };
 	}, [sample, columns, settings.enabledColumns, sort]);
 
 	const settingsContext = useMemo(() => {

@@ -26,7 +26,7 @@ function ColumnsSelector() {
 				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
 					<MenuCheckbox text={prettyName(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
 						callback={chck => set('enabledColumns', (cols) => [
-							...cols.filter(c => chck || c === 'time' || columnsMap[c].table !== table),
+							...cols.filter(c => chck || c === 'time' || columnsMap[c]?.table !== table),
 							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])].sort(sortFn))}/>
 				</b>
 				<>{columnChecks.filter(([col,]) => col.table === table).map(([col, el]) => el)}</>
