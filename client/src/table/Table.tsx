@@ -85,13 +85,13 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
-				<div style={{ height: '50%' }}><PlotSW {...params}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params}/></div> 
 			</>}
 			{type === 'Cosmic Rays' && <PlotGSM {...params}/>}
 			{type === 'CR + Geomagn' && <>
-				<div style={{ height: '75%' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
-				<div style={{ height: '25%' }}><PlotGeoMagn {...params}/></div> 
+				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
+				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params}/></div> 
 			</>}
 			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
