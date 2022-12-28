@@ -21,7 +21,7 @@ export default function HistogramPlot() {
 			const colIdx = Object.keys(columns).indexOf(options['column'+i as keyof HistOptions] as any);
 			// TODO: custom sample
 			const sample = type === 'current' ? currentSample : data;
-			return sample.map(row => row[colIdx]).filter(val => val != null).sort((a, b) => a - b);
+			return sample.map(row => row[colIdx]).filter(val => val != null);
 		});
 		const min = Math.min.apply(null, samples.flat());
 		const max = Math.max.apply(null, samples.flat());
@@ -39,7 +39,7 @@ export default function HistogramPlot() {
 		});
 		const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
 		const transformed = samplesBins.filter(b => b).map(bins => options.yScale === '%' ? bins!.map(b => b / maxLength) : bins);
-		const binsValues = transformed[0]?.map((v,i) => i*binSize) || [];
+		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
 
 		return (asize: { width: number, height: number }) => ({
 			options: {
