@@ -38,7 +38,7 @@ function ColumnsSelector() {
 
 export function MenuInput(props: any) {
 	return (<span>
-		{props.text || ''}
+		{props.text ? props.text+':' : ''}
 		<input style={{ width: '4em', margin: '0 4px 0 4px', ...props.style }} {...props} 
 			onClick={e => e.stopPropagation()} onChange={(e) => props.onChange?.(props.type === 'number' ? e.target.valueAsNumber : e.target.value)}/>
 	</span>);
@@ -62,15 +62,16 @@ export function MenuButton({ text, action }: { text: string, action: string }) {
 	);
 }
 
-export function MenuSelect({ text, value, options, callback }: { text: string, value: string | null, options: readonly (string|null)[], callback: (val: string | null) => void}) {
+export function MenuSelect({ text, value, options, callback, width }:
+{ text: string, value: string | null, width?: string, options: readonly (string|null)[], callback: (val: string | null) => void}) {
 	return (
 		<span>
 			{text}:
-			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(!value && { color: 'var(--color-text-dark)' }) }}
+			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(width && { width }), ...(!value && { color: 'var(--color-text-dark)' }) }}
 				value={value || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => callback(e.target.value === '--none' ? null : e.target.value)}> 
 				{options.map(opt => opt == null ?
-					<option value='--none'>-- None --</option> :
+					<option key='--none' value='--none'>-- None --</option> :
 					<option key={opt} value={opt}>{opt}</option>)}
 			</select>
 		</span>
