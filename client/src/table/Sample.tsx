@@ -71,25 +71,25 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 	const set = (what: string) => (e: any) => setFilter({ ...filter, [what]: e.target.value });
 
 	return (
-		<div className='FilterCard'>
-			<div onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-				<select style={{ textAlign: 'right', borderColor: 'transparent' }} 
-					value={column.id} onChange={set('column')}>
-					{Object.values(columns).filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
-						{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : ''}</option>)}
-				</select>
-				<select style={{ textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
-					{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
-				</select>
-				{!operation.includes('null') && !isSelectInput &&
-				<input autoFocus type={'text'} style={{ width: '8em', textAlign: 'center', ...(invalid && { borderColor: 'var(--color-red)' }) }}
-					value={input} onChange={set('input')}/>}
-				{!operation.includes('null') && isSelectInput &&
-				<select style={{ width: '8em' }} value={input} onChange={set('input')}>
-					{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
-				</select>}
-			</div>
-			<button style={{ marginLeft: '1em', padding: '0 8px 0 8px', borderRadius: '8px' }} onClick={destruct}>remove</button>
+		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
+			<select style={{ width: '8em', textAlign: 'right', borderColor: 'transparent' }} 
+				value={column.id} onChange={set('column')}>
+				{Object.values(columns).filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
+					{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : ''}</option>)}
+			</select>
+			<select style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
+				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
+			</select>
+			{!operation.includes('null') && !isSelectInput &&
+			<input autoFocus type={'text'} style={{ width: '7em', textAlign: 'center', ...(invalid && { borderColor: 'var(--color-red)' }) }}
+				value={input} onChange={set('input')}/>}
+			{!operation.includes('null') && isSelectInput &&
+			<select style={{ width: 'calc(7em - 4px)' }} value={input} onChange={set('input')}>
+				{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
+			</select>}
+			<span className='CloseButton' onClick={destruct}>
+				&times;
+			</span>
 		</div>
 	);
 }

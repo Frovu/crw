@@ -76,6 +76,19 @@ button:hover, select:hover {
 	transform: translate(-50%, -50%);
 }
 
+.CloseButton {
+	user-select: none;
+	cursor: pointer;
+	margin: 0 4px 0 4px;
+	font-size: 24px;
+	color: var(--color-red);
+	max-height: 1em;
+	transform: translateY(-5px);
+}
+.CloseButton:hover {
+	color: var(--color-active) !important;
+}
+
 .u-series, .u-value, .u-title {
 	font-family: var(--font);
 }

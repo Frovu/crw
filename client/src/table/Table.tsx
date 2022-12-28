@@ -1,5 +1,5 @@
 import '../css/Table.css';
-import { useState, createContext, useContext, useMemo } from 'react';
+import { useState, createContext, useContext, useMemo, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState } from '../util';
 import { TableSampleInput } from './Sample';
@@ -108,6 +108,8 @@ function CoreWrapper() {
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
 
+	const topDivRef = useRef<HTMLDivElement>(null);
+
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 	useEventListener('action+resetSettings', () => setSettings(defaultSettings(columns)));
 	useEventListener('action+plot', () => cursor &&
@@ -158,6 +160,10 @@ function CoreWrapper() {
 	}, [data, columns, plotIdx, settings]);
 
 	const plotsMode = plotIdx && (settings.plotTop || settings.plotLeft || settings.plotBottom);
+	const viewSize = plotIdx && settings.plotLeft ? Math.max(3, Math.round(
+		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
+		- window.innerWidth*(100-settings.plotsRightSize)/100 *3/4
+		- 72) / 28 )) : 16;
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
@@ -165,12 +171,14 @@ function CoreWrapper() {
 					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
 						 ...(!plotsMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
-							<Menu/>
-							<TableSampleInput {...{
-								cursorColumn: cursor && dataContext.columns[cursor?.column],
-								cursorValue: cursor && dataContext.data[cursor?.row][cursor?.column],
-								setSample }}/>
-							<TableView {...{ viewSize: 10, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+							<div ref={topDivRef}>
+								<Menu/>
+								<TableSampleInput {...{
+									cursorColumn: cursor && dataContext.columns[cursor?.column],
+									cursorValue: cursor && dataContext.data[cursor?.row][cursor?.column+1],
+									setSample }}/>
+							</div>
+							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 							<PlotWrapper which='plotLeft'/>
 						</div>
 						<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
