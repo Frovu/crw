@@ -23,7 +23,7 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 		u.ctx.font = font(14, true).replace('400', '600');
 		u.ctx.textBaseline = 'top';
-		u.ctx.lineWidth = 2;
+		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.beginPath();
 		u.ctx.moveTo(OnsetX, u.bbox.top);
 		u.ctx.lineTo(OnsetX, u.bbox.top + u.bbox.height);
@@ -40,7 +40,7 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 		const endX = u.valToPos(cloud.end.getTime() / 1e3, 'x', true);
 		u.ctx.save();
 		u.ctx.fillStyle = u.ctx.strokeStyle = color('skyblue', .1);
-		u.ctx.fillRect(startX, u.over.offsetTop, endX - startX, u.over.offsetHeight);
+		u.ctx.fillRect(startX, u.bbox.top, endX - startX, u.bbox.height);
 		u.ctx.restore();
 	}
 }
@@ -66,11 +66,10 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = axis.label != null ? (axis as any)._lpos : (axis as any)._pos + (axis as any)._size / 2;
-			console.log(devicePixelRatio || 1, u.bbox.height, u.bbox.width)
 			u.ctx.save();
 			u.ctx.font = font(14, true);
 			u.ctx.translate(
-				Math.round((baseX + axis.labelGap! * flowDir * -1) * (devicePixelRatio || 1)),
+				Math.round((baseX + axis.labelGap! * flowDir * -1) * devicePixelRatio),
 				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2 + shift * devicePixelRatio),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
