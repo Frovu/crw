@@ -146,6 +146,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	const urlPara = new URLSearchParams({
 		from: (interval[0].getTime() / 1000).toFixed(0),
 		to:   (interval[1].getTime() / 1000).toFixed(0),
+		fields: fields.join()
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
 	if (res.status !== 200)
@@ -154,7 +155,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	if (!body?.data.length) return null;
 	const fieldsIdxs = fields.map(f => body.fields.indexOf(f));
 	const ordered = fieldsIdxs.map(i => body.data.map(row => row[i]));
-	console.log(path, '=>', ordered);
+	console.log(path, '=>', ordered, fields);
 	return ordered;
 }
 

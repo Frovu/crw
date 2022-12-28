@@ -85,8 +85,10 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	pg_conn.commit()
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}:{dend}')
 
-def fetch(interval: [int, int], epoch=True):
-	columns = [c.name for c in omni_columns]
+def fetch(interval: [int, int], query, epoch=True):
+	columns = [c.name for c in omni_columns if not query or c.name in query]
+	if len(columns) < 1:
+		raise ValueError('Zero fields match query')
 	with pg_conn.cursor() as cursor:
 		cursor.execute(integrity_query(interval, PERIOD, 'omni', ['time'], return_epoch=False))
 		if gaps := cursor.fetchall():
