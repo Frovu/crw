@@ -1,5 +1,5 @@
 import '../css/Table.css';
-import { useState, createContext, useContext, useMemo, useRef } from 'react';
+import React, { useState, createContext, useContext, useMemo, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
 import { TableSampleInput } from './Sample';
@@ -10,7 +10,7 @@ import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
-import Histogram from './Histogram';
+import { HistogramPlot } from './Histogram';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -69,7 +69,7 @@ function defaultSettings(columns: Columns): Settings {
 	};
 }
 
-function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) {
+const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) => {
 	const { settings } = useContext(SettingsContext);
 	const context = useContext(PlotContext);
 	const type = settings[which];
@@ -84,7 +84,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
-			{type === 'Histogram' && <Histogram/>}
+			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
@@ -100,7 +100,7 @@ function PlotWrapper({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }
 				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
 	);
-}
+});
 
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
