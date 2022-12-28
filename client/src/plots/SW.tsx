@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets, superScript } from './plotUtil';
 
 type SWParams = BasicPlotParams & {
 	useTemperatureIndex?: boolean,
@@ -18,7 +18,7 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ temp: 'Tp, K', y: 'Dp, N/cm^3 & beta' })(u)
+				u => drawCustomLabels({ temp: 'Tp, K', y: 'Dp, N/cm³ & beta' })(u)
 			],
 		},
 		axes: [
@@ -37,7 +37,7 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 				label: '',
 				scale: 'temp',
 				grid: { show: false },
-				values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? '1e' + Math.log10(v) : '')
+				values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')
 			},
 		],
 		scales: {

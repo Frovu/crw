@@ -137,6 +137,10 @@ export function font(size=16) {
 	return fnt.replace(/\d+px/, size+'px');
 }
 
+export function superScript(digit: number) {
+	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
+}
+
 export async function basicDataQuery(path: string, interval: [Date, Date], fields: string[]) {
 	const urlPara = new URLSearchParams({
 		from: (interval[0].getTime() / 1000).toFixed(0),
