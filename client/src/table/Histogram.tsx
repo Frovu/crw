@@ -1,23 +1,36 @@
-import { useContext, useMemo, useRef, useState } from 'react';
+import { useContext, useMemo, useRef, useState, createContext } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { DataContext, TableContext } from './Table';
+import { DataContext, SettingsContext, TableContext } from './Table';
 import { useSize } from '../util';
 import { axisDefaults, color } from '../plots/plotUtil';
+import { MenuSelect } from './TableMenu';
 
-type HistOptions = {
-	yScale: 'count' | 'log' | '%'
+const yScaleOptions = ['count', 'log', '%'] as const;
+
+export type HistOptions = {
+	yScale: typeof yScaleOptions[number]
 };
 
-function defaultOptions(): HistOptions {
-	return { yScale: '%' }; 
+export const defaultHistOptions: HistOptions = {
+	yScale: '%',
+};
+
+export function HistogramMenu() {
+	const { options: { hist }, setOptions } = useContext(SettingsContext);
+
+	const set = (key: keyof HistOptions) => (value: any) => setOptions('hist', opts => ({ ...opts, [key]: value }));
+
+	return (<>
+		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
+
+	</>);
 }
 
-export default function Histogram() {
+export function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
+	const { options: { hist: options } } = useContext(SettingsContext);
 	const { sample } = useContext(DataContext);
-
-	const [options, setOptions] = useState<HistOptions>(defaultOptions);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);

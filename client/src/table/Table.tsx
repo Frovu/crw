@@ -10,7 +10,7 @@ import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
-import { HistogramPlot } from './Histogram';
+import { defaultHistOptions, HistogramPlot, HistOptions } from './Histogram';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -45,12 +45,16 @@ export type Settings = {
 	plotBottomSize: number,
 	plotsRightSize: number
 };
+type VolatileSettings = {
+	hist: HistOptions
+};
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
-export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter }>({} as any);
+type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: (s: VolatileSettings[T]) => VolatileSettings[T]) => void;
+export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOptions: OptionsSetter }>({} as any);
 
 function defaultSettings(columns: Columns): Settings {
 	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
@@ -106,6 +110,7 @@ function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [sample, setSample] = useState(data);
 	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
+	const [options, setOptions] = useState<VolatileSettings>(() => ({ hist: defaultHistOptions }));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
@@ -139,8 +144,9 @@ function CoreWrapper() {
 
 	const settingsContext = useMemo(() => {
 		const set: SettingsSetter = (key, fn) => setSettings(sets => ({ ...sets, [key]: fn(sets[key]) }));
-		return { settings, set };
-	}, [settings, setSettings]);
+		const seto: OptionsSetter = (key, fn) => setOptions(sets => ({ ...sets, [key]: fn(sets[key]) }));
+		return { settings, set, options, setOptions: seto };
+	}, [options, settings, setSettings]);
 
 	const plotContext = useMemo(() => {
 		if (!plotIdx) return null;
@@ -173,7 +179,7 @@ function CoreWrapper() {
 			<DataContext.Provider value={dataContext}>
 				<PlotContext.Provider value={plotContext}>
 					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
-						 ...(!plotsMode && { display: 'block' }) }}>
+						...(!plotsMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
 							<div ref={topDivRef}>
 								<Menu/>

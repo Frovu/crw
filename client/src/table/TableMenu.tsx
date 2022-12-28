@@ -35,12 +35,12 @@ function ColumnsSelector() {
 	);
 }
 
-function MenuInput(props: any) { //onChange={e => props.onChange?.(e.target.value)} 
+export function MenuInput(props: any) { //onChange={e => props.onChange?.(e.target.value)} 
 	return <input style={{ width: '4em', margin: '0 4px 0 4px', ...props.style }} {...props} 
 		onClick={e => e.stopPropagation()}/>;
 }
 
-function MenuCheckbox({ text, value, callback, hide, disabled }:
+export function MenuCheckbox({ text, value, callback, hide, disabled }:
 { text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
 	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
 		{text}
@@ -48,7 +48,7 @@ function MenuCheckbox({ text, value, callback, hide, disabled }:
 	</label>);
 }
 
-function MenuButton({ text, action, callback }: { text: string, action: string, callback?: () => void }) {
+export function MenuButton({ text, action }: { text: string, action: string }) {
 	const keyComb = KEY_COMB[action]?.split('%');
 	return (
 		<button className='MenuItem' onClick={() => dispatchCustomEvent('action+' + action)}>
@@ -58,7 +58,22 @@ function MenuButton({ text, action, callback }: { text: string, action: string, 
 	);
 }
 
-function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
+export function MenuSelect({ text, value, options, callback }: { text: string, value: string | null, options: readonly (string|null)[], callback: (val: string | null) => void}) {
+	return (
+		<span>
+			{text}:
+			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(!value && { color: 'var(--color-text-dark)' }) }}
+				value={value || '--none'} onClick={e => e.stopPropagation()}
+				onChange={(e) => callback(e.target.value === '--none' ? null : e.target.value)}> 
+				{options.map(opt => opt == null ?
+					<option value='--none'>-- None --</option> :
+					<option key={opt} value={opt}>{opt}</option>)}
+			</select>
+		</span>
+	);
+}
+
+export function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
 	const { settings, set } = useContext(SettingsContext);
 
 	return (
@@ -67,7 +82,6 @@ function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=tr
 			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(!settings[what] && { color: 'var(--color-text-dark)' }) }}
 				value={settings[what] as any || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => set(what, () => e.target.value === '--none' ? undefined : e.target.value as any)}> 
-				{/* set(what, () => e.target.value as any)}> */}
 				{allowEmpty && <option value='--none'>-- None --</option>}
 				{options.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)}
 			</select>
