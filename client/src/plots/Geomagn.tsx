@@ -7,9 +7,9 @@ type MagnParams = BasicPlotParams & {
 
 function plotOptions(size: { width: number, height: number }, params: MagnParams): uPlot.Options {
 	const myBars = (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
-		const colors = [color('green'), color('gold'), color('red')];
-		const lastColor = color('magenta');
-		const range = params.useAp ? [18, 56, 154] : [33, 53, 73];
+		const colors = [color('green'), color('gold'), color('orange'), color('red')];
+		const lastColor = color('crimson');
+		const range = params.useAp ? [18, 39, 67, 179] : [36, 46, 56, 76];
 		const values = (u: uPlot, sidx: number) => (u.data[sidx] as number[]).map(v => {
 			for (const [i, mx] of range.entries())
 				if (v < mx) return colors[i];

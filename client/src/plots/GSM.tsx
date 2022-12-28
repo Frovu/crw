@@ -73,15 +73,15 @@ function gsmPlotOptions(size: { width: number, height: number }, params: GSMPara
 				show: az,
 				scale: 'axy',
 				label: 'Az',
-				stroke: color('purple', .8),
-				fill: color('purple', .6),
+				stroke: color('purple'),
+				fill: color('purple'),
 				paths: uPlot.paths.bars!({ size: [.2, 10] }),
 				points: { show: false }
 			},
 			{
 				scale: 'var',
 				label: 'A0(GSM)',
-				stroke: color('cyan'),
+				stroke: color('green'),
 				width: 2,
 				points: { show: false }
 			},
