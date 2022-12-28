@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -28,12 +28,14 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, S
 		}
 		return typeof initial === 'function' ? (initial as any)() : initial;
 	});
-	
-	return [state, (arg) => setState(prev => {
-		const value = typeof arg === 'function' ? (arg as (a: T) => T)(prev) : arg;
+
+	const setter = useCallback<SetState<T>>((arg) => setState(prev => {
+		const value = typeof arg === 'function' ? (arg as any)(prev) : arg;
 		window.localStorage.setItem(key, JSON.stringify(value));
 		return value;
-	})];
+	}), [key]);
+	
+	return [state, setter];
 }
  
 type ResizeInfo = { width: number, height: number };
