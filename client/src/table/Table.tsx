@@ -10,7 +10,8 @@ import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
-import { defaultHistOptions, HistogramPlot, HistOptions } from './Histogram';
+import HistogramPlot from '../plots/Hist';
+import { defaultHistOptions, HistOptions } from './Histogram';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
