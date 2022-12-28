@@ -19,8 +19,8 @@ export default function Histogram() {
 
 	const [options, setOptions] = useState<HistOptions>(defaultOptions);
 
-	const ref = useRef<HTMLDivElement>(null);
-	const size = useSize(ref.current?.parentElement);
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const size = useSize(container?.parentElement);
 
 	const hist = useMemo(() => {
 		const column = 'magnitude';
@@ -52,8 +52,8 @@ export default function Histogram() {
 				axes: [
 					{
 						...axisDefaults(),
-						label: 'x',
-		
+						size: 30,
+						labelSize: 20, 
 					},
 					{
 						...axisDefaults(),
@@ -86,7 +86,7 @@ export default function Histogram() {
 		}) ;
 	}, [options, columns, sample]);
 
-	return (<div ref={ref} style={{ position: 'absolute' }}>
+	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...hist(size)}/>
 	</div>);
 }

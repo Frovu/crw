@@ -166,7 +166,7 @@ function CoreWrapper() {
 	const viewSize = Math.max(4, Math.round(
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (plotIdx && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
-		- 72) / 28 ));
+		- 72) / 28 - 1 ));
 
 	return (
 		<SettingsContext.Provider value={settingsContext}>

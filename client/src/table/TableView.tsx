@@ -102,7 +102,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	const tables = new Map<any, ColumnDef[]>();
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 	return (
-		<div className='Table' style={{ position: 'relative', height: (4 + viewSize) * 28 - 10 }} ref={ref}>
+		<div className='Table' style={{ position: 'relative' }} ref={ref}>
 			<table style={{ tableLayout: 'fixed' }}>
 				<thead>
 					<tr>
@@ -117,7 +117,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 						<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
 				</tbody>
 			</table>
-			<div style={{ position: 'absolute', bottom: 2, left: 4, textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>
+			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>
 				{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
 			</div>
 		</div>
