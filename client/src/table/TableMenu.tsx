@@ -145,17 +145,17 @@ function ExportMenu() {
 	);
 }
 
-function onKeydown(e: KeyboardEvent) {
-	if (e.code === 'Escape')
-		return dispatchCustomEvent('escape');
-	if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox')
-		return;
-	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
-	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
-	if (action) {
-		e.preventDefault();
-		dispatchCustomEvent('action+' + action);
-	}
+function CorrelationMenu() {
+	const { columns } = useContext(TableContext);
+	const { options, setOptions } = useContext(SettingsContext);
+	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
+
+	return (<>
+		<h4>Correlation</h4>
+		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={Object.keys(columns)} callback={set('columnX')}/>
+		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={Object.keys(columns)} callback={set('columnY')}/>
+		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
+	</>);
 }
 
 export function Menu() {
@@ -211,13 +211,27 @@ export function Menu() {
 					<h4>Solar Wind</h4>
 					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
 					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
-
 				</MenuSection>
-				<MenuSection name='Histogram' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Statistics' {...{ shownSection, setShownSection }}>
+					<CorrelationMenu/>
+					<h4>Histogram</h4>
 					<HistogramMenu/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
 		</div>
 	);
+}
+
+function onKeydown(e: KeyboardEvent) {
+	if (e.code === 'Escape')
+		return dispatchCustomEvent('escape');
+	if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox')
+		return;
+	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
+	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
+	if (action) {
+		e.preventDefault();
+		dispatchCustomEvent('action+' + action);
+	}
 }

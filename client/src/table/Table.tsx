@@ -34,14 +34,15 @@ export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Sola
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
 
-const defaultCorrParams = {
-	columnX: 'v_max',
-	columnY: 'magnitude',
-};
-
 export type CorrParams = {
 	columnX: string,
 	columnY: string,
+	color: string,
+};
+const defaultCorrParams = {
+	columnX: 'v_max',
+	columnY: 'magnitude',
+	color: 'green',
 };
 
 export type Settings = {
@@ -95,7 +96,7 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 		return null;
 	if (!context && !['Histogram', 'Correlation'].includes(type))
 		return null;
-		
+
 	const params = {
 		useAp: settings.plotIndexAp,
 		showAz: settings.plotAz,

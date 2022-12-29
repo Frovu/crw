@@ -50,7 +50,7 @@ export default function CorrelationPlot() {
 				series: [
 					null,
 					{
-						stroke: color('green'),
+						stroke: color(params.color),
 						paths: pointPaths(4)
 					},
 				]
