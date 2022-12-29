@@ -12,6 +12,7 @@ import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
 import HistogramPlot from '../plots/Hist';
 import { defaultHistOptions, HistOptions } from './Histogram';
+import CorrelationPlot from '../plots/Correlate';
 
 export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -28,10 +29,20 @@ export type ColumnDef = {
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Histogram', 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
+export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
+
+const defaultCorrParams = {
+	columnX: 'v_max',
+	columnY: 'magnitude',
+};
+
+export type CorrParams = {
+	columnX: string,
+	columnY: string,
+};
 
 export type Settings = {
 	enabledColumns: string[],
@@ -48,6 +59,7 @@ export type Settings = {
 };
 type VolatileSettings = {
 	hist: HistOptions,
+	correlation: CorrParams,
 	viewPlots: boolean
 };
 
@@ -79,7 +91,11 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 	const { settings, options } = useContext(SettingsContext);
 	const context = useContext(PlotContext);
 	const type = settings[which];
-	if (!type || !options.viewPlots || (!context && type !== 'Histogram')) return null;
+	if (!type || !options.viewPlots)
+		return null;
+	if (!context && !['Histogram', 'Correlation'].includes(type))
+		return null;
+		
 	const params = {
 		useAp: settings.plotIndexAp,
 		showAz: settings.plotAz,
@@ -91,6 +107,7 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
 			{type === 'Histogram' && <HistogramPlot/>}
+			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
@@ -113,7 +130,7 @@ function CoreWrapper() {
 	const [sample, setSample] = useState(data);
 	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
 	const [options, setOptions] = useState<VolatileSettings>(() => ({
-		hist: defaultHistOptions, viewPlots: false }));
+		hist: defaultHistOptions, viewPlots: false, correlation: defaultCorrParams }));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);

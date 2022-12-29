@@ -47,10 +47,6 @@ export default function HistogramPlot() {
 				padding: [10, 4, 0, 0],
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: {
-					draw: [
-					],
-				},
 				axes: [
 					{
 						...axisDefaults(),
