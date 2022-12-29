@@ -162,6 +162,18 @@
 			"type": "time",
 			"parse_name": "CMETime"
 		},
+		"v_start": {
+			"description": "CME velocity near the Sun",
+			"parse_name": "Vsp"
+		},
+		"v_mean_x": {
+			"description": "CME average velocity using X-ray flare time",
+			"parse_name": "Vmean"
+		},
+		"v_mean_c": {
+			"description": "CME average velocity using CME observation time",
+			"parse_name": "VmeanC"
+		},
 		"width": {
 			"description": "Angular width",
 			"parse_name": "CMEWidth"
