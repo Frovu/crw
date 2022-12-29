@@ -46,11 +46,14 @@ input, button, select {
 	-moz-box-sizing:content-box;
 	-webkit-box-sizing:content-box; 
 	box-sizing:content-box;
-	background-color: inherit;
+	background-color: var(--color-bg);
 	font-family: inherit;
 	font-size: inherit;
 	color: inherit;
 	outline: none;
+}
+option {
+	color: var(--color-text);
 }
 button {
 	cursor: pointer;

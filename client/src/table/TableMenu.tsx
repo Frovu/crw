@@ -200,10 +200,10 @@ export function Menu() {
 					<h4>Options</h4>
 					<div>
 						± Days:
-						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset[0]}
+						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset?.[0]}
 							onChange={(v: any) => set('plotTimeOffset', (prev) => [v, prev[1]])}/>
 						/
-						<MenuInput type='number' min='1' max='9' step='1' value={settings.plotTimeOffset[1]}
+						<MenuInput type='number' min='1' max='9' step='1' value={settings.plotTimeOffset?.[1]}
 							onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>

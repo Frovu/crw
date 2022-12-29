@@ -83,9 +83,9 @@ function defaultSettings(columns: Columns): Settings {
 		plotImfBz: true,
 		plotImfBxBy: false,
 		plotTimeOffset: [-2, 3],
-		plotTop: 'Cosmic Rays',
-		plotBottom: 'Solar Wind',
-		plotBottomSize: 40,
+		plotTop: 'SW + Plasma',
+		plotBottom: 'CR + Geomagn',
+		plotBottomSize: 45,
 		plotsRightSize: 65
 	};
 }
@@ -158,7 +158,7 @@ function CoreWrapper() {
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);
-		const cols = settings.enabledColumns.filter(n => !!columns[n]);
+		const cols = (settings.enabledColumns || []).filter(n => !!columns[n]);
 		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
 		const sortIdx = 1 + cols.indexOf(sort.column);
 		const renderedData = sample.map(row => enabledIdxs.map(ci => row[ci]))
