@@ -21,23 +21,32 @@ export default function CorrelationPlot() {
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
 		// FIXME: amepty data
+		const minx = data[0][0];
+		const maxx = data[data.length-1][0];
+		const miny = Math.min.apply(null, plotData[1]);
+		const maxy = Math.max.apply(null, plotData[1]);
 
 		const regr = params.regression && regression.linear(data as any, { precision: 6 });
-		const regrPoints = regr && [data[0][0], data[data.length - 1][0]];
+		const regrPoints = regr && Array(64).fill(0).map((a, i) => i * (maxx-minx)/64);
 		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
 		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
+
+		console.log(regrLine);
+		console.log(minx, maxx);
+		console.log(miny, maxy);
 
 		return (asize: { width: number, height: number }) => ({
 			options: {
 				...asize,
 				mode: 2,
-				padding: [10, 4, 0, 0],
+				padding: [10, 4, regr ? 30 : 0, 0],
+				title: (regr ? `${regr.string}; r2 = ${regr.r2.toFixed(2)}` : ''),
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
 					{
 						...axisDefaults(),
-						label: params.columnX + (regr ? `    r2 = ${regr.r2.toFixed(2)}; ${regr.string}` : ''),
+						label: params.columnX,
 						labelSize: 22,
 						size: 30,
 					},
@@ -49,10 +58,11 @@ export default function CorrelationPlot() {
 				],
 				scales: {
 					x: {
-						time: false
+						time: false,
+						range: [minx, maxx]
 					},
 					y: { 
-						// range: (u, min, max) => [min, max]
+						range: [miny, maxy]
 					}
 		
 				},
