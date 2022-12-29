@@ -16,11 +16,12 @@ export default function CorrelationPlot() {
 	const size = useSize(container?.parentElement);
 
 	const plotOpts = useMemo(() => {
+		if (!sample.length) return null;
+
 		const colIdx = ['columnX', 'columnY'].map(c => Object.keys(columns).indexOf(params[c as keyof CorrParams] as string));
 		const data = sample.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
-		// FIXME: amepty data
 		const minx = data[0][0];
 		const maxx = data[data.length-1][0];
 		const miny = Math.min.apply(null, plotData[1]);
@@ -81,6 +82,7 @@ export default function CorrelationPlot() {
 		}) ;
 	}, [params, columns, sample]);
 
+	if (!plotOpts) return null;
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...plotOpts(size)}/>
 	</div>);
