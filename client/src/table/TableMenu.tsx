@@ -20,7 +20,7 @@ function ColumnsSelector() {
 	const tables = [...new Set(columns.filter(col => !col.hidden).map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
-		<MenuCheckbox key={col.id} text={col.name} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
+		<MenuCheckbox key={col.id} text={col.name} title={col.description} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
 			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>] as [ColumnDef, any]);
 	return (
 		<div className='ColumnsSelector'>
@@ -45,9 +45,9 @@ export function MenuInput(props: any) {
 	</span>);
 }
 
-export function MenuCheckbox({ text, value, callback, hide, disabled }:
-{ text: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
-	return (<label onClick={e => e.stopPropagation()} className='MenuInput'>
+export function MenuCheckbox({ text, value, callback, hide, disabled, title }:
+{ text: string, title?: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
+	return (<label title={title} onClick={e => e.stopPropagation()} className='MenuInput'>
 		{text}
 		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginLeft: '8px', display: hide ? 'none' : 'inline-block' }}/>
 	</label>);
