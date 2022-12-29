@@ -10,6 +10,7 @@ const KEY_COMB = {
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
+	'switchViewPlots': 'H',
 } as { [action: string]: string };
 
 function ColumnsSelector() {
@@ -180,6 +181,7 @@ export function Menu() {
 					<MenuButton text='Plot selected' action='plot'/>
 					<MenuButton text='Plot previous' action='plotPrev'/>
 					<MenuButton text='Plot next' action='plotNext'/>
+					<MenuButton text='Switch view' action='switchViewPlots'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>

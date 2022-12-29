@@ -47,7 +47,8 @@ export type Settings = {
 	plotsRightSize: number
 };
 type VolatileSettings = {
-	hist: HistOptions
+	hist: HistOptions,
+	viewPlots: boolean
 };
 
 export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
@@ -75,10 +76,10 @@ function defaultSettings(columns: Columns): Settings {
 }
 
 const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) => {
-	const { settings } = useContext(SettingsContext);
+	const { settings, options } = useContext(SettingsContext);
 	const context = useContext(PlotContext);
 	const type = settings[which];
-	if (!type || !context) return null;
+	if (!type || !options.viewPlots || (!context && type !== 'Histogram')) return null;
 	const params = {
 		useAp: settings.plotIndexAp,
 		showAz: settings.plotAz,
@@ -111,7 +112,8 @@ function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
 	const [sample, setSample] = useState(data);
 	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
-	const [options, setOptions] = useState<VolatileSettings>(() => ({ hist: defaultHistOptions }));
+	const [options, setOptions] = useState<VolatileSettings>(() => ({
+		hist: defaultHistOptions, viewPlots: false }));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
@@ -121,16 +123,17 @@ function CoreWrapper() {
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 	useEventListener('action+resetSettings', () => setSettings(defaultSettings(columns)));
-	useEventListener('action+plot', () => cursor &&
-		setPlotIdx(data.findIndex(r => r[0] === dataContext.data[cursor.row][0])));
 
-	const plotMove = (dir: -1 | 1) => () => setPlotIdx(current => {
+	const plotMove = (dir: -1 | 0 | 1) => () => setPlotIdx(current => {
+		setOptions(opts => ({ ...opts, viewPlots: true }));
 		if (!current)
 			return cursor ? data.findIndex(r => r[0] === dataContext.data[cursor.row][0]) : null;
 		return Math.max(0, Math.min(current + dir, data.length - 1));
 	});
+	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1));
 	useEventListener('action+plotNext', plotMove(+1));
+	useEventListener('action+switchViewPlots', () => setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots })));
 
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
@@ -169,10 +172,9 @@ function CoreWrapper() {
 		return { interval: interval.map(t => new Date(t)) as [Date, Date], onsets, clouds };
 	}, [data, columns, plotIdx, settings]);
 
-	const plotsMode = plotIdx && (settings.plotTop || settings.plotLeft || settings.plotBottom);
 	const viewSize = Math.max(4, Math.round(
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
-		- (plotIdx && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
+		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 1 ));
 
 	return (
@@ -180,7 +182,7 @@ function CoreWrapper() {
 			<DataContext.Provider value={dataContext}>
 				<PlotContext.Provider value={plotContext}>
 					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
-						...(!plotsMode && { display: 'block' }) }}>
+						...(!options.viewPlots && { display: 'block' }) }}>
 						<div className='AppColumn'>
 							<div ref={topDivRef}>
 								<Menu/>
