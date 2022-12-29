@@ -1,9 +1,10 @@
 import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
+import regression from 'regression';
 import { CorrParams, DataContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
-import { pointPaths } from './plotPaths';
+import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color } from './plotUtil';
 
 export default function CorrelationPlot() {
@@ -15,9 +16,16 @@ export default function CorrelationPlot() {
 	const size = useSize(container?.parentElement);
 
 	const plotOpts = useMemo(() => {
-		const colIdx = ['columnX', 'columnY'].map(c => Object.keys(columns).indexOf(params[c as keyof CorrParams]));
+		const colIdx = ['columnX', 'columnY'].map(c => Object.keys(columns).indexOf(params[c as keyof CorrParams] as string));
 		const data = sample.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
+
+		// FIXME: amepty data
+
+		const regr = params.regression && regression.linear(data as any, { precision: 6 });
+		const regrPoints = regr && [data[0][0], data[data.length - 1][0]];
+		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
+		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
 
 		return (asize: { width: number, height: number }) => ({
 			options: {
@@ -29,7 +37,7 @@ export default function CorrelationPlot() {
 				axes: [
 					{
 						...axisDefaults(),
-						label: params.columnX,
+						label: params.columnX + (regr ? `    r2 = ${regr.r2.toFixed(2)}; ${regr.string}` : ''),
 						labelSize: 22,
 						size: 30,
 					},
@@ -44,6 +52,7 @@ export default function CorrelationPlot() {
 						time: false
 					},
 					y: { 
+						// range: (u, min, max) => [min, max]
 					}
 		
 				},
@@ -52,10 +61,13 @@ export default function CorrelationPlot() {
 					{
 						stroke: color(params.color),
 						paths: pointPaths(4)
-					},
-				]
+					}
+				].concat(regr ? [{
+					stroke: color('white'),
+					paths: linePaths(2)
+				}] : [])
 			} as uPlot.Options,
-			data: [plotData, plotData] as any // UplotReact seems to not be aware of faceted plot mode
+			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
 	}, [params, columns, sample]);
 

@@ -38,11 +38,13 @@ export type CorrParams = {
 	columnX: string,
 	columnY: string,
 	color: string,
+	regression: boolean,
 };
 const defaultCorrParams = {
-	columnX: 'v_max',
-	columnY: 'magnitude',
-	color: 'green',
+	columnX: 'b_max',
+	columnY: 'bz_abs_max',
+	color: 'magenta',
+	regression: true,
 };
 
 export type Settings = {
