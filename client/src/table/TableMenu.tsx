@@ -155,7 +155,7 @@ function CorrelationMenu() {
 		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={Object.keys(columns)} callback={set('columnX')}/>
 		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={Object.keys(columns)} callback={set('columnY')}/>
 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
-		<MenuCheckbox text='Do regression' value={options.correlation.regression} callback={set('regression')}/>
+		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
 	</>);
 }
 

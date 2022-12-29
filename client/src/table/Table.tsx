@@ -146,7 +146,7 @@ function CoreWrapper() {
 
 	const plotMove = (dir: -1 | 0 | 1) => () => setPlotIdx(current => {
 		setOptions(opts => ({ ...opts, viewPlots: true }));
-		if (!current)
+		if (!current || dir === 0)
 			return cursor ? data.findIndex(r => r[0] === dataContext.data[cursor.row][0]) : null;
 		return Math.max(0, Math.min(current + dir, data.length - 1));
 	});
