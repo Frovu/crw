@@ -1,6 +1,6 @@
 import { useContext, useEffect, useLayoutEffect, useState } from 'react';
 import { useEventListener } from '../util';
-import { ColumnDef, prettyName, TableContext } from './Table';
+import { ColumnDef, TableContext } from './Table';
 
 type SetFiltersType = (fn: (val: Filter[]) => Filter[]) => void;
 
@@ -14,7 +14,7 @@ export type Filter = {
 };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: SetFiltersType }) {
-	const { columns, fisrtTable } = useContext(TableContext);
+	const { columns, prettyColumn } = useContext(TableContext);
 	const [filter, setFilter] = useState({ ...filterOri, input: filterOri.value });
 	const [invalid, setInvalid] = useState(false);
 
@@ -75,7 +75,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 			<select style={{ width: '8em', textAlign: 'right', borderColor: 'transparent' }} 
 				value={column.id} onChange={set('column')}>
 				{Object.values(columns).filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
-					{col.name}{col.table !== fisrtTable ? ' of ' + prettyName(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : ''}</option>)}
+					{prettyColumn(col)}</option>)}
 			</select>
 			<select style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}

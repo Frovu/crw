@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
 import { useEventListener } from '../util';
-import { ColumnDef, Sort, Cursor, prettyName, DataContext } from './Table';
+import { ColumnDef, Sort, Cursor, DataContext, prettyTable } from './Table';
 
 type CursorPara = { cursor: Cursor, setCursor: (c: Cursor) => void };
 
@@ -106,7 +106,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			<table style={{ tableLayout: 'fixed' }}>
 				<thead>
 					<tr>
-						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyName(table)}</td>)}
+						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
 					</tr>
 					<tr>
 						{columns.map(col => <ColumnHeader key={col.id} {...{ col, sort, setSort }}/>)}

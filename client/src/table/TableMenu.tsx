@@ -1,5 +1,5 @@
 import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, prettyName, SettingsContext, Settings, plotTypes, ColumnDef } from './Table';
+import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
 
@@ -26,7 +26,7 @@ function ColumnsSelector() {
 		<div className='ColumnsSelector'>
 			{tables.map(table => <Fragment key={table}>
 				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
-					<MenuCheckbox text={prettyName(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
+					<MenuCheckbox text={prettyTable(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
 						callback={chck => set('enabledColumns', (cols) => [
 							...cols.filter(c => chck || c === 'time' || columnsMap[c]?.table !== table),
 							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])].sort(sortFn))}/>

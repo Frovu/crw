@@ -7,7 +7,7 @@ import { useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 
 export default function HistogramPlot() {
-	const { data, columns } = useContext(TableContext);
+	const { data, columns, prettyColumn } = useContext(TableContext);
 	const { options: { hist: options } } = useContext(SettingsContext);
 	const { sample: currentSample } = useContext(DataContext);
 
@@ -52,7 +52,7 @@ export default function HistogramPlot() {
 						...axisDefaults(),
 						size: 30,
 						labelSize: 20,
-						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i]).join(', ')
+						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i]).map(c => prettyColumn(c as string)).join(', ')
 					},
 					{
 						...axisDefaults(),
@@ -94,7 +94,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, currentSample]);
+	}, [data, options, columns, prettyColumn, currentSample]);
 
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...hist(size)}/>

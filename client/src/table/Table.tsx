@@ -14,7 +14,7 @@ import HistogramPlot from '../plots/Hist';
 import { defaultHistOptions, HistOptions } from './Histogram';
 import CorrelationPlot from '../plots/Correlate';
 
-export const prettyName = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
+export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
 export type ColumnDef = {
 	name: string,
@@ -66,7 +66,7 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
-export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable?: string }>({} as any);
+export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable: string, prettyColumn: (c: ColumnDef | string) => string }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
@@ -247,7 +247,11 @@ function SourceDataWrapper({ columns, table }: { columns: Columns, table: string
 					}
 				}
 			}
-			return { data: resp.data, columns: orderedColumns, fisrtTable: table } as const;
+			const prettyColumn = (arg: ColumnDef | string) => {
+				const col = typeof arg === 'string' ? orderedColumns[arg] : arg;
+				return col.name + (col.table !== table ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
+			};
+			return { data: resp.data, columns: orderedColumns, fisrtTable: table, prettyColumn } as const;
 		}
 	});
 	if (query.isLoading)

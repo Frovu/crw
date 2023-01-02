@@ -9,7 +9,7 @@ import { axisDefaults, color } from './plotUtil';
 
 export default function CorrelationPlot() {
 	const { options: { correlation: params } } = useContext(SettingsContext);
-	const { columns } = useContext(TableContext);
+	const { columns, prettyColumn } = useContext(TableContext);
 	const { sample } = useContext(DataContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -32,10 +32,6 @@ export default function CorrelationPlot() {
 		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
 		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
 
-		console.log(regrLine);
-		console.log(minx, maxx);
-		console.log(miny, maxy);
-
 		return (asize: { width: number, height: number }) => ({
 			options: {
 				...asize,
@@ -47,13 +43,13 @@ export default function CorrelationPlot() {
 				axes: [
 					{
 						...axisDefaults(),
-						label: params.columnX,
+						label: prettyColumn(params.columnX),
 						labelSize: 22,
 						size: 30,
 					},
 					{
 						...axisDefaults(),
-						label: params.columnY,
+						label: prettyColumn(params.columnY),
 						size: 56,
 					},
 				],
@@ -80,7 +76,7 @@ export default function CorrelationPlot() {
 			} as uPlot.Options,
 			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
-	}, [params, columns, sample]);
+	}, [params, columns, sample, prettyColumn]);
 
 	if (!plotOpts) return null;
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>
