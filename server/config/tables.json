@@ -36,6 +36,11 @@
 			"description": "Maximum solar wind velocity during the event",
 			"parse_name": "Vmax"
 		},
+		"v_before": {
+			"name": "V before",
+			"description": "Solar wind velocity 1 hour before onset",
+			"parse_name": "Vb"
+		},
 		"b_max": {
 			"name": "B max",
 			"description": "Maximum IMF induction value",
@@ -165,6 +170,10 @@
 		"v_start": {
 			"description": "CME velocity near the Sun",
 			"parse_name": "Vsp"
+		},
+		"v_mean_0": {
+			"description": "CME initial velocity from coronagraph",
+			"parse_name": "VMean0"
 		},
 		"v_mean_x": {
 			"description": "CME average velocity using X-ray flare time",

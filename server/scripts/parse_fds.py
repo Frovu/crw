@@ -4,6 +4,8 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../cor
 from database import pg_conn, tables_info
 import psycopg2.extras
 
+FNAME = 'data/FDs_fulltable.txt'
+
 def _parse_value(split, columns, col, description):
 	value = split[columns.index(col)]
 	col_type = description.get('type', 'real')
@@ -11,7 +13,7 @@ def _parse_value(split, columns, col, description):
 		value = parse_val.get(value)
 	stub = description.get('parse_stub')
 	if stub and value == stub:
-			return None
+		return None
 	if col_type == 'time':
 		date, time = split[columns.index(col.replace('Time', 'Date'))], value
 		if not '.' in date or not ':' in time: return None
@@ -26,13 +28,28 @@ def _parse_value(split, columns, col, description):
 		return None
 
 # only for updating columns in existing rows
-def parse_one_column(fname: str, table: str, column: str):
+def parse_one_column(table: str, column: str):
+	first_table = list(tables_info)[0]
+	time_col_desc = tables_info[first_table]['time']
+	time_col_name = time_col_desc['parse_name']
+	target_col_desc = tables_info[table][column]
+	target_col_name = target_col_desc['parse_name']
+
+	# fname, is_standalone = f'data/{target_col_name}_list.txt', False
+	# if os.path.exists(fname):
+	# 	is_standalone = True
+	# else:
+	fname = FNAME
+	print('Reading', fname)
+
 	with open(fname) as file, pg_conn.cursor() as cursor:
 		for line in file:
+			# if is_standalone:
+			# 	columns_order = [time_col_name, target_col_name]
+			# 	break
 			if not 'Date' in line: continue
 			columns_order = line.strip().split()
 			break
-		first_table = list(tables_info)[0]
 		def recursive_search(tbl, target, path):
 			if tbl == target:
 				return path
@@ -45,10 +62,6 @@ def parse_one_column(fname: str, table: str, column: str):
 					if found: return found
 		select_id = recursive_search(first_table, table, f'(SELECT id FROM events.{first_table} WHERE time = data.time)')
 		data = []
-		time_col_desc = tables_info[first_table]['time']
-		time_col_name = time_col_desc['parse_name']
-		target_col_desc = tables_info[table][column]
-		target_col_name = target_col_desc['parse_name']
 		for line in file:
 			line_split = line.split()
 			time = _parse_value(line_split, columns_order, time_col_name, time_col_desc)
@@ -71,8 +84,8 @@ def parse_one_column(fname: str, table: str, column: str):
 		return True
 		
 # if target_columns contains field with Time, its corresponding Date column is parsed automatically
-def parse_whole_file(fname: str):
-	with open(fname) as file, pg_conn.cursor() as cursor:
+def parse_whole_file():
+	with open(FNAME) as file, pg_conn.cursor() as cursor:
 		for line in file:
 			if not 'Date' in line: continue
 			columns_order = line.strip().split()
@@ -80,42 +93,51 @@ def parse_whole_file(fname: str):
 		count = dict([(k, 0) for k in tables_info])
 		exists_count = 0
 		for line in file:
-			split, inserted_ids = line.split(), dict()
-			table = list(tables_info)[0]
-			time = _parse_value(split, columns_order, 'Time', {"type": "time"})
-			cursor.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time])
-			if exists := cursor.fetchone():
-				exists_count += 1
-				continue
-			for table, columns_desc in list(tables_info.items())[::-1]:
-				columns = [k for k in columns_desc if not k.startswith('_')]
-				values = list()
-				# print('\n', table)
-				for col_name in columns:
-					col_desc = columns_desc[col_name]
-					val = None
-					if references := col_desc.get('references'):
-						val = inserted_ids.get(references)
-					elif parse_name := col_desc.get('parse_name'):
-						val = _parse_value(split, columns_order, parse_name, col_desc)
-						# print(col_name, ":", split[columns_order.index(parse_name)], "->", val)
-					values.append(val)
-				if any(values):
-					count[table] += 1
-					query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
-					cursor.execute(query, values)
-					inserted = cursor.fetchone()
-					inserted_ids[table] = inserted and inserted[0]
+			try:
+				split, inserted_ids = line.split(), dict()
+				table = list(tables_info)[0]
+				time = _parse_value(split, columns_order, 'Time', {"type": "time"})
+				cursor.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time])
+				if exists := cursor.fetchone():
+					exists_count += 1
+					continue
+				for table, columns_desc in list(tables_info.items())[::-1]:
+					columns = [k for k in columns_desc if not k.startswith('_')]
+					values = [None for c in columns]
+					for i in range(len(columns)):
+						col_desc = columns_desc[columns[i]]
+						if references := col_desc.get('references'):
+							values[i] = inserted_ids.get(references)
+						elif parse_name := col_desc.get('parse_name'):
+							values[i] = _parse_value(split, columns_order, parse_name, col_desc)
+						
+					nonnul = [i for i in range(len(columns)) if values[i] is None and columns_desc[columns[i]].get('not_null')]
+					if any(values):
+						if len(nonnul):
+							print(f'not null vialation {nonnul[0]}, discarding ({table})')
+							continue
+						count[table] += 1
+						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
+						cursor.execute(query, values)
+						inserted = cursor.fetchone()
+						inserted_ids[table] = inserted and inserted[0]
+			except psycopg2.errors.InFailedSqlTransaction:
+				print('ERROR: psycopg2.errors.InFailedSqlTransaction')
+				os._exit(1)
+				break
+			except Exception as e:
+				print('failed to parse line: ', e)
+				print(line)
+
 		print(f'{exists_count} found')
 		for table, cnt in count.items():
 			print(f'[{cnt}] -> {table}')
 
 def main():
-	FNAME = 'data/FDs_fulltable.txt'
 	if len(sys.argv) < 2:
 		if input(f'parse whole FDs file? [y/n]: ') != 'y':
 			return
-		parse_whole_file(FNAME)
+		parse_whole_file()
 		if input(f'commit insertion? [y/n]: ') == 'y':
 			pg_conn.commit()
 		return
@@ -131,19 +153,20 @@ def main():
 	if len(candidates) < 1:
 		return print(f'column not found: {name_part}')
 	elif len(candidates) == 1:
-		res = parse_one_column(FNAME, *candidates[0])
+		res = parse_one_column(*candidates[0])
 	else:
 		print(f'found {len(candidates)} candidates:')
 		print('\n'.join([f'  {i}. {t}.{c}' for i, (t, c) in enumerate(candidates)]))
 		choice = input(f'please input which column to parse [0-{len(candidates)-1}]: ')
 		assert int(choice) >= 0 and int(choice) < len(candidates)
-		res = parse_one_column(FNAME, *candidates[int(choice)])
+		res = parse_one_column(*candidates[int(choice)])
 	if res and input(f'commit updates? [y/n]: ') == 'y':
 		pg_conn.commit()
 
 
 # (A|B|C|M|X) ([\d\.]+) replace $1$2 
 # (\d)-\d9\d+ replace $1 -9900
+# (:\d\d:\d\d)([.\d-]+) replace $1 $2
 if __name__ == '__main__':
 	main()
 
