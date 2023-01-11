@@ -18,7 +18,7 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ temp: 'Tp, K', y: 'Dp, N/cm³ & beta' })(u)
+				u => drawCustomLabels({ temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' })(u)
 			],
 		},
 		axes: [
@@ -37,14 +37,14 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 				label: '',
 				scale: 'temp',
 				grid: { show: false },
-				values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')
+				...(!params.useTemperatureIndex && { values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '') })
 			},
 		],
 		scales: {
 			y: {
 			},
 			temp: {
-				distr: 3
+				distr: params.useTemperatureIndex ? 1 : 3
 			}
 		},
 		series: [
@@ -78,9 +78,10 @@ function plotOptions(size: { width: number, height: number }, params: SWParams):
 }
 
 export default function PlotSW(params: SWParams) {
+	const tColumn = params.useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
-		queryKey: ['SW', params.interval],
-		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_temperature', 'sw_density', 'plasma_beta']),
+		queryKey: ['SW', params.interval, params.useTemperatureIndex],
+		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', tColumn, 'sw_density', 'plasma_beta']),
 		optionsFn: size => plotOptions(size, params)
 	}}/>);
 }

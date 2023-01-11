@@ -54,6 +54,7 @@ export type Settings = {
 	plotAz: boolean,
 	plotImfBz: boolean,
 	plotImfBxBy: boolean,
+	plotTempIdx: boolean,
 	plotLeft?: typeof plotTypes[number],
 	plotTop?: typeof plotTypes[number],
 	plotBottom?: typeof plotTypes[number],
@@ -82,6 +83,7 @@ function defaultSettings(columns: Columns): Settings {
 		plotIndexAp: false,
 		plotImfBz: true,
 		plotImfBxBy: false,
+		plotTempIdx: false,
 		plotTimeOffset: [-2, 3],
 		plotTop: 'SW + Plasma',
 		plotBottom: 'CR + Geomagn',
@@ -101,6 +103,7 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 
 	const params = {
 		useAp: settings.plotIndexAp,
+		useTemperatureIndex: settings.plotTempIdx,
 		showAz: settings.plotAz,
 		showBz: settings.plotImfBz,
 		showBxBy: settings.plotImfBxBy,
