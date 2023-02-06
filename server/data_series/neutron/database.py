@@ -66,7 +66,7 @@ def _obtain_nmdb(interval, station, pg_cursor):
 	query = f'''INSERT INTO neutron_counts (station, time, original, pressure)
 		SELECT \'{station}\', * FROM (VALUES %s) v
 		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original, pressure = EXCLUDED.pressure'''
-	psycopg2.extras.execute_values(pg_cursor, query, data)
+	psycopg2.extras.execute_values(pg_cursor, query, data, template='(%s, %s::real, %s::real)')
 
 def _fetch_one(interval, station):
 	with pg_conn.cursor() as cursor:
