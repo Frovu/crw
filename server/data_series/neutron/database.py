@@ -63,9 +63,8 @@ def _obtain_nmdb(interval, station, pg_cursor):
 		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
 		q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
 		return pg_cursor.execute(q)
-	query = f'''WITH data(time, original, pressure) AS (VALUES %s)
-		INSERT INTO neutron_counts (time, station, original, pressure)
-		SELECT time, \'{station}\', original, pressure FROM data
+	query = f'''INSERT INTO neutron_counts (station, time, original, pressure)
+		SELECT \'{station}\', * FROM (VALUES %s) v
 		ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP, original = EXCLUDED.original, pressure = EXCLUDED.pressure'''
 	psycopg2.extras.execute_values(pg_cursor, query, data)
 
