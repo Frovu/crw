@@ -86,7 +86,7 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 	useEventListener('keydown', (e) => {
 		if (e.code === 'Escape')
 			ref.current?.blur();
-		if (e.code === 'Enter')
+		if (['NumpadEnter', 'Enter'].includes(e.code))
 			valid && callback(input && parseInput(type, input));
 	}, ref);
 

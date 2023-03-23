@@ -439,12 +439,15 @@ export function CirclesParamsInput({ params, setParams }:
 		} else if (what === 'exclude') {
 			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
 		} else if (what === 'onset') {
-			setParams({ ...params, onsets: [{ time: value, type: null, secondary: true } as Onset] });
+			if (!value)
+				return setParams({ ...params, onsets: undefined });
+			setParams({ ...params, onsets: [{ time: value, type: null } as Onset] });
 		} else {
 			setParams({ ...params, [what]: value });
 		}
 	};
 	const showDate = (d: Date) => d.toISOString().replace('T', ' ').replace(/:\d\d\..+/, '');
+	
 	return (
 		<div className='Settings'>
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
