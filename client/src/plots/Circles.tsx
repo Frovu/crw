@@ -484,8 +484,8 @@ export default function PlotCirclesStandalone() {
 		const referred = stored && JSON.parse(stored);
 		if (referred)
 			referred.interval = referred.interval.map((d: any) => new Date(d));
-		if (referred?.onset)
-			referred.onset = new Date(referred.onset);
+		if (referred?.onsets)
+			referred.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
 		return {
 			...(referred || {
 				interval: [
