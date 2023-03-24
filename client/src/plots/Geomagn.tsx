@@ -16,7 +16,7 @@ function plotOptions(size: { width: number, height: number }, params: MagnParams
 			return lastColor;
 		});
 		return uPlot.paths.bars!({
-			size: [1.1, Infinity],
+			size: [1 + (upl.data[0].length) / 1600, Infinity],
 			disp: {
 				stroke: {
 					unit: 3,
