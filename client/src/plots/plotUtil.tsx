@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { useQuery } from 'react-query';
 import { useSize } from '../util';
 import uPlot from 'uplot';
 
-import { MagneticCloud, Onset } from '../table/Table';
+import { MagneticCloud, Onset, SettingsContext } from '../table/Table';
 import UplotReact from 'uplot-react';
 
 export type BasicPlotParams = {
@@ -167,12 +167,14 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 }
 
 export function BasicPlot({ queryKey, queryFn, optionsFn }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }) => uPlot.Options}) {
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }, markers: boolean) => uPlot.Options}) {
 	const query = useQuery({
 		queryKey,
 		queryFn,
 		staleTime: 36e5,
 	});
+
+	const { settings: { plotMarkers } } = useContext(SettingsContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -184,7 +186,7 @@ export function BasicPlot({ queryKey, queryFn, optionsFn }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	const options = optionsFn(size);
+	const options = optionsFn(size, plotMarkers);
 	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={(e) => {

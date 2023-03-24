@@ -104,3 +104,25 @@ export function pointPaths(sizePx) {
 		return null;
 	};
 }
+
+export function markersPaths(type, sizePx) {
+	return (u, seriesIdx) => {
+		const size = sizePx * devicePixelRatio;
+		const p = new Path2D();
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			const deg360 = 2 * Math.PI;
+			const radius = size / 2;
+			const draw = {
+				square: (x, y) => rect(p, x - radius, y - radius, size, size),
+				circle: (x, y) => arc(p, x, y, radius, 0, deg360)
+			}[type];
+			for (let i = 0; i < dataX.length; i++) {
+				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
+				const cy = valToPosY(dataY[i], scaleY, yDim, yOff);
+				p.moveTo(cx + radius, cy);
+				draw(cx, cy);
+			}
+		});
+		return { fill: p, stroke: p };
+	};
+}

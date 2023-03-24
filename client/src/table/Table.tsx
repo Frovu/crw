@@ -52,6 +52,7 @@ export type Settings = {
 	theme: typeof themeOptions[number],
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
+	plotMarkers: boolean,
 	plotIndexAp: boolean,
 	plotAz: boolean,
 	plotImfBz: boolean,
@@ -82,6 +83,7 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		theme: 'Dark',
 		enabledColumns,
+		plotMarkers: false,
 		plotAz: false,
 		plotIndexAp: false,
 		plotImfBz: true,
