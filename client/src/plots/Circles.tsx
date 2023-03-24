@@ -148,12 +148,12 @@ function circlesPlotOptions(data: any, params: CirclesParams,
 		},
 		axes: [
 			{
-				...axisDefaults(true),
+				...axisDefaults(),
 				size: 40,
 				...customTimeSplits()
 			},
 			{
-				...axisDefaults(true),
+				...axisDefaults(),
 				scale: 'y',
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				space: 48,

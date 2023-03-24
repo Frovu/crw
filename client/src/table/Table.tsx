@@ -84,7 +84,7 @@ function defaultSettings(columns: Columns): Settings {
 	return {
 		theme: 'Dark',
 		enabledColumns,
-		plotGrid: false,
+		plotGrid: true,
 		plotMarkers: false,
 		plotAz: false,
 		plotIndexAp: false,
@@ -111,6 +111,8 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 	const params = {
 		useAp: settings.plotIndexAp,
 		useTemperatureIndex: settings.plotTempIdx,
+		showGrid: settings.plotGrid,
+		showMarkers: settings.plotMarkers,
 		showAz: settings.plotAz,
 		showBz: settings.plotImfBz,
 		showBxBy: settings.plotImfBxBy,

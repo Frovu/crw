@@ -1,9 +1,9 @@
-import { useContext, useState } from 'react';
+import { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useSize } from '../util';
 import uPlot from 'uplot';
 
-import { MagneticCloud, Onset, SettingsContext } from '../table/Table';
+import { MagneticCloud, Onset } from '../table/Table';
 import UplotReact from 'uplot-react';
 
 export type BasicPlotParams = {
@@ -13,6 +13,8 @@ export type BasicPlotParams = {
 	interactive?: boolean,
 	paddingBottom?: number,
 	showTimeAxis?: boolean,
+	showGrid: boolean,
+	showMarkers: boolean,
 };
 
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
@@ -119,7 +121,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function axisDefaults(showGrid: boolean): Partial<uPlot.Axis> {
+export function axisDefaults(grid?: boolean): Partial<uPlot.Axis> {
 	return {
 		font: font(14),
 		labelFont: font(14),
@@ -128,7 +130,7 @@ export function axisDefaults(showGrid: boolean): Partial<uPlot.Axis> {
 		labelGap: 0,
 		size: 40,
 		gap: 2,
-		grid: { show: showGrid, stroke: color('grid'), width: 2 },
+		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
 		ticks: { stroke: color('grid'), width: 2 },
 	};
 }
@@ -166,15 +168,13 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	return ordered;
 }
 
-export function BasicPlot({ queryKey, queryFn, optionsFn }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }, markers: boolean, grid: boolean) => uPlot.Options}) {
+export function BasicPlot({ queryKey, queryFn, options: userOptions }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>}) {
 	const query = useQuery({
 		queryKey,
 		queryFn,
 		staleTime: 36e5,
 	});
-
-	const { settings: { plotMarkers, plotGrid } } = useContext(SettingsContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -186,7 +186,8 @@ export function BasicPlot({ queryKey, queryFn, optionsFn }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	const options = optionsFn(size, plotMarkers, plotGrid);
+	console.log(size)
+	const options = { ...size, ...userOptions } as uPlot.Options;
 	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={(e) => {
