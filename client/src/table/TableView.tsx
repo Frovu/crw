@@ -53,7 +53,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	}, [data.length, viewSize]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (cursor && ['Enter', 'Insert'].includes(e.code))
+		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code))
 			return setCursor({ ...cursor, editing: !cursor.editing });
 		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
@@ -99,26 +99,39 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 		});		
 	});
 
+	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>();
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 	return (
-		<div className='Table' style={{ position: 'relative' }} ref={ref}>
-			<table style={{ tableLayout: 'fixed' }}>
-				<thead>
-					<tr>
-						{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
-					</tr>
-					<tr>
-						{columns.map(col => <ColumnHeader key={col.id} {...{ col, sort, setSort }}/>)}
-					</tr>
-				</thead>
-				<tbody>
-					{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-						<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
-				</tbody>
-			</table>
-			<div style={{ textAlign: 'left', color: 'var(--color-text-dark)', fontSize: '14px' }}>
-				{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
+		<div className='Table' style={{ position: 'relative' }}>
+			<div ref={ref}>
+				<table style={{ tableLayout: 'fixed' }}>
+					<thead>
+						<tr>
+							{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
+						</tr>
+						<tr>
+							{columns.map(col => <ColumnHeader key={col.id} {...{ col, sort, setSort }}/>)}
+						</tr>
+					</thead>
+					<tbody>
+						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
+							<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
+					</tbody>
+				</table>
+			</div>
+			<div style={{ height: '22px', position: 'relative' }}>
+				<span style={{ position: 'absolute', bottom: 2, left: 4, color: 'var(--color-text-dark)', fontSize: '14px' }}>
+					{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
+				</span>
+				<span style={{ position: 'absolute', right: 2, display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
+					<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
+					<button className='tableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
+					<button className='tableControl' onClick={simulateKey('End', true)}><span>E</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
+				</span>
 			</div>
 		</div>
 	);

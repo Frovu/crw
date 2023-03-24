@@ -60,6 +60,22 @@
 	display: none;
 }
 
+.tableControl {
+	border-color: var(--color-text-dark);
+	color: var(--color-text-dark);
+	position: relative;
+	padding: 0 0 0 0;
+	height: 18px;
+	width: 18px;
+}
+.tableControl * {
+	font-size: 16px;
+	font-weight: bold;
+	position: absolute;
+	top: -2px;
+	left: 4px;
+}
+
 .ColumnsSelector {
 	position: absolute;
 	left: 4px;
