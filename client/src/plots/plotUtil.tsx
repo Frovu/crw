@@ -128,8 +128,8 @@ export function axisDefaults(): Partial<uPlot.Axis> {
 		labelGap: 0,
 		size: 40,
 		gap: 2,
-		grid: { stroke: color('grid'), width: 1 },
-		ticks: { stroke: color('grid'), width: 1 },
+		grid: { stroke: color('grid'), width: 2 },
+		ticks: { stroke: color('grid'), width: 2 },
 	};
 }
 

@@ -17,7 +17,7 @@
 	--color-text: rgb(190,190,190);
 	--color-text-dark: rgb(76,76,76);
 	--color-border: grey;
-	--color-grid: rgb(48,48,48);
+	--color-grid: rgb(25,25,25);
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
 	--color-area2: rgb(155, 255, 255);
@@ -44,10 +44,10 @@
 	--color-text: rgb(22,22,22);
 	--color-text-dark: rgb(77,77,77);
 	--color-border: rgb(66,66,66);
-	--color-grid: rgb(177,177,177);
+	--color-grid: rgb(222,222,222);
   	--color-active: var(--color-skyblue);
 	--color-area: rgba(177, 82, 255, 0.1);
-	--color-area2: rgb(75, 255, 240);
+	--color-area2: rgb(38, 255, 237);
 
 	color-scheme: light;
 }
@@ -71,7 +71,7 @@
 	--color-text: rgb(0,0,0);
 	--color-text-dark: rgb(77,77,77);
 	--color-border: rgb(66,66,66);
-	--color-grid: rgb(177,177,177);
+	--color-grid: rgb(222,222,222);
   	--color-active: red;
 	--color-area: rgba(111, 111, 111, 0.17);
 	--color-area2: rgba(111, 111, 111, 0.17);
