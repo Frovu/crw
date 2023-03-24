@@ -1,5 +1,5 @@
 import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable } from './Table';
+import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
 
@@ -11,6 +11,7 @@ const KEY_COMB = {
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
 	'switchViewPlots': 'H',
+	'switchTheme': 'T',
 } as { [action: string]: string };
 
 function ColumnsSelector() {
@@ -183,6 +184,7 @@ export function Menu() {
 					<MenuButton text='Plot previous' action='plotPrev'/>
 					<MenuButton text='Plot next' action='plotNext'/>
 					<MenuButton text='Switch view' action='switchViewPlots'/>
+					<MenuButton text='Switch theme' action='switchTheme'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
@@ -198,6 +200,7 @@ export function Menu() {
 					<MenuInput text='right plots width (%)' type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
+					<MenuSelect text='Theme' value={settings.theme} options={themeOptions} callback={(v: any) => set('theme', () => v)} />
 					<div>
 						± Days:
 						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset?.[0]}

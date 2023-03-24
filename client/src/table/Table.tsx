@@ -30,6 +30,7 @@ export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
 export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
+export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -48,6 +49,7 @@ const defaultCorrParams = {
 };
 
 export type Settings = {
+	theme: typeof themeOptions[number],
 	enabledColumns: string[],
 	plotTimeOffset: [number, number], // as number of days
 	plotIndexAp: boolean,
@@ -78,6 +80,7 @@ function defaultSettings(columns: Columns): Settings {
 	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
 	const enabledColumns = Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);
 	return {
+		theme: 'Dark',
 		enabledColumns,
 		plotAz: false,
 		plotIndexAp: false,
@@ -157,7 +160,12 @@ function CoreWrapper() {
 	useEventListener('action+plotPrev', plotMove(-1));
 	useEventListener('action+plotNext', plotMove(+1));
 	useEventListener('action+switchViewPlots', () => setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots })));
+	useEventListener('action+switchTheme', () => 
+		setSettings(opts => ({ ...opts, theme: themeOptions[(themeOptions.indexOf(opts.theme) + 1) % themeOptions.length] })));
 
+	// I did not know any prettier way to do this
+	document.documentElement.setAttribute('main-theme', settings.theme);
+	
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);

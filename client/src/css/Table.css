@@ -1,6 +1,7 @@
 
 .TableApp {
-	margin: 4px;
+	background-color: var(--color-bg);
+	padding: 4px;
 	width: calc(100vw - 8px);
 	height: calc(100vh - 8px);
 	gap: 4px;

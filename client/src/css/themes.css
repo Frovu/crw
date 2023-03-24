@@ -1,0 +1,71 @@
+:root {
+	--color-crimson: rgb(165, 0, 22);
+	--color-magenta: rgb(255, 10, 110);
+	--color-red: rgb(255, 24, 24);
+	--color-orange: rgb(255, 106, 20);
+	--color-peach: rgb(255, 99, 72);
+	--color-gold: rgb(255, 219, 16);
+	--color-acid: rgb(217, 255, 0);
+	--color-green: rgb(20, 255, 20);
+	--color-skyblue: rgb(155, 255, 255);
+	--color-cyan: rgb(0, 255, 255);
+	--color-blue: rgb(0, 0, 255);
+	--color-purple: rgb(128, 0, 255);
+	--color-white: rgb(255,255,255);
+
+	--color-bg: rgb(0,0,0);
+	--color-text: rgb(190,190,190);
+	--color-text-dark: rgb(76,76,76);
+	--color-border: grey;
+	--color-grid: rgb(48,48,48);
+  	--color-active: var(--color-gold);
+	--color-area: rgba(95, 0, 175, 0.17);
+}
+
+[main-theme="Bright"] {
+	--color-crimson: rgb(165, 0, 22);
+	--color-magenta: rgb(255, 10, 110);
+	--color-red: rgb(255, 24, 24);
+	--color-orange: rgb(255, 106, 20);
+	--color-peach: rgb(255, 99, 72);
+	--color-gold: rgb(255, 219, 16);
+	--color-acid: rgb(217, 255, 0);
+	--color-green: rgb(20, 255, 20);
+	--color-skyblue: rgb(155, 255, 255);
+	--color-cyan: rgb(0, 255, 255);
+	--color-blue: rgb(0, 0, 255);
+	--color-purple: rgb(128, 0, 255);
+	--color-white: rgb(33,33,33);
+
+	--color-bg: rgb(255,255,255);
+	--color-text: rgb(0,0,0);
+	--color-text-dark: rgb(36,36,36);
+	--color-border: rgb(66,66,66);
+	--color-grid: rgb(88,88,88);
+  	--color-active: var(--color-green);
+	--color-area: rgba(95, 0, 175, 0.17);
+}
+
+[main-theme="Monochrome"] {
+	--color-crimson: rgb(165, 0, 22);
+	--color-magenta: rgb(255, 10, 110);
+	--color-red: rgb(255, 24, 24);
+	--color-orange: rgb(255, 106, 20);
+	--color-peach: rgb(255, 99, 72);
+	--color-gold: rgb(255, 219, 16);
+	--color-acid: rgb(217, 255, 0);
+	--color-green: rgb(20, 255, 20);
+	--color-skyblue: rgb(155, 255, 255);
+	--color-cyan: rgb(0, 255, 255);
+	--color-blue: rgb(0, 0, 255);
+	--color-purple: rgb(128, 0, 255);
+	--color-white: rgb(33,33,33);
+
+	--color-bg: rgb(255,255,255);
+	--color-text: rgb(0,0,0);
+	--color-text-dark: rgb(36,36,36);
+	--color-border: rgb(66,66,66);
+	--color-grid: rgb(88,88,88);
+  	--color-active: var(--color-blue);
+	--color-area: rgba(95, 0, 175, 0.17);
+}
