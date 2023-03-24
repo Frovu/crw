@@ -25,27 +25,26 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 		},
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				...customTimeSplits()
 			},
 			{
-				...axisDefaults(),
-				grid: { show: false },
+				...axisDefaults(false),
 				label: '',
 				scale: 'speed',
 				side: 1,
-				ticks: { ...axisDefaults().ticks, filter: filterV },
+				ticks: { ...axisDefaults(false).ticks, filter: filterV },
 				filter: filterV,
 				values: (u, vals) => vals.map(v => v === 1000 ? '1e3' : v),
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'imf',
 				incrs: [1, 2, 3, 5, 10, 20, 25, 50, 100],
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				scale: 'vector',
 			}
 		],
@@ -68,6 +67,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				stroke: color('acid'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('acid'),
 					fill: color('acid'),
 					paths: markersPaths('diamond', 6)
@@ -79,6 +79,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				stroke: color('purple'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('purple'),
 					fill: color('purple'),
 					paths: markersPaths('circle', 4)
@@ -90,6 +91,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				scale: 'imf',
 				stroke: color(stroke),
 				points: {
+					show: params.showMarkers,
 					stroke: color(stroke),
 					fill: color(stroke, .9),
 					paths: markersPaths(paths, paths === 'square' ? 5 : 7)

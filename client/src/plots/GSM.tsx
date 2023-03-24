@@ -25,23 +25,22 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 		},
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				...customTimeSplits()
 			},
 			{
-				...axisDefaults(),
-				grid: { show: false },
+				...axisDefaults(false),
 				side: 1,
 				label: '',
 				scale: 'axy',
 				space: 26,
 				incrs: [.5, 1, 2, 2.5, 5, 10, 20],
-				ticks: { ...axisDefaults().ticks, filter: filterAxy },
+				ticks: { ...axisDefaults(false).ticks, filter: filterAxy },
 				filter: filterAxy,
 				values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'var',
 				space: 36,
@@ -84,6 +83,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				stroke: color('green'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('green'),
 					fill: color('green', .8),
 					paths: markersPaths('diamond', 6)

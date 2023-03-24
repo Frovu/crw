@@ -121,7 +121,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function axisDefaults(grid?: boolean): Partial<uPlot.Axis> {
+export function axisDefaults(grid: boolean): Partial<uPlot.Axis> {
 	return {
 		font: font(14),
 		labelFont: font(14),
@@ -186,7 +186,6 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	console.log(size)
 	const options = { ...size, ...userOptions } as uPlot.Options;
 	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
 

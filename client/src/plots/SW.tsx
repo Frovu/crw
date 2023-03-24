@@ -23,17 +23,17 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 		},
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				...customTimeSplits(params),
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'y',
 				side: 1,
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'temp',
 				grid: { show: false },
@@ -58,6 +58,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				stroke: color('cyan'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('cyan'),
 					fill: color('cyan', .8),
 					paths: markersPaths('diamond', 6)
@@ -69,6 +70,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				stroke: color('magenta'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('magenta'),
 					fill: color('magenta'),
 					paths: markersPaths('square', 4)
@@ -80,6 +82,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				stroke: color('peach'),
 				width: 2,
 				points: {
+					show: params.showMarkers,
 					stroke: color('peach'),
 					fill: color('peach'),
 					paths: markersPaths('circle', 4)

@@ -1,4 +1,5 @@
 import uPlot from 'uplot';
+import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels } from './plotUtil';
 
 type MagnParams = BasicPlotParams & {
@@ -43,11 +44,11 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 		},
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				...customTimeSplits(params),
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'idx',
 				grid: { show: false },
@@ -56,7 +57,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 			},
 			{
 				side: 1,
-				...axisDefaults(),
+				...axisDefaults(params.showGrid),
 				gap: -1,
 				label: '',
 				scale: 'dst',
@@ -97,7 +98,12 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				scale: 'dst',
 				stroke: color('skyblue'),
 				width: 2,
-				points: { show: false },
+				points: {
+					show: params.showMarkers,
+					stroke: color('skyblue'),
+					fill: color('skyblue', .9),
+					paths: markersPaths('circle', 3)
+				}
 			},
 		]
 	};
