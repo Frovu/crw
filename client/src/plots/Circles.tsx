@@ -148,12 +148,12 @@ function circlesPlotOptions(data: any, params: CirclesParams,
 		},
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(true),
 				size: 40,
 				...customTimeSplits()
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(true),
 				scale: 'y',
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				space: 48,
@@ -224,14 +224,14 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 		hooks: { },
 		axes: [
 			{
-				...axisDefaults(),
+				...axisDefaults(true),
 				size: 36,
 				space: 36,
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				incrs: Array(360 / 45).fill(1).map((a,  i) => i * 45)
 			},
 			{
-				...axisDefaults(),
+				...axisDefaults(true),
 				size: 54,
 				space: 36,
 				scale: 'y',

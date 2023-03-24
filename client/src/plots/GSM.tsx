@@ -7,7 +7,7 @@ type GSMParams = BasicPlotParams & {
 };
 
 function gsmPlotOptions(params: GSMParams) {
-	return (size: { width: number, height: number }, markers: boolean): uPlot.Options => {
+	return (size: { width: number, height: number }, markers: boolean, grid: boolean): uPlot.Options => {
 		const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min! ? sp : null);
 		const az = params.showAz;
 		return {
@@ -27,23 +27,23 @@ function gsmPlotOptions(params: GSMParams) {
 			},
 			axes: [
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					...customTimeSplits()
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					grid: { show: false },
 					side: 1,
 					label: '',
 					scale: 'axy',
 					space: 26,
 					incrs: [.5, 1, 2, 2.5, 5, 10, 20],
-					ticks: { ...axisDefaults().ticks, filter: filterAxy },
+					ticks: { ...axisDefaults(grid).ticks, filter: filterAxy },
 					filter: filterAxy,
 					values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					label: '',
 					scale: 'var',
 					space: 36,

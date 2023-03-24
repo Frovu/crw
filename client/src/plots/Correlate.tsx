@@ -8,7 +8,7 @@ import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color } from './plotUtil';
 
 export default function CorrelationPlot() {
-	const { options: { correlation: params } } = useContext(SettingsContext);
+	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);
 	const { columns, prettyColumn } = useContext(TableContext);
 	const { sample } = useContext(DataContext);
 
@@ -42,13 +42,13 @@ export default function CorrelationPlot() {
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
 					{
-						...axisDefaults(),
+						...axisDefaults(plotGrid),
 						label: prettyColumn(params.columnX),
 						labelSize: 22,
 						size: 30,
 					},
 					{
-						...axisDefaults(),
+						...axisDefaults(plotGrid),
 						label: prettyColumn(params.columnY),
 						size: 56,
 					},
@@ -76,7 +76,7 @@ export default function CorrelationPlot() {
 			} as uPlot.Options,
 			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
-	}, [params, columns, sample, prettyColumn]);
+	}, [params, columns, sample, prettyColumn, plotGrid]);
 
 	if (!plotOpts) return null;
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>

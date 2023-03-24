@@ -119,7 +119,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function axisDefaults(): Partial<uPlot.Axis> {
+export function axisDefaults(showGrid: boolean): Partial<uPlot.Axis> {
 	return {
 		font: font(14),
 		labelFont: font(14),
@@ -128,7 +128,7 @@ export function axisDefaults(): Partial<uPlot.Axis> {
 		labelGap: 0,
 		size: 40,
 		gap: 2,
-		grid: { stroke: color('grid'), width: 2 },
+		grid: { show: showGrid, stroke: color('grid'), width: 2 },
 		ticks: { stroke: color('grid'), width: 2 },
 	};
 }
@@ -167,14 +167,14 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 }
 
 export function BasicPlot({ queryKey, queryFn, optionsFn }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }, markers: boolean) => uPlot.Options}) {
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, optionsFn: (size: { width: number, height: number }, markers: boolean, grid: boolean) => uPlot.Options}) {
 	const query = useQuery({
 		queryKey,
 		queryFn,
 		staleTime: 36e5,
 	});
 
-	const { settings: { plotMarkers } } = useContext(SettingsContext);
+	const { settings: { plotMarkers, plotGrid } } = useContext(SettingsContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -186,7 +186,7 @@ export function BasicPlot({ queryKey, queryFn, optionsFn }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	const options = optionsFn(size, plotMarkers);
+	const options = optionsFn(size, plotMarkers, plotGrid);
 	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={(e) => {

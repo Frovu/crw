@@ -7,7 +7,7 @@ type SWParams = BasicPlotParams & {
 };
 
 function plotOptions(params: SWParams) {
-	return (size: { width: number, height: number }, markers: boolean): uPlot.Options => {
+	return (size: { width: number, height: number }, markers: boolean, grid: boolean): uPlot.Options => {
 		return {
 			...size,
 			padding: [7, 0, 12, 0],
@@ -25,17 +25,17 @@ function plotOptions(params: SWParams) {
 			},
 			axes: [
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					...customTimeSplits(params),
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					label: '',
 					scale: 'y',
 					side: 1,
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					label: '',
 					scale: 'temp',
 					grid: { show: false },

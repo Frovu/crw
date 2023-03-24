@@ -8,7 +8,7 @@ import { axisDefaults, color } from './plotUtil';
 
 export default function HistogramPlot() {
 	const { data, columns, prettyColumn } = useContext(TableContext);
-	const { options: { hist: options } } = useContext(SettingsContext);
+	const { options: { hist: options }, settings: { plotGrid } } = useContext(SettingsContext);
 	const { sample: currentSample } = useContext(DataContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -49,13 +49,13 @@ export default function HistogramPlot() {
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
 					{
-						...axisDefaults(),
+						...axisDefaults(plotGrid),
 						size: 30,
 						labelSize: 20,
 						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i]).map(c => prettyColumn(c as string)).join(', ')
 					},
 					{
-						...axisDefaults(),
+						...axisDefaults(plotGrid),
 						values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
 						size: 56
 					},
@@ -94,7 +94,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, prettyColumn, currentSample]);
+	}, [data, options, columns, prettyColumn, currentSample, plotGrid]);
 
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...hist(size)}/>

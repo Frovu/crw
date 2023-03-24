@@ -8,7 +8,7 @@ type IMFParams = BasicPlotParams & {
 };
 
 function imfPlotOptions(params: IMFParams) {
-	return (size: { width: number, height: number }, markers: boolean): uPlot.Options => {
+	return (size: { width: number, height: number }, markers: boolean, grid: boolean): uPlot.Options => {
 		const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > (u.scales.speed.max! - u.scales.speed.min!) / 2 + u.scales.speed.min! ? sp : null);
 		return {
 			...size,
@@ -27,27 +27,27 @@ function imfPlotOptions(params: IMFParams) {
 			},
 			axes: [
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					...customTimeSplits()
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					grid: { show: false },
 					label: '',
 					scale: 'speed',
 					side: 1,
-					ticks: { ...axisDefaults().ticks, filter: filterV },
+					ticks: { ...axisDefaults(grid).ticks, filter: filterV },
 					filter: filterV,
 					values: (u, vals) => vals.map(v => v === 1000 ? '1e3' : v),
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					label: '',
 					scale: 'imf',
 					incrs: [1, 2, 3, 5, 10, 20, 25, 50, 100],
 				},
 				{
-					...axisDefaults(),
+					...axisDefaults(grid),
 					scale: 'vector',
 				}
 			],
