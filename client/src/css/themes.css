@@ -21,6 +21,8 @@
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
 	--color-area2: rgb(155, 255, 255);
+
+	color-scheme: dark;
 }
 
 [main-theme="Bright"] {
@@ -46,6 +48,8 @@
   	--color-active: var(--color-skyblue);
 	--color-area: rgba(177, 82, 255, 0.1);
 	--color-area2: rgb(75, 255, 240);
+
+	color-scheme: light;
 }
 
 [main-theme="Monochrome"] {
@@ -58,7 +62,7 @@
 	--color-acid: rgb(111, 111, 111);
 	--color-green: rgb(33, 33, 33);
 	--color-skyblue: rgb(0, 0, 0);
-	--color-cyan: rgb(188, 188, 188);
+	--color-cyan: rgb(166, 166, 166);
 	--color-blue: rgb(0, 0, 0);
 	--color-purple: rgb(0, 0, 0);
 	--color-white: rgb(33,33,33);
@@ -71,4 +75,6 @@
   	--color-active: red;
 	--color-area: rgba(111, 111, 111, 0.17);
 	--color-area2: rgba(111, 111, 111, 0.17);
+
+	color-scheme: light;
 }

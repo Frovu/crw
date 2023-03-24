@@ -63,7 +63,7 @@ function plotOptions(params: SWParams) {
 						stroke: color('cyan'),
 						fill: color('cyan', .8),
 						show: markers,
-						paths: markersPaths('square', 4)
+						paths: markersPaths('diamond', 6)
 					},
 				},
 				{
@@ -75,7 +75,7 @@ function plotOptions(params: SWParams) {
 						stroke: color('magenta'),
 						fill: color('magenta'),
 						show: markers,
-						paths: markersPaths('circle', 3)
+						paths: markersPaths('square', 4)
 					},
 				},
 				{
@@ -87,7 +87,7 @@ function plotOptions(params: SWParams) {
 						stroke: color('peach'),
 						fill: color('peach'),
 						show: markers,
-						paths: markersPaths('circle', 3)
+						paths: markersPaths('circle', 4)
 					},
 				},
 			]

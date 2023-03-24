@@ -114,7 +114,26 @@ export function markersPaths(type, sizePx) {
 			const radius = size / 2;
 			const draw = {
 				square: (x, y) => rect(p, x - radius, y - radius, size, size),
-				circle: (x, y) => arc(p, x, y, radius, 0, deg360)
+				circle: (x, y) => arc(p, x, y, radius, 0, deg360),
+				triangleUp: (x, y) => {
+					moveTo(p, x, y - radius);
+					lineTo(p, x - radius, y + radius);
+					lineTo(p, x + radius, y + radius);
+					p.closePath();
+				},
+				triangleDown: (x, y) => {
+					moveTo(p, x, y + radius);
+					lineTo(p, x - radius, y - radius);
+					lineTo(p, x + radius, y - radius);
+					p.closePath();
+				},
+				diamond: (x, y) => {
+					moveTo(p, x, y - radius);
+					lineTo(p, x - radius, y);
+					lineTo(p, x, y + radius);
+					lineTo(p, x + radius, y);
+					p.closePath();
+				}
 			}[type];
 			for (let i = 0; i < dataX.length; i++) {
 				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);

@@ -87,9 +87,9 @@ function gsmPlotOptions(params: GSMParams) {
 					width: 2,
 					points: {
 						stroke: color('green'),
-						fill: color('bg'),
+						fill: color('green', .8),
 						show: markers,
-						paths: markersPaths('circle', 5)
+						paths: markersPaths('diamond', 6)
 					}
 				},
 			]

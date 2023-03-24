@@ -73,7 +73,7 @@ function imfPlotOptions(params: IMFParams) {
 						stroke: color('acid'),
 						fill: color('acid'),
 						show: markers,
-						paths: markersPaths('circle', 3)
+						paths: markersPaths('diamond', 6)
 					},
 				},
 				{
@@ -85,19 +85,19 @@ function imfPlotOptions(params: IMFParams) {
 						stroke: color('purple'),
 						fill: color('purple'),
 						show: markers,
-						paths: markersPaths('circle', 3)
+						paths: markersPaths('circle', 4)
 					},
 				},
-				...[['Bx', 'cyan', 'tri_down'], ['By', 'green', 'tri_up'], ['Bz', 'magenta', 'square']].map(([label, stroke, paths]) => ({
+				...[['Bx', 'cyan', 'triangleDown'], ['By', 'green', 'triangleUp'], ['Bz', 'magenta', 'square']].map(([label, stroke, paths]) => ({
 					show: label === 'Bz' ? params.showBz : params.showBxBy,
 					label,
 					scale: 'imf',
 					stroke: color(stroke),
 					points: {
 						stroke: color(stroke),
-						fill: color(stroke, .8),
+						fill: color(stroke, .9),
 						show: markers,
-						paths: markersPaths(paths, 5)
+						paths: markersPaths(paths, paths === 'square' ? 5 : 7)
 					},
 				}))
 			]
