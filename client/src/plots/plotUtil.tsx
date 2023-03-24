@@ -39,7 +39,7 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 		const startX = u.valToPos(cloud.start.getTime() / 1e3, 'x', true);
 		const endX = u.valToPos(cloud.end.getTime() / 1e3, 'x', true);
 		u.ctx.save();
-		u.ctx.fillStyle = u.ctx.strokeStyle = color('skyblue', .1);
+		u.ctx.fillStyle = u.ctx.strokeStyle = color('area2', .1);
 		u.ctx.fillRect(startX, u.bbox.top, endX - startX, u.bbox.height);
 		u.ctx.restore();
 	}
