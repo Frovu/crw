@@ -88,6 +88,13 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 	};
 }
 
+export function drawBackground(u: uPlot) {
+	u.ctx.save();
+	u.ctx.fillStyle = color('bg');
+	u.ctx.fillRect(0, 0, u.width, u.height);
+	u.ctx.restore();
+}
+
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
 	return {
 		splits: (u, ax, min, max, incr, space) => {
@@ -177,8 +184,18 @@ export function BasicPlot({ queryKey, queryFn, optionsFn }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
-		<UplotReact {...{ options: optionsFn(size), data: query.data as any }}/>
+	const options = optionsFn(size);
+	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
+
+	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={(e) => {
+		if (e.altKey) {
+			const a = document.createElement('a');
+			a.download = 'aid_plot.png';
+			a.href = container?.querySelector('canvas')?.toDataURL()!;
+			a.click();
+		}
+	}}>
+		<UplotReact {...{ options, data: query.data as any }}/>
 	</div>);
 
 }
