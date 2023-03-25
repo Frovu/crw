@@ -136,8 +136,11 @@ export function markersPaths(type, sizePx) {
 				}
 			}[type];
 			for (let i = 0; i < dataX.length; i++) {
+				const val = dataY[i];
+				if (val == null || val <= scaleY.min || val >= scaleY.max)
+					continue;
 				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
-				const cy = valToPosY(dataY[i], scaleY, yDim, yOff);
+				const cy = valToPosY(val, scaleY, yDim, yOff);
 				p.moveTo(cx + radius, cy);
 				draw(cx, cy);
 			}
