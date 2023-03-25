@@ -42,7 +42,7 @@ type CirclesMomentResponse = {
 	angle: number
 };
 
-function circlesPlotOptions(data: any, params: CirclesParams,
+function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
 	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
 	const interactive = params.interactive;
 	let qt: Quadtree;
@@ -85,6 +85,12 @@ function circlesPlotOptions(data: any, params: CirclesParams,
 			})
 		},
 		hooks: {
+			setSeries: [
+				(u, sIdx) => {
+					if (sIdx !== 3) return;
+					setIdxEnabled(u.series[3].show!);
+				}
+			],
 			drawClear: [
 				u => {
 					u.setSelect({
@@ -197,6 +203,7 @@ function circlesPlotOptions(data: any, params: CirclesParams,
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
 			{
+				show: idxEnabled,
 				scale: 'idx',
 				label: 'idx',
 				stroke: color('acid'),
@@ -357,6 +364,7 @@ const LEGEND_H = 32;
 export function PlotCircles({ params, settingsOpen }:
 { params: CirclesParams, settingsOpen?: boolean }) {
 	const interactive = params.interactive;
+	const [ idxEnabled, setIdxEnabled ] = useState(true);
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
@@ -396,10 +404,10 @@ export function PlotCircles({ params, settingsOpen }:
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(query.data, params, setBase, setMoment)
+			...circlesPlotOptions(query.data, params, idxEnabled, setIdxEnabled, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, container, size.height <= 0, params.onsets]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0, params.onsets, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;

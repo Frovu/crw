@@ -73,6 +73,10 @@ button:hover, select:hover {
 	font-family: var(--font);
 }
 
+.u-legend {
+	user-select: none;
+}
+
 .u-title {
 	font-size: 16px;
 	margin: 2px;
