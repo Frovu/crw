@@ -8,7 +8,7 @@ pg_conn = psycopg2.connect(
 	host = os.environ.get('DB_HOST')
 )
 
-from core.generic_columns import select_generics, compute_generic
+from core.generic_columns import select_generics, init_generics
 
 dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
@@ -61,7 +61,7 @@ def render_view():
 	with open(os.path.join(dirname, '../data/tables_rendered.json'), 'w') as file:
 		json.dump(info, file)
 
-	compute_generic(generics[1])
+	init_generics()
 
 render_view()
 

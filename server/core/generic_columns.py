@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from math import floor, ceil
+from concurrent.futures import ThreadPoolExecutor
 import data_series.omni.database as omni
 import data_series.gsm.database as gsm
 import json, logging
@@ -10,7 +11,11 @@ import numpy as np
 import psycopg2.extras
 
 log = logging.getLogger('aides')
+
 PERIOD = 3600
+RANGE_LEFT =  24 * PERIOD
+RANGE_RIGHT = 48 * PERIOD
+
 SERIES = {
 	"sw_speed": ["omni", "V"],
 	"sw_density": ["omni", "D"],
@@ -33,6 +38,7 @@ SERIES = {
 
 @dataclass
 class GenericColumn:
+	id: int
 	created: datetime
 	last_accesssed: datetime
 	last_computed: datetime
@@ -47,7 +53,7 @@ class GenericColumn:
 
 	@classmethod
 	def from_config(cls, desc):
-		return cls(None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
+		return cls(None, None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
 
 	def __post_init__(self):
 		name = f'g_{self.type}_{self.series}'
@@ -68,6 +74,7 @@ class GenericColumn:
 def _init():
 	with pg_conn.cursor() as cursor:
 		cursor.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
+			id serial primary key,
 			created timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_accesssed timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
@@ -99,28 +106,58 @@ def select_generics():
 	result = [GenericColumn(*row) for row in rows]
 	return result
 
-def _get_moment(time, series):
+def _select(t_from, t_to, series):
 	if SERIES[series][0] == 'omni':
-		res = omni.select([time, time], [series])
+		return omni.select([t_from, t_to], [series])[0]
 	else:
-		res = gsm.select([time, time], series)
-	return res[0][0][1] if len(res[0]) else None
+		return gsm.select([t_from, t_to], series)[0]
 
-def compute_generic(generic: GenericColumn):
+def compute_generic(events, generic):
 	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT id, time FROM events.default_view')
-		events = np.array(cursor.fetchall())
-		result = np.empty(len(events), dtype=object)
-		omni.ensure_prepared([events[0][1] - 24 * PERIOD, events[-1][1] + 48 * PERIOD])
-		for i in range(len(result)):
-			if generic.type == 'moment':
+		log.info(f'Computing {generic.name} for {generic.entity}')
+		result = np.full(len(events), None, dtype=object)
+		if generic.type == 'moment':
+			for i in range(len(result)):
 				hours = events[i][1] / PERIOD + (generic.shift or 0)
 				moment = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
 				if generic.poi == 'onset':
-					result[i] = _get_moment(moment, generic.series)
-			else:
-				pass
+					res = _select(moment, moment, generic.series)
+					result[i] = res[0][1] if len(res) else None
+				else:
+					assert False
+		elif generic.type in ['min', 'max', 'abs_min', 'abs_max']:
+			for i in range(len(result)):
+				# b_prev = None if i < 1 else ceil(events[i-1][1] / PERIOD)
+				time = floor(events[i][1] / PERIOD) * PERIOD
+				bound_right = time + RANGE_RIGHT
+				if i < len(result) - 1:
+					bound_event = (floor(events[i+1][1] / PERIOD) - 1) * PERIOD
+					bound_right = min(bound_right, bound_event)
+				data = np.array(_select(time, bound_right, generic.series), dtype=np.float64)
+				if not len(data): continue
+				target = np.abs(data[:,1]) if 'abs' in generic.type else data[:,1]
+				if not np.isnan(target).all():
+					result[i] = np.nanmax(target) if 'max' in generic.type else np.nanmin(target)
+		else:
+			assert False
+
 		q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
 		psycopg2.extras.execute_values(cursor, q, np.column_stack((events[:,0], result)), template='(%s, %s::real)')
+		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+		log.info(f'Computed {generic.name} for {generic.entity}')
+
+
+def compute_generics(generics: [GenericColumn]):
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT id, time FROM events.default_view')
+		events = np.array(cursor.fetchall())
+		omni.ensure_prepared([events[0][1] - 24 * PERIOD, events[-1][1] + 48 * PERIOD])
+	with ThreadPoolExecutor() as executor:
+		for generic in generics:
+			executor.submit(compute_generic, events, generic)
+	pg_conn.commit()
 		
-	log.info(f'Computed {generic.name} for {generic.entity}')
+def init_generics():
+	gs = select_generics()
+	# FIXME: what days wtf
+	compute_generics([g for g in gs if g.last_computed is None])
