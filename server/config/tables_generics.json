@@ -1,0 +1,58 @@
+{
+	"forbush_effects": [
+		{
+			"type": "max",
+			"series": "sw_speed"
+		},
+		{
+			"type": "moment",
+			"series": "sw_speed",
+			"poi": "onset",
+			"shift": -1
+		},
+		{
+			"type": "max",
+			"series": "imf_scalar"
+		},
+		{
+			"type": "max",
+			"series": "imf_x"
+		},
+		{
+			"type": "max",
+			"series": "imf_y"
+		},
+		{
+			"type": "max",
+			"series": "imf_z"
+		},
+		{
+			"type": "abs_max",
+			"series": "imf_z"
+		},
+		{
+			"type": "max",
+			"series": "kp_index"
+		},
+		{
+			"type": "max",
+			"series": "ap_index"
+		},
+		{
+			"type": "min",
+			"series": "dst_index"
+		},
+		{
+			"type": "max",
+			"series": "Axy"
+		},
+		{
+			"type": "max",
+			"series": "Ax"
+		},
+		{
+			"type": "max",
+			"series": "Ay"
+		}
+	]
+}
