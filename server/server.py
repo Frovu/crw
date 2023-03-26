@@ -35,9 +35,15 @@ logging.getLogger('urllib3').propagate = False
 logger.critical('STARTING SERVER')
 
 from flask import Flask, session
-from routers import admin, events, neutron, gsm, omni
+from flask_session import Session
+from flask_bcrypt import Bcrypt
 
 app = Flask('aides')
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_FILE_THRESHOLD'] = 32
+
+Session(app)
+bcrypt = Bcrypt(app)
 
 @app.after_request
 def after_request(response):
@@ -48,8 +54,10 @@ def after_request(response):
         response.headers['Access-Control-Allow-Credentials'] = 'true'
     return response
 
+from routers import admin, auth, events, neutron, gsm, omni
 app.register_blueprint(gsm.bp)
 app.register_blueprint(omni.bp)
+app.register_blueprint(auth.bp)
 app.register_blueprint(admin.bp)
 app.register_blueprint(events.bp)
 app.register_blueprint(neutron.bp)
