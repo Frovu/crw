@@ -150,12 +150,13 @@ function CorrelationMenu() {
 	const { columns, prettyColumn } = useContext(TableContext);
 	const { options, setOptions } = useContext(SettingsContext);
 	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
-	const pretty = Object.values(columns).filter(c => !c.hidden).map(c => prettyColumn(c));
+	const selection = Object.keys(columns).filter(c => !columns[c].hidden);
+	const pretty = selection.map(c => prettyColumn(columns[c]));
 
 	return (<>
 		<h4>Correlation</h4>
-		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={Object.keys(columns)} pretty={pretty} callback={set('columnX')}/>
-		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={Object.keys(columns)} pretty={pretty} callback={set('columnY')}/>
+		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
+		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
 		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
 	</>);
