@@ -66,7 +66,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			e.preventDefault();
 			const cell = ref.current!.children[0]?.children[1].children[0].children[curs.column] as HTMLElement;
 			const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
-			ref.current?.scrollTo({ left });
+			ref.current?.parentElement?.scrollTo({ left });
 		};
 		if (e.ctrlKey && e.code === 'Home')
 			return set({ row: 0, column: cursor?.column ?? 0 });
@@ -103,7 +103,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	const tables = new Map<any, ColumnDef[]>();
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 	return (
-		<div className='Table' style={{ position: 'relative' }}>
+		<div className='Table'>
 			<div ref={ref}>
 				<table style={{ tableLayout: 'fixed' }}>
 					<thead>
@@ -120,18 +120,20 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 					</tbody>
 				</table>
 			</div>
-			<div style={{ height: '22px', position: 'relative' }}>
-				<span style={{ position: 'absolute', bottom: 2, left: 4, color: 'var(--color-text-dark)', fontSize: '14px' }}>
-					{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
-				</span>
-				<span style={{ position: 'absolute', right: 2, display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
-					<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
-					<button className='tableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
-					<button className='tableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
-					<button className='tableControl' onClick={simulateKey('End', true)}><span>E</span></button>
-					<button className='tableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
-					<button className='tableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
-				</span>
+			<div style={{ height: '22px' }}>
+				<div style={{ position: 'fixed', padding: '0 2px 0 2px', width: (ref.current?.offsetWidth ?? 400) - 4, display: 'inline-flex', justifyContent: 'space-between' }}>
+					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
+						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
+					</span>
+					<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
+						<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
+						<button className='tableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
+						<button className='tableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
+						<button className='tableControl' onClick={simulateKey('End', true)}><span>E</span></button>
+						<button className='tableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
+						<button className='tableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
+					</span>
+				</div>
 			</div>
 		</div>
 	);
