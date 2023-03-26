@@ -100,7 +100,7 @@ _init()
 
 def select_generics():
 	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT * FROM events.generic_columns_info')
+		cursor.execute('SELECT * FROM events.generic_columns_info ORDER BY id')
 		rows = cursor.fetchall()
 	cols = [desc[0] for desc in cursor.description]
 	result = [GenericColumn(*row) for row in rows]
@@ -114,42 +114,48 @@ def _select(t_from, t_to, series):
 
 def compute_generic(events, generic):
 	with pg_conn.cursor() as cursor:
-		log.info(f'Computing {generic.name} for {generic.entity}')
-		result = np.full(len(events), None, dtype=object)
-		if generic.type == 'moment':
-			for i in range(len(result)):
-				hours = events[i][1] / PERIOD + (generic.shift or 0)
-				moment = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
-				if generic.poi == 'onset':
-					res = _select(moment, moment, generic.series)
-					result[i] = res[0][1] if len(res) else None
-				else:
-					assert False
-		elif generic.type in ['min', 'max', 'abs_min', 'abs_max']:
-			for i in range(len(result)):
-				# b_prev = None if i < 1 else ceil(events[i-1][1] / PERIOD)
-				time = floor(events[i][1] / PERIOD) * PERIOD
-				bound_right = time + RANGE_RIGHT
-				if i < len(result) - 1:
-					bound_event = (floor(events[i+1][1] / PERIOD) - 1) * PERIOD
-					bound_right = min(bound_right, bound_event)
-				data = np.array(_select(time, bound_right, generic.series), dtype=np.float64)
-				if not len(data): continue
-				target = np.abs(data[:,1]) if 'abs' in generic.type else data[:,1]
-				if not np.isnan(target).all():
-					result[i] = np.nanmax(target) if 'max' in generic.type else np.nanmin(target)
-		else:
-			assert False
+		try:
+			log.info(f'Computing {generic.name} for {generic.entity}')
+			result = np.full(len(events), None, dtype=object)
+			if generic.type == 'moment':
+				for i in range(len(result)):
+					hours = events[i][1] / PERIOD + (generic.shift or 0)
+					moment = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
+					if generic.poi == 'onset':
+						res = _select(moment, moment, generic.series)
+						result[i] = res[0][1] if len(res) else None
+					else:
+						assert False
+			elif generic.type in ['min', 'max', 'abs_min', 'abs_max']:
+				for i in range(len(result)):
+					# b_prev = None if i < 1 else ceil(events[i-1][1] / PERIOD)
+					time = floor(events[i][1] / PERIOD) * PERIOD
+					bound_right = time + RANGE_RIGHT
+					if i < len(result) - 1:
+						bound_event = (floor(events[i+1][1] / PERIOD) - 1) * PERIOD
+						bound_right = min(bound_right, bound_event)
+					data = np.array(_select(time, bound_right, generic.series), dtype=np.float64)
+					if not len(data): continue
+					target = np.abs(data[:,1]) if 'abs' in generic.type else data[:,1]
+					if not np.isnan(target).all():
+						result[i] = np.nanmax(target) if 'max' in generic.type else np.nanmin(target)
+			else:
+				assert False
+			
+			if generic.series == 'kp_index':
+				result[result != None] /= 10
 
-		q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
-		psycopg2.extras.execute_values(cursor, q, np.column_stack((events[:,0], result)), template='(%s, %s::real)')
-		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-		log.info(f'Computed {generic.name} for {generic.entity}')
+			q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
+			psycopg2.extras.execute_values(cursor, q, np.column_stack((events[:,0], result)), template='(%s, %s::real)')
+			cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+			log.info(f'Computed {generic.name} for {generic.entity}')
+		except Exception as e:
+			 log.info(f'Failed at {generic.name}: {e}')
 
 
 def compute_generics(generics: [GenericColumn]):
 	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT id, time FROM events.default_view')
+		cursor.execute('SELECT id, time FROM events.default_view ORDER BY time')
 		events = np.array(cursor.fetchall())
 		omni.ensure_prepared([events[0][1] - 24 * PERIOD, events[-1][1] + 48 * PERIOD])
 	with ThreadPoolExecutor() as executor:
