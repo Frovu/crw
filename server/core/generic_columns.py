@@ -82,9 +82,9 @@ def _init():
 			author integer,
 			type text not null,
 			series text not null,
-			poi text,
-			shift integer,
-			UNIQUE NULLS NOT DISTINCT (entity, type, series, poi, shift))''')
+			poi text not null default '',
+			shift integer not null default 0,
+			UNIQUE (entity, type, series, poi, shift))''')
 		path = Path(__file__, '../../config/tables_generics.json').resolve()
 		with open(path) as file:
 			generics = json.load(file)
@@ -119,7 +119,7 @@ def compute_generic(events, generic):
 			result = np.full(len(events), None, dtype=object)
 			if generic.type == 'moment':
 				for i in range(len(result)):
-					hours = events[i][1] / PERIOD + (generic.shift or 0)
+					hours = events[i][1] / PERIOD + generic.shift
 					moment = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
 					if generic.poi == 'onset':
 						res = _select(moment, moment, generic.series)
