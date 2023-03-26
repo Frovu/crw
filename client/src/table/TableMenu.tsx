@@ -64,17 +64,17 @@ export function MenuButton({ text, action }: { text: string, action: string }) {
 	);
 }
 
-export function MenuSelect({ text, value, options, callback, width }:
-{ text: string, value: string | null, width?: string, options: readonly (string|null)[], callback: (val: string | null) => void}) {
+export function MenuSelect({ text, value, options, pretty, callback, width }:
+{ text: string, value: string | null, width?: string, options: readonly (string|null)[], pretty?: string[], callback: (val: string | null) => void}) {
 	return (
 		<span>
 			{text}:
 			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(width && { width }), ...(!value && { color: 'var(--color-text-dark)' }) }}
 				value={value || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => callback(e.target.value === '--none' ? null : e.target.value)}> 
-				{options.map(opt => opt == null ?
+				{options.map((opt, i) => opt == null ?
 					<option key='--none' value='--none'>-- None --</option> :
-					<option key={opt} value={opt}>{opt}</option>)}
+					<option key={opt} value={opt}>{pretty?.[i] ?? opt}</option>)}
 			</select>
 		</span>
 	);
@@ -147,14 +147,15 @@ function ExportMenu() {
 }
 
 function CorrelationMenu() {
-	const { columns } = useContext(TableContext);
+	const { columns, prettyColumn } = useContext(TableContext);
 	const { options, setOptions } = useContext(SettingsContext);
 	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
+	const pretty = Object.values(columns).filter(c => !c.hidden).map(c => prettyColumn(c));
 
 	return (<>
 		<h4>Correlation</h4>
-		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={Object.keys(columns)} callback={set('columnX')}/>
-		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={Object.keys(columns)} callback={set('columnY')}/>
+		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={Object.keys(columns)} pretty={pretty} callback={set('columnX')}/>
+		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={Object.keys(columns)} pretty={pretty} callback={set('columnY')}/>
 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
 		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
 	</>);
