@@ -15,31 +15,29 @@ dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
 	tables_info = json.load(file)
 
-def init_view():
+def render_view():
 	generics = select_generics()
+	columns, joins = [], []
+	first_table = list(tables_info)[0]
+	for table in tables_info:
+		for column, desc in tables_info[table].items():
+			if column.startswith('_'):
+				continue
+			if ref := desc.get('references'):
+				joins.append(f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}')
+			else:
+				col = f'{table}.{column}'
+				value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
+				name = f'{table}_{column}' if table != first_table else column
+				columns.append(f'{value} as {name}')
+	for g in generics:
+		columns.append(f'{g.entity}.{g.name} as {g.name}')
+	select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
+	view_query = 'CREATE VIEW events.default_view AS\n' + select_query
 	with pg_conn.cursor() as cursor:
-		columns, joins = [], []
-		first_table = list(tables_info)[0]
-		for table in tables_info:
-			for column, desc in tables_info[table].items():
-				if column.startswith('_'):
-					continue
-				if ref := desc.get('references'):
-					joins.append(f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}')
-				else:
-					col = f'{table}.{column}'
-					value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
-					name = f'{table}_{column}' if table != first_table else column
-					columns.append(f'{value} as {name}')
-		for generic in generics:
-			entity, name = generic.get('entity'), generic.get('name')
-			columns.append(f'{entity}.{name} as {name}')
-		select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
-		view_query = 'CREATE VIEW events.default_view AS\n' + select_query
 		cursor.execute('DROP VIEW IF EXISTS events.default_view')
 		cursor.execute(view_query)
 
-def render_tables_info():
 	info = dict()
 	for i, (table, table_info) in enumerate(tables_info.items()):
 		info[table] = dict()
@@ -55,11 +53,16 @@ def render_tables_info():
 				info[table][tag]['enum'] = enum
 			if description := col_desc.get('description'):
 				info[table][tag]['description'] = description
+	for g in generics:
+		# TODO: pretty name and description
+		info[g.entity][g.name] = {
+			'name': g.pretty_name,
+			'type': 'real'
+		}
 	with open(os.path.join(dirname, '../data/tables_rendered.json'), 'w') as file:
 		json.dump(info, file)
 
-init_view()	
-render_tables_info()
+render_view()
 
 def select_all(t_from=None, t_to=None):
 	with pg_conn.cursor() as cursor:

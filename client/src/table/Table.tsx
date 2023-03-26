@@ -254,7 +254,7 @@ function SourceDataWrapper({ columns, table }: { columns: Columns, table: string
 			const resp: {data: any[][], fields: string[]} = await res.json();
 			if (!resp?.data.length)
 				return null;
-			const orderedColumns = Object.fromEntries(resp.fields.map(f => [f, columns[f]]));
+			const orderedColumns = Object.fromEntries(resp.fields.filter(f => columns[f]).map(f => [f, columns[f]]));
 			for (const [i, col] of Object.values(orderedColumns).entries()) {
 				if (col.type === 'time') {
 					for (const row of resp.data) {
