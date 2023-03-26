@@ -2,8 +2,15 @@ from core.database import pg_conn
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-import json
+from math import floor, ceil
+import data_series.omni.database as omni
+import data_series.gsm.database as gsm
+import json, logging
+import numpy as np
+import psycopg2.extras
 
+log = logging.getLogger('aides')
+PERIOD = 3600
 SERIES = {
 	"sw_speed": ["omni", "V"],
 	"sw_density": ["omni", "D"],
@@ -54,7 +61,7 @@ class GenericColumn:
 		if self.type == 'moment':
 			self.pretty_name = f'{series} at {self.poi}'
 			if self.shift and self.shift != 0:
-				self.pretty_name += f'{"+" if self.shift > 0 else "-"}{self.poi}'
+				self.pretty_name += f'{"+" if self.shift > 0 else "-"}{abs(int(self.shift))}h'
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
 
@@ -82,6 +89,7 @@ def _init():
 				col_name = GenericColumn.from_config(generic).name
 				cursor.execute(f'ALTER TABLE events.{table} ADD COLUMN IF NOT EXISTS {col_name} REAL')
 		pg_conn.commit()
+_init()
 
 def select_generics():
 	with pg_conn.cursor() as cursor:
@@ -91,6 +99,28 @@ def select_generics():
 	result = [GenericColumn(*row) for row in rows]
 	return result
 
+def _get_moment(time, series):
+	if SERIES[series][0] == 'omni':
+		res = omni.select([time, time], [series])
+	else:
+		res = gsm.select([time, time], series)
+	return res[0][0][1] if len(res[0]) else None
 
-_init()
-
+def compute_generic(generic: GenericColumn):
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT id, time FROM events.default_view')
+		events = np.array(cursor.fetchall())
+		result = np.empty(len(events), dtype=object)
+		omni.ensure_prepared([events[0][1] - 24 * PERIOD, events[-1][1] + 48 * PERIOD])
+		for i in range(len(result)):
+			if generic.type == 'moment':
+				hours = events[i][1] / PERIOD + (generic.shift or 0)
+				moment = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
+				if generic.poi == 'onset':
+					result[i] = _get_moment(moment, generic.series)
+			else:
+				pass
+		q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
+		psycopg2.extras.execute_values(cursor, q, np.column_stack((events[:,0], result)), template='(%s, %s::real)')
+		
+	log.info(f'Computed {generic.name} for {generic.entity}')

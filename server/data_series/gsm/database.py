@@ -7,7 +7,7 @@ with pg_conn.cursor() as cursor:
 	A10 REAL, Ax REAL, Ay REAL, Az REAL, Axy REAL)''')
 	pg_conn.commit()
 
-def select(interval, what=None):
+def select(interval: [int, int], what=None):
 	if not what: what = 'A10,Ax,Ay,Az,Axy'
 	with pg_conn.cursor() as cursor:
 		q = f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {what} FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'

@@ -15,15 +15,7 @@
 			"series": "imf_scalar"
 		},
 		{
-			"type": "max",
-			"series": "imf_x"
-		},
-		{
-			"type": "max",
-			"series": "imf_y"
-		},
-		{
-			"type": "max",
+			"type": "min",
 			"series": "imf_z"
 		},
 		{

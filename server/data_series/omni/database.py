@@ -86,7 +86,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 			data = [] # start reading data
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
-			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
+			new_range = [datetime.strptime(s, '%Y%m%d') for s in correct_range]
 			if dt_to < new_range[0] or new_range[1] < dt_from:
 				log.info(f'Omniweb: out of bounds')
 				return 
@@ -112,7 +112,7 @@ def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in column_names if c in query] if query else column_names
 	with pg_conn.cursor() as cursor:
 		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
-			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) ORDER BY time', interval)
+			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
 		return cursor.fetchall(), [desc[0] for desc in cursor.description]
 
 def fetch(interval: [int, int], query=None, refetch=False):
@@ -134,11 +134,12 @@ def ensure_prepared(interval: [int, int]):
 	if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
 		return
 	log.info(f'Omniweb: beginning bulk fetch {interval[0]}:{interval[1]}')
-	batch_size = 3600 * 24 * 365
+	batch_size = 3600 * 24 * 1000
 	for start in range(interval[0], interval[1], batch_size):
 		end = start + batch_size
-		fetch([start, end if end < interval[1] else interval[1]], refetch=True)
+		interv = [start, end if end < interval[1] else interval[1]]
+		_obtain_omniweb(*[datetime.utcfromtimestamp(i) for i in interv])
 	log.info(f'Omniweb: bulk fetch finished')
 	with open(dump_info_path, 'w') as file:
-		dump_info = { 'from': interval[0], 'to': interval[1], 'at': int(datetime.now().timestamp()) }
+		dump_info = { 'from': int(interval[0]), 'to': int(interval[1]), 'at': int(datetime.now().timestamp()) }
 		json.dump(dump_info, file)
