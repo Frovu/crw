@@ -35,25 +35,5 @@ if __name__ == '__main__':
 			constraint = table_desc.get('_constraint')
 			create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns}\n{(","+constraint) if constraint else ""})'
 			print(create_table)
-			print()
 			cursor.execute(create_table)
-		
-		columns, joins = [], []
-		first_table = list(tables_info)[0]
-		for table in tables_info:
-			for column, desc in tables_info[table].items():
-				if column.startswith('_'):
-					continue
-				if ref := desc.get('references'):
-					joins.append(f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}')
-				else:
-					col = f'{table}.{column}'
-					value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
-					name = f'{table}_{column}' if table != first_table else column
-					columns.append(f'{value} as {name}')
-		select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
-		view_query = 'CREATE VIEW events.default_view AS\n' + select_query
-		print(view_query)
-		cursor.execute('DROP VIEW IF EXISTS events.default_view')
-		cursor.execute(view_query)
 	pg_conn.commit()
