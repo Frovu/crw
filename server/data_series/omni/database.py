@@ -12,6 +12,8 @@ PERIOD = 3600
 
 omni_columns = None
 column_names = None
+dump_info = None
+dump_info_path = os.path.join(os.path.dirname(__file__), '../../data/omni_dump_info.json')
 
 obtains_cache = dict()
 
@@ -23,7 +25,7 @@ class OmniColumn:
 		self.is_int = is_int
 
 def _init():
-	global omni_columns, column_names
+	global omni_columns, column_names, dump_info
 	json_path = os.path.join(os.path.dirname(__file__), './database.json')
 	vard_path = os.path.join(os.path.dirname(__file__), './omni_variables.txt')
 	with open(json_path) as file, pg_conn.cursor() as cursor:
@@ -44,12 +46,19 @@ def _init():
 				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
 				omni_columns.append(OmniColumn(column, owid - 1, spl[2], 'int' in typedef.lower()))
 	column_names = [c.name for c in omni_columns] + [col for col, [td, owid] in columns.items() if owid is None and col != 'time']
+
+	try:
+		with open(dump_info_path) as file:
+			dump_info = json.load(file)
+	except:
+		log.warn('Omniweb: Failed to read ' + str(dump_info_path))
+
 _init()
 
 
 def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	dstart, dend = [d.strftime('%Y%m%d') for d in [dt_from, dt_to]]
-	log.debug(f'Omniweb: querying {dstart}:{dend}')
+	log.debug(f'Omniweb: querying {dstart}-{dend}')
 	r = requests.post(omniweb_url, stream=True, data = {
 		'activity': 'retrieve',
 		'res': 'hour',
@@ -90,7 +99,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	with pg_conn.cursor() as cursor:
 		psycopg2.extras.execute_values(cursor, query, data)
 	pg_conn.commit()
-	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}:{dend}')
+	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
 
 def _obtain(gap):
 	if not (future := obtains_cache.get(gap)):
@@ -99,7 +108,14 @@ def _obtain(gap):
 	future.result()
 	obtains_cache.pop(gap, None)
 
-def fetch(interval: [int, int], query, refetch=False, epoch=True):
+def select(interval: [int, int], query=None, epoch=True):
+	columns = [c for c in column_names if c in query] if query else column_names
+	with pg_conn.cursor() as cursor:
+		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
+			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) ORDER BY time', interval)
+		return cursor.fetchall(), [desc[0] for desc in cursor.description]
+
+def fetch(interval: [int, int], query=None, refetch=False):
 	columns = [c for c in column_names if c in query] if query else column_names
 	if len(columns) < 1:
 		raise ValueError('Zero fields match query')
@@ -107,10 +123,22 @@ def fetch(interval: [int, int], query, refetch=False, epoch=True):
 		cursor.execute(integrity_query(interval, PERIOD, 'omni', columns if refetch else ['time'], return_epoch=False))
 		if gaps := cursor.fetchall():
 			for gap in gaps:
-				# try:
-				_obtain(gap)
-				# except Exception as e:
-				# 	log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
-		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
-			'FROM omni WHERE to_timestamp(%s) <= time AND time < to_timestamp(%s) ORDER BY time', interval)
-		return cursor.fetchall(), [desc[0] for desc in cursor.description]
+				try:
+					_obtain(gap)
+				except Exception as e:
+					log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
+	return select(interval, query)
+
+def ensure_prepared(interval: [int, int]):
+	global dump_info
+	if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
+		return
+	log.info(f'Omniweb: beginning bulk fetch {interval[0]}:{interval[1]}')
+	batch_size = 3600 * 24 * 365
+	for start in range(interval[0], interval[1], batch_size):
+		end = start + batch_size
+		fetch([start, end if end < interval[1] else interval[1]], refetch=True)
+	log.info(f'Omniweb: bulk fetch finished')
+	with open(dump_info_path, 'w') as file:
+		dump_info = { 'from': interval[0], 'to': interval[1], 'at': int(datetime.now().timestamp()) }
+		json.dump(dump_info, file)
