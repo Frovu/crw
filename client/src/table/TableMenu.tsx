@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from 'react-query';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
+	'openGenericsSelector': 'G',
 	'addFilter': 'F',
 	'removeFilter': 'R',
 	'plot': 'P',
@@ -58,6 +59,16 @@ function AdminMenu() {
 
 }
 
+function GenericsSelector() {
+	return (<>
+		<div className='PopupBackground' style={{ opacity: .5 }}></div>
+		<div className='Popup' style={{ transform: 'none' }} onClick={e => e.stopPropagation()}>
+			asdasd
+			asd
+		</div>
+	</>);
+}
+
 function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
 	const { columns: columnsMap } = useContext(TableContext);
@@ -67,8 +78,9 @@ function ColumnsSelector() {
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} title={col.description} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
 			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>] as [ColumnDef, any]);
-	return (
-		<div className='ColumnsSelector'>
+	return (<>
+		<div className='PopupBackground' style={{ opacity: .5 }}></div>
+		<div className='ColumnsSelector Popup'>
 			{tables.map(table => <Fragment key={table}>
 				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
 					<MenuCheckbox text={prettyTable(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
@@ -79,7 +91,7 @@ function ColumnsSelector() {
 				<>{columnChecks.filter(([col,]) => col.table === table).map(([col, el]) => el)}</>
 			</Fragment>)}
 		</div>
-	);
+	</>);
 }
 
 export function MenuInput(props: any) {
@@ -210,15 +222,19 @@ export function Menu() {
 	const { settings, set } = useContext(SettingsContext);
 	const { role } = useContext(AuthContext);
 	const [showColumns, setShowColumns] = useState(false);
+	const [showGenerics, setShowGenerics] = useState(true);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
-	useEventListener('escape', () => { setShowColumns(false); setShownSection(null); });
-	useEventListener('click', () => {
+	const hideEverything = () => {
 		setShowColumns(false);
+		setShowGenerics(false);
 		setShownSection(null);
-	});
+	};
+	useEventListener('escape', hideEverything);
+	useEventListener('click', hideEverything);
 
-	useEventListener('action+openColumnsSelector', () => setShowColumns(show => !show));
+	useEventListener('action+openColumnsSelector', () => {hideEverything(); setShowColumns(!showColumns);});
+	useEventListener('action+openGenericsSelector', () => {hideEverything(); setShowGenerics(!showGenerics);});
 	useEventListener('keydown', onKeydown);
 	return (
 		<div>
@@ -227,6 +243,7 @@ export function Menu() {
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
+					<MenuButton text='Edit generics' action='openGenericsSelector'/>
 					<MenuButton text='Plot selected' action='plot'/>
 					<MenuButton text='Plot previous' action='plotPrev'/>
 					<MenuButton text='Plot next' action='plotNext'/>
@@ -275,6 +292,7 @@ export function Menu() {
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
+			{showGenerics && <GenericsSelector/>}
 		</div>
 	);
 }

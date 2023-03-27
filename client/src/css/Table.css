@@ -78,18 +78,13 @@
 }
 
 .ColumnsSelector {
-	position: absolute;
-	left: 4px;
 	display: flex;
 	flex-flow: column wrap;
 	width: 44em;
 	height: 29.7em;
-	z-index: 1;
-	background-color: var(--color-bg);
-	border: 2px solid var(--color-border);
-	opacity: .9;
 	padding: 1em 1em 1em 2em;
 	gap: 4px;
+	transform: none;
 }
 
 .ColumnsSelector > * {

@@ -61,8 +61,6 @@ button:hover, select:hover {
 
 .Popup {
 	position: fixed;
-	top: 30vh;
-	left: 50vw;
 	transform: translate(-50%);
 	background-color: var(--color-bg);
 	border: 2px var(--color-border) solid;
