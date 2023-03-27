@@ -79,7 +79,7 @@ def _init():
 			last_accesssed timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
 			entity text not null,
-			author integer,
+			author integer[],
 			type text not null,
 			series text not null,
 			poi text not null default '',
@@ -92,15 +92,16 @@ def _init():
 			for generic in generics[table]:
 				cursor.execute(f'''INSERT INTO events.generic_columns_info (entity,author,{",".join(generic.keys())})
 					VALUES (%s,%s,{",".join(["%s" for i in generic])})
-					ON CONFLICT (entity, type, series, poi, shift) DO NOTHING''', [table, -1] + list(generic.values()))
+					ON CONFLICT (entity, type, series, poi, shift) DO NOTHING''', [table, [-1]] + list(generic.values()))
 				col_name = GenericColumn.from_config(generic).name
 				cursor.execute(f'ALTER TABLE events.{table} ADD COLUMN IF NOT EXISTS {col_name} REAL')
 		pg_conn.commit()
 _init()
 
-def select_generics():
+def select_generics(user_id=None):
 	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT * FROM events.generic_columns_info ORDER BY id')
+		where = '' if user_id is None else ' OR %s = ANY(author)'
+		cursor.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(author){where} ORDER BY id',[] if user_id is None else [user_id])
 		rows = cursor.fetchall()
 	cols = [desc[0] for desc in cursor.description]
 	result = [GenericColumn(*row) for row in rows]
@@ -112,10 +113,12 @@ def _select(t_from, t_to, series):
 	else:
 		return gsm.select([t_from, t_to], series)[0]
 
-def compute_generic(events, generic):
+def compute_generic(generic):
 	with pg_conn.cursor() as cursor:
 		try:
 			log.info(f'Computing {generic.name} for {generic.entity}')
+			cursor.execute(f'SELECT id, EXTRACT (EPOCH FROM time) FROM events.{generic.entity} ORDER BY time')
+			events = np.array(cursor.fetchall())
 			result = np.full(len(events), None, dtype=object)
 			if generic.type == 'moment':
 				for i in range(len(result)):
@@ -154,14 +157,15 @@ def compute_generic(events, generic):
 
 
 def compute_generics(generics: [GenericColumn]):
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT id, time FROM events.default_view ORDER BY time')
-		events = np.array(cursor.fetchall())
-		omni.ensure_prepared([events[0][1] - 24 * PERIOD, events[-1][1] + 48 * PERIOD])
 	with ThreadPoolExecutor() as executor:
 		for generic in generics:
-			executor.submit(compute_generic, events, generic)
+			executor.submit(compute_generic, generic)
 	pg_conn.commit()
 		
 def init_generics():
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT EXTRACT(EPOCH FROM time) FROM events.forbush_effects ORDER BY time')
+		events = cursor.fetchall()
+	omni.ensure_prepared([events[0][0] - 24 * PERIOD, events[-1][0] + 48 * PERIOD])
 	compute_generics([g for g in select_generics() if g.last_computed is None])
+init_generics()

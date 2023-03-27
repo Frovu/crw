@@ -1,4 +1,4 @@
-from flask import Blueprint, request, send_file
+from flask import Blueprint, request, session
 from time import time
 from core import database
 from core.generic_columns import compute_generics, select_generics
@@ -25,4 +25,4 @@ def list_events():
 @bp.route('/info/', methods=['GET'])
 @route_shielded
 def events_tables_info():
-	return send_file('data/tables_rendered.json')
+	return database.render_table_info(session.get('uid'))
