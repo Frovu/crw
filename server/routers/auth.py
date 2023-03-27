@@ -42,8 +42,8 @@ init()
 
 @bp.route('/login', methods=['POST'])
 def login():
-	login = request.values.get('login')
-	passw = request.values.get('password')
+	login = request.json.get('login')
+	passw = request.json.get('password')
 	if not login or not passw:
 		return {}, 400
 	with pg_conn.cursor() as cursor:

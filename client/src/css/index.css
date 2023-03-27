@@ -48,6 +48,29 @@ button:hover, select:hover {
 	border: 1px var(--color-active) solid !important;
 }
 
+.PopupBackground {
+	background-color: var(--color-bg);
+	opacity: 0.7;
+	position: fixed;
+	top: 0;
+	left: 0;
+	height: 100vh;
+	width: 100vw;
+	z-index: 128;
+}
+
+.Popup {
+	position: fixed;
+	top: 30vh;
+	left: 50vw;
+	transform: translate(-50%);
+	background-color: var(--color-bg);
+	border: 2px var(--color-border) solid;
+	padding: 1em 2em 1.5em 2em;
+	text-align: center;
+	z-index: 129;
+}
+
 .Center {
 	position: absolute;
 	width: fit-content;
