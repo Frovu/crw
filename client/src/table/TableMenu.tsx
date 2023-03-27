@@ -3,7 +3,7 @@ import { TableContext, DataContext, SettingsContext, Settings, plotTypes, Column
 import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
 import { AuthButton, AuthContext } from '../App';
-import { useMutation } from 'react-query';
+import { useMutation, useQueryClient } from 'react-query';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -16,27 +16,32 @@ const KEY_COMB = {
 	'switchTheme': 'T',
 } as { [action: string]: string };
 
-function MutationButton({ text, fn }: { text: string, fn: () => Promise<any> }) {
+function MutationButton({ text, fn, onSuccess }: { text: string, fn: () => Promise<any>, onSuccess?: () => void }) {
+	const [loading, setLoading] = useState(false);
 	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
 	const mut = useMutation(fn, {
 		onError: (e: Error) => setReport({ error: e.message }),
-		onSuccess: (res?: any) => setReport({ success: res.toString() })
+		onSuccess: (res?: any) => { setReport({ success: res.toString() }); onSuccess?.(); }
 	});
 	useEffect(() => {
-		const timeout = setTimeout(() => setReport(null), 2000);
+		setLoading(false);
+		const timeout = setTimeout(() => setReport(null), report?.success ? 10000 : 2000);
 		return () => clearTimeout(timeout);
 	}, [report]);
 
 	return (
-		<button className='MenuItem' onClick={e => {e.stopPropagation(); mut.mutate();}}>
-			{report && <span style={{ textAlign: 'center', width: text.length+'ch',
-				color: report.error ? 'var(--color-red)' : 'var(--color-green)' }}>{report.error ?? report.success}</span>}
-			{!report && text}
+		<button className='MenuItem' onClick={e => {setLoading(true); e.stopPropagation(); mut.mutate();}}>
+			<span style={{ textAlign: 'center', width: text.length+'ch',
+				color: !report ? 'var(--color-text)' : report.error ? 'var(--color-red)' : 'var(--color-green)' }}>
+				{report && (report.error ?? report.success)}
+				{!report && (loading ? '...' : text)}
+			</span>
 		</button>
 	);
 }
 
 function AdminMenu() {
+	const queryClient = useQueryClient();
 	const wrapFetch = (uri: string) => async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}${uri}`, {
 			method: 'POST', credentials: 'include' });
@@ -47,7 +52,7 @@ function AdminMenu() {
 	const computeGenerics = wrapFetch('api/events/recompute_generics');
 	return (
 		<>
-			<MutationButton text='Recompute generics' fn={computeGenerics}/>
+			<MutationButton text='Recompute generics' fn={computeGenerics} onSuccess={() => queryClient.invalidateQueries(['tableData'])}/>
 		</>
 	);
 
