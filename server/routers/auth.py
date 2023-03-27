@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session
 from server import bcrypt
-from routers.utils import route_shielded
+from routers.utils import route_shielded, get_role
 from core.database import pg_conn
 import logging, os
 
@@ -17,12 +17,6 @@ def create_user(login, password, role):
 		cursor.execute('INSERT INTO users(login, password, role) VALUES (%s, %s, %s)', [login, pwd, role])
 		pg_conn.commit()
 		return True
-
-def get_role(uid):
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT role FROM users WHERE uid = %s', [uid])
-		res = cursor.fetchone()
-		return res and res[0]
 
 def init():
 	with pg_conn.cursor() as cursor:
@@ -64,7 +58,7 @@ def login():
 @bp.route('/login', methods=['GET'])
 @route_shielded
 def get_user():
-	return { 'login': session.get('uname'), 'role': get_role(session.get('uid')) }
+	return { 'login': session.get('uname'), 'role': get_role() }
 
 @bp.route('/logout', methods=['POST'])
 def logout():

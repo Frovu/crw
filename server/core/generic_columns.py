@@ -164,6 +164,4 @@ def compute_generics(generics: [GenericColumn]):
 	pg_conn.commit()
 		
 def init_generics():
-	gs = select_generics()
-	# FIXME: what days wtf
-	compute_generics([g for g in gs if g.last_computed is None])
+	compute_generics([g for g in select_generics() if g.last_computed is None])

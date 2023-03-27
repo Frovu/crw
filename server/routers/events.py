@@ -1,9 +1,18 @@
 from flask import Blueprint, request, send_file
-from datetime import datetime
+from time import time
 from core import database
-from routers.utils import route_shielded
+from core.generic_columns import compute_generics, select_generics
+from routers.utils import route_shielded, reqruire_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
+
+@bp.route('/recompute_generics', methods=['POST'])
+@route_shielded
+@reqruire_role(['admin'])
+def recompute_generics():
+	start = time()
+	compute_generics(select_generics())
+	return f'Done ({int(time() - start)} s)'
 
 @bp.route('/', methods=['GET'])
 @route_shielded

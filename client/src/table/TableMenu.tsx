@@ -20,7 +20,7 @@ function MutationButton({ text, fn }: { text: string, fn: () => Promise<any> }) 
 	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
 	const mut = useMutation(fn, {
 		onError: (e: Error) => setReport({ error: e.message }),
-		onSuccess: (res?: any) => console.log(res)// setReport({ success: typeof res === 'string' ? res : 'Success' })
+		onSuccess: (res?: any) => setReport({ success: res.toString() })
 	});
 	useEffect(() => {
 		const timeout = setTimeout(() => setReport(null), 2000);
