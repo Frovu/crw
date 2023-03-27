@@ -18,6 +18,12 @@ def create_user(login, password, role):
 		pg_conn.commit()
 		return True
 
+def get_role(uid):
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT role FROM users WHERE uid = %s', [uid])
+		res = cursor.fetchone()
+		return res and res[0]
+
 def init():
 	with pg_conn.cursor() as cursor:
 		cursor.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -33,7 +39,6 @@ def init():
 			create_user('admin', password, 'admin')
 	pg_conn.commit()
 init()
-
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -56,12 +61,12 @@ def login():
 	logging.info(f'AUTH: user authorized: {login}')
 	return { 'login': uname }
 
-@bp.route('', methods=['GET'])
+@bp.route('/login', methods=['GET'])
 @route_shielded
 def get_user():
-	return { 'login': session.get('uname') }
+	return { 'login': session.get('uname'), 'role': get_role(session.get('uid')) }
 
-@bp.route('/logout')
+@bp.route('/logout', methods=['POST'])
 def logout():
     uname = session.get('uname')
     if uname:
