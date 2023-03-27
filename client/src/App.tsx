@@ -76,7 +76,7 @@ export function AuthButton() {
 	return (
 		<div style={{ cursor: 'pointer', width: '10em', textAlign: 'center', color: hovered ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 			onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-			onClick={login ? () => mutation.mutate() : promptLogin}>
+			onClick={e => {e.stopPropagation(); login ? mutation.mutate() : promptLogin();}}>
 			{login ? (hovered ? 'log out?' : `@ ${login}`) : (hovered ? 'log in?' : 'not logged in')}
 		</div>
 	);

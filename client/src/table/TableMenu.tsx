@@ -1,8 +1,9 @@
-import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
+import { useState, useContext, Fragment, ReactNode, useMemo, useEffect } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
-import { AuthButton } from '../App';
+import { AuthButton, AuthContext } from '../App';
+import { useMutation } from 'react-query';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -14,6 +15,43 @@ const KEY_COMB = {
 	'switchViewPlots': 'H',
 	'switchTheme': 'T',
 } as { [action: string]: string };
+
+function MutationButton({ text, fn }: { text: string, fn: () => Promise<any> }) {
+	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
+	const mut = useMutation(fn, {
+		onError: (e: Error) => setReport({ error: e.message }),
+		onSuccess: (res?: any) => console.log(res)// setReport({ success: typeof res === 'string' ? res : 'Success' })
+	});
+	useEffect(() => {
+		const timeout = setTimeout(() => setReport(null), 2000);
+		return () => clearTimeout(timeout);
+	}, [report]);
+
+	return (
+		<button className='MenuItem' onClick={e => {e.stopPropagation(); mut.mutate();}}>
+			{report && <span style={{ textAlign: 'center', width: text.length+'ch',
+				color: report.error ? 'var(--color-red)' : 'var(--color-green)' }}>{report.error ?? report.success}</span>}
+			{!report && text}
+		</button>
+	);
+}
+
+function AdminMenu() {
+	const wrapFetch = (uri: string) => async () => {
+		const res = await fetch(`${process.env.REACT_APP_API}${uri}`, {
+			method: 'POST', credentials: 'include' });
+		if (res.status !== 200)
+			throw new Error('HTTP '+res.status);
+		return await res.text();
+	};
+	const computeGenerics = wrapFetch('api/events/recompute_generics');
+	return (
+		<>
+			<MutationButton text='Recompute generics' fn={computeGenerics}/>
+		</>
+	);
+
+}
 
 function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
@@ -165,6 +203,7 @@ function CorrelationMenu() {
 
 export function Menu() {
 	const { settings, set } = useContext(SettingsContext);
+	const { role } = useContext(AuthContext);
 	const [showColumns, setShowColumns] = useState(false);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
@@ -190,6 +229,7 @@ export function Menu() {
 					<MenuButton text='Switch theme' action='switchTheme'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
 					<AuthButton/>
+					{role === 'admin' && <AdminMenu/>}
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
 					<ExportMenu/>
