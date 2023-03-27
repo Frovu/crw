@@ -7,7 +7,7 @@ import './css/index.css';
 
 const theQueryClient = new QueryClient();
 
-export const AuthContext = createContext<{ login?: string, role?: string, logout: () => void, promptLogin: () => void }>({} as any);
+export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: () => void }>({} as any);
 
 function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 	const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
-		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 3em 2em 3em' }}>
+		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 2.5em 2em' }}>
 			<b>AID Login</b>
 			<div style={{ textAlign: 'right' }}>
 				<p>
@@ -64,11 +64,19 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 
 export function AuthButton() {
 	const [ hovered, setHovered ] = useState(false);
-	const { login, logout, promptLogin } = useContext(AuthContext);
+	const { login, promptLogin } = useContext(AuthContext);
+	const mutation = useMutation(async () => {
+		await fetch(`${process.env.REACT_APP_API}api/auth/logout`, {
+			method: 'POST', credentials: 'include'
+		});
+	}, {
+		onSuccess: () => theQueryClient.invalidateQueries(['auth'])
+	});
+
 	return (
 		<div style={{ cursor: 'pointer', width: '10em', textAlign: 'center', color: hovered ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 			onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-			onClick={login ? logout : promptLogin}>
+			onClick={login ? () => mutation.mutate() : promptLogin}>
 			{login ? (hovered ? 'log out?' : `@ ${login}`) : (hovered ? 'log in?' : 'not logged in')}
 		</div>
 	);
@@ -90,10 +98,8 @@ function App() {
 	return (
 		<AuthContext.Provider value={{
 			...query.data,
-			logout: () => {},
 			promptLogin: () => setAuthPrompt(true),
 		}}>
-			<AuthButton></AuthButton>
 			{window.location.pathname.endsWith('ros') ? <Circles/> : <Table/>}
 			{authPrompt && <AuthPrompt closePrompt={() => setAuthPrompt(false)}/>}
 		</AuthContext.Provider>

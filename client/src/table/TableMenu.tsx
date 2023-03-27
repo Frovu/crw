@@ -2,6 +2,7 @@ import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
+import { AuthButton } from '../App';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -188,6 +189,7 @@ export function Menu() {
 					<MenuButton text='Switch view' action='switchViewPlots'/>
 					<MenuButton text='Switch theme' action='switchTheme'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
+					<AuthButton/>
 				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
 					<ExportMenu/>
