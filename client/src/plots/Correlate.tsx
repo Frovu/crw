@@ -22,13 +22,15 @@ export default function CorrelationPlot() {
 		const data = sample.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
+		if (data.length < 2) return null;
+
 		const minx = data[0][0];
 		const maxx = data[data.length-1][0];
 		const miny = Math.min.apply(null, plotData[1]);
 		const maxy = Math.max.apply(null, plotData[1]);
 
 		const regr = params.regression && regression.linear(data as any, { precision: 6 });
-		const regrPoints = regr && Array(64).fill(0).map((a, i) => i * (maxx-minx)/64);
+		const regrPoints = regr && Array(64).fill(0).map((a, i) => minx + i * (maxx-minx)/64);
 		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
 		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
 
