@@ -47,7 +47,6 @@ def parse_extremum_poi(poi):
 class GenericColumn:
 	id: int
 	created: datetime
-	last_accesssed: datetime
 	last_computed: datetime
 	entity: str
 	users: int
@@ -60,7 +59,7 @@ class GenericColumn:
 
 	@classmethod
 	def from_config(cls, desc):
-		return cls(None, None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
+		return cls(None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
@@ -92,7 +91,6 @@ def _init():
 		cursor.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
 			id serial primary key,
 			created timestamp with time zone not null default CURRENT_TIMESTAMP,
-			last_accesssed timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
 			entity text not null,
 			users integer[],
@@ -231,12 +229,13 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 
 def remove_generic(uid, gid):
 	with pg_conn.cursor() as cursor:
-		cursor.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING users', [uid, gid])
-		if len(cursor.fetchone()) == 0:
-			#
-			# TODO : delete generic
-			#
-			pass
+		cursor.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING *', [uid, gid])
+		res = cursor.fetchone()
+		if not res: return
+		generic = GenericColumn(*res)
+		if not generic.users:
+			cursor.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
+			cursor.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	pg_conn.commit()
 	log.info(f'Generic removed by user ({uid}): #{gid}')
 		

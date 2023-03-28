@@ -81,10 +81,9 @@ export const SettingsContext = createContext<{ settings: Settings, set: Settings
 
 function defaultSettings(columns: Columns): Settings {
 	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
-	const enabledColumns = Object.values(columns).filter(col => SHOW.includes(col.id)).map(col => col.id);
 	return {
 		theme: 'Dark',
-		enabledColumns,
+		enabledColumns: SHOW,
 		plotGrid: true,
 		plotMarkers: false,
 		plotAz: false,
@@ -176,7 +175,7 @@ function CoreWrapper() {
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		setCursor(null);
-		const cols = (settings.enabledColumns || []).filter(n => !!columns[n]);
+		const cols = Object.keys(columns).filter(c => settings.enabledColumns.includes(c));
 		const enabledIdxs = [0, ...cols.map(c => Object.keys(columns).indexOf(c))];
 		const sortIdx = 1 + cols.indexOf(sort.column);
 		const renderedData = sample.map(row => enabledIdxs.map(ci => row[ci]))

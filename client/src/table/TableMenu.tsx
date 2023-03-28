@@ -197,7 +197,7 @@ export function Menu() {
 	const { settings, set } = useContext(SettingsContext);
 	const { role } = useContext(AuthContext);
 	const [showColumns, setShowColumns] = useState(false);
-	const [showGenerics, setShowGenerics] = useState(true);
+	const [showGenerics, setShowGenerics] = useState(false);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
 	const hideEverything = () => {

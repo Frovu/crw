@@ -37,7 +37,7 @@ def render_table_info(uid):
 			'type': 'real',
 			'description': 'Generic column ;)'
 		} # TODO: description
-		if -1 not in g.users:
+		if uid in g.users:
 			info[g.entity][g.name]['user_generic_id'] = g.id
 	series = { ser: SERIES[ser][1] for ser in SERIES }
 	return { 'tables': info, 'series': series }
