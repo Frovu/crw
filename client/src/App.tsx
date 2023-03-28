@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider, useMutation, useQuery } from 'react-q
 import { createContext, useContext, useEffect, useState } from 'react';
 import Table from './table/Table';
 import Circles from './plots/Circles';
-import { useEventListener } from './util';
+import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 
 const theQueryClient = new QueryClient();
@@ -13,7 +13,7 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 	const [error, setError] = useState<string | null>(null);
 	const [login, setLogin] = useState('');
 	const [password, setPassword] = useState('');
-	const mutation = useMutation(async () => {
+	const { mutate, isSuccess, report } = useMutationHandler(async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
@@ -27,18 +27,14 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 			throw new Error('Wrong password');
 		if (res.status !== 200)
 			throw new Error(`HTTP: ${res.status}`);
-	}, {
-		onError: (err: any) => setError(err.message),
-		onSuccess: () => {
-			theQueryClient.invalidateQueries(['auth']);
-			closePrompt();
-		}
-	});
+	}, ['auth', 'tableStructure', 'tableData']);
 
 	useEffect(() => {
 		const timeout = setTimeout(() => setError(null), 3000);
 		return () => clearTimeout(timeout);
 	}, [error]);
+
+	if (isSuccess) closePrompt();
 
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
@@ -55,8 +51,8 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 				</p>
 			</div>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-				<span style={{ color: 'var(--color-red)', width: '12em', textAlign: 'center' }}>{error}</span>
-				<button style={{ width: '5em', height: '1.5em' }} onClick={() => mutation.mutate()}>Login</button>
+				<span style={{ color: 'var(--color-red)', width: '12em', textAlign: 'center' }}>{report?.error}</span>
+				<button style={{ width: '5em', height: '1.5em' }} onClick={mutate}>Login</button>
 			</div>
 		</div>
 	</>);
@@ -70,7 +66,7 @@ export function AuthButton() {
 			method: 'POST', credentials: 'include'
 		});
 	}, {
-		onSuccess: () => theQueryClient.invalidateQueries(['auth'])
+		onSuccess: () => ['auth', 'tableStructure', 'tableData'].forEach(a => theQueryClient.invalidateQueries([a]))
 	});
 
 	return (
