@@ -24,12 +24,12 @@ def route_shielded(func):
 	wrapper.__name__ = func.__name__
 	return wrapper
 
-def reqruire_role(roles: [str]):
+def reqruire_role(r_role: str):
 	def decorator(func):
 		def wrapper():
 			if (role := get_role()) is None: 
 				return {}, 401
-			if role not in roles:
+			if role != r_role and role != 'admin':
 				return {}, 403 
 			return func()
 		wrapper.__name__ = func.__name__
