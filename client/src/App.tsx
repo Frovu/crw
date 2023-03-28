@@ -83,6 +83,11 @@ export function AuthButton() {
 }
 
 function App() {
+	const app = window.location.pathname.endsWith('ros') ? 'RoS' : 'FEID';
+	useEffect(() => {
+		document.title = app;
+	}, [app]);
+
 	const [authPrompt, setAuthPrompt] = useState(false);
 	const query = useQuery(['auth'], async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, { credentials: 'include' });
@@ -100,7 +105,7 @@ function App() {
 			...query.data,
 			promptLogin: () => setAuthPrompt(true),
 		}}>
-			{window.location.pathname.endsWith('ros') ? <Circles/> : <Table/>}
+			{app === 'RoS' ? <Circles/> : <Table/>}
 			{authPrompt && <AuthPrompt closePrompt={() => setAuthPrompt(false)}/>}
 		</AuthContext.Provider>
 	);
