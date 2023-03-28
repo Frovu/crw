@@ -24,7 +24,8 @@ export type ColumnDef = {
 	table: string,
 	width: number,
 	id: string,
-	hidden?: boolean
+	hidden?: boolean,
+	user_generic_id?: number // eslint-disable-line
 };
 export type Columns = { [id: string]: ColumnDef };
 export type Sort = { column: string, direction: 1 | -1 };

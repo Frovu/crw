@@ -86,7 +86,12 @@ export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?:
 		return () => clearTimeout(timeout);
 	}, [report]);
 
-	return { ...mutation, mutate: (arg?: any) => mutation.mutate(arg), report };
+	return {
+		...mutation,
+		mutate: (arg?: any) => mutation.mutate(arg),
+		report,
+		color: report?.success ? 'var(--color-green)' : report?.error ? 'var(--color-red)' : 'var(--color-text)'
+	};
 }
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {

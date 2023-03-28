@@ -1,13 +1,42 @@
 import { useContext, useState } from 'react';
 import { useMutationHandler } from '../util';
-import { prettyTable, TableContext } from './Table';
+import { ColumnDef, prettyTable, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
 const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS] as const;
 
+function GenericCard({ column }: { column: ColumnDef }) {
+	const { mutate, report, color, isLoading } = useMutationHandler(async (action) => {
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/${action}`, {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ id: column.user_generic_id })
+		});
+		if (res.status !== 200)
+			throw new Error('HTTP '+res.status);
+		return await res.text();
+	}, ['tableStructure']);
+	return (
+		<div style={{ height: '3em' }}>
+			{column.name}
+			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }} onClick={()=>mutate('compute')}>
+				o
+			</span>
+			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={()=>mutate('remove')}>
+				&times;
+			</span>
+			<br/>
+			<span style={{ color }}>
+				{isLoading && 'Loading..'}
+				{report?.error ?? report?.success}
+			</span>
+		</div>
+	);
+}
+
 export function GenericsSelector() {
-	const { tables, series } = useContext(TableContext);
+	const { tables, series, columns } = useContext(TableContext);
 	const [state, setInputState] = useState(() => ({
 		entity: tables[0],
 		type: 'value',
@@ -20,7 +49,7 @@ export function GenericsSelector() {
 	const set = (what: string) => (value: string | null) => setInputState(st => ({ ...st, [what]: value }));
 	const entityName = (en: string) => prettyTable(en).slice(0, -1);
 
-	const { isLoading, report, mutate } = useMutationHandler(async () => {
+	const { isLoading, report, mutate, color } = useMutationHandler(async () => {
 		const { entity, type, shift } = state;
 		const poi = state.poi !== 'extremum' ? state.poi : `${state.poiType}_${state.poiSeries}`;
 		const body = {
@@ -42,10 +71,14 @@ export function GenericsSelector() {
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
 	const poiOptions = tables.concat('extremum');
 	const poiPretty = tables.map(entityName).concat('<Extremum>');
+	const userGenerics = Object.values(columns).filter(c => c.user_generic_id);
 
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
-		<div className='Popup' style={{ transform: 'none' }} onClick={e => e.stopPropagation()}>
+		<div className='Popup' style={{ transform: 'none', display: 'flex' }} onClick={e => e.stopPropagation()}>
+			<div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right', margin: '1em 1em 0 0' }}>
+				{userGenerics.map(c => <GenericCard column={c}/>)}
+			</div>
 			<div style={{ width: '18em', display: 'flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
 				<h3 style={{ margin: '1em 4px 1em 0' }}>Create custom column</h3>
 				<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
@@ -58,7 +91,7 @@ export function GenericsSelector() {
 				<div>
 					<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={mutate}>{isLoading ? '...' : 'Create column'}</button>
 				</div>
-				<div style={{ height: '1em', color: report?.error ? 'var(--color-red)' : 'var(--color-green)', margin: '4px 4px 0 0' }}>
+				<div style={{ height: '1em', color, margin: '4px 4px 0 0' }}>
 					{report && (report.error ?? report.success)}
 				</div>
 			</div>

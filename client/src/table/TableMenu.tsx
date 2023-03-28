@@ -18,12 +18,10 @@ const KEY_COMB = {
 } as { [action: string]: string };
 
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
-	const { isLoading, report, mutate } = useMutationHandler(fn, invalidate);
-
+	const { isLoading, report, mutate, color } = useMutationHandler(fn, invalidate);
 	return (
 		<button className='MenuItem' onClick={e => {e.stopPropagation(); mutate();}}>
-			<span style={{ textAlign: 'center', width: text.length+'ch',
-				color: !report ? 'var(--color-text)' : report.error ? 'var(--color-red)' : 'var(--color-green)' }}>
+			<span style={{ textAlign: 'center', width: text.length+'ch', color }}>
 				{report && (report.error ?? report.success)}
 				{!report && (isLoading ? '...' : text)}
 			</span>
