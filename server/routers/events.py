@@ -1,7 +1,7 @@
 from flask import Blueprint, request, session
 from time import time
 from core import database
-from core.generic_columns import compute_generics, select_generics, add_generic, remove_generic
+from core.generic_columns import compute_generics, compute_generic, select_generics, add_generic, remove_generic
 from routers.utils import route_shielded, reqruire_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -28,7 +28,21 @@ def _add_generic():
 def _remove_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
-	return remove_generic(uid, gid)
+	remove_generic(uid, gid)
+	return 'OK'
+
+@bp.route('/generics/compute', methods=['POST'])
+@route_shielded
+@reqruire_role('operator')
+def _compute_generic():
+	uid = session.get('uid')
+	gid = int(request.json.get('id'))
+	generic = next((g for g in select_generics(uid) if g.id == gid), None)
+	if not generic:
+		return 'Generic not found', 404
+	start = time()
+	compute_generic(generic)
+	return f'Computed in {int(time() - start)} s'
 
 @bp.route('/', methods=['GET'])
 @route_shielded

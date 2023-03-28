@@ -20,7 +20,7 @@ const KEY_COMB = {
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
 	const { isLoading, report, mutate, color } = useMutationHandler(fn, invalidate);
 	return (
-		<button className='MenuItem' onClick={e => {e.stopPropagation(); mutate();}}>
+		<button className='MenuItem' onClick={e => {e.stopPropagation(); mutate(null);}}>
 			<span style={{ textAlign: 'center', width: text.length+'ch', color }}>
 				{report && (report.error ?? report.success)}
 				{!report && (isLoading ? '...' : text)}

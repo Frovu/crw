@@ -253,41 +253,45 @@ function SourceDataWrapper({ columns, series, firstTable }:
 			const res = await fetch(`${process.env.REACT_APP_API}api/events/`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
-			const resp: {data: any[][], fields: string[]} = await res.json();
-			if (!resp?.data.length)
-				return null;
-			const tables = new Set<string>();
-			const orderedColumns = Object.fromEntries(resp.fields.filter(f => columns[f]).map(f => [f, columns[f]]));
-			for (const [i, col] of Object.values(orderedColumns).entries()) {
-				tables.add(col.table);
-				if (col.type === 'time') {
-					for (const row of resp.data) {
-						if (row[i] === null) continue;
-						const date = new Date(parseInt(row[i]) * 1e3);
-						row[i] = isNaN(date as any) ? null : date;
-					}
-				}
-			}
-			const prettyColumn = (arg: ColumnDef | string) => {
-				const col = typeof arg === 'string' ? orderedColumns[arg] : arg;
-				return col.name + (col.table !== firstTable ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
-			};
-			return {
-				data: resp.data,
-				columns: orderedColumns,
-				firstTable,
-				tables: Array.from(tables),
-				series,
-				prettyColumn
-			} as const;
+			return await res.json() as {data: any[][], fields: string[]};
 		}
 	});
+	const context = useMemo(() => {
+		if (!query.data) return null;
+		const tables = new Set<string>();
+		const orderedColumns = Object.fromEntries(query.data.fields.filter(f => columns[f]).map(f => [f, columns[f]]));
+		const data = query.data.data.map((row: any) => [...row]);
+		for (const [i, col] of Object.values(orderedColumns).entries()) {
+			tables.add(col.table);
+			if (col.type === 'time') {
+				for (const row of data) {
+					if (row[i] === null) continue;
+					const date = new Date(parseInt(row[i]) * 1e3);
+					row[i] = isNaN(date as any) ? null : date;
+				}
+			}
+		}
+		console.log('rendered table', data);
+		const prettyColumn = (arg: ColumnDef | string) => {
+			const col = typeof arg === 'string' ? orderedColumns[arg] : arg;
+			return col.name + (col.table !== firstTable ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
+		};
+		return {
+			data: data,
+			columns: orderedColumns,
+			firstTable,
+			tables: Array.from(tables),
+			series,
+			prettyColumn
+		} as const;
+	}, [columns, firstTable, query.data, series]);
 	if (query.isLoading)
 		return <div>Loading data..</div>;
 	if (!query.data)
 		return <div>Failed to load data</div>;
+
 	return (
-		<TableContext.Provider value={query.data}>
+		<TableContext.Provider value={context!}>
 			<CoreWrapper/>
 		</TableContext.Provider>
 	);

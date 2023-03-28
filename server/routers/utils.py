@@ -17,7 +17,7 @@ def route_shielded(func):
 			return func(*args, **kwargs)
 		except ValueError as e:
 			if str(e): log.error(f'Error in {func.__name__}: {traceback.format_exc()}')
-			return {}, 400
+			return str(e), 400
 		except Exception:
 			log.error(f'Error in {func.__name__}: {traceback.format_exc()}')
 			return {}, 500

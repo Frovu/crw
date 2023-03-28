@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useQueryClient } from 'react-query';
 import { useMutationHandler } from '../util';
 import { ColumnDef, prettyTable, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
@@ -7,6 +8,7 @@ const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
 const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS] as const;
 
 function GenericCard({ column }: { column: ColumnDef }) {
+	const queryClient = useQueryClient();
 	const { mutate, report, color, isLoading } = useMutationHandler(async (action) => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/${action}`, {
 			method: 'POST', credentials: 'include',
@@ -16,20 +18,24 @@ function GenericCard({ column }: { column: ColumnDef }) {
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
 		return await res.text();
-	}, ['tableStructure']);
+	});
 	return (
-		<div style={{ height: '3em' }}>
+		<div style={{ height: '3em', width: '10em' }}>
 			{column.name}
-			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }} onClick={()=>mutate('compute')}>
+			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
+				onClick={()=>mutate('compute', {
+					onSuccess: () => queryClient.invalidateQueries('tableData')
+				})}>
 				o
 			</span>
-			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={()=>mutate('remove')}>
+			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={()=>mutate('remove', {
+				onSuccess: () => queryClient.invalidateQueries('tableStructure')
+			})}>
 				&times;
 			</span>
 			<br/>
 			<span style={{ color }}>
-				{isLoading && 'Loading..'}
-				{report?.error ?? report?.success}
+				{isLoading ? 'computing..' : (report?.error ?? report?.success)}
 			</span>
 		</div>
 	);
@@ -63,6 +69,8 @@ export function GenericsSelector() {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body)
 		});
+		if (res.status === 400)
+			throw new Error(await res.text());
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
 		return await res.text();
@@ -77,7 +85,7 @@ export function GenericsSelector() {
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
 		<div className='Popup' style={{ transform: 'none', display: 'flex' }} onClick={e => e.stopPropagation()}>
 			<div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right', margin: '1em 1em 0 0' }}>
-				{userGenerics.map(c => <GenericCard column={c}/>)}
+				{userGenerics.map(c => <GenericCard key={c.id} column={c}/>)}
 			</div>
 			<div style={{ width: '18em', display: 'flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
 				<h3 style={{ margin: '1em 4px 1em 0' }}>Create custom column</h3>
