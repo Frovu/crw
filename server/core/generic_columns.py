@@ -119,7 +119,6 @@ def select_generics(user_id=None):
 		where = '' if user_id is None else ' OR %s = ANY(users)'
 		cursor.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(users){where} ORDER BY id',[] if user_id is None else [user_id])
 		rows = cursor.fetchall()
-	cols = [desc[0] for desc in cursor.description]
 	result = [GenericColumn(*row) for row in rows]
 	return result
 
@@ -138,13 +137,19 @@ def compute_generic(generic):
 			result = np.full(len(events), None, dtype=object)
 			if generic.type == 'value':
 				for i in range(len(result)):
-					hours = events[i][1] / PERIOD + generic.shift
-					value = (ceil(hours) if generic.shift > 0 else floor(hours)) * PERIOD
-					if generic.poi == 'onset':
-						res = _select(value, value, generic.series)
-						result[i] = res[0][1] if len(res) else None
-					else:
+					if generic.poi != generic.entity:
 						assert False
+					hour0 = floor(events[i][1] / PERIOD) * PERIOD
+					if generic.shift == 0:
+						res = _select(hour0, hour0, generic.series)
+					else:
+						t_1 = hour0 - PERIOD if generic.shift < 0 else ceil(events[i][1] / PERIOD) * PERIOD
+						t_2 = hour0 + generic.shift * PERIOD # for offset +1 00:00 will fetch 00:00-01:00 (2h)
+						res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
+					if not len(res): continue
+					data = np.array(res, dtype=np.float64)[:,1]
+					if not np.isnan(data).all():
+						result[i] = np.nanmean(data)
 			elif generic.type in EXTREMUM_TYPES:
 				for i in range(len(result)):
 					# b_prev = None if i < 1 else ceil(events[i-1][1] / PERIOD)
@@ -217,9 +222,12 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		cursor.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid])
-		cursor.fetchone()
+		generic = GenericColumn(*cursor.fetchone())
+		cursor.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
+		compute_generic(generic)
 	pg_conn.commit()
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
+	return generic
 
 def remove_generic(uid, gid):
 	with pg_conn.cursor() as cursor:

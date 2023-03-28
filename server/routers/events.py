@@ -19,8 +19,8 @@ def _recompute_generics():
 @reqruire_role('operator')
 def _add_generic():
 	uid = session.get('uid')
-	add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
-	return 'Success'
+	generic = add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
+	return 'Created ' + generic.pretty_name
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
@@ -35,7 +35,8 @@ def _remove_generic():
 def list_events():
 	t_from = request.args.get('from')
 	t_to = request.args.get('to')
-	res = database.select_all(t_from, t_to)
+	uid = session.get('uid')
+	res = database.select_all(t_from, t_to, uid)
 	return { "data": res[0], "fields": res[1]}
 
 @bp.route('/info/', methods=['GET'])

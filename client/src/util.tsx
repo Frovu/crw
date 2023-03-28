@@ -76,7 +76,8 @@ export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?:
 		onSuccess: (res?: any) => {
 			console.log(res);
 			setReport({ success: res?.toString() });
-			invalidate && queryClient.invalidateQueries(invalidate);
+			if (invalidate)
+				invalidate.forEach((key: any) => queryClient.invalidateQueries([key]));
 		}
 	});
 

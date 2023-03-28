@@ -37,7 +37,7 @@ export function GenericsSelector() {
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
 		return await res.text();
-	}, ['tableStructure']);
+	}, ['tableStructure', 'tableData']);
 
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
 	const poiOptions = tables.concat('extremum');
