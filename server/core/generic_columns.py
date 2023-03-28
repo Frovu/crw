@@ -1,4 +1,4 @@
-from core.database import pg_conn, tables_info
+from core.database import pg_conn, tables_info, tables_tree, tables_refs
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -12,9 +12,9 @@ import psycopg2.extras
 
 log = logging.getLogger('aides')
 
-PERIOD = 3600
-RANGE_RIGHT_H = 48
-RANGE_RIGHT = RANGE_RIGHT_H * PERIOD
+HOUR = 3600
+MAX_EVENT_LENGTH_H = 48
+MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
 
@@ -112,6 +112,43 @@ def _init():
 		pg_conn.commit()
 _init()
 
+def _select_recursive(entity, target_entity=None):
+	joins = ''
+	if target_entity:
+		def rec_find(a, b, path=[entity], direction=[1]):
+			if a == b: return path, direction
+			lst = tables_tree.get(a)
+			for ent in lst or []:
+				if ent in path: continue
+				if p := rec_find(ent, b, path + [ent], direction+[1]):
+					return p
+			upper = next((t for t in tables_tree if a in tables_tree[t]), None)
+			if not upper or upper in path: return None
+			return rec_find(upper, b, path + [upper], direction+[-1])
+		found = rec_find(entity, target_entity)
+		if not found:
+			raise ValueError('No path to entity')
+		path, direction = found
+		links = [[path[i], path[i+1], direction[i+1]] for i in range(len(path)-1)]
+		for a, b, direction in links:
+			master, slave = (a, b)[::direction]
+			joins += f'LEFT JOIN events.{b} ON {slave}.id = {master}.{tables_refs.get((master, slave))}\n'
+
+	query = [ (entity, 'id'), (entity, 'time') ]
+	if 'duration' in tables_info[entity]:
+		query.append((entity, 'duration'))
+	if target_entity:
+		query.append((target_entity, 'time'))
+
+	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' in c else f'{e}.{c}' for e, c in query])
+	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
+	with pg_conn.cursor() as cursor:
+		cursor.execute(select_query)
+		res = np.array(cursor.fetchall(), dtype='f')
+		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
+		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
+		return res[:,0], res[:,1], duration, t_time
+
 def select_generics(user_id=None):
 	with pg_conn.cursor() as cursor:
 		where = '' if user_id is None else ' OR %s = ANY(users)'
@@ -127,53 +164,73 @@ def _select(t_from, t_to, series):
 		return gsm.select([t_from, t_to], series)[0]
 
 def compute_generic(generic):
-	with pg_conn.cursor() as cursor:
-		try:
-			log.info(f'Computing {generic.name} for {generic.entity}')
-			cursor.execute(f'SELECT id, EXTRACT (EPOCH FROM time) FROM events.{generic.entity} ORDER BY time')
-			events = np.array(cursor.fetchall())
-			result = np.full(len(events), None, dtype=object)
-			if generic.type == 'value':
-				for i in range(len(result)):
-					if generic.poi != generic.entity:
-						assert False
-					hour0 = floor(events[i][1] / PERIOD) * PERIOD
-					if generic.shift == 0:
-						res = _select(hour0, hour0, generic.series)
-					else:
-						t_1 = hour0 - PERIOD if generic.shift < 0 else ceil(events[i][1] / PERIOD) * PERIOD
-						t_2 = hour0 + generic.shift * PERIOD # for offset +1 00:00 will fetch 00:00-01:00 (2h)
-						res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
-					if not len(res): continue
-					data = np.array(res, dtype=np.float64)[:,1]
-					if not np.isnan(data).all():
-						result[i] = np.nanmean(data)
-			elif generic.type in EXTREMUM_TYPES:
-				for i in range(len(result)):
-					# b_prev = None if i < 1 else ceil(events[i-1][1] / PERIOD)
-					time = floor(events[i][1] / PERIOD) * PERIOD
-					bound_right = time + RANGE_RIGHT
-					if i < len(result) - 1:
-						bound_event = (floor(events[i+1][1] / PERIOD) - 1) * PERIOD
-						bound_right = min(bound_right, bound_event)
-					data = np.array(_select(time, bound_right, generic.series), dtype=np.float64)
-					if not len(data): continue
-					target = np.abs(data[:,1]) if 'abs' in generic.type else data[:,1]
-					if not np.isnan(target).all():
-						result[i] = np.nanmax(target) if 'max' in generic.type else np.nanmin(target)
-			else:
+	log.info(f'Computing {generic.name} for {generic.entity}')
+	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
+	event_id, event_start, event_duration, target_time  = _select_recursive(generic.entity, target_entity)
+	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f')
+	length = len(event_id)
+	start_hour = np.floor(event_start / HOUR) * HOUR
+	
+	def find_extremum(typ, ser):
+		is_max, is_abs = 'max' in typ, 'abs' in typ
+		data = data_series if ser == generic.series else \
+			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f')
+		result = np.full((len(data), 2), np.nan, dtype='f')
+		for i in range(length):
+			bound_right = start_hour[i] + MAX_EVENT_LENGTH
+			if i < length - 1:
+				bound_event = start_hour[i+1] - HOUR
+				bound_right = min(bound_right, bound_event)
+			data_slice = data[data[:,0] >= start_hour[0]][data[:,0] <= bound_right]
+			if not len(data_slice) or np.isnan(data_slice).all():
+				continue
+			target = np.abs(data_slice[:,1]) if is_abs else data_slice[:,1]
+			idx = np.nanargmax(target) if is_max else np.nanargmin(target)
+			result[i] = data_slice[idx]
+		return result
+
+	if generic.poi in ENTITY_POI:
+		poi_time = event_start if generic.poi == generic.entity else target_time
+	elif generic.poi:
+		typ, ser = parse_extremum_poi(generic.poi)
+		poi_time = find_extremum(typ, ser)[:,0]
+
+	if 'time_to' in generic.type:
+		result = (poi_time - event_start) / HOUR
+		if '%' in generic.type:
+			result = result / event_duration * 100
+	elif generic.type == 'value':
+		def compute(i):
+			if generic.poi != generic.entity:
 				assert False
-			
-			if generic.series == 'kp_index':
-				result[result != None] /= 10
+			hour0 = start_hour[i]
+			if generic.shift == 0:
+				res = _select(hour0, hour0, generic.series)
+			else:
+				t_1 = hour0 - HOUR if generic.shift < 0 else ceil(events[i][1] / HOUR) * HOUR
+				t_2 = hour0 + generic.shift * HOUR # for offset +1 00:00 will fetch 00:00-01:00 (2h)
+				res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
+			if not len(res):
+				return None
+			data = np.array(res, dtype=np.float64)[:,1]
+			if np.isnan(data).all():
+				return None
+			return np.nanmean(data)
+	elif generic.type in EXTREMUM_TYPES:
+		def compute(i):
+			pass
+	else:
+		assert False
+	
+	if generic.series == 'kp_index':
+		result[result != None] /= 10
 
-			q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
-			psycopg2.extras.execute_values(cursor, q, np.column_stack((events[:,0], result)), template='(%s, %s::real)')
-			cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-			log.info(f'Computed {generic.name} for {generic.entity}')
-		except Exception as e:
-			log.info(f'Failed at {generic.name}: {e}')
-
+	q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
+	with pg_conn.cursor() as cursor:
+		psycopg2.extras.execute_values(cursor, q, np.column_stack((event_id, result)).tolist(), template='(%s, %s)')
+		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+	pg_conn.commit()
+	log.info(f'Computed {generic.name} for {generic.entity}')
 
 def compute_generics(generics: [GenericColumn]):
 	with ThreadPoolExecutor() as executor:
@@ -185,16 +242,15 @@ def init_generics():
 	with pg_conn.cursor() as cursor:
 		cursor.execute('SELECT EXTRACT(EPOCH FROM time) FROM events.forbush_effects ORDER BY time')
 		events = cursor.fetchall()
-	omni.ensure_prepared([events[0][0] - 24 * PERIOD, events[-1][0] + 48 * PERIOD])
-	compute_generics([g for g in select_generics() if g.last_computed is None])
-init_generics()
+	omni.ensure_prepared([events[0][0] - 24 * HOUR, events[-1][0] + 48 * HOUR])
+	compute_generics(select_generics())
 
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info:
 		raise ValueError('Unknown entity')
 	if 'time' not in gtype and series not in SERIES:
 		raise ValueError('Unknown series')
-	if shift and abs(int(shift)) > RANGE_RIGHT_H:
+	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')
 
 	if gtype in EXTREMUM_TYPES or poi in ENTITY_POI:

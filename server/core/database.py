@@ -11,6 +11,14 @@ pg_conn = psycopg2.connect(
 dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
 	tables_info = json.load(file)
+	tables_tree = dict()
+	tables_refs = dict()
+	for table in tables_info:
+		for column, desc in tables_info[table].items():
+			if column.startswith('_'): continue
+			if ref := desc.get('references'):
+				tables_tree[table] = (tables_tree.get(table) or []) + [ref]
+				tables_refs[(table, ref)] = column
 
 from core.generic_columns import select_generics, init_generics, SERIES
 
@@ -42,7 +50,7 @@ def render_table_info(uid):
 	series = { ser: SERIES[ser][1] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
-def select_all(t_from=None, t_to=None, uid=None):
+def select_events(t_from=None, t_to=None, uid=None):
 	generics = select_generics(uid)
 	columns, joins = [], []
 	first_table = list(tables_info)[0]

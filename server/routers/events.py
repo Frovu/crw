@@ -1,7 +1,7 @@
 from flask import Blueprint, request, session
 from time import time
 from core import database
-from core.generic_columns import compute_generics, compute_generic, select_generics, add_generic, remove_generic
+from core.generic_columns import compute_generics, compute_generic, select_generics, add_generic, remove_generic, init_generics
 from routers.utils import route_shielded, reqruire_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -11,7 +11,7 @@ bp = Blueprint('events', __name__, url_prefix='/api/events')
 @reqruire_role('admin')
 def _recompute_generics():
 	start = time()
-	compute_generics(select_generics())
+	init_generics()
 	return f'Done ({int(time() - start)} s)'
 
 @bp.route('/generics/add', methods=['POST'])
@@ -50,7 +50,7 @@ def list_events():
 	t_from = request.args.get('from')
 	t_to = request.args.get('to')
 	uid = session.get('uid')
-	res = database.select_all(t_from, t_to, uid)
+	res = database.select_events(t_from, t_to, uid)
 	return { "data": res[0], "fields": res[1]}
 
 @bp.route('/info/', methods=['GET'])
