@@ -5,9 +5,9 @@
 			"series": "sw_speed"
 		},
 		{
-			"type": "moment",
+			"type": "value",
 			"series": "sw_speed",
-			"poi": "onset",
+			"poi": "forbush_effects",
 			"shift": -1
 		},
 		{

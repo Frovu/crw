@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { useMutationHandler } from '../util';
 import { prettyTable, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
@@ -19,6 +20,25 @@ export function GenericsSelector() {
 	const set = (what: string) => (value: string | null) => setInputState(st => ({ ...st, [what]: value }));
 	const entityName = (en: string) => prettyTable(en).slice(0, -1);
 
+	const { isLoading, report, mutate } = useMutationHandler(async () => {
+		const { entity, type, shift } = state;
+		const poi = state.poi !== 'extremum' ? state.poi : `${state.poiType}_${state.poiSeries}`;
+		const body = {
+			entity, type,
+			...(!type.includes('time') && { series: state.series }),
+			...(!EXTREMUM_OPTIONS.includes(type as any) && { poi }),
+			...(type === 'value' && { shift })
+		};
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/add`, {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		});
+		if (res.status !== 200)
+			throw new Error('HTTP '+res.status);
+		return await res.text();
+	}, ['tableStructure']);
+
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
 	const poiOptions = tables.concat('extremum');
 	const poiPretty = tables.map(entityName).concat('<Extremum>');
@@ -30,14 +50,16 @@ export function GenericsSelector() {
 				<h3 style={{ margin: '1em 4px 1em 0' }}>Create custom column</h3>
 				<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
 				<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} callback={set('type')} width={'9.9em'}/>
-				<MenuSelect text='Series' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>
+				{!state.type.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
 				{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
 				{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
 				{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
-				{showPoi && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
+				{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
 				<div>
-					<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }}>Create column</button>
-
+					<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={mutate}>{isLoading ? '...' : 'Create column'}</button>
+				</div>
+				<div style={{ height: '1em', color: report?.error ? 'var(--color-red)' : 'var(--color-green)', margin: '4px 4px 0 0' }}>
+					{report && (report.error ?? report.success)}
 				</div>
 			</div>
 		</div>

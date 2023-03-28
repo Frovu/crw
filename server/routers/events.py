@@ -18,7 +18,9 @@ def _recompute_generics():
 @route_shielded
 @reqruire_role('operator')
 def _add_generic():
-	return add_generic(*[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
+	uid = session.get('uid')
+	add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
+	return 'Success'
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded

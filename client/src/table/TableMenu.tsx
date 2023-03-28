@@ -1,9 +1,8 @@
-import { useState, useContext, Fragment, ReactNode, useMemo, useEffect } from 'react';
+import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
-import { useEventListener, dispatchCustomEvent } from '../util';
+import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
 import { HistogramMenu } from './Histogram';
 import { AuthButton, AuthContext } from '../App';
-import { useMutation, useQueryClient } from 'react-query';
 import { GenericsSelector } from './Generics';
 
 const KEY_COMB = {
@@ -18,32 +17,21 @@ const KEY_COMB = {
 	'switchTheme': 'T',
 } as { [action: string]: string };
 
-function MutationButton({ text, fn, onSuccess }: { text: string, fn: () => Promise<any>, onSuccess?: () => void }) {
-	const [loading, setLoading] = useState(false);
-	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
-	const mut = useMutation(fn, {
-		onError: (e: Error) => setReport({ error: e.message }),
-		onSuccess: (res?: any) => { setReport({ success: res.toString() }); onSuccess?.(); }
-	});
-	useEffect(() => {
-		setLoading(false);
-		const timeout = setTimeout(() => setReport(null), report?.success ? 10000 : 2000);
-		return () => clearTimeout(timeout);
-	}, [report]);
+function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
+	const { isLoading, report, mutate } = useMutationHandler(fn, invalidate);
 
 	return (
-		<button className='MenuItem' onClick={e => {setLoading(true); e.stopPropagation(); mut.mutate();}}>
+		<button className='MenuItem' onClick={e => {e.stopPropagation(); mutate();}}>
 			<span style={{ textAlign: 'center', width: text.length+'ch',
 				color: !report ? 'var(--color-text)' : report.error ? 'var(--color-red)' : 'var(--color-green)' }}>
 				{report && (report.error ?? report.success)}
-				{!report && (loading ? '...' : text)}
+				{!report && (isLoading ? '...' : text)}
 			</span>
 		</button>
 	);
 }
 
 function AdminMenu() {
-	const queryClient = useQueryClient();
 	const wrapFetch = (uri: string) => async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}${uri}`, {
 			method: 'POST', credentials: 'include' });
@@ -54,7 +42,7 @@ function AdminMenu() {
 	const computeGenerics = wrapFetch('api/events/recompute_generics');
 	return (
 		<>
-			<MutationButton text='Recompute generics' fn={computeGenerics} onSuccess={() => queryClient.invalidateQueries(['tableData'])}/>
+			<MutationButton text='Recompute generics' fn={computeGenerics} invalidate={['tableData']}/>
 		</>
 	);
 

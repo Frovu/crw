@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useMutation, useQueryClient } from 'react-query';
 
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -65,6 +66,26 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	});
 
 	return size;
+}
+
+export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?: any) {
+	const queryClient = useQueryClient();
+	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
+	const mutation = useMutation(fn, {
+		onError: (e: Error) => setReport({ error: e.message }),
+		onSuccess: (res?: any) => {
+			console.log(res);
+			setReport({ success: res?.toString() });
+			invalidate && queryClient.invalidateQueries(invalidate);
+		}
+	});
+
+	useEffect(() => {
+		const timeout = setTimeout(() => setReport(null), report?.success ? 5000 : 2000);
+		return () => clearTimeout(timeout);
+	}, [report]);
+
+	return { ...mutation, mutate: (arg?: any) => mutation.mutate(arg), report };
 }
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {

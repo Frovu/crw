@@ -38,6 +38,11 @@ SERIES = {
 	"Axy": ["gsm", "Axy"],
 }
 
+def parse_extremum_poi(poi):
+	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
+	poi_series = poi_type and poi[len(poi_type)+1:]
+	return poi_type, poi_series
+
 @dataclass
 class GenericColumn:
 	id: int
@@ -58,18 +63,27 @@ class GenericColumn:
 		return cls(None, None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
 
 	def __post_init__(self):
-		name = f'g_{self.type}_{self.series}'
+		name = f'g_{self.type}'
+		if self.series: name += f'_{self.series}'
 		if self.poi: name += f'_{self.poi}'
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
 		self.name = name.lower()
 
-		series = SERIES[self.series][1]
+		series = self.series and SERIES[self.series][1]
 		if 'abs' in self.type:
 			series = f'abs({series})'
+		if self.poi in ENTITY_POI:
+			poi = 'ons' if self.poi == self.entity else ''.join([a[0].upper() for a in self.poi.split('_')])
+		elif self.poi:
+			typ, ser = parse_extremum_poi(self.poi)
+			ser = SERIES[ser][1]
+			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		if self.type == 'value':
-			self.pretty_name = f'{series} at {self.poi}'
+			self.pretty_name = f'{series} [{poi}]'
 			if self.shift and self.shift != 0:
-				self.pretty_name += f'{"+" if self.shift > 0 else "-"}{abs(int(self.shift))}h'
+				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
+		elif 'time' in self.type:
+			self.pretty_name = f'offset [{poi}]'
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
 
@@ -83,10 +97,10 @@ def _init():
 			entity text not null,
 			users integer[],
 			type text not null,
-			series text not null,
+			series text not null default '',
 			poi text not null default '',
 			shift integer not null default 0,
-			UNIQUE (entity, type, series, poi, shift))''')
+			CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
 		path = Path(__file__, '../../config/tables_generics.json').resolve()
 		with open(path) as file:
 			generics = json.load(file)
@@ -94,7 +108,7 @@ def _init():
 			for generic in generics[table]:
 				cursor.execute(f'''INSERT INTO events.generic_columns_info (entity,users,{",".join(generic.keys())})
 					VALUES (%s,%s,{",".join(["%s" for i in generic])})
-					ON CONFLICT (entity, type, series, poi, shift) DO NOTHING''', [table, [-1]] + list(generic.values()))
+					ON CONFLICT ON CONSTRAINT params DO NOTHING''', [table, [-1]] + list(generic.values()))
 				col_name = GenericColumn.from_config(generic).name
 				cursor.execute(f'ALTER TABLE events.{table} ADD COLUMN IF NOT EXISTS {col_name} REAL')
 		pg_conn.commit()
@@ -172,15 +186,10 @@ def init_generics():
 	compute_generics([g for g in select_generics() if g.last_computed is None])
 init_generics()
 
-def parse_extremum_poi(poi):
-	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
-	poi_series = poi_type and poi[len(poi_type)+1:]
-	return poi_type, poi_series
-
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info:
 		raise ValueError('Unknown entity')
-	if series not in SERIES:
+	if 'time' not in gtype and series not in SERIES:
 		raise ValueError('Unknown series')
 	if shift and abs(int(shift)) > RANGE_RIGHT_H:
 		raise ValueError('Shift too large')
@@ -195,16 +204,20 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	if gtype == 'value':
 		pass
 	elif 'time_to' in gtype:
+		if series or shift:
+			raise ValueError('Time_to does not support series/shift')
 		if '%' in gtype and 'duration' not in tables_info[entity]:
 			raise ValueError('Time fractions not supported')
 	elif gtype in EXTREMUM_TYPES:
 		if poi or shift:
-			raise ValueError('Extremum do not support poi/shift')
+			raise ValueError('Extremum does not support poi/shift')
 	else:
 		raise ValueError('Unknown type')
 	with pg_conn.cursor() as cursor:
-		cursor.execute('INSERT INTO events.generic_columns_info (users, entity, series, gtype, poi, shift) VALUES (%s,%s,%s,%s,%s,%s)' +
-			'ON CONFLICT DO UPDATE SET users = array_append(%s)', [[uid], entity, series, gtype, poi, shift])
+		cursor.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
+			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
+			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid])
+		cursor.fetchone()
 	pg_conn.commit()
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
 
