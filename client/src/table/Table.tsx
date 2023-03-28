@@ -71,7 +71,7 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
-export const TableContext = createContext<{ data: any[][], columns: Columns, fisrtTable: string, prettyColumn: (c: ColumnDef | string) => string }>({} as any);
+export const TableContext = createContext<{ data: any[][], columns: Columns, firstTable: string, tables: string[], series: {[s: string]: string}, prettyColumn: (c: ColumnDef | string) => string }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
@@ -242,7 +242,8 @@ function CoreWrapper() {
 	);
 }
 
-function SourceDataWrapper({ columns, table }: { columns: Columns, table: string }) {
+function SourceDataWrapper({ columns, series, firstTable }:
+{ columns: Columns, series: { [s: string]: string }, firstTable: string }) {
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -254,8 +255,10 @@ function SourceDataWrapper({ columns, table }: { columns: Columns, table: string
 			const resp: {data: any[][], fields: string[]} = await res.json();
 			if (!resp?.data.length)
 				return null;
+			const tables = new Set<string>();
 			const orderedColumns = Object.fromEntries(resp.fields.filter(f => columns[f]).map(f => [f, columns[f]]));
 			for (const [i, col] of Object.values(orderedColumns).entries()) {
+				tables.add(col.table);
 				if (col.type === 'time') {
 					for (const row of resp.data) {
 						if (row[i] === null) continue;
@@ -266,9 +269,16 @@ function SourceDataWrapper({ columns, table }: { columns: Columns, table: string
 			}
 			const prettyColumn = (arg: ColumnDef | string) => {
 				const col = typeof arg === 'string' ? orderedColumns[arg] : arg;
-				return col.name + (col.table !== table ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
+				return col.name + (col.table !== firstTable ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
 			};
-			return { data: resp.data, columns: orderedColumns, fisrtTable: table, prettyColumn } as const;
+			return {
+				data: resp.data,
+				columns: orderedColumns,
+				firstTable,
+				tables: Array.from(tables),
+				series,
+				prettyColumn
+			} as const;
 		}
 	});
 	if (query.isLoading)
@@ -283,6 +293,7 @@ function SourceDataWrapper({ columns, table }: { columns: Columns, table: string
 }
 
 export default function TableWrapper() {
+	const firstTable = 'forbush_effects';
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -291,7 +302,8 @@ export default function TableWrapper() {
 			const res = await fetch(`${process.env.REACT_APP_API}api/events/info/`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
-			const tables: { [name: string]: { [name: string]: ColumnDef } } = await res.json();
+			const json = await res.json();
+			const tables: { [name: string]: { [name: string]: ColumnDef } } = json.tables;
 			const columns = Object.fromEntries(
 				Object.entries(tables).map(([table, cols]) => Object.entries(cols).map(([name, desc]) => {
 					const width = (()=>{
@@ -304,12 +316,15 @@ export default function TableWrapper() {
 					})();
 					return [name, { ...desc, table, width, id: name }];
 				})).flat());
-			return { id: { id: 'id', hidden: true }, ...columns } as Columns;
+			return {
+				columns: { id: { id: 'id', hidden: true, table: firstTable }, ...columns } as Columns,
+				series: json.series as { [s: string]: string }
+			};
 		}
 	});
 	if (query.isLoading)
 		return <div>Loading tables..</div>;
 	if (!query.data)
 		return <div>Failed to load tables</div>;
-	return <SourceDataWrapper columns={query.data} table={'forbush_effects'}/>;
+	return <SourceDataWrapper {...{ ...query.data, firstTable }}/>;
 }

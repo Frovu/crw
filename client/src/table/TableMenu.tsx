@@ -4,6 +4,7 @@ import { useEventListener, dispatchCustomEvent } from '../util';
 import { HistogramMenu } from './Histogram';
 import { AuthButton, AuthContext } from '../App';
 import { useMutation, useQueryClient } from 'react-query';
+import { GenericsSelector } from './Generics';
 
 const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -59,21 +60,10 @@ function AdminMenu() {
 
 }
 
-function GenericsSelector() {
-	return (<>
-		<div className='PopupBackground' style={{ opacity: .5 }}></div>
-		<div className='Popup' style={{ transform: 'none' }} onClick={e => e.stopPropagation()}>
-			asdasd
-			asd
-		</div>
-	</>);
-}
-
 function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
-	const { columns: columnsMap } = useContext(TableContext);
+	const { columns: columnsMap, tables } = useContext(TableContext);
 	const columns = Object.values(columnsMap);
-	const tables = [...new Set(columns.filter(col => !col.hidden).map(c => c.table as string))];
 	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} title={col.description} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
@@ -138,7 +128,6 @@ export function MenuSelect({ text, value, options, pretty, callback, width }:
 
 export function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
 	const { settings, set } = useContext(SettingsContext);
-
 	return (
 		<span>
 			{what}:
@@ -266,7 +255,7 @@ export function Menu() {
 					<MenuInput text='right plots width (%)' type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
-					<MenuSelect text='Theme' value={settings.theme} options={themeOptions} callback={(v: any) => set('theme', () => v)} />
+					<SettingsSelect what='theme' options={themeOptions}/>
 					<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
 					<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
 					<div>

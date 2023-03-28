@@ -12,7 +12,7 @@ dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
 	tables_info = json.load(file)
 
-from core.generic_columns import select_generics, init_generics
+from core.generic_columns import select_generics, init_generics, SERIES
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -39,7 +39,8 @@ def render_table_info(uid):
 		} # TODO: description
 		if -1 not in g.users:
 			info[g.entity][g.name]['user_generic_id'] = g.id
-	return info
+	series = { ser: SERIES[ser][1] for ser in SERIES }
+	return { 'tables': info, 'series': series }
 
 def select_all(t_from=None, t_to=None, uid=None):
 	generics = select_generics(uid)
