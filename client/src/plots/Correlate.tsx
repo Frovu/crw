@@ -9,7 +9,7 @@ import { axisDefaults, color } from './plotUtil';
 
 export default function CorrelationPlot() {
 	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);
-	const { columns, prettyColumn } = useContext(TableContext);
+	const { columns } = useContext(TableContext);
 	const { sample } = useContext(DataContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -18,7 +18,7 @@ export default function CorrelationPlot() {
 	const plotOpts = useMemo(() => {
 		if (!sample.length) return null;
 
-		const colIdx = ['columnX', 'columnY'].map(c => Object.keys(columns).indexOf(params[c as keyof CorrParams] as string));
+		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrParams]));
 		const data = sample.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
@@ -45,13 +45,13 @@ export default function CorrelationPlot() {
 				axes: [
 					{
 						...axisDefaults(plotGrid),
-						label: prettyColumn(params.columnX),
+						label: columns.find(c => c.id === params.columnX)?.fullName,
 						labelSize: 22,
 						size: 30,
 					},
 					{
 						...axisDefaults(plotGrid),
-						label: prettyColumn(params.columnY),
+						label: columns.find(c => c.id === params.columnY)?.fullName,
 						size: 56,
 					},
 				],
@@ -78,7 +78,7 @@ export default function CorrelationPlot() {
 			} as uPlot.Options,
 			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
-	}, [params, columns, sample, prettyColumn, plotGrid]);
+	}, [params, columns, sample, plotGrid]);
 
 	if (!plotOpts) return null;
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>

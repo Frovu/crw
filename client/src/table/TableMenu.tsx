@@ -176,12 +176,12 @@ function ExportMenu() {
 }
 
 function CorrelationMenu() {
-	const { columns, prettyColumn } = useContext(TableContext);
+	const { columns } = useContext(TableContext);
 	const { options, setOptions } = useContext(SettingsContext);
 	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
 	const filtered = columns.filter(c => !c.hidden);
 	const selection = filtered.map(c => c.id);
-	const pretty = filtered.map(c => prettyColumn(c));
+	const pretty = filtered.map(c => c.fullName);
 
 	return (<>
 		<h4>Correlation</h4>

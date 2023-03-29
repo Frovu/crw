@@ -7,7 +7,7 @@ import { useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 
 export default function HistogramPlot() {
-	const { data, columns, prettyColumn } = useContext(TableContext);
+	const { data, columns } = useContext(TableContext);
 	const { options: { hist: options }, settings: { plotGrid } } = useContext(SettingsContext);
 	const { sample: currentSample } = useContext(DataContext);
 
@@ -18,7 +18,7 @@ export default function HistogramPlot() {
 		const samples = [0, 1, 2].map(i => {
 			const type = options['sample'+i as keyof HistOptions];
 			if (!type) return [];
-			const colIdx = Object.keys(columns).indexOf(options['column'+i as keyof HistOptions] as any);
+			const colIdx = columns.findIndex(c => c.id === options['column'+i as keyof HistOptions]);
 			// TODO: custom sample
 			const sample = type === 'current' ? currentSample : data;
 			return sample.map(row => row[colIdx]).filter(val => val != null);
@@ -52,7 +52,8 @@ export default function HistogramPlot() {
 						...axisDefaults(plotGrid),
 						size: 30,
 						labelSize: 20,
-						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i]).map(c => prettyColumn(c as string)).join(', ')
+						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i])
+							.map(c => columns.find(cc => cc.id === c)?.fullName).join(', ')
 					},
 					{
 						...axisDefaults(plotGrid),
@@ -94,7 +95,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, prettyColumn, currentSample, plotGrid]);
+	}, [data, options, columns, currentSample, plotGrid]);
 
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...hist(size)}/>

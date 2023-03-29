@@ -14,7 +14,7 @@ export type Filter = {
 };
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: SetFiltersType }) {
-	const { columns, prettyColumn } = useContext(TableContext);
+	const { columns } = useContext(TableContext);
 	const [filter, setFilter] = useState({ ...filterOri, input: filterOri.value });
 	const [invalid, setInvalid] = useState(false);
 
@@ -26,7 +26,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 
 	useEffect(() => {
 		const setFn = (fn: Filter['fn']) => setFilters(filters => filters.map(fl => fl.id !== filter.id ? fl : { ...filter, fn }));
-		const columnIdx = Object.keys(columns).indexOf(column.id);
+		const columnIdx = columns.findIndex(c => c.id === column.id);
 		if (operation === 'is null')
 			return setFn(row => row[columnIdx] == null);
 		if (operation === 'not null')
@@ -74,8 +74,8 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
 			<select style={{ width: '8em', textAlign: 'right', borderColor: 'transparent' }} 
 				value={column.id} onChange={set('column')}>
-				{Object.values(columns).filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
-					{prettyColumn(col)}</option>)}
+				{columns.filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
+					{col.fullName}</option>)}
 			</select>
 			<select style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}

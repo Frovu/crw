@@ -89,7 +89,7 @@ export function GenericsSelector() {
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
 	const poiOptions = tables.concat('extremum');
 	const poiPretty = tables.map(entityName).concat('<Extremum>');
-	const userGenerics = Object.values(columns).filter(c => c.user_generic_id);
+	const userGenerics = columns.filter(c => c.user_generic_id);
 
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>

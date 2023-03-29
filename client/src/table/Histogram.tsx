@@ -32,6 +32,8 @@ export function HistogramMenu() {
 	const { options: { hist }, setOptions } = useContext(SettingsContext);
 	const { columns } = useContext(TableContext);
 	const set = (key: any) => (value: any) => setOptions('hist', opts => ({ ...opts, [key]: value }));
+	const options = columns.map(c => c.id);
+	const pretty = columns.map(c => c.name);
 
 	return (<>
 		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
@@ -39,14 +41,14 @@ export function HistogramMenu() {
 		<h4>First sample</h4>
 		<MenuSelect text='Type' value={hist.sample0} width='10em' options={histSampleOptions} callback={set('sample0')}/>
 		{hist.sample0 && 
-			<MenuSelect text='Column' value={hist.column0} width='10em' options={Object.keys(columns)} callback={set('column0')}/>}
+			<MenuSelect text='Column' value={hist.column0} width='10em' options={options} pretty={pretty} callback={set('column0')}/>}
 		<h4>Second sample</h4>
 		<MenuSelect text='Type' value={hist.sample1} width='10em' options={histSampleOptions} callback={set('sample1')}/>
 		{hist.sample1 && 
-			<MenuSelect text='Column' value={hist.column1} width='10em' options={Object.keys(columns)} callback={set('column1')}/>}
+			<MenuSelect text='Column' value={hist.column1} width='10em' options={options} pretty={pretty} callback={set('column1')}/>}
 		<h4>Third sample</h4>
 		<MenuSelect text='Type' value={hist.sample2} width='10em' options={histSampleOptions} callback={set('sample2')}/>
 		{hist.sample2 && 
-			<MenuSelect text='Column' value={hist.column2} width='10em' options={Object.keys(columns)} callback={set('column2')}/>}
+			<MenuSelect text='Column' value={hist.column2} width='10em' options={options} pretty={pretty} callback={set('column2')}/>}
 	</>);
 }

@@ -18,6 +18,7 @@ export const prettyTable = (str: string) => str.split('_').map((s: string) => s.
 
 export type ColumnDef = {
 	name: string,
+	fullName: string,
 	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
 	description?: string,
 	enum?: string[],
@@ -71,7 +72,7 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
-export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string}, prettyColumn: (c: ColumnDef | string) => string }>({} as any);
+export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
@@ -190,7 +191,7 @@ function CoreWrapper() {
 
 	const plotContext = useMemo(() => {
 		if (!plotIdx) return null;
-		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => Object.keys(columns).indexOf(c));
+		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = plotIdx && data[plotIdx][timeIdx];
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
 		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
@@ -270,18 +271,12 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			}
 		}
 		console.log('rendered table', query.data.fields, data);
-		const prettyColumn = (arg: ColumnDef | string) => {
-			const col = typeof arg === 'string' ? columns.find(c => c.id === arg) : arg;
-			if (!col) return '!unknown!';
-			return col.name + (col.table !== firstTable ? ' of ' + prettyTable(col.table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
-		};
 		return {
 			data: data,
 			columns: filtered,
 			firstTable,
 			tables: Array.from(tables),
-			series,
-			prettyColumn
+			series
 		} as const;
 	}, [tables, columns, firstTable, query.data, series]);
 	if (query.isLoading)
@@ -318,7 +313,8 @@ export default function TableWrapper() {
 						default: return 5;
 					}
 				})();
-				return { ...desc, table, width, id: name };
+				const fullName = name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
+				return { ...desc, table, width, id: name, fullName } as ColumnDef;
 			}).sort((a, b) => !a.name ? 0 : a.name.localeCompare(b.name))
 				.sort((a, b) => a.id.includes('time') ? -1 : 1 )
 				.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
