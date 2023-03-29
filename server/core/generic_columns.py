@@ -67,7 +67,7 @@ class GenericColumn:
 		if self.series: name += f'_{self.series}'
 		if self.poi: name += f'_{self.poi}'
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
-		self.name = name.lower()
+		self.name = name.lower().replace('%', 'pp')
 
 		series = self.series and SERIES[self.series][1]
 		if 'abs' in self.type:
@@ -83,7 +83,7 @@ class GenericColumn:
 			if self.shift and self.shift != 0:
 				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
 		elif 'time' in self.type:
-			self.pretty_name = f'offset [{poi}]'
+			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}]"
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
 
@@ -170,8 +170,9 @@ def compute_generic(generic):
 	log.info(f'Computing {generic.name}')
 	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
 	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
-	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
-	data_time, data_value = data_series[:,0], data_series[:,1]
+	if generic.series:
+		data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
+		data_time, data_value = data_series[:,0], data_series[:,1]
 	length = len(event_id)
 	
 	def find_extremum(typ, ser):
@@ -181,11 +182,14 @@ def compute_generic(generic):
 		d_time, value = data[:,0], data[:,1]
 		result = np.full((length, 2), np.nan, dtype='f8')
 		start_hour = np.floor(event_start / HOUR) * HOUR
-		bound_right = start_hour + MAX_EVENT_LENGTH
-		to_next_event = np.empty(length, dtype='i8')
-		to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
-		to_next_event[-1] = 9999
-		slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH)
+		if event_duration is not None:
+			slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
+		else:
+			bound_right = start_hour + MAX_EVENT_LENGTH
+			to_next_event = np.empty(length, dtype='i8')
+			to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
+			to_next_event[-1] = 9999
+			slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
 		left = np.searchsorted(d_time, start_hour, side='left')
 		value = np.abs(value) if is_abs else value
 		fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
@@ -289,7 +293,7 @@ def remove_generic(uid, gid):
 		cursor.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING *', [uid, gid])
 		res = cursor.fetchone()
 		if not res: return
-		generic = GenericColumn(*res)
+		generic = GenericColumn(*res) 
 		if not generic.users:
 			cursor.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
 			cursor.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
