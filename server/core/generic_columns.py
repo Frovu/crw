@@ -57,6 +57,7 @@ class GenericColumn:
 	shift: int
 	name: str = None
 	pretty_name: str = None
+	description = None
 
 	@classmethod
 	def from_config(cls, desc):
@@ -84,6 +85,9 @@ class GenericColumn:
 			self.pretty_name = f'{series} [{poi}]'
 			if self.shift and self.shift != 0:
 				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
+		elif 'coverage' == self.type:
+			self.pretty_name = f'coverage [{series}]'
+			self.description = f'Coverage percentage of {SERIES[self.series][0]}({series}) from onset to event end|next|+{MAX_EVENT_LENGTH_H}h'
 		elif 'time' in self.type:
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}]"
 		else:
@@ -176,13 +180,8 @@ def compute_generic(generic):
 		data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 		data_time, data_value = data_series[:,0], data_series[:,1]
 	length = len(event_id)
-	
-	def find_extremum(typ, ser):
-		is_max, is_abs = 'max' in typ, 'abs' in typ
-		data = data_series if ser == generic.series else \
-			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
-		d_time, value = data[:,0], data[:,1]
-		result = np.full((length, 2), np.nan, dtype='f8')
+
+	def get_event_windows(d_time):
 		start_hour = np.floor(event_start / HOUR) * HOUR
 		if event_duration is not None:
 			slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
@@ -193,6 +192,15 @@ def compute_generic(generic):
 			to_next_event[-1] = 9999
 			slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
 		left = np.searchsorted(d_time, start_hour, side='left')
+		return left, slice_len
+	
+	def find_extremum(typ, ser):
+		is_max, is_abs = 'max' in typ, 'abs' in typ
+		data = data_series if ser == generic.series else \
+			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
+		d_time, value = data[:,0], data[:,1]
+		result = np.full((length, 2), np.nan, dtype='f8')
+		left, slice_len = get_event_windows(d_time)
 		value = np.abs(value) if is_abs else value
 		fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
 		idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)]) # 0.01 ms
@@ -212,7 +220,6 @@ def compute_generic(generic):
 		typ, ser = parse_extremum_poi(generic.poi)
 		poi_time = find_extremum(typ, ser)[:,0]
 
-	result = np.full(length, np.nan, dtype='f8')
 	if 'time_to' in generic.type:
 		result = (poi_time - event_start) / HOUR
 		if '%' in generic.type:
@@ -220,6 +227,7 @@ def compute_generic(generic):
 	elif generic.type in EXTREMUM_TYPES:
 		result = find_extremum(generic.type, generic.series)[:,1]
 	elif generic.type == 'value':
+		result = np.full(length, np.nan, dtype='f8')
 		poi_hour = np.floor(poi_time / HOUR) * HOUR
 		shift = generic.shift
 		start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
@@ -231,6 +239,9 @@ def compute_generic(generic):
 		nan_threshold = np.floor(window_len / 2)
 		filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
 		result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
+	elif generic.type == 'coverage':
+		left, slice_len = get_event_windows(data_time)
+		result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
 	else:
 		assert False
 
@@ -266,7 +277,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')
 
-	if gtype in EXTREMUM_TYPES or poi in ENTITY_POI:
+	if gtype == 'coverage' or gtype in EXTREMUM_TYPES or poi in ENTITY_POI:
 		poi_type, poi_series = poi, None
 	elif poi in ['next', 'previous']:
 		pass
@@ -277,6 +288,9 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 
 	if gtype == 'value':
 		pass
+	elif 'coverage' == gtype:
+		if poi or shift:
+			raise ValueError('Coverage does not support poi/shift')
 	elif 'time_to' in gtype:
 		if series or shift:
 			raise ValueError('Time_to does not support series/shift')

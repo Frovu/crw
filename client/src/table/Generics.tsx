@@ -5,7 +5,7 @@ import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
-const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS] as const;
+const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'coverage'] as const;
 
 function GenericCard({ column }: { column: ColumnDef }) {
 	const queryClient = useQueryClient();
@@ -88,7 +88,7 @@ export function GenericsSelector() {
 		return `Created ${resp.name} in ${resp.time.toFixed(1)} s`;
 	}, ['tableStructure', 'tableData']);
 
-	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
+	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any) && state.type !== 'coverage';
 	const poiOptions = ['extremum', 'next', 'previous'].concat(tables);
 	const poiPretty = ['<Extremum>', '<Next event>', '<Previous event>'].concat(tables.map(entityName));
 	const userGenerics = columns.filter(c => c.user_generic_id);
