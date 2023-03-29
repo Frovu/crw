@@ -319,7 +319,7 @@ export default function TableWrapper() {
 						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
 						case 'time': return 19;
 						case 'text': return 14;
-						default: return 5;
+						default: return 6;
 					}
 				})();
 				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');

@@ -145,7 +145,7 @@ def _select_recursive(entity, target_entity=None):
 	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
 	with pg_conn.cursor() as cursor:
 		cursor.execute(select_query)
-		res = np.array(cursor.fetchall(), dtype='f')
+		res = np.array(cursor.fetchall(), dtype='f8')
 		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
 		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
 		return res[:,0], res[:,1], duration, t_time
@@ -170,19 +170,19 @@ def compute_generic(generic):
 	log.info(f'Computing {generic.name}')
 	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
 	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
-	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f') # 400 ms
+	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 	data_time, data_value = data_series[:,0], data_series[:,1]
 	length = len(event_id)
 	
 	def find_extremum(typ, ser):
 		is_max, is_abs = 'max' in typ, 'abs' in typ
 		data = data_series if ser == generic.series else \
-			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f')
+			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
 		d_time, value = data[:,0], data[:,1]
-		result = np.full((length, 2), np.nan, dtype='f')
+		result = np.full((length, 2), np.nan, dtype='f8')
 		start_hour = np.floor(event_start / HOUR) * HOUR
 		bound_right = start_hour + MAX_EVENT_LENGTH
-		to_next_event = np.empty(length, dtype='i')
+		to_next_event = np.empty(length, dtype='i8')
 		to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
 		to_next_event[-1] = 9999
 		slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH)
@@ -199,7 +199,7 @@ def compute_generic(generic):
 		typ, ser = parse_extremum_poi(generic.poi)
 		poi_time = find_extremum(typ, ser)[:,0]
 
-	result = np.full(length, np.nan, dtype='f')
+	result = np.full(length, np.nan, dtype='f8')
 	if 'time_to' in generic.type:
 		result = (poi_time - event_start) / HOUR
 		if '%' in generic.type:
@@ -211,21 +211,13 @@ def compute_generic(generic):
 		shift = generic.shift
 		start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
 		window_len = max(1, abs(shift))
-		if window_len == 1:
-			_, a_idx, b_idx = np.intersect1d(start_hour, data_time, return_indices=True)
-			result[a_idx] = data_value[b_idx]
-		else:
-			print(result)
-
-		# 		t_1 = hour0 - HOUR if generic.shift < 0 else ceil(events[i][1] / HOUR) * HOUR
-		# 		t_2 = hour0 + generic.shift * HOUR # for offset +1 00:00 will fetch 00:00-01:00 (2h)
-		# 		res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
-		# 	if not len(res):
-		# 		return None
-		# 	data = np.array(res, dtype=np.float64)[:,1]
-		# 	if np.isnan(data).all():
-		# 		return None
-		# 	return np.nanmean(data)
+		per_hour = np.full((length, window_len), np.nan, dtype='f8')
+		for h in range(window_len):
+			_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
+			per_hour[a_idx, h] = data_value[b_idx]
+		nan_threshold = np.floor(window_len / 2)
+		filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
+		result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
 	else:
 		assert False
 
