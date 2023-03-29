@@ -70,7 +70,7 @@ class GenericColumn:
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
 		self.name = name.lower().replace('%', 'pp')
 
-		series = self.series and SERIES[self.series][1]
+		series, poi = self.series and SERIES[self.series][1], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		if self.poi in ENTITY_POI:
@@ -81,17 +81,27 @@ class GenericColumn:
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
+		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if poi != "ons" else "event onset"
 		if self.type == 'value':
 			self.pretty_name = f'{series} [{poi}]'
 			if self.shift and self.shift != 0:
+				if abs(self.shift) == 1:
+					self.description = f'Value of {ser_desc} one hour {"before" if self.shift<0 else "after"} {poi_desc}'
+				else:
+					self.description = f'Value of {ser_desc} averaged over {abs(self.shift)} hours {"before" if self.shift<0 else "after"} {poi_desc}'
 				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
+			else:
+				self.description = f'Value of {ser_desc} at the hour of {poi_desc}'
 		elif 'coverage' == self.type:
 			self.pretty_name = f'coverage [{series}]'
-			self.description = f'Coverage percentage of {SERIES[self.series][0]}({series}) from onset to event end|next|+{MAX_EVENT_LENGTH_H}h'
+			self.description = f'Coverage percentage of {ser_desc} between onset and event end | next event | +{MAX_EVENT_LENGTH_H}h'
 		elif 'time' in self.type:
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}]"
+			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
+			self.description = ('Maximum' if 'max' in self.type else 'Minimum') + (' absolute' if 'abs' in self.type else '') +\
+				f' value of {ser_desc} between onset and event end | next | +{MAX_EVENT_LENGTH_H}h'
 
 def _init():
 	with pg_conn.cursor() as cursor:
