@@ -148,7 +148,7 @@ function ExportMenu() {
 	
 	const dataUrl = useMemo(() => {
 		const data = filtered ? fData : rData;
-		const columns = filtered ? fColumns : Object.values(rColumns);
+		const columns = filtered ? fColumns : rColumns.slice(1);
 		if (!format)
 			return URL.createObjectURL(new Blob([JSON.stringify({ data, columns }, null, 2)], { type: 'application/json' }));
 
@@ -157,7 +157,8 @@ function ExportMenu() {
 
 		for (const row of data) {
 			for (const [i, col] of columns.entries()) {
-				const val = col.type === 'time' ? row[i]?.toISOString().replace(/\..+/,'Z') : row[i];
+				const v = row[i+1];
+				const val = col.type === 'time' ? v?.toISOString().replace(/\..+/,'Z') : v;
 				text += (val == null ? 'N/A' : val).toString().replace(/\s/, '_').padStart(col.width + 4, ' '.repeat(col.width)) + ' ';
 			}
 			text += '\r\n';
