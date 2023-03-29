@@ -74,7 +74,6 @@ export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?:
 	const mutation = useMutation(fn, {
 		onError: (e: Error) => setReport({ error: e.message }),
 		onSuccess: (res?: any) => {
-			console.log(res);
 			setReport({ success: res?.toString() });
 			if (invalidate)
 				invalidate.forEach((key: any) => queryClient.invalidateQueries([key]));

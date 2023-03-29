@@ -247,7 +247,7 @@ def init_generics():
 	compute_generics(select_generics())
 
 def add_generic(uid, entity, series, gtype, poi, shift):
-	if entity not in tables_info:
+	if entity not in tables_info or not gtype:
 		raise ValueError('Unknown entity')
 	if 'time' not in gtype and series not in SERIES:
 		raise ValueError('Unknown series')

@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { useQueryClient } from 'react-query';
 import { useMutationHandler } from '../util';
-import { ColumnDef, prettyTable, TableContext } from './Table';
+import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
@@ -9,6 +9,7 @@ const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS] as c
 
 function GenericCard({ column }: { column: ColumnDef }) {
 	const queryClient = useQueryClient();
+	const { set: setSetting } = useContext(SettingsContext);
 	const { mutate, report, color, isLoading } = useMutationHandler(async (action) => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/${action}`, {
 			method: 'POST', credentials: 'include',
@@ -24,12 +25,18 @@ function GenericCard({ column }: { column: ColumnDef }) {
 			{column.name}
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
 				onClick={()=>mutate('compute', {
-					onSuccess: () => queryClient.invalidateQueries('tableData')
+					onSuccess: () => {
+						queryClient.invalidateQueries('tableData');
+						setSetting('enabledColumns', (cols) => cols.includes(column.id) ? cols : [...cols, column.id]);
+					}
 				})}>
 				o
 			</span>
 			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={()=>mutate('remove', {
-				onSuccess: () => queryClient.invalidateQueries('tableStructure')
+				onSuccess: () => {
+					queryClient.invalidateQueries('tableStructure');
+					setSetting('enabledColumns', (cols) => cols.filter(c => c !== column.id));
+				}
 			})}>
 				&times;
 			</span>
@@ -43,11 +50,12 @@ function GenericCard({ column }: { column: ColumnDef }) {
 
 export function GenericsSelector() {
 	const { tables, series, columns } = useContext(TableContext);
+	const { set: setSetting } = useContext(SettingsContext);
 	const [state, setInputState] = useState(() => ({
 		entity: tables[0],
-		type: 'value',
-		series: Object.keys(series)[0],
-		poi: tables[0],
+		type: null as string | null,
+		series: null as string | null,
+		poi: null as string | null,
 		poiType: 'max',
 		poiSeries: Object.keys(series)[0],
 		shift: 0,
@@ -60,7 +68,7 @@ export function GenericsSelector() {
 		const poi = state.poi !== 'extremum' ? state.poi : `${state.poiType}_${state.poiSeries}`;
 		const body = {
 			entity, type,
-			...(!type.includes('time') && { series: state.series }),
+			...(!type?.includes('time') && { series: state.series }),
 			...(!EXTREMUM_OPTIONS.includes(type as any) && { poi }),
 			...(type === 'value' && { shift })
 		};
@@ -73,7 +81,9 @@ export function GenericsSelector() {
 			throw new Error(await res.text());
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
-		return await res.text();
+		const resp = await res.json();
+		setSetting('enabledColumns', (cols) => cols.includes(resp.id) ? cols : [...cols, resp.id]);
+		return resp.name;
 	}, ['tableStructure', 'tableData']);
 
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
@@ -90,9 +100,9 @@ export function GenericsSelector() {
 			<div style={{ width: '18em', display: 'flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
 				<h3 style={{ margin: '1em 4px 1em 0' }}>Create custom column</h3>
 				<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
-				<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} callback={set('type')} width={'9.9em'}/>
-				{!state.type.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
-				{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
+				<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} withNull={true} callback={set('type')} width={'9.9em'}/>
+				{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} withNull={true} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
+				{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
 				{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
 				{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
 				{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}

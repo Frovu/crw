@@ -94,17 +94,17 @@ export function MenuButton({ text, action }: { text: string, action: string }) {
 	);
 }
 
-export function MenuSelect({ text, value, options, pretty, callback, width }:
-{ text: string, value: string | null, width?: string, options: readonly (string|null)[], pretty?: string[], callback: (val: string | null) => void}) {
+export function MenuSelect({ text, value, options, pretty, callback, width, withNull }:
+{ text: string, value: string | null, width?: string, withNull?: boolean, options: readonly (string|null)[], pretty?: string[], callback: (val: string | null) => void}) {
 	return (
 		<span>
 			{text}:
 			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(width && { width }), ...(!value && { color: 'var(--color-text-dark)' }) }}
 				value={value || '--none'} onClick={e => e.stopPropagation()}
 				onChange={(e) => callback(e.target.value === '--none' ? null : e.target.value)}> 
-				{options.map((opt, i) => opt == null ?
+				{(withNull?[null as any]:[]).concat(options).map((opt, i) => opt == null ?
 					<option key='--none' value='--none'>-- None --</option> :
-					<option key={opt} value={opt}>{pretty?.[i] ?? opt}</option>)}
+					<option key={opt} value={opt}>{pretty?.[withNull ? i-1 : i] ?? opt}</option>)}
 			</select>
 		</span>
 	);

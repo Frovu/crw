@@ -79,7 +79,7 @@ type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: (s: VolatileS
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOptions: OptionsSetter }>({} as any);
 
 function defaultSettings(columns: ColumnDef[]): Settings {
-	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'h_max', 'bz_min', 'ap_max', 'dst_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
+	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'bz_min', 'ap_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
 	return {
 		theme: 'Dark',
 		enabledColumns: SHOW,

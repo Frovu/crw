@@ -20,7 +20,7 @@ def _recompute_generics():
 def _add_generic():
 	uid = session.get('uid')
 	generic = add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
-	return 'Created ' + generic.pretty_name
+	return { 'id': generic.name, 'name': generic.pretty_name }
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
