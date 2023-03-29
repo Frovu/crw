@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { SettingsContext, TableContext } from './Table';
-import { MenuInput, MenuSelect } from './TableMenu';
+import { MenuCheckbox, MenuInput, MenuSelect } from './TableMenu';
 
 const yScaleOptions = ['count', 'log', '%'] as const;
 
@@ -50,5 +50,22 @@ export function HistogramMenu() {
 		<MenuSelect text='Type' value={hist.sample2} width='10em' options={histSampleOptions} callback={set('sample2')}/>
 		{hist.sample2 && 
 			<MenuSelect text='Column' value={hist.column2} width='10em' options={options} pretty={pretty} callback={set('column2')}/>}
+	</>);
+}
+
+export function CorrelationMenu() {
+	const { columns } = useContext(TableContext);
+	const { options, setOptions } = useContext(SettingsContext);
+	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
+	const filtered = columns.filter(c => !c.hidden);
+	const selection = filtered.map(c => c.id);
+	const pretty = filtered.map(c => c.fullName);
+
+	return (<>
+		<h4>Correlation</h4>
+		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
+		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
+		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
+		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
 	</>);
 }

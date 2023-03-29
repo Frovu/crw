@@ -11,7 +11,7 @@ import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
 import HistogramPlot from '../plots/Hist';
-import { defaultHistOptions, HistOptions } from './Histogram';
+import { defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
@@ -169,6 +169,15 @@ function CoreWrapper() {
 	useEventListener('action+switchTheme', () => 
 		setSettings(opts => ({ ...opts, theme: themeOptions[(themeOptions.indexOf(opts.theme) + 1) % themeOptions.length] })));
 
+	useEventListener('setColumn', e => setOptions(opts => {
+		const which = e.detail.which;
+		const corrKey = which === 1 ? 'columnX' : 'columnY';
+		const histKey = 'column' + Math.min(which - 1, 2);
+		return { ...opts,
+			correlation: { ...opts.correlation, [corrKey]: e.detail.column.id },
+			hist: { ...opts.hist, [histKey]: e.detail.column.id } };
+	}));
+
 	// I did not know any prettier way to do this
 	document.documentElement.setAttribute('main-theme', settings.theme);
 	
@@ -304,7 +313,7 @@ export default function TableWrapper() {
 			const json = await res.json();
 			const tables: { [name: string]: { [name: string]: ColumnDef } } = json.tables;
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([name, desc]) => {
+			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([id, desc]) => {
 				const width = (()=>{
 					switch (desc.type) {
 						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
@@ -313,9 +322,9 @@ export default function TableWrapper() {
 						default: return 5;
 					}
 				})();
-				const fullName = name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
-				return { ...desc, table, width, id: name, fullName } as ColumnDef;
-			}).sort((a, b) => !a.name ? 0 : a.name.localeCompare(b.name))
+				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
+				return { ...desc, table, width, id, fullName } as ColumnDef;
+			}).sort((a, b) => !a.name ? 0 : -a.name.localeCompare(b.name))
 				.sort((a, b) => a.id.includes('time') ? -1 : 1 )
 				.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
 			return {

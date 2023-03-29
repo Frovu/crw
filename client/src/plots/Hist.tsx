@@ -1,7 +1,7 @@
 import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { HistOptions } from '../table/Histogram';
+import { HistOptions } from '../table/Statistics';
 import { DataContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';

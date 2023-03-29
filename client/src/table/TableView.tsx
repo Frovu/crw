@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
-import { useEventListener } from '../util';
+import { dispatchCustomEvent, useEventListener } from '../util';
 import { ColumnDef, Sort, Cursor, DataContext, prettyTable } from './Table';
 
 type CursorPara = { cursor: Cursor, setCursor: (c: Cursor) => void };
@@ -57,6 +57,9 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			return setCursor({ ...cursor, editing: !cursor.editing });
 		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
+
+		if (cursor && ['1', '2', '3', '4'].includes(e.key))
+			return dispatchCustomEvent('setColumn', { which: parseInt(e.key), column: columns[cursor?.column] });
 
 		const set = (curs: Exclude<Cursor, null>) => {
 			const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 

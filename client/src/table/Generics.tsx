@@ -21,7 +21,7 @@ function GenericCard({ column }: { column: ColumnDef }) {
 		return await res.text();
 	});
 	return (
-		<div style={{ height: '3em', width: '10em' }}>
+		<div style={{ height: '3em', minWidth: '12em', whiteSpace: 'nowrap' }}>
 			{column.name}
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
 				onClick={()=>mutate('compute', {
@@ -77,6 +77,8 @@ export function GenericsSelector() {
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body)
 		});
+		if (res.status === 401)
+			throw new Error('Not authorized');
 		if (res.status === 400)
 			throw new Error(await res.text());
 		if (res.status !== 200)

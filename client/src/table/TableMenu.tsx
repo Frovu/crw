@@ -1,7 +1,7 @@
 import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
-import { HistogramMenu } from './Histogram';
+import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
 
@@ -173,23 +173,6 @@ function ExportMenu() {
 			<a style={{ marginLeft: '.5em' }} href={dataUrl} download={fname}>download as a file</a>
 		</>
 	);
-}
-
-function CorrelationMenu() {
-	const { columns } = useContext(TableContext);
-	const { options, setOptions } = useContext(SettingsContext);
-	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
-	const filtered = columns.filter(c => !c.hidden);
-	const selection = filtered.map(c => c.id);
-	const pretty = filtered.map(c => c.fullName);
-
-	return (<>
-		<h4>Correlation</h4>
-		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
-		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
-		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
-		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
-	</>);
 }
 
 export function Menu() {
