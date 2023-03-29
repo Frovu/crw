@@ -1,6 +1,7 @@
 from core.database import pg_conn, tables_info, tables_tree, tables_refs
 from dataclasses import dataclass
 from datetime import datetime
+from time import time
 from pathlib import Path
 from math import floor, ceil
 from concurrent.futures import ThreadPoolExecutor
@@ -165,10 +166,11 @@ def _select(t_from, t_to, series):
 		return gsm.select(interval, series)[0]
 
 def compute_generic(generic):
+	t_start = time()
 	log.info(f'Computing {generic.name} for {generic.entity}')
 	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
-	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity)
-	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f')
+	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
+	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f') # 400 ms
 	length = len(event_id)
 	start_hour = np.floor(event_start / HOUR) * HOUR
 	
@@ -178,19 +180,16 @@ def compute_generic(generic):
 			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f')
 		d_time, value = data[:,0], data[:,1]
 		result = np.full((length, 2), np.nan, dtype='f')
-		for i in range(length):
-			bound_right = start_hour[i] + MAX_EVENT_LENGTH
-			if i < length - 1:
-				bound_event = start_hour[i+1] - HOUR
-				bound_right = min(bound_right, bound_event)
-			left = np.searchsorted(d_time, start_hour[i], side='left')
-			right = np.searchsorted(d_time[left:left+MAX_EVENT_LENGTH_H], bound_right, side='right') + left
-			target = value[left:right]
-			if not len(target) or np.isnan(target).all():
-				continue
-			target = np.abs(target) if is_abs else target
-			idx = np.nanargmax(target) if is_max else np.nanargmin(target)
-			result[i] = data[left + idx]
+		bound_right = start_hour + MAX_EVENT_LENGTH
+		to_next_event = np.empty(length, dtype='i')
+		to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
+		to_next_event[-1] = 9999
+		slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH)
+		left = np.searchsorted(d_time, start_hour, side='left')
+		value = np.abs(value) if is_abs else value
+		fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
+		idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)]) # 0.01 ms
+		result = data[left + idx]
 		return result
 
 	if generic.poi in ENTITY_POI:
@@ -205,24 +204,19 @@ def compute_generic(generic):
 			result = result / event_duration * 100
 	elif generic.type in EXTREMUM_TYPES:
 		result = find_extremum(generic.type, generic.series)[:,1]
-
 	elif generic.type == 'value':
-		def compute(i):
-			if generic.poi != generic.entity:
-				assert False
-			hour0 = start_hour[i]
-			if generic.shift == 0:
-				res = _select(hour0, hour0, generic.series)
-			else:
-				t_1 = hour0 - HOUR if generic.shift < 0 else ceil(events[i][1] / HOUR) * HOUR
-				t_2 = hour0 + generic.shift * HOUR # for offset +1 00:00 will fetch 00:00-01:00 (2h)
-				res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
-			if not len(res):
-				return None
-			data = np.array(res, dtype=np.float64)[:,1]
-			if np.isnan(data).all():
-				return None
-			return np.nanmean(data)
+		pass
+		# idx = np.searchsorted(poi_time, start_hour[i], side='left')
+
+		# 		t_1 = hour0 - HOUR if generic.shift < 0 else ceil(events[i][1] / HOUR) * HOUR
+		# 		t_2 = hour0 + generic.shift * HOUR # for offset +1 00:00 will fetch 00:00-01:00 (2h)
+		# 		res = _select(min(t_1, t_2), max(t_1, t_2), generic.series)
+		# 	if not len(res):
+		# 		return None
+		# 	data = np.array(res, dtype=np.float64)[:,1]
+		# 	if np.isnan(data).all():
+		# 		return None
+		# 	return np.nanmean(data)
 	else:
 		assert False
 
@@ -235,7 +229,7 @@ def compute_generic(generic):
 		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
 		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 	pg_conn.commit()
-	log.info(f'Computed {generic.name} for {generic.entity}')
+	log.info(f'Computed {generic.name} for {generic.entity} in {round(time()-t_start,2)}s')
 
 def compute_generics(generics: [GenericColumn]):
 	with ThreadPoolExecutor() as executor:

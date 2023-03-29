@@ -21,7 +21,7 @@ function GenericCard({ column }: { column: ColumnDef }) {
 		return await res.text();
 	});
 	return (
-		<div style={{ height: '3em', whiteSpace: 'nowrap', marginLeft: '2em' }}>
+		<div style={{ height: '3em', minWidth: '11em', whiteSpace: 'nowrap', marginLeft: '2em' }}>
 			{column.name}
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
 				onClick={()=>mutate('compute', {
