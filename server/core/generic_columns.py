@@ -21,7 +21,7 @@ ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
 SERIES = {
 	"sw_speed": ["omni", "V"],
 	"sw_density": ["omni", "D"],
-	"sw_temp": ["omni", "T"],
+	"sw_temperature": ["omni", "T"],
 	"temperature_idx": ["omni", "Tidx"],
 	"imf_scalar": ["omni", "B"],
 	"imf_x": ["omni", "Bx"],

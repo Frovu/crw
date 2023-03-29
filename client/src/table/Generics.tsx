@@ -21,7 +21,7 @@ function GenericCard({ column }: { column: ColumnDef }) {
 		return await res.text();
 	});
 	return (
-		<div style={{ height: '3em', minWidth: '12em', whiteSpace: 'nowrap' }}>
+		<div style={{ height: '3em', whiteSpace: 'nowrap', marginLeft: '2em' }}>
 			{column.name}
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
 				onClick={()=>mutate('compute', {
@@ -85,35 +85,41 @@ export function GenericsSelector() {
 			throw new Error('HTTP '+res.status);
 		const resp = await res.json();
 		setSetting('enabledColumns', (cols) => cols.includes(resp.id) ? cols : [...cols, resp.id]);
-		return resp.name;
+		return `Created ${resp.name} in ${resp.time.toFixed(1)} s`;
 	}, ['tableStructure', 'tableData']);
 
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
 	const poiOptions = tables.concat('extremum');
 	const poiPretty = tables.map(entityName).concat('<Extremum>');
 	const userGenerics = columns.filter(c => c.user_generic_id);
+	const count = userGenerics.length;
+	const height = document.body.offsetHeight - 160;
+	const cols = Math.ceil(count * 48 / height);
 
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
-		<div className='Popup' style={{ transform: 'none', display: 'flex' }} onClick={e => e.stopPropagation()}>
-			<div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right', margin: '1em 1em 0 0' }}>
-				{userGenerics.map(c => <GenericCard key={c.id} column={c}/>)}
-			</div>
-			<div style={{ width: '18em', display: 'flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
-				<h3 style={{ margin: '1em 4px 1em 0' }}>Create custom column</h3>
-				<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
-				<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} withNull={true} callback={set('type')} width={'9.9em'}/>
-				{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} withNull={true} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
-				{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
-				{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
-				{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
-				{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
-				<div>
-					<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={mutate}>{isLoading ? '...' : 'Create column'}</button>
+		<div className='Popup' style={{ transform: 'none', maxHeight: '80vh', padding: '1em 2em 2em 0' }} onClick={e => e.stopPropagation()}>
+			<div style={{ position: 'relative' }}>
+				<div style={{ display: 'inline-grid', gridAutoFlow: 'row', gridTemplateColumns: `repeat(${cols}, auto)`, textAlign: 'right' }}>
+					{userGenerics.map(c => <GenericCard key={c.id} column={c}/>)}
 				</div>
-				<div style={{ height: '1em', color, margin: '4px 4px 0 0' }}>
-					{report && (report.error ?? report.success)}
+				<div style={{ width: '18em', display: 'inline-flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
+					<h3 style={{ margin: '0 4px 1em 0' }}>Create custom column</h3>
+					<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
+					<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} withNull={true} callback={set('type')} width={'9.9em'}/>
+					{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} withNull={true} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
+					{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
+					{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
+					{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
+					{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
+					<div>
+						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={mutate}>{isLoading ? '...' : 'Create column'}</button>
+					</div>
+					<div style={{ height: '1em', color, margin: '4px 4px 0 0' }}>
+						{report && (report.error ?? report.success)}
+					</div>
 				</div>
+
 			</div>
 		</div>
 	</>);

@@ -19,8 +19,9 @@ def _recompute_generics():
 @reqruire_role('operator')
 def _add_generic():
 	uid = session.get('uid')
+	start = time()
 	generic = add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
-	return { 'id': generic.name, 'name': generic.pretty_name }
+	return { 'id': generic.name, 'name': generic.pretty_name, 'time': time() - start }
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
@@ -42,7 +43,7 @@ def _compute_generic():
 		return 'Generic not found', 404
 	start = time()
 	compute_generic(generic)
-	return f'Computed in {int(time() - start)} s'
+	return f'Computed in {round(time() - start, 1)} s'
 
 @bp.route('/', methods=['GET'])
 @route_shielded
