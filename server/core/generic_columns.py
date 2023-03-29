@@ -158,10 +158,11 @@ def select_generics(user_id=None):
 	return result
 
 def _select(t_from, t_to, series):
+	interval = [int(i) for i in (t_from, t_to)]
 	if SERIES[series][0] == 'omni':
-		return omni.select([t_from, t_to], [series])[0]
+		return omni.select(interval, [series])[0]
 	else:
-		return gsm.select([t_from, t_to], series)[0]
+		return gsm.select(interval, series)[0]
 
 def compute_generic(generic):
 	log.info(f'Computing {generic.name} for {generic.entity}')
@@ -175,18 +176,21 @@ def compute_generic(generic):
 		is_max, is_abs = 'max' in typ, 'abs' in typ
 		data = data_series if ser == generic.series else \
 			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f')
-		result = np.full((len(data), 2), np.nan, dtype='f')
+		d_time, value = data[:,0], data[:,1]
+		result = np.full((length, 2), np.nan, dtype='f')
 		for i in range(length):
 			bound_right = start_hour[i] + MAX_EVENT_LENGTH
 			if i < length - 1:
 				bound_event = start_hour[i+1] - HOUR
 				bound_right = min(bound_right, bound_event)
-			data_slice = data[data[:,0] >= start_hour[0]][data[:,0] <= bound_right]
-			if not len(data_slice) or np.isnan(data_slice).all():
+			left = np.searchsorted(d_time, start_hour[i], side='left')
+			right = np.searchsorted(d_time[left:left+MAX_EVENT_LENGTH_H], bound_right, side='right') + left
+			target = value[left:right]
+			if not len(target) or np.isnan(target).all():
 				continue
-			target = np.abs(data_slice[:,1]) if is_abs else data_slice[:,1]
+			target = np.abs(target) if is_abs else target
 			idx = np.nanargmax(target) if is_max else np.nanargmin(target)
-			result[i] = data_slice[idx]
+			result[i] = data[left + idx]
 		return result
 
 	if generic.poi in ENTITY_POI:
@@ -199,6 +203,9 @@ def compute_generic(generic):
 		result = (poi_time - event_start) / HOUR
 		if '%' in generic.type:
 			result = result / event_duration * 100
+	elif generic.type in EXTREMUM_TYPES:
+		result = find_extremum(generic.type, generic.series)[:,1]
+
 	elif generic.type == 'value':
 		def compute(i):
 			if generic.poi != generic.entity:
@@ -216,9 +223,6 @@ def compute_generic(generic):
 			if np.isnan(data).all():
 				return None
 			return np.nanmean(data)
-	elif generic.type in EXTREMUM_TYPES:
-		def compute(i):
-			pass
 	else:
 		assert False
 
@@ -273,6 +277,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Extremum does not support poi/shift')
 	else:
 		raise ValueError('Unknown type')
+
 	with pg_conn.cursor() as cursor:
 		cursor.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
@@ -294,5 +299,5 @@ def remove_generic(uid, gid):
 			cursor.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
 			cursor.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	pg_conn.commit()
-	log.info(f'Generic removed by user ({uid}): #{gid}')
+	log.info(f'Generic removed by user ({uid}): {generic.name} => {generic.users}')
 		
