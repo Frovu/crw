@@ -167,12 +167,12 @@ def _select(t_from, t_to, series):
 
 def compute_generic(generic):
 	t_start = time()
-	log.info(f'Computing {generic.name} for {generic.entity}')
+	log.info(f'Computing {generic.name}')
 	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
 	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
 	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f') # 400 ms
+	data_time, data_value = data_series[:,0], data_series[:,1]
 	length = len(event_id)
-	start_hour = np.floor(event_start / HOUR) * HOUR
 	
 	def find_extremum(typ, ser):
 		is_max, is_abs = 'max' in typ, 'abs' in typ
@@ -180,6 +180,7 @@ def compute_generic(generic):
 			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f')
 		d_time, value = data[:,0], data[:,1]
 		result = np.full((length, 2), np.nan, dtype='f')
+		start_hour = np.floor(event_start / HOUR) * HOUR
 		bound_right = start_hour + MAX_EVENT_LENGTH
 		to_next_event = np.empty(length, dtype='i')
 		to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
@@ -198,6 +199,7 @@ def compute_generic(generic):
 		typ, ser = parse_extremum_poi(generic.poi)
 		poi_time = find_extremum(typ, ser)[:,0]
 
+	result = np.full(length, np.nan, dtype='f')
 	if 'time_to' in generic.type:
 		result = (poi_time - event_start) / HOUR
 		if '%' in generic.type:
@@ -205,8 +207,15 @@ def compute_generic(generic):
 	elif generic.type in EXTREMUM_TYPES:
 		result = find_extremum(generic.type, generic.series)[:,1]
 	elif generic.type == 'value':
-		pass
-		# idx = np.searchsorted(poi_time, start_hour[i], side='left')
+		poi_hour = np.floor(poi_time / HOUR) * HOUR
+		shift = generic.shift
+		start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
+		window_len = max(1, abs(shift))
+		if window_len == 1:
+			_, a_idx, b_idx = np.intersect1d(start_hour, data_time, return_indices=True)
+			result[a_idx] = data_value[b_idx]
+		else:
+			print(result)
 
 		# 		t_1 = hour0 - HOUR if generic.shift < 0 else ceil(events[i][1] / HOUR) * HOUR
 		# 		t_2 = hour0 + generic.shift * HOUR # for offset +1 00:00 will fetch 00:00-01:00 (2h)
@@ -229,7 +238,7 @@ def compute_generic(generic):
 		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
 		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 	pg_conn.commit()
-	log.info(f'Computed {generic.name} for {generic.entity} in {round(time()-t_start,2)}s')
+	log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
 
 def compute_generics(generics: [GenericColumn]):
 	with ThreadPoolExecutor() as executor:
