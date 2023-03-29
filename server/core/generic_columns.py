@@ -166,7 +166,7 @@ def _select(t_from, t_to, series):
 def compute_generic(generic):
 	log.info(f'Computing {generic.name} for {generic.entity}')
 	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
-	event_id, event_start, event_duration, target_time  = _select_recursive(generic.entity, target_entity)
+	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity)
 	data_series = generic.series and np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f')
 	length = len(event_id)
 	start_hour = np.floor(event_start / HOUR) * HOUR
@@ -221,13 +221,14 @@ def compute_generic(generic):
 			pass
 	else:
 		assert False
-	
+
 	if generic.series == 'kp_index':
 		result[result != None] /= 10
 
+	data = np.column_stack((event_id, np.where(np.isnan(result), None, np.round(result, 2)))).tolist()
 	q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
 	with pg_conn.cursor() as cursor:
-		psycopg2.extras.execute_values(cursor, q, np.column_stack((event_id, result)).tolist(), template='(%s, %s)')
+		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
 		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 	pg_conn.commit()
 	log.info(f'Computed {generic.name} for {generic.entity}')

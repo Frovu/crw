@@ -48,21 +48,19 @@ function AdminMenu() {
 
 function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
-	const { columns: columnsMap, tables } = useContext(TableContext);
-	const columns = Object.values(columnsMap);
-	const sortFn = (a: string, b: string) => Object.keys(columnsMap).indexOf(a) - Object.keys(columnsMap).indexOf(b);
+	const { columns, tables } = useContext(TableContext);
 	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
 		<MenuCheckbox key={col.id} text={col.name} title={col.description} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
-			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])].sort(sortFn))}/>] as [ColumnDef, any]);
+			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])])}/>] as [ColumnDef, any]);
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
 		<div className='ColumnsSelector Popup'>
 			{tables.map(table => <Fragment key={table}>
 				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
-					<MenuCheckbox text={prettyTable(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columnsMap[id]?.table === table)}
+					<MenuCheckbox text={prettyTable(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columns.find(cc => cc.id === id)?.table === table)}
 						callback={chck => set('enabledColumns', (cols) => [
-							...cols.filter(c => chck || c === 'time' || columnsMap[c]?.table !== table),
-							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])].sort(sortFn))}/>
+							...cols.filter(c => chck || c === 'time' || columns.find(cc => cc.id === c)?.table !== table),
+							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])])}/>
 				</b>
 				<>{columnChecks.filter(([col,]) => col.table === table).map(([col, el]) => el)}</>
 			</Fragment>)}
@@ -181,8 +179,9 @@ function CorrelationMenu() {
 	const { columns, prettyColumn } = useContext(TableContext);
 	const { options, setOptions } = useContext(SettingsContext);
 	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
-	const selection = Object.keys(columns).filter(c => !columns[c].hidden);
-	const pretty = selection.map(c => prettyColumn(columns[c]));
+	const filtered = columns.filter(c => !c.hidden);
+	const selection = filtered.map(c => c.id);
+	const pretty = filtered.map(c => prettyColumn(c));
 
 	return (<>
 		<h4>Correlation</h4>

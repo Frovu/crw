@@ -19,7 +19,7 @@ function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilt
 	const [invalid, setInvalid] = useState(false);
 
 	const { column: columnId, operation, input: inputRaw } = filter;
-	const column = columns[columnId];
+	const column = columns.find(c => c.id === columnId)!;
 
 	const isSelectInput = column.type === 'enum' && operation !== 'includes' && operation !== 'in list';
 	const input = isSelectInput && !column.enum?.includes(inputRaw) ? column.enum?.[0] as string : inputRaw;
