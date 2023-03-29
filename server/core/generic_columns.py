@@ -74,6 +74,8 @@ class GenericColumn:
 			series = f'abs({series})'
 		if self.poi in ENTITY_POI:
 			poi = 'ons' if self.poi == self.entity else ''.join([a[0].upper() for a in self.poi.split('_')])
+		elif self.poi in ['next', 'previous']:
+			poi = self.poi[:4]
 		elif self.poi:
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
@@ -199,6 +201,13 @@ def compute_generic(generic):
 
 	if generic.poi in ENTITY_POI:
 		poi_time = event_start if generic.poi == generic.entity else target_time
+	elif generic.poi in ['next', 'previous']:
+		offset = 1 if generic.poi == 'next' else -1
+		poi_time = np.full(length, np.nan)
+		if generic.poi == 'next':
+			poi_time[:-1] = event_start[1:]
+		else:
+			poi_time[1:] = event_start[:-1]
 	elif generic.poi:
 		typ, ser = parse_extremum_poi(generic.poi)
 		poi_time = find_extremum(typ, ser)[:,0]
@@ -259,6 +268,8 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 
 	if gtype in EXTREMUM_TYPES or poi in ENTITY_POI:
 		poi_type, poi_series = poi, None
+	elif poi in ['next', 'previous']:
+		pass
 	else: # underscore between parts is not checked hence identical generics can coexist (so what?)
 		poi_type, poi_series = parse_extremum_poi(poi)
 		if not poi_type or poi_series not in SERIES:

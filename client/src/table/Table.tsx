@@ -324,7 +324,7 @@ export default function TableWrapper() {
 				})();
 				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
 				return { ...desc, table, width, id, fullName } as ColumnDef;
-			}).sort((a, b) => !a.name ? 0 : -a.name.localeCompare(b.name))
+			}).sort((a, b) => !a.name ? 0 : (a.name < b.name) as any)
 				.sort((a, b) => a.id === 'time' ? -1 : 1 )
 				.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
 			return {

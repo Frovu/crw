@@ -89,8 +89,8 @@ export function GenericsSelector() {
 	}, ['tableStructure', 'tableData']);
 
 	const showPoi = !EXTREMUM_OPTIONS.includes(state.type as any);
-	const poiOptions = tables.concat('extremum');
-	const poiPretty = tables.map(entityName).concat('<Extremum>');
+	const poiOptions = ['extremum', 'next', 'previous'].concat(tables);
+	const poiPretty = ['<Extremum>', '<Next event>', '<Previous event>'].concat(tables.map(entityName));
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;
