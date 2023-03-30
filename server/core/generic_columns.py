@@ -259,7 +259,7 @@ def compute_generic(generic):
 		result[result != None] /= 10
 
 	data = np.column_stack((event_id, np.where(np.isnan(result), None, np.round(result, 2)))).tolist()
-	q = f'UPDATE events.{generic.entity} SET {generic.name} = data.val FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
+	q = f'UPDATE events.{generic.entity} SET {generic.name} = COALESCE(data.val, {generic.name}) FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
 	with pg_conn.cursor() as cursor:
 		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
 		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])

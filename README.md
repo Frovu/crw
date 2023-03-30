@@ -5,6 +5,8 @@
 
 ## Generic columns
 
+When generic is computed it overwrites any manual changes, except that it **should not overwrite values with nulls**
+
 POI hour is only included when offset is zero or offset is positive and event starts at hour start:
 ```
 [ons] (18:40) -> 18:40
