@@ -317,7 +317,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid]).fetchone()
 		generic = GenericColumn(*row)
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
-		recompute_generics(generic)
+	recompute_generics(generic)
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
 	return generic
 

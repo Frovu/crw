@@ -7,7 +7,7 @@ pool = ConnectionPool(kwargs = {
 	'user': 'cr_aid',
 	'password': os.environ.get('DB_PASSWORD'),
 	'host': os.environ.get('DB_HOST')
-}, min_size=40)
+})
 
 dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:

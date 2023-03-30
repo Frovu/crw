@@ -1,7 +1,11 @@
 from flask import Blueprint
+from routers.utils import reqruire_role
+import os
 
 bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
-@bp.route('/stats')
-def stats():
-	return { 'hello': 'world' }
+@bp.route('/kill')
+@reqruire_role('admin')
+def kill():
+	os._exit(0)
+	return { 'rip': 'aid' }
