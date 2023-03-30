@@ -1,16 +1,16 @@
 from datetime import datetime
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from data_series.gsm.database import pool
+from data_series.gsm.database import pool, series
+from core.database import upsert_many
 
-PATH = 'data/GSM.dat'
+PATH = 'data/A0A1.txt'
 
 def parse():
 	print(f'Reading file: {PATH}')
 	with open(PATH) as file:
-		for line in file:
-			if '-'*64 in line:
-				break
+		next(file)
+		next(file)
 		data = []
 		for line_number, line in enumerate(file, 1):
 			if line == '\n': continue
@@ -25,9 +25,7 @@ def parse():
 				return
 	print(f'Parsed [{len(data)}] from {data[0][0]} to {data[-1][0]}')
 	print('Inserting...', end='', flush=True)
-	with pool.connection() as conn:
-		query = 'INSERT INTO gsm_result VALUES %s ON CONFLICT(time) DO NOTHING'
-		psycopg2.extras.execute_values(cursor, query, data)
+	upsert_many('gsm_result', ['time'] + series, data, do_nothing=True)
 	print('done!')
 
 if __name__ == '__main__':

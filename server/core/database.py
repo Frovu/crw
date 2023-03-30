@@ -21,7 +21,7 @@ with open(os.path.join(dirname, '../config/tables.json')) as file:
 				tables_tree[table] = (tables_tree.get(table) or []) + [ref]
 				tables_refs[(table, ref)] = column
 
-def upsert_many(table, columns, data, constants=[], conflict_constant='time'):
+def upsert_many(table, columns, data, constants=[], conflict_constant='time', do_nothing=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		cur.execute(f'CREATE TEMP TABLE tmp (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP')
 		for c, z in zip(columns, constants):
@@ -31,7 +31,8 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time'):
 				copy.write_row(row)
 		placeholders = ','.join(['%s' for c in constants]) + ',' if constants else ''
 		cur.execute(f'INSERT INTO {table}({",".join(columns)}) SELECT {placeholders}{",".join(columns[len(constants):])} FROM tmp ' +
-			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = EXCLUDED.{c}' for c in columns]), constants)
+			('ON CONFLICT DO NOTHING' if do_nothing else
+			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = EXCLUDED.{c}' for c in columns if c not in conflict_constant])), constants)
 
 from core.generic_columns import select_generics, init_generics, SERIES
 
