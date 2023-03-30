@@ -91,10 +91,8 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 			return _obtain_omniweb(max(new_range[0], dt_from), min(new_range[1], dt_to))
 
 	data = compute_derived(data, [c.name for c in omni_columns])
-	query = f'''INSERT INTO omni (time, {",".join(column_names)}) VALUES %s
-		ON CONFLICT (time) DO UPDATE SET {",".join([f"{c} = EXCLUDED.{c}" for c in column_names])}'''
-	upsert_many('omni', ['time', *column_names], data)
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
+	upsert_many('omni', ['time', *column_names], data)
 
 def _obtain(gap):
 	if not (future := obtains_cache.get(gap)):
@@ -129,10 +127,11 @@ def ensure_prepared(interval: [int, int]):
 		return
 	log.info(f'Omniweb: beginning bulk fetch {interval[0]}:{interval[1]}')
 	batch_size = 3600 * 24 * 1000
-	for start in range(interval[0], interval[1], batch_size):
-		end = start + batch_size
-		interv = [start, end if end < interval[1] else interval[1]]
-		_obtain_omniweb(*[datetime.utcfromtimestamp(i) for i in interv])
+	with ThreadPoolExecutor(max_workers=4) as executor:
+		for start in range(interval[0], interval[1], batch_size):
+			end = start + batch_size
+			interv = [start, end if end < interval[1] else interval[1]]
+			executor.submit(_obtain_omniweb, *[datetime.utcfromtimestamp(i) for i in interv])
 	log.info(f'Omniweb: bulk fetch finished')
 	with open(dump_info_path, 'w') as file:
 		dump_info = { 'from': int(interval[0]), 'to': int(interval[1]), 'at': int(datetime.now().timestamp()) }

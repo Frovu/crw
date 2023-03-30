@@ -274,7 +274,7 @@ def recompute_generics(generics):
 		
 def init_generics():
 	with pool.connection() as conn:
-		events = conn.execute('SELECT EXTRACT(EPOCH FROM time) FROM events.forbush_effects ORDER BY time').fetchall()
+		events = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time').fetchall()
 	omni.ensure_prepared([events[0][0] - 24 * HOUR, events[-1][0] + 48 * HOUR])
 	recompute_generics(select_generics())
 
