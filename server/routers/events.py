@@ -12,7 +12,7 @@ bp = Blueprint('events', __name__, url_prefix='/api/events')
 def _recompute_generics():
 	start = time()
 	init_generics()
-	return f'Done ({int(time() - start)} s)'
+	return f'Done ({round(time() - start, 1)} s)'
 
 @bp.route('/generics/add', methods=['POST'])
 @route_shielded

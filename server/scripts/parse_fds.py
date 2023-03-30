@@ -120,10 +120,6 @@ def parse_whole_file(conn):
 						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
 						inserted = conn.execute(query, values).fetchone()
 						inserted_ids[table] = inserted and inserted[0]
-			except psycopg2.errors.InFailedSqlTransaction:
-				print('ERROR: psycopg2.errors.InFailedSqlTransaction')
-				os._exit(1)
-				break
 			except Exception as e:
 				print('failed to parse line: ', e)
 				print(line)

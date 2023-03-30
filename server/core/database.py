@@ -7,7 +7,7 @@ pool = ConnectionPool(kwargs = {
 	'user': 'cr_aid',
 	'password': os.environ.get('DB_PASSWORD'),
 	'host': os.environ.get('DB_HOST')
-})
+}, min_size=40)
 
 dirname = os.path.dirname(__file__)
 with open(os.path.join(dirname, '../config/tables.json')) as file:
@@ -32,7 +32,7 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 		placeholders = ','.join(['%s' for c in constants]) + ',' if constants else ''
 		cur.execute(f'INSERT INTO {table}({",".join(columns)}) SELECT {placeholders}{",".join(columns[len(constants):])} FROM tmp ' +
 			('ON CONFLICT DO NOTHING' if do_nothing else
-			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = EXCLUDED.{c}' for c in columns if c not in conflict_constant])), constants)
+			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = COALESCE(EXCLUDED.{c}, c)' for c in columns if c not in conflict_constant])), constants)
 
 from core.generic_columns import select_generics, init_generics, SERIES
 

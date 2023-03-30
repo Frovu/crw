@@ -1,7 +1,7 @@
 import os, json, logging, requests, re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from core.database import pool
+from core.database import pool, upsert_many
 from data_series.util import integrity_query
 from data_series.omni.derived import compute_derived
 
@@ -93,8 +93,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	data = compute_derived(data, [c.name for c in omni_columns])
 	query = f'''INSERT INTO omni (time, {",".join(column_names)}) VALUES %s
 		ON CONFLICT (time) DO UPDATE SET {",".join([f"{c} = EXCLUDED.{c}" for c in column_names])}'''
-	with pool.connection() as conn:
-		psycopg2.extras.execute_values(cursor, query, data)
+	upsert_many('omni', ['time', *column_names], data)
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
 
 def _obtain(gap):

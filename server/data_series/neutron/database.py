@@ -106,6 +106,7 @@ def _obtain_local(interval, station):
 			except Exception as e:
 				logging.warn(f'Failed to parse {p}: {e}')
 	log.debug(f'Neutron: obtain local:{station} [{len(data)}] {dt_from} to {dt_to}')
+	upsert_many('neutron_counts', ['station', 'time', 'original'], data, [station], 'time, station')
 
 def _fetch_one(interval: [int, int], station):
 	try:

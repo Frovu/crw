@@ -1,10 +1,10 @@
-from core.database import pool, tables_info, tables_tree, tables_refs
+from core.database import pool, upsert_many, tables_info, tables_tree, tables_refs
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
 from pathlib import Path
 from math import floor, ceil
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 import data_series.omni.database as omni
 import data_series.gsm.database as gsm
 import json, logging
@@ -27,6 +27,8 @@ SERIES = {
 	"imf_x": ["omni", "Bx"],
 	"imf_y": ["omni", "By"],
 	"imf_z": ["omni", "Bz"],
+	"imf_y_gsm": ["omni", "By_gsm"],
+	"imf_z_gsm": ["omni", "Bz_gsm"],
 	"plasma_beta": ["omni", "beta"],
 	"dst_index": ["omni", "Dst"],
 	"kp_index": ["omni", "Kp"],
@@ -180,91 +182,94 @@ def _select(t_from, t_to, series):
 		return gsm.select(interval, series)[0]
 
 def compute_generic(generic):
-	t_start = time()
-	log.info(f'Computing {generic.name}')
-	target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
-	event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
-	if generic.series:
-		data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
-		data_time, data_value = data_series[:,0], data_series[:,1]
-	length = len(event_id)
-	def get_event_windows(d_time):
-		start_hour = np.floor(event_start / HOUR) * HOUR
-		if event_duration is not None:
-			slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
+	try:
+		t_start = time()
+		log.info(f'Computing {generic.name}')
+		target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
+		event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
+		if generic.series:
+			data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
+			data_time, data_value = data_series[:,0], data_series[:,1]
+		length = len(event_id)
+		def get_event_windows(d_time):
+			start_hour = np.floor(event_start / HOUR) * HOUR
+			if event_duration is not None:
+				slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
+			else:
+				bound_right = start_hour + MAX_EVENT_LENGTH
+				to_next_event = np.empty(length, dtype='i8')
+				to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
+				to_next_event[-1] = 9999
+				slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
+			left = np.searchsorted(d_time, start_hour, side='left')
+			return left, slice_len
+		
+		def find_extremum(typ, ser):
+			is_max, is_abs = 'max' in typ, 'abs' in typ
+			data = data_series if ser == generic.series else \
+				np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
+			d_time, value = data[:,0], data[:,1]
+			result = np.full((length, 2), np.nan, dtype='f8')
+			left, slice_len = get_event_windows(d_time)
+			value = np.abs(value) if is_abs else value
+			fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
+			idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)]) # 0.01 ms
+			result = data[left + idx]
+			return result
+
+		if generic.poi in ENTITY_POI:
+			poi_time = event_start if generic.poi == generic.entity else target_time
+		elif generic.poi in ['next', 'previous']:
+			offset = 1 if generic.poi == 'next' else -1
+			poi_time = np.full(length, np.nan)
+			if generic.poi == 'next':
+				poi_time[:-1] = event_start[1:]
+			else:
+				poi_time[1:] = event_start[:-1]
+		elif generic.poi:
+			typ, ser = parse_extremum_poi(generic.poi)
+			poi_time = find_extremum(typ, ser)[:,0]
+
+		if 'time_to' in generic.type:
+			result = (poi_time - event_start) / HOUR
+			if '%' in generic.type:
+				result = result / event_duration * 100
+		elif generic.type in EXTREMUM_TYPES:
+			result = find_extremum(generic.type, generic.series)[:,1]
+		elif generic.type == 'value':
+			result = np.full(length, np.nan, dtype='f8')
+			poi_hour = np.floor(poi_time / HOUR) * HOUR
+			shift = generic.shift
+			start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
+			window_len = max(1, abs(shift))
+			per_hour = np.full((length, window_len), np.nan, dtype='f8')
+			for h in range(window_len):
+				_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
+				per_hour[a_idx, h] = data_value[b_idx]
+			nan_threshold = np.floor(window_len / 2)
+			filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
+			result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
+		elif generic.type == 'coverage':
+			left, slice_len = get_event_windows(data_time)
+			result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
 		else:
-			bound_right = start_hour + MAX_EVENT_LENGTH
-			to_next_event = np.empty(length, dtype='i8')
-			to_next_event[:-1] = (start_hour[1:] - start_hour[:-1]) / HOUR
-			to_next_event[-1] = 9999
-			slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
-		left = np.searchsorted(d_time, start_hour, side='left')
-		return left, slice_len
-	
-	def find_extremum(typ, ser):
-		is_max, is_abs = 'max' in typ, 'abs' in typ
-		data = data_series if ser == generic.series else \
-			np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
-		d_time, value = data[:,0], data[:,1]
-		result = np.full((length, 2), np.nan, dtype='f8')
-		left, slice_len = get_event_windows(d_time)
-		value = np.abs(value) if is_abs else value
-		fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
-		idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)]) # 0.01 ms
-		result = data[left + idx]
-		return result
-
-	if generic.poi in ENTITY_POI:
-		poi_time = event_start if generic.poi == generic.entity else target_time
-	elif generic.poi in ['next', 'previous']:
-		offset = 1 if generic.poi == 'next' else -1
-		poi_time = np.full(length, np.nan)
-		if generic.poi == 'next':
-			poi_time[:-1] = event_start[1:]
-		else:
-			poi_time[1:] = event_start[:-1]
-	elif generic.poi:
-		typ, ser = parse_extremum_poi(generic.poi)
-		poi_time = find_extremum(typ, ser)[:,0]
-
-	if 'time_to' in generic.type:
-		result = (poi_time - event_start) / HOUR
-		if '%' in generic.type:
-			result = result / event_duration * 100
-	elif generic.type in EXTREMUM_TYPES:
-		result = find_extremum(generic.type, generic.series)[:,1]
-	elif generic.type == 'value':
-		result = np.full(length, np.nan, dtype='f8')
-		poi_hour = np.floor(poi_time / HOUR) * HOUR
-		shift = generic.shift
-		start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
-		window_len = max(1, abs(shift))
-		per_hour = np.full((length, window_len), np.nan, dtype='f8')
-		for h in range(window_len):
-			_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
-			per_hour[a_idx, h] = data_value[b_idx]
-		nan_threshold = np.floor(window_len / 2)
-		filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
-		result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
-	elif generic.type == 'coverage':
-		left, slice_len = get_event_windows(data_time)
-		result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
-	else:
-		assert False
-
-	data = np.column_stack((event_id, np.where(np.isnan(result), None, np.round(result, 2)))).tolist()
-	q = f'UPDATE events.{generic.entity} SET {generic.name} = COALESCE(data.val, {generic.name}) FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
-	with pool.connection() as conn:
-		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
-		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-	if generic.series == 'kp_index':
-		result[result != None] /= 10
-	log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
+			assert False
+		if generic.series == 'kp_index':
+			result[result != None] /= 10
+		data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist()
+		q = f'UPDATE events.{generic.entity} SET {generic.name} = COALESCE(%s, {generic.name}) WHERE {generic.entity}.id = %s'
+		with pool.connection() as conn:
+			conn.cursor().executemany(q, data)
+			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
+	except Exception as e:
+		log.error(f'Failed at {generic.name}: {e}')
+		raise e
 
 def recompute_generics(generics):
 	if type(generics) != list:
 		generics = [generics]
-	with ProcessPoolExecutor(max_workers=8) as executor:
+	with ThreadPoolExecutor(max_workers=4) as executor:
 		executor.map(compute_generic, generics)
 		
 def init_generics():
