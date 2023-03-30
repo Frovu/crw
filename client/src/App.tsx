@@ -7,17 +7,20 @@ import './css/index.css';
 
 const theQueryClient = new QueryClient();
 
-export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: () => void }>({} as any);
+export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
 
-function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
+function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'login' | 'password'}) {
+	const { login: currentLogin } = useContext(AuthContext);
 	const [error, setError] = useState<string | null>(null);
 	const [login, setLogin] = useState('');
 	const [password, setPassword] = useState('');
-	const { mutate, isSuccess, report } = useMutationHandler(async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, {
+	const [newPassword, setnewPassword] = useState('');
+	const [newPassword2, setnewPassword2] = useState('');
+	const { mutate, isSuccess, report, setReport } = useMutationHandler(async () => {
+		const res = await fetch(`${process.env.REACT_APP_API}api/auth/${type}`, {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ login, password })
+			body: JSON.stringify(mode ? { login, password } : { password, newPassword })
 		});
 		if (res.status === 400)
 			throw new Error('Bad request');
@@ -35,32 +38,45 @@ function AuthPrompt({ closePrompt }: {closePrompt: () => void}) {
 	}, [error]);
 
 	if (isSuccess) closePrompt();
+	const mode = type === 'login';
 
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
 		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 2.5em 2em' }}>
-			<b>AID Login</b>
+			<b>{mode ? 'AID Login' : 'Change password'}</b>
 			<div style={{ textAlign: 'right' }}>
 				<p>
 					User:&nbsp;
-					<input type='text' style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
+					<input type='text' {...(!mode && { disabled: true, value: currentLogin })} style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
 				</p>
 				<p>
 					Password:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setPassword(e.target.value)}/>
 				</p>
+				{!mode && <p>
+					New password:&nbsp;
+					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword(e.target.value)}/>
+				</p>}
+				{!mode && <p>
+					Confirm:&nbsp;
+					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword2(e.target.value)}/>
+				</p>}
 			</div>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
 				<span style={{ color: 'var(--color-red)', width: '12em', textAlign: 'center' }}>{report?.error}</span>
-				<button style={{ width: '5em', height: '1.5em' }} onClick={mutate}>Login</button>
+				<button style={{ width: '5em', height: '1.5em' }} onClick={() => {
+					if (!mode && (!newPassword || newPassword !== newPassword2))
+						return setReport({ error: 'Passwords do not match' });
+					mutate(null);
+				}}>{mode ? 'Login' : 'Change'}</button>
 			</div>
 		</div>
 	</>);
 }
 
 export function AuthButton() {
-	const [ hovered, setHovered ] = useState(false);
-	const { login, promptLogin } = useContext(AuthContext);
+	const [ hovered, setHovered ] = useState(0);
+	const { login, role, promptLogin } = useContext(AuthContext);
 	const mutation = useMutation(async () => {
 		await fetch(`${process.env.REACT_APP_API}api/auth/logout`, {
 			method: 'POST', credentials: 'include'
@@ -70,10 +86,18 @@ export function AuthButton() {
 	});
 
 	return (
-		<div style={{ cursor: 'pointer', width: '10em', textAlign: 'center', color: hovered ? 'var(--color-active)' : 'var(--color-text-dark)' }}
-			onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-			onClick={e => {e.stopPropagation(); login ? mutation.mutate() : promptLogin();}}>
-			{login ? (hovered ? 'log out?' : `@ ${login}`) : (hovered ? 'log in?' : 'not logged in')}
+		<div style={{ cursor: 'pointer', width: '12em', textAlign: 'center' }}>
+			<div style={{ color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
+				onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}
+				onClick={e => {e.stopPropagation(); login ? mutation.mutate() : promptLogin('login');}}>
+				{login ? (hovered ? 'log out?' : `user: ${login}`) : (hovered ? 'log in?' : 'not logged in')}
+			</div>
+			{login && <div style={{ color: hovered === 2 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
+				onMouseEnter={() => setHovered(2)} onMouseLeave={() => setHovered(0)}
+				onClick={e => {e.stopPropagation(); promptLogin('password');}}>
+				{hovered ? 'set password?' : `role: ${role}`}
+			</div>}
+
 		</div>
 	);
 }
@@ -84,7 +108,7 @@ function App() {
 		document.title = app;
 	}, [app]);
 
-	const [authPrompt, setAuthPrompt] = useState(false);
+	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login'>(null);
 	const query = useQuery(['auth'], async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, { credentials: 'include' });
 		if (res.status !== 200)
@@ -94,15 +118,15 @@ function App() {
 	if (query.error)
 		console.error('Failed to fetch auth: ', query.error);
 
-	useEventListener('escape', () => setAuthPrompt(false));
+	useEventListener('escape', () => setAuthPrompt(null));
 
 	return (
 		<AuthContext.Provider value={{
 			...query.data,
-			promptLogin: () => setAuthPrompt(true),
+			promptLogin: (type: typeof authPrompt) => setAuthPrompt(type),
 		}}>
 			{app === 'RoS' ? <Circles/> : <Table/>}
-			{authPrompt && <AuthPrompt closePrompt={() => setAuthPrompt(false)}/>}
+			{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}
 		</AuthContext.Provider>
 	);
 }

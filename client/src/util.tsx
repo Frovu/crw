@@ -87,7 +87,7 @@ export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?:
 
 	return {
 		...mutation,
-		report,
+		report, setReport,
 		color: mutation.isLoading ? 'var(--color-text)' : report?.success ? 'var(--color-green)' : report?.error ? 'var(--color-red)' : 'var(--color-text)'
 	};
 }

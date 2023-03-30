@@ -5,7 +5,7 @@
 
 ## Generic columns
 
-First hour is only included when offset is zero or offset is positive and event starts at hour start:
+POI hour is only included when offset is zero or offset is positive and event starts at hour start:
 ```
 [ons] (18:40) -> 18:40
 [ons]+<1> (18:00) -> 18:00
@@ -20,7 +20,7 @@ First hour is only included when offset is zero or offset is positive and event 
 
 When averaging over a window missing data count is checked to be `<= floor(length / 2)`
 
-Event's last hour is defined as follows:
+Event's right boundary **(not inclusive)** is defined as follows:
 - Start hour + duration if duration exists
-- An hour **before** the first hour of next event (if offset <= 48h)
-- Start hour + 48 hours 
+- Or else the first hour of next event (if offset <= 48h)
+- Or else start hour + 48 hours 

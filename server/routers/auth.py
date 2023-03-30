@@ -21,8 +21,12 @@ def create_user(login, password, role):
 def init():
 	with pg_conn.cursor() as cursor:
 		cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-			uid SERIAL PRIMARY KEY, created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			last_login TIMESTAMP, login TEXT, password TEXT, role TEXT)''')
+			uid SERIAL PRIMARY KEY,
+			created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_login TIMESTAMP,
+			login TEXT UNIQUE,
+			password TEXT NOT NULL,
+			role TEXT)''')
 		cursor.execute('SELECT * FROM users WHERE role = \'admin\'')
 		if len(cursor.fetchall()) < 1:
 			log.info('AUTH: Creating admin account')
@@ -42,17 +46,36 @@ def login():
 		return {}, 400
 	with pg_conn.cursor() as cursor:
 		cursor.execute('SELECT uid, login, password FROM users WHERE login = %s', [login])
-		res = cursor.fetchall()
-	if not res: return {}, 404
-	uid, uname, pwd = res[0]
-	if not bcrypt.check_password_hash(pwd.encode(), passw):
-		return {}, 401
-	with pg_conn.cursor() as cursor:
+		res = cursor.fetchone()
+		if not res: return {}, 404
+		uid, uname, pwd = res
+		if not bcrypt.check_password_hash(pwd.encode(), passw):
+			return {}, 401
 		cursor.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE login = %s', [login])
-		pg_conn.commit()
+	pg_conn.commit()
 	session['uid'] = uid
 	session['uname'] = uname
-	logging.info(f'AUTH: user authorized: {login}')
+	log.info(f'AUTH: user authorized: {login}')
+	return { 'login': uname }
+
+@bp.route('/password', methods=['POST'])
+def password():
+	new_pass = request.json.get('newPassword')
+	req_pass = request.json.get('password')
+	uid = session.get('uid')
+	if not uid: return {}, 401
+	if not new_pass or len(new_pass) < 6: return {}, 400
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT uid, login, password FROM users WHERE uid = %s', [uid])
+		res = cursor.fetchone()
+		if not res: return {}, 404
+		uid, uname, pwd = res
+		if not bcrypt.check_password_hash(pwd.encode(), req_pass):
+			return {}, 401
+		new_pwd = bcrypt.generate_password_hash(new_pass, rounds=10).decode()
+		cursor.execute('UPDATE users SET password = %s WHERE uid = %s', [new_pwd, uid])
+	pg_conn.commit()
+	log.info(f'AUTH: user changed password: {uname}')
 	return { 'login': uname }
 
 @bp.route('/login', methods=['GET'])
@@ -62,9 +85,9 @@ def get_user():
 
 @bp.route('/logout', methods=['POST'])
 def logout():
-    uname = session.get('uname')
-    if uname:
-        session['uid'] = None
-        session['uname'] = None
-        logging.info(f'AUTH: user logged out: {uname}')
-    return { 'logout': uname }
+	uname = session.get('uname')
+	if uname:
+		session['uid'] = None
+		session['uname'] = None
+		log.info(f'AUTH: user logged out: {uname}')
+	return { 'logout': uname }
