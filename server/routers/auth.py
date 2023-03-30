@@ -1,22 +1,13 @@
 from flask import Blueprint, request, session
 from server import bcrypt
-from routers.utils import route_shielded, get_role
+from routers.utils import route_shielded, reqruire_role, get_role
 from core.database import pg_conn
 import logging, os
 
 log = logging.getLogger('aides')
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
-def create_user(login, password, role):
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT login FROM users WHERE login = %s', [login])
-		exists = cursor.fetchall()
-		if exists:
-			return False
-		pwd = bcrypt.generate_password_hash(password, rounds=10).decode()
-		cursor.execute('INSERT INTO users(login, password, role) VALUES (%s, %s, %s)', [login, pwd, role])
-		pg_conn.commit()
-		return True
+ROLES = ['admin', 'operator']
 
 def init():
 	with pg_conn.cursor() as cursor:
@@ -34,9 +25,42 @@ def init():
 			if not password:
 				log.error('AUTH: please export ADMIN_PASSWORD')
 				os._exit(1)
-			create_user('admin', password, 'admin')
+			cursor.execute('SELECT login FROM users WHERE login = %s', ['admin'])
+			exists = cursor.fetchone()
+			if not exists:
+				pwd = bcrypt.generate_password_hash(password, rounds=10).decode()
+				cursor.execute('INSERT INTO users(login, password, role) VALUES (%s, %s, %s)', ['admin', pwd, 'admin'])
 	pg_conn.commit()
 init()
+
+@bp.route('/upsert', methods=['POST'])
+@reqruire_role('admin')
+def upsert():
+	login = request.json.get('login')
+	role = request.json.get('role')
+	passw = request.json.get('password')
+	if not login or (passw and len(passw) < 6) or (role and role not in ROLES):
+		return {}, 400
+	with pg_conn.cursor() as cursor:
+		cursor.execute('SELECT login FROM users WHERE login = %s', [login])
+		exists = cursor.fetchone()
+		print(exists)
+		if not exists and not passw:
+			return 'Not exists'
+		fields, values = [], []
+		if passw:
+			pwd = bcrypt.generate_password_hash(passw, rounds=10).decode()
+			fields.append('password')
+			values.append(pwd)
+		if role:
+			fields.append('role')
+			values.append(role)
+		cursor.execute(f'''INSERT INTO users(login, {",".join(fields)}) VALUES (%s, {",".join(["%s" for f in fields])})
+			ON CONFLICT(login) DO UPDATE SET ''' + ','.join([f'{f} = EXCLUDED.{f}' for f in fields]),
+			[login] + values)
+	log.info(f'AUTH: user upserted: {login}' + ('role -> ' + role if role else ''))
+	pg_conn.commit()
+	return 'Modified' if exists else 'Created'
 
 @bp.route('/login', methods=['POST'])
 def login():

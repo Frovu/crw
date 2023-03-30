@@ -9,18 +9,19 @@ const theQueryClient = new QueryClient();
 
 export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
 
-function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'login' | 'password'}) {
+function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'login' | 'password' | 'upsert'}) {
 	const { login: currentLogin } = useContext(AuthContext);
 	const [error, setError] = useState<string | null>(null);
 	const [login, setLogin] = useState('');
+	const [role, setRole] = useState('');
 	const [password, setPassword] = useState('');
 	const [newPassword, setnewPassword] = useState('');
 	const [newPassword2, setnewPassword2] = useState('');
-	const { mutate, isSuccess, report, setReport } = useMutationHandler(async () => {
+	const { mutate, isSuccess, color, report, setReport } = useMutationHandler(async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/auth/${type}`, {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(mode ? { login, password } : { password, newPassword })
+			body: JSON.stringify(upsertMode ? { login, password, role } : passMode ? { password, newPassword } : { login, password })
 		});
 		if (res.status === 400)
 			throw new Error('Bad request');
@@ -30,6 +31,7 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 			throw new Error('Wrong password');
 		if (res.status !== 200)
 			throw new Error(`HTTP: ${res.status}`);
+		return await res.text();
 	}, ['auth', 'tableStructure', 'tableData']);
 
 	useEffect(() => {
@@ -37,38 +39,43 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 		return () => clearTimeout(timeout);
 	}, [error]);
 
-	if (isSuccess) closePrompt();
-	const mode = type === 'login';
+	const passMode = type === 'password';
+	const upsertMode = type === 'upsert';
+	if (isSuccess && !upsertMode) closePrompt();
 
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
 		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 2.5em 2em' }}>
-			<b>{mode ? 'AID Login' : 'Change password'}</b>
+			<b>{upsertMode ? 'Upsert user' : !passMode ? 'AID Login' : 'Change password'}</b>
 			<div style={{ textAlign: 'right' }}>
 				<p>
 					User:&nbsp;
-					<input type='text' {...(!mode && { disabled: true, value: currentLogin })} style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
+					<input type='text' {...(passMode && { disabled: true, value: currentLogin })} style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
 				</p>
+				{upsertMode && <p>
+					Role:&nbsp;
+					<input type='text' style={{ width: '11em' }} onChange={e => setRole(e.target.value)}/>
+				</p>}
 				<p>
 					Password:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setPassword(e.target.value)}/>
 				</p>
-				{!mode && <p>
+				{passMode && <p>
 					New password:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword(e.target.value)}/>
 				</p>}
-				{!mode && <p>
+				{passMode && <p>
 					Confirm:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword2(e.target.value)}/>
 				</p>}
 			</div>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-				<span style={{ color: 'var(--color-red)', width: '12em', textAlign: 'center' }}>{report?.error}</span>
+				<span style={{ color, width: '12em', textAlign: 'center' }}>{report?.error ?? report?.success}</span>
 				<button style={{ width: '5em', height: '1.5em' }} onClick={() => {
-					if (!mode && (!newPassword || newPassword !== newPassword2))
+					if (passMode && (!newPassword || newPassword !== newPassword2))
 						return setReport({ error: 'Passwords do not match' });
 					mutate(null);
-				}}>{mode ? 'Login' : 'Change'}</button>
+				}}>{passMode ? 'Change' : upsertMode ? 'Upsert' : 'Login' }</button>
 			</div>
 		</div>
 	</>);
@@ -108,7 +115,7 @@ function App() {
 		document.title = app;
 	}, [app]);
 
-	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login'>(null);
+	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login' | 'upsert'>(null);
 	const query = useQuery(['auth'], async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, { credentials: 'include' });
 		if (res.status !== 200)
@@ -123,7 +130,7 @@ function App() {
 	return (
 		<AuthContext.Provider value={{
 			...query.data,
-			promptLogin: (type: typeof authPrompt) => setAuthPrompt(type),
+			promptLogin: setAuthPrompt,
 		}}>
 			{app === 'RoS' ? <Circles/> : <Table/>}
 			{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}

@@ -30,6 +30,7 @@ function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Prom
 }
 
 function AdminMenu() {
+	const { promptLogin } = useContext(AuthContext);
 	const wrapFetch = (uri: string) => async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}${uri}`, {
 			method: 'POST', credentials: 'include' });
@@ -41,6 +42,7 @@ function AdminMenu() {
 	return (
 		<>
 			<MutationButton text='Recompute generics' fn={computeGenerics} invalidate={['tableData']}/>
+			<button className='MenuItem' onClick={() => promptLogin('upsert')}>Upsert user</button>
 		</>
 	);
 
