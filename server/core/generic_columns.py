@@ -313,7 +313,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 
 	with pool.connection() as conn:
 		row = conn.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
-			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
+			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s::integer)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid]).fetchone()
 		generic = GenericColumn(*row)
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
