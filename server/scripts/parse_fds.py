@@ -1,8 +1,7 @@
 from datetime import datetime, timezone
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../core'))
-from database import pg_conn, tables_info
-import psycopg2.extras
+from database import pool, tables_info
 
 FNAME = 'data/FDs_fulltable.txt'
 
@@ -28,7 +27,7 @@ def _parse_value(split, columns, col, description):
 		return None
 
 # only for updating columns in existing rows
-def parse_one_column(table: str, column: str):
+def parse_one_column(table: str, column: str, conn):
 	first_table = list(tables_info)[0]
 	time_col_desc = tables_info[first_table]['time']
 	time_col_name = time_col_desc['parse_name']
@@ -42,7 +41,7 @@ def parse_one_column(table: str, column: str):
 	fname = FNAME
 	print('Reading', fname)
 
-	with open(fname) as file, pg_conn.cursor() as cursor:
+	with open(fname) as file:
 		for line in file:
 			# if is_standalone:
 			# 	columns_order = [time_col_name, target_col_name]
@@ -84,8 +83,8 @@ def parse_one_column(table: str, column: str):
 		return True
 		
 # if target_columns contains field with Time, its corresponding Date column is parsed automatically
-def parse_whole_file():
-	with open(FNAME) as file, pg_conn.cursor() as cursor:
+def parse_whole_file(conn):
+	with open(FNAME) as file:
 		for line in file:
 			if not 'Date' in line: continue
 			columns_order = line.strip().split()
@@ -97,8 +96,8 @@ def parse_whole_file():
 				split, inserted_ids = line.split(), dict()
 				table = list(tables_info)[0]
 				time = _parse_value(split, columns_order, 'Time', {"type": "time"})
-				cursor.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time])
-				if exists := cursor.fetchone():
+				exists = conn.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time]).fetchone()
+				if exists:
 					exists_count += 1
 					continue
 				for table, columns_desc in list(tables_info.items())[::-1]:
@@ -118,8 +117,7 @@ def parse_whole_file():
 							continue
 						count[table] += 1
 						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
-						cursor.execute(query, values)
-						inserted = cursor.fetchone()
+						inserted = conn.execute(query, values).fetchone()
 						inserted_ids[table] = inserted and inserted[0]
 			except psycopg2.errors.InFailedSqlTransaction:
 				print('ERROR: psycopg2.errors.InFailedSqlTransaction')
@@ -134,34 +132,35 @@ def parse_whole_file():
 			print(f'[{cnt}] -> {table}')
 
 def main():
-	if len(sys.argv) < 2:
-		if input(f'parse whole FDs file? [y/n]: ') != 'y':
+	with pool.connection() as conn:
+		if len(sys.argv) < 2:
+			if input(f'parse whole FDs file? [y/n]: ') != 'y':
+				return
+			parse_whole_file(conn)
+			if input(f'commit insertion? [y/n]: ') == 'y':
+				conn.commit()
 			return
-		parse_whole_file()
-		if input(f'commit insertion? [y/n]: ') == 'y':
-			pg_conn.commit()
-		return
 
-	name_part = sys.argv[1].lower()
-	candidates = list()
-	for table, table_info in tables_info.items():
-		for col_name, col_desc in table_info.items():
-			if col_name.startswith('_'): continue
-			if not col_desc.get('parse_name'): continue
-			if name_part in col_name or name_part in col_desc.get('name', '').lower() or name_part in col_desc.get('parse_name', '').lower():
-				candidates.append((table, col_name))
-	if len(candidates) < 1:
-		return print(f'column not found: {name_part}')
-	elif len(candidates) == 1:
-		res = parse_one_column(*candidates[0])
-	else:
-		print(f'found {len(candidates)} candidates:')
-		print('\n'.join([f'  {i}. {t}.{c}' for i, (t, c) in enumerate(candidates)]))
-		choice = input(f'please input which column to parse [0-{len(candidates)-1}]: ')
-		assert int(choice) >= 0 and int(choice) < len(candidates)
-		res = parse_one_column(*candidates[int(choice)])
-	if res and input(f'commit updates? [y/n]: ') == 'y':
-		pg_conn.commit()
+		name_part = sys.argv[1].lower()
+		candidates = list()
+		for table, table_info in tables_info.items():
+			for col_name, col_desc in table_info.items():
+				if col_name.startswith('_'): continue
+				if not col_desc.get('parse_name'): continue
+				if name_part in col_name or name_part in col_desc.get('name', '').lower() or name_part in col_desc.get('parse_name', '').lower():
+					candidates.append((table, col_name))
+		if len(candidates) < 1:
+			return print(f'column not found: {name_part}')
+		elif len(candidates) == 1:
+			res = parse_one_column(*candidates[0], conn)
+		else:
+			print(f'found {len(candidates)} candidates:')
+			print('\n'.join([f'  {i}. {t}.{c}' for i, (t, c) in enumerate(candidates)]))
+			choice = input(f'please input which column to parse [0-{len(candidates)-1}]: ')
+			assert int(choice) >= 0 and int(choice) < len(candidates)
+			res = parse_one_column(*candidates[int(choice)], conn)
+		if res and input(f'commit updates? [y/n]: ') == 'y':
+			conn.commit()
 
 
 # (A|B|C|M|X) ([\d\.]+) replace $1$2 

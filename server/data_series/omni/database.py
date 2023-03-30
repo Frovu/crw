@@ -1,8 +1,7 @@
 import os, json, logging, requests, re
-import psycopg2, psycopg2.extras
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from core.database import pg_conn
+from core.database import pool
 from data_series.util import integrity_query
 from data_series.omni.derived import compute_derived
 
@@ -28,13 +27,12 @@ def _init():
 	global omni_columns, column_names, dump_info
 	json_path = os.path.join(os.path.dirname(__file__), './database.json')
 	vard_path = os.path.join(os.path.dirname(__file__), './omni_variables.txt')
-	with open(json_path) as file, pg_conn.cursor() as cursor:
+	with open(json_path) as file, pool.connection() as conn:
 		columns = json.load(file)
 		cols = [f'{c} {columns[c][0]}' for c in columns]
-		cursor.execute(f'CREATE TABLE IF NOT EXISTS omni (\n{",".join(cols)})')
+		conn.execute(f'CREATE TABLE IF NOT EXISTS omni (\n{",".join(cols)})')
 		for col in cols:
-			cursor.execute(f'ALTER TABLE omni ADD COLUMN IF NOT EXISTS {col}')
-	pg_conn.commit()
+			conn.execute(f'ALTER TABLE omni ADD COLUMN IF NOT EXISTS {col}')
 	omni_columns = []
 	with open(vard_path) as file:
 		for line in file:
@@ -46,7 +44,6 @@ def _init():
 				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
 				omni_columns.append(OmniColumn(column, owid - 1, spl[2], 'int' in typedef.lower()))
 	column_names = [c.name for c in omni_columns] + [col for col, [td, owid] in columns.items() if owid is None and col != 'time']
-
 	try:
 		with open(dump_info_path) as file:
 			dump_info = json.load(file)
@@ -96,9 +93,8 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 	data = compute_derived(data, [c.name for c in omni_columns])
 	query = f'''INSERT INTO omni (time, {",".join(column_names)}) VALUES %s
 		ON CONFLICT (time) DO UPDATE SET {",".join([f"{c} = EXCLUDED.{c}" for c in column_names])}'''
-	with pg_conn.cursor() as cursor:
+	with pool.connection() as conn:
 		psycopg2.extras.execute_values(cursor, query, data)
-	pg_conn.commit()
 	log.debug(f'Omniweb: upserting {len(data)} rows {dstart}-{dend}')
 
 def _obtain(gap):
@@ -110,23 +106,22 @@ def _obtain(gap):
 
 def select(interval: [int, int], query=None, epoch=True):
 	columns = [c for c in column_names if c in query] if query else column_names
-	with pg_conn.cursor() as cursor:
-		cursor.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
+	with pool.connection() as conn:
+		curs = conn.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
 			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
-		return cursor.fetchall(), [desc[0] for desc in cursor.description]
+		return curs.fetchall(), [desc[0] for desc in curs.description]
 
 def fetch(interval: [int, int], query=None, refetch=False):
 	columns = [c for c in column_names if c in query] if query else column_names
 	if len(columns) < 1:
 		raise ValueError('Zero fields match query')
-	with pg_conn.cursor() as cursor:
-		cursor.execute(integrity_query(interval, PERIOD, 'omni', columns if refetch else ['time'], return_epoch=False))
-		if gaps := cursor.fetchall():
-			for gap in gaps:
-				try:
-					_obtain(gap)
-				except Exception as e:
-					log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
+	with pool.connection() as conn:
+		gaps = conn.execute(integrity_query(interval, PERIOD, 'omni', columns if refetch else ['time'], return_epoch=False)).fetchall()
+		for gap in gaps:
+			try:
+				_obtain(gap)
+			except Exception as e:
+				log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
 	return select(interval, query)
 
 def ensure_prepared(interval: [int, int]):

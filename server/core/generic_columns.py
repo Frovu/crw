@@ -1,15 +1,14 @@
-from core.database import pg_conn, tables_info, tables_tree, tables_refs
+from core.database import pool, tables_info, tables_tree, tables_refs
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
 from pathlib import Path
 from math import floor, ceil
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 import data_series.omni.database as omni
 import data_series.gsm.database as gsm
 import json, logging
 import numpy as np
-import psycopg2.extras
 
 log = logging.getLogger('aides')
 
@@ -104,8 +103,8 @@ class GenericColumn:
 				f' value of {ser_desc} between onset and event end | next | +{MAX_EVENT_LENGTH_H}h'
 
 def _init():
-	with pg_conn.cursor() as cursor:
-		cursor.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
+	with pool.connection() as conn:
+		conn.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
 			id serial primary key,
 			created timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
@@ -121,12 +120,11 @@ def _init():
 			generics = json.load(file)
 		for table in generics:
 			for generic in generics[table]:
-				cursor.execute(f'''INSERT INTO events.generic_columns_info (entity,users,{",".join(generic.keys())})
+				conn.execute(f'''INSERT INTO events.generic_columns_info (entity,users,{",".join(generic.keys())})
 					VALUES (%s,%s,{",".join(["%s" for i in generic])})
 					ON CONFLICT ON CONSTRAINT params DO NOTHING''', [table, [-1]] + list(generic.values()))
 				col_name = GenericColumn.from_config(generic).name
-				cursor.execute(f'ALTER TABLE events.{table} ADD COLUMN IF NOT EXISTS {col_name} REAL')
-		pg_conn.commit()
+				conn.execute(f'ALTER TABLE events.{table} ADD COLUMN IF NOT EXISTS {col_name} REAL')
 _init()
 
 def _select_recursive(entity, target_entity=None):
@@ -159,18 +157,17 @@ def _select_recursive(entity, target_entity=None):
 
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' in c else f'{e}.{c}' for e, c in query])
 	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
-	with pg_conn.cursor() as cursor:
-		cursor.execute(select_query)
-		res = np.array(cursor.fetchall(), dtype='f8')
+	with pool.connection() as conn:
+		curs = conn.execute(select_query)
+		res = np.array(curs.fetchall(), dtype='f8')
 		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
 		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
 		return res[:,0], res[:,1], duration, t_time
 
 def select_generics(user_id=None):
-	with pg_conn.cursor() as cursor:
+	with pool.connection() as conn:
 		where = '' if user_id is None else ' OR %s = ANY(users)'
-		cursor.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(users){where} ORDER BY id',[] if user_id is None else [user_id])
-		rows = cursor.fetchall()
+		rows = conn.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(users){where} ORDER BY id',[] if user_id is None else [user_id]).fetchall()
 	result = [GenericColumn(*row) for row in rows]
 	return result
 
@@ -190,7 +187,6 @@ def compute_generic(generic):
 		data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 		data_time, data_value = data_series[:,0], data_series[:,1]
 	length = len(event_id)
-
 	def get_event_windows(d_time):
 		start_hour = np.floor(event_start / HOUR) * HOUR
 		if event_duration is not None:
@@ -255,29 +251,26 @@ def compute_generic(generic):
 	else:
 		assert False
 
-	if generic.series == 'kp_index':
-		result[result != None] /= 10
-
 	data = np.column_stack((event_id, np.where(np.isnan(result), None, np.round(result, 2)))).tolist()
 	q = f'UPDATE events.{generic.entity} SET {generic.name} = COALESCE(data.val, {generic.name}) FROM (VALUES %s) AS data (id, val) WHERE {generic.entity}.id = data.id'
-	with pg_conn.cursor() as cursor:
+	with pool.connection() as conn:
 		psycopg2.extras.execute_values(cursor, q, data, template='(%s, %s::real)')
-		cursor.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-	pg_conn.commit()
+		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+	if generic.series == 'kp_index':
+		result[result != None] /= 10
 	log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
 
-def compute_generics(generics: [GenericColumn]):
-	with ThreadPoolExecutor() as executor:
-		for generic in generics:
-			executor.submit(compute_generic, generic)
-	pg_conn.commit()
+def recompute_generics(generics):
+	if type(generics) != list:
+		generics = [generics]
+	with ProcessPoolExecutor(max_workers=8) as executor:
+		executor.map(compute_generic, generics)
 		
 def init_generics():
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT EXTRACT(EPOCH FROM time) FROM events.forbush_effects ORDER BY time')
-		events = cursor.fetchall()
+	with pool.connection() as conn:
+		events = conn.execute('SELECT EXTRACT(EPOCH FROM time) FROM events.forbush_effects ORDER BY time').fetchall()
 	omni.ensure_prepared([events[0][0] - 24 * HOUR, events[-1][0] + 48 * HOUR])
-	compute_generics(select_generics())
+	recompute_generics(select_generics())
 
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info or not gtype:
@@ -312,26 +305,23 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	else:
 		raise ValueError('Unknown type')
 
-	with pg_conn.cursor() as cursor:
-		cursor.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
+	with pool.connection() as conn:
+		row = conn.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
-			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid])
-		generic = GenericColumn(*cursor.fetchone())
-		cursor.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
-		compute_generic(generic)
-	pg_conn.commit()
+			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid]).fetchone()
+		generic = GenericColumn(*row)
+		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
+		recompute_generics(generic)
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
 	return generic
 
 def remove_generic(uid, gid):
-	with pg_conn.cursor() as cursor:
-		cursor.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING *', [uid, gid])
-		res = cursor.fetchone()
-		if not res: return
-		generic = GenericColumn(*res) 
+	with pool.connection() as conn:
+		row = conn.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING *', [uid, gid]).fetchone()
+		if not row: return
+		generic = GenericColumn(*row) 
 		if not generic.users:
-			cursor.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
-			cursor.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
-	pg_conn.commit()
+			conn.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
+			conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	log.info(f'Generic removed by user ({uid}): {generic.name} => {generic.users}')
 		

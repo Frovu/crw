@@ -1,14 +1,13 @@
 from flask import session
-from core.database import pg_conn
+from core.database import pool
 import logging, traceback
 log = logging.getLogger('aides')
 
 def get_role():
 	uid = session.get('uid')
 	if uid is None: return None
-	with pg_conn.cursor() as cursor:
-		cursor.execute('SELECT role FROM users WHERE uid = %s', [uid])
-		res = cursor.fetchone()
+	with pool.connection() as conn:
+		res = conn.execute('SELECT role FROM users WHERE uid = %s', [uid]).fetchone()
 		return res and res[0]
 
 def route_shielded(func):

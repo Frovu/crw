@@ -1,7 +1,7 @@
 from datetime import datetime
-import sys, os, psycopg2, psycopg2.extras
+import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from data_series.gsm.database import pg_conn
+from data_series.gsm.database import pool
 
 PATH = 'data/GSM.dat'
 
@@ -25,10 +25,9 @@ def parse():
 				return
 	print(f'Parsed [{len(data)}] from {data[0][0]} to {data[-1][0]}')
 	print('Inserting...', end='', flush=True)
-	with pg_conn.cursor() as cursor:
+	with pool.connection() as conn:
 		query = 'INSERT INTO gsm_result VALUES %s ON CONFLICT(time) DO NOTHING'
 		psycopg2.extras.execute_values(cursor, query, data)
-		pg_conn.commit()
 	print('done!')
 
 if __name__ == '__main__':

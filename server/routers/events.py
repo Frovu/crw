@@ -1,7 +1,7 @@
 from flask import Blueprint, request, session
 from time import time
 from core import database
-from core.generic_columns import compute_generics, compute_generic, select_generics, add_generic, remove_generic, init_generics
+from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, init_generics
 from routers.utils import route_shielded, reqruire_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -42,7 +42,7 @@ def _compute_generic():
 	if not generic:
 		return 'Generic not found', 404
 	start = time()
-	compute_generic(generic)
+	recompute_generics(generic)
 	return f'Computed in {round(time() - start, 1)} s'
 
 @bp.route('/', methods=['GET'])
