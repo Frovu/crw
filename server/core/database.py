@@ -40,13 +40,15 @@ def render_table_info(uid):
 			if description := col_desc.get('description'):
 				info[table][tag]['description'] = description
 	for g in generics:
-		info[g.entity][g.name] = {
+		first_table = list(tables_info)[0]
+		name = f'{g.entity}_{g.name}' if g.entity != first_table else g.name
+		info[g.entity][name] = {
 			'name': g.pretty_name,
 			'type': 'real',
 			'description': g.description
-		} # TODO: description
+		}
 		if uid in g.users:
-			info[g.entity][g.name]['user_generic_id'] = g.id
+			info[g.entity][name]['user_generic_id'] = g.id
 	series = { ser: SERIES[ser][1] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
@@ -66,7 +68,8 @@ def select_events(t_from=None, t_to=None, uid=None):
 				name = f'{table}_{column}' if table != first_table else column
 				columns.append(f'{value} as {name}')
 	for g in generics:
-		columns.append(f'{g.entity}.{g.name} as {g.name}')
+		name = f'{g.entity}_{g.name}' if g.entity != first_table else g.name
+		columns.append(f'{g.entity}.{g.name} as {name}')
 	select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
 	with pg_conn.cursor() as cursor:
 		cond = ' WHERE time >= %s' if t_from else ''

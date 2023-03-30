@@ -121,7 +121,7 @@ export function TableSampleInput({ cursorColumn, cursorValue, setSample }:
 			return [...fltrs, { column: 'magnitude', operation: '>=', value: '', id: Date.now() }];
 		const column = cursorColumn;
 		const val = cursorValue;
-		const operation = val == null ? 'is null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
+		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
 		const value = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
 		return [...fltrs, { column: column.id, operation, value, id: Date.now() }];
 	}));
