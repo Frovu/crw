@@ -79,17 +79,14 @@
 }
 
 .ColumnsSelector {
-	display: flex;
-	flex-flow: column wrap;
-	width: 44em;
-	height: 29.7em;
-	padding: 1em 1em 1em 2em;
-	gap: 4px;
 	transform: none;
-}
-
-.ColumnsSelector > * {
+	display: grid;
+	grid-auto-flow: column;
+	padding: 1.5em 1em 1.5em 2em;
+	gap: 6px;
 	text-align: left;
+	max-height: 90vh;
+	overflow: scroll;
 }
 
 .Filters {

@@ -98,7 +98,7 @@ export function GenericsSelector() {
 
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
-		<div className='Popup' style={{ transform: 'none', maxHeight: '80vh', padding: '1em 2em 2em 0' }} onClick={e => e.stopPropagation()}>
+		<div className='Popup' style={{ transform: 'none', maxHeight: '80vh', overflow: 'scroll', padding: '1em 2em 2em 0' }} onClick={e => e.stopPropagation()}>
 			<div style={{ position: 'relative' }}>
 				<div style={{ display: 'inline-grid', gridAutoFlow: 'row', gridTemplateColumns: `repeat(${cols}, auto)`, textAlign: 'right' }}>
 					{userGenerics.map(c => <GenericCard key={c.id} column={c}/>)}

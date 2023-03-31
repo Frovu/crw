@@ -1,5 +1,5 @@
 import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
-import { TableContext, DataContext, SettingsContext, Settings, plotTypes, ColumnDef, prettyTable, themeOptions } from './Table';
+import { TableContext, DataContext, SettingsContext, Settings, plotTypes, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
 import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
@@ -50,21 +50,25 @@ function AdminMenu() {
 
 function ColumnsSelector() {
 	const { settings: { enabledColumns }, set } = useContext(SettingsContext);
-	const { columns, tables } = useContext(TableContext);
-	const columnChecks = columns.filter(col => !col.hidden).map(col => [col,
-		<MenuCheckbox key={col.id} text={col.name} title={col.description} value={enabledColumns.includes(col.id)} disabled={col.id === 'time'}
-			callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])])}/>] as [ColumnDef, any]);
+	const { columns: allColumns, tables } = useContext(TableContext);
+	const columns = allColumns.filter(c => !c.hidden);
+	const columnCount = Math.min(4, Math.floor(document.body.offsetWidth / 200));
+	const rowCount = Math.ceil((columns.length + tables.length) / columnCount) + 1;
 	return (<>
 		<div className='PopupBackground' style={{ opacity: .5 }}></div>
-		<div className='ColumnsSelector Popup'>
+		<div className='ColumnsSelector Popup' style={{ gridTemplateRows: `repeat(${rowCount}, auto)` }}>
 			{tables.map(table => <Fragment key={table}>
-				<b key={table} style={{ marginBottom: '4px', maxWidth: '10em' }}>
-					<MenuCheckbox text={prettyTable(table)} hide={true} value={!!enabledColumns.find(id => id !== 'time' && columns.find(cc => cc.id === id)?.table === table)}
+				<b key={table} style={{ marginRight: '8px', maxWidth: '16ch', gridRow: table.length > 16 ? 'span 2' : 'unset' }}>
+					<MenuCheckbox text={prettyTable(table)} hide={true}
+						value={!!enabledColumns.find(id => id !== 'time' && columns.find(cc => cc.id === id)?.table === table)}
 						callback={chck => set('enabledColumns', (cols) => [
 							...cols.filter(c => chck || c === 'time' || columns.find(cc => cc.id === c)?.table !== table),
-							...(chck ? columns.filter(c => c.table === table && c.id !== 'time').map(c => c.id) : [])])}/>
+							...(chck ? columns.filter(c => c.table === table).map(c => c.id) : [])])}/>
 				</b>
-				<>{columnChecks.filter(([col,]) => col.table === table).map(([col, el]) => el)}</>
+				{columns.filter(c => c.table === table).map(col =>
+					<MenuCheckbox key={col.id} text={col.name} title={col.description}
+						value={enabledColumns.includes(col.id)} left={true}
+						callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])])}/>)}
 			</Fragment>)}
 		</div>
 	</>);
@@ -78,11 +82,13 @@ export function MenuInput(props: any) {
 	</span>);
 }
 
-export function MenuCheckbox({ text, value, callback, hide, disabled, title }:
-{ text: string, title?: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean }) {
+export function MenuCheckbox({ text, value, callback, hide, disabled, title, left }:
+{ text: string, title?: string, value: boolean, hide?: boolean, callback: (v: boolean) => void, disabled?: boolean, left?: boolean }) {
 	return (<label title={title} onClick={e => e.stopPropagation()} className='MenuInput'>
-		{text}
-		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)} style={{ marginLeft: '8px', display: hide ? 'none' : 'inline-block' }}/>
+		{!left && text}
+		<input type='checkbox' checked={value} disabled={disabled||false} onChange={e => callback(e.target.checked)}
+			style={{ ['margin' + (left ? 'Right' : 'Left')]: '8px', display: hide ? 'none' : 'inline-block' }}/>
+		{left && text}
 	</label>);
 }
 
