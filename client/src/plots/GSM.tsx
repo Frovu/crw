@@ -3,12 +3,14 @@ import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = BasicPlotParams & {
-	showAz?: boolean
+	showAz?: boolean,
+	useA0m?: boolean
 };
 
 function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.axy.max! / 2 + u.scales.axy.min! ? sp : null);
 	const az = params.showAz;
+	const a0m = params.useA0m;
 	return {
 		padding: [10, 0, params.paddingBottom ?? 0, 0],
 		legend: { show: params.interactive },
@@ -20,7 +22,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ var: 'A0(GSM) var, %', axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u)
+				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u)
 			],
 		},
 		axes: [
@@ -51,10 +53,9 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 		scales: {
 			x: { },
 			var: {
-				key: 'var'
+				range: (u, min, max) => [min - 2, max + .5]
 			},
 			axy: {
-				key: 'axy',
 				range: (u, min, max) => [Math.min(0, min), (Math.max(max, 3.5) - min) * 2 - min]
 			}
 		},
@@ -77,9 +78,10 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				paths: uPlot.paths.bars!({ size: [.2, 10] }),
 				points: { show: false }
 			},
-			{
+			...['A0', 'A0m'].map(what => ({
+				show: what === (a0m ? 'A0m' : 'A0'),
 				scale: 'var',
-				label: 'A0(GSM)',
+				label: what + '(GSM)',
 				stroke: color('green'),
 				width: 2,
 				points: {
@@ -88,7 +90,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 					fill: color('green', .8),
 					paths: markersPaths('diamond', 6)
 				}
-			},
+			})),
 		]
 	};
 }
@@ -96,7 +98,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 export default function PlotGSM(params: GSMParams) {
 	return (<BasicPlot {...{
 		queryKey: ['GSM', params.interval],
-		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10']),
+		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10', 'a10m']),
 		options: gsmPlotOptions(params)
 	}}/>);
 }

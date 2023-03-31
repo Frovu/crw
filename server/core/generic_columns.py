@@ -217,10 +217,13 @@ def compute_generic(generic):
 			value = np.abs(value) if is_abs else value
 			fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
 			if ser in ['A10', 'A10m']:
-				idx = np.array([fn(gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])) for i in range(length)])
+				for i in range(length):
+					val = gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])
+					idx = fn(val)
+					result[i] = (d_time[idx], val[idx])
 			else:
 				idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
-			result = data[left + idx]
+				result = data[left + idx]
 			return result
 
 		if generic.poi in ENTITY_POI:
