@@ -16,6 +16,7 @@ HOUR = 3600
 MAX_EVENT_LENGTH_H = 48
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
+NO_POI_TYPES = ['range', 'coverage', *EXTREMUM_TYPES]
 ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
 
 SERIES = {
@@ -237,6 +238,10 @@ def compute_generic(generic):
 				result = result / event_duration * 100
 		elif generic.type in EXTREMUM_TYPES:
 			result = find_extremum(generic.type, generic.series)[:,1]
+		elif generic.type == 'range':
+			r_max = find_extremum('max', generic.series)[:,1]
+			r_min = find_extremum('min', generic.series)[:,1]
+			result = r_max - r_min
 		elif generic.type == 'value':
 			result = np.full(length, np.nan, dtype='f8')
 			poi_hour = np.floor(poi_time / HOUR) * HOUR
@@ -287,7 +292,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')
 
-	if gtype == 'coverage' or gtype in EXTREMUM_TYPES or poi in ENTITY_POI:
+	if gtype in NO_POI_TYPES or poi in ENTITY_POI:
 		poi_type, poi_series = poi, None
 	elif poi in ['next', 'previous']:
 		pass
@@ -306,7 +311,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Time_to does not support series/shift')
 		if '%' in gtype and 'duration' not in tables_info[entity]:
 			raise ValueError('Time fractions not supported')
-	elif gtype in EXTREMUM_TYPES:
+	elif gtype in NO_POI_TYPES:
 		if poi or shift:
 			raise ValueError('Extremum does not support poi/shift')
 	else:
