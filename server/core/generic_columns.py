@@ -218,9 +218,10 @@ def compute_generic(generic):
 			fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
 			if ser in ['A10', 'A10m']:
 				for i in range(length):
-					val = gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])
-					idx = fn(val)
-					result[i] = (d_time[idx], val[idx])
+					if slice_len[i] > 1:
+						val = gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])
+						idx = fn(val)
+						result[i] = (d_time[idx], val[idx])
 			else:
 				idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 				result = data[left + idx]
