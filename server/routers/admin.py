@@ -11,6 +11,9 @@ def kill():
 	return { 'rip': 'aid' }
 
 @bp.route('/log')
+@bp.route('/logs')
 @reqruire_role('admin')
 def logs():
-	return send_file('logs/aid.log')
+	with open('logs/aid.log') as file:
+		text = file.read()
+	return '<html><head></head><body style="color: #ccc; background-color: #000"><pre>' + text + '</pre></body></html>'
