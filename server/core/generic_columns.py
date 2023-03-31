@@ -170,7 +170,8 @@ def _select_recursive(entity, target_entity=None):
 def select_generics(user_id=None):
 	with pool.connection() as conn:
 		where = '' if user_id is None else ' OR %s = ANY(users)'
-		rows = conn.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(users){where} ORDER BY id',[] if user_id is None else [user_id]).fetchall()
+		rows = conn.execute(f'SELECT * FROM events.generic_columns_info WHERE -1 = ANY(users){where} ORDER BY (series, type) DESC',
+			[] if user_id is None else [user_id]).fetchall()
 	result = [GenericColumn(*row) for row in rows]
 	return result
 

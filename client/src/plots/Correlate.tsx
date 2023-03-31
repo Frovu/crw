@@ -30,16 +30,20 @@ export default function CorrelationPlot() {
 		const maxy = Math.max.apply(null, plotData[1]);
 
 		const regr = params.regression && regression.linear(data as any, { precision: 6 });
+		const equ = regr && `y = ${regr.equation[0].toFixed(2)}x + ${regr.equation[1].toFixed(2)}`;
 		const regrPoints = regr && Array(64).fill(0).map((a, i) => minx + i * (maxx-minx)/64);
 		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
 		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
+		const maxWidthY = Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed().length));
 
 		return (asize: { width: number, height: number }) => ({
 			options: {
 				...asize,
+				// height: asize.height - 4,
+				// width: Math.min(asize.width, asize.height*1.5),
 				mode: 2,
 				padding: [10, 4, regr ? 30 : 0, 0],
-				title: (regr ? `${regr.string}; r2 = ${regr.r2.toFixed(2)}` : ''),
+				title: (regr ? `${equ}; r2 = ${regr.r2.toFixed(2)}` : ''),
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
@@ -52,7 +56,7 @@ export default function CorrelationPlot() {
 					{
 						...axisDefaults(plotGrid),
 						label: columns.find(c => c.id === params.columnY)?.fullName,
-						size: 56,
+						size: 32 + 12 * (maxWidthY - 2),
 					},
 				],
 				scales: {

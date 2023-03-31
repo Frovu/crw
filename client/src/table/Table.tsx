@@ -93,6 +93,7 @@ function defaultSettings(columns: ColumnDef[]): Settings {
 		plotTempIdx: false,
 		plotTimeOffset: [-2, 3],
 		plotTop: 'SW + Plasma',
+		plotLeft: 'Correlation',
 		plotBottom: 'CR + Geomagn',
 		plotBottomSize: 45,
 		plotsRightSize: 65
@@ -119,8 +120,9 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 		...context!
 	};
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
+	const boundRight = !context && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
-		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...stretchTop }}>
+		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...boundRight, ...stretchTop }}>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
@@ -165,7 +167,10 @@ function CoreWrapper() {
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1));
 	useEventListener('action+plotNext', plotMove(+1));
-	useEventListener('action+switchViewPlots', () => setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots })));
+	useEventListener('action+switchViewPlots', () => {
+		if (plotIdx) return setPlotIdx(null);
+		setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots }));
+	});
 	useEventListener('action+switchTheme', () => 
 		setSettings(opts => ({ ...opts, theme: themeOptions[(themeOptions.indexOf(opts.theme) + 1) % themeOptions.length] })));
 
@@ -222,13 +227,14 @@ function CoreWrapper() {
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 1 ));
+	const blockMode = !options.viewPlots || (!plotIdx && ['Histogram', 'Correlation'].includes(settings.plotLeft!));
 
 	return (
 		<SettingsContext.Provider value={settingsContext}>
 			<DataContext.Provider value={dataContext}>
 				<PlotContext.Provider value={plotContext}>
 					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
-						...(!options.viewPlots && { display: 'block' }) }}>
+						...(blockMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
 							<div ref={topDivRef}>
 								<Menu/>
@@ -240,10 +246,10 @@ function CoreWrapper() {
 							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 							<PlotWrapper which='plotLeft'/>
 						</div>
-						<div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
+						{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
 							<PlotWrapper which='plotTop'/>
 							<PlotWrapper which='plotBottom'/>
-						</div>
+						</div>}
 					</div>
 				</PlotContext.Provider>
 			</DataContext.Provider>
@@ -279,7 +285,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 				}
 			}
 		}
-		console.log('rendered table', query.data.fields, data);
+		console.log('%crendered table:', 'color: #0f0', query.data.fields, data);
 		return {
 			data: data,
 			columns: filtered,
@@ -324,9 +330,12 @@ export default function TableWrapper() {
 				})();
 				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
 				return { ...desc, table, width, id, fullName } as ColumnDef;
-			}).sort((a, b) => !a.name ? 0 : (a.name < b.name) as any)
-				.sort((a, b) => a.id === 'time' ? -1 : 1 )
-				.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
+			}) 	);
+			
+			// .sort((a, b) => !a.name ? 0 : (a.name < b.name) as any)
+			// 	.sort((a, b) => a.id === 'time' ? -1 : 1 )
+			// 	.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
+			console.log('%cavailable columns:', 'color: #0f0' , columns);
 			return {
 				tables: Object.keys(tables),
 				columns: [ { id: 'id', hidden: true, table: firstTable } as ColumnDef, ...columns],

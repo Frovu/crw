@@ -27,38 +27,38 @@
 			"references": "magnetic_clouds"
 		},
 		"magnitude": {
-			"name": "magnitude",
+			"name": "_magnitude",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
 			"parse_name": "MagnM"
 		},
 		"v_max": {
-			"name": "V max",
+			"name": "_V max",
 			"description": "Maximum solar wind velocity during the event",
 			"parse_name": "Vmax"
 		},
 		"v_before": {
-			"name": "V before",
+			"name": "_V before",
 			"description": "Solar wind velocity 1 hour before onset",
 			"parse_name": "Vb"
 		},
 		"b_max": {
-			"name": "B max",
+			"name": "_B max",
 			"description": "Maximum IMF induction value",
 			"parse_name": "HMax"
 		},
 		"bz_min": {
-			"name": "Bz min",
+			"name": "_Bz min",
 			"description": "Minimum IMF Bz-component value",
 			"parse_name": "Bzmin",
 			"parse_stub": "999.0"
 		},
 		"bz_abs_max": {
-			"name": "abs(Bz) max",
+			"name": "_abs(Bz) max",
 			"description": "Minimum absolute value of IMF Bz-component",
 			"parse_name": "ABzmax"
 		},
 		"time_to_min": {
-			"name": "time to min",
+			"name": "_time to min",
 			"type": "integer",
 			"description": "Time in hours between the onset and density minimum",
 			"parse_name": "TMinM"
@@ -69,54 +69,54 @@
 			"parse_name": "GammaM"
 		},
 		"kp_max": {
-			"name": "Kp max",
+			"name": "_Kp max",
 			"description": "Maximum Kp index during the event",
 			"parse_name": "Kpmax"
 		},
 		"ap_max": {
-			"name": "Ap max",
+			"name": "_Ap max",
 			"description": "Maximum Ap index during the event",
 			"parse_name": "Apmax"
 		},
 		"dst_min": {
-			"name": "Dst min",
+			"name": "_Dst min",
 			"description": "Minimum Dst-index value during the event",
 			"parse_name": "Dstmin",
 			"parse_stub": "9999"
 		},
 		"axy_max": {
-			"name": "Axy max",
+			"name": "_Axy max",
 			"description": "Maximum value of equatorial component of the CR vector anisotropy (%)",
 			"parse_name": "Axym"
 		},
 		"phi_axy_max": {
-			"name": "Phi Axy max",
+			"name": "_Phi Axy max",
 			"description": "Direction of the maximum value of equatorial CR anisotropy vector (deg)",
 			"parse_name": "Pxym"
 		},
 		"ax_max": {
-			"name": "Ax max",
+			"name": "_Ax max",
 			"description": "Maximum value of radial component of the CR vector anisotropy (%)",
 			"parse_name": "Axm"
 		},
 		"ay_max": {
-			"name": "Ay max",
+			"name": "_Ay max",
 			"description": "Maximum value of azimuthal component of the CR vector anisotropy (%)",
 			"parse_name": "Aym"
 		},
 		"az_range": {
-			"name": "Az range",
+			"name": "_Az range",
 			"description": "North-south IMF component variation range",
 			"parse_name": "Azrange"
 		},
 		"time_to_min_raw": {
-			"name": "time to min (raw)",
+			"name": "_time to min (raw)",
 			"type": "integer",
 			"description": "Time in hours between the onset and density minimum (non corrected)",
 			"parse_name": "TMin"
 		},
 		"magnitude_raw": {
-			"name": "magnitude raw",
+			"name": "_magnitude raw",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM",
 			"parse_name": "Magn"
 		},

@@ -8,6 +8,7 @@
 }
 
 .AppColumn {
+	height: 100%;
 	display: grid;
 	grid-template-rows: auto auto 1fr;
 	gap: 4px;
