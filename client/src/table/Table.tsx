@@ -171,7 +171,7 @@ function CoreWrapper() {
 	useEventListener('action+plotPrev', plotMove(-1));
 	useEventListener('action+plotNext', plotMove(+1));
 	useEventListener('action+switchViewPlots', () => {
-		if (plotIdx) return setPlotIdx(null);
+		if (plotIdx != null) return setPlotIdx(null);
 		setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots }));
 	});
 	useEventListener('action+switchTheme', () => 
@@ -207,9 +207,9 @@ function CoreWrapper() {
 	}, [options, settings, setSettings]);
 
 	const plotContext = useMemo(() => {
-		if (!plotIdx) return null;
+		if (plotIdx == null) return null;
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => columns.findIndex(cc => cc.id === c));
-		const plotDate = plotIdx && data[plotIdx][timeIdx];
+		const plotDate = data[plotIdx][timeIdx];
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
 		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
 		const onsets = rows.filter(r => interval[0] < r[timeIdx] && r[timeIdx] < interval[1])
@@ -230,7 +230,7 @@ function CoreWrapper() {
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 1 ));
-	const blockMode = !options.viewPlots || (!plotIdx && ['Histogram', 'Correlation'].includes(settings.plotLeft!));
+	const blockMode = !options.viewPlots || (plotIdx == null && ['Histogram', 'Correlation'].includes(settings.plotLeft!));
 
 	return (
 		<SettingsContext.Provider value={settingsContext}>
@@ -335,9 +335,6 @@ export default function TableWrapper() {
 				return { ...desc, table, width, id, fullName } as ColumnDef;
 			}) 	);
 			
-			// .sort((a, b) => !a.name ? 0 : (a.name < b.name) as any)
-			// 	.sort((a, b) => a.id === 'time' ? -1 : 1 )
-			// 	.sort((a, b) => a.id.startsWith('g_') ? (b.id.startsWith('g_') ? 0 : 1) : -1));
 			console.log('%cavailable columns:', 'color: #0f0' , columns);
 			return {
 				tables: Object.keys(tables),
