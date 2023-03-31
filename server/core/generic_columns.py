@@ -112,7 +112,7 @@ def _init():
 			created timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
 			entity text not null,
-			users integer[],
+			users smallint[],
 			type text not null,
 			series text not null default '',
 			poi text not null default '',
@@ -314,11 +314,12 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 
 	with pool.connection() as conn:
 		row = conn.execute('INSERT INTO events.generic_columns_info AS tbl (users, entity, series, type, poi, shift) VALUES (%s,%s,%s,%s,%s,%s) ' +
-			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s::integer)) RETURNING *',
+			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', shift or 0, uid]).fetchone()
 		generic = GenericColumn(*row)
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
-	recompute_generics(generic)
+	if len(generic.users) == 1:
+		recompute_generics(generic)
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
 	return generic
 
