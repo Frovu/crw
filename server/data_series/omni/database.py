@@ -83,7 +83,7 @@ def _obtain_omniweb(dt_from: datetime, dt_to: datetime):
 			data = [] # start reading data
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
-			new_range = [datetime.strptime(s, '%Y%m%d') for s in correct_range]
+			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
 			if dt_to < new_range[0] or new_range[1] < dt_from:
 				log.info(f'Omniweb: out of bounds')
 				return 
@@ -115,10 +115,7 @@ def fetch(interval: [int, int], query=None, refetch=False):
 	with pool.connection() as conn:
 		gaps = conn.execute(integrity_query(interval, PERIOD, 'omni', columns if refetch else ['time'], return_epoch=False)).fetchall()
 		for gap in gaps:
-			try:
-				_obtain(gap)
-			except Exception as e:
-				log.error(f'Omni: failed to obtain {gap[0]} to {gap[1]}: {str(e)}')
+			_obtain(gap)
 	return select(interval, query)
 
 def ensure_prepared(interval: [int, int]):

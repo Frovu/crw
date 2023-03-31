@@ -1,5 +1,5 @@
 from core.database import pool
-import numpy
+import numpy as np
 
 series = ['A10', 'A10m', 'Ax', 'Ay', 'Az', 'Axy']
 
@@ -13,4 +13,8 @@ def select(interval: [int, int], what=None):
 	with pool.connection() as conn:
 		q = f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {what} FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'
 		curs = conn.execute(q, interval)
-		return numpy.array(curs.fetchall()), [desc[0] for desc in curs.description]
+		return np.array(curs.fetchall()), [desc[0] for desc in curs.description]
+
+def normalize_variation(data):
+	d_max = np.nanmax(data)
+	return (data - d_max) / (1 + d_max / 100)

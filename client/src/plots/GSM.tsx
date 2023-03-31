@@ -44,7 +44,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				label: '',
 				scale: 'var',
 				space: 36,
-				filter: (u, splits) => splits.map(sp => sp % 1 === 0 ? sp : null),
+				// filter: (u, splits) => splits.map(sp => sp % 1 === 0 ? sp : null),
 				values: (u, vals) => vals.map(v => v?.toFixed()),
 			},
 		],

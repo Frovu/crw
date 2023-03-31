@@ -34,8 +34,8 @@ SERIES = {
 	"dst_index": ["omni", "Dst"],
 	"kp_index": ["omni", "Kp"],
 	"ap_index": ["omni", "Ap"],
-	"A0": ["gsm", "A10"],
-	"A0m": ["gsm", "A10m"],
+	"A10": ["gsm", "A0"],
+	"A10m": ["gsm", "A0m"],
 	"Ax": ["gsm", "Ax"],
 	"Ay": ["gsm", "Ay"],
 	"Az": ["gsm", "Az"],
@@ -193,6 +193,7 @@ def compute_generic(generic):
 			data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 			data_time, data_value = data_series[:,0], data_series[:,1]
 		length = len(event_id)
+
 		def get_event_windows(d_time):
 			start_hour = np.floor(event_start / HOUR) * HOUR
 			if event_duration is not None:
@@ -215,7 +216,10 @@ def compute_generic(generic):
 			left, slice_len = get_event_windows(d_time)
 			value = np.abs(value) if is_abs else value
 			fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
-			idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)]) # 0.01 ms
+			if ser in ['A10', 'A10m']:
+				idx = np.array([fn(gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])) for i in range(length)])
+			else:
+				idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 			result = data[left + idx]
 			return result
 
