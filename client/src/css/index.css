@@ -48,6 +48,10 @@ button:hover, select:hover {
 	border: 1px var(--color-active) solid !important;
 }
 
+details:hover {
+	text-decoration: underline;
+}
+
 .PopupBackground {
 	background-color: var(--color-bg);
 	opacity: 0.7;

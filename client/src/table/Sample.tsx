@@ -1,7 +1,7 @@
-import { createContext, ReactNode, useContext, useEffect, useLayoutEffect, useState } from 'react';
-import { useEventListener } from '../util';
-import { ColumnDef, TableContext } from './Table';
-import { MenuSelect } from './TableMenu';
+import { useContext, useEffect, useLayoutEffect, useState } from 'react';
+import { useEventListener, useMutationHandler } from '../util';
+import { ColumnDef, TableContext, SampleContext } from './Table';
+import { MenuInput, MenuSelect } from './TableMenu';
 
 type SetFiltersType = (fn: (val: Filter[]) => Filter[]) => void;
 
@@ -15,8 +15,6 @@ type Filter = FilterParams & {
 	id: number,
 	fn?: (row: any[]) => boolean 
 };
-
-export const SampleContext = createContext<{ data: any[][], sample: string | null, setSample: (a: string | null) => void,  setData: (a: any[][]) => void }>({} as any);
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: SetFiltersType }) {
 	const { columns } = useContext(TableContext);
@@ -144,23 +142,38 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 	</div>);
 }
 
-export function SampleWrapper({ children }: { children: ReactNode }) {
-	const { data: tableData } = useContext(TableContext);
-	const [sample, setSample] = useState<string | null>(null);
-	const [data, setData] = useState<any[][]>(tableData);
-
-	return (
-		<SampleContext.Provider value={{ data, setData, sample, setSample }}>
-			{children}
-		</SampleContext.Provider>
-	);
-}
-
 export function SampleMenu() {
 	const { sample, setSample } = useContext(SampleContext);
+	const [state, setState] = useState({ name: '' });
+	const set = (key: string) => (value: any) => setState({ ...state, [key]: value });
+
+	const { mutate, report, color } = useMutationHandler(async (action) => {
+		const body = (() => {
+			switch (action) {
+				case 'create': return { name: state.name };
+			}
+		})();
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples/${action}`, {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body) 
+		});
+		if (res.status === 400)
+			throw new Error(await res.text());
+		if (res.status !== 200)
+			throw new Error('HTTP '+res.status);
+		return await res.text();
+	});
+
 	return (
-		<>
-			<MenuSelect text='Sample' value={sample} options={[null]} callback={setSample}/>
-		</>
+		<div> 
+			<MenuSelect text='Sample' width='12em' value={sample} options={[]} callback={setSample} withNull={true}/>
+			{/* <details style={{ userSelect: 'none', cursor: 'pointer' }} onClick={e => e.stopPropagation()}> */}
+			<div><MenuInput text='Name' style={{ width: '20em', margin: '4px' }} value={state.name} onChange={set('name')}/></div>
+			<div style={{ display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color, width: '11em', textAlign: 'right', marginTop: '4px' }}>{report?.error ?? report?.success}</span>
+				{!sample && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create')}>Create new sample</button>}
+			</div>
+		</div>
 	);
 }

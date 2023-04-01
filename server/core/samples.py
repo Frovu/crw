@@ -19,7 +19,7 @@ def create_sample(uid, name):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE name = %s AND %s = ANY(authors)', [name, uid]).fetchone()
 		if exists: raise ValueError('Already exists')
-		conn.execute('INSERT INTO events.samples(name, authors) VALUES (%s, %s)', [name, (uid,)])
+		conn.execute('INSERT INTO events.samples(name, authors) VALUES (%s, %s)', [name, [uid,]])
 
 def remove_sample(uid, sid):
 	with pool.connection() as conn:

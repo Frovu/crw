@@ -61,7 +61,7 @@ def _compute_generic():
 	recompute_generics(generic)
 	return f'Computed in {round(time() - start, 1)} s'
 
-@bp.route('/samples/add', methods=['POST'])
+@bp.route('/samples/create', methods=['POST'])
 @route_shielded
 @reqruire_role('operator')
 def add_sample():

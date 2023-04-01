@@ -1,8 +1,8 @@
 import '../css/Table.css';
-import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
+import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction, ReactNode } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
-import { SampleContext, SampleWrapper, TableSampleInput } from './Sample';
+import { TableSampleInput } from './Sample';
 import { Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -74,6 +74,7 @@ type VolatileSettings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: string | null, setSample: (a: string | null) => void,  setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
@@ -250,6 +251,18 @@ function CoreWrapper() {
 				</div>
 			</PlotContext.Provider>
 		</DataContext.Provider>
+	);
+}
+
+export function SampleWrapper({ children }: { children: ReactNode }) {
+	const { data: tableData } = useContext(TableContext);
+	const [sample, setSample] = useState<string | null>(null);
+	const [data, setData] = useState<any[][]>(tableData);
+
+	return (
+		<SampleContext.Provider value={{ data, setData, sample, setSample }}>
+			{children}
+		</SampleContext.Provider>
 	);
 }
 

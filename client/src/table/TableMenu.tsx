@@ -141,7 +141,7 @@ function MenuSection({ name, shownSection, setShownSection, children }:
 			<button onClick={e => {setShownSection(name); e.stopPropagation(); }}>
 				{name}
 			</button>
-			{name === shownSection && <div className='MenuDropdown' onClick={e => { setShownSection(null); e.stopPropagation(); }}>
+			{name === shownSection && <div className='MenuDropdown' onClick={e => { e.stopPropagation(); }}>
 				{children}
 			</div>}
 		</div>
