@@ -33,7 +33,6 @@ function parseFilterValues(str: string, column: ColumnDef) {
 
 function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
 	const fns = filters.map(fl => {
-		if (!fl.value) return null;
 		const columnIdx = columns.findIndex(c => c.id === fl.column);
 		if (columnIdx < 0) return null;
 		const column = columns[columnIdx];
@@ -45,6 +44,7 @@ function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
 				return (v: any) => v != null;
 			if (operation === 'includes')
 				return (v: any) => v?.toString().includes(fl.value);
+			if (!fl.value) return null;
 			const values = parseFilterValues(fl.value, column);
 			const value = values[0];
 			switch (operation) {
@@ -55,7 +55,7 @@ function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
 				case 'in list': return (v: any) => values.includes(v);
 			}
 		})();
-		return (row: any[]) => fn(row[columnIdx]);
+		return fn && ((row: any[]) => fn(row[columnIdx]));
 	}).filter(fn => fn);
 	return data.filter(row => !fns.some(fn => !fn!(row)));
 }
@@ -77,14 +77,17 @@ function FilterCard({ filter: filterOri, callback }: { filter: Filter, callback:
 	const isSelectInput = column && column.type === 'enum' && operation !== 'includes' && operation !== 'in list';
 
 	const checkInvalid = (fl: Filter) => {
-		if (!column) return true;
-		const values = parseFilterValues(fl.value, column);
+		const col = columns.find(c => c.id === fl.column);
+		if (!col) return true;
+		if (['is null', 'not null', 'includes'].includes(fl.operation))
+			return false;
+		const values = parseFilterValues(fl.value, col);
 		const isValid = values.map((val) => {
-			switch (column.type) {
+			switch (col.type) {
 				case 'time': return !isNaN(val as any);
 				case 'real':
 				case 'integer': return !isNaN(val as number);
-				case 'enum': return column.enum?.includes(val as string);
+				case 'enum': return col.enum?.includes(val as string);
 				default: return (val as string).length > 0;
 			}
 		});
@@ -108,13 +111,14 @@ function FilterCard({ filter: filterOri, callback }: { filter: Filter, callback:
 			return setInvalid(isInvalid);
 		callback(fl);
 	};
-
+	
 	return (
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select style={{ width: '8em', textAlign: 'right', borderColor: 'transparent' }} 
+			<select style={{ width: '8em', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
 				value={filter.column} onChange={set('column')}>
-				{columns.filter(col => !col.hidden).map(col => <option value={col.id} key={col.table+col.name}>
-					{col.fullName}</option>)}
+				{columns.filter(col => !col.hidden).map(col =>
+					<option value={col.id} key={col.table+col.name}>{col.fullName}</option>)}
+				{!column && <option value={filter.column} key={filter.column}>{filter.column}</option>}
 			</select>
 			<select style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
