@@ -29,9 +29,9 @@ export const defaultHistOptions: HistOptions = {
 };
 
 export function HistogramMenu() {
-	const { options: { hist }, setOptions } = useContext(SettingsContext);
+	const { options: { hist }, setOpt } = useContext(SettingsContext);
 	const { columns } = useContext(TableContext);
-	const set = (key: any) => (value: any) => setOptions('hist', opts => ({ ...opts, [key]: value }));
+	const set = (key: any) => (value: any) => setOpt('hist', opts => ({ ...opts, [key]: value }));
 	const options = columns.map(c => c.id);
 	const pretty = columns.map(c => c.name);
 
@@ -55,8 +55,8 @@ export function HistogramMenu() {
 
 export function CorrelationMenu() {
 	const { columns } = useContext(TableContext);
-	const { options, setOptions } = useContext(SettingsContext);
-	const set = (key: any) => (value: any) => setOptions('correlation', opts => ({ ...opts, [key]: value }));
+	const { options, setOpt } = useContext(SettingsContext);
+	const set = (key: any) => (value: any) => setOpt('correlation', opts => ({ ...opts, [key]: value }));
 	const filtered = columns.filter(c => !c.hidden);
 	const selection = filtered.map(c => c.id);
 	const pretty = filtered.map(c => c.fullName);

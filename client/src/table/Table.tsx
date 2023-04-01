@@ -1,5 +1,5 @@
 import '../css/Table.css';
-import React, { useState, createContext, useContext, useMemo, useRef } from 'react';
+import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
 import { TableSampleInput } from './Sample';
@@ -76,11 +76,11 @@ type VolatileSettings = {
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
-type SettingsSetter = <T extends keyof Settings>(key: T, a: (s: Settings[T]) => Settings[T]) => void;
-type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: (s: VolatileSettings[T]) => VolatileSettings[T]) => void;
-export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOptions: OptionsSetter }>({} as any);
+type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
+type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
+export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOpt: OptionsSetter }>({} as any);
 
-function defaultSettings(columns: ColumnDef[]): Settings {
+function defaultSettings(): Settings {
 	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'bz_min', 'ap_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
 	return {
 		theme: 'Dark',
@@ -147,10 +147,8 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 
 function CoreWrapper() {
 	const { data, columns } = useContext(TableContext);
+	const { options, settings, set, setOpt } = useContext(SettingsContext);
 	const [sample, setSample] = useState(data);
-	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings(columns));
-	const [options, setOptions] = useState<VolatileSettings>(() => ({
-		hist: defaultHistOptions, viewPlots: false, correlation: defaultCorrParams }));
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
@@ -159,10 +157,9 @@ function CoreWrapper() {
 	useSize(document.body);
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
-	useEventListener('action+resetSettings', () => setSettings(defaultSettings(columns)));
 
 	const plotMove = (dir: -1 | 0 | 1) => () => setPlotIdx(current => {
-		setOptions(opts => ({ ...opts, viewPlots: true }));
+		setOpt('viewPlots', true);
 		if (dir !== 0)
 			return current == null ? null : Math.max(0, Math.min(current + dir, data.length - 1));
 		if (cursor)
@@ -178,19 +175,18 @@ function CoreWrapper() {
 	useEventListener('action+plotNext', plotMove(+1));
 	useEventListener('action+switchViewPlots', () => {
 		if (plotIdx != null) return setPlotIdx(null);
-		setOptions(opts => ({ ...opts, viewPlots: !opts.viewPlots }));
+		setOpt('viewPlots', view => !view);
 	});
 	useEventListener('action+switchTheme', () => 
-		setSettings(opts => ({ ...opts, theme: themeOptions[(themeOptions.indexOf(opts.theme) + 1) % themeOptions.length] })));
+		set('theme', theme => themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 
-	useEventListener('setColumn', e => setOptions(opts => {
+	useEventListener('setColumn', e => {
 		const which = e.detail.which;
 		const corrKey = which === 1 ? 'columnX' : 'columnY';
 		const histKey = 'column' + Math.min(which - 1, 2);
-		return { ...opts,
-			correlation: { ...opts.correlation, [corrKey]: e.detail.column.id },
-			hist: { ...opts.hist, [histKey]: e.detail.column.id } };
-	}));
+		setOpt('correlation', corr => ({ ...corr, [corrKey]: e.detail.column.id }));
+		setOpt('hist', corr => ({ ...corr, [histKey]: e.detail.column.id }));
+	});
 
 	// I did not know any prettier way to do this
 	document.documentElement.setAttribute('main-theme', settings.theme);
@@ -205,12 +201,6 @@ function CoreWrapper() {
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
 		return { sample, data: renderedData, columns: cols };
 	}, [sample, columns, settings.enabledColumns, sort]);
-
-	const settingsContext = useMemo(() => {
-		const set: SettingsSetter = (key, fn) => setSettings(sets => ({ ...sets, [key]: fn(sets[key]) }));
-		const seto: OptionsSetter = (key, fn) => setOptions(sets => ({ ...sets, [key]: fn(sets[key]) }));
-		return { settings, set, options, setOptions: seto };
-	}, [options, settings, setSettings]);
 
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;
@@ -239,30 +229,28 @@ function CoreWrapper() {
 	const blockMode = !options.viewPlots || (plotIdx == null && ['Histogram', 'Correlation'].includes(settings.plotLeft!));
 
 	return (
-		<SettingsContext.Provider value={settingsContext}>
-			<DataContext.Provider value={dataContext}>
-				<PlotContext.Provider value={plotContext}>
-					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
-						...(blockMode && { display: 'block' }) }}>
-						<div className='AppColumn'>
-							<div ref={topDivRef}>
-								<Menu/>
-								<TableSampleInput {...{
-									cursorColumn: cursor && dataContext.columns[cursor?.column],
-									cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1],
-									setSample }}/>
-							</div>
-							<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
-							<PlotWrapper which='plotLeft'/>
+		<DataContext.Provider value={dataContext}> 
+			<PlotContext.Provider value={plotContext}>
+				<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
+					...(blockMode && { display: 'block' }) }}>
+					<div className='AppColumn'>
+						<div ref={topDivRef}>
+							<Menu/>
+							<TableSampleInput {...{
+								cursorColumn: cursor && dataContext.columns[cursor?.column],
+								cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1],
+								setSample }}/>
 						</div>
-						{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
-							<PlotWrapper which='plotTop'/>
-							<PlotWrapper which='plotBottom'/>
-						</div>}
+						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
+						<PlotWrapper which='plotLeft'/>
 					</div>
-				</PlotContext.Provider>
-			</DataContext.Provider>
-		</SettingsContext.Provider>
+					{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
+						<PlotWrapper which='plotTop'/>
+						<PlotWrapper which='plotBottom'/>
+					</div>}
+				</div>
+			</PlotContext.Provider>
+		</DataContext.Provider>
 	);
 }
 
@@ -316,6 +304,17 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 }
 
 export default function TableWrapper() {
+	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings());
+	const [options, setOptions] = useState<VolatileSettings>(() => ({
+		hist: defaultHistOptions, viewPlots: false, correlation: defaultCorrParams }));
+	const settingsContext = useMemo(() => {
+		const set: SettingsSetter = (key, arg) => setSettings(sets => ({ ...sets, [key]: typeof arg === 'function' ? arg(sets[key]) : arg }));
+		const setOpt: OptionsSetter = (key, arg) => setOptions(sets => ({ ...sets, [key]: typeof arg === 'function' ? arg(sets[key]) : arg }));
+		return { settings, set, options, setOpt };
+	}, [options, settings, setSettings]);
+
+	useEventListener('action+resetSettings', () => setSettings(defaultSettings()));
+
 	const firstTable = 'forbush_effects';
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
@@ -353,5 +352,9 @@ export default function TableWrapper() {
 		return <div>Loading tables..</div>;
 	if (!query.data)
 		return <div>Failed to load tables</div>;
-	return <SourceDataWrapper {...{ ...query.data, firstTable }}/>;
+	return (
+		<SettingsContext.Provider value={settingsContext}>
+			<SourceDataWrapper {...{ ...query.data, firstTable }}/>
+		</SettingsContext.Provider>
+	);
 }
