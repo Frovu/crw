@@ -2,7 +2,7 @@ import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
-import { Sample, TableSampleInput } from './Sample';
+import { Sample, SampleState, TableSampleInput } from './Sample';
 import { Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -74,7 +74,7 @@ type VolatileSettings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: Sample | null, samples: Sample[], setSample: (a: Sample | null) => void, setData: (a: any[][]) => void }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: Sample | null, samples: Sample[], state: SampleState, setState: (d: SetStateAction<SampleState>) => void, setSample: (a: Sample | null) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
@@ -258,6 +258,8 @@ export function SampleWrapper() {
 	const { data: tableData } = useContext(TableContext);
 	const [sample, setSample] = useState<Sample | null>(null);
 	const [data, setData] = useState<any[][]>(tableData);
+	const [state, setState] = useState<SampleState>(() =>
+		(sample ? { ...sample, filters: sample.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) } : { name: '' } as any));
 
 	const query = useQuery('samples', async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
@@ -271,7 +273,7 @@ export function SampleWrapper() {
 	if (!query.data)
 		return <div>Failed to load samples info</div>;
 	return (
-		<SampleContext.Provider value={{ data, setData, sample, setSample, samples: query.data }}>
+		<SampleContext.Provider value={{ data, setData, sample, setSample, state, setState, samples: query.data }}>
 			<CoreWrapper/>
 		</SampleContext.Provider>
 	);
