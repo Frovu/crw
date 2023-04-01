@@ -43,6 +43,12 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
+	const updateViewIndex = (curs: Exclude<Cursor, null>) => {
+		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
+			(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
+		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
+	};
+
 	useLayoutEffect(() => {
 		setViewIndex(Math.max(0, data.length - viewSize));
 	}, [data.length, viewSize, sort]);
@@ -51,6 +57,13 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 		ref.current.onwheel = e => setViewIndex(idx =>
 			Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize));
 	}, [data.length, viewSize]);
+	useLayoutEffect(() => {
+		if (!cursor) return;
+		updateViewIndex(cursor);
+		const cell = ref.current!.children[0]?.children[1].children[0].children[cursor.column] as HTMLElement;
+		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
+		ref.current?.parentElement?.scrollTo({ left });
+	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code))
@@ -62,15 +75,11 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			return dispatchCustomEvent('setColumn', { which: parseInt(e.key), column: columns[cursor?.column] });
 
 		const set = (curs: Exclude<Cursor, null>) => {
-			const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-				(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
-			setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
+			updateViewIndex(curs);
 			setCursor(curs);
 			e.preventDefault();
-			const cell = ref.current!.children[0]?.children[1].children[0].children[curs.column] as HTMLElement;
-			const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
-			ref.current?.parentElement?.scrollTo({ left });
 		};
+		
 		if (e.ctrlKey && e.code === 'Home')
 			return set({ row: 0, column: cursor?.column ?? 0 });
 		if (e.ctrlKey && e.code === 'End')

@@ -163,9 +163,15 @@ function CoreWrapper() {
 
 	const plotMove = (dir: -1 | 0 | 1) => () => setPlotIdx(current => {
 		setOptions(opts => ({ ...opts, viewPlots: true }));
-		if (!current || dir === 0)
-			return cursor ? data.findIndex(r => r[0] === dataContext.data[cursor.row][0]) : null;
-		return Math.max(0, Math.min(current + dir, data.length - 1));
+		if (dir !== 0)
+			return current == null ? null : Math.max(0, Math.min(current + dir, data.length - 1));
+		if (cursor)
+			return data.findIndex(r => r[0] === dataContext.data[cursor.row][0]);
+		if (!current) return null;
+		const found = dataContext.data.findIndex(r => r[0] === data[current][0]);
+		if (found >= 0)
+			setCursor({ row: found, column: 0 });
+		return current;
 	});
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1));
