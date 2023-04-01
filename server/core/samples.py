@@ -8,12 +8,19 @@ def _init():
 			last_modified TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			name TEXT NOT NULL,
 			authors int[],
-			is_public BOOLEAN NOT NULL DEFAULT 'f',
+			public BOOLEAN NOT NULL DEFAULT 'f',
 			filters JSON,
 			whitelist int[] NOT NULL DEFAULT '{}',
 			blacklist int[] NOT NULL DEFAULT '{}',
 			UNIQUE (name, authors))''')
 _init()
+
+def select(uid=None):
+	with pool.connection() as conn:
+		curs = conn.execute('SELECT name, array(select login from users where uid = ANY(authors)) as authors, public, filters, whitelist, blacklist ' + 
+		'FROM events.samples WHERE public' + ('' if uid is None else ' OR %s = ANY(authors)'), [name] + [] if uid is None else [uid])
+		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
+		return [{ f: val for val, f in zip(row, fields) } for row in rows]
 
 def create_sample(uid, name):
 	with pool.connection() as conn:
@@ -46,4 +53,4 @@ def publish_sample(uid, sid, public):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE id = %s AND %s = ANY(authors)', [sid, uid]).fetchone()
 		if not exists: raise ValueError('Not found or not authorized')
-		conn.execute('UPDATE events.samples SET is_public = %s WHERE id = %s', [public, sid])
+		conn.execute('UPDATE events.samples SET public = %s WHERE id = %s', [public, sid])

@@ -16,6 +16,15 @@ type Filter = FilterParams & {
 	fn?: (row: any[]) => boolean 
 };
 
+export type Sample = {
+	id: number,
+	name: string,
+	authors: string[],
+	filters: FilterParams[] | null,
+	whitelist: number[],
+	blacklist: number[]
+};
+
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: SetFiltersType }) {
 	const { columns } = useContext(TableContext);
 	const [filter, setFilter] = useState({ ...filterOri, input: filterOri.value });
@@ -163,7 +172,7 @@ export function SampleMenu() {
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
 		return await res.text();
-	});
+	}, 'samples');
 
 	return (
 		<div> 

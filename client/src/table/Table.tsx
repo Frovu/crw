@@ -1,8 +1,8 @@
 import '../css/Table.css';
-import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction, ReactNode } from 'react';
+import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
-import { TableSampleInput } from './Sample';
+import { Sample, TableSampleInput } from './Sample';
 import { Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -74,7 +74,7 @@ type VolatileSettings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: string | null, setSample: (a: string | null) => void,  setData: (a: any[][]) => void }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: string | null, samples: Sample[], setSample: (a: string | null) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
@@ -254,14 +254,25 @@ function CoreWrapper() {
 	);
 }
 
-export function SampleWrapper({ children }: { children: ReactNode }) {
+export function SampleWrapper() {
 	const { data: tableData } = useContext(TableContext);
 	const [sample, setSample] = useState<string | null>(null);
 	const [data, setData] = useState<any[][]>(tableData);
 
+	const query = useQuery('samples', async () => {
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
+		const samples = (await res.json()).samples;
+		console.log('%cavailable samples:', 'color: #0f0', samples);
+		return samples as Sample[];
+	});
+
+	if (query.isLoading)
+		return <div>Loading samples info..</div>;
+	if (!query.data)
+		return <div>Failed to load samples info</div>;
 	return (
-		<SampleContext.Provider value={{ data, setData, sample, setSample }}>
-			{children}
+		<SampleContext.Provider value={{ data, setData, sample, setSample, samples: query.data }}>
+			<CoreWrapper/>
 		</SampleContext.Provider>
 	);
 }
@@ -310,9 +321,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 
 	return (
 		<TableContext.Provider value={context!}>
-			<SampleWrapper>
-				<CoreWrapper/>
-			</SampleWrapper>
+			<SampleWrapper/>
 		</TableContext.Provider>
 	);
 }

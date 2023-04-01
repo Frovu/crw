@@ -4,7 +4,7 @@ import json
 from core import database
 from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, init_generics
 import core.samples as samples
-from routers.utils import route_shielded, reqruire_role
+from routers.utils import route_shielded, require_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 
@@ -24,7 +24,7 @@ def events_tables_info():
 
 @bp.route('/recompute_generics', methods=['POST'])
 @route_shielded
-@reqruire_role('admin')
+@require_role('admin')
 def _recompute_generics():
 	start = time()
 	init_generics()
@@ -32,7 +32,7 @@ def _recompute_generics():
 
 @bp.route('/generics/add', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def _add_generic():
 	uid = session.get('uid')
 	start = time()
@@ -41,7 +41,7 @@ def _add_generic():
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def _remove_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
@@ -50,7 +50,7 @@ def _remove_generic():
 
 @bp.route('/generics/compute', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def _compute_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
@@ -61,9 +61,15 @@ def _compute_generic():
 	recompute_generics(generic)
 	return f'Computed in {round(time() - start, 1)} s'
 
+@bp.route('/samples', methods=['GET'])
+@route_shielded
+def get_samples():
+	uid = session.get('uid')
+	return { 'samples': samples.select(uid) }
+
 @bp.route('/samples/create', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def add_sample():
 	uid = session.get('uid')
 	name = request.json.get('name')
@@ -73,7 +79,7 @@ def add_sample():
 
 @bp.route('/samples/remove', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def remove_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
@@ -82,7 +88,7 @@ def remove_sample():
 
 @bp.route('/samples/update', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def update_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
@@ -96,7 +102,7 @@ def update_sample():
 
 @bp.route('/samples/share', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def share_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
@@ -106,7 +112,7 @@ def share_sample():
 
 @bp.route('/samples/publish', methods=['POST'])
 @route_shielded
-@reqruire_role('operator')
+@require_role('operator')
 def publish_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
