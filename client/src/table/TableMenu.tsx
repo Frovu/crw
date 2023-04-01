@@ -5,7 +5,7 @@ import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
 
-const KEY_COMB = {
+export const KEY_COMB = {
 	'openColumnsSelector': 'C',
 	'openGenericsSelector': 'G',
 	'addFilter': 'F',
@@ -216,6 +216,7 @@ export function Menu() {
 					<MenuButton text='Switch view' action='switchViewPlots'/>
 					<MenuButton text='Switch theme' action='switchTheme'/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
+					<a style={{ textAlign: 'center' }} href='./help' target='_blank' >Open manual</a>
 					<AuthButton/>
 					{role === 'admin' && <AdminMenu/>}
 				</MenuSection>
@@ -224,8 +225,8 @@ export function Menu() {
 				</MenuSection>
 				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
 					<h4>Select plots</h4>
-					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
+					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
 					<MenuInput text='bottom plot height (%)' type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
 						onChange={(v: any) => set('plotBottomSize', () => v)}/>
