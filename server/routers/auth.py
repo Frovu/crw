@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session
 from server import bcrypt
-from routers.utils import route_shielded, reqruire_role, get_role
+from routers.utils import route_shielded, require_role, get_role
 from core.database import pool
 import logging, os
 
@@ -30,7 +30,7 @@ def init():
 init()
 
 @bp.route('/upsert', methods=['POST'])
-@reqruire_role('admin')
+@require_role('admin')
 def upsert():
 	login = request.json.get('login')
 	role = request.json.get('role')

@@ -23,7 +23,7 @@ def route_shielded(func):
 	wrapper.__name__ = func.__name__
 	return wrapper
 
-def reqruire_role(r_role: str):
+def require_role(r_role: str):
 	def decorator(func):
 		def wrapper():
 			if (role := get_role()) is None: 
