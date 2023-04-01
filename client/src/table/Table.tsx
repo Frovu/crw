@@ -2,7 +2,7 @@ import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
-import { TableSampleInput } from './Sample';
+import { SampleContext, SampleWrapper, TableSampleInput } from './Sample';
 import { Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -146,9 +146,9 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 });
 
 function CoreWrapper() {
-	const { data, columns } = useContext(TableContext);
+	const { columns, data } = useContext(TableContext);
+	const { data: sample } = useContext(SampleContext);
 	const { options, settings, set, setOpt } = useContext(SettingsContext);
-	const [sample, setSample] = useState(data);
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
@@ -238,8 +238,7 @@ function CoreWrapper() {
 							<Menu/>
 							<TableSampleInput {...{
 								cursorColumn: cursor && dataContext.columns[cursor?.column],
-								cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1],
-								setSample }}/>
+								cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1] }}/>
 						</div>
 						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
 						<PlotWrapper which='plotLeft'/>
@@ -298,7 +297,9 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 
 	return (
 		<TableContext.Provider value={context!}>
-			<CoreWrapper/>
+			<SampleWrapper>
+				<CoreWrapper/>
+			</SampleWrapper>
 		</TableContext.Provider>
 	);
 }

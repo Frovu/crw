@@ -4,6 +4,7 @@ import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../ut
 import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
+import { SampleMenu } from './Sample';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -220,7 +221,11 @@ export function Menu() {
 					<AuthButton/>
 					{role === 'admin' && <AdminMenu/>}
 				</MenuSection>
+				<MenuSection name='Sample' {...{ shownSection, setShownSection }}>
+					<SampleMenu/>
+				</MenuSection>
 				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
+					<h4 style={{ textAlign: 'right' }}>Export table</h4>
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>

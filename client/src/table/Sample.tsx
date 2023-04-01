@@ -1,17 +1,22 @@
-import { useContext, useEffect, useLayoutEffect, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useLayoutEffect, useState } from 'react';
 import { useEventListener } from '../util';
 import { ColumnDef, TableContext } from './Table';
+import { MenuSelect } from './TableMenu';
 
 type SetFiltersType = (fn: (val: Filter[]) => Filter[]) => void;
 
 const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'includes' , 'in list'] as const;
-export type Filter = {
+type FilterParams = {
 	column: string,
 	operation: typeof FILTER_OPS[number],
 	value: string,
+};
+type Filter = FilterParams & {
 	id: number,
 	fn?: (row: any[]) => boolean 
 };
+
+export const SampleContext = createContext<{ data: any[][], sample: string | null, setSample: (a: string | null) => void,  setData: (a: any[][]) => void }>({} as any);
 
 function FilterCard({ filter: filterOri, setFilters }: { filter: Filter, setFilters: SetFiltersType }) {
 	const { columns } = useContext(TableContext);
@@ -107,14 +112,19 @@ export function SampleInput({ setSample }: { setSample: (a: any[][]) => void }) 
 	</div>);
 }
 
-export function TableSampleInput({ cursorColumn, cursorValue, setSample }:
-{ cursorColumn: ColumnDef | null, cursorValue: any | null, setSample: (a: any[][]) => void }) {
+function applySample(sample: string | null, data: any[][]) {
+	return data;
+}
+
+export function TableSampleInput({ cursorColumn, cursorValue }:
+{ cursorColumn: ColumnDef | null, cursorValue: any | null }) {
 	const { data } = useContext(TableContext);
+	const { sample, setData } = useContext(SampleContext);
 	const [filters, setFilters] = useState<Filter[]>([]);
 
 	useLayoutEffect(() => {
-		setSample(data.filter(row => !filters.some(fltr => fltr.fn && !fltr.fn(row))));
-	}, [filters, data, setSample]);
+		setData(applySample(sample, data).filter(row => !filters.some(fltr => fltr.fn && !fltr.fn(row))));
+	}, [filters, data, sample, setData]);
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
 		if (!cursorColumn)
@@ -132,4 +142,25 @@ export function TableSampleInput({ cursorColumn, cursorValue, setSample }:
 	return (<div className='Filters'>
 		{ filters.map(filter => <FilterCard key={filter.id} {...{ filter, setFilters }}/>) }
 	</div>);
+}
+
+export function SampleWrapper({ children }: { children: ReactNode }) {
+	const { data: tableData } = useContext(TableContext);
+	const [sample, setSample] = useState<string | null>(null);
+	const [data, setData] = useState<any[][]>(tableData);
+
+	return (
+		<SampleContext.Provider value={{ data, setData, sample, setSample }}>
+			{children}
+		</SampleContext.Provider>
+	);
+}
+
+export function SampleMenu() {
+	const { sample, setSample } = useContext(SampleContext);
+	return (
+		<>
+			<MenuSelect text='Sample' value={sample} options={[null]} callback={setSample}/>
+		</>
+	);
 }
