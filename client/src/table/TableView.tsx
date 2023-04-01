@@ -54,9 +54,12 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	}, [data.length, viewSize, sort]);
 	useEffect(() => {
 		if (!ref.current) return;
-		ref.current.onwheel = e => setViewIndex(idx =>
-			Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize));
-	}, [data.length, viewSize]);
+		ref.current.onwheel = e => setViewIndex(idx => {
+			const newIdx = Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize);
+			setCursor(((curs: Cursor) => ((curs?.row! > newIdx + viewSize || curs?.row! < newIdx) ? null : curs)) as any);
+			return newIdx;
+		});
+	}, [data.length, viewSize, setCursor]);
 	useLayoutEffect(() => {
 		if (!cursor) return;
 		updateViewIndex(cursor);

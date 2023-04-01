@@ -4,6 +4,7 @@ import Table from './table/Table';
 import Circles from './plots/Circles';
 import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
+import Help from './Help';
 
 const theQueryClient = new QueryClient();
 
@@ -110,9 +111,14 @@ export function AuthButton() {
 }
 
 function App() {
-	const app = window.location.pathname.endsWith('ros') ? 'RoS' : 'FEID';
+	const apps = ['ros', 'help'];
+	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'feid';
 	useEffect(() => {
-		document.title = app;
+		document.title = {
+			ros: 'RoS',
+			help: 'AID Manual',
+			feid: 'FEID'
+		}[app]!;
 	}, [app]);
 
 	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login' | 'upsert'>(null);
@@ -132,7 +138,9 @@ function App() {
 			...query.data,
 			promptLogin: setAuthPrompt,
 		}}>
-			{app === 'RoS' ? <Circles/> : <Table/>}
+			{app === 'ros' && <Circles/>}
+			{app === 'feid' && <Table/>}
+			{app === 'help' && <Help/>}
 			{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}
 		</AuthContext.Provider>
 	);
