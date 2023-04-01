@@ -74,7 +74,7 @@ type VolatileSettings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: string | null, samples: Sample[], setSample: (a: string | null) => void, setData: (a: any[][]) => void }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: Sample | null, samples: Sample[], setSample: (a: Sample | null) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
@@ -256,7 +256,7 @@ function CoreWrapper() {
 
 export function SampleWrapper() {
 	const { data: tableData } = useContext(TableContext);
-	const [sample, setSample] = useState<string | null>(null);
+	const [sample, setSample] = useState<Sample | null>(null);
 	const [data, setData] = useState<any[][]>(tableData);
 
 	const query = useQuery('samples', async () => {

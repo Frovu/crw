@@ -68,7 +68,7 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	return size;
 }
 
-export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?: any) {
+export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?: string[]) {
 	const queryClient = useQueryClient();
 	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
 	const mutation = useMutation(fn, {
