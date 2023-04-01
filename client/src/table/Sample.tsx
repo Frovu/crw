@@ -20,7 +20,7 @@ export type Sample = {
 	blacklist: number[]
 };
 type FilterWithId = Filter & { id: number };
-export type SampleState = Omit<Sample, 'filters'> & { filters: null | FilterWithId[] };
+export type SampleState = null | (Omit<Sample, 'filters'> & { filters: null | FilterWithId[] });
 
 function parseFilterValues(str: string, column: ColumnDef) {
 	return str.split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g).map((val) => {
@@ -62,9 +62,11 @@ function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
 	return data.filter(row => !fns.some(fn => !fn!(row)));
 }
 
-function applySample(data: any[][], sample: Sample | null) {
+function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
 	if (!sample) return data;
-
+	
+	if (sample.filters)
+		return applyFilters(data, sample.filters, columns); // TODO
 	return data;
 }
 
@@ -146,7 +148,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 	const [filters, setFilters] = useState<{ filter: Filter, id: number }[]>([]);
 
 	useLayoutEffect(() => {
-		setData(applyFilters(applySample(data, sample), filters.map(f => f.filter), columns));
+		setData(applyFilters(applySample(data, sample, columns), filters.map(f => f.filter), columns));
 	}, [filters, data, columns, sample, setData]);
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
@@ -166,7 +168,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 		<div className='Filters'>
 			{ filters.map(({ filter, id }) => <FilterCard key={id} {...{ filter, callback: (fl) =>  {
 				if (!fl) return setFilters(fltrs => fltrs.filter((f) => f.id !== id));
-				setFilters(fltrs => [...fltrs.filter((f) => f.id !== id), { id: Date.now(), filter: fl }]);
+				setFilters(fltrs => fltrs.map(f => f.id !== id ? f : { id: f.id, filter: fl }));
 			} }}/>) }
 		</div>
 	);
@@ -174,24 +176,22 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 
 export function SampleMenu() {
 	const { login, role } = useContext(AuthContext);
-	const { state, setState, sample, setSample: actuallySetSample, samples } = useContext(SampleContext);
-	const set = (key: string) => (value: any) => setState({ ...state, [key]: value });
-	const setSample = (name: string | null) => {
-		const smpl = name && samples.find(s => s.name === name) as typeof state;
+	const [nameInput, setNameInput] = useState('');
+	const { sample, setSample, samples } = useContext(SampleContext);
+	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
+	const setSelectSample = (name: string | null) => {
+		const smpl = name && samples.find(s => s.name === name);
 		if (!name || !smpl) {
-			setState({ name: '' } as any);
-			actuallySetSample(null);
-		} else {
-			smpl.filters?.forEach((f, i) => {f.id = Date.now()+i;});
-			setState({ ...smpl });
-			actuallySetSample(smpl ?? null);
+			setNameInput('');
+			return setSample(null);
 		}
+		setSample({ ...smpl, filters: smpl.filters && smpl.filters.map((f, i) => ({ ...f, id: Date.now()+i })) });
 	};
 
 	const { mutate, report, color } = useMutationHandler(async (action) => {
 		const body = (() => {
 			switch (action) {
-				case 'create': return { name: state.name };
+				case 'create': return { name: nameInput };
 			}
 		})();
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples/${action}`, {
@@ -206,28 +206,28 @@ export function SampleMenu() {
 		return await res.text();
 	}, ['samples']);
 
-	const setFilters = (fn: (a: FilterWithId[]) => FilterWithId[]) => setState(st => ({ ...st, filters: st.filters && fn(st.filters) }));
-	const newFilter = () => setState(st => ({ ...st, filters: [
+	const setFilters = (fn: (a: FilterWithId[]) => FilterWithId[]) => setSample(st => st && ({ ...st, filters: st.filters && fn(st.filters) }));
+	const newFilter = () => setSample(st => st && ({ ...st, filters: [
 		...(st.filters ?? []), { ...(st.filters?.length ? st.filters[st.filters.length-1] : { column: 'magnitude', operation: '>=', value: '3' }), id: Date.now() }
 	] }));
 	
 	const allowEdit = sample && sample.authors.includes(login!);
 	return (
 		<div> 
-			<MenuSelect text='Sample' width='14em' value={sample && sample.name} options={samples.map(s => s.name)} callback={setSample} withNull={true}/>
+			<MenuSelect text='Sample' width='14em' value={sample?.name ?? nameInput} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
 			{/* <details style={{ userSelect: 'none', cursor: 'pointer' }} onClick={e => e.stopPropagation()}> */}
-			<div><MenuInput text='Name' style={{ width: sample ? '24em' : 'calc(14em + 8px)', margin: '4px' }} value={state.name} onChange={set('name')}/></div>
+			<div><MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
+				value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={setNameInput}/></div>
 			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
-				onSuccess: () => setSample(state.name)
+				onSuccess: () => { setTimeout(() => setSelectSample(nameInput), 500); }
 			})}>Create new sample</button>}
 			{allowEdit && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
-				{ state.filters?.map((filter) => <FilterCard key={filter.id} {...{ filter, callback: (fl) =>  {
+				{ sample.filters?.map((filter) => <FilterCard key={filter.id} {...{ filter, callback: (fl) =>  {
 					if (!fl) return setFilters(fltrs => fltrs.filter((f) => f.id !== filter.id));
-					setFilters(fltrs => [...fltrs.filter((f) => f.id !== filter.id), { ...fl, id: Date.now() }]);
+					setFilters(fltrs => fltrs.map(f => f.id !== filter.id ? f : { id: f.id, ...fl }));
 				} }}/>) }
 			</div>}
 			{allowEdit && <div style={{ marginTop: '4px' }}>
-				
 				<button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={newFilter}>Add filter</button>
 			</div>}
 			<div style={{ color, height: '1em', textAlign: 'right' }}>{report?.error ?? report?.success}</div>
