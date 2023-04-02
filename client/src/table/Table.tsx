@@ -103,7 +103,7 @@ function defaultSettings(): Settings {
 	};
 }
 
-const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'plotBottom' }) => {
+const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop' | 'plotBottom', bound?: boolean }) => {
 	const { settings, options } = useContext(SettingsContext);
 	const context = useContext(PlotContext);
 	const type = settings[which];
@@ -124,7 +124,7 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 		...context!
 	};
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
-	const boundRight = which === 'plotLeft' && !context && { maxWidth: (100-settings.plotsRightSize) + '%' };
+	const boundRight = bound && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...boundRight, ...stretchTop }}>
 			{type === 'Histogram' && <HistogramPlot/>}
@@ -243,7 +243,7 @@ function CoreWrapper() {
 								cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1] }}/>
 						</div>
 						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
-						<PlotWrapper which='plotLeft'/>
+						<PlotWrapper which='plotLeft' bound={blockMode && ['Histogram', 'Correlation'].includes(settings.plotLeft!)}/>
 					</div>
 					{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
 						<PlotWrapper which='plotTop'/>
