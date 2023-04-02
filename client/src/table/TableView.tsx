@@ -71,10 +71,10 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	useLayoutEffect(() => {
 		if (!cursor) return;
 		updateViewIndex(cursor);
-		const cell = ref.current!.children[0]?.children[1].children[0].children[cursor.column] as HTMLElement;
+		const cell = ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
 		ref.current?.parentElement?.scrollTo({ left });
-	});
+	}, [cursor]); // eslint-disable-line
 	useLayoutEffect(() => {
 		const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
 		const nav = navRow.children[0] as HTMLElement;
@@ -140,7 +140,9 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 				<table style={{ tableLayout: 'fixed' }}>
 					<thead>
 						<tr>
-							{markers && <td key='smpl' style={{ minWidth: '3ch' }} rowSpan={2} title='f is filter, + is whitelist, - is blacklist'>##</td>}
+							{markers && <td key='smpl' style={{ minWidth: '3ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', cursor: 'pointer' }} title='f is filter, + is whitelist, - is blacklist'
+								onClick={()=>setSort({ column: '_sample', direction: sort.column !== '_sample' ? 1 : sort.direction*-1 as any })} rowSpan={2}>##{sort.column === '_sample' && <div style={{ backgroundColor: 'transparent', position: 'absolute', left: 0, width: '100%', height: 1,
+									[sort.direction < 0 ? 'top' : 'bottom']: -2, boxShadow: '0 0px 20px 6px var(--color-active)' }}/>}</td>}
 							{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
 						</tr>
 						<tr>

@@ -195,16 +195,23 @@ function CoreWrapper() {
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
 		console.log('%ccompute table', 'color: magenta');
-		setCursor(null);
 		const cols = columns.filter(c => settings.enabledColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
-		const sortIdx = 1 + cols.findIndex(c => c.id === sort.column);
+		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
 		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		return { data: renderedData, columns: cols };
-	}, [columns, settings.enabledColumns, sort, sampleData]);
-	const sampleMarkers = useMemo(() => editingSample && sample ? sampleEditingMarkers(dataContext.data, sample, [columns[0]].concat(dataContext.columns)) : null,
-		[columns, dataContext, sample, editingSample]);
+		const markers = editingSample && sample ? sampleEditingMarkers(renderedData, sample, [columns[0]].concat(cols)) : null;
+		if (!markers || sort.column !== '_sample')
+			return { data: renderedData, columns: cols, markers };
+		const idxs = [...markers.keys()];
+		const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
+		idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
+		return {
+			data: idxs.map(i => renderedData[i]),
+			markers: idxs.map(i => markers[i]),
+			columns: cols
+		};
+	}, [columns, settings.enabledColumns, sort, sampleData, sample, editingSample]);
 
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;
@@ -234,7 +241,7 @@ function CoreWrapper() {
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
 	return (
-		<DataContext.Provider value={{ ...dataContext, markers: sampleMarkers }}> 
+		<DataContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
 				<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
 					...(blockMode && { display: 'block' }) }}>
