@@ -190,11 +190,12 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 }
 
 export function SampleMenu() {
+	const { sample, setSample, isEditing, setEditing, samples } = useContext(SampleContext);
+	const { data: tableData, columns } = useContext(TableContext);
 	const { login, role } = useContext(AuthContext);
 	const [nameInput, setNameInput] = useState('');
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [confirmAction, askConfirmation] = useState<null | (() => void)>(null);
-	const { data: sampleData, sample, setSample, isEditing, setEditing, samples } = useContext(SampleContext);
 	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
 	const setSelectSample = (name: string | null) => {
 		const smpl = name && samples.find(s => s.name === name);
@@ -236,12 +237,13 @@ export function SampleMenu() {
 	const unsavedChanges = !samples.some(s => stateJson === JSON.stringify(s));
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
 
-	const whitelisted = sample && sample.whitelist.filter(id => sampleData.find(row => row[0] === id)).length;
-	const blacklisted = sample && sample.blacklist.filter(id => sampleData.find(row => row[0] === id)).length;
+	const applied = applySample(tableData, sample, columns);
+	const whitelisted = sample && sample.whitelist.filter(id => tableData.find(row => row[0] === id)).length;
+	const blacklisted = sample && sample.blacklist.filter(id => tableData.find(row => row[0] === id)).length;
 	const sampleStats = sample && (<span style={{ marginRight: '8px' }}>
 		<span style={{ color: whitelisted ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>[+{whitelisted}{sample.whitelist.length ? '/' + sample.whitelist.length : ''}]</span>
 		<span style={{ color: blacklisted ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}> [-{blacklisted}{sample.blacklist.length ? '/' + sample.blacklist.length : ''}]</span>
-		<span style={{ color: 'var(--color-text-dark)' }}> = [{sampleData.length}]</span>
+		<span style={{ color: 'var(--color-text-dark)' }}> = [{applied.length}]</span>
 	</span>);
 	return (
 		<div style={{ marginTop: '4px' }}>
@@ -251,7 +253,7 @@ export function SampleMenu() {
 				<MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '8px 4px 0 4px', color: 'var(--color-text)' }}
 					value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={allowEdit ? set('name') : setNameInput}/>
 			</div>
-			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
+			{!sample && role && <button style={{ margin: '8px 4px 0 0', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
 				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
 			})}>Create new sample</button>}
 			{sample?.filters && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
@@ -289,8 +291,8 @@ export function SampleMenu() {
 						onSuccess: () => setSelectSample(null)
 					}))}>Delete sample</button>
 				</div>
-				<div style={{ color, height: '18px', padding: '4px 4px 0 0', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
 			</>}
+			<div style={{ color, height: '18px', padding: '4px 4px 0 0', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
 		</div>
 	);
 }

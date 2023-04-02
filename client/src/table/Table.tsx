@@ -269,7 +269,11 @@ export function SampleWrapper() {
 		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
 		const target = sample[action];
 		const found = target.indexOf(id);
-		setSample(smpl => ({ ...smpl!, [action]: found < 0 ? target.concat(id) : target.filter(i => i !== id) }));
+		const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
+		setSample(smpl => ({ ...smpl!,
+			[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
+			[opposite]: sample[opposite].filter(i => i !== id)
+		}));
 	});
 
 	const query = useQuery('samples', async () => {
