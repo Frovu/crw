@@ -124,7 +124,7 @@ const PlotWrapper = React.memo(({ which }: { which: 'plotLeft' | 'plotTop' | 'pl
 		...context!
 	};
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
-	const boundRight = !context && { maxWidth: (100-settings.plotsRightSize) + '%' };
+	const boundRight = which === 'plotLeft' && !context && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...boundRight, ...stretchTop }}>
 			{type === 'Histogram' && <HistogramPlot/>}
@@ -227,7 +227,8 @@ function CoreWrapper() {
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 1 ));
-	const blockMode = !options.viewPlots || (plotIdx == null && ['Histogram', 'Correlation'].includes(settings.plotLeft!));
+	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || ['Histogram', 'Correlation'].includes(s));
+	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
 	return (
 		<DataContext.Provider value={dataContext}> 
