@@ -282,3 +282,24 @@ function onKeydown(e: KeyboardEvent) {
 		dispatchCustomEvent('action+' + action);
 	}
 }
+
+export function ConfirmationPopup({ text, confirm, close }: { text?: string, confirm: () => void, close: () => void }) {
+	useEventListener('click', close);
+	useEventListener('keydown', (e) => {
+		close();
+		if (e.code === 'KeyY')
+			confirm();
+	});
+
+	return (<>
+		<div className='PopupBackground'></div>
+		<div className='Popup' style={{ left: '30vw', top: '20vh', width: '20em' }}>
+			<h4>Confirm action</h4>
+			<p>{text ?? 'Beware of irreversible consequences'}</p>
+			<div style={{ marginTop: '1em' }}>
+				<button style={{ width: '8em' }} onClick={() => {close(); confirm();}}>Confirm (Y)</button>
+				<button style={{ width: '8em', marginLeft: '24px' }} onClick={close}>Cancel (N)</button>
+			</div>
+		</div>
+	</>);
+}

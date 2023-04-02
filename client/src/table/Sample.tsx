@@ -2,7 +2,7 @@ import { useContext, useLayoutEffect, useState } from 'react';
 import { AuthContext } from '../App';
 import { useEventListener, useMutationHandler } from '../util';
 import { ColumnDef, TableContext, SampleContext } from './Table';
-import { MenuInput, MenuSelect } from './TableMenu';
+import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
 
 const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'includes' , 'in list'] as const;
 type Filter = {
@@ -177,6 +177,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 export function SampleMenu() {
 	const { login, role } = useContext(AuthContext);
 	const [nameInput, setNameInput] = useState('');
+	const [confirmAction, askConfirmation] = useState<null | (() => void)>(null);
 	const { sample, setSample, samples } = useContext(SampleContext);
 	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
 	const setSelectSample = (name: string | null) => {
@@ -192,6 +193,7 @@ export function SampleMenu() {
 		const body = (() => {
 			switch (action) {
 				case 'create': return { name: nameInput };
+				case 'remove': return { id: sample?.id };
 			}
 		})();
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples/${action}`, {
@@ -203,23 +205,24 @@ export function SampleMenu() {
 			throw new Error(await res.text());
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
-		return await res.text();
+		return action === 'create' ? await res.json() : await res.text();
 	}, ['samples']);
 
 	const setFilters = (fn: (a: FilterWithId[]) => FilterWithId[]) => setSample(st => st && ({ ...st, filters: st.filters && fn(st.filters) }));
 	const newFilter = () => setSample(st => st && ({ ...st, filters: [
 		...(st.filters ?? []), { ...(st.filters?.length ? st.filters[st.filters.length-1] : { column: 'magnitude', operation: '>=', value: '3' }), id: Date.now() }
 	] }));
-	
+
 	const allowEdit = sample && sample.authors.includes(login!);
 	return (
-		<div> 
-			<MenuSelect text='Sample' width='14em' value={sample?.name ?? nameInput} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
+		<div>
+			{confirmAction && <ConfirmationPopup confirm={confirmAction} close={() => askConfirmation(null) }/>}
+			<MenuSelect text='Sample' width='14em' value={sample?.name ?? null} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
 			{/* <details style={{ userSelect: 'none', cursor: 'pointer' }} onClick={e => e.stopPropagation()}> */}
 			<div><MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
 				value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={setNameInput}/></div>
 			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
-				onSuccess: () => { setTimeout(() => setSelectSample(nameInput), 500); }
+				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
 			})}>Create new sample</button>}
 			{allowEdit && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
 				{ sample.filters?.map((filter) => <FilterCard key={filter.id} {...{ filter, callback: (fl) =>  {
@@ -228,9 +231,14 @@ export function SampleMenu() {
 				} }}/>) }
 			</div>}
 			{allowEdit && <div style={{ marginTop: '4px' }}>
-				<button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={newFilter}>Add filter</button>
+				<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 			</div>}
-			<div style={{ color, height: '1em', textAlign: 'right' }}>{report?.error ?? report?.success}</div>
+			{allowEdit && <div style={{ marginTop: '4px' }}>
+				<button style={{ width: '18ch' }} onClick={() => askConfirmation(() => () => mutate('remove', {
+					onSuccess: () => setSelectSample(null)
+				}))}>Delete sample</button>
+			</div>}
+			<div style={{ color, height: '1em', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
 		</div>
 	);
 }

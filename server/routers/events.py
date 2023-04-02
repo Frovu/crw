@@ -74,8 +74,7 @@ def add_sample():
 	uid = session.get('uid')
 	name = request.json.get('name')
 	if not name: raise ValueError('Empty name')
-	samples.create_sample(uid, name)
-	return 'OK'
+	return samples.create_sample(uid, name)
 
 @bp.route('/samples/remove', methods=['POST'])
 @route_shielded
