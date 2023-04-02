@@ -205,6 +205,7 @@ def compute_generic(generic):
 				to_next_event[-1] = 9999
 				slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
 			left = np.searchsorted(d_time, start_hour, side='left')
+			slice_len[start_hour + slice_len*HOUR < d_time[0]] = 0 # eh
 			return left, slice_len
 		
 		def find_extremum(typ, ser):
@@ -224,7 +225,10 @@ def compute_generic(generic):
 						result[i] = (d_time[idx], val[idx])
 			else:
 				idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
-				result = data[left + idx]
+				print(len(left), len(idx), len(slice_len))
+				nonempty = np.where(slice_len > 0)[0]
+				result[nonempty] = data[left + idx][nonempty]
+				print(idx[4], result[4])
 			return result
 
 		if generic.poi in ENTITY_POI:
