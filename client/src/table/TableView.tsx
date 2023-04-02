@@ -23,8 +23,10 @@ function Row({ index, row, columns, cursor, setCursor, highlight, marker }:
 	const mLast = marker && marker[marker.length-1];
 	return (
 		<tr {...(highlight && { style: { color: 'var(--color-cyan)' } })}>
-			{marker && <td><span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span></td>}
-			{row.map((value, i) =>
+			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
+				<span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
+			</td>}
+			{row.slice(1).map((value, i) =>
 				<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
 					{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>)}
 		</tr>
@@ -76,7 +78,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	useLayoutEffect(() => {
 		const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
 		const nav = navRow.children[0] as HTMLElement;
-		const width = ref.current?.offsetWidth! - 4;
+		const width = ref.current?.offsetWidth! - 6;
 		nav.style.width = width + 'px';
 		navRow.style.height = width > 320 ? '22px' : width > 200 ? '40px' : '60px';
 	});
@@ -87,6 +89,8 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
 
+		if (cursor && ['-', '+', '='].includes(e.key))
+			return dispatchCustomEvent('sampleEdit', { id: data[cursor.row][0], action: '-' === e.key ? 'blacklist' : 'whitelist' });
 		if (cursor && ['1', '2', '3', '4'].includes(e.key))
 			return dispatchCustomEvent('setColumn', { which: parseInt(e.key), column: columns[cursor?.column] });
 
@@ -146,12 +150,12 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 					<tbody>
 						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
 							<Row key={row[0]} {...{ marker: markers && markers[i + viewIndex],
-								index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
+								index: i + viewIndex, row, columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
 					</tbody>
 				</table>
 			</div>
 			<div style={{ height: '22px' }}>
-				<div style={{ position: 'fixed', padding: '0 2px 0 2px', display: 'inline-flex', justifyContent: 'space-between' }}>
+				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>
 					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
 						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
 					</span>

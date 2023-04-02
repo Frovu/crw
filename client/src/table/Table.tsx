@@ -264,12 +264,22 @@ export function SampleWrapper() {
 	const [sample, setSample] = useState<SampleState>(null);
 	const [isEditing, setEditing] = useState(false);
 
+	useEventListener('sampleEdit', (e) => {
+		if (!sample || !isEditing) return;
+		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
+		const target = sample[action];
+		const found = target.indexOf(id);
+		setSample(smpl => ({ ...smpl!, [action]: found < 0 ? target.concat(id) : target.filter(i => i !== id) }));
+	});
+
 	const query = useQuery('samples', async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
 		const samples = (await res.json()).samples as Sample[];
 		console.log('%cavailable samples:', 'color: #0f0', samples);
-		if (sample && !samples.find(s => s.id === sample.id))
+		if (sample && !samples.find(s => s.id === sample.id)) {
+			setEditing(false);
 			setSample(null);
+		}
 		return samples;
 	});
 

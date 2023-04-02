@@ -135,17 +135,11 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 	return (row: any[]) => !fns.some(fn => !fn(row));
 }
 
-function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
-	const filterFn = renderFilters(filters, columns);
-	return data.filter(row => filterFn(row));
-}
-
 function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
 	if (!sample) return data;
-	
-	if (sample.filters)
-		return applyFilters(data, sample.filters, columns); // TODO
-	return data;
+	const filter = sample.filters && renderFilters(sample.filters, columns);	
+	return data.filter(row => (filter ? filter(row) : true) || sample.whitelist.includes(row[0]))
+		.filter(row => !sample.blacklist.includes(row[0]));
 }
 
 export function sampleEditingMarkers(data: any[][], sample: Sample, columns: ColumnDef[]) {
@@ -168,7 +162,8 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 	useLayoutEffect(() => {
 		console.log('%ccompute sample', 'color: magenta');
 		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
-		setData(applyFilters(applied, filters.map(f => f.filter), columns));
+		const filterFn = renderFilters(filters.map(f => f.filter), columns);
+		setData(applied.filter(row => filterFn(row)));
 	}, [filters, data, columns, sample, isEditing, setData]);
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
@@ -207,6 +202,7 @@ export function SampleMenu() {
 			setNameInput('');
 			return setSample(null);
 		}
+		setEditing(false);
 		setSample({ ...smpl, filters: smpl.filters && smpl.filters.map((f, i) => ({ ...f, id: Date.now()+i })) });
 	};
 
