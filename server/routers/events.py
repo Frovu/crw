@@ -93,21 +93,10 @@ def update_sample():
 	sid = int(request.json.get('id'))
 	name = request.json.get('name')
 	authors = request.json.get('authors')
+	public = request.json.get('public')
 	filters_json = json.dumps(request.json.get('filters'))
 	whitelist = request.json.get('whitelist')
 	blacklist = request.json.get('blacklist')
 	if not name: raise ValueError('Empty name')
-	samples.update_sample(uid, sid, name, authors, filters_json, whitelist, blacklist)
-	return 'OK'
-
-@bp.route('/samples/publish', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def publish_sample():
-	uid = session.get('uid')
-	sid = int(request.json.get('id'))
-	public = request.json.get('public')
-	if type(public) != bool:
-		raise ValueError('Not boolean')
-	samples.publish_sample(uid, sid, public)
+	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
 	return 'OK'

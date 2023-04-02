@@ -15,6 +15,7 @@ export type Sample = {
 	id: number,
 	name: string,
 	authors: string[],
+	public: boolean,
 	filters: Filter[] | null,
 	whitelist: number[],
 	blacklist: number[]
@@ -238,6 +239,7 @@ export function SampleMenu() {
 				<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 			</div>}
 			{allowEdit && <div style={{ marginTop: '8px' }}>
+				<label style={{ userSelect: 'none', cursor: 'pointer' }}>public<input checked={sample.public} onChange={(e) => set('public')(e.target.checked)} style={{ margin: '0 12px 0 8px' }} type='checkbox'/></label>
 				<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
 					onClick={() => mutate('update', {
 						onSuccess: () => setHoverAuthors(0)

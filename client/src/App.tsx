@@ -33,7 +33,7 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 		if (res.status !== 200)
 			throw new Error(`HTTP: ${res.status}`);
 		return await res.text();
-	}, ['auth', 'tableStructure', 'tableData']);
+	}, ['auth', 'samples', 'tableStructure', 'tableData']);
 
 	useEffect(() => {
 		const timeout = setTimeout(() => setError(null), 3000);
@@ -90,7 +90,7 @@ export function AuthButton() {
 			method: 'POST', credentials: 'include'
 		});
 	}, {
-		onSuccess: () => ['auth', 'tableStructure', 'tableData'].forEach(a => theQueryClient.invalidateQueries([a]))
+		onSuccess: () => ['auth', 'samples', 'tableStructure', 'tableData'].forEach(a => theQueryClient.invalidateQueries([a]))
 	});
 
 	return (

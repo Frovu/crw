@@ -261,9 +261,11 @@ export function SampleWrapper() {
 
 	const query = useQuery('samples', async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
-		const samples = (await res.json()).samples;
+		const samples = (await res.json()).samples as Sample[];
 		console.log('%cavailable samples:', 'color: #0f0', samples);
-		return samples as Sample[];
+		if (sample && !samples.find(s => s.id === sample.id))
+			setSample(null);
+		return samples;
 	});
 
 	if (query.isLoading)
