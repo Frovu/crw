@@ -2,7 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import regression from 'regression';
-import { CorrParams, DataContext, SettingsContext, TableContext } from '../table/Table';
+import { CorrParams, SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color } from './plotUtil';
@@ -10,16 +10,16 @@ import { axisDefaults, color } from './plotUtil';
 export default function CorrelationPlot() {
 	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);
 	const { columns } = useContext(TableContext);
-	const { sample } = useContext(DataContext);
+	const { data: sampleData } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
 	const plotOpts = useMemo(() => {
-		if (!sample.length) return null;
+		if (!sampleData.length) return null;
 
 		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrParams]));
-		const data = sample.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
+		const data = sampleData.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
 		if (data.length < 2) return null;
@@ -82,7 +82,7 @@ export default function CorrelationPlot() {
 			} as uPlot.Options,
 			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
-	}, [params, columns, sample, plotGrid]);
+	}, [params, columns, sampleData, plotGrid]);
 
 	if (!plotOpts) return null;
 	return (<div ref={setContainer} style={{ position: 'absolute' }}>

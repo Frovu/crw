@@ -17,12 +17,18 @@ function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def
 	);
 }
 
-function Row({ index, row, columns, cursor, setCursor, highlight }: { index: number, row: any[], columns: ColumnDef[], highlight: boolean } & CursorPara) {
+function Row({ index, row, columns, cursor, setCursor, highlight, marker }:
+{ index: number, row: any[], columns: ColumnDef[], highlight: boolean, marker: null | string } & CursorPara) {
 	const isSel = index === cursor?.row;
-	return (<tr {...(highlight && { style: { color: 'var(--color-cyan)' } })}>{row.map((value, i) =>
-		<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
-			{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>) 
-	}</tr>);
+	const mLast = marker && marker[marker.length-1];
+	return (
+		<tr {...(highlight && { style: { color: 'var(--color-cyan)' } })}>
+			{marker && <td><span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span></td>}
+			{row.map((value, i) =>
+				<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
+					{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>)}
+		</tr>
+	);
 }
 
 function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
@@ -39,7 +45,7 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 
 export default function TableView({ viewSize, sort, setSort, cursor, setCursor, plotId }:
 { viewSize: number, sort: Sort, setSort: (s: Sort) => void, plotId: null | number } & CursorPara ) {
-	const { data, columns } = useContext(DataContext);
+	const { data, columns, markers } = useContext(DataContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
@@ -130,6 +136,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 				<table style={{ tableLayout: 'fixed' }}>
 					<thead>
 						<tr>
+							{markers && <td key='smpl' style={{ minWidth: '3ch' }} rowSpan={2} title='f is filter, + is whitelist, - is blacklist'>##</td>}
 							{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
 						</tr>
 						<tr>
@@ -138,7 +145,8 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 					</thead>
 					<tbody>
 						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-							<Row key={row[0]} {...{ index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
+							<Row key={row[0]} {...{ marker: markers && markers[i + viewIndex],
+								index: i + viewIndex, row: row.slice(1), columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
 					</tbody>
 				</table>
 			</div>

@@ -2,7 +2,7 @@ import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, usePersistedState, useSize } from '../util';
-import { Sample, SampleState, TableSampleInput } from './Sample';
+import { Sample, SampleState, TableSampleInput, sampleEditingMarkers } from './Sample';
 import { Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -74,8 +74,8 @@ type VolatileSettings = {
 };
 
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
-export const DataContext = createContext<{ sample: any[][], data: any[][], columns: ColumnDef[] }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean, setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
+export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
 type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
@@ -148,7 +148,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 
 function CoreWrapper() {
 	const { columns, data } = useContext(TableContext);
-	const { data: sample } = useContext(SampleContext);
+	const { sample, data: sampleData, isEditing: editingSample } = useContext(SampleContext);
 	const { options, settings, set, setOpt } = useContext(SettingsContext);
 	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
@@ -194,14 +194,17 @@ function CoreWrapper() {
 	
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
+		console.log('%ccompute table', 'color: magenta');
 		setCursor(null);
 		const cols = columns.filter(c => settings.enabledColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === sort.column);
-		const renderedData = sample.map(row => enabledIdxs.map(ci => row[ci]))
+		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]))
 			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		return { sample, data: renderedData, columns: cols };
-	}, [sample, columns, settings.enabledColumns, sort]);
+		return { data: renderedData, columns: cols };
+	}, [columns, settings.enabledColumns, sort, sampleData]);
+	const sampleMarkers = useMemo(() => editingSample && sample ? sampleEditingMarkers(dataContext.data, sample, [columns[0]].concat(dataContext.columns)) : null,
+		[columns, dataContext, sample, editingSample]);
 
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;
@@ -231,7 +234,7 @@ function CoreWrapper() {
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
 	return (
-		<DataContext.Provider value={dataContext}> 
+		<DataContext.Provider value={{ ...dataContext, markers: sampleMarkers }}> 
 			<PlotContext.Provider value={plotContext}>
 				<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
 					...(blockMode && { display: 'block' }) }}>
@@ -259,6 +262,7 @@ export function SampleWrapper() {
 	const { data: tableData } = useContext(TableContext);
 	const [data, setData] = useState<any[][]>(tableData);
 	const [sample, setSample] = useState<SampleState>(null);
+	const [isEditing, setEditing] = useState(false);
 
 	const query = useQuery('samples', async () => {
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
@@ -274,7 +278,7 @@ export function SampleWrapper() {
 	if (!query.data)
 		return <div>Failed to load samples info</div>;
 	return (
-		<SampleContext.Provider value={{ data, setData, sample, setSample, samples: query.data }}>
+		<SampleContext.Provider value={{ data, setData, sample, setSample, isEditing, setEditing, samples: query.data }}>
 			<CoreWrapper/>
 		</SampleContext.Provider>
 	);

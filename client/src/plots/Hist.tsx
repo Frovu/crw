@@ -2,14 +2,14 @@ import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { HistOptions } from '../table/Statistics';
-import { DataContext, SettingsContext, TableContext } from '../table/Table';
+import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 
 export default function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
 	const { options: { hist: options }, settings: { plotGrid } } = useContext(SettingsContext);
-	const { sample: currentSample } = useContext(DataContext);
+	const { data: currentSample } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);

@@ -34,43 +34,6 @@ function parseFilterValues(str: string, column: ColumnDef) {
 	});
 }
 
-function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
-	const fns = filters.map(fl => {
-		const columnIdx = columns.findIndex(c => c.id === fl.column);
-		if (columnIdx < 0) return null;
-		const column = columns[columnIdx];
-		const fn = (() => {
-			const { operation } = fl;
-			if (operation === 'is null')
-				return (v: any) => v == null;
-			if (operation === 'not null')
-				return (v: any) => v != null;
-			if (operation === 'includes')
-				return (v: any) => v?.toString().includes(fl.value);
-			if (!fl.value) return null;
-			const values = parseFilterValues(fl.value, column);
-			const value = values[0];
-			switch (operation) {
-				case '>=': return (v: any) => v >= value;
-				case '<=': return (v: any) => v <= value;
-				case '==': return (v: any) => v === value;
-				case '<>': return (v: any) => v !== value;
-				case 'in list': return (v: any) => values.includes(v);
-			}
-		})();
-		return fn && ((row: any[]) => fn(row[columnIdx]));
-	}).filter(fn => fn);
-	return data.filter(row => !fns.some(fn => !fn!(row)));
-}
-
-function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
-	if (!sample) return data;
-	
-	if (sample.filters)
-		return applyFilters(data, sample.filters, columns); // TODO
-	return data;
-}
-
 function FilterCard({ filter: filterOri, callback, disabled }:
 { filter: Filter, disabled?: boolean, callback: (a: Filter | null) => void }) {
 	const { columns } = useContext(TableContext);
@@ -143,15 +106,70 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 	);
 }
 
+function renderFilters(filters: Filter[], columns: ColumnDef[]) {
+	const fns = filters.map(fl => {
+		const columnIdx = columns.findIndex(c => c.id === fl.column);
+		if (columnIdx < 0) return null;
+		const column = columns[columnIdx];
+		const fn = (() => {
+			const { operation } = fl;
+			if (operation === 'is null')
+				return (v: any) => v == null;
+			if (operation === 'not null')
+				return (v: any) => v != null;
+			if (operation === 'includes')
+				return (v: any) => v?.toString().includes(fl.value);
+			if (!fl.value) return null;
+			const values = parseFilterValues(fl.value, column);
+			const value = values[0];
+			switch (operation) {
+				case '>=': return (v: any) => v >= value;
+				case '<=': return (v: any) => v <= value;
+				case '==': return (v: any) => v === value;
+				case '<>': return (v: any) => v !== value;
+				case 'in list': return (v: any) => values.includes(v);
+			}
+		})();
+		return fn && ((row: any[]) => fn(row[columnIdx]));
+	}).filter(fn => fn) as ((row: any[]) => boolean)[];
+	return (row: any[]) => !fns.some(fn => !fn(row));
+}
+
+function applyFilters(data: any[][], filters: Filter[], columns: ColumnDef[]) {
+	const filterFn = renderFilters(filters, columns);
+	return data.filter(row => filterFn(row));
+}
+
+function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
+	if (!sample) return data;
+	
+	if (sample.filters)
+		return applyFilters(data, sample.filters, columns); // TODO
+	return data;
+}
+
+export function sampleEditingMarkers(data: any[][], sample: Sample, columns: ColumnDef[]) {
+	const filterFn = sample.filters && renderFilters(sample.filters, columns);
+	return data.map(row => {
+		const fl = filterFn && filterFn(row) && 'f';
+		const wl = sample.whitelist.includes(row[0]) && '+'; 
+		const bl = sample.blacklist.includes(row[0]) && '-'; 
+
+		return (fl || ' ') + (wl || bl || ' ');
+	});
+}
+
 export function TableSampleInput({ cursorColumn, cursorValue }:
 { cursorColumn: ColumnDef | null, cursorValue: any | null }) {
 	const { data, columns } = useContext(TableContext);
-	const { sample, setData } = useContext(SampleContext);
+	const { sample, setData, isEditing } = useContext(SampleContext);
 	const [filters, setFilters] = useState<{ filter: Filter, id: number }[]>([]);
 
 	useLayoutEffect(() => {
-		setData(applyFilters(applySample(data, sample, columns), filters.map(f => f.filter), columns));
-	}, [filters, data, columns, sample, setData]);
+		console.log('%ccompute sample', 'color: magenta');
+		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
+		setData(applyFilters(applied, filters.map(f => f.filter), columns));
+	}, [filters, data, columns, sample, isEditing, setData]);
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
 		if (!cursorColumn)
@@ -181,7 +199,7 @@ export function SampleMenu() {
 	const [nameInput, setNameInput] = useState('');
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [confirmAction, askConfirmation] = useState<null | (() => void)>(null);
-	const { data: sampleData, sample, setSample, samples } = useContext(SampleContext);
+	const { data: sampleData, sample, setSample, isEditing, setEditing, samples } = useContext(SampleContext);
 	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
 	const setSelectSample = (name: string | null) => {
 		const smpl = name && samples.find(s => s.name === name);
@@ -256,7 +274,10 @@ export function SampleMenu() {
 					<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 				</div>
 				<div style={{ marginTop: '8px' }}>
-					<label style={{ userSelect: 'none', cursor: 'pointer' }}>public<input checked={sample.public} onChange={(e) => set('public')(e.target.checked)} style={{ margin: '0 12px 0 8px' }} type='checkbox'/></label>
+					<label className='MenuInput' style={{ margin: '0 8px 0 8px', padding: '2px', color: isEditing ? 'var(--color-magenta)' : 'unset' }}>
+						editing mode<input checked={isEditing} onChange={(e) => setEditing(e.target.checked)} type='checkbox'/></label>
+					<label className='MenuInput' style={{ margin: '0 6px 0 8px', padding: '2px' }}>
+						public<input checked={sample.public} onChange={(e) => set('public')(e.target.checked)} type='checkbox'/></label>
 					<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
 						onClick={() => mutate('update', {
 							onSuccess: () => setHoverAuthors(0)
