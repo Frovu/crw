@@ -189,11 +189,14 @@ export function SampleMenu() {
 		setSample({ ...smpl, filters: smpl.filters && smpl.filters.map((f, i) => ({ ...f, id: Date.now()+i })) });
 	};
 
-	const { mutate, report, color } = useMutationHandler(async (action) => {
+	const stripFilters = sample && { ...sample, filters: sample.filters && sample.filters.map(({ column, operation, value }) => ({ column, operation, value })) };
+	const stateJson = JSON.stringify(stripFilters);
+	const { mutate, report, color } = useMutationHandler(async (action: 'create' | 'remove' | 'update') => {
 		const body = (() => {
 			switch (action) {
 				case 'create': return { name: nameInput };
 				case 'remove': return { id: sample?.id };
+				case 'update': return stripFilters;
 			}
 		})();
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples/${action}`, {
@@ -213,10 +216,11 @@ export function SampleMenu() {
 		...(st.filters ?? []), { ...(st.filters?.length ? st.filters[st.filters.length-1] : { column: 'magnitude', operation: '>=', value: '3' }), id: Date.now() }
 	] }));
 
+	const unsavedChanges = !samples.some(s => stateJson === JSON.stringify(s));
 	const allowEdit = sample && sample.authors.includes(login!);
 	return (
 		<div>
-			{confirmAction && <ConfirmationPopup confirm={confirmAction} close={() => askConfirmation(null) }/>}
+			{confirmAction && <ConfirmationPopup text={'Sample deletion is irreversible. Proceed?'} confirm={confirmAction} close={() => askConfirmation(null) }/>}
 			<MenuSelect text='Sample' width='14em' value={sample?.name ?? null} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
 			{/* <details style={{ userSelect: 'none', cursor: 'pointer' }} onClick={e => e.stopPropagation()}> */}
 			<div><MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
@@ -233,7 +237,11 @@ export function SampleMenu() {
 			{allowEdit && <div style={{ marginTop: '4px' }}>
 				<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 			</div>}
-			{allowEdit && <div style={{ marginTop: '4px' }}>
+			{allowEdit && <div style={{ marginTop: '8px' }}>
+				<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
+					onClick={() => mutate('update')}>Save changes</button>
+			</div>}
+			{allowEdit && <div style={{ marginTop: '16px' }}>
 				<button style={{ width: '18ch' }} onClick={() => askConfirmation(() => () => mutate('remove', {
 					onSuccess: () => setSelectSample(null)
 				}))}>Delete sample</button>

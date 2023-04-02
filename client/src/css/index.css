@@ -44,14 +44,13 @@ input:focus-visible, button:focus-visible, select:focus-visible {
 	border: 1px var(--color-active) solid;
 }
 
-input:disabled, button:disabled, select:disabled {
-	border: 1px var(--color-text-dark) solid;
-	color: var(--color-text-dark);
-}
-
-
 button:hover, select:hover {
 	border: 1px var(--color-active) solid !important;
+}
+
+input:disabled, button:disabled, select:disabled {
+	border: 1px var(--color-text-dark) solid !important;
+	color: var(--color-text-dark);
 }
 
 details:hover {
