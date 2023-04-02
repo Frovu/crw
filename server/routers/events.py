@@ -92,21 +92,12 @@ def update_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
 	name = request.json.get('name')
+	authors = request.json.get('authors')
 	filters_json = json.dumps(request.json.get('filters'))
 	whitelist = request.json.get('whitelist')
 	blacklist = request.json.get('blacklist')
 	if not name: raise ValueError('Empty name')
-	samples.update_sample(uid, sid, name, filters_json, whitelist, blacklist)
-	return 'OK'
-
-@bp.route('/samples/share', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def share_sample():
-	uid = session.get('uid')
-	sid = int(request.json.get('id'))
-	target = request.json.get('target')
-	samples.share_sample(uid, sid, target)
+	samples.update_sample(uid, sid, name, authors, filters_json, whitelist, blacklist)
 	return 'OK'
 
 @bp.route('/samples/publish', methods=['POST'])

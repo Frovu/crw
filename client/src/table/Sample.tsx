@@ -177,6 +177,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 export function SampleMenu() {
 	const { login, role } = useContext(AuthContext);
 	const [nameInput, setNameInput] = useState('');
+	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [confirmAction, askConfirmation] = useState<null | (() => void)>(null);
 	const { sample, setSample, samples } = useContext(SampleContext);
 	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
@@ -217,14 +218,13 @@ export function SampleMenu() {
 	] }));
 
 	const unsavedChanges = !samples.some(s => stateJson === JSON.stringify(s));
-	const allowEdit = sample && sample.authors.includes(login!);
+	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
 	return (
 		<div>
 			{confirmAction && <ConfirmationPopup text={'Sample deletion is irreversible. Proceed?'} confirm={confirmAction} close={() => askConfirmation(null) }/>}
 			<MenuSelect text='Sample' width='14em' value={sample?.name ?? null} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
-			{/* <details style={{ userSelect: 'none', cursor: 'pointer' }} onClick={e => e.stopPropagation()}> */}
 			<div><MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
-				value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={setNameInput}/></div>
+				value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={allowEdit ? set('name') : setNameInput}/></div>
 			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
 				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
 			})}>Create new sample</button>}
@@ -239,14 +239,21 @@ export function SampleMenu() {
 			</div>}
 			{allowEdit && <div style={{ marginTop: '8px' }}>
 				<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
-					onClick={() => mutate('update')}>Save changes</button>
+					onClick={() => mutate('update', {
+						onSuccess: () => setHoverAuthors(0)
+					})}>Save changes</button>
 			</div>}
-			{allowEdit && <div style={{ marginTop: '16px' }}>
+			{allowEdit && <div style={{ marginTop: '12px', verticalAlign: 'top' }}>
+				<div style={{ display: 'inline-block', marginRight: '10px', width: '15em' }} onMouseEnter={()=>setHoverAuthors(a => a < 1 ? 1 : a)} onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
+					{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
+					{hoverAuthors === 1 && <button style={{ color: 'var(--color-active)', width: '12em' }} onClick={()=>setHoverAuthors(2)}>Edit authors?</button>}
+					{hoverAuthors === 2 && <span>by <input autoFocus defaultValue={sample.authors.join(',')} onChange={e => set('authors')(e.target.value.trim().split(/[,\s]+/g).sort())}></input></span>}
+				</div>
 				<button style={{ width: '18ch' }} onClick={() => askConfirmation(() => () => mutate('remove', {
 					onSuccess: () => setSelectSample(null)
 				}))}>Delete sample</button>
 			</div>}
-			<div style={{ color, height: '1em', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
+			<div style={{ color, height: '18px', padding: '4px 4px 0 0', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
 		</div>
 	);
 }
