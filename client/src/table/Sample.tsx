@@ -71,7 +71,8 @@ function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[])
 	return data;
 }
 
-function FilterCard({ filter: filterOri, callback }: { filter: Filter, callback: (a: Filter | null) => void }) {
+function FilterCard({ filter: filterOri, callback, disabled }:
+{ filter: Filter, disabled?: boolean, callback: (a: Filter | null) => void }) {
 	const { columns } = useContext(TableContext);
 	const [filter, setFilter] = useState({ ...filterOri });
 	const [invalid, setInvalid] = useState(false);
@@ -119,25 +120,25 @@ function FilterCard({ filter: filterOri, callback }: { filter: Filter, callback:
 	
 	return (
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select style={{ width: '8em', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
+			<select disabled={disabled} style={{ width: '8em', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
 				value={filter.column} onChange={set('column')}>
 				{columns.filter(col => !col.hidden).map(col =>
 					<option value={col.id} key={col.table+col.name}>{col.fullName}</option>)}
 				{!column && <option value={filter.column} key={filter.column}>{filter.column}</option>}
 			</select>
-			<select style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent' }} value={operation} onChange={set('operation')}>
+			<select disabled={disabled} style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent', marginRight: '4px' }} value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 			</select>
 			{!operation.includes('null') && !isSelectInput &&
-			<input type={'text'} style={{ width: '7em', textAlign: 'center', ...(invalid && { borderColor: 'var(--color-red)' }) }}
+			<input disabled={disabled} type={'text'} style={{ width: '7em', textAlign: 'center', ...(invalid && { borderColor: 'var(--color-red)' }) }}
 				value={value} onChange={set('value')}/>}
 			{!operation.includes('null') && isSelectInput &&
-			<select style={{ width: 'calc(7em - 4px)' }} value={value} onChange={set('value')}>
+			<select disabled={disabled} style={{ width: 'calc(7em - 4px)' }} value={value} onChange={set('value')}>
 				{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 			</select>}
-			<span className='CloseButton' onClick={() => callback(null)}>
+			{!disabled && <span className='CloseButton' onClick={() => callback(null)}>
 				&times;
-			</span>
+			</span>}
 		</div>
 	);
 }
@@ -229,44 +230,50 @@ export function SampleMenu() {
 		<span style={{ color: 'var(--color-text-dark)' }}> = [{sampleData.length}]</span>
 	</span>);
 	return (
-		<div>
+		<div style={{ marginTop: '4px' }}>
 			{confirmAction && <ConfirmationPopup text={'Sample deletion is irreversible. Proceed?'} confirm={confirmAction} close={() => askConfirmation(null) }/>}
 			<MenuSelect text='Sample' width='14em' value={sample?.name ?? null} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
 			<div>
-				<MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
+				<MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '8px 4px 0 4px', color: 'var(--color-text)' }}
 					value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={allowEdit ? set('name') : setNameInput}/>
 			</div>
 			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
 				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
 			})}>Create new sample</button>}
-			{allowEdit && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
-				{ sample.filters?.map((filter) => <FilterCard key={filter.id} {...{ filter, callback: (fl) =>  {
+			{sample?.filters && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
+				{ sample.filters.map((filter) => <FilterCard disabled={!allowEdit} key={filter.id} {...{ filter, callback: (fl) =>  {
 					if (!fl) return setFilters(fltrs => fltrs.filter((f) => f.id !== filter.id));
 					setFilters(fltrs => fltrs.map(f => f.id !== filter.id ? f : { id: f.id, ...fl }));
 				} }}/>) }
 			</div>}
-			{allowEdit && <div style={{ marginTop: '4px' }}>
+			{sample && !allowEdit && <div style={{ padding: '6px' }}>
 				{sampleStats}
-				<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
+				<span style={{ marginLeft: '1em', color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>				
 			</div>}
-			{allowEdit && <div style={{ marginTop: '8px' }}>
-				<label style={{ userSelect: 'none', cursor: 'pointer' }}>public<input checked={sample.public} onChange={(e) => set('public')(e.target.checked)} style={{ margin: '0 12px 0 8px' }} type='checkbox'/></label>
-				<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
-					onClick={() => mutate('update', {
-						onSuccess: () => setHoverAuthors(0)
-					})}>Save changes</button>
-			</div>}
-			{allowEdit && <div style={{ marginTop: '12px', verticalAlign: 'top' }}>
-				<div style={{ display: 'inline-block', marginRight: '10px', width: '16em' }} onMouseEnter={()=>setHoverAuthors(a => a < 1 ? 1 : a)} onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
-					{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
-					{hoverAuthors === 1 && <button style={{ color: 'var(--color-active)', width: '12em' }} onClick={()=>setHoverAuthors(2)}>Edit authors?</button>}
-					{hoverAuthors === 2 && <span>by <input autoFocus defaultValue={sample.authors.join(',')} onChange={e => set('authors')(e.target.value.trim().split(/[,\s]+/g).sort())}></input></span>}
+			{allowEdit && <>
+				<div style={{ marginTop: '4px' }}>
+					{sampleStats}
+					<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 				</div>
-				<button style={{ width: '18ch' }} onClick={() => askConfirmation(() => () => mutate('remove', {
-					onSuccess: () => setSelectSample(null)
-				}))}>Delete sample</button>
-			</div>}
-			<div style={{ color, height: '18px', padding: '4px 4px 0 0', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
+				<div style={{ marginTop: '8px' }}>
+					<label style={{ userSelect: 'none', cursor: 'pointer' }}>public<input checked={sample.public} onChange={(e) => set('public')(e.target.checked)} style={{ margin: '0 12px 0 8px' }} type='checkbox'/></label>
+					<button disabled={!unsavedChanges} style={{ width: '18ch', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
+						onClick={() => mutate('update', {
+							onSuccess: () => setHoverAuthors(0)
+						})}>Save changes</button>
+				</div>
+				<div style={{ marginTop: '12px', verticalAlign: 'top' }}>
+					<div style={{ display: 'inline-block', marginRight: '10px', width: '16em' }} onMouseEnter={()=>setHoverAuthors(a => a < 1 ? 1 : a)} onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
+						{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
+						{hoverAuthors === 1 && <button style={{ color: 'var(--color-active)', width: '12em' }} onClick={()=>setHoverAuthors(2)}>Edit authors?</button>}
+						{hoverAuthors === 2 && <span>by <input autoFocus defaultValue={sample.authors.join(',')} onChange={e => set('authors')(e.target.value.trim().split(/[,\s]+/g).sort())}></input></span>}
+					</div>
+					<button style={{ width: '18ch' }} onClick={() => askConfirmation(() => () => mutate('remove', {
+						onSuccess: () => setSelectSample(null)
+					}))}>Delete sample</button>
+				</div>
+				<div style={{ color, height: '18px', padding: '4px 4px 0 0', textAlign: 'right' }}>{report?.success ? 'OK' : report?.error}</div>
+			</>}
 		</div>
 	);
 }

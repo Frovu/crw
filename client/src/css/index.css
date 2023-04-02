@@ -48,12 +48,12 @@ input[type='checkbox'] {
 	cursor: pointer;
 }
 
-button:hover, select:hover {
+button:hover:enabled, select:hover:enabled {
 	border: 1px var(--color-active) solid !important;
 }
 
 input:disabled, button:disabled, select:disabled {
-	border: 1px var(--color-text-dark) solid !important;
+	border: 1px var(--color-text-dark) solid;
 	color: var(--color-text-dark);
 }
 
