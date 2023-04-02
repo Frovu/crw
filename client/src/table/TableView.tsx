@@ -67,6 +67,13 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
 		ref.current?.parentElement?.scrollTo({ left });
 	});
+	useLayoutEffect(() => {
+		const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
+		const nav = navRow.children[0] as HTMLElement;
+		const width = ref.current?.offsetWidth! - 4;
+		nav.style.width = width + 'px';
+		navRow.style.height = width > 320 ? '22px' : width > 200 ? '40px' : '60px';
+	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code))
@@ -136,7 +143,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 				</table>
 			</div>
 			<div style={{ height: '22px' }}>
-				<div style={{ position: 'fixed', padding: '0 2px 0 2px', width: (ref.current?.offsetWidth ?? 400) - 4, display: 'inline-flex', justifyContent: 'space-between' }}>
+				<div style={{ position: 'fixed', padding: '0 2px 0 2px', display: 'inline-flex', justifyContent: 'space-between' }}>
 					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
 						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
 					</span>
