@@ -156,19 +156,20 @@ function ExportMenu() {
 	const [ format, setFormat ] = useState(false);
 	
 	const dataUrl = useMemo(() => {
-		const data = filtered ? fData : rData;
+		const data = (filtered ? fData : rData).map(row => row.slice(1));
 		const columns = filtered ? fColumns : rColumns.slice(1);
 		if (!format)
-			return URL.createObjectURL(new Blob([JSON.stringify({ data, columns }, null, 2)], { type: 'application/json' }));
+			return URL.createObjectURL(new Blob([JSON.stringify({
+				columns: columns.map(({ fullName, type, description, enum: aenum }) => ({ name: fullName, type, description, enum: aenum })), data }, null, 2)],{ type: 'application/json' }));
 
-		let text = 'Note: plaintext export option has limitations and you should consider using JSON instead\r\nAll whitespace in values is replaced by _\r\n';
-		text += columns.map(col => col.id.padStart(col.width + 4, ' '.repeat(col.width))).join(' ') + '\r\n';
+		let text = 'Note: plaintext export option has limitations and you should consider using JSON instead\r\nAll whitespace in values are replaced by _, missing values are marked as N/A\r\n';
+		text += columns.map(col => col.id.padStart(col.width, ' '.repeat(col.width))).join(' ') + '\r\n';
 
 		for (const row of data) {
 			for (const [i, col] of columns.entries()) {
-				const v = row[i+1];
+				const v = row[i];
 				const val = col.type === 'time' ? v?.toISOString().replace(/\..+/,'Z') : v;
-				text += (val == null ? 'N/A' : val).toString().replace(/\s/, '_').padStart(col.width + 4, ' '.repeat(col.width)) + ' ';
+				text += (val == null ? 'N/A' : val).toString().replace(/\s/, '_').padStart(col.width + (i === 0 ? 0 : 4), ' '.repeat(col.width)) + ' ';
 			}
 			text += '\r\n';
 		};

@@ -137,8 +137,8 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 
 function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
 	if (!sample) return data;
-	const filter = sample.filters && renderFilters(sample.filters, columns);	
-	return data.filter(row => (filter ? filter(row) : true) || sample.whitelist.includes(row[0]))
+	const filter = sample.filters?.length && renderFilters(sample.filters, columns);	
+	return data.filter(row => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
 		.filter(row => !sample.blacklist.includes(row[0]));
 }
 
