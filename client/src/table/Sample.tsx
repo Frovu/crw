@@ -180,7 +180,7 @@ export function SampleMenu() {
 	const [nameInput, setNameInput] = useState('');
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [confirmAction, askConfirmation] = useState<null | (() => void)>(null);
-	const { sample, setSample, samples } = useContext(SampleContext);
+	const { data: sampleData, sample, setSample, samples } = useContext(SampleContext);
 	const set = (key: string) => (value: any) => setSample(state => state && ({ ...state, [key]: value }));
 	const setSelectSample = (name: string | null) => {
 		const smpl = name && samples.find(s => s.name === name);
@@ -220,12 +220,22 @@ export function SampleMenu() {
 
 	const unsavedChanges = !samples.some(s => stateJson === JSON.stringify(s));
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
+
+	const whitelisted = sample && sample.whitelist.filter(id => sampleData.find(row => row[0] === id)).length;
+	const blacklisted = sample && sample.blacklist.filter(id => sampleData.find(row => row[0] === id)).length;
+	const sampleStats = sample && (<span style={{ marginRight: '8px' }}>
+		<span style={{ color: whitelisted ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>[+{whitelisted}{sample.whitelist.length ? '/' + sample.whitelist.length : ''}]</span>
+		<span style={{ color: blacklisted ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}> [-{blacklisted}{sample.blacklist.length ? '/' + sample.blacklist.length : ''}]</span>
+		<span style={{ color: 'var(--color-text-dark)' }}> = [{sampleData.length}]</span>
+	</span>);
 	return (
 		<div>
 			{confirmAction && <ConfirmationPopup text={'Sample deletion is irreversible. Proceed?'} confirm={confirmAction} close={() => askConfirmation(null) }/>}
 			<MenuSelect text='Sample' width='14em' value={sample?.name ?? null} options={samples.map(s => s.name)} callback={setSelectSample} withNull={true}/>
-			<div><MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
-				value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={allowEdit ? set('name') : setNameInput}/></div>
+			<div>
+				<MenuInput text='Name' style={{ width: sample ? '23em' : 'calc(14em + 8px)', margin: '4px' }}
+					value={sample?.name ?? nameInput} disabled={sample && !allowEdit} onChange={allowEdit ? set('name') : setNameInput}/>
+			</div>
 			{!sample && role && <button style={{ marginRight: '4px', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
 				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
 			})}>Create new sample</button>}
@@ -236,6 +246,7 @@ export function SampleMenu() {
 				} }}/>) }
 			</div>}
 			{allowEdit && <div style={{ marginTop: '4px' }}>
+				{sampleStats}
 				<button style={{ width: '18ch' }} onClick={newFilter}>Add filter</button>
 			</div>}
 			{allowEdit && <div style={{ marginTop: '8px' }}>
@@ -246,7 +257,7 @@ export function SampleMenu() {
 					})}>Save changes</button>
 			</div>}
 			{allowEdit && <div style={{ marginTop: '12px', verticalAlign: 'top' }}>
-				<div style={{ display: 'inline-block', marginRight: '10px', width: '15em' }} onMouseEnter={()=>setHoverAuthors(a => a < 1 ? 1 : a)} onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
+				<div style={{ display: 'inline-block', marginRight: '10px', width: '16em' }} onMouseEnter={()=>setHoverAuthors(a => a < 1 ? 1 : a)} onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
 					{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
 					{hoverAuthors === 1 && <button style={{ color: 'var(--color-active)', width: '12em' }} onClick={()=>setHoverAuthors(2)}>Edit authors?</button>}
 					{hoverAuthors === 2 && <span>by <input autoFocus defaultValue={sample.authors.join(',')} onChange={e => set('authors')(e.target.value.trim().split(/[,\s]+/g).sort())}></input></span>}
