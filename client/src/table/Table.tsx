@@ -10,7 +10,7 @@ import PlotGSM from '../plots/GSM';
 import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
-import HistogramPlot from '../plots/Hist';
+import HistogramPlot from '../plots/Histogram';
 import { defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
 
