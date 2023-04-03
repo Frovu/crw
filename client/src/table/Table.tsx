@@ -185,17 +185,17 @@ function CoreWrapper() {
 		const cols = columns.filter(c => settings.enabledColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
-		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]))
-			.sort((ra, rb) => (ra[sortIdx] - rb[sortIdx]) * sort.direction);
-		const markers = editingSample && sample ? sampleEditingMarkers(renderedData, sample, [columns[0]].concat(cols)) : null;
-		if (!markers || sort.column !== '_sample')
-			return { data: renderedData, columns: cols, markers };
-		const idxs = [...markers.keys()];
-		const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
-		idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
+		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]));
+		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
+		const idxs = [...renderedData.keys()];
+		idxs.sort((a, b) => (renderedData[a][sortIdx] - renderedData[b][sortIdx]) * sort.direction);
+		if (markers && sort.column === '_sample') {
+			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
+			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
+		}
 		return {
 			data: idxs.map(i => renderedData[i]),
-			markers: idxs.map(i => markers[i]),
+			markers: markers && idxs.map(i => markers[i]),
 			columns: cols
 		};
 	}, [columns, settings.enabledColumns, sort, sampleData, sample, editingSample]);

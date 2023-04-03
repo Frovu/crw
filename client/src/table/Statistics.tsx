@@ -69,6 +69,7 @@ export function HistogramMenu() {
 				<MenuSelect key={colKey} text='Column' value={hist[colKey] as string ?? null} callback={set(colKey)} width='10em' options={options} pretty={pretty} withNull={true}/>
 				<MenuSelect key={sampleKey} text='Sample' value={hist[sampleKey] as string} callback={set(sampleKey)} width='10em' options={sampleOptions} pretty={samplePretty}/>
 			</Fragment>);})}
+		<h4>Force limits</h4>
 		<MenuInput text='X >=' type='text' defaultValue={hist.forceMin ?? ''} onChange={setBoundary('forceMin')}/>
 		<MenuInput text='X < ' type='text' defaultValue={hist.forceMax ?? ''} onChange={setBoundary('forceMax')}/>
 	</>);
