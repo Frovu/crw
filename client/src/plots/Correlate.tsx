@@ -2,10 +2,11 @@ import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import regression from 'regression';
-import { CorrParams, SampleContext, SettingsContext, TableContext } from '../table/Table';
+import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, clickDownloadPlot, color, drawBackground } from './plotUtil';
+import { CorrParams } from '../table/Statistics';
 
 export default function CorrelationPlot() {
 	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);

@@ -11,7 +11,7 @@ import PlotIMF from '../plots/IMF';
 import PlotSW from '../plots/SW';
 import PlotGeoMagn from '../plots/Geomagn';
 import HistogramPlot from '../plots/Histogram';
-import { defaultHistOptions, HistOptions } from './Statistics';
+import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
@@ -35,19 +35,6 @@ export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
-
-export type CorrParams = {
-	columnX: string,
-	columnY: string,
-	color: string,
-	regression: boolean,
-};
-const defaultCorrParams = {
-	columnX: 'g_value_sw_speed_forbush_effects_1b',
-	columnY: 'g_abs_max_imf_z',
-	color: 'magenta',
-	regression: true,
-};
 
 export type Settings = {
 	theme: typeof themeOptions[number],

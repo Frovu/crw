@@ -33,12 +33,14 @@ export default function HistogramPlot() {
 		const enumMode = !!column.enum;
 		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v) + 1))] : allSamples;
 		const everything = samples.flat();
-		const min = Math.min.apply(null, everything);
-		let max = Math.max.apply(null, everything);
-		const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
+		const min = options.forceMin ?? Math.min.apply(null, everything);
+		let max = options.forceMax ?? Math.max.apply(null, everything);
 		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : options.binCount;
-		if (countMax > 1) // workaround for inclusive intervals
-			max += (max - min) / (binCount - 1);
+		if (options.forceMax == null) {
+			const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
+			if (countMax > 1) // workaround for inclusive intervals
+				max += (max - min) / (binCount - 1);
+		}
 		const binSize = (max - min) / binCount;
 		if (min === max || !binCount) return null;
 		const samplesBins = samples.map(sample => {
@@ -65,17 +67,20 @@ export default function HistogramPlot() {
 					{
 						...axisDefaults(plotGrid),
 						size: 30,
+						space: 64,
 						labelSize: 20,
 						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i])
 							.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
+						values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
 						...(enumMode && {
-							values: (u, vals) => vals.map(v => v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')
-						})
+							values: (u, vals) => vals.map(v => '     ' + (v % 1 === 0 ? ['N/A', ...column.enum!][v] : ''))
+						}),
 					},
 					{
 						...axisDefaults(plotGrid),
 						values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
-						size: 56
+						size: 56,
+						space: 48
 					},
 				],
 				scales: {
