@@ -278,15 +278,17 @@ def compute_generic(generic):
 			conn.cursor().executemany(q, data)
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
+		return True
 	except Exception as e:
 		log.error(f'Failed at {generic.name}: {e}')
-		raise e
+		return False
 
 def recompute_generics(generics):
 	if type(generics) != list:
 		generics = [generics]
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		executor.map(compute_generic, generics)
+		res = executor.map(compute_generic, generics)
+	return any(res)
 		
 def init_generics():
 	with pool.connection() as conn:
@@ -297,6 +299,8 @@ def init_generics():
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info or not gtype:
 		raise ValueError('Unknown entity')
+	if entity not in ENTITY_POI:
+		raise ValueError('Entity doesn\'t know time')
 	if 'time' not in gtype and series not in SERIES:
 		raise ValueError('Unknown series')
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:

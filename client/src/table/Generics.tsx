@@ -24,7 +24,7 @@ function GenericCard({ column }: { column: ColumnDef }) {
 		<div style={{ height: '3em', minWidth: '11em', whiteSpace: 'nowrap', marginLeft: '2em' }}>
 			{column.fullName}
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
-				onClick={()=>mutate('compute', {
+				onClick={() => mutate('compute', {
 					onSuccess: () => {
 						queryClient.invalidateQueries('tableData');
 						setSetting('enabledColumns', (cols) => cols.includes(column.id) ? cols : [...cols, column.id]);
@@ -32,7 +32,7 @@ function GenericCard({ column }: { column: ColumnDef }) {
 				})}>
 				o
 			</span>
-			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={()=>mutate('remove', {
+			<span className='CloseButton' style={{ margin: '4px 0 0 6px', transform: 'none' }} onClick={() => mutate('remove', {
 				onSuccess: () => {
 					queryClient.invalidateQueries('tableStructure');
 					setSetting('enabledColumns', (cols) => cols.filter(c => c !== column.id));
@@ -63,7 +63,7 @@ export function GenericsSelector() {
 	const set = (what: string) => (value: string | null) => setInputState(st => ({ ...st, [what]: value }));
 	const entityName = (en: string) => prettyTable(en).slice(0, -1);
 
-	const { isLoading, report, mutate, color } = useMutationHandler(async () => {
+	const { isLoading, report, setReport, mutate, color } = useMutationHandler(async () => {
 		const { entity, type, shift } = state;
 		const poi = state.poi !== 'extremum' ? state.poi : `${state.poiType}_${state.poiSeries}`;
 		const body = {
@@ -83,14 +83,14 @@ export function GenericsSelector() {
 			throw new Error(await res.text());
 		if (res.status !== 200)
 			throw new Error('HTTP '+res.status);
-		const resp = await res.json();
-		setSetting('enabledColumns', (cols) => cols.includes(resp.id) ? cols : [...cols, resp.id]);
-		return `Created ${resp.name} in ${resp.time.toFixed(1)} s`;
+		return await res.json();
 	}, ['tableStructure', 'tableData']);
 
 	const showPoi = !['range', 'coverage', null].concat(EXTREMUM_OPTIONS).includes(state.type as any);
-	const poiOptions = ['extremum', 'next', 'previous'].concat(tables);
-	const poiPretty = ['<Extremum>', '<Next event>', '<Previous event>'].concat(tables.map(entityName));
+	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.type === 'time'));
+	const entityPretty = entityOptions.map(entityName);
+	const poiOptions = ['extremum'].concat(entityOptions);
+	const poiPretty = ['<Extremum>'].concat(entityPretty);
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;
@@ -105,7 +105,7 @@ export function GenericsSelector() {
 				</div>
 				<div style={{ width: '18em', display: 'inline-flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>
 					<h3 style={{ margin: '0 4px 1em 0' }}>Create custom column</h3>
-					<MenuSelect text='Entity' value={state.entity} options={tables} pretty={tables.map(entityName)} callback={set('entity')} width={'9.9em'}/>
+					<MenuSelect text='Entity' value={state.entity} options={entityOptions} pretty={entityPretty} callback={set('entity')} width={'9.9em'}/>
 					<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} withNull={true} callback={set('type')} width={'9.9em'}/>
 					{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} withNull={true} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
 					{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
@@ -113,7 +113,13 @@ export function GenericsSelector() {
 					{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
 					{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
 					<div>
-						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={mutate}>{isLoading ? '...' : 'Create column'}</button>
+						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={() => mutate(null, {
+							onSuccess: (res) => {
+								const id = (state.entity === entityOptions[0] ? '' : (state.entity + '_')) + res.id;
+								setSetting('enabledColumns', ((cls) => cls.includes(id) ? cls : [...cls, id]));
+								setReport({ success: `Created ${res.name} in ${res.time.toFixed(1)} s` });
+							}
+						})}>{isLoading ? '...' : 'Create column'}</button>
 					</div>
 					<div style={{ height: '1em', color, margin: '4px 4px 0 0' }}>
 						{report && (report.error ?? report.success)}

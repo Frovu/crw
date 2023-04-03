@@ -58,9 +58,9 @@ def _compute_generic():
 	if not generic:
 		return 'Generic not found', 404
 	start = time()
-	recompute_generics(generic)
+	if not recompute_generics(generic):
+		return 'Failed miserably', 500
 	return f'Computed in {round(time() - start, 1)} s'
-
 @bp.route('/samples', methods=['GET'])
 @route_shielded
 def get_samples():
