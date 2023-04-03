@@ -225,10 +225,8 @@ def compute_generic(generic):
 						result[i] = (d_time[idx], val[idx])
 			else:
 				idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
-				print(len(left), len(idx), len(slice_len))
 				nonempty = np.where(slice_len > 0)[0]
 				result[nonempty] = data[left + idx][nonempty]
-				print(idx[4], result[4])
 			return result
 
 		if generic.poi in ENTITY_POI:

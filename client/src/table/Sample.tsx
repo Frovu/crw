@@ -4,7 +4,7 @@ import { useEventListener, useMutationHandler } from '../util';
 import { ColumnDef, TableContext, SampleContext } from './Table';
 import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
 
-const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'includes' , 'in list'] as const;
+const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
 type Filter = {
 	column: string,
 	operation: typeof FILTER_OPS[number],
@@ -23,15 +23,13 @@ export type Sample = {
 type FilterWithId = Filter & { id: number };
 export type SampleState = null | (Omit<Sample, 'filters'> & { filters: null | FilterWithId[] });
 
-function parseFilterValues(str: string, column: ColumnDef) {
-	return str.split(column.type === 'time' ? /[,|/]+/g : /[\s,|/]+/g).map((val) => {
-		switch (column.type) {
-			case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
-			case 'real': return parseFloat(val);
-			case 'integer': return parseInt(val);
-			default: return val;
-		}
-	});
+function parseFilterValue(val: string, column: ColumnDef) {
+	switch (column.type) {
+		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+		case 'real': return parseFloat(val);
+		case 'integer': return parseInt(val);
+		default: return val;
+	}
 }
 
 function FilterCard({ filter: filterOri, callback, disabled }:
@@ -43,15 +41,21 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 	const column = columns.find(c => c.id === filter.column);
 	const { value, operation } = filter;
 
-	const isSelectInput = column && column.type === 'enum' && operation !== 'includes' && operation !== 'in list';
+	const isSelectInput = column && column.type === 'enum' && operation !== 'regexp';
 
 	const checkInvalid = (fl: Filter) => {
 		const col = columns.find(c => c.id === fl.column);
 		if (!col) return true;
-		if (['is null', 'not null', 'includes'].includes(fl.operation))
+		if (['is null', 'not null'].includes(fl.operation))
 			return false;
-		const values = parseFilterValues(fl.value, col);
-		const isValid = values.map((val) => {
+		if ('regexp' === fl.operation) {
+			try { new RegExp(fl.value); } catch(e) { return true; }
+			return false;
+		}
+		if (['<=', '>='].includes(operation) && col.type === 'enum')
+			return true;
+		const val = parseFilterValue(fl.value, col);
+		const isValid = (() => {
 			switch (col.type) {
 				case 'time': return !isNaN(val as any);
 				case 'real':
@@ -59,10 +63,8 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 				case 'enum': return col.enum?.includes(val as string);
 				default: return (val as string).length > 0;
 			}
-		});
-		if (!values.length || isValid.includes(false))
-			return true;
-		if (values.length > 1 && fl.operation !== 'in list')
+		})();
+		if (!val || !isValid)
 			return true;
 		return false;
 	};
@@ -72,7 +74,7 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 	const set = (what: string) => (e: any) => {
 		if (!column) return;
 		const fl = { ...filter, [what]: e.target.value.trim() };
-		if (column.enum && !column.enum.includes(fl.value))
+		if (column.enum && isSelectInput && !column.enum.includes(fl.value))
 			fl.value = column.enum[0];
 		setFilter(fl);
 		const isInvalid = checkInvalid(fl);
@@ -89,7 +91,7 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 					<option value={col.id} key={col.table+col.name}>{col.fullName}</option>)}
 				{!column && <option value={filter.column} key={filter.column}>{filter.column}</option>}
 			</select>
-			<select disabled={disabled} style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: 'transparent', marginRight: '4px' }} value={operation} onChange={set('operation')}>
+			<select disabled={disabled} style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center', borderColor: column?.type === 'enum' && invalid ? 'var(--color-red)' : 'transparent', marginRight: '4px' }} value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 			</select>
 			{!operation.includes('null') && !isSelectInput &&
@@ -117,17 +119,17 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 				return (v: any) => v == null;
 			if (operation === 'not null')
 				return (v: any) => v != null;
-			if (operation === 'includes')
-				return (v: any) => v?.toString().includes(fl.value);
+			if (operation === 'regexp') {
+				const regexp = new RegExp(fl.value);
+				return (v: any) => regexp.test(v?.toString());
+			}
 			if (!fl.value) return null;
-			const values = parseFilterValues(fl.value, column);
-			const value = values[0];
+			const value = parseFilterValue(fl.value, column);
 			switch (operation) {
 				case '>=': return (v: any) => v >= value;
 				case '<=': return (v: any) => v <= value;
 				case '==': return (v: any) => v === value;
 				case '<>': return (v: any) => v !== value;
-				case 'in list': return (v: any) => values.includes(v);
 			}
 		})();
 		return fn && ((row: any[]) => fn(row[columnIdx]));
@@ -171,7 +173,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 			return [...fltrs, { filter: { column: 'magnitude', operation: '>=', value: '3' }, id: Date.now() }];
 		const column = cursorColumn;
 		const val = cursorValue;
-		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'includes' : '>=';
+		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
 		const value = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
 		return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
 	}));

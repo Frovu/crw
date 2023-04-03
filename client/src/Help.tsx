@@ -21,7 +21,16 @@ export default function Help() {
 		</p>
 		<h4>One who seeks shall find</h4>
 		<p>
-			Filters allow one to reduce sample to the most interesting events. Press <b>F</b> key to create a new filter and <b>R</b> to remove last filter. Note that new filter's column and value will be copied from <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> if it is present. Filter cards are located above the table and consist of three inputs: column, operator and value. Filters number is not limited and they are always applied so that each row must pass all filters (logical AND). If you seek for some OR like behavior, <u>in list</u> filter operator might come in handy. <u>includes</u> operator is intended for searching in text fields but it works on numbers aswell. If this variety somehow does not fulfil your filtering needs, custom samples got you covered with per-event whitelist and blacklist.
+			Filters allow one to reduce sample to the most interesting events. Press <b>F</b> key to create a new filter and <b>R</b> to remove last filter. Note that new filter's column and value will be copied from <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> if it is present. Filter cards are located above the table and consist of three inputs: column, operator and value. Filters number is not limited and they are always applied so that each row must pass all filters (logical AND).
+		</p>
+		<p>
+			If you seek for some OR like behavior, <u>regexp</u> filter operators might come in handy. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet">Regular expressions</a> are a powerful search and filter tool, just look at some examples: <i>okay|high</i> to filter for SStype confindence; <i>^(4|7|9)$</i> to include deifferent SStypes; <i>CH.*_2[^\d]</i> to search for second streams of coronal holes.
+		</p>
+		<p>
+			If this variety somehow does not fulfil your filtering needs, custom samples got you covered with per-event whitelist and blacklist. If any sample is selected under <button>Sample</button> menu, table filters will be applied to this sample to further reduce it.
+		</p>
+		<p>
+			Note: do not use comparison operations on enum type columns, use <u>in list</u> or <u>regexp</u> instead.
 		</p>
 		<h4>Drawing beautiful plots</h4>
 		<p>
@@ -29,6 +38,9 @@ export default function Help() {
 		</p>
 		<p>
 			Statistical plots can be drawn with <b>{KEY_COMB.switchViewPlots}</b> key without selecting any event. To draw any other plot one should press <b>{KEY_COMB.plot}</b> key while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired row of the table. After that one can plot previous or next event by using square bracket keys (note that this does not respect applied filters). When event plots are not needed anymore, one can toggle them off using <b>{KEY_COMB.switchViewPlots}</b> key.
+		</p>
+		<p>
+			Tip: press <b>1-3</b> key while staning in a table cell to quickly adjust histogram or correlation to corresponding column.
 		</p>
 		<p>
 			Application provides three color themes, bright and monochrome themes are primarily intended to be used for exporting plot pictures. <b>{KEY_COMB.switchTheme}</b> key can be used to swiftly cycle between themes. In <button>Plot</button> menu dropdown one can also toggle plot grid and series markers on/off.
