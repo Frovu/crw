@@ -5,11 +5,12 @@ import { HistOptions } from '../table/Statistics';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { axisDefaults, clickDownloadPlot, color, drawBackground } from './plotUtil';
+import { applySample } from '../table/Sample';
 
 export default function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
 	const { options: { hist: options }, settings: { plotGrid } } = useContext(SettingsContext);
-	const { data: currentSample } = useContext(SampleContext);
+	const { data: currentSample, samples: samplesList } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -17,12 +18,13 @@ export default function HistogramPlot() {
 	const hist = useMemo(() => {
 		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistOptions]));
 		const allSamples = [0, 1, 2].map(i => {
-			const type = options['sample'+i as keyof HistOptions];
-			if (!type) return [];
+			const sampleId = options['sample'+i as keyof HistOptions];
 			const colIdx = cols[i];
+			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
 			
-			const sample = type === 'current' ? currentSample : data;
+			const sample = sampleId === 'current' ? currentSample : sampleId === 'none' ? data :
+				applySample(data, samplesList.find(s => s.id.toString() === sampleId)!, columns);
 			return sample.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex(s => s.length);
@@ -49,8 +51,8 @@ export default function HistogramPlot() {
 			}
 			return bins;
 		});
-		const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
-		const transformed = samplesBins.filter(b => b).map(bins => options.yScale === '%' ? bins!.map(b => b / maxLength) : bins);
+		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
+		const transformed = samplesBins.filter(b => b).map((bins, i) => options.yScale === '%' ? bins!.map(b => b / samples[i].length) : bins);
 		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
 		
 		return (asize: { width: number, height: number }) => ({
@@ -113,7 +115,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, currentSample, plotGrid]);
+	}, [data, options, columns, currentSample, plotGrid, samplesList]);
 
 	const opts = hist?.(size);
 	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;

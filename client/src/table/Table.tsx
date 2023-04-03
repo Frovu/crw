@@ -43,8 +43,8 @@ export type CorrParams = {
 	regression: boolean,
 };
 const defaultCorrParams = {
-	columnX: 'b_max',
-	columnY: 'bz_abs_max',
+	columnX: 'g_value_sw_speed_forbush_effects_1b',
+	columnY: 'g_abs_max_imf_z',
 	color: 'magenta',
 	regression: true,
 };

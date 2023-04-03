@@ -135,7 +135,7 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 	return (row: any[]) => !fns.some(fn => !fn(row));
 }
 
-function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
+export function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
 	if (!sample) return data;
 	const filter = sample.filters?.length && renderFilters(sample.filters, columns);	
 	return data.filter(row => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
