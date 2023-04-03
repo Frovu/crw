@@ -33,7 +33,7 @@ export function HistogramMenu() {
 	const { columns } = useContext(TableContext);
 	const set = (key: any) => (value: any) => setOpt('hist', opts => ({ ...opts, [key]: value }));
 	const options = columns.map(c => c.id);
-	const pretty = columns.map(c => c.name);
+	const pretty = columns.map(c => c.fullName);
 
 	return (<>
 		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>

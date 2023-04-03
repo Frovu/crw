@@ -19,14 +19,20 @@ export default function HistogramPlot() {
 			const type = options['sample'+i as keyof HistOptions];
 			if (!type) return [];
 			const colIdx = columns.findIndex(c => c.id === options['column'+i as keyof HistOptions]);
-			// TODO: custom sample
+
 			const sample = type === 'current' ? currentSample : data;
 			return sample.map(row => row[colIdx]).filter(val => val != null);
 		});
-		const min = Math.min.apply(null, samples.flat());
-		const max = Math.max.apply(null, samples.flat());
+		const everything = samples.flat();
+		if (!everything.length) return null;
+		const min = Math.min.apply(null, everything);
+		let max = Math.max.apply(null, everything);
+		const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
 		const binCount = options.binCount;
+		if (countMax > 1)
+			max += (max - min) / (binCount - 1);
 		const binSize = (max - min) / binCount;
+		if (min === max || !binCount) return null;
 		const samplesBins = samples.map(sample => {
 			if (!sample.length) return null;
 			const bins = Array(binCount).fill(0);
@@ -40,7 +46,6 @@ export default function HistogramPlot() {
 		const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
 		const transformed = samplesBins.filter(b => b).map(bins => options.yScale === '%' ? bins!.map(b => b / maxLength) : bins);
 		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
-
 		return (asize: { width: number, height: number }) => ({
 			options: {
 				...asize,
@@ -64,7 +69,7 @@ export default function HistogramPlot() {
 				scales: {
 					x: {
 						time: false,
-						range: (u, umin, umax) => [umin-binSize/4, umax+binSize]
+						range: (u, umin, umax) => [min-binSize/4, max+binSize/4]
 					},
 					y: {
 						distr: options.yScale === 'log' ? 3 : 1
@@ -100,7 +105,9 @@ export default function HistogramPlot() {
 		}) ;
 	}, [data, options, columns, currentSample, plotGrid]);
 
+	const opts = hist?.(size);
+	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;
 	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-		<UplotReact {...hist(size)}/>
+		<UplotReact {...opts}/>
 	</div>);
 }

@@ -31,58 +31,10 @@
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
 			"parse_name": "MagnM"
 		},
-		"v_max": {
-			"name": "_V max",
-			"description": "Maximum solar wind velocity during the event",
-			"parse_name": "Vmax"
-		},
-		"v_before": {
-			"name": "_V before",
-			"description": "Solar wind velocity 1 hour before onset",
-			"parse_name": "Vb"
-		},
-		"b_max": {
-			"name": "_B max",
-			"description": "Maximum IMF induction value",
-			"parse_name": "HMax"
-		},
-		"bz_min": {
-			"name": "_Bz min",
-			"description": "Minimum IMF Bz-component value",
-			"parse_name": "Bzmin",
-			"parse_stub": "999.0"
-		},
-		"bz_abs_max": {
-			"name": "_abs(Bz) max",
-			"description": "Minimum absolute value of IMF Bz-component",
-			"parse_name": "ABzmax"
-		},
-		"time_to_min": {
-			"name": "_time to min",
-			"type": "integer",
-			"description": "Time in hours between the onset and density minimum",
-			"parse_name": "TMinM"
-		},
 		"gamma": {
 			"name": "gamma",
 			"description": "rigidity spectrum exponent during the hour of minimum CR density",
 			"parse_name": "GammaM"
-		},
-		"kp_max": {
-			"name": "_Kp max",
-			"description": "Maximum Kp index during the event",
-			"parse_name": "Kpmax"
-		},
-		"ap_max": {
-			"name": "_Ap max",
-			"description": "Maximum Ap index during the event",
-			"parse_name": "Apmax"
-		},
-		"dst_min": {
-			"name": "_Dst min",
-			"description": "Minimum Dst-index value during the event",
-			"parse_name": "Dstmin",
-			"parse_stub": "9999"
 		},
 		"axy_max": {
 			"name": "_Axy max",
@@ -108,17 +60,6 @@
 			"name": "_Az range",
 			"description": "North-south IMF component variation range",
 			"parse_name": "Azrange"
-		},
-		"time_to_min_raw": {
-			"name": "_time to min (raw)",
-			"type": "integer",
-			"description": "Time in hours between the onset and density minimum (non corrected)",
-			"parse_name": "TMin"
-		},
-		"magnitude_raw": {
-			"name": "_magnitude raw",
-			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM",
-			"parse_name": "Magn"
 		},
 		"comment": {
 			"type": "text",

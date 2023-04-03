@@ -46,5 +46,8 @@ export default function Help() {
 		<h2>Advanced usage</h2>
 		<h4>Comprehend generic columns</h4>
 		<h4>Manage samples</h4>
+		<h2>Other obscure knowledge</h2>
+		<h4>Histogram</h4>
+		Histogram range is determined automatically based on sample. It can not know anything about your filters so it is left to work with [a;b] type intervals. The following algorithm is applied here: if samples maximum value is distinct (count=1), then it <u>is discarded</u>, otherwise the range is adjusted to include a separate bin of this maximum values. Such behavior is targeted at integer or stepped data like Kp or SStype.
 	</div>);
 }
