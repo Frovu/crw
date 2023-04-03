@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { useSize } from '../util';
 import uPlot from 'uplot';
@@ -168,6 +168,18 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	return ordered;
 }
 
+export function clickDownloadPlot(e: React.MouseEvent) {
+	if (e.altKey) {
+		const a = document.createElement('a');
+		a.download = 'aid_plot.png';
+		const canvas = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
+		if (!canvas)
+			return console.log('not found plot (click)');
+		a.href = canvas.toDataURL()!;
+		a.click();
+	}
+}
+
 export function BasicPlot({ queryKey, queryFn, options: userOptions }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>}) {
 	const query = useQuery({
@@ -189,14 +201,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions }:
 	const options = { ...size, ...userOptions } as uPlot.Options;
 	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
 
-	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={(e) => {
-		if (e.altKey) {
-			const a = document.createElement('a');
-			a.download = 'aid_plot.png';
-			a.href = container?.querySelector('canvas')?.toDataURL()!;
-			a.click();
-		}
-	}}>
+	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 		<UplotReact {...{ options, data: query.data as any }}/>
 	</div>);
 

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, circlePaths, pointPaths } from './plotPaths';
-import { axisDefaults, BasicPlotParams, color, customTimeSplits, drawOnsets } from './plotUtil';
+import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawOnsets } from './plotUtil';
 import { Onset } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -92,6 +92,7 @@ function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolea
 				}
 			],
 			drawClear: [
+				drawBackground,
 				u => {
 					u.setSelect({
 						left: u.valToPos(data.base, 'x'),
@@ -415,7 +416,7 @@ export function PlotCircles({ params, settingsOpen }:
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 
 	return (
-		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
+		<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(

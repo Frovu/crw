@@ -4,7 +4,7 @@ import UplotReact from 'uplot-react';
 import { HistOptions } from '../table/Statistics';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
-import { axisDefaults, color } from './plotUtil';
+import { axisDefaults, clickDownloadPlot, color, drawBackground } from './plotUtil';
 
 export default function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
@@ -91,13 +91,16 @@ export default function HistogramPlot() {
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
-				]
+				],
+				hooks: {
+					drawClear: [ drawBackground ]
+				}
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
 	}, [data, options, columns, currentSample, plotGrid]);
 
-	return (<div ref={setContainer} style={{ position: 'absolute' }}>
+	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 		<UplotReact {...hist(size)}/>
 	</div>);
 }

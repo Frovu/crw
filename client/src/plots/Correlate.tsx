@@ -5,7 +5,7 @@ import regression from 'regression';
 import { CorrParams, SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color } from './plotUtil';
+import { axisDefaults, clickDownloadPlot, color, drawBackground } from './plotUtil';
 
 export default function CorrelationPlot() {
 	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);
@@ -78,14 +78,17 @@ export default function CorrelationPlot() {
 				].concat(regr ? [{
 					stroke: color('white'),
 					paths: linePaths(2)
-				}] : [])
+				}] : []),
+				hooks: {
+					drawClear: [ drawBackground ]
+				}
 			} as uPlot.Options,
 			data: [plotData, plotData, ...regrLine] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
 	}, [params, columns, sampleData, plotGrid]);
 
 	if (!plotOpts) return null;
-	return (<div ref={setContainer} style={{ position: 'absolute' }}>
+	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 		<UplotReact {...plotOpts(size)}/>
 	</div>);
 }

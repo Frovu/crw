@@ -19,6 +19,10 @@ export default function Help() {
 		<p>
 			Tip: When <b>{KEY_COMB.plot}</b> (plot) key is pressed and cursor is not set, cursor will be set to the <span style={{ color: 'var(--color-cyan)' }}>plotted row</span>
 		</p>
+		<h4>One who seeks shall find</h4>
+		<p>
+			Filters allow one to reduce sample to the most interesting events. Press <b>F</b> key to create a new filter and <b>R</b> to remove last filter. Note that new filter's column and value will be copied from <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> if it is present. Filter cards are located above the table and consist of three inputs: column, operator and value. Filters number is not limited and they are always applied so that each row must pass all filters (logical AND). If you seek for some OR like behavior, <u>in list</u> filter operator might come in handy. <u>includes</u> operator is intended for searching in text fields but it works on numbers aswell. If this variety somehow does not fulfil your filtering needs, custom samples got you covered with per-event whitelist and blacklist.
+		</p>
 		<h4>Drawing beautiful plots</h4>
 		<p>
 			Before drawing anything one should decide what he wants to see. Plotting interface setup is done under <button>Plot</button> menu tab. One can draw up to 3 plots simultaneously: two on the right (<u>top</u> and <u>bottom</u>) and one below the table (<u>left</u>). Select which type of plot goes where in the menu. One can also change relative size of plots in the same menu. While <u>height</u> setting is straightforward, the <u>right plots width</u> also affects height of the left plot. Just play with the values and it will become clear.
@@ -32,10 +36,15 @@ export default function Help() {
 		<p>
 			Tip: alt + click on plot to download it as .png
 		</p>
+
 		<h4>Downloading data</h4>
 		<p>
 			Table data can be exported for private use. Under <button>Export</button> menu one can find file format switch and <i>apply filters</i> checkbox. Two supported format options are JSON and plain text, the first should be preferred because it allows to preserve whitespace in values, includes additional column information and is easier to handle with a program. Usually exported file will include only rows and columns that are currently visible in table interface (respecting selected sample and filters). One can download whole table data by unchecking this checkbox, tho we advice against doing so. Data can also be accessed via API directly, if you are willing to use it please email to <a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a>.
 		</p>
-		<p></p>
+		<h2>Parameters description</h2>
+		<p>Parameters description?</p>
+		<h2>Advanced usage</h2>
+		<h4>Comprehend generic columns</h4>
+		<h4>Manage samples</h4>
 	</div>);
 }
