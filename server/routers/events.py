@@ -2,7 +2,7 @@ from flask import Blueprint, request, session
 from time import time
 import json
 from core import database
-from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, init_generics
+from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, init_generics, ENTITY_SHORT
 import core.samples as samples
 from routers.utils import route_shielded, require_role
 
@@ -37,7 +37,8 @@ def _add_generic():
 	uid = session.get('uid')
 	start = time()
 	generic = add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
-	return { 'id': generic.name, 'name': generic.pretty_name, 'time': time() - start }
+	gid = ENTITY_SHORT[generic.entity] + '_' + generic.name
+	return { 'id': gid, 'name': generic.pretty_name, 'time': round(time() - start, 1) }
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded

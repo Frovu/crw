@@ -1,4 +1,4 @@
-from core.database import pool, upsert_many, tables_info, tables_tree, tables_refs
+from core.database import pool, upsert_many, tables_info, tables_tree, tables_refs, ENTITY_SHORT
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
@@ -87,12 +87,12 @@ class GenericColumn:
 			tail = nm.split('_')[-1]
 			shift = int(tail[:-1]) * (1 if tail[-1] == 'a' else -1)
 			nm = nm[:-len(tail)-1]
-			ent = find(ENTITY_POI, True)
+			ent = find(ENTITY_SHORT, True)
 			pretty, ctype = cls.info_from_name(nm, ent)
 			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
 		series = 'time' not in gtype and find(SERIES.keys())
 		if gtype in WITH_POI_TYPES:
-			poi = find(ENTITY_POI)
+			poi = find(ENTITY_SHORT)
 			if not poi:
 				ptype = find(EXTREMUM_TYPES)
 				poi_series = find(SERIES.keys())
@@ -109,7 +109,7 @@ class GenericColumn:
 	def __post_init__(self):
 		name = f'g_{self.type}'
 		if self.series: name += f'_{self.series}'
-		if self.poi: name += f'_{self.poi}'
+		if self.poi: name += f'_{self.poi if not self.poi in ENTITY_SHORT else ENTITY_SHORT[self.poi]}'
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
 		self.name = name.lower().replace('%', 'pp')
 		self.data_type = 'REAL'
@@ -117,8 +117,8 @@ class GenericColumn:
 		series, poi = self.series and self.type != 'clone' and SERIES[self.series][1], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
-		elif self.poi in ENTITY_POI:
-			poi = short_entity_name(self.poi)
+		elif self.poi in ENTITY_SHORT:
+			poi = ENTITY_SHORT[self.poi].upper()
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
@@ -247,7 +247,7 @@ def compute_generic(generic):
 			result = apply_shift(target_value, generic.shift, stub=None)
 			data = np.column_stack((result, event_id.astype(int))).tolist()
 		else:
-			target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
+			target_entity = generic.poi if generic.poi in tables_info and generic.poi != generic.entity else None
 			event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
@@ -396,6 +396,8 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Not an entity POI')
 		if not shift or shift == 0:
 			raise ValueError('Shift should not be 0')
+		if len(series) >= 48:
+			raise ValueError('Max clone depth reached')
 		generics = select_generics(uid)
 		if series not in tables_info[poi] and not next((g for g in generics if g.entity == poi and g.name == series), False):
 			raise ValueError('Target column not found')

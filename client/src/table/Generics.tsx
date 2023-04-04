@@ -90,11 +90,11 @@ export function GenericsSelector() {
 	const showPoi = !['range', 'coverage', null].concat(EXTREMUM_OPTIONS).includes(state.type as any);
 	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.type === 'time'));
 	const entityPretty = entityOptions.map(entityName);
-	const poiOptions = ['extremum'].concat(entityOptions);
-	const poiPretty = ['<Extremum>'].concat(entityPretty);
 	const seriesCols = state.type === 'clone' && columns.filter(c => (state.poi ?? state.entity) === c.table);
 	const seriesOptions = seriesCols ? seriesCols.map(c => c.table !== tables[0] ? c.id.replace(c.table+'_','') : c.id) : Object.keys(series);
 	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : Object.values(series);
+	const poiOptions = seriesCols ? tables : ['extremum'].concat(entityOptions);
+	const poiPretty = seriesCols ? tables.map(entityName) : ['<Extremum>'].concat(entityPretty);
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;
@@ -119,8 +119,7 @@ export function GenericsSelector() {
 					<div>
 						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={() => mutate(null, {
 							onSuccess: (res) => {
-								const id = (state.entity === entityOptions[0] ? '' : (state.entity + '_')) + res.id;
-								setSetting('enabledColumns', ((cls) => cls.includes(id) ? cls : [...cls, id]));
+								setSetting('enabledColumns', ((cls) => cls.includes(res.id) ? cls : [...cls, res.id]));
 								setReport({ success: `Created ${res.name} in ${res.time.toFixed(1)} s` });
 							}
 						})}>{isLoading ? '...' : 'Create column'}</button>
