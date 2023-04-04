@@ -47,6 +47,10 @@ def parse_extremum_poi(poi):
 	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
 	poi_series = poi_type and poi[len(poi_type)+1:]
 	return poi_type, poi_series
+def short_entity_name(name):
+	return ''.join([a[0].upper() for a in name.split('_')])
+def shift_indicator(shift):
+	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
 
 @dataclass
 class GenericColumn:
@@ -61,25 +65,31 @@ class GenericColumn:
 	shift: int
 	name: str = None
 	pretty_name: str = None
-	description = None
+	description: str = None
+	data_type: str = None
 
 	@classmethod
-	def from_config(cls, desc):
-		return cls(None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
+	def info_from_name(cls, name, entity):
+		if not name.startswith('g_'):
+			found = tables_info[entity][name]
+			return found.get('name', name), found.get('type', 'real')
 
-	@classmethod
-	def from_name(cls, name):
 		nm = name[2:].replace('_pp', '_%')
-		def find(options):
+		def find(options, right=False):
 			nonlocal nm
 			for a in options:
-				if nm.startswith(a):
-					nm = nm[len(a)+1:]
+				if (nm.endswith(a) if right else nm.startswith(a)):
+					nm = nm[:-len(a)-1] if right else nm[len(a)+1:]
 					return a
 			return None
 		gtype = find([*WITH_POI_TYPES, *NO_POI_TYPES])
 		if gtype == 'clone':
-			return cls(None, None, None, None, None, gtype, 'bad', 'bad', 0)
+			tail = nm.split('_')[-1]
+			shift = int(tail[:-1]) * (1 if tail[-1] == 'a' else -1)
+			nm = nm[:-len(tail)-1]
+			ent = find(ENTITY_POI, True)
+			pretty, ctype = cls.info_from_name(nm, ent)
+			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
 		series = 'time' not in gtype and find(SERIES.keys())
 		if gtype in WITH_POI_TYPES:
 			poi = find(ENTITY_POI)
@@ -94,7 +104,7 @@ class GenericColumn:
 			shift = sign * int(nm[:-1])
 		else:
 			shift = 0
-		return cls(None, None, None, None, None, gtype, series, poi, shift)
+		return cls(None, None, None, None, None, gtype, series, poi, shift).pretty_name
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
@@ -102,12 +112,13 @@ class GenericColumn:
 		if self.poi: name += f'_{self.poi}'
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
 		self.name = name.lower().replace('%', 'pp')
+		self.data_type = 'REAL'
 
 		series, poi = self.series and self.type != 'clone' and SERIES[self.series][1], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
-			poi = ''.join([a[0].upper() for a in self.poi.split('_')])
+			poi = short_entity_name(self.poi)
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
@@ -127,12 +138,13 @@ class GenericColumn:
 			self.pretty_name = f'coverage [{series}]'
 			self.description = f'Coverage percentage of {ser_desc} between onset and event end | next event | +{MAX_EVENT_LENGTH_H}h'
 		elif 'time' in self.type:
-			shift = f"{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}" if self.shift != 0 else ''
+			shift = f"{shift_indicator(self.shift)}" if self.shift != 0 else ''
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
 			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
 		elif 'clone' == self.type:
-			g = GenericColumn.from_name(self.series)
-			self.pretty_name = f"[{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}] {g.pretty_name}"
+			pretty, dtype = GenericColumn.info_from_name(self.series, self.poi)
+			self.data_type = dtype
+			self.pretty_name = f"[{poi}{shift_indicator(self.shift)}] {pretty}"
 			self.description = f'Parameter cloned from associated {self.poi[:-1]} of other event'
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
@@ -162,9 +174,9 @@ with pool.connection() as conn:
 
 	generics = [GenericColumn(*row) for row in conn.execute('SELECT * FROM events.generic_columns_info')]
 	for generic in generics:
-		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
+		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 
-def _select_recursive(entity, target_entity=None, target_column=None):
+def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'):
 	joins = ''
 	if target_entity and entity != target_entity:
 		def rec_find(a, b, path=[entity], direction=[1]):
@@ -195,7 +207,7 @@ def _select_recursive(entity, target_entity=None, target_column=None):
 	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
-		res = np.array(curs.fetchall(), dtype='f8')
+		res = np.array(curs.fetchall(), dtype=dtype)
 		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
 		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
 		return res[:,0], res[:,1], duration, t_time
@@ -215,10 +227,10 @@ def _select(t_from, t_to, series):
 	else:
 		return gsm.select(interval, [series])[0]
 
-def apply_shift(a, shift):
+def apply_shift(a, shift, stub=np.nan):
 	if shift == 0:
 		return a
-	res = np.full_like(a, np.nan)
+	res = np.full_like(a, stub)
 	if shift > 0:
 		res[:-shift] = a[shift:]
 	else:
@@ -231,8 +243,9 @@ def compute_generic(generic):
 		log.info(f'Computing {generic.name}')
 		if generic.type == 'clone':
 			# FIXME: gently check if column exists
-			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series)
-			result = apply_shift(target_value, generic.shift)
+			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
+			result = apply_shift(target_value, generic.shift, stub=None)
+			data = np.column_stack((result, event_id.astype(int))).tolist()
 		else:
 			target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
 			event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
@@ -334,7 +347,7 @@ def compute_generic(generic):
 				assert False
 			if generic.series == 'kp_index':
 				result[result != None] /= 10
-		data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist() 
+			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist() 
 		# FIXME return COALESCE
 		q = f'UPDATE events.{generic.entity} SET {generic.name} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
@@ -407,7 +420,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', int(shift) if shift else 0, uid]).fetchone()
 		generic = GenericColumn(*row)
-		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
+		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	if len(generic.users) == 1:
 		recompute_generics(generic)
 	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
