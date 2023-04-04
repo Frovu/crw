@@ -70,7 +70,6 @@ class GenericColumn:
 	@classmethod
 	def from_name(cls, name):
 		nm = name[2:].replace('_pp', '_%')
-		print(nm)
 		def find(options):
 			nonlocal nm
 			for a in options:
@@ -83,9 +82,7 @@ class GenericColumn:
 			return cls(None, None, None, None, None, gtype, 'bad', 'bad', 0)
 		series = 'time' not in gtype and find(SERIES.keys())
 		if gtype in WITH_POI_TYPES:
-			print(nm)
 			poi = find(ENTITY_POI)
-			print(poi)
 			if not poi:
 				ptype = find(EXTREMUM_TYPES)
 				poi_series = find(SERIES.keys())
@@ -135,8 +132,8 @@ class GenericColumn:
 			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
 		elif 'clone' == self.type:
 			g = GenericColumn.from_name(self.series)
-			self.pretty_name = f"{g.pretty_name} of [{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}]"
-			self.description = f'Parameter cloned from associated {self.poi} of other event'
+			self.pretty_name = f"[{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}] {g.pretty_name}"
+			self.description = f'Parameter cloned from associated {self.poi[:-1]} of other event'
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
 			self.description = ('Maximum' if 'max' in self.type else 'Minimum') + (' absolute' if 'abs' in self.type else '') +\
@@ -234,7 +231,6 @@ def compute_generic(generic):
 		log.info(f'Computing {generic.name}')
 		if generic.type == 'clone':
 			# FIXME: gently check if column exists
-			print(generic.poi, generic.series)
 			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series)
 			result = apply_shift(target_value, generic.shift)
 		else:
@@ -245,7 +241,7 @@ def compute_generic(generic):
 				data_time, data_value = data_series[:,0], data_series[:,1]
 			length = len(event_id)
 
-			def get_event_windows(d_time):
+			def get_event_windows(d_time, ser):
 				start_hour = np.floor(event_start / HOUR) * HOUR
 				if event_duration is not None:
 					slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
@@ -256,6 +252,9 @@ def compute_generic(generic):
 					to_next_event[-1] = 9999
 					slice_len = np.minimum(to_next_event, MAX_EVENT_LENGTH_H)
 				left = np.searchsorted(d_time, start_hour, side='left')
+				if ser in ['a10', 'a10m']:
+					left = np.maximum(left - 2, 0) # pick two hours before onset for CR density
+					slice_len += 2
 				slice_len[start_hour + slice_len*HOUR < d_time[0]] = 0 # eh
 				return left, slice_len
 			
@@ -265,15 +264,17 @@ def compute_generic(generic):
 					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
 				d_time, value = data[:,0], data[:,1]
 				result = np.full((length, 2), np.nan, dtype='f8')
-				left, slice_len = get_event_windows(d_time)
+				left, slice_len = get_event_windows(d_time, ser)
 				value = np.abs(value) if is_abs else value
 				fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
-				if ser in ['A10', 'A10m']:
+				if ser in ['a10', 'a10m']:
+					# slice_len = np.minimum(slice_len, MAX_EVENT_LENGTH_H) # halve window size for CR intensity
 					for i in range(length):
 						if slice_len[i] > 1:
-							val = gsm.normalize_variation(value[left[i]:left[i]+slice_len[i]])
+							window = value[left[i]:left[i]+slice_len[i]]
+							val = gsm.normalize_variation(window)
 							idx = fn(val)
-							result[i] = (d_time[idx], val[idx])
+							result[i] = (d_time[left[i] + idx], val[idx])
 				else:
 					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
@@ -305,14 +306,29 @@ def compute_generic(generic):
 				start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
 				window_len = max(1, abs(shift))
 				per_hour = np.full((length, window_len), np.nan, dtype='f8')
-				for h in range(window_len):
-					_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
-					per_hour[a_idx, h] = data_value[b_idx]
+				if generic.series in ['a10', 'a10m']:
+					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH)
+					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
+					slice_len[poi_time - MAX_EVENT_LENGTH < data_time[0]] = 0 # eh
+					for i in range(length):
+						sl = slice_len[i]
+						if not sl: continue
+						window = data_value[left[i]:left[i]+sl]
+						times  = data_time[left[i]:left[i]+sl]
+						if len(window) < sl: continue
+						values = gsm.normalize_variation(window)
+						idx = np.searchsorted(times, start_hour[i])
+						wslice = values[idx:idx+window_len]
+						per_hour[i,] = values[idx:idx+window_len]
+				else:
+					for h in range(window_len):
+						_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
+						per_hour[a_idx, h] = data_value[b_idx]
 				nan_threshold = np.floor(window_len / 2)
 				filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
 				result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
 			elif generic.type == 'coverage':
-				left, slice_len = get_event_windows(data_time)
+				left, slice_len = get_event_windows(data_time, generic.sereis)
 				result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
 			else:
 				assert False
