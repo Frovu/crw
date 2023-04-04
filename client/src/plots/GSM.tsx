@@ -3,8 +3,10 @@ import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = BasicPlotParams & {
-	showAz?: boolean,
-	useA0m?: boolean
+	subtractTrend: boolean,
+	maskGLE: boolean,
+	showAz: boolean,
+	useA0m: boolean
 };
 
 function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
@@ -97,8 +99,11 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 
 export default function PlotGSM(params: GSMParams) {
 	return (<BasicPlot {...{
-		queryKey: ['GSM', params.interval],
-		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10', 'a10m']),
+		queryKey: ['GSM', params.interval, params.subtractTrend, params.maskGLE],
+		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10', 'a10m'], {
+			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
+			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
+		}),
 		options: gsmPlotOptions(params)
 	}}/>);
 }

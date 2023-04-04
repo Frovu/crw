@@ -151,11 +151,12 @@ export function superScript(digit: number) {
 	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
 }
 
-export async function basicDataQuery(path: string, interval: [Date, Date], fields: string[]) {
+export async function basicDataQuery(path: string, interval: [Date, Date], fields: string[], params?: {}) {
 	const urlPara = new URLSearchParams({
 		from: (interval[0].getTime() / 1000).toFixed(0),
 		to:   (interval[1].getTime() / 1000).toFixed(0),
-		fields: fields.join()
+		fields: fields.join(),
+		...params
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
 	if (res.status !== 200)
