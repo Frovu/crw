@@ -25,7 +25,7 @@ export const defaultHistOptions: HistOptions = {
 	sample0: 'current',
 	sample1: 'current',
 	sample2: 'current',
-	column0: 'fe_g_max_sw_speed',
+	column0: 'fe_v_max',
 	column1: null,
 	column2: null
 };
@@ -38,8 +38,8 @@ export type CorrParams = {
 };
 
 export const defaultCorrParams = {
-	columnX: 'fe_g_value_sw_speed_fe_1b',
-	columnY: 'fe_g_abs_max_imf_z',
+	columnX: 'fe_kp_max',
+	columnY: 'fe_bz_min',
 	color: 'magenta',
 	regression: true,
 };

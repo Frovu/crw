@@ -20,13 +20,66 @@
 				"9": null
 			}
 		},
-		"source_id": {
-			"references": "solar_sources"
-		},
-		"mc_id": {
-			"references": "magnetic_clouds"
-		},
 		"magnitude": {
+			"name": "magnitude",
+			"description": "Range between min and max CR density variation correcetd for Dst, corrected for trend, in window from ons-2h to next event or ons+72h",
+			"generic": {
+				"type": "range",
+				"series": "a10m"
+			}
+		},
+		"v_before": {
+			"name": "V before",
+			"generic": {
+				"type": "value",
+				"series": "sw_speed",
+				"poi": "forbush_effects",
+				"shift": -1
+			}
+		},
+		"v_max": {
+			"generic": {
+				"type": "max",
+				"series": "sw_speed"
+			}
+		},
+		"bz_min": {
+			"generic": {
+				"type": "min",
+				"series": "imf_z"
+			}
+		},
+		"kp_max": {
+			"generic": {
+				"type": "max",
+				"series": "kp_index"
+			}
+		},
+		"ap_max": {
+			"generic": {
+				"type": "max",
+				"series": "ap_index"
+			}
+		},
+		"dst_min": {
+			"generic": {
+				"type": "min",
+				"series": "dst_index"
+			}
+		},
+		"axy_max": {
+			"generic": {
+				"type": "max",
+				"series": "axy"
+			}
+		},
+		"az_range": {
+			"generic": {
+				"type": "range",
+				"series": "az"
+			}
+		},
+		"old_magnitude": {
 			"name": "_magnitude",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
 			"parse_name": "MagnM"
@@ -36,34 +89,20 @@
 			"description": "rigidity spectrum exponent during the hour of minimum CR density",
 			"parse_name": "GammaM"
 		},
-		"axy_max": {
-			"name": "_Axy max",
-			"description": "Maximum value of equatorial component of the CR vector anisotropy (%)",
-			"parse_name": "Axym"
-		},
 		"phi_axy_max": {
 			"name": "_Phi Axy max",
 			"description": "Direction of the maximum value of equatorial CR anisotropy vector (deg)",
 			"parse_name": "Pxym"
 		},
-		"ax_max": {
-			"name": "_Ax max",
-			"description": "Maximum value of radial component of the CR vector anisotropy (%)",
-			"parse_name": "Axm"
-		},
-		"ay_max": {
-			"name": "_Ay max",
-			"description": "Maximum value of azimuthal component of the CR vector anisotropy (%)",
-			"parse_name": "Aym"
-		},
-		"az_range": {
-			"name": "_Az range",
-			"description": "North-south IMF component variation range",
-			"parse_name": "Azrange"
-		},
 		"comment": {
 			"type": "text",
-			"description": "Additional commentary"
+			"description": "Additional information"
+		},
+		"source_id": {
+			"references": "solar_sources"
+		},
+		"mc_id": {
+			"references": "magnetic_clouds"
 		}
 	},
 	"solar_sources": {

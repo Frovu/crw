@@ -1,4 +1,4 @@
-from core.database import pool, upsert_many, tables_info, tables_tree, tables_refs, ENTITY_SHORT
+from core.database import log, pool, upsert_many, tables_info, tables_tree, tables_refs, ENTITY_SHORT
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
@@ -7,10 +7,8 @@ from math import floor, ceil
 from concurrent.futures import ThreadPoolExecutor
 import data_series.omni.database as omni
 import data_series.gsm.database as gsm
-import json, logging, traceback
+import json, traceback
 import numpy as np
-
-log = logging.getLogger('aides')
 
 HOUR = 3600
 MAX_EVENT_LENGTH_H = 72
@@ -21,26 +19,26 @@ WITH_POI_TYPES = ['value', 'clone', 'time_to_%', 'time_to']
 ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
 
 SERIES = { # order matters !!!
-	"sw_speed": ["omni", "V"],
-	"sw_density": ["omni", "D"],
-	"sw_temperature": ["omni", "T"],
-	"temperature_idx": ["omni", "Tidx"],
-	"imf_scalar": ["omni", "B"],
-	"imf_x": ["omni", "Bx"],
-	"imf_y_gsm": ["omni", "By_gsm"],
-	"imf_z_gsm": ["omni", "Bz_gsm"],
-	"imf_y": ["omni", "By"],
-	"imf_z": ["omni", "Bz"],
-	"plasma_beta": ["omni", "beta"],
-	"dst_index": ["omni", "Dst"],
-	"kp_index": ["omni", "Kp"],
-	"ap_index": ["omni", "Ap"],
-	"a10m": ["gsm", "A0m"],
-	"a10": ["gsm", "A0"],
-	"axy": ["gsm", "Axy"], 
-	"ax": ["gsm", "Ax"],
-	"ay": ["gsm", "Ay"],
-	"az": ["gsm", "Az"],
+	'sw_speed': ['omni', 'V'],
+	'sw_density': ['omni', 'D'],
+	'sw_temperature': ['omni', 'T'],
+	'temperature_idx': ['omni', 'Tidx'],
+	'imf_scalar': ['omni', 'B'],
+	'imf_x': ['omni', 'Bx'],
+	'imf_y_gsm': ['omni', 'By_gsm'],
+	'imf_z_gsm': ['omni', 'Bz_gsm'],
+	'imf_y': ['omni', 'By'],
+	'imf_z': ['omni', 'Bz'],
+	'plasma_beta': ['omni', 'beta'],
+	'dst_index': ['omni', 'Dst'],
+	'kp_index': ['omni', 'Kp'],
+	'ap_index': ['omni', 'Ap'],
+	'a10m': ['gsm', 'A0m'],
+	'a10': ['gsm', 'A0'],
+	'axy': ['gsm', 'Axy'], 
+	'ax': ['gsm', 'Ax'],
+	'ay': ['gsm', 'Ay'],
+	'az': ['gsm', 'Az'],
 }
 
 def parse_extremum_poi(poi):
@@ -165,18 +163,18 @@ with pool.connection() as conn:
 		poi text not null default '',
 		shift integer not null default 0,
 		CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
-	path = Path(__file__, '../../config/tables_generics.json').resolve()
-	with open(path) as file:
-		preset_generics = json.load(file)
-	for table in preset_generics:
-		for generic in preset_generics[table]:
-			conn.execute(f'''INSERT INTO events.generic_columns_info (entity,users,{",".join(generic.keys())})
-				VALUES (%s,%s,{",".join(["%s" for i in generic])})
-				ON CONFLICT ON CONSTRAINT params DO NOTHING''', [table, [-1]] + list(generic.values()))
-
 	generics = [GenericColumn(*row) for row in conn.execute('SELECT * FROM events.generic_columns_info')]
 	for generic in generics:
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
+	PRESET_GENERICS = dict()
+	for table in tables_info:
+		for name, column_desc in tables_info[table].items():
+			if name.startswith('_'): continue
+			if g_desc := column_desc.get('generic'):
+				generic = GenericColumn(None, None, None, table, [], g_desc['type'], g_desc.get('series', ''), g_desc.get('poi', ''),  g_desc.get('shift', 0))
+				column_desc['name'] = column_desc.get('name', generic.pretty_name)
+				column_desc['description'] = column_desc.get('description', generic.description)
+				PRESET_GENERICS[name] = generic
 
 def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'):
 	joins = ''
@@ -239,7 +237,7 @@ def apply_shift(a, shift, stub=np.nan):
 		res[-shift:] = a[:shift]
 	return res
 
-def compute_generic(generic):
+def compute_generic(generic, col_name=None):
 	try:
 		t_start = time()
 		log.info(f'Computing {generic.name}')
@@ -343,7 +341,7 @@ def compute_generic(generic):
 				filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
 				result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
 			elif generic.type == 'coverage':
-				left, slice_len = get_event_windows(data_time, generic.sereis)
+				left, slice_len = get_event_windows(data_time, generic.series)
 				result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
 			else:
 				assert False
@@ -351,7 +349,7 @@ def compute_generic(generic):
 				result[result != None] /= 10
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist() 
 		# FIXME return COALESCE
-		q = f'UPDATE events.{generic.entity} SET {generic.name} = %s WHERE {generic.entity}.id = %s'
+		q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
 			conn.cursor().executemany(q, data)
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
@@ -361,18 +359,18 @@ def compute_generic(generic):
 		log.error(f'Failed at {generic.name}: {traceback.format_exc()}')
 		return False
 
-def recompute_generics(generics):
+def recompute_generics(generics, columns=None):
 	if type(generics) != list:
 		generics = [generics]
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(compute_generic, generics)
+		res = executor.map(compute_generic, generics, columns)
 	return any(res)
 		
 def init_generics():
 	with pool.connection() as conn:
 		events = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time').fetchall()
 	omni.ensure_prepared([events[0][0] - 24 * HOUR, events[-1][0] + 48 * HOUR])
-	recompute_generics(select_generics())
+	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())
 
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info or not gtype:
@@ -424,6 +422,9 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', int(shift) if shift else 0, uid]).fetchone()
 		generic = GenericColumn(*row)
+		if next((g for g in PRESET_GENERICS.values() if g.name == generic.name)):
+			conn.rollback()
+			raise ValueError('Column exists')
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	if len(generic.users) == 1:
 		recompute_generics(generic)

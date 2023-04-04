@@ -71,7 +71,7 @@ type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateActio
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOpt: OptionsSetter }>({} as any);
 
 function defaultSettings(): Settings {
-	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_g_max_sw_speed', 'fe_g_value_sw_speed_fe_1b', 'fe_g_min_imf_z', 'fe_g_max_kp_index', 'fe_g_max_axy', 'ss_type', 'ss_description', 'ss_confidence'];
+	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before', 'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'];
 	return {
 		theme: 'Dark',
 		enabledColumns: SHOW,

@@ -1,10 +1,16 @@
 {
 	"forbush_effects": [
 		{
+			"nickname": "magnitude",
+			"type": "range",
+			"series": "a10m"
+		},
+		{
 			"type": "max",
 			"series": "sw_speed"
 		},
 		{
+			"nickname": "V before",
 			"type": "value",
 			"series": "sw_speed",
 			"poi": "forbush_effects",
@@ -45,6 +51,10 @@
 		{
 			"type": "max",
 			"series": "ay"
+		},
+		{
+			"type": "range",
+			"series": "az"
 		}
 	]
 }
