@@ -43,6 +43,21 @@
 				"series": "sw_speed"
 			}
 		},
+		"b_before": {
+			"name": "B before",
+			"generic": {
+				"type": "value",
+				"series": "imf_scalar",
+				"poi": "forbush_effects",
+				"shift": -1
+			}
+		},
+		"b_max": {
+			"generic": {
+				"type": "max",
+				"series": "imf_scalar"
+			}
+		},
 		"bz_min": {
 			"generic": {
 				"type": "min",
@@ -54,6 +69,10 @@
 				"type": "max",
 				"series": "kp_index"
 			}
+		},
+		"vmbm": {
+			"name": "VmBm",
+			"description": "Vmax * Bmax / Vbef / Bbef"
 		},
 		"ap_max": {
 			"generic": {
