@@ -17,29 +17,30 @@ MAX_EVENT_LENGTH_H = 48
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 NO_POI_TYPES = ['range', 'coverage', *EXTREMUM_TYPES]
+WITH_POI_TYPES = ['value', 'clone', 'time_to_%', 'time_to']
 ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
 
-SERIES = {
+SERIES = { # order matters !!!
 	"sw_speed": ["omni", "V"],
 	"sw_density": ["omni", "D"],
 	"sw_temperature": ["omni", "T"],
 	"temperature_idx": ["omni", "Tidx"],
 	"imf_scalar": ["omni", "B"],
 	"imf_x": ["omni", "Bx"],
-	"imf_y": ["omni", "By"],
-	"imf_z": ["omni", "Bz"],
 	"imf_y_gsm": ["omni", "By_gsm"],
 	"imf_z_gsm": ["omni", "Bz_gsm"],
+	"imf_y": ["omni", "By"],
+	"imf_z": ["omni", "Bz"],
 	"plasma_beta": ["omni", "beta"],
 	"dst_index": ["omni", "Dst"],
 	"kp_index": ["omni", "Kp"],
 	"ap_index": ["omni", "Ap"],
-	"A10": ["gsm", "A0"],
-	"A10m": ["gsm", "A0m"],
-	"Ax": ["gsm", "Ax"],
-	"Ay": ["gsm", "Ay"],
-	"Az": ["gsm", "Az"],
-	"Axy": ["gsm", "Axy"],
+	"a10m": ["gsm", "A0m"],
+	"a10": ["gsm", "A0"],
+	"axy": ["gsm", "Axy"], 
+	"ax": ["gsm", "Ax"],
+	"ay": ["gsm", "Ay"],
+	"az": ["gsm", "Az"],
 }
 
 def parse_extremum_poi(poi):
@@ -65,6 +66,38 @@ class GenericColumn:
 	@classmethod
 	def from_config(cls, desc):
 		return cls(None, None, None, None, None, desc['type'], desc['series'], desc.get('poi'), desc.get('shift'))
+
+	@classmethod
+	def from_name(cls, name):
+		nm = name[2:].replace('_pp', '_%')
+		print(nm)
+		def find(options):
+			nonlocal nm
+			for a in options:
+				if nm.startswith(a):
+					nm = nm[len(a)+1:]
+					return a
+			return None
+		gtype = find([*WITH_POI_TYPES, *NO_POI_TYPES])
+		if gtype == 'clone':
+			return cls(None, None, None, None, None, gtype, 'bad', 'bad', 0)
+		series = 'time' not in gtype and find(SERIES.keys())
+		if gtype in WITH_POI_TYPES:
+			print(nm)
+			poi = find(ENTITY_POI)
+			print(poi)
+			if not poi:
+				ptype = find(EXTREMUM_TYPES)
+				poi_series = find(SERIES.keys())
+				poi = ptype + '_' + poi_series
+		else:
+			poi = None
+		if nm:
+			sign = 1 if nm[-1] == 'a' else -1
+			shift = sign * int(nm[:-1])
+		else:
+			shift = 0
+		return cls(None, None, None, None, None, gtype, series, poi, shift)
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
@@ -101,8 +134,9 @@ class GenericColumn:
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
 			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
 		elif 'clone' == self.type:
-			self.pretty_name = f"{self.series} of [{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}]"
-			self.description = 'Parameter cloned from other {self.poi}'
+			g = GenericColumn.from_name(self.series)
+			self.pretty_name = f"{g.pretty_name} of [{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}]"
+			self.description = f'Parameter cloned from associated {self.poi} of other event'
 		else:
 			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
 			self.description = ('Maximum' if 'max' in self.type else 'Minimum') + (' absolute' if 'abs' in self.type else '') +\
@@ -130,7 +164,7 @@ with pool.connection() as conn:
 				ON CONFLICT ON CONSTRAINT params DO NOTHING''', [table, [-1]] + list(generic.values()))
 
 	generics = [GenericColumn(*row) for row in conn.execute('SELECT * FROM events.generic_columns_info')]
-	for generic in generics:	
+	for generic in generics:
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} REAL')
 
 def _select_recursive(entity, target_entity=None, target_column=None):
@@ -160,8 +194,7 @@ def _select_recursive(entity, target_entity=None, target_column=None):
 		query.append((entity, 'duration'))
 	if target_entity and not target_column:
 		query.append((target_entity, 'time'))
-
-	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' in c else f'{e}.{c}' for e, c in query])
+	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' == c else f'{e}.{c}' for e, c in query])
 	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
@@ -201,6 +234,7 @@ def compute_generic(generic):
 		log.info(f'Computing {generic.name}')
 		if generic.type == 'clone':
 			# FIXME: gently check if column exists
+			print(generic.poi, generic.series)
 			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series)
 			result = apply_shift(target_value, generic.shift)
 		else:
@@ -333,7 +367,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Not an entity POI')
 		if not shift or shift == 0:
 			raise ValueError('Shift should not be 0')
-		generics = select_generics()
+		generics = select_generics(uid)
 		if series not in tables_info[poi] and not next((g for g in generics if g.entity == poi and g.name == series), False):
 			raise ValueError('Target column not found')
 	elif 'coverage' == gtype:

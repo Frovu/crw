@@ -36,15 +36,15 @@
 		},
 		{
 			"type": "max",
-			"series": "Axy"
+			"series": "axy"
 		},
 		{
 			"type": "max",
-			"series": "Ax"
+			"series": "ax"
 		},
 		{
 			"type": "max",
-			"series": "Ay"
+			"series": "ay"
 		}
 	]
 }
