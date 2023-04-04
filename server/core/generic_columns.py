@@ -87,12 +87,14 @@ class GenericColumn:
 			tail = nm.split('_')[-1]
 			shift = int(tail[:-1]) * (1 if tail[-1] == 'a' else -1)
 			nm = nm[:-len(tail)-1]
-			ent = find(ENTITY_SHORT, True)
+			ent = find(ENTITY_SHORT.values(), True)
+			ent = ent and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == ent))
 			pretty, ctype = cls.info_from_name(nm, ent)
 			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
 		series = 'time' not in gtype and find(SERIES.keys())
 		if gtype in WITH_POI_TYPES:
-			poi = find(ENTITY_SHORT)
+			poi = find(ENTITY_SHORT.values())
+			poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
 			if not poi:
 				ptype = find(EXTREMUM_TYPES)
 				poi_series = find(SERIES.keys())
@@ -104,7 +106,7 @@ class GenericColumn:
 			shift = sign * int(nm[:-1])
 		else:
 			shift = 0
-		return cls(None, None, None, None, None, gtype, series, poi, shift).pretty_name
+		return cls(None, None, None, None, None, gtype, series, poi, shift).pretty_name, 'real' # I guess?
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
@@ -117,7 +119,7 @@ class GenericColumn:
 		series, poi = self.series and self.type != 'clone' and SERIES[self.series][1], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
-		elif self.poi in ENTITY_SHORT:
+		elif self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi].upper()
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)

@@ -91,7 +91,7 @@ export function GenericsSelector() {
 	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.type === 'time'));
 	const entityPretty = entityOptions.map(entityName);
 	const seriesCols = state.type === 'clone' && columns.filter(c => (state.poi ?? state.entity) === c.table);
-	const seriesOptions = seriesCols ? seriesCols.map(c => c.table !== tables[0] ? c.id.replace(c.table+'_','') : c.id) : Object.keys(series);
+	const seriesOptions = seriesCols ? seriesCols.map(c => c.id.replace(c.table.split('_').map(t=>t[0]).join('')+'_','')) : Object.keys(series);
 	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : Object.values(series);
 	const poiOptions = seriesCols ? tables : ['extremum'].concat(entityOptions);
 	const poiPretty = seriesCols ? tables.map(entityName) : ['<Extremum>'].concat(entityPretty);

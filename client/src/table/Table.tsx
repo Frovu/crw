@@ -71,7 +71,7 @@ type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateActio
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOpt: OptionsSetter }>({} as any);
 
 function defaultSettings(): Settings {
-	const SHOW = ['time', 'onset_type', 'magnitude', 'v_max', 'bz_min', 'ap_max', 'axy_max', 'solar_sources_type', 'solar_sources_description'];
+	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_g_max_sw_speed', 'fe_g_value_sw_speed_fe_1b', 'fe_g_min_imf_z', 'fe_g_max_kp_index', 'fe_g_max_axy', 'ss_type', 'ss_description', 'ss_confidence'];
 	return {
 		theme: 'Dark',
 		enabledColumns: SHOW,
@@ -208,7 +208,7 @@ function CoreWrapper() {
 
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;
-		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['time', 'onset_type', 'magnetic_clouds_time', 'magnetic_clouds_duration'].map(c => columns.findIndex(cc => cc.id === c));
+		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[plotIdx][timeIdx];
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
 		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
