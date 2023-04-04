@@ -272,13 +272,9 @@ def compute_generic(generic):
 					for i in range(length):
 						if slice_len[i] > 1:
 							window = value[left[i]:left[i]+slice_len[i]]
-							val = gsm.normalize_variation(window)
+							val = gsm.normalize_variation(window, with_trend=True)
 							idx = fn(val)
 							result[i] = (d_time[left[i] + idx], val[idx])
-						if result[i][1] < -26:
-							print(left[i], slice_len[i])
-							print(datetime.utcfromtimestamp(d_time[left[i]]))
-							print(datetime.utcfromtimestamp(result[i][0]))
 				else:
 					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
@@ -320,7 +316,7 @@ def compute_generic(generic):
 						window = data_value[left[i]:left[i]+sl]
 						times  = data_time[left[i]:left[i]+sl]
 						if len(window) < sl: continue
-						values = gsm.normalize_variation(window)
+						values = gsm.normalize_variation(window, with_trend=True)
 						idx = np.searchsorted(times, start_hour[i])
 						wslice = values[idx:idx+window_len]
 						per_hour[i,] = values[idx:idx+window_len]
