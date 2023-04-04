@@ -1,19 +1,26 @@
 from core.database import pool
 import numpy as np
 
-series = ['A10', 'A10m', 'Ax', 'Ay', 'Az', 'Axy']
+series = ['a10', 'a10m', 'ax', 'ay', 'az', 'axy']
 
 with pool.connection() as conn:
-	conn.execute('''CREATE TABLE IF NOT EXISTS gsm_result (
+	conn.execute(f'''CREATE TABLE IF NOT EXISTS gsm_result (
 	time TIMESTAMPTZ NOT NULL UNIQUE,
-	A10 REAL, A10m REAL, Ax REAL, Ay REAL, Az REAL, Axy REAL)''')
+	{', '.join([s+' REAL' for s in series])},
+	is_gle BOOL NOT NULL DEFAULT 'f')''')
 
-def select(interval: [int, int], what=None):
-	if not what: what = 'A10m,A10,Ax,Ay,Az,Axy'
+def select(interval: [int, int], what='A10m', mask_gle=True):
+	if type(what) is not list:
+		what = [what]
+	what = [s for s in what if s.lower() in series]
 	with pool.connection() as conn:
-		q = f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {what} FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s) ORDER BY time'
+		where = ''
+		q = f'''SELECT EXTRACT(EPOCH FROM time)::integer as time,{",".join(what)} FROM (
+			SELECT time, {",".join(what)} FROM gsm_result {'WHERE not is_gle' if mask_gle else ''}
+			{f'UNION SELECT time,{",".join(["NULL" for w in what])} FROM gsm_result where is_gle' if mask_gle else ''}
+		) as res WHERE res.time >= to_timestamp(%s) AND res.time <= to_timestamp(%s) ORDER BY res.time'''
 		curs = conn.execute(q, interval)
-		return np.array(curs.fetchall()), [desc[0] for desc in curs.description]
+		return np.array(curs.fetchall(), dtype='f8'), [desc[0] for desc in curs.description]
 
 def normalize_variation(data):
 	d_max = np.nanmax(data)

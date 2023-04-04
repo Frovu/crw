@@ -213,7 +213,7 @@ def _select(t_from, t_to, series):
 	if SERIES[series][0] == 'omni':
 		return omni.select(interval, [series])[0]
 	else:
-		return gsm.select(interval, series)[0]
+		return gsm.select(interval, [series])[0]
 
 def apply_shift(a, shift):
 	if shift == 0:
@@ -275,6 +275,10 @@ def compute_generic(generic):
 							val = gsm.normalize_variation(window)
 							idx = fn(val)
 							result[i] = (d_time[left[i] + idx], val[idx])
+						if result[i][1] < -26:
+							print(left[i], slice_len[i])
+							print(datetime.utcfromtimestamp(d_time[left[i]]))
+							print(datetime.utcfromtimestamp(result[i][0]))
 				else:
 					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
