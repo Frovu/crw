@@ -57,6 +57,15 @@ export default function Help() {
 		<p>Parameters description?</p>
 		<h2>Advanced usage</h2>
 		<h4>Comprehend generic columns</h4>
+		<p>
+			WIP
+		</p>
+		<p>
+			For clone and offset (time_to*) columns shift value defines shift in events.
+		</p>
+		<p>
+			
+		</p>
 		<h4>Manage samples</h4>
 		<h2>Other obscure knowledge</h2>
 		<h4>Histogram</h4>

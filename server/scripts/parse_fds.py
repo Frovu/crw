@@ -173,5 +173,4 @@ DROP TABLE IF EXISTS events.coronal_holes CASCADE;
 DROP TABLE IF EXISTS events.forbush_effects CASCADE;
 DROP TABLE IF EXISTS events.coronal_mass_ejections CASCADE;
 DROP TABLE IF EXISTS events.solar_sources CASCADE;
-DROP TABLE IF EXISTS events.coronal_holes CASCADE;
 '''

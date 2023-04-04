@@ -5,7 +5,8 @@ import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
-const TYPE_OPTIONS = ['value', 'range', 'time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'coverage'] as const;
+const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', 'range', ...EXTREMUM_OPTIONS, 'clone', 'coverage'] as const;
+const TYPE_WITH_SHIFT = ['value', 'clone', 'time_to', 'time_to_%'];
 
 function GenericCard({ column }: { column: ColumnDef }) {
 	const queryClient = useQueryClient();
@@ -53,7 +54,7 @@ export function GenericsSelector() {
 	const { set: setSetting } = useContext(SettingsContext);
 	const [state, setInputState] = useState(() => ({
 		entity: tables[0],
-		type: null as string | null,
+		type: null as typeof TYPE_OPTIONS[number] | null,
 		series: null as string | null,
 		poi: null as string | null,
 		poiType: 'max',
@@ -70,7 +71,7 @@ export function GenericsSelector() {
 			entity, type,
 			...(!type?.includes('time') && { series: state.series }),
 			...(!EXTREMUM_OPTIONS.includes(type as any) && { poi }),
-			...(type === 'value' && { shift })
+			...(TYPE_WITH_SHIFT.includes(type!) && { shift })
 		};
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/add`, {
 			method: 'POST', credentials: 'include',
@@ -91,6 +92,9 @@ export function GenericsSelector() {
 	const entityPretty = entityOptions.map(entityName);
 	const poiOptions = ['extremum'].concat(entityOptions);
 	const poiPretty = ['<Extremum>'].concat(entityPretty);
+	const seriesCols = state.type === 'clone' && columns.filter(c => (state.poi ?? state.entity) === c.table);
+	const seriesOptions = seriesCols ? seriesCols.map(c => c.table !== tables[0] ? c.id.replace(c.table+'_','') : c.id) : Object.keys(series);
+	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : seriesOptions;
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;
@@ -107,11 +111,11 @@ export function GenericsSelector() {
 					<h3 style={{ margin: '0 4px 1em 0' }}>Create custom column</h3>
 					<MenuSelect text='Entity' value={state.entity} options={entityOptions} pretty={entityPretty} callback={set('entity')} width={'9.9em'}/>
 					<MenuSelect text='Type' value={state.type} options={TYPE_OPTIONS} withNull={true} callback={set('type')} width={'9.9em'}/>
-					{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={Object.keys(series)} withNull={true} pretty={Object.values(series)} callback={set('series')} width={'9.9em'}/>}
+					{!state.type?.includes('time') && <MenuSelect text='Series' value={state.series} options={seriesOptions} withNull={true} pretty={seriesPretty} callback={set('series')} width={'9.9em'}/>}
 					{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
 					{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
-					{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={Object.keys(series)} pretty={Object.values(series)} callback={set('poiSeries')} width={'9.9em'}/>}
-					{state.type === 'value' && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
+					{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={seriesOptions} pretty={seriesOptions} callback={set('poiSeries')} width={'9.9em'}/>}
+					{TYPE_WITH_SHIFT.includes(state.type!) && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
 					<div>
 						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={() => mutate(null, {
 							onSuccess: (res) => {

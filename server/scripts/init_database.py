@@ -1,6 +1,6 @@
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../core'))
-from database import pool, tables_info
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
+from core.database import pool, tables_info
 
 def enum_name(table, column):
 	return f'enum_{table}_{column}'
