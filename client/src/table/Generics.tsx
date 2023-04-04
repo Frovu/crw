@@ -94,7 +94,7 @@ export function GenericsSelector() {
 	const poiPretty = ['<Extremum>'].concat(entityPretty);
 	const seriesCols = state.type === 'clone' && columns.filter(c => (state.poi ?? state.entity) === c.table);
 	const seriesOptions = seriesCols ? seriesCols.map(c => c.table !== tables[0] ? c.id.replace(c.table+'_','') : c.id) : Object.keys(series);
-	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : seriesOptions;
+	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : Object.values(series);
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;

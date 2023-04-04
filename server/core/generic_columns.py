@@ -77,14 +77,14 @@ class GenericColumn:
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
-			poi = 'ons' if self.poi == self.entity else ''.join([a[0].upper() for a in self.poi.split('_')])
+			poi = ''.join([a[0].upper() for a in self.poi.split('_')])
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if poi != "ons" else "event onset"
 		if self.type == 'value':
-			self.pretty_name = f'{series} [{poi}]'
+			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
 			if self.shift and self.shift != 0:
 				if abs(self.shift) == 1:
 					self.description = f'Value of {ser_desc} one hour {"before" if self.shift<0 else "after"} {poi_desc}'
@@ -97,7 +97,8 @@ class GenericColumn:
 			self.pretty_name = f'coverage [{series}]'
 			self.description = f'Coverage percentage of {ser_desc} between onset and event end | next event | +{MAX_EVENT_LENGTH_H}h'
 		elif 'time' in self.type:
-			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}]"
+			shift = f"{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}" if self.shift != 0 else ''
+			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
 			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
 		elif 'clone' == self.type:
 			self.pretty_name = f"{self.series} of [{''.join([a[0].upper() for a in self.poi.split('_')])}{'+' if self.shift > 0 else '-'}{abs(int(self.shift))}]"
@@ -184,6 +185,16 @@ def _select(t_from, t_to, series):
 	else:
 		return gsm.select(interval, series)[0]
 
+def apply_shift(a, shift):
+	if shift == 0:
+		return a
+	res = np.full_like(a, np.nan)
+	if shift > 0:
+		res[:-shift] = a[shift:]
+	else:
+		res[-shift:] = a[:shift]
+	return res
+
 def compute_generic(generic):
 	try:
 		t_start = time()
@@ -191,16 +202,10 @@ def compute_generic(generic):
 		if generic.type == 'clone':
 			# FIXME: gently check if column exists
 			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series)
-			print(target_value)
-			result = np.full_like(target_value, np.nan)
-			shift = int(generic.shift)
-			if shift > 0:
-				result[:-shift] = target_value[shift:]
-			else:
-				result[-shift:] = target_value[:shift]
+			result = apply_shift(target_value, generic.shift)
 		else:
 			target_entity = generic.poi if generic.poi in ENTITY_POI and generic.poi != generic.entity else None
-			event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, generic.poi) # 50 ms
+			event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 				data_time, data_value = data_series[:,0], data_series[:,1]
@@ -243,19 +248,14 @@ def compute_generic(generic):
 
 			if generic.poi in ENTITY_POI:
 				poi_time = event_start if generic.poi == generic.entity else target_time
-			elif generic.poi in ['next', 'previous']:
-				offset = 1 if generic.poi == 'next' else -1
-				poi_time = np.full(length, np.nan)
-				if generic.poi == 'next':
-					poi_time[:-1] = event_start[1:]
-				else:
-					poi_time[1:] = event_start[:-1]
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
 				poi_time = find_extremum(typ, ser)[:,0]
 
 			if 'time_to' in generic.type:
-				result = (poi_time - event_start) / HOUR
+				shift = generic.shift
+				s_poi_time = apply_shift(poi_time, shift)
+				result = (s_poi_time - event_start) / HOUR
 				if '%' in generic.type:
 					result = result / event_duration * 100
 			elif generic.type in EXTREMUM_TYPES:
