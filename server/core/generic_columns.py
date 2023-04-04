@@ -13,7 +13,7 @@ import numpy as np
 log = logging.getLogger('aides')
 
 HOUR = 3600
-MAX_EVENT_LENGTH_H = 48
+MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 NO_POI_TYPES = ['range', 'coverage', *EXTREMUM_TYPES]

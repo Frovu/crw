@@ -25,7 +25,8 @@ def select(interval: [int, int], what='A10m', mask_gle=True):
 def normalize_variation(data, with_trend=False):
 	if with_trend:
 		xs = np.arange(len(data))
-		trend = np.polyfit(xs, data, 1)
+		mask = np.isfinite(data)
+		trend = np.polyfit(xs[mask], data[mask], 1)
 		if trend[0] > 0:
 			ys = np.poly1d(trend)(xs)
 			data = data - ys + ys[0]
