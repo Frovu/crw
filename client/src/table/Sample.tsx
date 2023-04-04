@@ -170,7 +170,7 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
 		if (!cursorColumn)
-			return [...fltrs, { filter: { column: 'magnitude', operation: '>=', value: '3' }, id: Date.now() }];
+			return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
 		const column = cursorColumn;
 		const val = cursorValue;
 		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
@@ -233,7 +233,7 @@ export function SampleMenu() {
 
 	const setFilters = (fn: (a: FilterWithId[]) => FilterWithId[]) => setSample(st => st && ({ ...st, filters: st.filters && fn(st.filters) }));
 	const newFilter = () => setSample(st => st && ({ ...st, filters: [
-		...(st.filters ?? []), { ...(st.filters?.length ? st.filters[st.filters.length-1] : { column: 'magnitude', operation: '>=', value: '3' }), id: Date.now() }
+		...(st.filters ?? []), { ...(st.filters?.length ? st.filters[st.filters.length-1] : { column: 'fe_magnitude', operation: '>=', value: '3' }), id: Date.now() }
 	] }));
 
 	const unsavedChanges = !samples.some(s => stateJson === JSON.stringify(s));

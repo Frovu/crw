@@ -363,7 +363,7 @@ def recompute_generics(generics, columns=None):
 	if type(generics) != list:
 		generics = [generics]
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(compute_generic, generics, columns)
+		res = executor.map(compute_generic, generics, columns) if columns else executor.map(compute_generic, generics)
 	return any(res)
 		
 def init_generics():
@@ -422,7 +422,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', int(shift) if shift else 0, uid]).fetchone()
 		generic = GenericColumn(*row)
-		if next((g for g in PRESET_GENERICS.values() if g.name == generic.name)):
+		if next((g for g in PRESET_GENERICS.values() if g.name == generic.name), None):
 			conn.rollback()
 			raise ValueError('Column exists')
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
