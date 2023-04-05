@@ -17,7 +17,7 @@ export default function Help() {
 			Table navigation is performed by moving the <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> with <b>arrow keys</b>. Home, End, PgUp, PgDown work aswell. <b>Ctrl + Home/End</b> moves the cursor to the start/end of the table. Table can also be scrolled vertically using mousewheel, this unsets cursor when scrolled out of view.
 		</p>
 		<p>
-			Tip: When <b>{KEY_COMB.plot}</b> (plot) key is pressed and cursor is not set, cursor will be set to the <span style={{ color: 'var(--color-cyan)' }}>plotted row</span>
+			Tip: When <b>{KEY_COMB.plot}</b> (plot) key is pressed and cursor is not set, cursor will be set to the <span style={{ color: 'var(--color-cyan)' }}>plotted row</span>. Press Escape first to ensure cursor removal.
 		</p>
 		<h4>One who seeks shall find</h4>
 		<p>
@@ -64,9 +64,10 @@ export default function Help() {
 			For clone and offset (time_to*) columns shift value defines shift in events.
 		</p>
 		<p>
-			
+			Extremum search with bound as POI always rounds down
 		</p>
 		<h4>Manage samples</h4>
+
 		<h2>Other obscure knowledge</h2>
 		<h4>Histogram</h4>
 		Histogram range is determined automatically based on sample. It can not know anything about your filters so it is left to work with [a;b] type intervals. The following algorithm is applied here: if samples maximum value is distinct (count=1), then it <u>is discarded</u>, otherwise the range is adjusted to include a separate bin of this maximum values. Such behavior is targeted at integer or stepped data like Kp or SStype.

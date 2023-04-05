@@ -72,7 +72,7 @@
 		},
 		"vmbm": {
 			"name": "VmBm",
-			"description": "Vmax * Bmax / Vbef / Bbef"
+			"description": "Vmax / 400 * Bmax / 5"
 		},
 		"ap_max": {
 			"generic": {

@@ -19,6 +19,7 @@ Column parameters:
 - `name` specifies the column name visible by user (equal to column_name by default)
 - `type` time|integer|real|text|enum, real by default
 - `enum` [] an array of possible enum values
+- `generic` generic column parameters
 - `references` sql foreign key constraint
 - `description` column descrption visible by user
 - `parse_name` column name to parse from .txt export

@@ -4,9 +4,9 @@ import numpy as np
 
 def _compute_vmbm(entity='forbush_effects'):
 	with pool.connection() as conn:
-		curs = conn.execute(f'SELECT id, v_max, b_max, v_before, b_before FROM events.{entity}')
+		curs = conn.execute(f'SELECT id, v_max, b_max FROM events.{entity}')
 		data = np.array(curs.fetchall(), dtype='f8')
-		result = data[:,1] * data[:,2] / data[:,3] / data[:,4]
+		result = data[:,1] * data[:,2] / 5 / 400
 
 		data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), data[:,0].astype('i8'))).tolist() 
 		q = f'UPDATE events.{entity} SET vmbm = %s WHERE {entity}.id = %s'

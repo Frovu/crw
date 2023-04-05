@@ -15,9 +15,10 @@ HOUR = 3600
 MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
-NO_POI_TYPES = ['range', 'coverage', *EXTREMUM_TYPES]
-WITH_POI_TYPES = ['value', 'clone', 'time_to_%', 'time_to']
+GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone']
+
 ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
+ENTITY_POI += ['end_' + t for t in ENTITY_POI if 'duration' in tables_info[t]]
 
 SERIES = { # order matters !!!
 	'sw_speed': ['omni', 'V'],
@@ -204,6 +205,8 @@ def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'
 		query.append((entity, 'duration'))
 	if target_entity and not target_column:
 		query.append((target_entity, 'time'))
+	if target_entity and not target_column and 'duration' in tables_info[target_entity]:
+		query.append((target_entity, 'duration'))
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' == c else f'{e}.{c}' for e, c in query])
 	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
 	with pool.connection() as conn:
@@ -211,7 +214,8 @@ def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'
 		res = np.array(curs.fetchall(), dtype=dtype)
 		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
 		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
-		return res[:,0], res[:,1], duration, t_time
+		t_dur = res[:,query.index((target_entity, 'duration'))] if (target_entity, 'duration') in query else None
+		return res[:,0], res[:,1], duration, t_time, t_dur
 
 def select_generics(user_id=None):
 	with pool.connection() as conn:
@@ -238,18 +242,20 @@ def apply_shift(a, shift, stub=np.nan):
 		res[-shift:] = a[:shift]
 	return res
 
+# all data is presumed to be continuos
 def compute_generic(generic, col_name=None):
 	try:
 		t_start = time()
 		log.info(f'Computing {generic.name}')
 		if generic.type == 'clone':
 			# FIXME: gently check if column exists
-			event_id, target_value, _, _ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
+			event_id, target_value, _,_,_ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
 			result = apply_shift(target_value, generic.shift, stub=None)
 			data = np.column_stack((result, event_id.astype(int))).tolist()
 		else:
-			target_entity = generic.poi if generic.poi in tables_info and generic.poi != generic.entity else None
-			event_id, event_start, event_duration, target_time = _select_recursive(generic.entity, target_entity) # 50 ms
+			is_self_poi = generic.poi.endswith(generic.entity)
+			target_entity = generic.poi if generic.poi in ENTITY_POI and not is_self_poi else None
+			event_id, event_start, event_duration, target_time, target_duration = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 				data_time, data_value = data_series[:,0], data_series[:,1]
@@ -271,18 +277,22 @@ def compute_generic(generic, col_name=None):
 					slice_len += 2
 				slice_len[start_hour + slice_len*HOUR < d_time[0]] = 0 # eh
 				return left, slice_len
+
+			def get_poi_windows(d_time, poi_time):
+				left_hour = np.floor(np.minimum(event_start, poi_time) / HOUR) * HOUR
+				rigth_time = np.maximum(event_start, poi_time)
+				slice_len = np.floor((rigth_time - left_hour) / HOUR)
+				left = np.searchsorted(d_time, left_hour, side='left')
+				slice_len[left_hour + slice_len*HOUR < d_time[0]] = 0 # eh
+				return left, slice_len
 			
-			def find_extremum(typ, ser):
+			def find_extremum(typ, ser, left, slice_len, data=data_series):
 				is_max, is_abs = 'max' in typ, 'abs' in typ
-				data = data_series if ser == generic.series else \
-					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
 				d_time, value = data[:,0], data[:,1]
 				result = np.full((length, 2), np.nan, dtype='f8')
-				left, slice_len = get_event_windows(d_time, ser)
 				value = np.abs(value) if is_abs else value
 				fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
 				if ser in ['a10', 'a10m']:
-					# slice_len = np.minimum(slice_len, MAX_EVENT_LENGTH_H) # halve window size for CR intensity
 					for i in range(length):
 						if slice_len[i] > 1:
 							window = value[left[i]:left[i]+slice_len[i]]
@@ -295,11 +305,25 @@ def compute_generic(generic, col_name=None):
 					result[nonempty] = data[left + idx][nonempty]
 				return result
 
+			# compute poi time if poi present
 			if generic.poi in ENTITY_POI:
-				poi_time = event_start if generic.poi == generic.entity else target_time
+				poi_time = event_start if is_self_poi else target_time
+				if generic.poi.startswith('end'):
+					poi_time += (event_duration if is_self_poi else target_duration) * HOUR
+				left, slice_len = None, None
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
-				poi_time = find_extremum(typ, ser)[:,0]
+				left, slice_len = get_event_windows(data_time, ser)
+				data = data_series if ser == generic.series else \
+					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
+				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
+
+			# compute target windows if needed
+			if 'time_to' not in generic.type and generic.type != 'value':
+				if generic.poi:
+					target_left, target_slen = get_poi_windows(data_time, poi_time)
+				else:
+					target_left, target_slen = get_event_windows(data_time, generic.series)
 
 			if 'time_to' in generic.type:
 				shift = generic.shift
@@ -308,11 +332,24 @@ def compute_generic(generic, col_name=None):
 				if '%' in generic.type:
 					result = result / event_duration * 100
 			elif generic.type in EXTREMUM_TYPES:
-				result = find_extremum(generic.type, generic.series)[:,1]
+				result = find_extremum(generic.type, generic.series, target_left, target_slen)[:,1]
+			elif generic.type in ['mean', 'median']:
+				result = np.full(length, np.nan, dtype='f8')
+				fn = np.nanmean if generic.type == 'mean' else np.nanmedian
+				for i in range(length):
+					if target_slen[i] < 1: continue
+					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
+					result[i] = fn(window)
 			elif generic.type == 'range':
-				r_max = find_extremum('max', generic.series)[:,1]
-				r_min = find_extremum('min', generic.series)[:,1]
+				r_max = find_extremum('max', generic.series, target_left, target_slen)[:,1]
+				r_min = find_extremum('min', generic.series, target_left, target_slen)[:,1]
 				result = r_max - r_min
+			elif generic.type == 'coverage':
+				result = np.full(length, np.nan, dtype='f8')
+				for i in range(length):
+					if target_slen[i] < 1: continue
+					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
+					result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
 			elif generic.type == 'value':
 				result = np.full(length, np.nan, dtype='f8')
 				poi_hour = np.floor(poi_time / HOUR) * HOUR
@@ -321,7 +358,7 @@ def compute_generic(generic, col_name=None):
 				window_len = max(1, abs(shift))
 				per_hour = np.full((length, window_len), np.nan, dtype='f8')
 				if generic.series in ['a10', 'a10m']:
-					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH)
+					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH) # this is questionable
 					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
 					slice_len[poi_time - MAX_EVENT_LENGTH < data_time[0]] = 0 # eh
 					for i in range(length):
@@ -341,11 +378,9 @@ def compute_generic(generic, col_name=None):
 				nan_threshold = np.floor(window_len / 2)
 				filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
 				result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
-			elif generic.type == 'coverage':
-				left, slice_len = get_event_windows(data_time, generic.series)
-				result = np.array([np.count_nonzero(~np.isnan(data_value[left[i]:left[i]+slice_len[i]])) for i in range(length)]) / slice_len * 100
 			else:
 				assert False
+
 			if generic.series == 'kp_index':
 				result[result != None] /= 10
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist() 
