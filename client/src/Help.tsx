@@ -61,7 +61,7 @@ export default function Help() {
 			WIP
 		</p>
 		<p>
-			For clone and offset (time_to*) columns shift value defines shift in events.
+			For clone and offset (time_to*) columns shift value defines shift in events for all the rest it is shift in hours from POI.
 		</p>
 		<p>
 			Extremum search with bound as POI always rounds down

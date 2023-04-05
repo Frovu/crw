@@ -17,8 +17,9 @@ MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone']
 
-ENTITY_POI = [t for t in tables_info if 'time' in tables_info[t]]
-ENTITY_POI += ['end_' + t for t in ENTITY_POI if 'duration' in tables_info[t]]
+ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
+ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
+ENTITY_POI = ENTITY + ['end_' + t for t in ENTITY_WITH_DURATION]
 
 SERIES = { # order matters !!!
 	'sw_speed': ['omni', 'V'],
@@ -120,12 +121,13 @@ class GenericColumn:
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
-			poi = ENTITY_SHORT[self.poi].upper()
+			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + ('end' if 'end_' in self.poi else '')
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
-		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if poi != "ons" else "event onset"
+		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
+		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if self.poi != self.entity else "event onset"
 		if self.type == 'value':
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
 			if self.shift and self.shift != 0:
@@ -136,9 +138,6 @@ class GenericColumn:
 				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
 			else:
 				self.description = f'Value of {ser_desc} at the hour of {poi_desc}'
-		elif 'coverage' == self.type:
-			self.pretty_name = f'coverage [{series}]'
-			self.description = f'Coverage percentage of {ser_desc} between onset and event end | next event | +{MAX_EVENT_LENGTH_H}h'
 		elif 'time' in self.type:
 			shift = f"{shift_indicator(self.shift)}" if self.shift != 0 else ''
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
@@ -149,9 +148,22 @@ class GenericColumn:
 			self.pretty_name = f"[{poi}{shift_indicator(self.shift)}] {pretty}"
 			self.description = f'Parameter cloned from associated {self.poi[:-1]} of other event'
 		else:
-			self.pretty_name = f'{series} {self.type.split("_")[-1]}'
-			self.description = ('Maximum' if 'max' in self.type else 'Minimum') + (' absolute' if 'abs' in self.type else '') +\
-				f' value of {ser_desc} between onset and event end | next | +{MAX_EVENT_LENGTH_H}h'
+			if 'coverage' == self.type:
+				self.pretty_name = f'coverage [{series}]' + (f' to {poi_h}' if poi else '')
+				self.description = f'Coverage percentage of {ser_desc}'
+			else:
+				self.pretty_name = f'{series} {self.type.split("_")[-1]}' + (f' [to {poi_h}]' if poi else '')
+				if 'range' == self.type:
+					self.description = f'Range of values of {ser_desc}'
+				else:
+					name = self.type.split('_')[-1]
+					name = next((n for n in ['Maximum', 'Minimum', 'Mean', 'Median'] if name in n.lower()))
+					self.description = name + (' absolute' if 'abs' in self.type else '') + f' value of {ser_desc}'
+			event = ENTITY_SHORT[self.entity].upper()
+			if self.entity in ENTITY_WITH_DURATION:
+				self.description += ' inside ' + event
+			else:
+				self.description += f' between {event} start and ' + (poi_h if poi else f'{event} end | next {event} | +{MAX_EVENT_LENGTH_H}h')
 
 with pool.connection() as conn:
 	conn.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
@@ -254,7 +266,7 @@ def compute_generic(generic, col_name=None):
 			data = np.column_stack((result, event_id.astype(int))).tolist()
 		else:
 			is_self_poi = generic.poi.endswith(generic.entity)
-			target_entity = generic.poi if generic.poi in ENTITY_POI and not is_self_poi else None
+			target_entity = generic.poi.replace('end_', '') if generic.poi in ENTITY_POI and not is_self_poi else None
 			event_id, event_start, event_duration, target_time, target_duration = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
@@ -279,9 +291,10 @@ def compute_generic(generic, col_name=None):
 				return left, slice_len
 
 			def get_poi_windows(d_time, poi_time):
-				left_hour = np.floor(np.minimum(event_start, poi_time) / HOUR) * HOUR
-				rigth_time = np.maximum(event_start, poi_time)
-				slice_len = np.floor((rigth_time - left_hour) / HOUR)
+				p_time = poi_time - generic.shift * HOUR
+				left_hour = np.floor(np.minimum(event_start, p_time) / HOUR) * HOUR
+				rigth_time = np.maximum(event_start, p_time)
+				slice_len = np.floor((rigth_time - left_hour) / HOUR).astype('i8')
 				left = np.searchsorted(d_time, left_hour, side='left')
 				slice_len[left_hour + slice_len*HOUR < d_time[0]] = 0 # eh
 				return left, slice_len
@@ -412,24 +425,26 @@ def init_generics():
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info or not gtype:
 		raise ValueError('Unknown entity')
-	if entity not in ENTITY_POI:
+	if entity not in ENTITY:
 		raise ValueError('Entity doesn\'t know time')
 	if 'time' not in gtype and 'clone' != gtype and series not in SERIES:
 		raise ValueError('Unknown series')
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')
 
-	if gtype in NO_POI_TYPES or poi in ENTITY_POI:
-		poi_type, poi_series = poi, None
-	elif gtype != 'clone': # underscore between parts is not checked hence identical generics can coexist (so what?)
+	if poi and poi not in ENTITY_POI: # underscore between parts is not checked hence identical generics can coexist (so what?) (I already dont get it ~7 days after..)
 		poi_type, poi_series = parse_extremum_poi(poi)
 		if not poi_type or poi_series not in SERIES:
 			raise ValueError('Could not parse poi')
+	if poi == 'end_' + entity:
+		poi = None
+	if poi == entity and gtype != 'value':
+		raise ValueError('Always empty window')
+	if not poi and shift:
+		raise ValueError('Shift without POI')
 
-	if gtype == 'value':
-		pass
 	elif 'clone' == gtype:
-		if poi not in ENTITY_POI:
+		if poi not in ENTITY:
 			raise ValueError('Not an entity POI')
 		if not shift or shift == 0:
 			raise ValueError('Shift should not be 0')
@@ -438,20 +453,16 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		generics = select_generics(uid)
 		if series not in tables_info[poi] and not next((g for g in generics if g.entity == poi and g.name == series), False):
 			raise ValueError('Target column not found')
-	elif 'coverage' == gtype:
-		if poi or shift:
-			raise ValueError('Coverage does not support poi/shift')
 	elif 'time_to' in gtype:
+		if not poi:
+			raise ValueError('POI is required')
 		if series:
 			raise ValueError('Time_to does not support series')
 		if shift and poi not in ENTITY_POI:
 			raise ValueError('Shift with extremum not supported')
 		if '%' in gtype and 'duration' not in tables_info[entity]:
 			raise ValueError('Time fractions not supported')
-	elif gtype in NO_POI_TYPES:
-		if poi or shift:
-			raise ValueError('Extremum does not support poi/shift')
-	else:
+	elif gtype not in GENERIC_TYPES:
 		raise ValueError('Unknown type')
 
 	with pool.connection() as conn:
@@ -465,7 +476,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	if len(generic.users) == 1:
 		recompute_generics(generic)
-	log.info(f'Generic added by user ({uid}): {entity}, {series}, {gtype}, {poi}, {shift}')
+	log.info(f'Generic added by user ({uid}): {generic.pretty_name} ({generic.entity})')
 	return generic
 
 def remove_generic(uid, gid):

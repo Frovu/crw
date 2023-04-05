@@ -5,8 +5,7 @@ import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
-const TYPE_OPTIONS = ['value', 'time_to', 'time_to_%', 'range', ...EXTREMUM_OPTIONS, 'clone', 'coverage'] as const;
-const TYPE_WITH_SHIFT = ['value', 'clone', 'time_to', 'time_to_%'];
+const TYPE_OPTIONS = ['time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'mean', 'median', 'range', 'value', 'clone', 'coverage'] as const;
 
 function GenericCard({ column }: { column: ColumnDef }) {
 	const queryClient = useQueryClient();
@@ -70,8 +69,8 @@ export function GenericsSelector() {
 		const body = {
 			entity, type,
 			...(!type?.includes('time') && { series: state.series }),
-			...(!EXTREMUM_OPTIONS.includes(type as any) && { poi }),
-			...(TYPE_WITH_SHIFT.includes(type!) && { shift })
+			...(poi && { poi }),
+			...(shift && { shift })
 		};
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/add`, {
 			method: 'POST', credentials: 'include',
@@ -87,14 +86,15 @@ export function GenericsSelector() {
 		return await res.json();
 	}, ['tableStructure', 'tableData']);
 
-	const showPoi = !['range', 'coverage', null].concat(EXTREMUM_OPTIONS).includes(state.type as any);
-	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.type === 'time'));
+	const showPoi = true; // !['range', 'coverage', null].concat(EXTREMUM_OPTIONS).includes(state.type as any);
+	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const entityPretty = entityOptions.map(entityName);
 	const seriesCols = state.type === 'clone' && columns.filter(c => (state.poi ?? state.entity) === c.table);
 	const seriesOptions = seriesCols ? seriesCols.map(c => c.id.replace(c.table.split('_').map(t=>t[0]).join('')+'_','')) : Object.keys(series);
 	const seriesPretty = seriesCols ? seriesCols.map(c => c.name) : Object.values(series);
-	const poiOptions = seriesCols ? tables : ['extremum'].concat(entityOptions);
-	const poiPretty = seriesCols ? tables.map(entityName) : ['<Extremum>'].concat(entityPretty);
+	const poiEntityEnd = entityOptions.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
+	const poiOptions = seriesCols ? tables : ['extremum'].concat(entityOptions.concat(poiEntityEnd.map(t => 'end_' + t)));
+	const poiPretty = seriesCols ? tables.map(entityName) : ['<Extremum>'].concat(entityPretty.concat(poiEntityEnd.map(t => entityName(t).replace(/([A-Z])[a-z ]+/g, '$1') + ' End')));
 	const userGenerics = columns.filter(c => c.user_generic_id);
 	const count = userGenerics.length;
 	const height = document.body.offsetHeight - 160;
@@ -115,7 +115,7 @@ export function GenericsSelector() {
 					{showPoi && <MenuSelect text='POI' value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
 					{showPoi && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
 					{showPoi && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={seriesOptions} pretty={seriesOptions} callback={set('poiSeries')} width={'9.9em'}/>}
-					{TYPE_WITH_SHIFT.includes(state.type!) && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
+					{showPoi && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
 					<div>
 						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={() => mutate(null, {
 							onSuccess: (res) => {
