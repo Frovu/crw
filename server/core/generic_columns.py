@@ -121,7 +121,7 @@ class GenericColumn:
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
-			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + ('end' if 'end_' in self.poi else '')
+			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
 		elif self.poi and self.type != 'clone':
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
@@ -271,6 +271,7 @@ def compute_generic(generic, col_name=None):
 			if generic.series:
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
 				data_time, data_value = data_series[:,0], data_series[:,1]
+			else: data_series = None
 			length = len(event_id)
 
 			def get_event_windows(d_time, ser):
@@ -287,17 +288,17 @@ def compute_generic(generic, col_name=None):
 				if ser in ['a10', 'a10m']:
 					left = np.maximum(left - 2, 0) # pick two hours before onset for CR density
 					slice_len += 2
-				slice_len[start_hour + slice_len*HOUR < d_time[0]] = 0 # eh
+				slice_len[np.logical_or(start_hour < d_time[0], start_hour > d_time[-1])] = 0 # eh
 				return left, slice_len
 
 			def get_poi_windows(d_time, poi_time):
 				p_time = poi_time - generic.shift * HOUR
 				left_hour = np.floor(np.minimum(event_start, p_time) / HOUR) * HOUR
 				rigth_time = np.maximum(event_start, p_time)
-				slice_len = np.floor((rigth_time - left_hour) / HOUR).astype('i8')
+				slice_len = np.floor((rigth_time - left_hour) / HOUR)
 				left = np.searchsorted(d_time, left_hour, side='left')
-				slice_len[left_hour + slice_len*HOUR < d_time[0]] = 0 # eh
-				return left, slice_len
+				slice_len[np.logical_or(left_hour < d_time[0], left_hour > d_time[-1])] = 0 # eh
+				return left, np.where(np.isnan(slice_len), 0, slice_len).astype('i8')
 			
 			def find_extremum(typ, ser, left, slice_len, data=data_series):
 				is_max, is_abs = 'max' in typ, 'abs' in typ
@@ -315,7 +316,7 @@ def compute_generic(generic, col_name=None):
 				else:
 					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
-					result[nonempty] = data[left + idx][nonempty]
+					result[nonempty] = data[left[nonempty] + idx[nonempty]]
 				return result
 
 			# compute poi time if poi present
@@ -373,7 +374,7 @@ def compute_generic(generic, col_name=None):
 				if generic.series in ['a10', 'a10m']:
 					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH) # this is questionable
 					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
-					slice_len[poi_time - MAX_EVENT_LENGTH < data_time[0]] = 0 # eh
+					slice_len[np.logical_or(poi_time < d_time[0]-MAX_EVENT_LENGTH, poi_time > d_time[-1])] = 0 # eh
 					for i in range(length):
 						sl = slice_len[i]
 						if not sl: continue
@@ -470,7 +471,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', int(shift) if shift else 0, uid]).fetchone()
 		generic = GenericColumn(*row)
-		if next((g for g in PRESET_GENERICS.values() if g.name == generic.name), None):
+		if next((g for g in PRESET_GENERICS.values() if g.entity == entity and g.name == generic.name), None):
 			conn.rollback()
 			raise ValueError('Column exists')
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
