@@ -127,7 +127,7 @@ export function GenericsSelector() {
 		<div className='Popup' style={{ transform: 'none', maxHeight: '80vh', overflow: 'scroll', padding: '1em 2em 2em 0' }} onClick={e => e.stopPropagation()}>
 			<div style={{ position: 'relative' }}>
 				<div style={{ display: 'inline-grid', gridAutoFlow: 'row', gridTemplateColumns: `repeat(${cols}, auto)`, textAlign: 'right' }}>
-					<span style={{ color: 'var(--color-text-dark)' }}>Click name to copy settings</span>
+					{userGenerics.length > 0 && <span style={{ marginLeft: '.5em', color: 'var(--color-text-dark)' }}>Click name to copy settings</span>}
 					{userGenerics.map(c => <GenericCard key={c.id} column={c} setState={setInputState}/>)}
 				</div>
 				<div style={{ width: '18em', display: 'inline-flex', flexDirection: 'column', textAlign: 'right', gap: '4px' }}>

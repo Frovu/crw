@@ -15,6 +15,7 @@ export const KEY_COMB = {
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
 	'switchViewPlots': 'H',
+	'switchHistCorr': 'J',
 	'switchTheme': 'T',
 } as { [action: string]: string };
 

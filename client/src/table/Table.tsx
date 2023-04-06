@@ -176,6 +176,8 @@ function CoreWrapper() {
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1));
 	useEventListener('action+plotNext', plotMove(+1));
+	useEventListener('action+switchHistCorr', () => ['plotLeft', 'plotTop', 'plotBottom'].forEach(p => set(p as any, was =>
+		was === 'Histogram' ? 'Correlation' : was === 'Correlation' ? 'Histogram' : was )));
 	useEventListener('action+switchViewPlots', () => {
 		if (plotIdx != null) return setPlotIdx(null);
 		setOpt('viewPlots', view => !view);
@@ -184,11 +186,11 @@ function CoreWrapper() {
 		set('theme', theme => themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 
 	useEventListener('setColumn', e => {
-		const which = e.detail.which;
+		const which = e.detail.which, column = e.detail.column.id;
 		const corrKey = which === 1 ? 'columnX' : 'columnY';
-		const histKey = 'column' + Math.min(which - 1, 2);
-		setOpt('correlation', corr => ({ ...corr, [corrKey]: e.detail.column.id }));
-		setOpt('hist', corr => ({ ...corr, [histKey]: e.detail.column.id }));
+		const histKey = 'column' + Math.min(which - 1, 2) as keyof HistOptions;
+		setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
+		setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
 	});
 
 	// I did not know any prettier way to do this

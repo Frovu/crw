@@ -40,8 +40,9 @@ export default function Help() {
 			Statistical plots can be drawn with <b>{KEY_COMB.switchViewPlots}</b> key without selecting any event. To draw any other plot one should press <b>{KEY_COMB.plot}</b> key while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired row of the table. After that one can plot previous or next event by using square bracket keys (note that this does not respect applied filters). When event plots are not needed anymore, one can toggle them off using <b>{KEY_COMB.switchViewPlots}</b> key.
 		</p>
 		<p>
-			Tip: press <b>1-3</b> key while staning in a table cell to quickly adjust histogram or correlation to corresponding column.
+			Tip: press <b>1-3</b> key while staning in a table cell to quickly adjust histogram or correlation to corresponding column. Press again to unset histogram column.
 		</p>
+			Tip: Press <b>{KEY_COMB.switchHistCorr}</b> to cycle between Histogram and Correlation plots.
 		<p>
 			Application provides three color themes, bright and monochrome themes are primarily intended to be used for exporting plot pictures. <b>{KEY_COMB.switchTheme}</b> key can be used to swiftly cycle between themes. In <button>Plot</button> menu dropdown one can also toggle plot grid and series markers on/off.
 		</p>
