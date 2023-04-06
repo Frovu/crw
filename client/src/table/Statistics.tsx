@@ -59,19 +59,18 @@ export function HistogramMenu() {
 	};
 	
 	return (<>
-		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
-		<MenuInput text='Bin count' type='number' min='2' step='1' value={hist.binCount} onChange={set('binCount')}/>
 		{[0, 1, 2].map(i => {
+			const letter = ['A', 'B', 'C'][i];
 			const colKey = 'column' + i as keyof HistOptions;
 			const sampleKey ='sample' + i as keyof HistOptions;
 			return(<Fragment key={colKey}>
-				<h4 key={i}>{['First', 'Second', 'Third'][i]} sample</h4>
-				<MenuSelect key={colKey} text='Column' value={hist[colKey] as string ?? null} callback={set(colKey)} width='10em' options={options} pretty={pretty} withNull={true}/>
-				<MenuSelect key={sampleKey} text='Sample' value={hist[sampleKey] as string} callback={set(sampleKey)} width='10em' options={sampleOptions} pretty={samplePretty}/>
+				<MenuSelect key={colKey} text={'Column '+letter} value={hist[colKey] as string ?? null} callback={set(colKey)} width='10em' options={options} pretty={pretty} withNull={true}/>
+				<MenuSelect key={sampleKey} text={'Sample '+letter} value={hist[sampleKey] as string} callback={set(sampleKey)} width='10em' options={sampleOptions} pretty={samplePretty}/>
 			</Fragment>);})}
-		<h4>Force limits</h4>
-		<MenuInput text='X >=' type='text' defaultValue={hist.forceMin ?? ''} onChange={setBoundary('forceMin')}/>
-		<MenuInput text='X < ' type='text' defaultValue={hist.forceMax ?? ''} onChange={setBoundary('forceMax')}/>
+		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
+		<MenuInput text='Limit X >=' type='text' defaultValue={hist.forceMin ?? ''} onChange={setBoundary('forceMin')}/>
+		<MenuInput text='Limit X < ' type='text' defaultValue={hist.forceMax ?? ''} onChange={setBoundary('forceMax')}/>
+		<MenuInput text='Bin count' type='number' min='2' step='1' value={hist.binCount} onChange={set('binCount')}/>
 	</>);
 }
 

@@ -1,4 +1,4 @@
-import { useState, useContext, Fragment, ReactNode, useMemo } from 'react';
+import { useState, useContext, Fragment, ReactNode, useMemo, CSSProperties } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
 import { CorrelationMenu, HistogramMenu } from './Statistics';
@@ -134,14 +134,14 @@ export function SettingsSelect<T extends keyof Settings>({ what, options, allowE
 	);
 }
 
-function MenuSection({ name, shownSection, setShownSection, children }:
-{ name: string, shownSection: string | null, setShownSection: (s: string | null) => void, children: ReactNode }) {
+function MenuSection({ name, shownSection, setShownSection, children, style }:
+{ name: string, shownSection: string | null, setShownSection: (s: string | null) => void, children: ReactNode, style?: CSSProperties }) {
 	return (
 		<div>
 			<button onClick={e => {setShownSection(name); e.stopPropagation(); }}>
 				{name}
 			</button>
-			{name === shownSection && <div className='MenuDropdown' onClick={e => { e.stopPropagation(); }}>
+			{name === shownSection && <div className='MenuDropdown' style={style} onClick={e => { e.stopPropagation(); }}>
 				{children}
 			</div>}
 		</div>
@@ -222,14 +222,14 @@ export function Menu() {
 					<AuthButton/>
 					{role === 'admin' && <AdminMenu/>}
 				</MenuSection>
-				<MenuSection name='Sample' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Sample' style={{ left: 0 }} {...{ shownSection, setShownSection }}>
 					<SampleMenu/>
 				</MenuSection>
-				<MenuSection name='Export' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Export' style={{ left: '4em' }} {...{ shownSection, setShownSection }}>
 					<h4 style={{ textAlign: 'right' }}>Export table</h4>
 					<ExportMenu/>
 				</MenuSection>
-				<MenuSection name='Plot' {...{ shownSection, setShownSection }}>
+				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
 					<h4>Select plots</h4>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
@@ -261,10 +261,10 @@ export function Menu() {
 					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
 					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
 				</MenuSection>
-				<MenuSection name='Statistics' {...{ shownSection, setShownSection }}>
-					<CorrelationMenu/>
+				<MenuSection name='Statistics' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
 					<h4>Histogram</h4>
 					<HistogramMenu/>
+					<CorrelationMenu/>
 				</MenuSection>
 			</div>
 			{showColumns && <ColumnsSelector/>}
