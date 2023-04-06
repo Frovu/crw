@@ -75,7 +75,7 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 }
 
 export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
-	let xpos = -8, ypos = 0;
+	let xpos = -99, ypos = 0;
 	let xposClick = xpos, yposClick = ypos;
 	let clickx: number|null = null, clicky: number|null = null, drag = false;
 	return (u: uPlot) => {
@@ -85,6 +85,9 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
 		const width = 52 + 8 * maxLabelLen;
 		const height = series.length * 20 + 4;
+
+		if (xpos < -90)
+			xpos = 8 + u.bbox.width - width;
 
 		const x = u.bbox.left + xpos;
 		let y = u.bbox.top + ypos;
