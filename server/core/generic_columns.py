@@ -314,7 +314,8 @@ def compute_generic(generic, col_name=None):
 				else:
 					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
-					result[nonempty] = data[left[nonempty] + idx[nonempty]]
+					didx = left[nonempty] + idx[nonempty]
+					result[nonempty] = np.column_stack((d_time[didx], value[didx]))
 				return result
 
 			# compute poi time if poi present
@@ -325,9 +326,9 @@ def compute_generic(generic, col_name=None):
 				left, slice_len = None, None
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
-				left, slice_len = get_event_windows(data_time, ser)
 				data = data_series if ser == generic.series else \
 					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
+				left, slice_len = get_event_windows(data[:,0], ser)
 				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
 
 			# compute target windows if needed
@@ -395,7 +396,8 @@ def compute_generic(generic, col_name=None):
 
 			if generic.series == 'kp_index':
 				result[result != None] /= 10
-			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), event_id.astype('i8'))).tolist() 
+			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
+			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8'))).tolist() 
 		# FIXME return COALESCE
 		q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
@@ -461,6 +463,9 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Shift with extremum not supported')
 		if '%' in gtype and 'duration' not in tables_info[entity]:
 			raise ValueError('Time fractions not supported')
+	elif gtype in EXTREMUM_TYPES:
+		if 'abs' in gtype and series in ['a10', 'a10m']:
+			raise ValueError('Absolute variation is nonsense')
 	elif gtype not in GENERIC_TYPES:
 		raise ValueError('Unknown type')
 
