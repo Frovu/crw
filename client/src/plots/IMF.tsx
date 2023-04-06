@@ -20,6 +20,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u),
 				drawCustomLegend({
 					'Vsw': 'Vsw, km/s',
 					'|B|': 'IMF |B|, nT',
@@ -32,9 +33,8 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 					'Bx': 'triangleDown',
 					'By': 'triangleUp',
 					'Bz': 'square',
-				 }),
-				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u)
-			],
+				 })
+			]
 		},
 		axes: [
 			{

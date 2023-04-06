@@ -74,6 +74,15 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 }
 
 export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
+	let xpos = -8, ypos = 0;
+	let xposClick = xpos, yposClick = ypos;
+	let clickx: number|null = null, clicky: number|null = null, drag = false;
+	const listens = {} as any;
+	const listen = (what: HTMLElement, event: string, fn: (a: any) => void) => {
+		if (listens[event]) return;
+		listens[event] = fn;
+		what.addEventListener(event, fn);
+	};
 	return (u: uPlot) => {
 		const series = u.series.slice(1).filter(s => s.show) as any;
 		const labels = series.map((s: any) => fullLabels?.[s.label] ?? s.label ?? '???') as string[];
@@ -82,8 +91,8 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 		const width = 52 + 8 * maxLabelLen;
 		const height = series.length * 20 + 4;
 
-		let { left: x, top: y } = u.bbox;
-		x -= 8;
+		const x = u.bbox.left + xpos;
+		let y = u.bbox.top + ypos;
 		u.ctx.save();
 		u.ctx.lineWidth = 2;
 		u.ctx.strokeStyle = color('text-dark');
@@ -109,11 +118,33 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 			u.ctx.fillStyle = color('text');
 			u.ctx.fillText(labels[i], x + 40, y);
 			u.ctx.stroke();
-
 			y += 20;
 		}
-
 		u.ctx.restore();
+
+		listen(u.over, 'mousemove', e => {
+			if (!drag) return;
+			const dx = e.offsetX - clickx!;
+			const dy = e.offsetY - clicky!;
+			xpos = Math.max(-8, Math.min(xposClick + dx, 8 + u.bbox.width - width));
+			ypos = Math.max(0, Math.min(yposClick + dy, 12 + u.bbox.height - height));
+			u.redraw();
+		});
+		listen(u.over, 'mousedown', e => {
+			clickx = e.offsetX;
+			clicky = e.offsetY;
+			if (clickx! > xpos && clickx! < xpos + width && clicky! > ypos && clicky! < ypos + height) {
+				xposClick = xpos;
+				yposClick = ypos;
+				drag = true;
+			}
+		});
+		listen(u.over, 'mouseup', e => {
+			drag = false;
+		});
+		listen(u.over, 'mouseleave', e => {
+			drag = false;
+		});
 	};
 }
 
