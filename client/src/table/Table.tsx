@@ -13,6 +13,7 @@ import PlotGeoMagn from '../plots/Geomagn';
 import HistogramPlot from '../plots/Histogram';
 import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
+import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -37,7 +38,7 @@ export type ColumnDef = {
 };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Solar Wind', 'SW + Plasma', 'Cosmic Rays', 'CR + Geomagn' ] as const;
+export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Solar Wind', 'Cosmic Rays', 'CR Anisotropy', 'SW + Plasma', 'CR + Geomagn' ] as const;
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
@@ -127,6 +128,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 	const boundRight = bound && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...boundRight, ...stretchTop }}>
+			{type === 'CR Anisotropy' && <PlotGSMAnisotropy {...params}/>}
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}

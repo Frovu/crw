@@ -148,3 +148,56 @@ export function markersPaths(type, sizePx) {
 		return { fill: p, stroke: p };
 	};
 }
+
+export function tracePaths(sizePx) {
+	return (u, seriesIdx) => {
+		const size = sizePx * devicePixelRatio;
+		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
+		const height = fullHeight / 2;
+		const width = fullWidth * .85;
+		const dataX = u.data[seriesIdx];
+		const dataY = u.data[seriesIdx+1];
+		const length = dataX.length;
+		const pathX = Array(length), pathY = Array(length);
+		const x0 = dataX[0], y0 = dataY[0];
+		let minx = x0, maxx = x0, miny = y0, maxy = y0;
+		let x = minx, y = miny;
+		for (let i = 0; i < length; i++) {
+			pathX[i] = x;
+			pathY[i] = y;
+			x += dataX[i];
+			y += dataY[i];
+			if (x < minx) minx = x;
+			if (y < miny) miny = y;
+			if (x > maxx) maxx = x;
+			if (y > maxy) maxy = y;
+		}
+		const scalex = width / (maxx - minx);
+		const scaley = height / (maxy - miny);
+		const shiftx = width * .2 - minx * scalex;
+		const shifty = 20 * devicePixelRatio - miny * scaley;
+		console.log(pathX)
+		console.log(minx, miny)
+		console.log(shiftx, shifty)
+
+		// u.ctx.beginPath();
+		// u.ctx.strokeStyle = 'white';
+		// u.ctx.moveTo(left, top);
+		// u.ctx.lineTo(left + width, top + height);
+		// u.ctx.stroke();
+
+		const p = new Path2D();
+		// p.lineTo(left, top)
+		// p.lineTo(left + width, top+height)
+		const deg360 = 2 * Math.PI;
+		// FIXME: gaps
+		for (let i = 0; i < dataX.length; i++) {
+			// const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
+			// const cy = valToPosY(val, scaleY, yDim, yOff);
+			const ax = pathX[i] * scalex + shiftx;
+			const ay = pathY[i] * scaley + shifty;
+			p.lineTo(ax, ay);
+		}
+		return { stroke: p };
+	};
+}
