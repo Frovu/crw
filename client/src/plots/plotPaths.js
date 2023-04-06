@@ -182,18 +182,18 @@ export function tracePaths(sizePx, arrows=true) {
 		const scalex = width / Math.max(xrange, 20);
 		const scaley = height / Math.max(yrange, 20);
 		const shiftx = width * .6 - (minx + xrange / 2) * scalex;
-		const shifty = height / 2 - (miny + yrange / 2) * scaley;
+		const shifty = (top + height / 2) - (miny + yrange / 2) * scaley;
 
 		u.ctx.save(); // 2002 11 01
 		u.ctx.beginPath();
 		u.ctx.strokeStyle = u.series[seriesIdx].stroke();
 		u.ctx.fillStyle = u.ctx.strokeStyle;
 		u.ctx.lineWidth = 2;
-		x = (y > y0 && x > x0) || (y < y0 && x < x0) ? left + width : left;
-		y = top + 40;
+		x = (y > y0 && x > x0) || (y < y0 && x < x0) ? left + fullWidth - 28 : left;
+		y = top + 44;
 		u.ctx.moveTo(x, y);
-		const xarrow = xrange > 30 ? 5 : xrange > 20 ? 3 : 2;
-		const yarrow = yrange > 30 ? 5 : yrange > 20 ? 3 : 2;
+		const xarrow = Math.floor(64 / scalex);
+		const yarrow = Math.floor(64 / scaley);
 		arrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
 		u.ctx.moveTo(x, y);
 		arrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
@@ -204,9 +204,9 @@ export function tracePaths(sizePx, arrows=true) {
 		u.ctx.stroke();
 		u.ctx.beginPath();
 
-		u.ctx.lineWidth = 1;
-		u.ctx.strokeStyle = color('white', .8);
-		const nLines = 8;
+		u.ctx.lineWidth = .7;
+		u.ctx.strokeStyle = color('green');
+		const nLines = 10;
 		const lineStep = Math.floor(length / nLines);
 		const p = new Path2D();
 		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
