@@ -1,7 +1,7 @@
 from core.database import pool
 import numpy as np
 
-series = ['a10', 'a10m', 'ax', 'ay', 'az', 'axy']
+series = ['a10', 'a10m', 'ax', 'ay', 'az', 'axy', 'phi_axy']
 
 with pool.connection() as conn:
 	conn.execute(f'''CREATE TABLE IF NOT EXISTS gsm_result (

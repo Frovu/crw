@@ -108,11 +108,6 @@
 			"description": "rigidity spectrum exponent during the hour of minimum CR density",
 			"parse_name": "GammaM"
 		},
-		"phi_axy_max": {
-			"name": "_Phi Axy max",
-			"description": "Direction of the maximum value of equatorial CR anisotropy vector (deg)",
-			"parse_name": "Pxym"
-		},
 		"comment": {
 			"type": "text",
 			"description": "Additional information"

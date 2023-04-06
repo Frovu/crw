@@ -39,6 +39,7 @@ SERIES = { # order matters !!!
 	'a10m': ['gsm', 'A0m'],
 	'a10': ['gsm', 'A0'],
 	'axy': ['gsm', 'Axy'], 
+	'phi_axy': ['gsm', 'φ(Axy)'],
 	'ax': ['gsm', 'Ax'],
 	'ay': ['gsm', 'Ay'],
 	'az': ['gsm', 'Az'],
