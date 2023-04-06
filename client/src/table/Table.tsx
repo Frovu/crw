@@ -26,7 +26,14 @@ export type ColumnDef = {
 	width: number,
 	id: string,
 	hidden?: boolean,
-	user_generic_id?: number // eslint-disable-line
+	generic?: {
+		id: number,
+		entity: string,
+		type: string,
+		series: string,
+		poi: string,
+		shift: number
+	} 
 };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;

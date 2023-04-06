@@ -93,7 +93,15 @@ def render_table_info(uid):
 		info[g.entity][name] = {
 			'name': g.pretty_name,
 			'type': 'real',
-			'description': g.description
+			'description': g.description,
+			'generic': {
+				'id': g.id,
+				'entity': g.entity,
+				'type': g.type,
+				'series': g.series,
+				'poi': g.poi,
+				'shift': g.shift
+			}
 		}
 		if uid in g.users:
 			info[g.entity][name]['user_generic_id'] = g.id
