@@ -17,6 +17,32 @@ export type BasicPlotParams = {
 	showMarkers: boolean,
 };
 
+export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
+	return {
+		square: (x: number, y: number) => ctx.rect(x - radius*.7, y - radius*.7, radius*1.4, radius*1.4),
+		circle: (x: number, y: number) => ctx.arc(x, y, radius * 0.75, 0, 2 * Math.PI),
+		triangleUp: (x: number, y: number) => {
+			ctx.moveTo(x, y - radius);
+			ctx.lineTo(x - radius, y + radius);
+			ctx.lineTo(x + radius, y + radius);
+			ctx.closePath();
+		},
+		triangleDown: (x: number, y: number) => {
+			ctx.moveTo(x, y + radius);
+			ctx.lineTo(x - radius, y - radius);
+			ctx.lineTo(x + radius, y - radius);
+			ctx.closePath();
+		},
+		diamond: (x: number, y: number) => {
+			ctx.moveTo(x, y - radius);
+			ctx.lineTo(x - radius, y);
+			ctx.lineTo(x, y + radius);
+			ctx.lineTo(x + radius, y);
+			ctx.closePath();
+		}
+	};
+}
+
 export function drawOnsets(u: uPlot, onsets: Onset[]) {
 	for (const onset of onsets) {
 		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
@@ -45,6 +71,50 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 		u.ctx.fillRect(startX, u.bbox.top, endX - startX, u.bbox.height);
 		u.ctx.restore();
 	}
+}
+
+export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
+	return (u: uPlot) => {
+		const series = u.series.slice(1).filter(s => s.show) as any;
+		const labels = series.map((s: any) => fullLabels?.[s.label] ?? s.label ?? '???') as string[];
+
+		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
+		const width = 52 + 8 * maxLabelLen;
+		const height = series.length * 20 + 4;
+
+		let { left: x, top: y } = u.bbox;
+		x -= 8;
+		u.ctx.save();
+		u.ctx.lineWidth = 2;
+		u.ctx.strokeStyle = color('text-dark');
+		u.ctx.fillStyle = color('bg');
+		u.ctx.fillRect(x, y, width, height);
+		u.ctx.strokeRect(x, y, width, height);
+		u.ctx.font = font(14);
+		u.ctx.textAlign = 'left';
+		u.ctx.lineCap = 'butt';
+		y += 12;
+		const draw = drawShape(u.ctx, 6) as any;
+		for (const [i, s] of series.entries()) {
+			u.ctx.lineWidth = 2;
+			u.ctx.fillStyle = u.ctx.strokeStyle = s.stroke();
+			u.ctx.beginPath();
+			u.ctx.moveTo(x + 8, y);
+			u.ctx.lineTo(x + 32, y);
+			u.ctx.stroke();
+			u.ctx.lineWidth = 1;
+			const shape = shapes?.[s.label];
+			if (shape) draw[shape](x + 20, y,);
+			u.ctx.fill();
+			u.ctx.fillStyle = color('text');
+			u.ctx.fillText(labels[i], x + 40, y);
+			u.ctx.stroke();
+
+			y += 20;
+		}
+
+		u.ctx.restore();
+	};
 }
 
 export function drawCustomLabels(scales: {[scale: string]: string | [string, number]}) {

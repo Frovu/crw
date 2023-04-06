@@ -73,7 +73,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 					show: params.showMarkers,
 					stroke: color('magenta'),
 					fill: color('magenta'),
-					paths: markersPaths('square', 4)
+					paths: markersPaths('square', 6)
 				},
 			},
 			{
@@ -85,7 +85,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 					show: params.showMarkers,
 					stroke: color('peach'),
 					fill: color('peach'),
-					paths: markersPaths('circle', 4)
+					paths: markersPaths('circle', 6)
 				},
 			},
 		]

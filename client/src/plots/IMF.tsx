@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type IMFParams = BasicPlotParams & {
 	showBz?: boolean,
@@ -20,6 +20,19 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+				drawCustomLegend({
+					'Vsw': 'Vsw, km/s',
+					'|B|': 'IMF |B|, nT',
+					'Bx': 'IMF  Bx, nT',
+					'By': 'IMF  By, nT',
+					'Bz': 'IMF  Bz, nT',
+				 }, {
+					'Vsw': 'diamond',
+					'|B|': 'circle',
+					'Bx': 'triangleDown',
+					'By': 'triangleUp',
+					'Bz': 'square',
+				 }),
 				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u)
 			],
 		},
@@ -82,7 +95,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 					show: params.showMarkers,
 					stroke: color('purple'),
 					fill: color('purple'),
-					paths: markersPaths('circle', 4)
+					paths: markersPaths('circle', 6)
 				},
 			},
 			...[['Bx', 'cyan', 'triangleDown'], ['By', 'green', 'triangleUp'], ['Bz', 'magenta', 'square']].map(([label, stroke, paths]) => ({
@@ -91,10 +104,11 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				scale: 'imf',
 				stroke: color(stroke),
 				points: {
+					legendShapes: paths,
 					show: params.showMarkers,
 					stroke: color(stroke),
 					fill: color(stroke, .9),
-					paths: markersPaths(paths, paths === 'square' ? 5 : 7)
+					paths: markersPaths(paths, 7)
 				},
 			}))
 		]

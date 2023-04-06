@@ -102,7 +102,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 					show: params.showMarkers,
 					stroke: color('skyblue'),
 					fill: color('skyblue', .9),
-					paths: markersPaths('circle', 3)
+					paths: markersPaths('circle', 5)
 				}
 			},
 		]

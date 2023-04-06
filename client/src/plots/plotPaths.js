@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { color } from './plotUtil';
+import { color, drawShape } from './plotUtil';
 
 export function circlePaths(callback, minMaxMagn=5) {
 	return (u, seriesIdx) => {
@@ -111,31 +111,8 @@ export function markersPaths(type, sizePx) {
 		const size = sizePx * devicePixelRatio;
 		const p = new Path2D();
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-			const deg360 = 2 * Math.PI;
 			const radius = size / 2;
-			const draw = {
-				square: (x, y) => rect(p, x - radius, y - radius, size, size),
-				circle: (x, y) => arc(p, x, y, radius, 0, deg360),
-				triangleUp: (x, y) => {
-					moveTo(p, x, y - radius);
-					lineTo(p, x - radius, y + radius);
-					lineTo(p, x + radius, y + radius);
-					p.closePath();
-				},
-				triangleDown: (x, y) => {
-					moveTo(p, x, y + radius);
-					lineTo(p, x - radius, y - radius);
-					lineTo(p, x + radius, y - radius);
-					p.closePath();
-				},
-				diamond: (x, y) => {
-					moveTo(p, x, y - radius);
-					lineTo(p, x - radius, y);
-					lineTo(p, x, y + radius);
-					lineTo(p, x + radius, y);
-					p.closePath();
-				}
-			}[type];
+			const draw = drawShape(p, radius)[type];
 			for (let i = 0; i < dataX.length; i++) {
 				const val = dataY[i];
 				if (val == null || val <= scaleY.min || val >= scaleY.max)
