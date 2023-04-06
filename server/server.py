@@ -41,7 +41,7 @@ from flask_bcrypt import Bcrypt
 app = Flask('aides')
 app.config['JSON_SORT_KEYS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_THRESHOLD'] = 32
+app.config['SESSION_FILE_THRESHOLD'] = 256
 
 Session(app)
 bcrypt = Bcrypt(app)

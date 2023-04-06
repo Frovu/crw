@@ -444,6 +444,9 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	if not poi and shift:
 		raise ValueError('Shift without POI')
 
+	if 'value' == gtype:
+		if not poi:
+			raise ValueError('POI is required')
 	elif 'clone' == gtype:
 		if poi not in ENTITY:
 			raise ValueError('Not an entity POI')
