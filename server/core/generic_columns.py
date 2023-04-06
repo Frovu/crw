@@ -83,7 +83,7 @@ class GenericColumn:
 					nm = nm[:-len(a)-1] if right else nm[len(a)+1:]
 					return a
 			return None
-		gtype = find([*WITH_POI_TYPES, *NO_POI_TYPES])
+		gtype = find(GENERIC_TYPES)
 		if gtype == 'clone':
 			tail = nm.split('_')[-1]
 			shift = int(tail[:-1]) * (1 if tail[-1] == 'a' else -1)
@@ -93,21 +93,19 @@ class GenericColumn:
 			pretty, ctype = cls.info_from_name(nm, ent)
 			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
 		series = 'time' not in gtype and find(SERIES.keys())
-		if gtype in WITH_POI_TYPES:
-			poi = find(ENTITY_SHORT.values())
-			poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
-			if not poi:
-				ptype = find(EXTREMUM_TYPES)
+		poi = find(ENTITY_SHORT.values())
+		poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
+		if not poi:
+			ptype = find(EXTREMUM_TYPES)
+			if ptype:
 				poi_series = find(SERIES.keys())
 				poi = ptype + '_' + poi_series
-		else:
-			poi = None
 		if nm:
 			sign = 1 if nm[-1] == 'a' else -1
 			shift = sign * int(nm[:-1])
 		else:
 			shift = 0
-		return cls(None, None, None, None, None, gtype, series, poi, shift).pretty_name, 'real' # I guess?
+		return cls(None, None, None, entity, None, gtype, series, poi, shift).pretty_name, 'real' # I guess?
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
@@ -439,7 +437,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Could not parse poi')
 	if poi == 'end_' + entity:
 		poi = None
-	if poi == entity and gtype != 'value':
+	if poi == entity and gtype != 'value' and 'clone' != gtype:
 		raise ValueError('Always empty window')
 	if not poi and shift:
 		raise ValueError('Shift without POI')
