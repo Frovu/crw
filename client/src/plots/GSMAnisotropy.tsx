@@ -17,7 +17,7 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 			],
 			draw: [
-				u => drawCustomLabels({ a0: ['A0(GSM) var, %', u.height / 5], az: ['Az(GSM) var, %', u.height / 5] })(u)
+				u => drawCustomLabels({ a0: ['A0(GSM) var, %', u.height / 5], az: ['Az(GSM) var, %', u.height / 4] })(u)
 			],
 		},
 		axes: [
@@ -30,7 +30,11 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 				label: '',
 				scale: 'a0',
 				incrs: [1, 2, 2.5, 5, 10, 20],
-				filter: (u, splits) => splits.map(sp => sp <= 0 ? sp : null)
+				filter: (u, splits) => splits.map(sp => sp <= 0 ? sp : null),
+				ticks: {
+					...axisDefaults(params.showGrid).ticks,
+					filter: (u, splits) => splits.map(sp => sp <= 0 ? sp : null)
+				}
 			},
 			{
 				side: 1,
@@ -80,7 +84,7 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 			{
 				stroke: color('magenta'),
 				width: 2,
-				paths: tracePaths(2),
+				paths: tracePaths(2, params.showMarkers),
 				points: { show: false }
 			}
 		]

@@ -1,4 +1,5 @@
 import uPlot from 'uplot';
+import { color } from './plotUtil';
 
 export function circlePaths(callback, minMaxMagn=5) {
 	return (u, seriesIdx) => {
@@ -149,22 +150,26 @@ export function markersPaths(type, sizePx) {
 	};
 }
 
-export function tracePaths(sizePx) {
+function arrow(ctx, dx, dy, tox, toy, headlen=10) {
+	const angle = Math.atan2(dy, dx);
+	ctx.lineTo(tox, toy);
+	ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+	ctx.moveTo(tox, toy);
+	ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+}
+
+export function tracePaths(sizePx, arrows=true) {
 	return (u, seriesIdx) => {
-		const size = sizePx * devicePixelRatio;
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
-		const height = fullHeight / 2;
+		const height = fullHeight * .6;
 		const width = fullWidth * .85;
-		const dataX = u.data[seriesIdx];
-		const dataY = u.data[seriesIdx+1];
+		const dataX = u.data[seriesIdx+1]; // swapped
+		const dataY = u.data[seriesIdx];
 		const length = dataX.length;
-		const pathX = Array(length), pathY = Array(length);
 		const x0 = dataX[0], y0 = dataY[0];
 		let minx = x0, maxx = x0, miny = y0, maxy = y0;
 		let x = minx, y = miny;
 		for (let i = 0; i < length; i++) {
-			pathX[i] = x;
-			pathY[i] = y;
 			x += dataX[i];
 			y += dataY[i];
 			if (x < minx) minx = x;
@@ -172,32 +177,57 @@ export function tracePaths(sizePx) {
 			if (x > maxx) maxx = x;
 			if (y > maxy) maxy = y;
 		}
-		const scalex = width / (maxx - minx);
-		const scaley = height / (maxy - miny);
-		const shiftx = width * .2 - minx * scalex;
-		const shifty = 20 * devicePixelRatio - miny * scaley;
-		console.log(pathX)
-		console.log(minx, miny)
-		console.log(shiftx, shifty)
+		const xrange = maxx - minx;
+		const yrange = maxy - miny;
+		const scalex = width / Math.max(xrange, 20);
+		const scaley = height / Math.max(yrange, 20);
+		const shiftx = width * .6 - (minx + xrange / 2) * scalex;
+		const shifty = height / 2 - (miny + yrange / 2) * scaley;
 
-		// u.ctx.beginPath();
-		// u.ctx.strokeStyle = 'white';
-		// u.ctx.moveTo(left, top);
-		// u.ctx.lineTo(left + width, top + height);
-		// u.ctx.stroke();
+		u.ctx.save(); // 2002 11 01
+		u.ctx.beginPath();
+		u.ctx.strokeStyle = u.series[seriesIdx].stroke();
+		u.ctx.fillStyle = u.ctx.strokeStyle;
+		u.ctx.lineWidth = 2;
+		x = (y > y0 && x > x0) || (y < y0 && x < x0) ? left + width : left;
+		y = top + 40;
+		u.ctx.moveTo(x, y);
+		const xarrow = xrange > 30 ? 5 : xrange > 20 ? 3 : 2;
+		const yarrow = yrange > 30 ? 5 : yrange > 20 ? 3 : 2;
+		arrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
+		u.ctx.moveTo(x, y);
+		arrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
 
+		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
+		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
+
+		u.ctx.stroke();
+		u.ctx.beginPath();
+
+		u.ctx.lineWidth = 1;
+		u.ctx.strokeStyle = color('white', .8);
+		const nLines = 8;
+		const lineStep = Math.floor(length / nLines);
 		const p = new Path2D();
-		// p.lineTo(left, top)
-		// p.lineTo(left + width, top+height)
-		const deg360 = 2 * Math.PI;
-		// FIXME: gaps
-		for (let i = 0; i < dataX.length; i++) {
-			// const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
-			// const cy = valToPosY(val, scaleY, yDim, yOff);
-			const ax = pathX[i] * scalex + shiftx;
-			const ay = pathY[i] * scaley + shifty;
-			p.lineTo(ax, ay);
+		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
+		p.moveTo(x, y);
+		for (let i = 1; i < length - 1; i++) {
+			const dx = dataX[i] * scalex;
+			const dy = dataY[i] * scaley;
+			x += dx;
+			y += dy;
+			arrows ? arrow(p, dx, dy, x, y, 7) : p.lineTo(x, y);
+			p.moveTo(x, y);
+			if (i % lineStep === 2) {
+				const a0x = u.valToPos(u.data[0][i], 'x', true);
+				const a0y = u.valToPos(u.data[1][i], 'a0', true);
+				u.ctx.moveTo(x, y);
+				u.ctx.lineTo(a0x, a0y);
+			}
 		}
+		u.ctx.stroke();
+		u.ctx.restore();
+
 		return { stroke: p };
 	};
 }
