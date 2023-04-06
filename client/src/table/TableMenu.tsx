@@ -243,6 +243,7 @@ export function Menu() {
 					<SettingsSelect what='theme' options={themeOptions}/>
 					<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
 					<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
+					<MenuCheckbox text='Show legend' value={!!settings.plotLegend} callback={v => set('plotLegend', () => v)}/>
 					<div>
 						± Days:
 						<MenuInput type='number' min='-5' max='-1' step='1' value={settings.plotTimeOffset?.[0]}
@@ -252,7 +253,7 @@ export function Menu() {
 							onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
-					<MenuCheckbox text='Show Az component' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
+					<MenuCheckbox text='Show Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
 					<MenuCheckbox text='Subtract variation trend' value={!!settings.plotSubtractTrend} callback={v => set('plotSubtractTrend', () => v)}/>
 					<MenuCheckbox text='Mask GLE' value={!!settings.plotMaskGLE} callback={v => set('plotMaskGLE', () => v)}/>
 					<MenuCheckbox text='Use dst corrected A0m' value={!!settings.plotUseA0m} callback={v => set('plotUseA0m', () => v)}/>

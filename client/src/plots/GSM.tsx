@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
 
 type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -24,7 +24,16 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u)
+				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u),
+				params.showLegend ? drawCustomLegend({
+					'Axy': 'CR equatorial anisotropy var, % ',
+					'Az': 'CR north-south anisotropy var, % ',
+					'A0(GSM)': 'CR Density var, %',
+					'A0m(GSM)': 'CR Density var (corrected), %',
+				 }, {
+					'A0(GSM)': 'diamond',
+					'A0m(GSM)': 'diamond',
+				 }) : undefined
 			],
 		},
 		axes: [

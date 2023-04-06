@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets, superScript } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets, superScript } from './plotUtil';
 
 type SWParams = BasicPlotParams & {
 	useTemperatureIndex?: boolean,
@@ -18,7 +18,16 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-				u => drawCustomLabels({ temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' })(u)
+				u => drawCustomLabels({ temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' })(u),
+				params.showLegend ? drawCustomLegend({
+					'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
+					'Dp': 'Proton density, N/cm^3',
+					'beta': 'Plasma beta',
+				 }, {
+					'Tp': 'diamond',
+					'Dp': 'circle',
+					'beta': 'square',
+				 }) : undefined
 			],
 		},
 		axes: [
@@ -65,18 +74,6 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				},
 			},
 			{
-				label: 'beta',
-				scale: 'y',
-				stroke: color('magenta'),
-				width: 2,
-				points: {
-					show: params.showMarkers,
-					stroke: color('magenta'),
-					fill: color('magenta'),
-					paths: markersPaths('square', 6)
-				},
-			},
-			{
 				label: 'Dp',
 				scale: 'y',
 				stroke: color('peach'),
@@ -86,6 +83,18 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 					stroke: color('peach'),
 					fill: color('peach'),
 					paths: markersPaths('circle', 6)
+				},
+			},
+			{
+				label: 'beta',
+				scale: 'y',
+				stroke: color('magenta'),
+				width: 2,
+				points: {
+					show: params.showMarkers,
+					stroke: color('magenta'),
+					fill: color('magenta'),
+					paths: markersPaths('square', 6)
 				},
 			},
 		]

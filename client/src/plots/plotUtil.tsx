@@ -15,6 +15,7 @@ export type BasicPlotParams = {
 	showTimeAxis?: boolean,
 	showGrid: boolean,
 	showMarkers: boolean,
+	showLegend: boolean
 };
 
 export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
@@ -77,12 +78,6 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 	let xpos = -8, ypos = 0;
 	let xposClick = xpos, yposClick = ypos;
 	let clickx: number|null = null, clicky: number|null = null, drag = false;
-	const listens = {} as any;
-	const listen = (what: HTMLElement, event: string, fn: (a: any) => void) => {
-		if (listens[event]) return;
-		listens[event] = fn;
-		what.addEventListener(event, fn);
-	};
 	return (u: uPlot) => {
 		const series = u.series.slice(1).filter(s => s.show) as any;
 		const labels = series.map((s: any) => fullLabels?.[s.label] ?? s.label ?? '???') as string[];
@@ -122,15 +117,16 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 		}
 		u.ctx.restore();
 
-		listen(u.over, 'mousemove', e => {
+		// FIXME: eh
+		u.over.onmousemove = e => {
 			if (!drag) return;
 			const dx = e.offsetX - clickx!;
 			const dy = e.offsetY - clicky!;
 			xpos = Math.max(-8, Math.min(xposClick + dx, 8 + u.bbox.width - width));
 			ypos = Math.max(0, Math.min(yposClick + dy, 12 + u.bbox.height - height));
 			u.redraw();
-		});
-		listen(u.over, 'mousedown', e => {
+		};
+		u.over.onmousedown = e => {
 			clickx = e.offsetX;
 			clicky = e.offsetY;
 			if (clickx! > xpos && clickx! < xpos + width && clicky! > ypos && clicky! < ypos + height) {
@@ -138,13 +134,10 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 				yposClick = ypos;
 				drag = true;
 			}
-		});
-		listen(u.over, 'mouseup', e => {
+		};
+		u.over.onmouseup = u.over.onmouseleave = e => {
 			drag = false;
-		});
-		listen(u.over, 'mouseleave', e => {
-			drag = false;
-		});
+		};
 	};
 }
 
