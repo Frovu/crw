@@ -36,7 +36,7 @@ export default function CorrelationPlot() {
 		const regrPoints = regr && Array(64).fill(0).map((a, i) => minx + i * (maxx-minx)/64);
 		const regrPredicts = regrPoints && regrPoints.map(x => regr.predict(x)[1]);
 		const regrLine: any = regr ? [[regrPoints, regrPredicts]] : [];
-		const maxWidthY = Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed().length));
+		const maxWidthY = Math.max(...[miny, maxy].map(Math.abs).map(v => v.toString().length));
 
 		return (asize: { width: number, height: number }) => ({
 			options: {

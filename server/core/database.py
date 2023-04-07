@@ -105,7 +105,7 @@ def render_table_info(uid):
 		}
 		if uid in g.users:
 			info[g.entity][name]['user_generic_id'] = g.id
-	series = { ser: SERIES[ser][1] for ser in SERIES }
+	series = { ser: SERIES[ser][2] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
 def select_events(t_from=None, t_to=None, uid=None, first_table='forbush_effects'):

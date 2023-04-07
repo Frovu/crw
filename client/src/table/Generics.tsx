@@ -137,8 +137,8 @@ export function GenericsSelector() {
 					{!state.type?.includes('time') && <MenuSelect text={!seriesCols ? 'Series' : 'Column'} value={state.series} options={seriesOptions} withNull={true} pretty={seriesPretty} callback={set('series')} width={'9.9em'}/>}
 					{!state.type?.includes('diff') && <MenuSelect text={state.type !== 'clone' ? 'POI' : 'From'} value={state.poi} options={poiOptions} withNull={true} pretty={poiPretty} callback={set('poi')} width={'9.9em'}/>}
 					{state.type?.includes('diff') && <MenuSelect text='Column' value={state.poi} options={seriesOptions} withNull={true} pretty={seriesPretty} callback={set('poi')} width={'9.9em'}/>}
-					{state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
-					{state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={seriesOptions} pretty={seriesPretty} callback={set('poiSeries')} width={'9.9em'}/>}
+					{!seriesCols && state.poi === 'extremum' && <MenuSelect text='Extremum' value={state.poiType} options={EXTREMUM_OPTIONS} callback={set('poiType')} width={'9.9em'}/>}
+					{!seriesCols && state.poi === 'extremum' && <MenuSelect text='of Series' value={state.poiSeries} options={seriesOptions} pretty={seriesPretty} callback={set('poiSeries')} width={'9.9em'}/>}
 					{!state.type?.includes('diff') && <MenuInput text='Shift' type='number' min='-48' max='48' step='1' value={state.shift} onChange={set('shift')}/>}
 					<div>
 						<button style={{ width: 'calc(4px + 9.9em)', margin: '1em 4px 0 0' }} onClick={() => mutate(null, {

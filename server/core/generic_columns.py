@@ -23,29 +23,29 @@ ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
 ENTITY_POI = ENTITY + ['end_' + t for t in ENTITY_WITH_DURATION]
 
 SERIES = { # order matters !!!
-	'sw_speed': ['omni', 'V'],
-	'sw_density': ['omni', 'D'],
-	'sw_temperature': ['omni', 'T'],
-	'temperature_idx': ['omni', 'Tidx'],
-	'imf_scalar': ['omni', 'B'],
-	'imf_x': ['omni', 'Bx'],
-	'imf_y_gsm': ['omni', 'By_gsm'],
-	'imf_z_gsm': ['omni', 'Bz_gsm'],
-	'imf_y': ['omni', 'By'],
-	'imf_z': ['omni', 'Bz'],
-	'plasma_beta': ['omni', 'beta'],
-	'dst_index': ['omni', 'Dst'],
-	'kp_index': ['omni', 'Kp'],
-	'ap_index': ['omni', 'Ap'],
-	'a10m': ['gsm', 'A0m'],
-	'a10': ['gsm', 'A0'],
-	'axy': ['gsm', 'Axy'], 
-	'phi_axy': ['gsm', 'φ(Axy)'],
-	'ax': ['gsm', 'Ax'],
-	'ay': ['gsm', 'Ay'],
-	'az': ['gsm', 'Az'],
+	'v_sw': ['omni', 'sw_speed', 'V'],
+	'd_sw': ['omni', 'sw_density', 'D'],
+	't_sw': ['omni', 'sw_temperature', 'T'],
+	't_idx': ['omni', 'temperature_idx', 'Tidx'],
+	'imf': ['omni', 'imf_scalar', 'B'],
+	'bx': ['omni', 'imf_x', 'Bx'],
+	'by_gsm': ['omni', 'imf_y_gsm', 'By_gsm'],
+	'bz_gsm': ['omni', 'imf_z_gsm', 'Bz_gsm'],
+	'by': ['omni', 'imf_y', 'By'],
+	'bz': ['omni', 'imf_z', 'Bz'],
+	'beta': ['omni', 'plasma_beta', 'beta'],
+	'dst': ['omni', 'dst_index', 'Dst'],
+	'kp': ['omni', 'kp_index', 'Kp'],
+	'ap': ['omni', 'ap_index', 'Ap'],
+	'a10m': ['gsm', 'a10m', 'A0m'],
+	'a10': ['gsm', 'a10', 'A0'],
+	'axy': ['gsm', 'axy', 'Axy'], 
+	'phi_axy': ['gsm', 'phi_axy', 'φ(Axy)'],
+	'ax': ['gsm', 'ax', 'Ax'],
+	'ay': ['gsm', 'ay', 'Ay'],
+	'az': ['gsm', 'az', 'Az'],
 }
-SERIES = {**SERIES, **{'d_'+s: [d[0], f'δ({d[1]})'] for s, d in SERIES.items() }}
+SERIES = {**SERIES, **{'d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in SERIES.items() }}
 
 def parse_extremum_poi(poi):
 	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
@@ -121,14 +121,14 @@ class GenericColumn:
 		self.name = name.lower().replace('%', 'pp')
 		self.data_type = 'REAL'
 
-		series, poi = self.series and self.type not in WEIRD_TYPES and SERIES[self.series][1], ''
+		series, poi = self.series and self.type not in WEIRD_TYPES and SERIES[self.series][2], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
 		elif self.poi and self.type not in WEIRD_TYPES:
 			typ, ser = parse_extremum_poi(self.poi)
-			ser = SERIES[ser][1]
+			ser = SERIES[ser][2]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
 		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if self.poi != self.entity else "event onset"
@@ -189,7 +189,13 @@ with pool.connection() as conn:
 		poi text not null default '',
 		shift integer not null default 0,
 		CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
-	generics = [GenericColumn(*row) for row in conn.execute('SELECT * FROM events.generic_columns_info')]
+	generics = list()
+	for row in conn.execute('SELECT * FROM events.generic_columns_info'):
+		try:
+			generics.append(GenericColumn(*row))
+		except:
+			conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
+			log.warn(f'Failed to understand generic, deleting: {row}')
 	for generic in generics:
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	PRESET_GENERICS = dict()
@@ -251,10 +257,11 @@ def select_generics(user_id=None):
 
 def _select(t_from, t_to, series):
 	interval = [int(i) for i in (t_from, t_to)]
-	if SERIES[series][0] == 'omni':
-		return omni.select(interval, [series])[0]
+	source, name, _ = SERIES[series]
+	if source == 'omni':
+		return omni.select(interval, [name])[0]
 	else:
-		return gsm.select(interval, [series])[0]
+		return gsm.select(interval, [name])[0]
 
 def apply_shift(a, shift, stub=np.nan):
 	if shift == 0:
@@ -403,7 +410,7 @@ def compute_generic(generic, col_name=None):
 				if generic.series in ['a10', 'a10m']:
 					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH) # this is questionable
 					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
-					slice_len[np.logical_or(poi_time < d_time[0]-MAX_EVENT_LENGTH, poi_time > d_time[-1])] = 0 # eh
+					slice_len[np.logical_or(poi_time < data_time[0]-MAX_EVENT_LENGTH, poi_time > data_time[-1])] = 0 # eh
 					for i in range(length):
 						sl = slice_len[i]
 						if not sl: continue

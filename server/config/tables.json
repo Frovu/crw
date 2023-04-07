@@ -32,7 +32,7 @@
 			"name": "V before",
 			"generic": {
 				"type": "value",
-				"series": "sw_speed",
+				"series": "v_sw",
 				"poi": "forbush_effects",
 				"shift": -1
 			}
@@ -40,14 +40,14 @@
 		"v_max": {
 			"generic": {
 				"type": "max",
-				"series": "sw_speed"
+				"series": "v_sw"
 			}
 		},
 		"b_before": {
 			"name": "B before",
 			"generic": {
 				"type": "value",
-				"series": "imf_scalar",
+				"series": "imf",
 				"poi": "forbush_effects",
 				"shift": -1
 			}
@@ -55,19 +55,19 @@
 		"b_max": {
 			"generic": {
 				"type": "max",
-				"series": "imf_scalar"
+				"series": "imf"
 			}
 		},
 		"bz_min": {
 			"generic": {
 				"type": "min",
-				"series": "imf_z"
+				"series": "bz"
 			}
 		},
 		"kp_max": {
 			"generic": {
 				"type": "max",
-				"series": "kp_index"
+				"series": "kp"
 			}
 		},
 		"vmbm": {
@@ -77,13 +77,13 @@
 		"ap_max": {
 			"generic": {
 				"type": "max",
-				"series": "ap_index"
+				"series": "ap"
 			}
 		},
 		"dst_min": {
 			"generic": {
 				"type": "min",
-				"series": "dst_index"
+				"series": "dst"
 			}
 		},
 		"axy_max": {
