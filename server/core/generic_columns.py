@@ -16,6 +16,7 @@ MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone']
+WEIRD_TYPES = ['clone', 'diff', 'abs_diff']
 
 ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
 ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
@@ -117,12 +118,12 @@ class GenericColumn:
 		self.name = name.lower().replace('%', 'pp')
 		self.data_type = 'REAL'
 
-		series, poi = self.series and self.type != 'clone' and SERIES[self.series][1], ''
+		series, poi = self.series and self.type not in WEIRD_TYPES and SERIES[self.series][1], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		elif self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
-		elif self.poi and self.type != 'clone':
+		elif self.poi and self.type not in WEIRD_TYPES:
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][1]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
@@ -142,6 +143,14 @@ class GenericColumn:
 			shift = f"{shift_indicator(self.shift)}" if self.shift != 0 else ''
 			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
 			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
+		elif 'diff' in self.type:
+			pretty, gtype1 = GenericColumn.info_from_name(self.series, self.entity)
+			pretty2, gtype2 = GenericColumn.info_from_name(self.poi, self.entity)
+			if gtype1 not in ['real', 'integer'] or gtype2 not in ['real', 'integer']:
+				raise ValueError('Not a number type')
+			name = f'{pretty} - {pretty2}'
+			self.pretty_name = f'|{name}|' if 'abs' in self.type else name
+			self.description = f'Column values {"absolute" if "abs" in self.type else " "}difference'
 		elif 'clone' == self.type:
 			pretty, dtype = GenericColumn.info_from_name(self.series, self.poi)
 			self.data_type = dtype
@@ -259,11 +268,17 @@ def compute_generic(generic, col_name=None):
 	try:
 		t_start = time()
 		log.info(f'Computing {generic.name}')
-		if generic.type == 'clone':
-			# FIXME: gently check if column exists
+		if generic.type in ['diff', 'abs_diff']:
+			event_id, value_0, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.series)
+			_, value_1, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.poi)
+			result = value_0 - value_1
+			data = np.column_stack((np.where(np.isnan(result), None, result), event_id.astype('i8'))).tolist() 
+
+		elif generic.type == 'clone':
 			event_id, target_value, _,_,_ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
 			result = apply_shift(target_value, generic.shift, stub=None)
 			data = np.column_stack((result, event_id.astype(int))).tolist()
+			
 		else:
 			is_self_poi = generic.poi.endswith(generic.entity)
 			target_entity = generic.poi.replace('end_', '') if generic.poi in ENTITY_POI and not is_self_poi else None
@@ -442,18 +457,18 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		raise ValueError('Unknown entity')
 	if entity not in ENTITY:
 		raise ValueError('Entity doesn\'t know time')
-	if 'time' not in gtype and 'clone' != gtype and series not in SERIES:
+	if 'time' not in gtype and gtype not in WEIRD_TYPES and series not in SERIES:
 		raise ValueError('Unknown series')
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')
 
-	if poi and poi not in ENTITY_POI: # underscore between parts is not checked hence identical generics can coexist (so what?) (I already dont get it ~7 days after..)
+	if poi and poi not in ENTITY_POI and 'diff' not in gtype: # underscore between parts is not checked hence identical generics can coexist (so what?) (I already dont get it ~7 days after..)
 		poi_type, poi_series = parse_extremum_poi(poi)
 		if not poi_type or poi_series not in SERIES:
 			raise ValueError('Could not parse poi')
 	if poi == 'end_' + entity:
 		poi = None
-	if poi == entity and gtype != 'value' and 'clone' != gtype:
+	if poi == entity and not shift:
 		raise ValueError('Always empty window')
 	if not poi and shift:
 		raise ValueError('Shift without POI')
@@ -461,11 +476,21 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 	if 'value' == gtype:
 		if not poi:
 			raise ValueError('POI is required')
+	elif gtype in ['diff', 'abs_diff']:
+		if shift:
+			raise ValueError('Shift not supported')
+		generics = select_generics(uid)
+		if series not in tables_info[entity] and not next((g for g in generics if g.entity == entity and g.name == series), False):
+			raise ValueError('Column 1 not found')
+		if poi not in tables_info[entity] and not next((g for g in generics if g.entity == entity and g.name == poi), False):
+			raise ValueError('Column 2 not found')
+		if len(series) + len(poi) + len(gtype) > 60:
+			raise ValueError('Reached underworld')
 	elif 'clone' == gtype:
 		if poi not in ENTITY:
 			raise ValueError('Not an entity POI')
-		if not shift or shift == 0:
-			raise ValueError('Shift should not be 0')
+		# if not shift or shift == 0:
+		# 	raise ValueError('Shift should not be 0')
 		if len(series) >= 48:
 			raise ValueError('Max clone depth reached')
 		generics = select_generics(uid)
