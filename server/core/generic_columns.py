@@ -276,11 +276,11 @@ def compute_generic(generic, col_name=None):
 			length = len(event_id)
 
 			def apply_delta(data, series):
-				if not data.size: return data
-				if series.startswith('d_'):
-					data[1:] = data[1:] - data[:-1]
-					data[0] = np.nan
-				return data
+				if not data.size or not series.startswith('d_'): return data
+				delta = np.empty_like(data)
+				delta[1:] = data[1:] - data[:-1]
+				delta[0] = np.nan
+				return delta
 	
 			def get_event_windows(d_time, ser):
 				start_hour = np.floor(event_start / HOUR) * HOUR
@@ -323,7 +323,8 @@ def compute_generic(generic, col_name=None):
 							idx = fn(val)
 							result[i] = (d_time[left[i] + idx], val[idx])
 				else:
-					idx = np.array([fn(apply_delta(value[left[i]:left[i]+slice_len[i]], ser)) for i in range(length)])
+					value = apply_delta(value, ser)
+					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
 					didx = left[nonempty] + idx[nonempty]
 					result[nonempty] = np.column_stack((d_time[didx], value[didx]))
@@ -392,10 +393,12 @@ def compute_generic(generic, col_name=None):
 						times  = data_time[left[i]:left[i]+sl]
 						if len(window) < sl: continue
 						values = gsm.normalize_variation(window, with_trend=True)
+						values = apply_delta(values, generic.series)
 						idx = np.searchsorted(times, start_hour[i])
 						wslice = values[idx:idx+window_len]
 						per_hour[i,] = values[idx:idx+window_len]
 				else:
+					data_value = apply_delta(data_value, generic.series)
 					for h in range(window_len):
 						_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
 						per_hour[a_idx, h] = data_value[b_idx]

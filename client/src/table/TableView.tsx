@@ -158,8 +158,8 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			</div>
 			<div style={{ height: '22px' }}>
 				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>
-					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
-						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of {data.length}
+					<span style={{ color: 'var(--color-text)', fontSize: '14px' }}>
+						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of [{data.length}]
 					</span>
 					<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
 						<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
