@@ -126,10 +126,10 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 			if (!fl.value) return null;
 			const value = parseFilterValue(fl.value, column);
 			switch (operation) {
-				case '>=': return (v: any) => v >= value;
-				case '<=': return (v: any) => v <= value;
+				case '>=': return (v: any) => v != null && v >= value;
+				case '<=': return (v: any) => v != null && v <= value;
 				case '==': return (v: any) => v === value;
-				case '<>': return (v: any) => v !== value;
+				case '<>': return (v: any) => v != null && v !== value;
 			}
 		})();
 		return fn && ((row: any[]) => fn(row[columnIdx]));
