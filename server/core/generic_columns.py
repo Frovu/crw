@@ -15,7 +15,7 @@ HOUR = 3600
 MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
-GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone']
+GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
 WEIRD_TYPES = ['clone', 'diff', 'abs_diff']
 
 ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
@@ -95,24 +95,27 @@ class GenericColumn:
 			ent = ent and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == ent))
 			pretty, ctype = cls.info_from_name(nm, ent)
 			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
-		series = 'time' not in gtype and find(SERIES.keys())
-		poi = find(ENTITY_SHORT.values())
-		poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
-		if not poi:
-			ptype = find(EXTREMUM_TYPES)
-			if ptype:
-				poi_series = find(SERIES.keys())
-				poi = ptype + '_' + poi_series
-		if nm:
-			sign = 1 if nm[-1] == 'a' else -1
-			shift = sign * int(nm[:-1])
+		shift = 0
+		if 'diff' in gtype:
+			series, poi = nm.split('__')
 		else:
-			shift = 0
+			series = 'time' not in gtype and find(SERIES.keys())
+			poi = find(ENTITY_SHORT.values())
+			poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
+			if not poi:
+				ptype = find(EXTREMUM_TYPES)
+				if ptype:
+					poi_series = find(SERIES.keys())
+					poi = ptype + '_' + poi_series
+			if nm:
+				sign = 1 if nm[-1] == 'a' else -1
+				shift = sign * int(nm[:-1])
 		return cls(None, None, None, entity, None, gtype, series, poi, shift).pretty_name, 'real' # I guess?
 
 	def __post_init__(self):
 		name = f'g_{self.type}'
 		if self.series: name += f'_{self.series}'
+		if 'diff' in self.type: name += '_'
 		if self.poi: name += f'_{self.poi if not self.poi in ENTITY_SHORT else ENTITY_SHORT[self.poi]}'
 		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
 		self.name = name.lower().replace('%', 'pp')
@@ -149,7 +152,7 @@ class GenericColumn:
 			if gtype1 not in ['real', 'integer'] or gtype2 not in ['real', 'integer']:
 				raise ValueError('Not a number type')
 			name = f'{pretty} - {pretty2}'
-			self.pretty_name = f'|{name}|' if 'abs' in self.type else name
+			self.pretty_name = f'|{name}|' if 'abs' in self.type else f'({name})'
 			self.description = f'Column values {"absolute" if "abs" in self.type else " "}difference'
 		elif 'clone' == self.type:
 			pretty, dtype = GenericColumn.info_from_name(self.series, self.poi)
@@ -278,7 +281,7 @@ def compute_generic(generic, col_name=None):
 			event_id, target_value, _,_,_ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
 			result = apply_shift(target_value, generic.shift, stub=None)
 			data = np.column_stack((result, event_id.astype(int))).tolist()
-			
+
 		else:
 			is_self_poi = generic.poi.endswith(generic.entity)
 			target_entity = generic.poi.replace('end_', '') if generic.poi in ENTITY_POI and not is_self_poi else None
@@ -468,7 +471,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Could not parse poi')
 	if poi == 'end_' + entity:
 		poi = None
-	if poi == entity and not shift:
+	if poi == entity and not shift and gtype != 'value':
 		raise ValueError('Always empty window')
 	if not poi and shift:
 		raise ValueError('Shift without POI')

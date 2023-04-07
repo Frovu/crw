@@ -92,7 +92,7 @@ export function GenericsSelector() {
 			entity, type,
 			...(!type?.includes('time') && { series: state.series }),
 			...(poi && { poi }),
-			...(shift && { shift })
+			...(!type?.includes('diff') && { shift })
 		};
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/add`, {
 			method: 'POST', credentials: 'include',
@@ -110,8 +110,8 @@ export function GenericsSelector() {
 
 	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const entityPretty = entityOptions.map(entityName);
-	const seriesCols = state.type === 'clone' ? columns.filter(c => (state.poi ?? state.entity) === c.table)
-		: state.type?.includes('diff') ? columns.filter(c => !c.hidden) : null;
+	const seriesCols = state.type === 'clone' || state.type?.includes('diff') ?
+		columns.filter(c => !c.hidden && (state.type === 'clone' ? (state.poi ?? state.entity) : state.entity) === c.table) : null;
 	const seriesOptions = seriesCols ? seriesCols.map(c => c.id.replace(c.table.split('_').map(t=>t[0]).join('')+'_','')) : Object.keys(series);
 	const seriesPretty = seriesCols ? seriesCols.map(c => state.type?.includes('diff') ? c.fullName : c.name) : Object.values(series);
 	const poiEntityEnd = entityOptions.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
