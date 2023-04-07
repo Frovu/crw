@@ -80,7 +80,7 @@ export default function Help() {
 			<li style={{ margin: '1em 0 1em 0' }}><b>range</b> - Difference between max and min value of series in <u>specified window</u>;</li>
 			<li style={{ margin: '1em 0 1em 0' }}><b>coverage</b> - Data coverage of series as percentage of <u>specified window</u>;</li>
 			<li style={{ margin: '1em 0 1em 0' }}><b>value</b> - Value of specified variable averaged over specified period from poi. See examples below;</li>
-			<li style={{ margin: '1em 0 1em 0' }}><b>clone</b> - Clone specified column value from next/previous events.</li>
+			<li style={{ margin: '1em 0 1em 0' }}><b>clone</b> - Clone specified column value from next/previous events associated entity of selected type.</li>
 		</ul>
 		<p>
 			One side of the <u>specified window</u> is event start hour, the other (not inclusive) is determined as follows: If <b>POI is not set</b> - start+duration if duration is set explicitly, else the closest of (the hour of next event onset or start + 72 (?) hours); If <b>POI is set</b> - poi hour (always round down) + shift if set.

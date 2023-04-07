@@ -44,6 +44,7 @@ SERIES = { # order matters !!!
 	'ay': ['gsm', 'Ay'],
 	'az': ['gsm', 'Az'],
 }
+SERIES = {**SERIES, **{'d_'+s: [d[0], f'δ({d[1]})'] for s, d in SERIES.items() }}
 
 def parse_extremum_poi(poi):
 	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
@@ -268,11 +269,19 @@ def compute_generic(generic, col_name=None):
 			target_entity = generic.poi.replace('end_', '') if generic.poi in ENTITY_POI and not is_self_poi else None
 			event_id, event_start, event_duration, target_time, target_duration = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
-				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, generic.series), dtype='f8') # 400 ms
+				actual_series = generic.series[2:] if generic.series.startswith('d_') else generic.series
+				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, actual_series), dtype='f8') # 400 ms
 				data_time, data_value = data_series[:,0], data_series[:,1]
 			else: data_series = None
 			length = len(event_id)
 
+			def apply_delta(data, series):
+				if not data.size: return data
+				if series.startswith('d_'):
+					data[1:] = data[1:] - data[:-1]
+					data[0] = np.nan
+				return data
+	
 			def get_event_windows(d_time, ser):
 				start_hour = np.floor(event_start / HOUR) * HOUR
 				if event_duration is not None:
@@ -310,10 +319,11 @@ def compute_generic(generic, col_name=None):
 						if slice_len[i] > 1:
 							window = value[left[i]:left[i]+slice_len[i]]
 							val = gsm.normalize_variation(window, with_trend=True)
+							val = apply_delta(val, ser)
 							idx = fn(val)
 							result[i] = (d_time[left[i] + idx], val[idx])
 				else:
-					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
+					idx = np.array([fn(apply_delta(value[left[i]:left[i]+slice_len[i]], ser)) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
 					didx = left[nonempty] + idx[nonempty]
 					result[nonempty] = np.column_stack((d_time[didx], value[didx]))
@@ -328,7 +338,7 @@ def compute_generic(generic, col_name=None):
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
 				data = data_series if ser == generic.series else \
-					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser), dtype='f8')
+					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser[2:] if ser.startswith('d_') else ser), dtype='f8')
 				left, slice_len = get_event_windows(data[:,0], ser)
 				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
 

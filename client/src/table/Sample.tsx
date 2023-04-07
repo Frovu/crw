@@ -64,9 +64,7 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 				default: return (val as string).length > 0;
 			}
 		})();
-		if (!val || !isValid)
-			return true;
-		return false;
+		return !isValid;
 	};
 
 	useLayoutEffect(() => setInvalid(checkInvalid(filter)), [filter]); // eslint-disable-line
