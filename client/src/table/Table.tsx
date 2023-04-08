@@ -74,6 +74,7 @@ type VolatileSettings = {
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
 export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean, setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number, setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
 type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
@@ -247,26 +248,34 @@ function CoreWrapper() {
 	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || ['Histogram', 'Correlation'].includes(s));
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
+	const tableViewContext = useMemo(() => {
+		return {
+			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0]
+		};
+	}, [sort, setSort, cursor, setCursor, plotIdx, data]);
+
 	return (
 		<DataContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
-				<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
-					...(blockMode && { display: 'block' }) }}>
-					<div className='AppColumn'>
-						<div ref={topDivRef}>
-							<Menu/>
-							<TableSampleInput {...{
-								cursorColumn: cursor && dataContext.columns[cursor?.column],
-								cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1] }}/>
+				<TableViewContext.Provider value={tableViewContext}>
+					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
+						...(blockMode && { display: 'block' }) }}>
+						<div className='AppColumn'>
+							<div ref={topDivRef}>
+								<Menu/>
+								<TableSampleInput {...{
+									cursorColumn: cursor && dataContext.columns[cursor?.column],
+									cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1] }}/>
+							</div>
+							<TableView {...{ viewSize, plotId: plotIdx && data[plotIdx][0] }}/>
+							<PlotWrapper which='plotLeft' bound={blockMode && ['Histogram', 'Correlation'].includes(settings.plotLeft!)}/>
 						</div>
-						<TableView {...{ viewSize, sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] }}/>
-						<PlotWrapper which='plotLeft' bound={blockMode && ['Histogram', 'Correlation'].includes(settings.plotLeft!)}/>
+						{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
+							<PlotWrapper which='plotTop'/>
+							<PlotWrapper which='plotBottom'/>
+						</div>}
 					</div>
-					{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
-						<PlotWrapper which='plotTop'/>
-						<PlotWrapper which='plotBottom'/>
-					</div>}
-				</div>
+				</TableViewContext.Provider>
 			</PlotContext.Provider>
 		</DataContext.Provider>
 	);

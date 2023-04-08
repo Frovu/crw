@@ -1,40 +1,36 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
 import { dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Sort, Cursor, DataContext, prettyTable } from './Table';
+import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext } from './Table';
 
-type CursorPara = { cursor: Cursor, setCursor: (c: Cursor) => void };
-
-function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def: ColumnDef, onClick: () => void }) {
-	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? '';
-	const width = { width: def.width+.5+'ch' };
-	return (
-		<td onClick={onClick} style={{ ...(cursor && { borderColor: 'var(--color-active)' }) }}>
-			{!cursor?.editing &&
-			<span className='Cell' style={{ ...width }}>{val}</span>}
-			{cursor?.editing &&
-				<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }}
-					autoFocus type='text' defaultValue={val} onChange={()=>{}}></input>}
-		</td>
-	);
-}
-
-function Row({ index, row, columns, cursor, setCursor, highlight, marker }:
-{ index: number, row: any[], columns: ColumnDef[], highlight: boolean, marker: null | string } & CursorPara) {
+function Row({ index, row }: { index: number, row: any[] } ) {
+	const { markers, columns } = useContext(DataContext);
+	const marker = markers?.[index];
+	const { cursor, setCursor, plotId } = useContext(TableViewContext);
 	const isSel = index === cursor?.row;
 	const mLast = marker && marker[marker.length-1];
 	return (
-		<tr {...(highlight && { style: { color: 'var(--color-cyan)' } })}>
+		<tr {...(plotId === row[0] && { style: { color: 'var(--color-cyan)' } })}>
 			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
 				<span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 			</td>}
-			{row.slice(1).map((value, i) =>
-				<Cell key={i} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })} // eslint-disable-line react/no-array-index-key
-					{...{ value, cursor: isSel && i === cursor?.column ? cursor : null, def: columns[i] }}/>)}
+			{row.slice(1).map((value, i) => {
+				const curs = isSel && i === cursor?.column ? cursor : null;
+				const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? '';
+				const width = { width: columns[i].width+.5+'ch' };
+				return <td key={columns[i].id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
+					style={{ ...(curs && { borderColor: 'var(--color-active)' }) }}>
+					{!curs?.editing ?
+						<span className='Cell' style={{ ...width }}>{val}</span> :
+						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }}
+							autoFocus type='text' defaultValue={val} onChange={()=>{}}></input>}
+				</td>;
+			})}
 		</tr>
 	);
 }
 
-function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setSort: (s: Sort) => void}) {
+function ColumnHeader({ col }: { col: ColumnDef }) {
+	const { sort, setSort } = useContext(TableViewContext);
 	return (
 		<td title={col.description} style={{ maxWidth: col.width+.5+'ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', wordBreak: 'break-word', cursor: 'pointer', userSelect: 'none' }}
 			onClick={()=>setSort({ column: col.id, direction: sort.column === col.id ? sort.direction * -1 as any : 1 })}>
@@ -46,9 +42,9 @@ function ColumnHeader({ col, sort, setSort }: { col: ColumnDef, sort: Sort, setS
 	);
 }
 
-export default function TableView({ viewSize, sort, setSort, cursor, setCursor, plotId }:
-{ viewSize: number, sort: Sort, setSort: (s: Sort) => void, plotId: null | number } & CursorPara ) {
+export default function TableView({ viewSize }: { viewSize: number }) {
 	const { data, columns, markers } = useContext(DataContext);
+	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
@@ -133,7 +129,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 	});
 
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
-	const tables = new Map<any, ColumnDef[]>();
+	const tables = new Map<any, ColumnDef[]>(); // this is weird
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 	return (
 		<div className='Table'>
@@ -152,8 +148,7 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 					</thead>
 					<tbody>
 						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-							<Row key={row[0]} {...{ marker: markers && markers[i + viewIndex],
-								index: i + viewIndex, row, columns, cursor, setCursor, highlight: row[0] === plotId }}/>)}
+							<Row key={row[0]} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 				</table>
 			</div>
