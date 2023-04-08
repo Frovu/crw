@@ -13,11 +13,11 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 	const isSel = index === cursor?.row;
 	const mLast = marker && marker[marker.length-1];
 
-	const onChange = (i: number) => (e: ChangeEvent<HTMLInputElement>) => {
+	const onChange = (i: number, update: boolean=false) => (e: ChangeEvent<HTMLInputElement>) => {
 		const str = e.target.value;
 		const value = str === '' ? null : parseColumnValue(str, columns[i]);
 		const isValid = value == null || isValidColumnValue(value, columns[i]);
-		const isOk = isValid && makeChange({ id: row[0], column: columns[i], value });
+		const isOk = isValid && (update ? makeChange({ id: row[0], column: columns[i], value }) : true);
 		setValues(vv => ({ ...vv, [i]: str }));
 		setValidInputs(vv => ({ ...vv, [i]: isOk }));
 	};
@@ -35,7 +35,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 					{!curs?.editing ?
 						<span className='Cell' style={{ ...width }}>{values[i]}</span> :
 						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) }}
-							autoFocus type='text' value={values[i]} onChange={onChange(i)}></input>}
+							autoFocus type='text' value={values[i]} onChange={onChange(i)} onBlur={onChange(i, true)}></input>}
 				</td>;
 			})}
 		</tr>
