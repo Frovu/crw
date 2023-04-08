@@ -1,13 +1,26 @@
-import { useState, useRef, useEffect, useContext, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext } from './Table';
+import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue } from './Table';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(DataContext);
+	const { cursor, setCursor, plotId, makeChange } = useContext(TableViewContext);
+	const [values, setValues] = useState(Object.fromEntries(row.slice(1).map((value, i) =>
+		[i, value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? ''])));
+	const [validInputs, setValidInputs] = useState(Object.fromEntries(row.slice(1).map((r, i) => [i, true])));
 	const marker = markers?.[index];
-	const { cursor, setCursor, plotId } = useContext(TableViewContext);
 	const isSel = index === cursor?.row;
 	const mLast = marker && marker[marker.length-1];
+
+	const onChange = (i: number) => (e: ChangeEvent<HTMLInputElement>) => {
+		const str = e.target.value;
+		const val = str === '' ? null : parseColumnValue(str, columns[i]);
+		const isValid = val == null || isValidColumnValue(val, columns[i]);
+		const isOk = isValid && makeChange(row[0], columns[i], val);
+		setValues(vv => ({ ...vv, [i]: str }));
+		setValidInputs(vv => ({ ...vv, [i]: isOk }));
+	};
+
 	return (
 		<tr {...(plotId === row[0] && { style: { color: 'var(--color-cyan)' } })}>
 			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
@@ -15,14 +28,13 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 			</td>}
 			{row.slice(1).map((value, i) => {
 				const curs = isSel && i === cursor?.column ? cursor : null;
-				const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? '';
 				const width = { width: columns[i].width+.5+'ch' };
 				return <td key={columns[i].id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
-					style={{ ...(curs && { borderColor: 'var(--color-active)' }) }}>
+					style={{ borderColor: !validInputs[i] ? 'var(--color-red)' : curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 					{!curs?.editing ?
-						<span className='Cell' style={{ ...width }}>{val}</span> :
-						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }}
-							autoFocus type='text' defaultValue={val} onChange={()=>{}}></input>}
+						<span className='Cell' style={{ ...width }}>{values[i]}</span> :
+						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) }}
+							autoFocus type='text' value={values[i]} onChange={onChange(i)}></input>}
 				</td>;
 			})}
 		</tr>
@@ -148,7 +160,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 					</thead>
 					<tbody>
 						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-							<Row key={row[0]} {...{ index: i + viewIndex, row }}/>)}
+							<Row key={row[0]+'$'+row.length} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 				</table>
 			</div>

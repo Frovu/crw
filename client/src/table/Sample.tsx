@@ -1,7 +1,7 @@
 import { useContext, useLayoutEffect, useState } from 'react';
 import { AuthContext } from '../App';
 import { useEventListener, useMutationHandler } from '../util';
-import { ColumnDef, TableContext, SampleContext } from './Table';
+import { ColumnDef, TableContext, SampleContext, parseColumnValue, isValidColumnValue } from './Table';
 import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
 
 const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
@@ -22,15 +22,6 @@ export type Sample = {
 };
 type FilterWithId = Filter & { id: number };
 export type SampleState = null | (Omit<Sample, 'filters'> & { filters: null | FilterWithId[] });
-
-function parseFilterValue(val: string, column: ColumnDef) {
-	switch (column.type) {
-		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
-		case 'real': return parseFloat(val);
-		case 'integer': return parseInt(val);
-		default: return val;
-	}
-}
 
 function FilterCard({ filter: filterOri, callback, disabled }:
 { filter: Filter, disabled?: boolean, callback: (a: Filter | null) => void }) {
@@ -54,17 +45,8 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 		}
 		if (['<=', '>='].includes(operation) && col.type === 'enum')
 			return true;
-		const val = parseFilterValue(fl.value, col);
-		const isValid = (() => {
-			switch (col.type) {
-				case 'time': return !isNaN(val as any);
-				case 'real':
-				case 'integer': return !isNaN(val as number);
-				case 'enum': return col.enum?.includes(val as string);
-				default: return (val as string).length > 0;
-			}
-		})();
-		return !isValid;
+		const val = parseColumnValue(fl.value, col);
+		return !isValidColumnValue(val, col);
 	};
 
 	useLayoutEffect(() => setInvalid(checkInvalid(filter)), [filter]); // eslint-disable-line
@@ -122,7 +104,7 @@ function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 				return (v: any) => regexp.test(v?.toString());
 			}
 			if (!fl.value) return null;
-			const value = parseFilterValue(fl.value, column);
+			const value = parseColumnValue(fl.value, column);
 			switch (operation) {
 				case '>=': return (v: any) => v != null && v >= value;
 				case '<=': return (v: any) => v != null && v <= value;

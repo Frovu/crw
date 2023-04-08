@@ -71,14 +71,38 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
-export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string} }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean, setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
+type ChangeValue = { id: number, column: ColumnDef, value: any };
+export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
+	changes: ChangeValue[], setChanges: (c: SetStateAction<ChangeValue[]>) => void }>({} as any);
+export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
+	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
-export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number, setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void }>({} as any);
+export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number,
+	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void,
+	makeChange: (id: number, col: ColumnDef, val: any) => boolean }>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
 type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOpt: OptionsSetter }>({} as any);
+
+export function parseColumnValue(val: string, column: ColumnDef) {
+	switch (column.type) {
+		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+		case 'real': return parseFloat(val);
+		case 'integer': return parseInt(val);
+		default: return val;
+	}
+}
+
+export function isValidColumnValue(val: any, column: ColumnDef) {
+	switch (column.type) {
+		case 'time': return !isNaN(val as any);
+		case 'real':
+		case 'integer': return !isNaN(val as number);
+		case 'enum': return column.enum?.includes(val as string);
+		default: return (val as string).length > 0;
+	}
+}
 
 function defaultSettings(): Settings {
 	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before', 'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'];
@@ -156,7 +180,7 @@ function CoreWrapper() {
 	const { columns, data } = useContext(TableContext);
 	const { sample, data: sampleData, isEditing: editingSample } = useContext(SampleContext);
 	const { options, settings, set, setOpt } = useContext(SettingsContext);
-	const [sort, setSort] = useState<Sort>({ column: 'time', direction: 1 });
+	const [sort, setSort] = useState<Sort>({ column: 'fe_time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
 
@@ -250,9 +274,16 @@ function CoreWrapper() {
 
 	const tableViewContext = useMemo(() => {
 		return {
-			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0]
+			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0],
+			makeChange: (id: number, column: ColumnDef, value: any) => {
+				const row = data.find(r => r[0] === id);
+				// FIXME: create entity if not exists
+				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
+				if (!entityExists) return false;
+				return true;
+			}
 		};
-	}, [sort, setSort, cursor, setCursor, plotIdx, data]);
+	}, [sort, setSort, cursor, setCursor, plotIdx, data, columns]);
 
 	return (
 		<DataContext.Provider value={dataContext}> 
@@ -323,6 +354,7 @@ export function SampleWrapper() {
 
 function SourceDataWrapper({ tables, columns, series, firstTable }:
 { tables: string[], columns: ColumnDef[], series: { [s: string]: string }, firstTable: string }) {
+	const [changes, setChanges] = useState<ChangeValue[]>([]);
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -334,7 +366,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			return await res.json() as {data: any[][], fields: string[]};
 		}
 	});
-	const context = useMemo(() => {
+	const rawContext = useMemo(() => {
 		if (!query.data) return null;
 		const fields = query.data.fields;
 		const filtered = columns.filter(c => fields.includes(c.id));
@@ -358,6 +390,22 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			series
 		} as const;
 	}, [tables, columns, firstTable, query.data, series]);
+	const context = useMemo(() => {
+		if (!rawContext) return null;
+		const data = rawContext.data;
+		for (const { id, column, value } of changes) {
+			const row = data.find(r => r[0] === id);
+			const columnIdx = rawContext.columns.findIndex(c => c.id === column.id);
+			if (row) row[columnIdx] = value;
+		}
+		return {
+			...rawContext,
+			data,
+			changes,
+			setChanges
+		};
+	}, [rawContext, changes, setChanges]);
+
 	if (query.isLoading)
 		return <div>Loading data..</div>;
 	if (!query.data)
