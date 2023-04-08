@@ -87,6 +87,7 @@ def get_joins_path(src, dst):
 	for a, b, direction in links:
 		master, slave = (a, b)[::direction]
 		joins += f'LEFT JOIN events.{b} ON {slave}.id = {master}.{tables_refs.get((master, slave))}\n'
+	return joins
 
 def upsert_many(table, columns, data, constants=[], conflict_constant='time', do_nothing=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
@@ -186,9 +187,10 @@ def submit_changes(uid, changes, root='forbush_effects'):
 				value = float(value)
 			if dtype == 'integer':
 				value = int(value)
-			if dtype == 'enum' and found_column.get:
+			if dtype == 'enum' and value is not None and value not in found_column.get('enum'):
 				raise ValueError(f'Bad enum value: {value}')
 			joins = get_joins_path(root, entity)
+			print(joins)
 			res = conn.execute(f'SELECT {entity}.id, {entity}.{column} FROM events.{root} {joins} WHERE {root}.id = %s', [root_id]).fetchone()
 			if not res:
 				raise ValueError(f'Target event not found')
