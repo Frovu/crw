@@ -5,14 +5,15 @@ import { ColumnDef, Sort, Cursor, DataContext, prettyTable } from './Table';
 type CursorPara = { cursor: Cursor, setCursor: (c: Cursor) => void };
 
 function Cell({ value, cursor, def, onClick }: { value: any, cursor: Cursor, def: ColumnDef, onClick: () => void }) {
-	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value;
+	const val = value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? '';
 	const width = { width: def.width+.5+'ch' };
 	return (
 		<td onClick={onClick} style={{ ...(cursor && { borderColor: 'var(--color-active)' }) }}>
 			{!cursor?.editing &&
 			<span className='Cell' style={{ ...width }}>{val}</span>}
 			{cursor?.editing &&
-			<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }} autoFocus type='text' value={val || ''} onChange={()=>{}}></input>}
+				<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px var(--color-active)' }}
+					autoFocus type='text' defaultValue={val} onChange={()=>{}}></input>}
 		</td>
 	);
 }
@@ -158,8 +159,9 @@ export default function TableView({ viewSize, sort, setSort, cursor, setCursor, 
 			</div>
 			<div style={{ height: '22px' }}>
 				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>
-					<span style={{ color: 'var(--color-text)', fontSize: '14px' }}>
-						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of [{data.length}]
+					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
+						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of
+						<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 					</span>
 					<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
 						<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>

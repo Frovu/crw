@@ -70,67 +70,30 @@ class GenericColumn:
 	name: str = None
 	pretty_name: str = None
 	description: str = None
-	data_type: str = None
+	data_type: str = 'real'
 
 	@classmethod
 	def info_from_name(cls, name, entity):
-		if not name.startswith('g_'):
+		if not name.startswith('g__'):
 			found = tables_info[entity][name]
 			return found.get('name', name), found.get('type', 'real')
-
-		nm = name[2:].replace('_pp', '_%')
-		def find(options, right=False):
-			nonlocal nm
-			for a in options:
-				if (nm.endswith(a) if right else nm.startswith(a)):
-					nm = nm[:-len(a)-1] if right else nm[len(a)+1:]
-					return a
-			return None
-		gtype = find(GENERIC_TYPES)
-		if gtype == 'clone':
-			tail = nm.split('_')[-1]
-			shift = int(tail[:-1]) * (1 if tail[-1] == 'a' else -1)
-			nm = nm[:-len(tail)-1]
-			ent = find(ENTITY_SHORT.values(), True)
-			ent = ent and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == ent))
-			pretty, ctype = cls.info_from_name(nm, ent)
-			return f'[{short_entity_name(ent)}{shift_indicator(shift)}] {pretty}', ctype
-		shift = 0
-		if 'diff' in gtype:
-			series, poi = nm.split('__')
-		else:
-			series = 'time' not in gtype and find(SERIES.keys())
-			poi = find(ENTITY_SHORT.values())
-			poi = poi and next((t for t in ENTITY_SHORT if ENTITY_SHORT[t] == poi))
-			if not poi:
-				ptype = find(EXTREMUM_TYPES)
-				if ptype:
-					poi_series = find(SERIES.keys())
-					poi = ptype + '_' + poi_series
-			if nm:
-				sign = 1 if nm[-1] == 'a' else -1
-				shift = sign * int(nm[:-1])
-		return cls(None, None, None, entity, None, gtype, series, poi, shift).pretty_name, 'real' # I guess?
+		found = ALL_GENERICS[int(name[3:])]
+		return found.pretty_name, found.data_type
 
 	def __post_init__(self):
-		name = f'g_{self.type}'
-		if self.series: name += f'_{self.series}'
-		if 'diff' in self.type: name += '_'
-		if self.poi: name += f'_{self.poi if not self.poi in ENTITY_SHORT else ENTITY_SHORT[self.poi]}'
-		if self.shift: name += f'_{abs(int(self.shift))}{"b" if self.shift < 0 else "a"}'
-		self.name = name.lower().replace('%', 'pp')
-		self.data_type = 'REAL'
+		self.name = f'g__{self.id}'
 
 		series, poi = self.series and self.type not in WEIRD_TYPES and SERIES[self.series][2], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
-		elif self.poi in ENTITY_POI:
+		if self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
 		elif self.poi and self.type not in WEIRD_TYPES:
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][2]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
+
 		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if self.poi != self.entity else "event onset"
 		if self.type == 'value':
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
@@ -189,14 +152,14 @@ with pool.connection() as conn:
 		poi text not null default '',
 		shift integer not null default 0,
 		CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
-	generics = list()
+	ALL_GENERICS = dict() # except preset ones ofc
 	for row in conn.execute('SELECT * FROM events.generic_columns_info'):
 		try:
-			generics.append(GenericColumn(*row))
+			ALL_GENERICS[row[0]] = GenericColumn(*row)
 		except:
 			conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
 			log.warn(f'Failed to understand generic, deleting: {row}')
-	for generic in generics:
+	for generic in ALL_GENERICS.values():
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	PRESET_GENERICS = dict()
 	for table in tables_info:
@@ -529,6 +492,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		if next((g for g in PRESET_GENERICS.values() if g.entity == entity and g.name == generic.name), None):
 			conn.rollback()
 			raise ValueError('Column exists')
+		ALL_GENERICS[row[0]] = generic
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	if len(generic.users) == 1:
 		recompute_generics(generic)
@@ -543,5 +507,6 @@ def remove_generic(uid, gid):
 		if not generic.users:
 			conn.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
 			conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
+			del ALL_GENERICS[generic.id]
 	log.info(f'Generic removed by user ({uid}): {generic.name} => {generic.users}')
 		
