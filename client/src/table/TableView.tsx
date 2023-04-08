@@ -18,6 +18,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 		const value = str === '' ? null : parseColumnValue(str, columns[i]);
 		const isValid = value == null || isValidColumnValue(value, columns[i]);
 		const isOk = isValid && (update ? makeChange({ id: row[0], column: columns[i], value }) : true);
+		if (update) setCursor(cur => cur && ({ ...cur, editing: false }));
 		setValues(vv => ({ ...vv, [i]: str }));
 		setValidInputs(vv => ({ ...vv, [i]: isOk }));
 	};

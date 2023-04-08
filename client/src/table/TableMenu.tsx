@@ -17,6 +17,7 @@ export const KEY_COMB = {
 	'switchViewPlots': 'H',
 	'switchHistCorr': 'J',
 	'switchTheme': 'T',
+	'commitChanges': 'Ctrl+S'
 } as { [action: string]: string };
 
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
@@ -94,10 +95,10 @@ export function MenuCheckbox({ text, value, callback, hide, disabled, title, lef
 	</label>);
 }
 
-export function MenuButton({ text, action }: { text: string, action: string }) {
+export function MenuButton({ text, action, disabled }: { text: string, action: string, disabled?: boolean }) {
 	const keyComb = KEY_COMB[action]?.split('%');
 	return (
-		<button className='MenuItem' onClick={() => dispatchCustomEvent('action+' + action)}>
+		<button className='MenuItem' style={{ borderColor: 'transparent' }} disabled={disabled} onClick={() => dispatchCustomEvent('action+' + action)}>
 			<span>{text}</span>
 			{keyComb && <span className='keyComb'>{keyComb[1] || keyComb[0]}</span>}
 		</button>
@@ -188,6 +189,7 @@ function ExportMenu() {
 }
 
 export function Menu() {
+	const { changes } = useContext(TableContext);
 	const { settings, set } = useContext(SettingsContext);
 	const { role } = useContext(AuthContext);
 	const [showColumns, setShowColumns] = useState(false);
@@ -222,6 +224,8 @@ export function Menu() {
 					<a style={{ textAlign: 'center' }} href='./help' target='_blank' >Open manual</a>
 					<AuthButton/>
 					{role === 'admin' && <AdminMenu/>}
+					<MenuButton text='Commit changes' disabled={!changes.length} action='commitChanges'/>
+					<MenuButton text='Discard changes' disabled={!changes.length} action='discardChanges'/>
 				</MenuSection>
 				<MenuSection name='Sample' style={{ left: 0 }} {...{ shownSection, setShownSection }}>
 					<SampleMenu/>
@@ -288,21 +292,23 @@ function onKeydown(e: KeyboardEvent) {
 	}
 }
 
-export function ConfirmationPopup({ text, confirm, close }: { text?: string, confirm: () => void, close: () => void }) {
+export function ConfirmationPopup({ text, confirm, close, children, style, persistent }:
+{ text?: string, children?: ReactNode, style?: CSSProperties, persistent?: boolean, confirm: () => void, close: () => void }) {
 	useEventListener('click', close);
 	useEventListener('keydown', (e) => {
-		close();
+		if (!persistent)
+			close();
 		if (e.code === 'KeyY')
 			confirm();
 	});
 
 	return (<>
 		<div className='PopupBackground'></div>
-		<div className='Popup' style={{ left: '30vw', top: '20vh', width: '20em' }}>
-			<h4>Confirm action</h4>
-			<p>{text ?? 'Beware of irreversible consequences'}</p>
+		<div className='Popup' style={{ left: '30vw', top: '20vh', width: '20em', ...style }}>
+			{!children && <h4>Confirm action</h4>}
+			{children ?? <p>{text ?? 'Beware of irreversible consequences'}</p>}
 			<div style={{ marginTop: '1em' }}>
-				<button style={{ width: '8em' }} onClick={() => {close(); confirm();}}>Confirm (Y)</button>
+				<button style={{ width: '8em' }} onClick={e => {!persistent && close(); confirm(); e.stopPropagation();}}>Confirm (Y)</button>
 				<button style={{ width: '8em', marginLeft: '24px' }} onClick={close}>Cancel (N)</button>
 			</div>
 		</div>

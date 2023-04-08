@@ -1,9 +1,9 @@
 import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
-import { useEventListener, usePersistedState, useSize } from '../util';
+import { useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
 import { Sample, SampleState, TableSampleInput, sampleEditingMarkers } from './Sample';
-import { Menu } from './TableMenu';
+import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
 import PlotGSM from '../plots/GSM';
@@ -347,6 +347,7 @@ export function SampleWrapper() {
 
 function SourceDataWrapper({ tables, columns, series, firstTable }:
 { tables: string[], columns: ColumnDef[], series: { [s: string]: string }, firstTable: string }) {
+	const [showCommit, setShowCommit] = useState(false);
 	const [changes, setChanges] = useState<ChangeValue[]>([]);
 	const query = useQuery({
 		cacheTime: 60 * 60 * 1000,
@@ -376,7 +377,6 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		}
 		console.log('%crendered table:', 'color: #0f0', query.data.fields, data);
 		return {
-			rawData: [...data.map(r => [...r])],
 			data: data,
 			columns: filtered,
 			firstTable,
@@ -386,7 +386,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 	}, [tables, columns, firstTable, query.data, series]);
 	const context = useMemo(() => {
 		if (!rawContext) return null;
-		const data = [...rawContext.data];
+		const data = [...rawContext.data.map(r => [...r])];
 		for (const { id, column, value } of changes) {
 			const row = data.find(r => r[0] === id);
 			const columnIdx = rawContext.columns.findIndex(c => c.id === column.id);
@@ -397,7 +397,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			data,
 			changes,
 			makeChange: ({ id, column, value }: ChangeValue) => {
-				const row = rawContext.rawData.find(r => r[0] === id);
+				const row = rawContext.data.find(r => r[0] === id);
 				// FIXME: create entity if not exists
 				const colIdx = columns.findIndex(c => c.id === column.id);
 				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
@@ -410,13 +410,46 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		};
 	}, [rawContext, changes, setChanges, columns]);
 
+	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
+	useEventListener('action+discardChanges', () => setChanges([]));
+
+	const { mutate, report, color } = useMutationHandler(async () => {
+
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/makeChanges`, {
+			method: 'POST', credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				changes: changes.map(c => ({ ...c, column: c.column.id }))
+			}) 
+		});
+		if (res.status === 400)
+			throw new Error(await res.text());
+		if (res.status !== 200)
+			throw new Error('HTTP '+res.status);
+		return await res.text();
+	}, ['tableData']);
+
 	if (query.isLoading)
 		return <div>Loading data..</div>;
 	if (!query.data)
 		return <div>Failed to load data</div>;
-
 	return (
 		<TableContext.Provider value={context!}>
+			{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => mutate(null)} close={() => setShowCommit(false)} persistent={true}>
+				<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
+				<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
+					{changes.map(({ id, column, value }) => {
+						const row = rawContext?.data.find(r => r[0] === id);
+						const colIdx = columns.findIndex(c => c.id === column.id);
+						return (<div key={id+column.id+value}>
+							<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
+							<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {row?.[colIdx] ?? 'null'} -&gt; <b>{value ?? 'null'}</b>
+							<span className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
+								setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}>&times;</span>
+						</div>);})}
+				</div>
+				<div style={{ height: '1em', color }}>{report?.error ?? report?.success}</div>
+			</ConfirmationPopup>}
 			<SampleWrapper/>
 		</TableContext.Provider>
 	);
