@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue } from './Table';
+import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, TableContext } from './Table';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(DataContext);
-	const { cursor, setCursor, plotId, makeChange } = useContext(TableViewContext);
+	const { makeChange } = useContext(TableContext);
+	const { cursor, setCursor, plotId } = useContext(TableViewContext);
 	const [values, setValues] = useState(Object.fromEntries(row.slice(1).map((value, i) =>
 		[i, value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? ''])));
 	const [validInputs, setValidInputs] = useState(Object.fromEntries(row.slice(1).map((r, i) => [i, true])));
@@ -14,9 +15,9 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 
 	const onChange = (i: number) => (e: ChangeEvent<HTMLInputElement>) => {
 		const str = e.target.value;
-		const val = str === '' ? null : parseColumnValue(str, columns[i]);
-		const isValid = val == null || isValidColumnValue(val, columns[i]);
-		const isOk = isValid && makeChange(row[0], columns[i], val);
+		const value = str === '' ? null : parseColumnValue(str, columns[i]);
+		const isValid = value == null || isValidColumnValue(value, columns[i]);
+		const isOk = isValid && makeChange({ id: row[0], column: columns[i], value });
 		setValues(vv => ({ ...vv, [i]: str }));
 		setValidInputs(vv => ({ ...vv, [i]: isOk }));
 	};
@@ -55,6 +56,7 @@ function ColumnHeader({ col }: { col: ColumnDef }) {
 }
 
 export default function TableView({ viewSize }: { viewSize: number }) {
+	const { changes } = useContext(TableContext);
 	const { data, columns, markers } = useContext(DataContext);
 	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
 	const ref = useRef<HTMLDivElement>(null);
@@ -89,7 +91,8 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 		const nav = navRow.children[0] as HTMLElement;
 		const width = ref.current?.offsetWidth! - 6;
 		nav.style.width = width + 'px';
-		navRow.style.height = width > 320 ? '22px' : width > 200 ? '40px' : '60px';
+		const wa = changes.length > 0 ? 160 : 0; 
+		navRow.style.height = width > 320+wa ? '22px' : width > 200+wa ? '40px' : '60px';
 	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
@@ -146,7 +149,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	return (
 		<div className='Table'>
 			<div ref={ref}>
-				<table style={{ tableLayout: 'fixed' }}>
+				<table style={{ tableLayout: 'fixed', minWidth: 264 }}>
 					<thead>
 						<tr>
 							{markers && <td key='smpl' style={{ minWidth: '3ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', cursor: 'pointer' }} title='f is filter, + is whitelist, - is blacklist'
@@ -167,8 +170,11 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 			<div style={{ height: '22px' }}>
 				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>
 					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
-						{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)} of
 						<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
+						&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
+						{changes.length > 0 && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
+						&nbsp;&nbsp;With [{changes.length}] unsaved change{changes.length > 1 ? 's' : ''}
+						</span>}
 					</span>
 					<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
 						<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>

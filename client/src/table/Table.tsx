@@ -73,13 +73,12 @@ type VolatileSettings = {
 
 type ChangeValue = { id: number, column: ColumnDef, value: any };
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
-	changes: ChangeValue[], setChanges: (c: SetStateAction<ChangeValue[]>) => void }>({} as any);
+	changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
 	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
 export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number,
-	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void,
-	makeChange: (id: number, col: ColumnDef, val: any) => boolean }>({} as any);
+	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void}>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Settings[T]>) => void;
 type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
@@ -226,7 +225,7 @@ function CoreWrapper() {
 	
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
-		console.log('%ccompute table', 'color: magenta');
+		console.time('compute table');
 		const cols = columns.filter(c => settings.enabledColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
@@ -238,6 +237,7 @@ function CoreWrapper() {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
+		console.timeEnd('compute table');
 		return {
 			data: idxs.map(i => renderedData[i]),
 			markers: markers && idxs.map(i => markers[i]),
@@ -274,16 +274,9 @@ function CoreWrapper() {
 
 	const tableViewContext = useMemo(() => {
 		return {
-			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0],
-			makeChange: (id: number, column: ColumnDef, value: any) => {
-				const row = data.find(r => r[0] === id);
-				// FIXME: create entity if not exists
-				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
-				if (!entityExists) return false;
-				return true;
-			}
+			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0]
 		};
-	}, [sort, setSort, cursor, setCursor, plotIdx, data, columns]);
+	}, [sort, setSort, cursor, setCursor, plotIdx, data]);
 
 	return (
 		<DataContext.Provider value={dataContext}> 
@@ -383,6 +376,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		}
 		console.log('%crendered table:', 'color: #0f0', query.data.fields, data);
 		return {
+			rawData: [...data.map(r => [...r])],
 			data: data,
 			columns: filtered,
 			firstTable,
@@ -392,7 +386,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 	}, [tables, columns, firstTable, query.data, series]);
 	const context = useMemo(() => {
 		if (!rawContext) return null;
-		const data = rawContext.data;
+		const data = [...rawContext.data];
 		for (const { id, column, value } of changes) {
 			const row = data.find(r => r[0] === id);
 			const columnIdx = rawContext.columns.findIndex(c => c.id === column.id);
@@ -402,9 +396,19 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			...rawContext,
 			data,
 			changes,
-			setChanges
+			makeChange: ({ id, column, value }: ChangeValue) => {
+				const row = rawContext.rawData.find(r => r[0] === id);
+				// FIXME: create entity if not exists
+				const colIdx = columns.findIndex(c => c.id === column.id);
+				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
+				if (!entityExists) return false;
+				
+				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
+					...(row[colIdx] !== value ? [{ id, column, value }] : [])]);
+				return true;
+			}
 		};
-	}, [rawContext, changes, setChanges]);
+	}, [rawContext, changes, setChanges, columns]);
 
 	if (query.isLoading)
 		return <div>Loading data..</div>;

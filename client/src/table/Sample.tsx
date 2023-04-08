@@ -142,10 +142,11 @@ export function TableSampleInput({ cursorColumn, cursorValue }:
 	const [filters, setFilters] = useState<{ filter: Filter, id: number }[]>([]);
 
 	useLayoutEffect(() => {
-		console.log('%ccompute sample', 'color: magenta');
+		console.time('compute sample');
 		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
 		const filterFn = renderFilters(filters.map(f => f.filter), columns);
 		setData(applied.filter(row => filterFn(row)));
+		console.timeEnd('compute sample');
 	}, [filters, data, columns, sample, isEditing, setData]);
 
 	useEventListener('action+addFilter', () => setFilters(fltrs => {
