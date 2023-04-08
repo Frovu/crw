@@ -1,4 +1,4 @@
-from core.database import log, pool, upsert_many, tables_info, tables_tree, tables_refs, ENTITY_SHORT
+from core.database import log, pool, upsert_many, tables_info, tables_tree, tables_refs, get_joins_path, ENTITY_SHORT
 import core.other_columns as other
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,7 +16,7 @@ MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
 GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
-WEIRD_TYPES = ['clone', 'diff', 'abs_diff']
+DERIVED_TYPES = ['clone', 'diff', 'abs_diff']
 
 ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
 ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
@@ -87,18 +87,18 @@ class GenericColumn:
 	def __post_init__(self):
 		self.name = f'g__{self.id}'
 
-		series, poi = self.series and self.type not in WEIRD_TYPES and SERIES[self.series][2], ''
+		series, poi = self.series and self.type not in DERIVED_TYPES and SERIES[self.series][2], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		if self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
-		elif self.poi and self.type not in WEIRD_TYPES:
+		elif self.poi and self.type not in DERIVED_TYPES:
 			typ, ser = parse_extremum_poi(self.poi)
 			ser = SERIES[ser][2]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
 
-		ser_desc = series and self.type not in WEIRD_TYPES and f'{SERIES[self.series][0]}({self.series})'
+		ser_desc = series and self.type not in DERIVED_TYPES and f'{SERIES[self.series][0]}({self.series})'
 		poi_desc = poi if self.poi != self.entity else "event onset"
 		if self.type == 'value':
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
@@ -174,29 +174,9 @@ with pool.connection() as conn:
 				column_desc['name'] = column_desc.get('name', generic.pretty_name)
 				column_desc['description'] = column_desc.get('description', generic.description)
 				PRESET_GENERICS[name] = generic
-
+	
 def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'):
-	joins = ''
-	if target_entity and entity != target_entity:
-		def rec_find(a, b, path=[entity], direction=[1]):
-			if a == b: return path, direction
-			lst = tables_tree.get(a)
-			for ent in lst or []:
-				if ent in path: continue
-				if p := rec_find(ent, b, path + [ent], direction+[1]):
-					return p
-			upper = next((t for t in tables_tree if a in tables_tree[t]), None)
-			if not upper or upper in path: return None
-			return rec_find(upper, b, path + [upper], direction+[-1])
-		found = rec_find(entity, target_entity)
-		if not found:
-			raise ValueError('No path to entity')
-		path, direction = found
-		links = [[path[i], path[i+1], direction[i+1]] for i in range(len(path)-1)]
-		for a, b, direction in links:
-			master, slave = (a, b)[::direction]
-			joins += f'LEFT JOIN events.{b} ON {slave}.id = {master}.{tables_refs.get((master, slave))}\n'
-
+	joins = get_joins_path(entity, target_entity) if target_entity else ''
 	query = [ (entity, 'id'), (target_entity, target_column) if target_column else (entity, 'time') ]
 	if 'duration' in tables_info[entity] and not target_column:
 		query.append((entity, 'duration'))
@@ -434,7 +414,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		raise ValueError('Unknown entity')
 	if entity not in ENTITY:
 		raise ValueError('Entity doesn\'t know time')
-	if 'time' not in gtype and gtype not in WEIRD_TYPES and series not in SERIES:
+	if 'time' not in gtype and gtype not in DERIVED_TYPES and series not in SERIES:
 		raise ValueError('Unknown series')
 	if shift and abs(int(shift)) > MAX_EVENT_LENGTH_H:
 		raise ValueError('Shift too large')

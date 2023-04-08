@@ -92,7 +92,9 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 		default: return val;
 	}
 }
-
+export function valueToString(v: any) {
+	return v instanceof Date ? v.toISOString().replace(/\..+/, '').replace('T', ' ') : v?.toString() ?? '';
+}
 export function isValidColumnValue(val: any, column: ColumnDef) {
 	switch (column.type) {
 		case 'time': return !isNaN(val as any);
@@ -414,12 +416,11 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 	useEventListener('action+discardChanges', () => setChanges([]));
 
 	const { mutate, report, color } = useMutationHandler(async () => {
-
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/makeChanges`, {
+		const res = await fetch(`${process.env.REACT_APP_API}api/events/changes`, {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
-				changes: changes.map(c => ({ ...c, column: c.column.id }))
+				changes: changes.map(c => ({ ...c, entity: c.column.table, column: c.column.id }))
 			}) 
 		});
 		if (res.status === 400)
@@ -435,15 +436,22 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		return <div>Failed to load data</div>;
 	return (
 		<TableContext.Provider value={context!}>
-			{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => mutate(null)} close={() => setShowCommit(false)} persistent={true}>
+			{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => mutate(null, {
+				onSuccess: () => {
+					setShowCommit(false);
+					setChanges([]);
+				}
+			})} close={() => setShowCommit(false)} persistent={true}>
 				<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
 				<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 					{changes.map(({ id, column, value }) => {
 						const row = rawContext?.data.find(r => r[0] === id);
 						const colIdx = columns.findIndex(c => c.id === column.id);
+						const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
+						const val1 = value == null ? 'null' : valueToString(value);
 						return (<div key={id+column.id+value}>
 							<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
-							<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {row?.[colIdx] ?? 'null'} -&gt; <b>{value ?? 'null'}</b>
+							<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
 							<span className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
 								setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}>&times;</span>
 						</div>);})}

@@ -1,6 +1,7 @@
 import json, os, logging
 from psycopg_pool import ConnectionPool
 from psycopg import sql
+from datetime import datetime, timezone
 
 log = logging.getLogger('aides')
 pool = ConnectionPool(kwargs = {
@@ -55,6 +56,37 @@ with pool.connection() as conn:
 		constraint = table_desc.get('_constraint')
 		create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns}\n{(","+constraint) if constraint else ""})'
 		conn.execute(create_table)
+	conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (
+		id SERIAL PRIMARY KEY,
+		author integer references users on delete set null,
+		time timestamptz not null default CURRENT_TIMESTAMP,
+		event_id integer,
+		entity_name text,
+		column_name text,
+		old_value text,
+		new_value text)''')
+
+def get_joins_path(src, dst):
+	if src == dst: return ''
+	joins = ''
+	def rec_find(a, b, path=[src], direction=[1]):
+		if a == b: return path, direction
+		lst = tables_tree.get(a)
+		for ent in lst or []:
+			if ent in path: continue
+			if p := rec_find(ent, b, path + [ent], direction+[1]):
+				return p
+		upper = next((t for t in tables_tree if a in tables_tree[t]), None)
+		if not upper or upper in path: return None
+		return rec_find(upper, b, path + [upper], direction+[-1])
+	found = rec_find(src, dst)
+	if not found:
+		raise ValueError('No path to entity')
+	path, direction = found
+	links = [[path[i], path[i+1], direction[i+1]] for i in range(len(path)-1)]
+	for a, b, direction in links:
+		master, slave = (a, b)[::direction]
+		joins += f'LEFT JOIN events.{b} ON {slave}.id = {master}.{tables_refs.get((master, slave))}\n'
 
 def upsert_many(table, columns, data, constants=[], conflict_constant='time', do_nothing=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
@@ -69,7 +101,7 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 			('ON CONFLICT DO NOTHING' if do_nothing else
 			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})' for c in columns if c not in conflict_constant])), constants)
 
-from core.generic_columns import select_generics, init_generics, SERIES
+from core.generic_columns import select_generics, init_generics, SERIES, DERIVED_TYPES
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -131,3 +163,41 @@ def select_events(t_from=None, t_to=None, uid=None, first_table='forbush_effects
 		if t_to: cond += (' AND' if cond else ' WHERE') + ' time < %s'
 		curs = conn.execute(select_query + cond + f' ORDER BY {first_table}.time', [p for p in [t_from, t_to] if p is not None])
 		return curs.fetchall(), [desc[0] for desc in curs.description]
+
+def submit_changes(uid, changes, root='forbush_effects'):
+	with pool.connection() as conn:
+		for change in changes:
+			root_id, entity, column, value = [change.get(w) for w in ['id', 'entity', 'column', 'value']]
+			if entity not in tables_info:
+				raise ValueError(f'Unknown entity: {entity}')
+			if column and column.startswith(ENTITY_SHORT[entity]):
+				column = column[len(ENTITY_SHORT[entity])+1:]
+			found_column = tables_info[entity].get(column)
+			generics = not found_column and select_generics(uid)
+			found_generic = generics and next((g for g in generics if g.entity == entity and g.name == column), False)
+			if not found_column and not found_generic:
+				raise ValueError(f'Column not found: {column}')
+			if found_generic and found_generic.type in DERIVED_TYPES:
+				raise ValueError('Can\'t edit derived generics')
+			dtype = found_column.get('type', 'real') if found_column else found_generic.data_type
+			if dtype == 'time':
+				value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
+			if dtype == 'float':
+				value = float(value)
+			if dtype == 'integer':
+				value = int(value)
+			if dtype == 'enum' and found_column.get:
+				raise ValueError(f'Bad enum value: {value}')
+			joins = get_joins_path(root, entity)
+			res = conn.execute(f'SELECT {entity}.id, {entity}.{column} FROM events.{root} {joins} WHERE {root}.id = %s', [root_id]).fetchone()
+			if not res:
+				raise ValueError(f'Target event not found')
+			target_id, old_value = res
+			if value == old_value:
+				raise ValueError(f'Value did not change: {old_value} == {value}')
+			conn.execute(f'UPDATE events.{entity} SET {column} = %s WHERE id = %s', [value, target_id])
+			old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time' else str(v) for v in [old_value, value]]
+			conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s)',
+				[uid, target_id, entity, column, old_str, new_str])
+			log.info(f'Change authored by user ({uid}): {entity}.{column} {old_value} -> {value}')
+			

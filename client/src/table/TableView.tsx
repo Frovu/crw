@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, TableContext } from './Table';
+import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, valueToString, TableContext } from './Table';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(DataContext);
 	const { makeChange } = useContext(TableContext);
 	const { cursor, setCursor, plotId } = useContext(TableViewContext);
 	const [values, setValues] = useState(Object.fromEntries(row.slice(1).map((value, i) =>
-		[i, value instanceof Date ? value.toISOString().replace(/\..+/, '').replace('T', ' ') : value?.toString() ?? ''])));
+		[i, valueToString(value)])));
 	const [validInputs, setValidInputs] = useState(Object.fromEntries(row.slice(1).map((r, i) => [i, true])));
 	const marker = markers?.[index];
 	const isSel = index === cursor?.row;
@@ -164,7 +164,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 					</thead>
 					<tbody>
 						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
-							<Row key={row[0]+'$'+row.length} {...{ index: i + viewIndex, row }}/>)}
+							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 				</table>
 			</div>

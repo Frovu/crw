@@ -22,6 +22,16 @@ def list_events():
 def events_tables_info():
 	return database.render_table_info(session.get('uid'))
 
+@bp.route('/changes', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _submit_changes():
+	changes = request.json.get('changes')
+	uid = session.get('uid')
+	if not changes or not len(changes): raise ValueError('Empty request')
+	database.submit_changes(uid, changes)
+	return 'OK'
+
 @bp.route('/recompute_generics', methods=['POST'])
 @route_shielded
 @require_role('admin')
