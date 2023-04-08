@@ -385,10 +385,24 @@ def compute_generic(generic, col_name=None):
 			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8'))).tolist() 
 		# FIXME return COALESCE
-		q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
+		update_q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
-			conn.cursor().executemany(q, data)
+			conn.cursor().executemany(update_q, data)
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
+			changes = conn.execute('SELECT DISTINCT ON (event_id) event_id, old_value, new_value FROM events.changes_log ' + 
+				' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC', [generic.entity, generic.name]).fetchall()
+			if len(changes):
+				changes = np.array(changes, dtype='object')
+				ids = changes[:,0]
+				parsed_old = np.array([v and float(v) for v in changes[:,1]])
+				parsed = np.array([v and float(v) for v in changes[:,2]])
+				_, a_idx, b_idx = np.intersect1d(ids, event_id, return_indices=True)
+				filtered = np.where(result[b_idx] == parsed_old[a_idx])[0]
+
+				if filtered.size:
+					data = np.column_stack((parsed[filtered], ids[filtered])).tolist()
+					conn.cursor().executemany(update_q, data)
+				log.info(f'Applied {filtered.size}/{len(changes)} overriding changes to {generic.name}')
 		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
 		return True
 	except Exception as e:
