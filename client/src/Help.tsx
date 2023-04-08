@@ -109,6 +109,9 @@ export default function Help() {
 		<h2><a id="obscure" href="#obscure">Other obscure knowledge</a></h2>
 		<h4>Histogram</h4>
 		Histogram range is determined automatically based on sample. It can not know anything about your filters so it is left to work with [a;b] type intervals. The following algorithm is applied here: if samples maximum value is distinct (count=1), then it <u>is discarded</u>, otherwise the range is adjusted to include a separate bin of this maximum values. Such behavior is targeted at integer or stepped data like Kp or SStype.
+		<h4>Changes to computed columns</h4>
+		After column is computed, its result value (per event) is overwritten with user authored change if and only if <b><u>last</u> change's old_value is equal to computation result</b>. Consequently, each second time computed column's value is changed, the change will be discarded after computation. So to revert changed value to automatically computed, one should <b>change it to any value and recompute column</b>. And to change already changed value one must first revert the change (as per last sentence), then apply new change and recompute second time to ensure that everything worked correctly.
+		
 		<p style={{ marginTop: '3em ' }}>
 			<a href='#top'>..to the top</a>
 		</p>
