@@ -74,10 +74,14 @@ class GenericColumn:
 
 	@classmethod
 	def info_from_name(cls, name, entity):
-		if not name.startswith('g__'):
-			found = tables_info[entity][name]
-			return found.get('name', name), found.get('type', 'real')
-		found = ALL_GENERICS[int(name[3:])]
+		try:
+			if not name.startswith('g__'):
+				found = tables_info[entity][name]
+				return found.get('name', name), found.get('type', 'real')
+			found = ALL_GENERICS[int(name[3:])]
+		except:
+			log.warn('Could not find generic target column: ' + name)
+			return '<DELETED>', 'real'
 		return found.pretty_name, found.data_type
 
 	def __post_init__(self):
@@ -94,7 +98,8 @@ class GenericColumn:
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
 
-		ser_desc, poi_desc = series and f'{SERIES[self.series][0]}({self.series})', poi if self.poi != self.entity else "event onset"
+		ser_desc = series and self.type not in WEIRD_TYPES and f'{SERIES[self.series][0]}({self.series})'
+		poi_desc = poi if self.poi != self.entity else "event onset"
 		if self.type == 'value':
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
 			if self.shift and self.shift != 0:
@@ -154,11 +159,10 @@ with pool.connection() as conn:
 		CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
 	ALL_GENERICS = dict() # except preset ones ofc
 	for row in conn.execute('SELECT * FROM events.generic_columns_info'):
-		try:
-			ALL_GENERICS[row[0]] = GenericColumn(*row)
-		except:
-			conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
-			log.warn(f'Failed to understand generic, deleting: {row}')
+		ALL_GENERICS[row[0]] = GenericColumn(*row)
+		# except:
+		# 	conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
+		# 	log.warn(f'Failed to understand generic, deleting: {row}')
 	for generic in ALL_GENERICS.values():
 		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
 	PRESET_GENERICS = dict()

@@ -44,7 +44,7 @@ function GenericCard({ column, setState }: { column: ColumnDef, setState: (a: an
 
 	return (
 		<div style={{ height: '3em', minWidth: '11em', whiteSpace: 'nowrap', marginLeft: '2em' }}>
-			<span style={{ cursor: 'pointer' }} onClick={copyToInputState}>{column.fullName}</span>
+			<span title={column.description} style={{ cursor: 'pointer' }} onClick={copyToInputState}>{column.fullName}</span>
 			<span className='CloseButton' style={{ margin: '4px 0 0 8px', transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 21 }}
 				onClick={() => mutate('compute', {
 					onSuccess: () => {

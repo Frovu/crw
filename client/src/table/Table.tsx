@@ -395,7 +395,11 @@ export default function TableWrapper() {
 					}
 				})();
 				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
-				return { ...desc, table, width, id, fullName } as ColumnDef;
+				return { ...desc, table, width, id,
+					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
+					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
+					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
+				} as ColumnDef;
 			}) 	);
 			
 			console.log('%cavailable columns:', 'color: #0f0' , columns);
