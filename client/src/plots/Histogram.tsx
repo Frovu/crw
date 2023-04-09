@@ -73,7 +73,7 @@ export default function HistogramPlot() {
 							.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
 						values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
 						...(enumMode && {
-							values: (u, vals) => vals.map(v => '     ' + (v % 1 === 0 ? ['N/A', ...column.enum!][v] : ''))
+							values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
 						}),
 					},
 					{
@@ -86,7 +86,7 @@ export default function HistogramPlot() {
 				scales: {
 					x: {
 						time: false,
-						range: (u, umin, umax) => [min-binSize/4, max+binSize/4]
+						range: (u, umin, umax) => [min-binSize/4, max + binSize/4 * (enumMode ? -1 : 1) ]
 					},
 					y: {
 						distr: options.yScale === 'log' ? 3 : 1
