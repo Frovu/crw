@@ -64,7 +64,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
-	const changelogEntry = cursor && wholeChangelog[data[cursor.row][0]];
+	const changelogEntry = cursor && wholeChangelog && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))

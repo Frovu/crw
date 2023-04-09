@@ -15,7 +15,7 @@ def list_events():
 	uid = session.get('uid')
 	res = database.select_events(uid, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
-	if changelog:
+	if changelog and uid is not None:
 		result['changelog'] = res[2]
 	return result
 
