@@ -71,6 +71,7 @@
 			}
 		},
 		"vmbm": {
+			"computed": true,
 			"name": "VmBm",
 			"description": "Vmax / 400 * Bmax / 5"
 		},

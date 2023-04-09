@@ -20,6 +20,7 @@ Column parameters:
 - `type` time|integer|real|text|enum, real by default
 - `enum` [] an array of possible enum values
 - `generic` generic column parameters
+- `computed` true if column computes automatically
 - `references` sql foreign key constraint
 - `description` column descrption visible by user
 - `parse_name` column name to parse from .txt export

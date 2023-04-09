@@ -115,7 +115,8 @@ def render_table_info(uid):
 			tag = ENTITY_SHORT[table] + '_' + col
 			info[table][tag] = {
 				'name': col_desc.get('name', col),
-				'type': col_desc.get('type', 'real')
+				'type': col_desc.get('type', 'real'),
+				'isComputed': col_desc.get('computed', 'generic' in col_desc)
 			}
 			if enum := col_desc.get('enum'):
 				info[table][tag]['enum'] = enum
@@ -127,6 +128,7 @@ def render_table_info(uid):
 			'name': g.pretty_name,
 			'type': 'real',
 			'description': g.description,
+			'isComputed': True,
 			'generic': {
 				'id': g.id,
 				'entity': g.entity,
@@ -200,12 +202,13 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			if found_generic and found_generic.type in DERIVED_TYPES:
 				raise ValueError('Can\'t edit derived generics')
 			dtype = found_column.get('type', 'real') if found_column else found_generic.data_type
+			new_value = value
 			if dtype == 'time':
-				value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
+				new_value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
 			if dtype == 'float':
-				value = float(value)
+				new_value = float(value) if value != 'auto' else None
 			if dtype == 'integer':
-				value = int(value)
+				new_value = int(value) if value != 'auto' else None
 			if dtype == 'enum' and value is not None and value not in found_column.get('enum'):
 				raise ValueError(f'Bad enum value: {value}')
 			joins = get_joins_path(root, entity)
@@ -216,9 +219,10 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			target_id, old_value = res
 			if value == old_value:
 				raise ValueError(f'Value did not change: {old_value} == {value}')
-			conn.execute(f'UPDATE events.{entity} SET {column} = %s WHERE id = %s', [value, target_id])
-			old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time' else str(v) for v in [old_value, value]]
+			conn.execute(f'UPDATE events.{entity} SET {column} = %s WHERE id = %s', [new_value, target_id])
+			new_value_str = 'auto' if new_value is None and value == 'auto' else new_value
+			old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time' else (v if v is None else str(v)) for v in [old_value, new_value_str]]
 			conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s)',
 				[uid, target_id, entity, column, old_str, new_str])
-			log.info(f'Change authored by user ({uid}): {entity}.{column} {old_value} -> {value}')
+			log.info(f'Change authored by user ({uid}): {entity}.{column} {old_value} -> {new_value_str}')
 			

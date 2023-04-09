@@ -27,6 +27,7 @@ export type ColumnDef = {
 	width: number,
 	id: string,
 	hidden?: boolean,
+	isComputed: boolean,
 	generic?: {
 		id: number,
 		entity: string,

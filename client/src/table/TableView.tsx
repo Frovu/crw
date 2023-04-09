@@ -4,7 +4,7 @@ import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseCol
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(DataContext);
-	const { makeChange } = useContext(TableContext);
+	const { makeChange, changelog: wholeChangelog } = useContext(TableContext);
 	const { cursor, setCursor, plotId } = useContext(TableViewContext);
 	const [values, setValues] = useState(Object.fromEntries(row.slice(1).map((value, i) =>
 		[i, valueToString(value)])));
@@ -12,11 +12,14 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 	const marker = markers?.[index];
 	const isSel = index === cursor?.row;
 	const mLast = marker && marker[marker.length-1];
+	const changelog = wholeChangelog?.[row[0]];
+	const isCompModified = changelog && columns.map(c => c.isComputed && changelog[c.id]?.length && changelog[c.id][changelog[c.id].length - 1].new !== 'auto');
 
 	const onChange = (i: number, update: boolean=false) => (e: ChangeEvent<HTMLInputElement>) => {
 		const str = e.target.value;
-		const value = str === '' ? null : parseColumnValue(str, columns[i]);
-		const isValid = value == null || isValidColumnValue(value, columns[i]);
+		const auto = isCompModified?.[i] && str.trim() === 'auto';
+		const value = str === '' ? null : auto ? 'auto' : parseColumnValue(str.trim(), columns[i]);
+		const isValid = auto || value == null || isValidColumnValue(value, columns[i]);
 		const isOk = isValid && (update ? makeChange({ id: row[0], column: columns[i], value }) : true);
 		if (update) setCursor(cur => cur && ({ ...cur, editing: false }));
 		setValues(vv => ({ ...vv, [i]: str }));
@@ -28,13 +31,14 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
 				<span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 			</td>}
-			{row.slice(1).map((value, i) => {
+			{columns.map((value, i) => {
 				const curs = isSel && i === cursor?.column ? cursor : null;
 				const width = { width: columns[i].width+.5+'ch' };
 				return <td key={columns[i].id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
 					style={{ borderColor: !validInputs[i] ? 'var(--color-red)' : curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 					{!curs?.editing ?
-						<span className='Cell' style={{ ...width }}>{values[i]}</span> :
+						<span className='Cell' style={{ ...width }}>{values[i]}
+							{isCompModified?.[i] && <span style={{ fontSize: '14px', display: 'inline-block', color: 'var(--color-magenta)', transform: 'translate(1px, -3px)' }}>*</span>}</span> :
 						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) }}
 							autoFocus type='text' value={values[i]} onChange={onChange(i)} onBlur={onChange(i, true)}></input>}
 				</td>;
@@ -64,7 +68,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
-	const changelogEntry = cursor && wholeChangelog && wholeChangelog[data[cursor.row][0]];
+	const changelogEntry = cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
@@ -108,8 +112,11 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code))
+		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
+			if (e.target instanceof HTMLInputElement)
+				e.target.blur();
 			return setCursor({ ...cursor, editing: !cursor.editing });
+		}
 		if (e.target instanceof HTMLInputElement) return;
 		if (cursor?.editing) return;
 
