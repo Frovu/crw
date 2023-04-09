@@ -55,9 +55,31 @@ export default function Help() {
 			Table data can be exported for private use. Under <button>Export</button> menu one can find file format switch and <i>apply filters</i> checkbox. Two supported format options are JSON and plain text, the first should be preferred because it allows to preserve whitespace in values, includes additional column information and is easier to handle with a program. Usually exported file will include only rows and columns that are currently visible in table interface (respecting selected sample and filters). One can download whole table data by unchecking this checkbox, tho we advice against doing so. Data can also be accessed via API directly, if you are willing to use it please email to <a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a>.
 		</p>
 		{/* <h2>Parameters description</h2>
-		<p>Parameters description?</p>
+		<p>Parameters description?</p> */}
 		<h2><a id="advanced" href="#advanced">Advanced usage</a></h2>
-		<h4>Manage samples</h4> */}
+		The most cool functionality requires user to be authorized, in order to save changes and also to avoid server exploitation. If you want an account please email to <a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a>.
+		<h4>Making changes</h4>
+		Operators can change table values, including ones that are computed from data. To do that one must set <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> to desired column and press Enter/Insert (or click the cell with mouse). Cell will turn into input field. When finished inputing the new value one should press Enter/Insert again (or click outside) for the change to actually apply. Inputs are validated according to corresponding column's data type, and ones that do not pass validation are marked with red. If entered value is valid it will apply locally (i.e. correlation plot will be redrawn with new data). But for changes to actually persist across sessions one must commit them by pressing <b>Ctrl + S</b> or a button under <button>Table</button> menu. A confirmation prompt will popup, listing all the changes that are being commited. One must ensure that list does not contain any unintended modifications, if it does one can discard specific changes using <span className='CloseButton' style={{ margin: 0, transform: 'none', fontSize: 16 }}>&times;</span> button. After confirm button is pressed, changes will be saved to the server and whole table data will be reloaded.
+		<p>
+			If all changes are wrong or were made locally as an experiment, one may discard all of them with the <b>Discard changes</b> button under <button>Table</button> menu.
+		</p>
+		Note that changes made to computed columns are persisted across computations. Thus, one should only change them if it's really necessary. Modified values of computed columns are marked with <span style={{ fontSize: '14px', display: 'inline-block', color: 'var(--color-magenta)', transform: 'translate(1px, -3px)' }}>*</span> asterisk. <b>In order to opt back to automatically computed value one should change cell value to special word: <span style={{ color: 'var(--color-active)' }}>auto</span></b>
+
+		<h4>Creating custom samples</h4>
+		Under <button>Sample</button> menu one can choose the sample to work with. Choose <i>None</i> to be able to create a new one. Note that the name of a sample is not restricted.
+		
+		<p>After sample is created one can add filters to it with <button>Add filter</button> button. Sample is stored on server in form of filters, the resulting list of events is computed in your browser. Thus, if events ids change sample will not break. But on the other hand if anything happens to columns that are involved in filters, the sample will not work as expected.</p>
+
+		In order to add/remove specific events to the sample one should check into <b>editing mode</b>. When this mode is active, table will include special column that shows status of each event in respect to the sample: <b>f</b>: passes sample's filters; <span style={{ color: 'var(--color-cyan)' }}>+</span>: is whitelisted; 
+		<span style={{ color: 'var(--color-magenta)' }}> -</span>: is blacklisted. Event can't be whitelisted and blacklisted at the same time. This column can be used to sort the table (just like with other columns). Use this to get to those filtered events that you want to blacklist.
+
+		<p>
+			To whitelist an event click on special columns cell of the desired row. Or press <b>+</b> (=) key while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired row. To blacklist do the same but with <b>Ctrl + click</b> or <b>-</b> key.
+		</p>
+		
+		<p>One can share ownership with co-authors by clicking on authors list and entering new list (separated by comma). All authors are equal in rights and they can for example remove you from your own sample (even you can't), so be careful there. One can also make the sample <b>public</b> so that it will be visible to anyone (only visible). <b>Beware that public sample will not work properly if it's filters involve generic columns that are not visible to everyone</b></p>
+
+		Tip: Do not forget to <button>Save changes</button>.
 		<h2><a id="generics" href="#generics">Comprehend generic columns</a></h2>
 		<p>
 			Generic columns is a name for powerful system that allows authorized users to dynamically create desired columns from data/ Press <b>{KEY_COMB.openGenericsSelector}</b> to open column creation menu, on the left you will see list of columns that you've already created (if any) with <u>recompute</u> <span className='CloseButton' style={{ margin: 0, transform: 'translateY(-3px)', color: 'var(--color-green)', fontSize: 16 }}>o</span> and <u>remove</u> <span className='CloseButton' style={{ margin: 0, transform: 'none', fontSize: 16 }}>&times;</span> buttons. On the right there will be the column creation form, which includes up to 7 inputs: 
@@ -109,8 +131,6 @@ export default function Help() {
 		<h2><a id="obscure" href="#obscure">Other obscure knowledge</a></h2>
 		<h4>Histogram</h4>
 		Histogram range is determined automatically based on sample. It can not know anything about your filters so it is left to work with [a;b] type intervals. The following algorithm is applied here: if samples maximum value is distinct (count=1), then it <u>is discarded</u>, otherwise the range is adjusted to include a separate bin of this maximum values. Such behavior is targeted at integer or stepped data like Kp or SStype.
-		<h4>Changes to computed columns</h4>
-		After column is computed, its result value (per event) is overwritten with user authored change if and only if <b><u>last</u> change's old_value is equal to computation result</b>. Consequently, each second time computed column's value is changed, the change will be discarded after computation. So to revert changed value to automatically computed, one should <b>change it to any value and recompute column</b>. And to change already changed value one must first revert the change (as per last sentence), then apply new change and recompute second time to ensure that everything worked correctly.
 		
 		<p style={{ marginTop: '3em ' }}>
 			<a href='#top'>..to the top</a>
