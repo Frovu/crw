@@ -2,7 +2,8 @@ from flask import Blueprint, request, session
 from time import time
 import json
 from core import database
-from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, init_generics, ENTITY_SHORT
+from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics, ENTITY_SHORT
+import core.other_columns as other_columns
 import core.samples as samples
 from routers.utils import route_shielded, require_role
 
@@ -39,7 +40,15 @@ def _submit_changes():
 @require_role('admin')
 def _recompute_generics():
 	start = time()
-	init_generics()
+	compute_default_generics()
+	return f'Done ({round(time() - start, 1)} s)'
+
+@bp.route('/recompute_other', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _recompute_other():
+	start = time()
+	other_columns.compute_all()
 	return f'Done ({round(time() - start, 1)} s)'
 
 @bp.route('/generics/add', methods=['POST'])

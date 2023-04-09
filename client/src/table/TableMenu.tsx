@@ -42,9 +42,11 @@ function AdminMenu() {
 		return await res.text();
 	};
 	const computeGenerics = wrapFetch('api/events/recompute_generics');
+	const computeOther = wrapFetch('api/events/recompute_other');
 	return (
 		<>
 			<MutationButton text='Recompute generics' fn={computeGenerics} invalidate={['tableData']}/>
+			<MutationButton text='Recompute other' fn={computeOther} invalidate={['tableData']}/>
 			<button className='MenuItem' onClick={() => promptLogin('upsert')}>Upsert user</button>
 		</>
 	);

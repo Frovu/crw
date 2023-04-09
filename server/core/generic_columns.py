@@ -1,5 +1,4 @@
 from core.database import log, pool, upsert_many, tables_info, tables_tree, tables_refs, get_joins_path, ENTITY_SHORT
-import core.other_columns as other
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
@@ -415,12 +414,13 @@ def recompute_generics(generics, columns=None):
 		res = executor.map(compute_generic, generics, columns) if columns else executor.map(compute_generic, generics)
 	return any(res)
 		
-def init_generics():
+def compute_default_generics():
 	with pool.connection() as conn:
-		events = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time').fetchall()
-	omni.ensure_prepared([events[0][0] - 24 * HOUR, events[-1][0] + 48 * HOUR])
+		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
+		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
+	print(first, datetime.utcfromtimestamp(last))
+	omni.ensure_prepared([first - 24 * HOUR, last + 48 * HOUR])
 	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())
-	other.compute_all()
 
 def add_generic(uid, entity, series, gtype, poi, shift):
 	if entity not in tables_info or not gtype:

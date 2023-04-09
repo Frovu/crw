@@ -102,7 +102,7 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 			('ON CONFLICT DO NOTHING' if do_nothing else
 			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})' for c in columns if c not in conflict_constant])), constants)
 
-from core.generic_columns import select_generics, init_generics, SERIES, DERIVED_TYPES
+from core.generic_columns import select_generics, SERIES, DERIVED_TYPES
 
 def render_table_info(uid):
 	generics = select_generics(uid)
