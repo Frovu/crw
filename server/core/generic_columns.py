@@ -220,6 +220,17 @@ def apply_shift(a, shift, stub=np.nan):
 		res[-shift:] = a[:shift]
 	return res
 
+def apply_changes(d_ids, d_values, entity, column, conn):
+	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 
+		' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC) chgs WHERE new_value != \'auto\'', [entity, column]).fetchall()
+	if len(changes):
+		changes = np.array(changes, dtype='object')
+		ids = changes[:,0]
+		parsed = np.array([v and float(v) for v in changes[:,1]]) # presumes that only dtype=real generics are modifiable
+		_, a_idx, b_idx = np.intersect1d(ids, d_ids, return_indices=True)
+		d_values[b_idx] = parsed[a_idx]
+		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {entity}.{column}')
+
 # all data is presumed to be continuos
 def compute_generic(generic, col_name=None):
 	try:
@@ -229,12 +240,12 @@ def compute_generic(generic, col_name=None):
 			event_id, value_0, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.series)
 			_, value_1, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.poi)
 			result = value_0 - value_1
-			data = np.column_stack((np.where(np.isnan(result), None, result), event_id.astype('i8'))).tolist() 
+			data = np.column_stack((np.where(np.isnan(result), None, result), event_id.astype('i8')))
 
 		elif generic.type == 'clone':
 			event_id, target_value, _,_,_ = _select_recursive(generic.entity, generic.poi, generic.series, 'object')
 			result = apply_shift(target_value, generic.shift, stub=None)
-			data = np.column_stack((result, event_id.astype(int))).tolist()
+			data = np.column_stack((result, event_id.astype(int)))
 
 		else:
 			is_self_poi = generic.poi.endswith(generic.entity)
@@ -383,27 +394,14 @@ def compute_generic(generic, col_name=None):
 			if generic.series == 'kp_index':
 				result[result != None] /= 10
 			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
-			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8'))).tolist() 
+			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
+
 		# FIXME return COALESCE
 		update_q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
-			conn.cursor().executemany(update_q, data)
+			apply_changes(data[:,1], data[:,0], generic.entity, generic.name, conn)
+			conn.cursor().executemany(update_q, data.tolist())
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-			changes = conn.execute('SELECT DISTINCT ON (event_id) event_id, old_value, new_value FROM events.changes_log ' + 
-				' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC', [generic.entity, generic.name]).fetchall()
-			# presumes that only dtype=real generics are modifiable
-			if len(changes):
-				changes = np.array(changes, dtype='object')
-				ids = changes[:,0]
-				parsed_old = np.array([v and float(v) for v in changes[:,1]])
-				parsed = np.array([v and float(v) for v in changes[:,2]])
-				_, a_idx, b_idx = np.intersect1d(ids, event_id, return_indices=True)
-				filtered = np.where(result[b_idx] == parsed_old[a_idx])[0]
-
-				if filtered.size:
-					data = np.column_stack((parsed[filtered], ids[filtered])).tolist()
-					conn.cursor().executemany(update_q, data)
-				log.info(f'Applied {filtered.size}/{len(changes)} overriding changes to {generic.name}')
 		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
 		return True
 	except Exception as e:

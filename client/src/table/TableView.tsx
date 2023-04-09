@@ -72,7 +72,8 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
-		.sort((a, b) => [a, b].map(chg => cursor.column - Math.abs(columns.findIndex(c => c.id === chg.column))).reduce((da,db)=>da-db) ); // ???
+		.sort((a, b) => [a, b].map(chg => Math.abs(cursor.column - columns.findIndex(c => c.id === chg.column))).reduce((da,db)=>db-da) ); // ???
+	// changelog?.map(chg => )
 	const changesRows = Math.min(3, changelog?.length ?? 0);
 
 	const updateViewIndex = (curs: Exclude<Cursor, null>) => {
@@ -186,7 +187,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 					</tbody>
 				</table>
 				{changesRows > 0 && <div style={{ fontSize: '14px', border: '1px var(--color-border) solid',
-					height: 28 * changesRows - 2 + 'px', overflowY: 'scroll' }}>
+					height: 28 * changesRows - 4 + 'px', margin: '0 2px 2px 2px', overflowY: 'scroll' }}>
 					{changelog!.map(change => {
 						const column = columns.find(c => c.id === change.column)!;
 						const time = new Date(change.time * 1e3);
