@@ -203,14 +203,15 @@ def submit_changes(uid, changes, root='forbush_effects'):
 				raise ValueError('Can\'t edit derived generics')
 			dtype = found_column.get('type', 'real') if found_column else found_generic.data_type
 			new_value = value
-			if dtype == 'time':
-				new_value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
-			if dtype == 'real':
-				new_value = float(value) if value != 'auto' else None
-			if dtype == 'integer':
-				new_value = int(value) if value != 'auto' else None
-			if dtype == 'enum' and value is not None and value not in found_column.get('enum'):
-				raise ValueError(f'Bad enum value: {value}')
+			if value is not None:
+				if dtype == 'time':
+					new_value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
+				if dtype == 'real':
+					new_value = float(value) if value != 'auto' else None
+				if dtype == 'integer':
+					new_value = int(value) if value != 'auto' else None
+				if dtype == 'enum' and value is not None and value not in found_column.get('enum'):
+					raise ValueError(f'Bad enum value: {value}')
 			joins = get_joins_path(root, entity)
 			res = conn.execute(f'SELECT {entity}.id, {entity}.{column} FROM events.{root} {joins} WHERE {root}.id = %s', [root_id]).fetchone()
 			if not res:

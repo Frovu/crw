@@ -108,8 +108,8 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 		const nav = navRow.children[0] as HTMLElement;
 		const width = ref.current?.offsetWidth! - 6;
 		nav.style.width = width + 'px';
-		const wa = changes.length > 0 ? 160 : 0; 
-		navRow.style.height = width > 320+wa ? '22px' : width > 200+wa ? '40px' : '60px';
+		const wa = (changes.length > 0 ? 210 : 0) + (data.length > 99 ? 64: 0);
+		navRow.style.height = width > 240+wa ? '22px' : width > 180+wa ? '40px' : '60px';
 	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {

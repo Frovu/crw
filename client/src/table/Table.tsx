@@ -282,7 +282,7 @@ function CoreWrapper() {
 	const viewSize = Math.max(4, Math.round(
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
-		- 72) / 28 - 2 ));
+		- 72) / 28 - 3 )); // FIXME: -3 gives space for long column header, there is a better way to do that
 	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || ['Histogram', 'Correlation'].includes(s));
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 

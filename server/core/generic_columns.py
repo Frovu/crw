@@ -221,7 +221,7 @@ def apply_shift(a, shift, stub=np.nan):
 
 def apply_changes(d_ids, d_values, entity, column, conn):
 	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 
-		' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC) chgs WHERE new_value != \'auto\'', [entity, column]).fetchall()
+		' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC) chgs WHERE new_value IS NULL OR new_value != \'auto\'', [entity, column]).fetchall()
 	if len(changes):
 		changes = np.array(changes, dtype='object')
 		ids = changes[:,0]
@@ -233,12 +233,15 @@ def apply_changes(d_ids, d_values, entity, column, conn):
 # all data is presumed to be continuos
 def compute_generic(generic, col_name=None):
 	try:
+		column = col_name or generic.name
 		t_start = time()
-		log.info(f'Computing {generic.name}')
+		log.info(f'Computing {column}')
 		if generic.type in ['diff', 'abs_diff']:
 			event_id, value_0, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.series)
 			_, value_1, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.poi)
 			result = value_0 - value_1
+			if 'abs' in generic.type:
+				result = np.abs(result)
 			data = np.column_stack((np.where(np.isnan(result), None, result), event_id.astype('i8')))
 
 		elif generic.type == 'clone':
@@ -396,15 +399,15 @@ def compute_generic(generic, col_name=None):
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
 
 		# FIXME return COALESCE
-		update_q = f'UPDATE events.{generic.entity} SET {col_name or generic.name} = %s WHERE {generic.entity}.id = %s'
+		update_q = f'UPDATE events.{generic.entity} SET {column} = %s WHERE {generic.entity}.id = %s'
 		with pool.connection() as conn:
-			apply_changes(data[:,1], data[:,0], generic.entity, generic.name, conn)
+			apply_changes(data[:,1], data[:,0], generic.entity, column, conn)
 			conn.cursor().executemany(update_q, data.tolist())
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
+		log.info(f'Computed {column} in {round(time()-t_start,2)}s')
 		return True
 	except Exception as e:
-		log.error(f'Failed at {generic.name}: {traceback.format_exc()}')
+		log.error(f'Failed at {column}: {traceback.format_exc()}')
 		return False
 
 def recompute_generics(generics, columns=None):
@@ -418,7 +421,6 @@ def compute_default_generics():
 	with pool.connection() as conn:
 		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
 		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
-	print(first, datetime.utcfromtimestamp(last))
 	omni.ensure_prepared([first - 24 * HOUR, last + 48 * HOUR])
 	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())
 
