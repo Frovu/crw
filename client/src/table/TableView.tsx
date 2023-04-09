@@ -56,25 +56,35 @@ function ColumnHeader({ col }: { col: ColumnDef }) {
 	);
 }
 
+const MAX_CHANGELOG_ROWS = 3;
 export default function TableView({ viewSize }: { viewSize: number }) {
-	const { changes } = useContext(TableContext);
+	const { changes, changelog: wholeChangelog } = useContext(TableContext);
 	const { data, columns, markers } = useContext(DataContext);
 	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
 
+	const changelogEntry = cursor && wholeChangelog[data[cursor.row][0]];
+	const changelog = changelogEntry && Object.entries(changelogEntry)
+		.filter(([col]) => columns.find(c => c.id === col))
+		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
+		.sort((a, b) => [a, b].map(chg => cursor.column - Math.abs(columns.findIndex(c => c.id === chg.column))).reduce((da,db)=>da-db) ); // ???
+	const changesRows = Math.min(3, changelog?.length ?? 0);
+
 	const updateViewIndex = (curs: Exclude<Cursor, null>) => {
 		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-			(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
-		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
+			(curs.row + MAX_CHANGELOG_ROWS >= viewIndex+viewSize ? curs.row - viewSize + MAX_CHANGELOG_ROWS + 1 : viewIndex);
+		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize + changesRows));
 	};
 
-	useLayoutEffect(() => {
+	useLayoutEffect(() => { // ??
 		setViewIndex(Math.max(0, data.length - viewSize));
 	}, [data.length, viewSize, sort]);
 	useEffect(() => {
 		if (!ref.current) return;
 		ref.current.onwheel = e => setViewIndex(idx => {
+			const table = ref.current?.children[0];
+			if (!table?.contains(e.target as Node)) return idx;
 			const newIdx = Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize);
 			setCursor(((curs: Cursor) => ((curs?.row! > newIdx + viewSize || curs?.row! < newIdx) ? null : curs)) as any);
 			return newIdx;
@@ -86,6 +96,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 		const cell = ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
 		ref.current?.parentElement?.scrollTo({ left });
+		ref.current?.children[1]?.scrollTo(0, ref.current?.children[1]?.scrollHeight);
 	}, [cursor]); // eslint-disable-line
 	useLayoutEffect(() => {
 		const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
@@ -163,10 +174,23 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 						</tr>
 					</thead>
 					<tbody>
-						{data.slice(viewIndex, viewIndex+viewSize).map((row, i) =>
+						{data.slice(viewIndex, viewIndex + viewSize - changesRows).map((row, i) =>
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 				</table>
+				{changesRows > 0 && <div style={{ fontSize: '14px', border: '1px var(--color-border) solid',
+					height: 28 * changesRows - 2 + 'px', overflowY: 'scroll' }}>
+					{changelog!.map(change => {
+						const column = columns.find(c => c.id === change.column)!;
+						const time = new Date(change.time * 1e3);
+						const val = (str: string | null) =>
+							str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
+						return (<div key={JSON.stringify(change)} style={{ margin: '4px 8px 4px 8px' }}>
+							<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
+							<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
+							: {val(change.old)} -&gt; <b>{val(change.new)}</b>
+						</div>);})}
+				</div>}
 			</div>
 			<div style={{ height: '22px' }}>
 				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>

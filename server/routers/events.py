@@ -16,7 +16,7 @@ def list_events():
 	res = database.select_events(uid, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
 	if changelog:
-		result['changes'] = res[2]
+		result['changelog'] = res[2]
 	return result
 
 @bp.route('/info/', methods=['GET'])

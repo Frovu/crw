@@ -43,6 +43,17 @@ export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
+export type ChangeLog = {
+	[id: string]: {
+		[col: string]: [
+			{
+				time: number,
+				author: string,
+				old: string,
+				new: string
+			}
+		]
+	}};
 
 export type Settings = {
 	theme: typeof themeOptions[number],
@@ -73,7 +84,7 @@ type VolatileSettings = {
 
 type ChangeValue = { id: number, column: ColumnDef, value: any };
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
-	changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
+	changelog: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
 	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
@@ -359,7 +370,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			const res = await fetch(`${process.env.REACT_APP_API}api/events/?changelog=true`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
-			return await res.json() as {data: any[][], fields: string[]};
+			return await res.json() as {data: any[][], fields: string[], changelog: ChangeLog};
 		}
 	});
 	const rawContext = useMemo(() => {
@@ -381,6 +392,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		return {
 			data: data,
 			columns: filtered,
+			changelog: query.data.changelog,
 			firstTable,
 			tables: Array.from(tables),
 			series

@@ -173,9 +173,10 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 			for eid, ent, column, author, at, old_val, new_val in changes:
 				if eid not in rendered:
 					rendered[eid] = dict()
-				if column not in rendered[eid]:
-					rendered[eid][column] = list()
-				rendered[eid][column].append({
+				name = f'{ENTITY_SHORT[ent]}_{column}'
+				if name not in rendered[eid]:
+					rendered[eid][name] = list()
+				rendered[eid][name].append({
 					'time': at,
 					'author': author,
 					'old': old_val,
