@@ -141,15 +141,15 @@ def render_table_info(uid):
 	series = { ser: SERIES[ser][2] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
-def select_events(t_from=None, t_to=None, uid=None, first_table='forbush_effects'):
+def select_events(uid=None, root='forbush_effects', changelog=False):
 	generics = select_generics(uid)
-	columns, joins = [], []
+	columns, joins = [], ''
 	for table in tables_info:
 		for column, desc in tables_info[table].items():
 			if column.startswith('_'):
 				continue
 			if ref := desc.get('references'):
-				joins.append(f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}')
+				joins += f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}\n'
 			else:
 				col = f'{table}.{column}'
 				value = f'EXTRACT(EPOCH FROM {col})::integer' if desc.get('type') == 'time' else col
@@ -158,12 +158,30 @@ def select_events(t_from=None, t_to=None, uid=None, first_table='forbush_effects
 	for g in generics:
 		name = f'{ENTITY_SHORT[g.entity]}_{g.name}'
 		columns.append(f'{g.entity}.{g.name} as {name}')
-	select_query = f'SELECT {first_table}.id as id,\n{", ".join(columns)}\nFROM events.{first_table}\n' + '\n'.join(joins)
+	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM events.{root}\n{joins}'
 	with pool.connection() as conn:
-		cond = ' WHERE time >= %s' if t_from else ''
-		if t_to: cond += (' AND' if cond else ' WHERE') + ' time < %s'
-		curs = conn.execute(select_query + cond + f' ORDER BY {first_table}.time', [p for p in [t_from, t_to] if p is not None])
-		return curs.fetchall(), [desc[0] for desc in curs.description]
+		curs = conn.execute(select_query + f' ORDER BY {root}.time')
+		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
+		if changelog:
+			entity_selector = '\nOR '.join([f'(entity_name = \'{ent}\' AND {ent}.id = event_id)' for ent in tables_info])
+			query = f'''SELECT (SELECT {root}.id FROM events.{root} {joins} WHERE {entity_selector}) as root_id,
+				entity_name, column_name, (select login from users where uid = author) as author, EXTRACT (EPOCH FROM time)::integer, old_value, new_value
+				FROM events.changes_log WHERE column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s)
+				ORDER BY root_id, column_name, time''' # this is cursed
+			changes = conn.execute(query, ([g.name for g in generics],)).fetchall()
+			rendered = dict()
+			for eid, ent, column, author, at, old_val, new_val in changes:
+				if eid not in rendered:
+					rendered[eid] = dict()
+				if column not in rendered[eid]:
+					rendered[eid][column] = list()
+				rendered[eid][column].append({
+					'time': at,
+					'author': author,
+					'old': old_val,
+					'new': new_val
+				})
+		return rows, fields, rendered if changelog else None
 
 def submit_changes(uid, changes, root='forbush_effects'):
 	with pool.connection() as conn:

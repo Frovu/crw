@@ -356,7 +356,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		staleTime: Infinity,
 		queryKey: ['tableData'], 
 		queryFn: async () => {
-			const res = await fetch(`${process.env.REACT_APP_API}api/events/`, { credentials: 'include' });
+			const res = await fetch(`${process.env.REACT_APP_API}api/events/?changelog=true`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
 			return await res.json() as {data: any[][], fields: string[]};

@@ -11,11 +11,13 @@ bp = Blueprint('events', __name__, url_prefix='/api/events')
 @bp.route('/', methods=['GET'])
 @route_shielded
 def list_events():
-	t_from = request.args.get('from')
-	t_to = request.args.get('to')
+	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = database.select_events(t_from, t_to, uid)
-	return { "data": res[0], "fields": res[1]}
+	res = database.select_events(uid, changelog=changelog)
+	result = { 'fields': res[1], 'data': res[0] }
+	if changelog:
+		result['changes'] = res[2]
+	return result
 
 @bp.route('/info/', methods=['GET'])
 @route_shielded

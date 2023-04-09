@@ -391,6 +391,7 @@ def compute_generic(generic, col_name=None):
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 			changes = conn.execute('SELECT DISTINCT ON (event_id) event_id, old_value, new_value FROM events.changes_log ' + 
 				' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC', [generic.entity, generic.name]).fetchall()
+			# presumes that only dtype=real generics are modifiable
 			if len(changes):
 				changes = np.array(changes, dtype='object')
 				ids = changes[:,0]
