@@ -19,7 +19,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 				u => drawCustomLabels({ temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' })(u),
-				params.showLegend ? drawCustomLegend({
+				...(params.showLegend ? [drawCustomLegend({
 					'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
 					'Dp': 'Proton density, N/cm^3',
 					'beta': 'Plasma beta',
@@ -27,7 +27,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 					'Tp': 'diamond',
 					'Dp': 'circle',
 					'beta': 'square',
-				 }) : undefined
+				})] : [])
 			],
 		},
 		axes: [

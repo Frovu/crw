@@ -21,7 +21,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 			draw: [
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u),
-				params.showLegend ? drawCustomLegend({
+				...(params.showLegend ? [drawCustomLegend({
 					'Vsw': 'Vsw, km/s',
 					'|B|': 'IMF |B|, nT',
 					'Bx': 'IMF  Bx, nT',
@@ -33,7 +33,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 					'Bx': 'triangleDown',
 					'By': 'triangleUp',
 					'Bz': 'square',
-				 }) : undefined
+				})] : [])
 			]
 		},
 		axes: [

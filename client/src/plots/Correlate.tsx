@@ -21,7 +21,7 @@ export default function CorrelationPlot() {
 
 		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrParams]));
 		if (colIdx.includes(-1)) return null;
-		const data = sampleData.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null).sort((a, b) => a[0] - b[0]);
+		const data = sampleData.map(row => colIdx.map(i => row[i])).filter(r => r[0] != null && r[1] != null).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
 		if (data.length < 8) return null;
