@@ -17,7 +17,8 @@ export const KEY_COMB = {
 	'switchViewPlots': 'H',
 	'switchHistCorr': 'J',
 	'switchTheme': 'T',
-	'commitChanges': 'Ctrl+S'
+	'commitChanges': 'Ctrl+S',
+	'discardChanges': 'Ctrl+X'
 } as { [action: string]: string };
 
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
@@ -286,7 +287,7 @@ export function Menu() {
 function onKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape')
 		return dispatchCustomEvent('escape');
-	if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox')
+	if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)
 		return;
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);

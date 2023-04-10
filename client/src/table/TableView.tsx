@@ -15,7 +15,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 	const changelog = wholeChangelog?.[row[0]];
 	const isCompModified = changelog && columns.map(c => c.isComputed && changelog[c.id]?.length && changelog[c.id][changelog[c.id].length - 1].new !== 'auto');
 
-	const onChange = (i: number, update: boolean=false) => (e: ChangeEvent<HTMLInputElement>) => {
+	const onChange = (i: number, update: boolean=false) => (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>) => {
 		const str = e.target.value;
 		const auto = isCompModified?.[i] && str.trim() === 'auto';
 		const value = str === '' ? null : auto ? 'auto' : parseColumnValue(str.trim(), columns[i]);
@@ -31,16 +31,21 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
 				<span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 			</td>}
-			{columns.map((value, i) => {
+			{columns.map((column, i) => {
 				const curs = isSel && i === cursor?.column ? cursor : null;
-				const width = { width: columns[i].width+.5+'ch' };
-				return <td key={columns[i].id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
+				const width = { width: column.width+.5+'ch' };
+				const inpStype = !curs?.editing ? null : { ...width, borderWidth: 0, padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) };
+				return <td key={column.id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
 					style={{ borderColor: !validInputs[i] ? 'var(--color-red)' : curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 					{!curs?.editing ?
 						<span className='Cell' style={{ ...width }}>{values[i]}
-							{isCompModified?.[i] && <span style={{ fontSize: '14px', display: 'inline-block', color: 'var(--color-magenta)', transform: 'translate(1px, -3px)' }}>*</span>}</span> :
-						<input style={{ ...width, border: 'none', padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) }}
-							autoFocus type='text' value={values[i]} onChange={onChange(i)} onBlur={onChange(i, true)}></input>}
+							{isCompModified?.[i] && <span style={{ fontSize: '14px', display: 'inline-block', color: 'var(--color-magenta)', transform: 'translate(1px, -3px)' }}>*</span>}</span>
+						: column.type === 'enum' ?
+							<select autoFocus style={inpStype!} onChange={onChange(i)} onBlur={onChange(i, true)}>
+								<option value=''></option>
+								{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
+							</select>
+							: <input style={inpStype!} autoFocus type='text' value={values[i]} onChange={onChange(i)} onBlur={onChange(i, true)}></input>}
 				</td>;
 			})}
 		</tr>
@@ -79,8 +84,9 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 	const changesRows = Math.min(3, changelog?.length ?? 0);
 
 	const updateViewIndex = (curs: Exclude<Cursor, null>) => {
+		const indent = showChangelog ? MAX_CHANGELOG_ROWS + 1 : 1;
 		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-			(curs.row + MAX_CHANGELOG_ROWS >= viewIndex+viewSize ? curs.row - viewSize + MAX_CHANGELOG_ROWS + 1 : viewIndex);
+			(curs.row + indent >= viewIndex+viewSize ? curs.row - viewSize + indent + 1 : viewIndex);
 		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize + changesRows));
 	};
 
@@ -108,12 +114,12 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 	}, [cursor]); // eslint-disable-line
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
-			if (e.target instanceof HTMLInputElement)
-				e.target.blur();
+			if (isInput) e.target.blur();
 			return setCursor({ ...cursor, editing: !cursor.editing });
 		}
-		if (e.target instanceof HTMLInputElement) return;
+		if (isInput) return;
 		if (cursor?.editing) return;
 
 		if (cursor && ['-', '+', '='].includes(e.key))
@@ -180,7 +186,8 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 						{data.slice(viewIndex, viewIndex + viewSize - changesRows).map((row, i) =>
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
-					{averages && (<tfoot style={{  }}>
+					{averages && (<tfoot>
+						<td colSpan={columns.length} style={{ height: '0' }}></td>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label}>
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';

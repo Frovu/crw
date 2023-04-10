@@ -49,7 +49,7 @@ input[type='checkbox'] {
 }
 
 button:hover:enabled, select:hover:enabled {
-	border: 1px var(--color-active) solid !important;
+	border-color: var(--color-active) !important;
 }
 
 input:disabled, button:disabled, select:disabled {
