@@ -155,7 +155,7 @@ function MenuSection({ name, shownSection, setShownSection, children, style }:
 
 function ExportMenu() {
 	const { data: rData, columns: rColumns } = useContext(TableContext);
-	const { data: fData, columns: fColumns } = useContext(DataContext);
+	const { data: fData, columns: fColumns, averages } = useContext(DataContext);
 
 	const [ filtered, setFiltered ] = useState(true);
 	const [ format, setFormat ] = useState(false);
@@ -163,11 +163,25 @@ function ExportMenu() {
 	const dataUrl = useMemo(() => {
 		const data = (filtered ? fData : rData).map(row => row.slice(1));
 		const columns = filtered ? fColumns : rColumns.slice(1);
-		if (!format)
+		const cols = columns.map(({ fullName, type, description, enum: aenum }, i) => ({
+			name: fullName, type, description, enum: aenum,
+			...(filtered && averages?.[i] && {
+				median: Math.round(averages[i]![0]*1000) / 1000,
+				mean: Math.round(averages[i]![1]*1000) / 1000,
+				std: Math.round(averages[i]![2]*1000) / 1000,
+				sem: Math.round(averages[i]![3]*1000) / 1000,
+			})
+		}));
+		
+		if (!format) {
 			return URL.createObjectURL(new Blob([JSON.stringify({
-				columns: columns.map(({ fullName, type, description, enum: aenum }) => ({ name: fullName, type, description, enum: aenum })), data }, null, 2)],{ type: 'application/json' }));
+				columns: cols,
+				data
+			}, null, 2)],
+			{ type: 'application/json' }));
+		}
 
-		let text = 'Note: plaintext export option has limitations and you should consider using JSON instead\r\nAll whitespace in values are replaced by _, missing values are marked as N/A\r\n';
+		let text = 'Note: plaintext export option has limitations (i.e. does not incldue mean,std,etc) and one should consider using JSON instead\r\nAll whitespace in values is replaced by _, missing values are marked as N/A\r\n';
 		text += columns.map(col => col.id.padStart(col.width, ' '.repeat(col.width))).join(' ') + '\r\n';
 
 		for (const row of data) {
@@ -179,7 +193,7 @@ function ExportMenu() {
 			text += '\r\n';
 		};
 		return URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-	}, [fColumns, fData, filtered, format, rColumns, rData]);
+	}, [fColumns, fData, filtered, format, rColumns, rData, averages]);
 
 	const fname = (filtered ? 'some_' : 'all_') + 'events' + (format ? '.txt' : '.json');
 	return (
