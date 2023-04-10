@@ -100,17 +100,19 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 		updateViewIndex(cursor);
 		const cell = ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
-		ref.current?.parentElement?.scrollTo({ left });
-		ref.current?.children[1]?.scrollTo(0, ref.current?.children[1]?.scrollHeight);
+		ref.current?.scrollTo({ left });
+		const log = ref.current?.parentElement?.querySelector('#changelog');
+		log?.scrollTo(0, log.scrollHeight);
 	}, [cursor]); // eslint-disable-line
-	useLayoutEffect(() => {
-		const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
-		const nav = navRow.children[0] as HTMLElement;
-		const width = ref.current?.offsetWidth! - 6;
-		nav.style.width = width + 'px';
-		const wa = (changes.length > 0 ? 210 : 0) + (data.length > 99 ? 64: 0);
-		navRow.style.height = width > 240+wa ? '22px' : width > 180+wa ? '40px' : '60px';
-	});
+
+	// useLayoutEffect(() => {
+	// 	const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
+	// 	const nav = navRow.children[0] as HTMLElement;
+	// 	const width = ref.current?.offsetWidth! - 6;
+	// 	nav.style.width = width + 'px';
+	// 	const wa = (changes.length > 0 ? 210 : 0) + (data.length > 99 ? 64: 0);
+	// 	navRow.style.height = width > 240+wa ? '22px' : width > 180+wa ? '40px' : '60px';
+	// });
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
@@ -166,9 +168,9 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>(); // this is weird
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
-	return (
-		<div className='Table'>
-			<div ref={ref}>
+	return ( // https://stackoverflow.com/questions/43311943/prevent-content-from-expanding-grid-items
+		<div style={{ minWidth: 0, maxWidth: 'fit-content', border: '1px solid var(--color-border)' }}>
+			<div className='Table' ref={ref}>
 				<table style={{ tableLayout: 'fixed', minWidth: 264 }}>
 					<thead>
 						<tr>
@@ -186,38 +188,36 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 				</table>
-				{changesRows > 0 && <div style={{ fontSize: '14px', border: '1px var(--color-border) solid',
-					height: 28 * changesRows - 4 + 'px', margin: '0 2px 2px 2px', overflowY: 'scroll' }}>
-					{changelog!.map(change => {
-						const column = columns.find(c => c.id === change.column)!;
-						const time = new Date(change.time * 1e3);
-						const val = (str: string | null) =>
-							str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
-						return (<div key={JSON.stringify(change)} style={{ margin: '4px 8px 4px 8px' }}>
-							<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
-							<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
-							: {val(change.old)} -&gt; <b>{val(change.new)}</b>
-						</div>);})}
-				</div>}
 			</div>
-			<div style={{ height: '22px' }}>
-				<div style={{ position: 'fixed', padding: '0 2px 0 4px', display: 'inline-flex', justifyContent: 'space-between' }}>
-					<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
-						<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
-						&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
-						{changes.length > 0 && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
-						&nbsp;&nbsp;With [{changes.length}] unsaved change{changes.length > 1 ? 's' : ''}
-						</span>}
-					</span>
-					<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
-						<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
-						<button className='tableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
-						<button className='tableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
-						<button className='tableControl' onClick={simulateKey('End', true)}><span>E</span></button>
-						<button className='tableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
-						<button className='tableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
-					</span>
-				</div>
+			{changesRows > 0 && <div id='changelog' style={{ fontSize: '14px', border: '1px var(--color-border) solid',
+				height: 28 * changesRows - 4 + 'px', margin: '0 2px 2px 2px', padding: '4px', lineHeight: '22px', overflowY: 'scroll' }}>
+				{changelog!.map(change => {
+					const column = columns.find(c => c.id === change.column)!;
+					const time = new Date(change.time * 1e3);
+					const val = (str: string | null) =>
+						str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
+					return (<div key={JSON.stringify(change)} style={{ margin: '0' }}>
+						<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
+						<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
+						: {val(change.old)} -&gt; <b>{val(change.new)}</b>
+					</div>);})}
+			</div>}
+			<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
+				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
+					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
+					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
+					{changes.length > 0 && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
+					&nbsp;&nbsp;With [{changes.length}] unsaved{changes.length > 1 ? 's' : ''}&nbsp;
+					</span>}
+				</span>
+				<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
+					<button className='tableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
+					<button className='tableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
+					<button className='tableControl' onClick={simulateKey('End', true)}><span>E</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
+					<button className='tableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
+				</span>
 			</div>
 		</div>
 	);

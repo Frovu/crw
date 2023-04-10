@@ -51,13 +51,11 @@
 }
 
 .Table {
-	border: 1px solid var(--color-border);
 	overflow-x: scroll;
 	-ms-overflow-style: none;  /* IE and Edge */
-	scrollbar-width: none;  /* Firefox */
-	scrollbar-base-color: red;
-	max-width: fit-content;
+	scrollbar-width: none; /* Firefox */
 }
+
 .Table::-webkit-scrollbar {
 	display: none;
 }
