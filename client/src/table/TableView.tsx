@@ -63,7 +63,7 @@ function ColumnHeader({ col }: { col: ColumnDef }) {
 const MAX_CHANGELOG_ROWS = 3;
 export default function TableView({ viewSize }: { viewSize: number }) {
 	const { changes, changelog: wholeChangelog } = useContext(TableContext);
-	const { data, columns, markers } = useContext(DataContext);
+	const { data, columns, averages, markers } = useContext(DataContext);
 	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
@@ -104,15 +104,6 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 		const log = ref.current?.parentElement?.querySelector('#changelog');
 		log?.scrollTo(0, log.scrollHeight);
 	}, [cursor]); // eslint-disable-line
-
-	// useLayoutEffect(() => {
-	// 	const navRow = ref.current?.parentElement?.children[1] as HTMLElement;
-	// 	const nav = navRow.children[0] as HTMLElement;
-	// 	const width = ref.current?.offsetWidth! - 6;
-	// 	nav.style.width = width + 'px';
-	// 	const wa = (changes.length > 0 ? 210 : 0) + (data.length > 99 ? 64: 0);
-	// 	navRow.style.height = width > 240+wa ? '22px' : width > 180+wa ? '40px' : '60px';
-	// });
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
@@ -164,7 +155,7 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 			column: Math.min(Math.max(0, column + deltaCol), columns.length - 1)
 		});		
 	});
-
+	
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>(); // this is weird
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
@@ -187,10 +178,19 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 						{data.slice(viewIndex, viewIndex + viewSize - changesRows).map((row, i) =>
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
+					{averages && (<tfoot style={{  }}>
+						{['median', 'mean', 'σ', 'σ/√n'].map((label, ari) => <tr key={label}>
+							{averages.map((avgs, i) => {
+								const isLabel = columns[i].type === 'time';
+								return <td style={{ borderColor: 'var(--color-grid)', textAlign: isLabel ? 'right' : 'left', padding: '0 3px' }}>
+									{isLabel ? label : avgs ? avgs[ari].toFixed(ari > 2 ? 3 : 2) : ''}</td>;
+							})}
+						</tr>)}
+					</tfoot>)}
 				</table>
 			</div>
 			{changesRows > 0 && <div id='changelog' style={{ fontSize: '14px', border: '1px var(--color-border) solid',
-				height: 28 * changesRows - 4 + 'px', margin: '0 2px 2px 2px', padding: '4px', lineHeight: '22px', overflowY: 'scroll' }}>
+				height: 28 * changesRows - 12 + 'px', margin: '0 2px 2px 2px', padding: '4px', lineHeight: '22px', overflowY: 'scroll' }}>
 				{changelog!.map(change => {
 					const column = columns.find(c => c.id === change.column)!;
 					const time = new Date(change.time * 1e3);

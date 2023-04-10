@@ -59,6 +59,7 @@ export type ChangeLog = {
 export type Settings = {
 	theme: typeof themeOptions[number],
 	enabledColumns: string[],
+	computeAverages: boolean,
 	plotTimeOffset: [number, number], // as number of days
 	plotGrid: boolean,
 	plotMarkers: boolean,
@@ -88,7 +89,7 @@ export const TableContext = createContext<{ data: any[][], columns: ColumnDef[],
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
 	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
-export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], markers: null | string[] }>({} as any);
+export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
 export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number,
 	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void}>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
@@ -122,6 +123,7 @@ function defaultSettings(): Settings {
 	return {
 		theme: 'Dark',
 		enabledColumns: SHOW,
+		computeAverages: true,
 		plotGrid: true,
 		plotMarkers: true,
 		plotLegend: false,
@@ -251,13 +253,27 @@ function CoreWrapper() {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
+		const averages = !settings.computeAverages ? null : cols.map((col, i) => {
+			if (col.type !== 'real') return null;
+			const sorted = renderedData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
+			if (!sorted.length) return null;
+			const mid = Math.floor(sorted.length / 2);
+			const median = sorted.length % 2 === 0 ? ((sorted[mid-1] + sorted[mid]) / 2) : sorted[mid];
+			const sum = sorted.reduce((a, b) => a + b, 0);
+			const n = sorted.length;
+			const mean = sum / n;
+			const std = Math.sqrt(sorted.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+			const sem = std / Math.sqrt(n);
+			return [median, mean, std, sem];
+		});
 		console.timeEnd('compute table');
 		return {
+			averages,
 			data: idxs.map(i => renderedData[i]),
 			markers: markers && idxs.map(i => markers[i]),
 			columns: cols
 		};
-	}, [columns, settings.enabledColumns, sort, sampleData, sample, editingSample]);
+	}, [columns, sort, sampleData, sample, editingSample, settings.enabledColumns, settings.computeAverages]);
 
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;

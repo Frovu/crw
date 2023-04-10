@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
@@ -17,20 +17,19 @@ export function useEventListener(eventName: string, callback: (e: any) => any | 
 	}, [elementRef, eventName]);
 }
 
-type SetState<S> = (val: S | ((a: S) => S)) => void;
-
-export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, SetState<T>]  {
+export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, (a: SetStateAction<T>) => void]  {
 	const [state, setState] = useState<T>(() => {
 		const stored = window.localStorage.getItem(key);
+		const def = typeof initial === 'function' ? (initial as any)() : initial;
 		try {
-			if (stored) return JSON.parse(stored);
+			return { ...def, ...(stored && JSON.parse(stored)) };
 		} catch {
 			console.warn('Failed to parse state: ' + key);
+			return def;
 		}
-		return typeof initial === 'function' ? (initial as any)() : initial;
 	});
 
-	const setter = useCallback<SetState<T>>((arg) => setState(prev => {
+	const setter = useCallback((arg: SetStateAction<T>) => setState(prev => {
 		const value = typeof arg === 'function' ? (arg as any)(prev) : arg;
 		window.localStorage.setItem(key, JSON.stringify(value));
 		return value;

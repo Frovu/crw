@@ -213,6 +213,7 @@ export function Menu() {
 		<div>
 			<div className='Menu'>
 				<MenuSection name='Table' {...{ shownSection, setShownSection }}>
+					<MenuCheckbox text='Compute averages' value={!!settings.computeAverages} callback={v => set('computeAverages', () => v)}/>
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
