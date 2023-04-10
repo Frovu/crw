@@ -213,7 +213,6 @@ export function Menu() {
 		<div>
 			<div className='Menu'>
 				<MenuSection name='Table' {...{ shownSection, setShownSection }}>
-					<MenuCheckbox text='Compute averages' value={!!settings.computeAverages} callback={v => set('computeAverages', () => v)}/>
 					<MenuButton text='Add filter' action='addFilter'/>
 					<MenuButton text='Remove filter' action='removeFilter'/>
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
@@ -223,6 +222,8 @@ export function Menu() {
 					<MenuButton text='Plot next' action='plotNext'/>
 					<MenuButton text='Switch view' action='switchViewPlots'/>
 					<MenuButton text='Switch theme' action='switchTheme'/>
+					<MenuCheckbox text='Compute averages' value={!!settings.computeAverages} callback={v => set('computeAverages', () => v)}/>
+					<MenuCheckbox text='Show row changes' value={!!settings.showChangelog} callback={v => set('showChangelog', () => v)}/>
 					<MenuButton text='Reset settings' action='resetSettings'/>
 					<a style={{ textAlign: 'center' }} href='./help' target='_blank' >Open manual</a>
 					<AuthButton/>

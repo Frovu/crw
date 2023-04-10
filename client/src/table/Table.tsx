@@ -60,6 +60,7 @@ export type Settings = {
 	theme: typeof themeOptions[number],
 	enabledColumns: string[],
 	computeAverages: boolean,
+	showChangelog: boolean,
 	plotTimeOffset: [number, number], // as number of days
 	plotGrid: boolean,
 	plotMarkers: boolean,
@@ -124,6 +125,7 @@ function defaultSettings(): Settings {
 		theme: 'Dark',
 		enabledColumns: SHOW,
 		computeAverages: true,
+		showChangelog: false,
 		plotGrid: true,
 		plotMarkers: true,
 		plotLegend: false,

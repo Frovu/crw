@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, valueToString, TableContext } from './Table';
+import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, valueToString, TableContext, SettingsContext } from './Table';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(DataContext);
@@ -61,14 +61,16 @@ function ColumnHeader({ col }: { col: ColumnDef }) {
 }
 
 const MAX_CHANGELOG_ROWS = 3;
-export default function TableView({ viewSize }: { viewSize: number }) {
+export default function TableView({ viewSize: maxViewSize }: { viewSize: number }) {
 	const { changes, changelog: wholeChangelog } = useContext(TableContext);
 	const { data, columns, averages, markers } = useContext(DataContext);
 	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
+	const { settings: { showChangelog } } = useContext(SettingsContext);
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
+	const viewSize = averages ? Math.max(2, maxViewSize - 4) : maxViewSize;
 
-	const changelogEntry = cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
+	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
@@ -179,11 +181,11 @@ export default function TableView({ viewSize }: { viewSize: number }) {
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 					{averages && (<tfoot style={{  }}>
-						{['median', 'mean', 'σ', 'σ/√n'].map((label, ari) => <tr key={label}>
+						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label}>
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
-								return <td style={{ borderColor: 'var(--color-grid)', textAlign: isLabel ? 'right' : 'left', padding: '0 3px' }}>
-									{isLabel ? label : avgs ? avgs[ari].toFixed(ari > 2 ? 3 : 2) : ''}</td>;
+								return <td style={{ borderColor: 'var(--color-text-dark)', textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}>
+									{isLabel ? label : avgs ? avgs[ari].toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 							})}
 						</tr>)}
 					</tfoot>)}
