@@ -17,7 +17,27 @@ def kill():
 def logs():
 	with open('logs/aid.log') as file:
 		text = file.read()
-	return '<html><head></head><body style="color: #ccc; background-color: #000"><pre>' + text + '</pre></body></html>'
+	return '<html><head></head><body style="color: #ccc; background-color: #000; font-size: 14px"><pre>' + text + '</pre></body></html>'
+
+@bp.route('/users')
+@require_role('admin')
+def users():
+	with pool.connection() as conn:
+		rows = conn.execute('SELECT uid, login, role, last_login FROM users').fetchall()
+		text = ''
+		for uid, login, role, last_login in rows:
+			text += f'last seen [{str(last_login)[:19]}] #{uid} @<b>{login}</b> :{role} \r\n'
+	return '<html><head></head><body style="color: #ccc; background-color: #000; line-height: 1.5em; font-size: 16px"><pre>' + text + '</pre></body></html>'
+
+@bp.route('/generics')
+@require_role('admin')
+def generics():
+	with pool.connection() as conn:
+		rows = conn.execute('SELECT * FROM events.generic_columns_info ORDER BY last_computed').fetchall()
+		text = ''
+		for gid, created, last_comp, ent, users, gtype, series, poi, shift in rows:
+			text += f'[{str(created)[:19]} / {str(last_comp)[:19]}] #{gid} @{users} {ENTITY_SHORT[ent]} {gtype} {series} {poi} {shift}\r\n'
+	return '<html><head></head><body style="color: #ccc; background-color: #000; font-size: 14px"><pre>' + text + '</pre></body></html>'
 
 @bp.route('/changes')
 @bp.route('/changelog')
@@ -28,5 +48,5 @@ def changes():
 			FROM events.changes_log ORDER BY time''').fetchall()
 		text = ''
 		for time, author, eid, ent, col, old, new in rows:
-			text += f'[{time}] @{author} {ENTITY_SHORT[ent]} #{eid} .{col}: {old} -> <b>{new}</b>\r\n'
-	return '<html><head></head><body style="color: #ccc; background-color: #000; line-height: 1.1em"><pre>' + text + '</pre></body></html>'
+			text += f'[{str(time)[:19]}] @{author} {ENTITY_SHORT[ent]} #{eid} .{col}: {old} -> <b>{new}</b>\r\n'
+	return '<html><head></head><body style="color: #ccc; background-color: #000; font-size: 14px"><pre>' + text + '</pre></body></html>'
