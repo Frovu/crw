@@ -1,11 +1,11 @@
 import { useContext, useLayoutEffect, useState } from 'react';
 import { AuthContext } from '../App';
-import { useEventListener, useMutationHandler } from '../util';
+import { useMutationHandler } from '../util';
 import { ColumnDef, TableContext, SampleContext, parseColumnValue, isValidColumnValue } from './Table';
 import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
 
 const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
-type Filter = {
+export type Filter = {
 	column: string,
 	operation: typeof FILTER_OPS[number],
 	value: string,
@@ -88,7 +88,21 @@ function FilterCard({ filter: filterOri, callback, disabled }:
 	);
 }
 
-function renderFilters(filters: Filter[], columns: ColumnDef[]) {
+export function TableSampleInput() {
+	const { filters, setFilters } = useContext(SampleContext);
+	if (filters.length < 1)
+		return null;
+	return (
+		<div className='Filters'>
+			{ filters.map(({ filter, id }) => <FilterCard key={id} {...{ filter, callback: (fl) =>  {
+				if (!fl) return setFilters(fltrs => fltrs.filter((f) => f.id !== id));
+				setFilters(fltrs => fltrs.map(f => f.id !== id ? f : { id: f.id, filter: fl }));
+			} }}/>) }
+		</div>
+	);
+}
+
+export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 	const fns = filters.map(fl => {
 		const columnIdx = columns.findIndex(c => c.id === fl.column);
 		if (columnIdx < 0) return null;
@@ -133,43 +147,6 @@ export function sampleEditingMarkers(data: any[][], sample: Sample, columns: Col
 
 		return (fl || ' ') + (wl || bl || ' ');
 	});
-}
-
-export function TableSampleInput({ cursorColumn, cursorValue }:
-{ cursorColumn: ColumnDef | null, cursorValue: any | null }) {
-	const { data, columns } = useContext(TableContext);
-	const { sample, setData, isEditing } = useContext(SampleContext);
-	const [filters, setFilters] = useState<{ filter: Filter, id: number }[]>([]);
-
-	useLayoutEffect(() => {
-		console.time('compute sample');
-		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
-		const filterFn = renderFilters(filters.map(f => f.filter), columns);
-		setData(applied.filter(row => filterFn(row)));
-		console.timeEnd('compute sample');
-	}, [filters, data, columns, sample, isEditing, setData]);
-
-	useEventListener('action+addFilter', () => setFilters(fltrs => {
-		if (!cursorColumn)
-			return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
-		const column = cursorColumn;
-		const val = cursorValue;
-		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
-		const value = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
-		return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
-	}));
-	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
-
-	if (filters.length < 1)
-		return null;
-	return (
-		<div className='Filters'>
-			{ filters.map(({ filter, id }) => <FilterCard key={id} {...{ filter, callback: (fl) =>  {
-				if (!fl) return setFilters(fltrs => fltrs.filter((f) => f.id !== id));
-				setFilters(fltrs => fltrs.map(f => f.id !== id ? f : { id: f.id, filter: fl }));
-			} }}/>) }
-		</div>
-	);
 }
 
 export function SampleMenu() {

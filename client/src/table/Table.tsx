@@ -2,7 +2,7 @@ import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
-import { Sample, SampleState, TableSampleInput, sampleEditingMarkers } from './Sample';
+import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
 import { PlotCircles } from '../plots/Circles';
@@ -85,11 +85,13 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
+type FiltersCollection = { filter: Filter, id: number }[];
 type ChangeValue = { id: number, column: ColumnDef, value: any };
 export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
-	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void, setData: (a: any[][]) => void }>({} as any);
+	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void,
+	filters: FiltersCollection, setFilters: (a: SetStateAction<FiltersCollection>) => void }>({} as any);
 export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
 export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number,
 	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void}>({} as any);
@@ -195,7 +197,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 
 function CoreWrapper() {
 	const { columns, data } = useContext(TableContext);
-	const { sample, data: sampleData, isEditing: editingSample } = useContext(SampleContext);
+	const { sample, data: sampleData, isEditing: editingSample, setFilters } = useContext(SampleContext);
 	const { options, settings, set, setOpt } = useContext(SettingsContext);
 	const [sort, setSort] = useState<Sort>({ column: 'fe_time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
@@ -237,6 +239,17 @@ function CoreWrapper() {
 		setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
 		setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
 	});
+
+	useEventListener('action+addFilter', () => setFilters(fltrs => {
+		if (!cursor)
+			return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
+		const column =  dataContext.columns[cursor?.column];
+		const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
+		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
+		const value = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
+		return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
+	}));
+	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 
 	// I did not know any prettier way to do this
 	document.documentElement.setAttribute('main-theme', settings.theme);
@@ -319,9 +332,7 @@ function CoreWrapper() {
 						<div className='AppColumn'>
 							<div ref={topDivRef}>
 								<Menu/>
-								<TableSampleInput {...{
-									cursorColumn: cursor && dataContext.columns[cursor?.column],
-									cursorValue: cursor && dataContext.data[cursor?.row]?.[cursor?.column+1] }}/>
+								<TableSampleInput/>
 							</div>
 							<TableView {...{ viewSize, plotId: plotIdx && data[plotIdx][0] }}/>
 							<PlotWrapper which='plotLeft' bound={blockMode && ['Histogram', 'Correlation'].includes(settings.plotLeft!)}/>
@@ -338,11 +349,11 @@ function CoreWrapper() {
 }
 
 export function SampleWrapper() {
-	const { data: tableData } = useContext(TableContext);
-	const [data, setData] = useState<any[][]>(tableData);
+	const { data: tableData, columns } = useContext(TableContext);
 	const [sample, setSample] = useState<SampleState>(null);
 	const [isEditing, setEditing] = useState(false);
-
+	const [filters, setFilters] = useState<FiltersCollection>([]);
+	
 	useEventListener('sampleEdit', (e) => {
 		if (!sample || !isEditing) return;
 		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
@@ -366,12 +377,21 @@ export function SampleWrapper() {
 		return samples;
 	});
 
+	const data = useMemo(() => {
+		console.time('compute sample');
+		const applied = isEditing ? tableData.map(row => [...row]) : applySample(tableData, sample, columns);
+		const filterFn = renderFilters(filters.map(f => f.filter), columns);
+		const filtered = applied.filter(row => filterFn(row));
+		console.timeEnd('compute sample');
+		return filtered;
+	}, [columns, filters, isEditing, sample, tableData]);
+
 	if (query.isLoading)
 		return <div>Loading samples info..</div>;
 	if (!query.data)
 		return <div>Failed to load samples info</div>;
 	return (
-		<SampleContext.Provider value={{ data, setData, sample, setSample, isEditing, setEditing, samples: query.data }}>
+		<SampleContext.Provider value={{ data, sample, setSample, isEditing, setEditing, filters, setFilters, samples: query.data }}>
 			<CoreWrapper/>
 		</SampleContext.Provider>
 	);
