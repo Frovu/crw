@@ -9,7 +9,7 @@ import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../table/Sample';
 
-const colors = ['green', 'purple', 'magenta'];
+const colors = ['purple', 'green', 'magenta'];
 
 function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boolean[]): Omit<uPlot.Options, 'height'|'width'> {
 	return {
@@ -57,7 +57,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 					scale: 'y',
 					label: `mean ${letter}`,
 					stroke: color(colors[i]),
-					width: 2,
+					width: 3,
 					value: (u, val) => val?.toFixed(2),
 					// fill: color('magenta', .3),
 					points: { show: false }
@@ -65,11 +65,19 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 				{
 					show: std,
 					scale: 'y',
-					label: `σ ${letter}`,
+					label: `${letter}+sem`,
 					stroke: color(colors[i]),
 					width: 1,
 					value: (u, val) => val?.toFixed(2),
-					// fill: color('magenta', .3),
+					points: { show: false }
+				},
+				{
+					show: std,
+					scale: 'y',
+					label: `${letter}-sem`,
+					stroke: color(colors[i]),
+					width: 1,
+					value: (u, val) => val?.toFixed(2),
 					points: { show: false }
 				},
 			] as uPlot.Series[]).flat()
@@ -96,7 +104,7 @@ export default function EpochCollision() {
 
 	const samples = useMemo(() => [state.sample0, state.sample1, state.sample2].map(name => {
 		if (!name) return null;
-		if (name === '<current>') return currentData;
+		if (name === '<curr>') return currentData;
 		if (name === '<all>') return tableData;
 		const found = samplesList.find(s => s.name === name);
 		if (!found) return null;
@@ -120,7 +128,8 @@ export default function EpochCollision() {
 			body.offset,
 			body.median,
 			body.mean,
-			body.std
+			body.std.map((s, i, all) => body.mean[i] + s / Math.sqrt(all.length)),
+			body.std.map((s, i, all) => body.mean[i] - s / Math.sqrt(all.length))
 		];
 	};
 
@@ -141,27 +150,28 @@ export default function EpochCollision() {
 		return null;
 	})();
 
-	const options = { 
-		width: size.width,
-		height: size.height - (container?.offsetHeight || 36) - 36, 
-		...collisionOptions(plotGrid, state.showMedian, state.showStd, samples.map(s => !!s)) };
 	const data = queries[0].data && [
 		...queries[0].data,
 		...(queries[1].data?.slice(1) || []),
 		...(queries[2].data?.slice(1) || [])
 	] as any; // FIXME: offset (x) is assumed to be the same on all queries
+	
+	const options = { 
+		width: size.width,
+		height: size.height - (container?.offsetHeight || 36) - (state.sample1 ? 72 : 36), 
+		...collisionOptions(plotGrid, state.showMedian, state.showStd, samples.map((s, i) => !!data?.[3+i*3])) };
 
 	const set = (key: string) => (value: any) => setState(st => st && ({ ...st, [key]: value }));
 	const timeOptions = columns.filter(col => col.type === 'time').map(col => col.fullName);
-	const sampleOptions = ['<current>', '<all>'].concat(samplesList.map(s => s.name));
+	const sampleOptions = ['<curr>', '<all>'].concat(samplesList.map(s => s.name));
 
 	return (<div ref={node => setContainer(node)}>
 		<div style={{ padding: '2px 0 0 4px', lineHeight: '2em' }}>
 			<MenuSelect text='' width='8ch' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')}/>
 			<MenuSelect text=' Time' width='6ch' value={state.timeColumn} options={timeOptions} callback={set('timeColumn')}/>
-			<MenuCheckbox text=' med' value={state.showMedian} callback={set('showMedian')}/>
-			<MenuCheckbox text='σ' value={state.showStd} callback={set('showStd')}/>
-			<MenuSelect text=' A' width='11ch' value={state.sample0} options={sampleOptions} callback={set('sample0')}/>
+			<MenuCheckbox text=' m' title='Show median' value={state.showMedian} callback={set('showMedian')}/>
+			<MenuCheckbox text=' e' title='Show standard error of the mean' value={state.showStd} callback={set('showStd')}/>
+			<MenuSelect text=' A' width='9ch' value={state.sample0} options={sampleOptions} callback={set('sample0')}/>
 			<MenuSelect text=' B' width='9ch' withNull={true} value={state.sample1} options={sampleOptions} callback={set('sample1')}/>
 			{(state.sample1 || state.sample2) && <MenuSelect text=' C' width='9ch' withNull={true} value={state.sample2} options={sampleOptions} callback={set('sample2')}/>}
 		</div>
