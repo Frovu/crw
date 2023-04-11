@@ -209,7 +209,7 @@ function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolea
 				label: 'idx',
 				stroke: color('acid'),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
-				value: (u, v, si, di) => (u.data as any)[3][1][di] || 'NaN',
+				value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
 				paths: linePaths(1.75)
 			}
 		]

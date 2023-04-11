@@ -8,9 +8,9 @@ const root = ReactDOM.createRoot(
 	document.getElementById('root') as HTMLElement
 );
 
-if ((module as any).hot && process.env.NODE_ENV !== 'production') {
-	(module as any).hot.accept();
-}
+// if ((module as any).hot && process.env.NODE_ENV !== 'production') {
+// 	(module as any).hot.accept();
+// }
 
 root.render(
 	<React.StrictMode>

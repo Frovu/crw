@@ -14,6 +14,7 @@ import HistogramPlot from '../plots/Histogram';
 import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
 import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
+import EpochCollision from '../plots/EpochCollision';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -39,7 +40,8 @@ export type ColumnDef = {
 };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
-export const plotTypes = [ 'Histogram', 'Correlation', 'Ring of Stations', 'Solar Wind', 'Cosmic Rays', 'CR Anisotropy', 'SW + Plasma', 'CR + Geomagn' ] as const;
+export const samplePlotTypes = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
+export const plotTypes = [ ...samplePlotTypes, 'Ring of Stations', 'Solar Wind', 'Cosmic Rays', 'CR Anisotropy', 'SW + Plasma', 'CR + Geomagn' ] as const;
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
@@ -154,7 +156,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 	const type = settings[which];
 	if (!type || !options.viewPlots)
 		return null;
-	if (!context && !['Histogram', 'Correlation'].includes(type))
+	if (!context && !samplePlotTypes.includes(type as any))
 		return null;
 
 	const params = {
@@ -178,6 +180,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			{type === 'CR Anisotropy' && <PlotGSMAnisotropy {...params}/>}
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
+			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
 			{type === 'Solar Wind' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
@@ -314,7 +317,7 @@ function CoreWrapper() {
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 3 )); // FIXME: -3 gives space for long column header, there is a better way to do that
-	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || ['Histogram', 'Correlation'].includes(s));
+	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || samplePlotTypes.includes(s as any));
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
 	const tableViewContext = useMemo(() => {
@@ -335,7 +338,7 @@ function CoreWrapper() {
 								<TableSampleInput/>
 							</div>
 							<TableView {...{ viewSize, plotId: plotIdx && data[plotIdx][0] }}/>
-							<PlotWrapper which='plotLeft' bound={blockMode && ['Histogram', 'Correlation'].includes(settings.plotLeft!)}/>
+							<PlotWrapper which='plotLeft' bound={blockMode && samplePlotTypes.includes(settings.plotLeft as any)}/>
 						</div>
 						{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>
 							<PlotWrapper which='plotTop'/>
