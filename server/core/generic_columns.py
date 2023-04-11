@@ -364,27 +364,27 @@ def compute_generic(generic, col_name=None):
 					result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
 			elif generic.type in ['value', 'avg_value']:
 				result = np.full(length, np.nan, dtype='f8')
-				poi_hour = np.floor(poi_time / HOUR) * HOUR
 				shift = generic.shift
-				start_hour = poi_hour if generic.type == 'value' else \
-					(np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
+				poi_hour = (np.floor(poi_time / HOUR) if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
+				start_hour = poi_hour + shift*HOUR if shift <= 0 else poi_hour
 				window_len = max(1, abs(shift)) if 'avg' in generic.type else 1
 				per_hour = np.full((length, window_len), np.nan, dtype='f8')
 				if generic.series in ['a10', 'a10m']:
-					event_hour = np.floor(event_start / HOUR) * HOUR
-					window_left = np.minimum(event_hour, poi_hour)
-					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH) # this is questionable
-					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
-					slice_len[np.logical_or(poi_time < data_time[0]-MAX_EVENT_LENGTH, poi_time > data_time[-1])] = 0 # eh
+					ev_left, slice_len = get_event_windows(data_time, generic.series)
+					diff_lft = np.minimum(0, (data_time[ev_left] - start_hour) / HOUR).astype(np.int32)
+					diff_rgt = np.maximum(0, (start_hour - data_time[ev_left+slice_len]) / HOUR + window_len - 1).astype(np.int32)
+					left = ev_left + diff_lft
+					slice_len[slice_len > 0] += diff_rgt[slice_len > 0]
+					window_offset = np.int32((data_time[ev_left] - start_hour) / HOUR)
 					for i in range(length):
 						sl = slice_len[i]
 						if not sl: continue
 						window = data_value[left[i]:left[i]+sl]
 						times  = data_time[left[i]:left[i]+sl]
-						if len(window) < sl: continue
+						idx = window_offset[i]
+						if len(window) < window_len + idx: continue
 						values = gsm.normalize_variation(window, with_trend=True)
 						values = apply_delta(values, generic.series)
-						idx = np.searchsorted(times, start_hour[i])
 						wslice = values[idx:idx+window_len]
 						per_hour[i,] = values[idx:idx+window_len]
 				else:
