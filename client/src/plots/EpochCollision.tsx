@@ -23,6 +23,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 			{
 				...axisDefaults(grid),
 				gap: 4,
+				size: 30,
 				values: (u, vals) => vals.map(v => v + 'h')
 			},
 			{
@@ -40,14 +41,14 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 		series: [
 			{
 				label: 'offset',
-				value: (u, val) => val ? val + (Math.abs(val) < 10 ? ' ' : '') + 'h' : '--'
+				value: (u, val) => val != null ? val + (Math.abs(val) < 10 ? ' ' : '') + 'h' : '--'
 			},
 			...['A', 'B', 'C'].map((letter, i) => !show[i] ? [] : [
 				{
 					show: med,
 					scale: 'y',
 					label: `med ${letter}`,
-					stroke: color(colors[i], .5),
+					stroke: color(colors[i], .7),
 					width: 2,
 					value: (u, val) => val?.toFixed(2),
 					// fill: color('magenta', .3),
@@ -65,7 +66,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 				{
 					show: std,
 					scale: 'y',
-					label: `${letter}+sem`,
+					label: `${letter}+e`,
 					stroke: color(colors[i]),
 					width: 1,
 					value: (u, val) => val?.toFixed(2),
@@ -74,7 +75,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 				{
 					show: std,
 					scale: 'y',
-					label: `${letter}-sem`,
+					label: `${letter}-e`,
 					stroke: color(colors[i]),
 					width: 1,
 					value: (u, val) => val?.toFixed(2),
@@ -95,7 +96,7 @@ export default function EpochCollision() {
 	const [state, setState] = useState({
 		timeColumn: 'time',
 		series: 'a10m',
-		sample0: '<current>',
+		sample0: '<curr>',
 		sample1: null as null | string,
 		sample2: null as null | string,
 		showMedian: false,
@@ -133,7 +134,7 @@ export default function EpochCollision() {
 		];
 	};
 
-	const qk = ['epoch', interval, state.series];
+	const qk = ['epoch', interval, state.series, state.timeColumn];
 	const queries = useQueries([
 		{ queryKey: [...qk, samples[0]], queryFn: queryHandler(samples[0]), staleTime: Infinity },
 		{ queryKey: [...qk, samples[1]], queryFn: queryHandler(samples[1]), staleTime: Infinity },
@@ -158,7 +159,7 @@ export default function EpochCollision() {
 	
 	const options = { 
 		width: size.width,
-		height: size.height - (container?.offsetHeight || 36) - (state.sample1 ? 72 : 36), 
+		height: size.height - (container?.offsetHeight || 36) - (state.sample1 ? 64 : 32), 
 		...collisionOptions(plotGrid, state.showMedian, state.showStd, samples.map((s, i) => !!data?.[3+i*3])) };
 
 	const set = (key: string) => (value: any) => setState(st => st && ({ ...st, [key]: value }));
@@ -168,7 +169,7 @@ export default function EpochCollision() {
 	return (<div ref={node => setContainer(node)}>
 		<div style={{ padding: '2px 0 0 4px', lineHeight: '2em' }}>
 			<MenuSelect text='' width='8ch' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')}/>
-			<MenuSelect text=' Time' width='6ch' value={state.timeColumn} options={timeOptions} callback={set('timeColumn')}/>
+			<MenuSelect text=' Time' width='6ch' value={state.timeColumn} options={timeOptions} pretty={timeOptions.map(n => n.split(/\s/).slice(-1)[0])} callback={set('timeColumn')}/>
 			<MenuCheckbox text=' m' title='Show median' value={state.showMedian} callback={set('showMedian')}/>
 			<MenuCheckbox text=' e' title='Show standard error of the mean' value={state.showStd} callback={set('showStd')}/>
 			<MenuSelect text=' A' width='9ch' value={state.sample0} options={sampleOptions} callback={set('sample0')}/>
