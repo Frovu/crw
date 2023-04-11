@@ -9,19 +9,25 @@ def epoch_collision(times: list[int], interval: [int, int], series: str):
 	db, ser, _ = SERIES[series]
 	table = 'gsm_result' if db == 'gsm' else 'omni'
 
-	# TODO: GLE mask
-	
+	is_delta = series.startswith('$d_')
+	if is_delta:
+		interval[0] -= 1
+
 	with pool.connection() as conn:
 		q = f'''SELECT array(
 			SELECT {ser} FROM generate_series(to_timestamp(epoch) + %s, to_timestamp(epoch) + %s, '1 hour'::interval) tm
-			LEFT JOIN {table} ON time = tm
+			LEFT JOIN {table} ON time = tm {'AND NOT is_gle' if db == 'gsm' else ''}
 		) FROM (select unnest(%s)) vals(epoch);'''
-		resp = conn.execute(q, [*[timedelta(days=i) for i in interval], times]).fetchall()
+		resp = conn.execute(q, [*[timedelta(hours=i) for i in interval], times]).fetchall()
 		windows = np.array([r[0] for r in resp], dtype='f8')
-	if series in ['a10', 'a10m']:
+	if ser in ['a10', 'a10m']:
 		windows = np.array([normalize_variation(w) for w in windows])
+	
+	if is_delta:
+		windows[:,1:] = windows[:,1:] - windows[:,:-1]
+		windows = windows[:,1:]
 
-	offset = np.arange(windows.shape[1]) + interval[0] * 24
+	offset = np.arange(windows.shape[1]) + interval[0]
 	median = np.nanmedian(windows, axis=0)
 	mean = np.nanmean(windows, axis=0)
 	std = np.nanstd(windows, axis=0)

@@ -13,7 +13,7 @@ const colors = ['purple', 'green', 'magenta'];
 
 function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boolean[]): Omit<uPlot.Options, 'height'|'width'> {
 	return {
-		padding: [16, 0, 0, 0],
+		padding: [8, 4, 0, 0],
 		// legend: { show: false },
 		hooks: {
 			drawClear: [ drawBackground ],
@@ -87,7 +87,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 }
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const { settings: { plotGrid, plotTimeOffset: interval } } = useContext(SettingsContext);
+	const { settings: { plotGrid, plotTimeOffset } } = useContext(SettingsContext);
 	const { columns, series, data: tableData } = useContext(TableContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -113,8 +113,9 @@ export default function EpochCollision() {
 	}), [state.sample0, state.sample1, state.sample2, currentData, tableData, samplesList, columns]);
 
 	const queryHandler = (sample: any[][] | null) => async () => {
-		if (!sample) return;
+		if (!sample || !sample.length) return;
 		const colIdx = columns.findIndex(c => c.fullName === state.timeColumn)!;
+		const interval = plotTimeOffset.map(i => i * 24);
 		const times = sample.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 3600);
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/epoch_collision`, {
 			method: 'POST', credentials: 'include',
@@ -134,7 +135,7 @@ export default function EpochCollision() {
 		];
 	};
 
-	const qk = ['epoch', interval, state.series, state.timeColumn];
+	const qk = ['epoch', plotTimeOffset, state.series, state.timeColumn];
 	const queries = useQueries([
 		{ queryKey: [...qk, samples[0]], queryFn: queryHandler(samples[0]), staleTime: Infinity },
 		{ queryKey: [...qk, samples[1]], queryFn: queryHandler(samples[1]), staleTime: Infinity },
@@ -147,7 +148,7 @@ export default function EpochCollision() {
 		if (queries[0].isError)
 			return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 		if (!queries[0].data)
-			return <div className='Center'>NO DATA</div>;
+			return <div className='Center'>EMPTY SAMPLE</div>;
 		return null;
 	})();
 

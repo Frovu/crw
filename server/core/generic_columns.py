@@ -44,7 +44,7 @@ SERIES = { # order matters (no it does not)
 	'ay': ['gsm', 'ay', 'Ay'],
 	'az': ['gsm', 'az', 'Az'],
 }
-SERIES = {**SERIES, **{'d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in SERIES.items() }}
+SERIES = {**SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in SERIES.items() }}
 
 def parse_extremum_poi(poi):
 	poi_type = next((e for e in EXTREMUM_TYPES if poi.startswith(e)), None)
@@ -256,14 +256,14 @@ def compute_generic(generic, col_name=None):
 			target_entity = generic.poi.replace('end_', '') if generic.poi in ENTITY_POI and not is_self_poi else None
 			event_id, event_start, event_duration, target_time, target_duration = _select_recursive(generic.entity, target_entity) # 50 ms
 			if generic.series:
-				actual_series = generic.series[2:] if generic.series.startswith('d_') else generic.series
+				actual_series = generic.series[2:] if generic.series.startswith('$d_') else generic.series
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, actual_series), dtype='f8') # 400 ms
 				data_time, data_value = data_series[:,0], data_series[:,1]
 			else: data_series = None
 			length = len(event_id)
 
 			def apply_delta(data, series):
-				if not data.size or not series.startswith('d_'): return data
+				if not data.size or not series.startswith('$d_'): return data
 				delta = np.empty_like(data)
 				delta[1:] = data[1:] - data[:-1]
 				delta[0] = np.nan
@@ -326,7 +326,7 @@ def compute_generic(generic, col_name=None):
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
 				data = data_series if ser == generic.series else \
-					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser[2:] if ser.startswith('d_') else ser), dtype='f8')
+					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser[2:] if ser.startswith('$d_') else ser), dtype='f8')
 				left, slice_len = get_event_windows(data[:,0], ser)
 				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
 
