@@ -14,24 +14,24 @@ HOUR = 3600
 MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
-GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
+GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'avg_value', 'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
 DERIVED_TYPES = ['clone', 'diff', 'abs_diff']
 
 ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
 ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
 ENTITY_POI = ENTITY + ['end_' + t for t in ENTITY_WITH_DURATION]
 
-SERIES = { # order matters !!!
+SERIES = { # order matters (no it does not)
 	'v_sw': ['omni', 'sw_speed', 'V'],
 	'd_sw': ['omni', 'sw_density', 'D'],
 	't_sw': ['omni', 'sw_temperature', 'T'],
 	't_idx': ['omni', 'temperature_idx', 'Tidx'],
 	'imf': ['omni', 'imf_scalar', 'B'],
 	'bx': ['omni', 'imf_x', 'Bx'],
-	'by_gsm': ['omni', 'imf_y_gsm', 'By_gsm'],
-	'bz_gsm': ['omni', 'imf_z_gsm', 'Bz_gsm'],
 	'by': ['omni', 'imf_y', 'By'],
 	'bz': ['omni', 'imf_z', 'Bz'],
+	'by_gsm': ['omni', 'imf_y_gsm', 'By_gsm'],
+	'bz_gsm': ['omni', 'imf_z_gsm', 'Bz_gsm'],
 	'beta': ['omni', 'plasma_beta', 'beta'],
 	'dst': ['omni', 'dst_index', 'Dst'],
 	'kp': ['omni', 'kp_index', 'Kp'],
@@ -99,14 +99,16 @@ class GenericColumn:
 
 		ser_desc = series and self.type not in DERIVED_TYPES and f'{SERIES[self.series][0]}({self.series})'
 		poi_desc = poi if self.poi != self.entity else "event onset"
-		if self.type == 'value':
+		if self.type in ['avg_value', 'value']:
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
 			if self.shift and self.shift != 0:
 				if abs(self.shift) == 1:
 					self.description = f'Value of {ser_desc} one hour {"before" if self.shift<0 else "after"} {poi_desc}'
 				else:
-					self.description = f'Value of {ser_desc} averaged over {abs(self.shift)} hours {"before" if self.shift<0 else "after"} {poi_desc}'
-				self.pretty_name += f'{"+" if self.shift > 0 else "-"}<{abs(int(self.shift))}h>'
+					what = 'averaged over ' if 'avg' in self.type else ''
+					self.description = f'Value of {ser_desc} {what}{abs(self.shift)} hours {"before" if self.shift<0 else "after"} {poi_desc}'
+				self.pretty_name += '+' if self.shift > 0 else '-'
+				self.pretty_name += f'<{abs(self.shift)}h>' if 'avg' in self.type else f'{abs(self.shift)}h'
 			else:
 				self.description = f'Value of {ser_desc} at the hour of {poi_desc}'
 		elif 'time' in self.type:
@@ -269,7 +271,7 @@ def compute_generic(generic, col_name=None):
 	
 			def get_event_windows(d_time, ser):
 				start_hour = np.floor(event_start / HOUR) * HOUR
-				if event_duration is not None:
+				if event_duration is not None: # presumes events with explicit duration can't overlap
 					slice_len = np.where(~np.isnan(event_duration), event_duration, MAX_EVENT_LENGTH_H).astype('i')
 				else:
 					bound_right = start_hour + MAX_EVENT_LENGTH
@@ -329,7 +331,7 @@ def compute_generic(generic, col_name=None):
 				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
 
 			# compute target windows if needed
-			if 'time_to' not in generic.type and generic.type != 'value':
+			if 'time_to' not in generic.type and 'value' not in generic.type:
 				if generic.poi:
 					target_left, target_slen = get_poi_windows(data_time, poi_time)
 				else:
@@ -360,14 +362,17 @@ def compute_generic(generic, col_name=None):
 					if target_slen[i] < 1: continue
 					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
 					result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
-			elif generic.type == 'value':
+			elif generic.type in ['value', 'avg_value']:
 				result = np.full(length, np.nan, dtype='f8')
 				poi_hour = np.floor(poi_time / HOUR) * HOUR
 				shift = generic.shift
-				start_hour = (np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
-				window_len = max(1, abs(shift))
+				start_hour = poi_hour if generic.type == 'value' else \
+					(np.floor(poi_time / HOUR) + shift if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
+				window_len = max(1, abs(shift)) if 'avg' in generic.type else 1
 				per_hour = np.full((length, window_len), np.nan, dtype='f8')
 				if generic.series in ['a10', 'a10m']:
+					event_hour = np.floor(event_start / HOUR) * HOUR
+					window_left = np.minimum(event_hour, poi_hour)
 					left = np.searchsorted(data_time, poi_time - MAX_EVENT_LENGTH) # this is questionable
 					slice_len = np.full_like(left, MAX_EVENT_LENGTH_H * 2)
 					slice_len[np.logical_or(poi_time < data_time[0]-MAX_EVENT_LENGTH, poi_time > data_time[-1])] = 0 # eh
@@ -440,12 +445,12 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Could not parse poi')
 	if poi == 'end_' + entity:
 		poi = None
-	if poi == entity and not shift and gtype != 'value':
+	if poi == entity and not shift and 'value' not in gtype:
 		raise ValueError('Always empty window')
 	if not poi and shift:
 		raise ValueError('Shift without POI')
 
-	if 'value' == gtype:
+	if 'value' in gtype:
 		if not poi:
 			raise ValueError('POI is required')
 	elif gtype in ['diff', 'abs_diff']:

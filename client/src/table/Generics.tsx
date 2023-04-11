@@ -5,7 +5,7 @@ import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
 const EXTREMUM_OPTIONS = ['min', 'max', 'abs_min', 'abs_max'] as const;
-const TYPE_OPTIONS = ['time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'mean', 'median', 'range', 'value', 'coverage', 'diff', 'abs_diff', 'clone'] as const;
+const TYPE_OPTIONS = ['time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'mean', 'median', 'range', 'value', 'avg_value', 'coverage', 'diff', 'abs_diff', 'clone'] as const;
 
 function GenericCard({ column, setState }: { column: ColumnDef, setState: (a: any) => void }) {
 	const queryClient = useQueryClient();
