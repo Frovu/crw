@@ -371,7 +371,7 @@ def compute_generic(generic, col_name=None):
 				per_hour = np.full((length, window_len), np.nan, dtype='f8')
 				if generic.series in ['a10', 'a10m']:
 					ev_left, slice_len = get_event_windows(data_time, generic.series)
-					diff_lft = np.minimum(0, (data_time[ev_left] - start_hour) / HOUR).astype(np.int32)
+					diff_lft = np.minimum(0, (start_hour - data_time[ev_left]) / HOUR).astype(np.int32)
 					diff_rgt = np.maximum(0, (start_hour - data_time[ev_left+slice_len]) / HOUR + window_len - 1).astype(np.int32)
 					left = ev_left + diff_lft
 					slice_len[slice_len > 0] += diff_rgt[slice_len > 0]
@@ -387,6 +387,7 @@ def compute_generic(generic, col_name=None):
 						values = apply_delta(values, generic.series)
 						wslice = values[idx:idx+window_len]
 						per_hour[i,] = values[idx:idx+window_len]
+						# if datetime.utcfromtimestamp(event_start[i]) == datetime(1991,10,28,15,37,0):
 				else:
 					data_value = apply_delta(data_value, generic.series)
 					for h in range(window_len):

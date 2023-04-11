@@ -101,7 +101,9 @@ export default function Help() {
 			<li style={{ margin: '1em 0 1em 0' }}><b>mean, median</b> - Average value of given series in <u>specified window</u>;</li>
 			<li style={{ margin: '1em 0 1em 0' }}><b>range</b> - Difference between max and min value of series in <u>specified window</u>;</li>
 			<li style={{ margin: '1em 0 1em 0' }}><b>coverage</b> - Data coverage of series as percentage of <u>specified window</u>;</li>
-			<li style={{ margin: '1em 0 1em 0' }}><b>value</b> - Value of specified variable averaged over specified period from poi. See examples below;</li>
+			<li style={{ margin: '1em 0 1em 0' }}><b>value</b> - Value of specified variable at specific hour (shift from poi). See examples below;</li>
+			<li style={{ margin: '1em 0 1em 0' }}><b>avg_value</b> - Value of specified variable averaged over specified period from poi. See examples below;</li>
+			<li style={{ margin: '1em 0 1em 0' }}><b>diff, abs_diff</b> - Difference between two columns values.</li>
 			<li style={{ margin: '1em 0 1em 0' }}><b>clone</b> - Clone specified column value from next/previous events associated entity of selected type.</li>
 		</ul>
 		<p>
