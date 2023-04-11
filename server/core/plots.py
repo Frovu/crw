@@ -24,6 +24,6 @@ def epoch_collision(times: list[int], interval: [int, int], series: str):
 	offset = np.arange(windows.shape[1]) + interval[0] * 24
 	median = np.nanmedian(windows, axis=0)
 	mean = np.nanmean(windows, axis=0)
-	std = np.std(windows, axis=0)
+	std = np.nanstd(windows, axis=0)
 
 	return offset, median, mean, std
