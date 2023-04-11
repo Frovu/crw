@@ -1,13 +1,30 @@
 from flask import Blueprint, request, session
 from time import time
 import json
+import numpy as np
 from core import database
 from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics, ENTITY_SHORT
+from core.plots import epoch_collision
 import core.other_columns as other_columns
 import core.samples as samples
 from routers.utils import route_shielded, require_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
+
+@bp.route('/epoch_collision', methods=['POST'])
+@route_shielded
+def _epoch_collision():
+	interval = request.json.get('interval')
+	times = request.json.get('times')
+	series = request.json.get('series')
+	if not times or not interval or not series:
+		raise ValueError('malformed request')
+	if interval[0] < -16 or interval[1] > 32:
+		raise ValueError('interval too large')
+
+	res = epoch_collision(times, interval, series)
+	offset, median, mean, std = [np.where(np.isnan(v), None, np.round(v, 3)).tolist() for v in res]
+	return { 'offset': offset, 'median': median, 'mean': mean, 'std': std }
 
 @bp.route('/', methods=['GET'])
 @route_shielded

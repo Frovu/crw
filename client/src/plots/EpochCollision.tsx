@@ -10,23 +10,20 @@ import uPlot from 'uplot';
 
 function collisionOptions(grid: boolean): Omit<uPlot.Options, 'height'|'width'> {
 	return {
-		padding: [10, 0, 0, 0],
-		// legend: { show: true },
-		// cursor: {
-		// 	show: params.interactive,
-		// 	drag: { x: false, y: false, setScale: false }
-		// },
+		padding: [16, 0, 0, 0],
+		legend: { show: false },
 		hooks: {
 			drawClear: [ drawBackground ],
 			draw: [ ],
 		},
 		axes: [
 			{
-				...axisDefaults(grid)
+				...axisDefaults(grid),
+				values: (u, vals) => vals.map(v => v + 'h')
 			},
 			{
 				...axisDefaults(false),
-				label: 'SERIES',
+				label: '',
 				scale: 'y'
 			},
 		],
@@ -38,9 +35,10 @@ function collisionOptions(grid: boolean): Omit<uPlot.Options, 'height'|'width'> 
 			{ },
 			{
 				scale: 'y',
-				label: 'series',
+				label: 'Sample A',
 				stroke: color('magenta', .8),
-				fill: color('magenta', .3),
+				width: 2,
+				// fill: color('magenta', .3),
 				points: { show: false }
 			},
 		]
@@ -49,12 +47,14 @@ function collisionOptions(grid: boolean): Omit<uPlot.Options, 'height'|'width'> 
 export default function EpochCollision() {
 	const { data: currentData, samples } = useContext(SampleContext);
 	const { settings: { plotGrid, plotTimeOffset: interval } } = useContext(SettingsContext);
-	const { columns } = useContext(TableContext);
+	const { columns, series } = useContext(TableContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
+
 	const [state, setState] = useState({
 		timeColumn: 'time',
+		series: 'a10m',
 		sample0: '<current>',
 		sample1: null as null | string,
 		sample2: null as null | string,
@@ -63,22 +63,29 @@ export default function EpochCollision() {
 	const queryHandler = (sample: string | null) => async () => {
 		if (!sample) return;
 		const colIdx = columns.findIndex(c => c.fullName === state.timeColumn)!;
-		const times = currentData.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 1e3);
+		const times = currentData.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 3600);
 		const res = await fetch(`${process.env.REACT_APP_API}api/events/epoch_collision`, {
 			method: 'POST', credentials: 'include',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ times, interval })
+			body: JSON.stringify({ times, interval, series: state.series })
 		});
+	
 		if (res.status !== 200)
 			throw Error('HTTP '+res.status);
-		const body = await res.json() as { data: any[][] };
-		return body.data;
+		const body = await res.json() as { offset: number[], mean: number[], median: number[], std: number[] };
+		return [
+			body.offset,
+			body.median,
+			body.mean,
+			body.std
+		];
 	};
 
+	const qk = ['epoch', interval, state.series];
 	const queries = useQueries([
-		{ queryKey: ['epoch', interval, state.sample0], queryFn: queryHandler(state.sample0), staleTime: Infinity },
-		{ queryKey: ['epoch', interval, state.sample1], queryFn: queryHandler(state.sample1), staleTime: Infinity },
-		{ queryKey: ['epoch', interval, state.sample2], queryFn: queryHandler(state.sample2), staleTime: Infinity },
+		{ queryKey: [...qk, state.sample0], queryFn: queryHandler(state.sample0), staleTime: Infinity },
+		{ queryKey: [...qk, state.sample1], queryFn: queryHandler(state.sample1), staleTime: Infinity },
+		{ queryKey: [...qk, state.sample2], queryFn: queryHandler(state.sample2), staleTime: Infinity },
 	]);
 
 	const status = (() => {
@@ -91,21 +98,29 @@ export default function EpochCollision() {
 		return null;
 	})();
 
-	const options = { ...size, ...collisionOptions(plotGrid) };
-	const data = queries[0].data as any;
+	const options = { 
+		width: size.width,
+		height: size.height - (container?.offsetHeight || 36), 
+		...collisionOptions(plotGrid) };
+	const data = queries[0].data && [
+		...queries[0].data,
+		...(queries[1].data?.slice(1) || []),
+		...(queries[2].data?.slice(1) || [])
+	] as any; // FIXME: offset (x) is assumed to be the same on all queries
 
 	const set = (key: string) => (value: any) => setState(st => st && ({ ...st, [key]: value }));
 	const timeOptions = columns.filter(col => col.type === 'time').map(col => col.fullName);
-	const sampleOptions = ['<current>', '<none>'].concat(samples.map(s => s.name));
+	const sampleOptions = ['<current>', '<all>'].concat(samples.map(s => s.name));
 
-	return (<div>
+	return (<div ref={node => setContainer(node)}>
 		<div style={{ padding: '4px 0 0 4px' }}>
-			<MenuSelect text='Time' width='6em' value={state.timeColumn} options={timeOptions} callback={set('timeColumn')}/>
-			<MenuSelect text=' A' width='8em' value={state.sample0} options={sampleOptions} callback={set('sample0')}/>
-			<MenuSelect text=' B' width='8em' withNull={true} value={state.sample1} options={sampleOptions} callback={set('sample1')}/>
-			{(state.sample1 || state.sample2) && <MenuSelect text='Sample C' withNull={true} value={state.sample2} options={sampleOptions} callback={set('sample2')}/>}
+			<MenuSelect text='' width='8ch' value={state.series} options={Object.keys(series)} pretty={Object.values(series)} callback={set('series')}/>
+			<MenuSelect text=' Time' width='6ch' value={state.timeColumn} options={timeOptions} callback={set('timeColumn')}/>
+			<MenuSelect text=' A' width='12ch' value={state.sample0} options={sampleOptions} callback={set('sample0')}/>
+			<MenuSelect text=' B' width='12ch' withNull={true} value={state.sample1} options={sampleOptions} callback={set('sample1')}/>
+			{(state.sample1 || state.sample2) && <MenuSelect text=' C' width='12ch' withNull={true} value={state.sample2} options={sampleOptions} callback={set('sample2')}/>}
 		</div>
-		{!status && <div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+		{!status && <div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 			<UplotReact {...{ options, data }}/>
 		</div>}
 		{status}
