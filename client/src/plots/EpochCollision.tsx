@@ -68,7 +68,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 					scale: 'y',
 					label: `${letter}+e`,
 					stroke: color(colors[i]),
-					width: 1,
+					width: .9,
 					value: (u, val) => val?.toFixed(2),
 					points: { show: false }
 				},
@@ -77,7 +77,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 					scale: 'y',
 					label: `${letter}-e`,
 					stroke: color(colors[i]),
-					width: 1,
+					width: .9,
 					value: (u, val) => val?.toFixed(2),
 					points: { show: false }
 				},
@@ -100,7 +100,7 @@ export default function EpochCollision() {
 		sample1: null as null | string,
 		sample2: null as null | string,
 		showMedian: false,
-		showStd: false,
+		showStd: true,
 	});
 
 	const samples = useMemo(() => [state.sample0, state.sample1, state.sample2].map(name => {
