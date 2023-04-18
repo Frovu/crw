@@ -8,6 +8,8 @@ export type HistOptions = {
 	binCount: number,
 	forceMin: number | null,
 	forceMax: number | null,
+	drawMean: boolean,
+	drawMedian: boolean,
 	yScale: typeof yScaleOptions[number],
 	sample0: string,
 	column0: string | null,
@@ -27,7 +29,9 @@ export const defaultHistOptions: HistOptions = {
 	sample2: 'current',
 	column0: 'fe_v_max',
 	column1: null,
-	column2: null
+	column2: null,
+	drawMean: false,
+	drawMedian: false
 };
 
 export type CorrParams = {
@@ -67,6 +71,8 @@ export function HistogramMenu() {
 				<MenuSelect key={colKey} text={'Column '+letter} value={hist[colKey] as string ?? null} callback={set(colKey)} width='10em' options={options} pretty={pretty} withNull={true}/>
 				<MenuSelect key={sampleKey} text={'Sample '+letter} value={hist[sampleKey] as string} callback={set(sampleKey)} width='10em' options={sampleOptions} pretty={samplePretty}/>
 			</Fragment>);})}
+		<MenuCheckbox text='Draw median' value={hist.drawMedian} callback={set('drawMedian')}/>
+		<MenuCheckbox text='Draw mean' value={hist.drawMean} callback={set('drawMean')}/>
 		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
 		<MenuInput text='Limit X >=' type='text' defaultValue={hist.forceMin ?? ''} onChange={setBoundary('forceMin')}/>
 		<MenuInput text='Limit X < ' type='text' defaultValue={hist.forceMax ?? ''} onChange={setBoundary('forceMax')}/>

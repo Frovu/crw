@@ -4,8 +4,10 @@ import UplotReact from 'uplot-react';
 import { HistOptions } from '../table/Statistics';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
-import { axisDefaults, clickDownloadPlot, color, drawBackground } from './plotUtil';
+import { axisDefaults, clickDownloadPlot, color, drawBackground, font } from './plotUtil';
 import { applySample } from '../table/Sample';
+
+const colors = ['magenta', 'acid', 'cyan'];
 
 export default function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
@@ -32,6 +34,14 @@ export default function HistogramPlot() {
 		const column = columns[cols[firstIdx]];
 		const enumMode = !!column.enum;
 		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v) + 1))] : allSamples;
+		const averages = {
+			mean: options.drawMean && samples.map(smpl => smpl.length ? smpl.reduce((a, b) => a + b, 0) / smpl.length : null),
+			median: options.drawMedian && samples.map(smpl => {
+				const s = smpl.sort(), mid = Math.floor(smpl.length / 2);
+				return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
+			})
+		} as {[key: string]: (number | null)[]};
+
 		const everything = samples.flat();
 		const min = options.forceMin ?? Math.min.apply(null, everything);
 		let max = options.forceMax ?? Math.max.apply(null, everything);
@@ -56,6 +66,29 @@ export default function HistogramPlot() {
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
 		const transformed = samplesBins.filter(b => b).map((bins, i) => options.yScale === '%' ? bins!.map(b => b / samples[i].length) : bins);
 		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
+
+		const drawAverages = (u: uPlot) => {
+			for (const what in averages) {
+				if (!averages[what]) continue;
+				for (const [i, value] of averages[what].entries()) {
+					if (value == null) continue;
+					const x = u.valToPos(value, 'x', true);
+					const margin = what === 'mean' ? 6 : -8;
+					u.ctx.save();
+					u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .6);
+					u.ctx.font = font(14, true).replace('400', '600');
+					u.ctx.textBaseline = 'top';
+					u.ctx.textAlign = 'left';
+					u.ctx.lineWidth = 3 * devicePixelRatio;
+					u.ctx.beginPath();
+					u.ctx.moveTo(x, u.bbox.top + margin + 2);
+					u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
+					u.ctx.stroke();
+					u.ctx.fillText(what, x + 5, u.bbox.top + margin);
+					u.ctx.restore();
+				}
+			}
+		};
 		
 		return (asize: { width: number, height: number }) => ({
 			options: {
@@ -63,6 +96,10 @@ export default function HistogramPlot() {
 				padding: [10, 4, 0, 0],
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
+				hooks: {
+					drawClear: [ drawBackground ],
+					draw: [ drawAverages ]
+				},
 				axes: [
 					{
 						...axisDefaults(plotGrid),
@@ -86,7 +123,7 @@ export default function HistogramPlot() {
 				scales: {
 					x: {
 						time: false,
-						range: (u, umin, umax) => [min-binSize/4, max + binSize/4 * (enumMode ? -1 : 1) ]
+						range: () => [min-binSize/4, max + binSize/4 * (enumMode ? -1 : 1) ]
 					},
 					y: {
 						distr: options.yScale === 'log' ? 3 : 1
@@ -96,27 +133,24 @@ export default function HistogramPlot() {
 				series: [
 					{},
 					...[{
-						stroke: color('magenta'),
-						fill: color('magenta', .7),
+						stroke: color(colors[0]),
+						fill: color(colors[0], .7),
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.8, 64], align: 1 })
 					},
 					{
-						stroke: color('acid'),
-						fill: color('acid'),
+						stroke: color(colors[1]),
+						fill: color(colors[1]),
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.4, 64], align: 1 })
 					},
 					{
-						stroke: color('cyan'),
-						fill: color('cyan'),
+						stroke: color(colors[2]),
+						fill: color(colors[2]),
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
-				],
-				hooks: {
-					drawClear: [ drawBackground ]
-				}
+				]
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
