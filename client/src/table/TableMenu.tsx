@@ -14,6 +14,8 @@ export const KEY_COMB = {
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
+	'plotPrevShown': 'Comma%<',
+	'plotNextShown': 'Period%<',
 	'switchViewPlots': 'H',
 	'switchHistCorr': 'J',
 	'switchTheme': 'T',
@@ -233,8 +235,6 @@ export function Menu() {
 					<MenuButton text='Select columns' action='openColumnsSelector'/>
 					<MenuButton text='Edit generics' action='openGenericsSelector'/>
 					<MenuButton text='Plot selected' action='plot'/>
-					<MenuButton text='Plot previous' action='plotPrev'/>
-					<MenuButton text='Plot next' action='plotNext'/>
 					<MenuButton text='Switch view' action='switchViewPlots'/>
 					<MenuButton text='Switch theme' action='switchTheme'/>
 					<MenuCheckbox text='Compute averages' value={!!settings.computeAverages} callback={v => set('computeAverages', () => v)}/>

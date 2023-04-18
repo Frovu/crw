@@ -187,11 +187,11 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 					{averages && (<tfoot>
-						<td colSpan={columns.length} style={{ height: '0' }}></td>
+						<tr><td colSpan={columns.length} style={{ height: '0' }}></td></tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label}>
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
-								return <td style={{ borderColor: 'var(--color-text-dark)', textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}>
+								return <td key={columns[i].id} style={{ borderColor: 'var(--color-text-dark)', textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}>
 									{isLabel ? label : avgs ? avgs[ari].toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 							})}
 						</tr>)}
