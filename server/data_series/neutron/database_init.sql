@@ -27,7 +27,6 @@ INSERT INTO neutron_stations(id, drift_longitude, closed_at) VALUES
 ('KGSN', 197.30, '2016-11-01'),
 ('LARC', 356.00, '2008-08-01'),
 ('MGDN', 196.00, '2018-02-01'),
-('MWSN', 56.9,   NULL),
 ('NAIN',  18.32, NULL),
 ('NEWK', 331.49, NULL),
 ('NRLK', 124.48, NULL),

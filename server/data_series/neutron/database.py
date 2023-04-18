@@ -42,6 +42,12 @@ def _connect_nmdb():
 	discon_timer = Timer(180, _disconnect_nmdb)
 	discon_timer.start()
 
+def _insert_stub(station, interval):
+	q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
+	q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
+	with pool.connection() as conn:
+		return conn.execute(q)
+
 def _obtain_nmdb(interval, station):
 	_connect_nmdb()
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
@@ -59,20 +65,17 @@ def _obtain_nmdb(interval, station):
 
 	log.debug(f'Neutron: obtain nmdb:{station} [{len(data)}] {dt_interval[0]} to {dt_interval[1]}')
 	if len(data) < 1:
-		q = f'INSERT INTO neutron_counts (time, station) SELECT ts, \'{station}\' FROM generate_series(to_timestamp({interval[0]}),to_timestamp({interval[1]}),\'{PERIOD} s\'::interval) ts '
-		q += 'ON CONFLICT (time, station) DO UPDATE SET obtain_time = CURRENT_TIMESTAMP'
-		with pool.connection() as conn:
-			return conn.execute(q)
+		return _insert_stub(station, interval)
 	upsert_many('neutron_counts', ['station', 'time', 'original', 'pressure'], data, [station], 'time, station')
 
 def _obtain_local(interval, station):
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in interval]
-	p = Path(os.environ.get('NM_C_PATH')).resolve()
-	if not p.is_dir():
-		return logging.error('Dir not found: ' + str(p))
+	dirp = Path(os.environ.get('NM_C_PATH')).resolve()
+	if not dirp.is_dir():
+		return logging.error('Dir not found: ' + str(dirp))
 	data = []
 	for year in range(dt_from.year, dt_to.year + 1):
-		p = next(p.glob(str(year) + '[cC]'), None)
+		p = next(dirp.glob(str(year) + '[cC]'), None)
 		if not p: continue
 		p = next((d for d in p.iterdir() if d.name.upper().endswith(station)), None)
 		if not p:
@@ -106,6 +109,8 @@ def _obtain_local(interval, station):
 			except Exception as e:
 				logging.warn(f'Failed to parse {p}: {e}')
 	log.debug(f'Neutron: obtain local:{station} [{len(data)}] {dt_from} to {dt_to}')
+	if len(data) < 1:
+		return _insert_stub(station, interval)
 	upsert_many('neutron_counts', ['station', 'time', 'original'], data, [station], 'time, station')
 
 def _fetch_one(interval: [int, int], station):

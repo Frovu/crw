@@ -211,7 +211,6 @@ function CoreWrapper() {
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 
-	console.log(plotIdx)
 	const plotMove = (dir: -1 | 0 | 1, inSample?: boolean) => () => setPlotIdx(current => {
 		if (dir === 0) { // set cursor to plotted line
 			setOpt('viewPlots', true);

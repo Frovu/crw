@@ -162,7 +162,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 		columns.append(f'{g.entity}.{g.name} as {name}')
 	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM events.{root}\n{joins}'
 	with pool.connection() as conn:
-		curs = conn.execute(select_query + f' ORDER BY {root}.time')
+		curs = conn.execute(select_query + f' ORDER BY {root}.id')
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		if changelog:
 			entity_selector = '\nOR '.join([f'(entity_name = \'{ent}\' AND {ent}.id = event_id)' for ent in tables_info])

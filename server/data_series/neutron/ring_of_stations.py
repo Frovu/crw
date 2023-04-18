@@ -26,9 +26,9 @@ def _filter(full_data):
 		warnings.simplefilter('ignore', category=RuntimeWarning)
 		warnings.simplefilter('ignore', optimize.OptimizeWarning)
 		variation = data / np.nanmean(data, axis=0) * 100 - 100
-		mean_variation = np.nanmedian(variation, axis=1)
-	deviation = variation - mean_variation[:,None]
-	mask = np.where((deviation > 3) | (deviation < -7.5)) # meh values
+		avg_variation = np.nanmedian(variation, axis=1)
+	deviation = variation - avg_variation[:,None]
+	mask = np.where((deviation > 5) | (deviation < -20)) # meh values
 	data[mask] = np.nan
 	excluded = list()
 	for station_i in range(data.shape[1]): # exclude station if >10 spikes
