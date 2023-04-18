@@ -141,4 +141,4 @@ def fetch(interval: [int, int], stations: list[str]):
 
 def select_stations():
 	with pool.connection() as conn:
-		return conn.execute('SELECT id, drift_longitude FROM neutron_stations').fetchall()
+		return conn.execute('SELECT id, drift_longitude, closed_at FROM neutron_stations').fetchall()

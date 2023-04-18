@@ -109,7 +109,8 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 	if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
 	t_from = t_from // database.PERIOD * database.PERIOD
 
-	stations, directions = zip(*[s for s in database.select_stations() if s[0] not in exclude])
+	sts = database.select_stations()
+	stations, directions, _ = zip(*[(s, lon, clsd) for s, lon, clsd in sts if s not in exclude and (clsd is None or clsd.timestamp() > t_to)])
 	neutron_data = database.fetch((t_from, t_to), stations)
 	neutron_data = np.where(neutron_data == 0, np.nan, neutron_data)
 	data, filtered, excluded = _filter(neutron_data) if auto_filter else (neutron_data, 0, [])
