@@ -11,6 +11,7 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../css/Circles.css';
+import { MenuCheckbox } from '../table/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
 	realtime?: boolean,
@@ -18,6 +19,7 @@ export type CirclesParams = BasicPlotParams & {
 	exclude?: string[],
 	window?: number,
 	minamp?: number,
+	autoFilter?: boolean,
 };
 
 type CirclesResponse = {
@@ -278,6 +280,7 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 		...(params.exclude && { exclude: params.exclude.join() }),
 		...(params.window && { window: params.window.toString() }),
 		...(params.minamp && { minamp: params.minamp.toString() }),
+		autoFilter: (params.autoFilter ?? true).toString()
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
 	if (res.status !== 200)
@@ -369,8 +372,7 @@ export function PlotCircles({ params, settingsOpen }:
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
-		staleTime: params.interactive ? 0 : 60 * 60 * 1000,
-		queryKey: ['ros', params, base],
+		queryKey: ['ros', JSON.stringify(params), base],
 		queryFn: () => queryCircles(params, base),
 		keepPreviousData: interactive
 	});
@@ -479,6 +481,7 @@ export function CirclesParamsInput({ params, setParams }:
 			<br/> Draw onset: 
 			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
+			<br/><MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 
 		</div>
 	);
@@ -504,7 +507,8 @@ export default function PlotCirclesStandalone() {
 				window: 3,
 				minamp: .7
 			}),
-			interactive: true
+			interactive: true,
+			autoFilter: true
 		};
 	});
 

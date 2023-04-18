@@ -42,6 +42,7 @@ def anisotropy_fn(x, a, scale, sx, sy):
 	return np.cos(x * a * np.pi / 180 + sx) * scale + sy
 
 def precursor_idx(x, y, amp_cutoff = 1, details = False):
+	if not len(y): return None
 	amax, amin = x[np.argmax(y)], x[np.argmin(y)]
 	approx_dist = np.abs(amax - amin)
 	center_target = 180 if approx_dist < 180 else 360
@@ -103,14 +104,15 @@ def index_details(time, variations, directions, when, window, amp_cutoff):
 		'angle': angle
 	})
 
-def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base):
+def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filter):
 	if window > 12 or window < 1: window = 3
 	if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
 	t_from = t_from // database.PERIOD * database.PERIOD
 
 	stations, directions = zip(*[s for s in database.select_stations() if s[0] not in exclude])
 	neutron_data = database.fetch((t_from, t_to), stations)
-	data, filtered, excluded = _filter(neutron_data)
+	neutron_data = np.where(neutron_data == 0, np.nan, neutron_data)
+	data, filtered, excluded = _filter(neutron_data) if auto_filter else (neutron_data, 0, [])
 	if user_base and user_base >= t_from and user_base <= t_to - 3600 * BASE_LENGTH_H:
 		user_base = user_base // 3600 * 3600
 		idx = np.where(data[:,0] == user_base)[0][0]
@@ -129,7 +131,7 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base):
 	return dict({
 		'base': int(data[base_idx[0], 0]),
 		'time': time.tolist(),
-		'variation': np.where(np.isnan(variation), None, np.round(variation, 2)).tolist(),
+		'variation': np.where(~np.isfinite(variation), None, np.round(variation, 2)).tolist(),
 		'shift': directions,
 		'station': list(stations),
 		'precursor_idx': prec_idx,
