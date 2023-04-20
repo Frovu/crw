@@ -399,7 +399,7 @@ def compute_generic(generic, col_name=None):
 			else:
 				assert False
 
-			if generic.series == 'kp_index':
+			if generic.series == 'kp':
 				result[result != None] /= 10
 			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
