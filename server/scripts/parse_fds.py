@@ -128,8 +128,9 @@ def parse_whole_file(conn):
 							print(f'not null violation ({nonnul[0]}), discarding ({table})')
 							continue
 						constraint = unique_constraints[table]
+						a_column = constraint.split(',')[0]
 						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) ' +\
-							(f' ON CONFLICT ({constraint}) DO UPDATE SET id=EXCLUDED.id' if constraint else '') + ' RETURNING id'
+							(f' ON CONFLICT ({constraint}) DO UPDATE SET {a_column}=EXCLUDED.{a_column}' if constraint else '') + ' RETURNING id'
 						inserted = conn.execute(query, values).fetchone()
 						if inserted is not None:
 							count[table] += 1
