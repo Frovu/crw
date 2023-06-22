@@ -1,5 +1,5 @@
 ## Dpendencies
-`Flask flask-session flask-bcrypt "psycopg[binary,pool]" numpy scipy`
+`Flask flask-session flask-bcrypt "psycopg[binary,pool]" pymysql numpy scipy`
 
 ## .env
 
