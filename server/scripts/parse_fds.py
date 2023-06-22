@@ -1,9 +1,19 @@
 from datetime import datetime, timezone
-import sys, os
+import sys, os, re, psycopg
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
 from core.database import pool, tables_info, upsert_many
 
 FNAME = 'data/FDs_fulltable.txt'
+
+format_fixes = [
+	(r'(A|B|C|M|X) ([\d\.]+)', r'\1\2'),
+	(r'(\d)-\d9\d+', r'\1 -9900'),
+	(r'(:\d\d:\d\d)([.\d-]+)', r'\1 \2')
+]
+def fix_format(line):
+	for exp, repl in format_fixes:
+		line = re.sub(exp, repl, line)
+	return line
 
 def _parse_value(split, columns, col, description):
 	value = split[columns.index(col)]
@@ -62,7 +72,7 @@ def parse_one_column(table: str, column: str, conn):
 		select_id = recursive_search(first_table, table, f'(SELECT id FROM events.{first_table} WHERE time = data.time)')
 		data = []
 		for line in file:
-			line_split = line.split()
+			line_split = fix_format(line).split()
 			time = _parse_value(line_split, columns_order, time_col_name, time_col_desc)
 			value = _parse_value(line_split, columns_order, target_col_name, target_col_desc)
 			data.append((time, value))
@@ -91,10 +101,11 @@ def parse_whole_file(conn):
 			columns_order = line.strip().split()
 			break
 		count = dict([(k, 0) for k in tables_info])
+		unique_constraints = {tbl: re.sub(r'UNIQUE\s*\(([a-zA-Z\,\s]+)\)', r'\1', tables_info[tbl].get('_constraint', '')) for tbl in tables_info}
 		exists_count = 0
 		for line in file:
 			try:
-				split, inserted_ids = line.split(), dict()
+				split, inserted_ids = fix_format(line).split(), dict()
 				table = list(tables_info)[0]
 				time = _parse_value(split, columns_order, 'Time', {"type": "time"})
 				exists = conn.execute(f'SELECT 1 FROM events.{table} WHERE time = %s', [time]).fetchone()
@@ -116,13 +127,18 @@ def parse_whole_file(conn):
 						if len(nonnul):
 							print(f'not null violation ({nonnul[0]}), discarding ({table})')
 							continue
-						count[table] += 1
-						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) RETURNING id'
+						constraint = unique_constraints[table]
+						query = f'INSERT INTO events.{table}({",".join(columns)}) VALUES ({",".join(["%s" for c in columns])}) ' +\
+							(f' ON CONFLICT ({constraint}) DO UPDATE SET id=EXCLUDED.id' if constraint else '') + ' RETURNING id'
 						inserted = conn.execute(query, values).fetchone()
-						inserted_ids[table] = inserted and inserted[0]
+						if inserted is not None:
+							count[table] += 1
+							inserted_ids[table] = inserted[0]
 			except Exception as e:
-				print('failed to parse line: ', e)
+				print(split[:2], type(e), e)
 				print(line)
+				conn.rollback()
+				return
 
 		print(f'{exists_count} found')
 		for table, cnt in count.items():
@@ -159,10 +175,6 @@ def main():
 		if res and input(f'commit updates? [y/n]: ') == 'y':
 			conn.commit()
 
-
-# (A|B|C|M|X) ([\d\.]+) replace $1$2 
-# (\d)-\d9\d+ replace $1 -9900
-# (:\d\d:\d\d)([.\d-]+) replace $1 $2
 if __name__ == '__main__':
 	main()
 
