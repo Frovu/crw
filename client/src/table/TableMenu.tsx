@@ -301,7 +301,7 @@ export function Menu() {
 function onKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape')
 		return dispatchCustomEvent('escape');
-	if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)
+	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement)
 		return;
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
