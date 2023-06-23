@@ -17,7 +17,11 @@ def kill():
 def logs():
 	with open('logs/aid.log') as file:
 		text = file.read()
-	return '<html><head></head><body style="color: #ccc; background-color: #000; font-size: 14px"><pre>' + text + '</pre></body></html>'
+	return f'''<html><head></head>
+	<body style="color: #ccc; background-color: #000; font-size: 14px">
+	<pre>{text}</pre>
+	<script>window.scrollTo(0, document.body.scrollHeight);</script>
+	</body></html>'''
 
 @bp.route('/users')
 @require_role('admin')
@@ -26,7 +30,7 @@ def users():
 		rows = conn.execute('SELECT uid, login, role, last_login FROM users').fetchall()
 		text = ''
 		for uid, login, role, last_login in rows:
-			text += f'last seen [{str(last_login)[:19]}] #{uid} @<b>{login}</b> :{role} \r\n'
+			text += f'last login [{str(last_login)[:19]}] #{uid} @<b>{login}</b> :{role} \r\n'
 	return '<html><head></head><body style="color: #ccc; background-color: #000; line-height: 1.5em; font-size: 16px"><pre>' + text + '</pre></body></html>'
 
 @bp.route('/generics')
