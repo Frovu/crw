@@ -39,7 +39,11 @@ from flask_session import Session
 from flask_bcrypt import Bcrypt
 
 app = Flask('aides')
-app.json.sort_keys = False
+if hasattr(app, 'json'):
+    app.json.sort_keys = False
+else:
+    app.config['JSON_SORT_KEYS'] = False
+
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_THRESHOLD'] = 256
 
