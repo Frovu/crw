@@ -297,7 +297,8 @@ function renderPlotData(resp: CirclesResponse, params: CirclesParams) {
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
 			const time = resp.time[ti];
-			const vv = resp.variation[ti][si]! + (params.variationShift ?? 0);
+			const rawv = resp.variation[ti][si];
+			const vv = rawv != null ? rawv + (params.variationShift ?? 0) : null;
 			const idx = ti*slen + si;
 			// if (vv < maxVar) maxVar = vv;
 			if (vv == null) ++nullCount;
