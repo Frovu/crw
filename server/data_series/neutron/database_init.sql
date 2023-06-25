@@ -4,13 +4,10 @@ CREATE TABLE IF NOT EXISTS neutron_stations (
 	closed_at TIMESTAMPTZ
 );
 CREATE TABLE IF NOT EXISTS neutron_counts (
-	time TIMESTAMPTZ NOT NULL,
-	obtain_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	station TEXT NOT NULL REFERENCES neutron_stations(id) ON DELETE CASCADE,
-	original REAL,
-	corrected REAL,
-	pressure REAL,
-	UNIQUE(time, station)
+	time TIMESTAMPTZ PRIMARY KEY
+);
+CREATE TABLE IF NOT EXISTS neutron_counts_corrections (
+	time TIMESTAMPTZ PRIMARY KEY
 );
 
 INSERT INTO neutron_stations(id, drift_longitude, closed_at) VALUES
