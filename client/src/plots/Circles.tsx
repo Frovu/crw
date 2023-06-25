@@ -21,6 +21,7 @@ export type CirclesParams = BasicPlotParams & {
 	minamp?: number,
 	variationShift?: number,
 	autoFilter?: boolean,
+	fixAmplitudeScale?: boolean,
 };
 
 type CirclesResponse = {
@@ -45,7 +46,7 @@ type CirclesMomentResponse = {
 	angle: number
 };
 
-function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
+function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
 	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
 	const interactive = params.interactive;
 	let qt: Quadtree;
@@ -130,7 +131,7 @@ function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolea
 							const dragValue = u.posToVal(e.offsetX, 'x') - u.posToVal(clickX!, 'x');
 							currentBase = Math.round((data.base + dragValue) / 3600) * 3600;
 							if (currentBase < u.scales.x.min!)
-								currentBase = u.scales.x.min;
+								currentBase = u.scales.x.min!;
 							if (currentBase > u.scales.x.max! - 86400)
 								currentBase = u.scales.x.max! - 86400;
 						}
@@ -219,8 +220,12 @@ function circlesPlotOptions(data: any, params: CirclesParams, idxEnabled: boolea
 	};
 }
 
-function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
+function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesResponse, data: CirclesMomentResponse): uPlot.Options {
 	const moment = new Date(data.time * 1000).toISOString().replace(/\..*|T/g, ' ');
+	const scaleRange = params.fixAmplitudeScale && [
+		Math.min.apply(null, allData.variation.flat() as any),
+		Math.max.apply(null, allData.variation.flat() as any),
+	];
 	return {
 		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
 		width: 480,
@@ -255,7 +260,7 @@ function circlesMomentPlotOptions(data: CirclesMomentResponse): uPlot.Options {
 				range: [0, 365],
 			},
 			y: {
-				range: (u, min, max) => [min, max],
+				range: (u, min, max) => scaleRange as any || [min, max],
 			}
 		},
 		series: [
@@ -335,8 +340,8 @@ function renderPlotData(resp: CirclesResponse, params: CirclesParams) {
 	return [ precIdx[0], pdata, ndata, precIdx ];
 }
 
-export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpen }:
-{ params: CirclesParams, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
+export function PlotCirclesMoment({ params, data: allData, base, moment, setMoment, settingsOpen }:
+{ params: CirclesParams, data: CirclesResponse, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
 	const query = useQuery({
 		staleTime: 0,
 		keepPreviousData: true,
@@ -346,10 +351,10 @@ export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpe
 
 	const plot = useMemo(() => {
 		if (!query.data?.time) return null;
-		const options = circlesMomentPlotOptions(query.data);
+		const options = circlesMomentPlotOptions(params, allData, query.data);
 		const data = [[], [query.data.x, query.data.y], [query.data.fnx, query.data.fny]] as any;
 		return <UplotReact {...{ options, data }}/>;
-	}, [query.data]);
+	}, [params, allData, query.data]);
 
 	if (!query.data) return null;
 	const middle = params.interval.map(d => d.getTime() / 1000).reduce((a, b) => a + b, 0) / 2;
@@ -420,7 +425,7 @@ export function PlotCircles({ params, settingsOpen }:
 
 	return (
 		<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-			{moment && <PlotCirclesMoment {...{ params, base, moment, setMoment, settingsOpen }}/>}
+			{moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
 				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
@@ -482,7 +487,10 @@ export function CirclesParamsInput({ params, setParams }:
 			<br/> Draw onset: 
 			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
-			<br/><MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
+			<div style={{ lineHeight: '2em' }}>
+				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
+				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
+			</div>
 
 		</div>
 	);
