@@ -405,7 +405,7 @@ export function PlotCircles({ params, settingsOpen }:
 		if (e.code === 'Escape') setMoment(() => null);
 		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
 		if (!move) return;
-		const [ min, max ] = params.interval.map(d => Math.floor(d.getTime() / 1000));
+		const [ min, max ] = params.interval.map(d => Math.ceil(d.getTime() / 36e5) * 3600);
 		setMoment(mm => mm && Math.min(Math.max(mm + move, min), max));
 	});
 
