@@ -39,7 +39,7 @@ export default function Help() {
 		<p>
 			Statistical plots can be drawn with <b>{KEY_COMB.switchViewPlots}</b> key without selecting any event. To draw any other plot one should press <b>{KEY_COMB.plot}</b> key while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired row of the table. After that one can plot previous or next event by using square bracket keys (note that this does not respect applied filters). When event plots are not needed anymore, one can toggle them off using <b>{KEY_COMB.switchViewPlots}</b> key.
 		</p>
-		Tip: use <b>&lt; &gt;</b> keys to plot pervious/next event, respecting applied sample.
+		Tip: use <b>&lt; &gt;</b> keys to plot pervious/next event in applied sample, or <b>[ ]</b> across all events.
 		<p>
 			Tip: press <b>1-3</b> key while staning in a table cell to quickly adjust histogram or correlation to corresponding column. Press again to unset histogram column.
 		</p>

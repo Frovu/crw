@@ -19,6 +19,7 @@ export type CirclesParams = BasicPlotParams & {
 	exclude?: string[],
 	window?: number,
 	minamp?: number,
+	variationShift?: number,
 	autoFilter?: boolean,
 };
 
@@ -288,16 +289,15 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 	return res.json();
 }
 
-async function queryCircles(params: CirclesParams, base?: Date) {
-	const resp = await fetchCircles(params, base) as CirclesResponse;
-	if (!resp) return resp;
+function renderPlotData(resp: CirclesResponse, params: CirclesParams) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
 	let posCount = 0, nullCount = 0;
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
-			const time = resp.time[ti], vv = resp.variation[ti][si];
+			const time = resp.time[ti];
+			const vv = resp.variation[ti][si]! + (params.variationShift ?? 0);
 			const idx = ti*slen + si;
 			// if (vv < maxVar) maxVar = vv;
 			if (vv == null) ++nullCount;
@@ -331,10 +331,7 @@ async function queryCircles(params: CirclesParams, base?: Date) {
 	}
 	const precIdx = resp.precursor_idx;
 	console.log('circles data', resp, [ precIdx[0], pdata, ndata, precIdx ]);
-	return {
-		...resp,
-		plotData: [ precIdx[0], pdata, ndata, precIdx ]
-	};
+	return [ precIdx[0], pdata, ndata, precIdx ];
 }
 
 export function PlotCirclesMoment({ params, base, moment, setMoment, settingsOpen }:
@@ -372,8 +369,8 @@ export function PlotCircles({ params, settingsOpen }:
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
-		queryKey: ['ros', JSON.stringify(params), base],
-		queryFn: () => queryCircles(params, base),
+		queryKey: ['ros', JSON.stringify({ ...params, variationShift: undefined }), base],
+		queryFn: () => fetchCircles(params, base),
 		keepPreviousData: interactive
 	});
 
@@ -381,7 +378,10 @@ export function PlotCircles({ params, settingsOpen }:
 	const size = useSize(container?.parentElement);
 
 	const [ uplot, setUplot ] = useState<uPlot>();
-	const plotData = query.data?.plotData;
+	const plotData = useMemo(() => {
+		if (!query.data) return null;
+		return renderPlotData(query.data, params);
+	}, [query.data, params]);
 	
 	useEffect(() => setMoment(null), [params.interval]);
 
@@ -521,13 +521,15 @@ export default function PlotCirclesStandalone() {
 			return { ...para, interval: [new Date(now - diff), new Date(now)] };
 		});
 	});
-
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
 			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 52, width: '5em', borderRadius: 6 }}
+				type='number' min='-9' max='9' step='.05' value={params.variationShift?.toFixed(2)} placeholder='shift'
+				onChange={e => setParams(para => ({ ...para, variationShift: isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber }))}></input>
 		</div>
 	);
 }
