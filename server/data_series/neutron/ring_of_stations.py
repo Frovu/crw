@@ -14,6 +14,7 @@ def _determine_base(data):
 		mean_val = np.nanmean(data, axis=0)
 		mean_var = np.nanmean(data / mean_val, axis=1)
 		indices = np.where(mean_var[:-1*b_len] > 1)[0]
+		if not len(indices): indices = [0]
 		deviations = np.array([np.std(data[i:i+b_len], 0) for i in indices])
 		mean_std = 1 / np.nanmean(deviations, axis=1)
 	weightened_std = mean_std * (mean_var[indices] - 1)
