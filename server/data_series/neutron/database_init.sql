@@ -9,6 +9,15 @@ CREATE TABLE IF NOT EXISTS neutron_counts (
 CREATE TABLE IF NOT EXISTS neutron_counts_corrections (
 	time TIMESTAMPTZ PRIMARY KEY
 );
+CREATE TABLE IF NOT EXISTS neutron_obtain_log (
+	id SERIAL PRIMARY KEY,
+	time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+	target TEXT NOT NULL,
+	source TEXT NOT NULL,
+	interval_start TIMESTAMPTZ NOT NULL,
+	interval_end TIMESTAMPTZ NOT NULL,
+	is_outdated BOOLEAN NOT NULL DEFAULT false
+);
 
 INSERT INTO neutron_stations(id, drift_longitude, closed_at) VALUES
 ('APTY',  73.05, NULL),

@@ -74,10 +74,7 @@ SELECT ser.time, {", ".join([st + '.val' for st in stations])} FROM ser\n'''
 			log.warning('Failed to query nmdb, disconnecting')
 			return _disconnect_nmdb()
 		data = curs.fetchall()
-		
-	log.debug(f'Neutron: obtained nmdb [{len(data)} * {len(stations)}] {dt_interval[0]} to {dt_interval[1]}')
-	if data:
-		upsert_many('neutron_counts', ['time', *stations], data)
+	return data
 
 def _obtain_local(interval, stations):
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in interval]
@@ -124,17 +121,37 @@ def _obtain_local(interval, stations):
 								add_count(date, cnt)
 				except Exception as e:
 					log.warn(f'Failed to parse {file_path}: {e}')
+	return [[date, *data[date]] for date in sorted(data.keys())]
 
-	data = [[date, *data[date]] for date in data]
-	log.debug(f'Neutron: obtained local [{len(data)} * {len(stations)}] {dt_from} to {dt_to}')
-	if data:
-		upsert_many('neutron_counts', ['time', *stations], data)
+def _check_integrity(interval, target):
+	with pool.connection() as conn:
+		rows = conn.execute('SELECT EXTRACT(EPOCH FROM interval_start), EXTRACT(EPOCH FROM interval_end) FROM neutron_obtain_log ' +\
+			'WHERE NOT is_outdated AND to_timestamp(%s) <= interval_end AND interval_start <= to_timestamp(%s)' +\
+			'ORDER BY interval_start', interval).fetchall()
+			
+	verified_cursor = interval[0]
+	for i_start, i_end in rows:
+		if i_start > verified_cursor + PERIOD: # found a gap in coverage
+			return False
+		if i_end >= interval[1]:
+			return True
+		verified_cursor = i_end
+	return False
 
-def _obtain(interval, stations):
-	if interval[1] >= datetime(datetime.now().year, 1, 1).timestamp(): # FIXME: meh
-		_obtain_nmdb(interval, stations)
-	else:
-		_obtain_local(interval, stations)
+def _obtain_if_needed(interval, stations, target='rsm'):
+	assert target == 'rsm'
+	if _check_integrity(interval, target):
+		return
+	
+	source = 'nmdb' if interval[1] >= datetime(datetime.now().year, 1, 1).timestamp() else 'local'
+	data = { 'nmdb': _obtain_nmdb, 'local': _obtain_local }[source](interval, stations)
+	
+	log.debug(f'Neutron: obtained {source} [{len(data)} * {len(stations)}] {interval[0]}:{interval[1]}')
+	if not data: return
+	upsert_many('neutron_counts', ['time', *stations], data)
+	with pool.connection() as conn:
+		conn.execute('INSERT INTO neutron_obtain_log(target, source, interval_start, interval_end) ' +\
+			'VALUES (%s, %s, %s, %s)', [target, source, data[0][0], data[-1][0]])
 
 def fetch(interval: [int, int], stations: list[str]):
 	trim_future = int(datetime.now().timestamp()) // PERIOD * PERIOD
@@ -146,7 +163,7 @@ def fetch(interval: [int, int], stations: list[str]):
 	# FIXME: allow parallel local obtains?
 	with obtain_mutex:
 		if key not in obtain_cache:
-			_obtain(interval, stations)
+			_obtain_if_needed(interval, stations)
 			obtain_cache[key] = True
 	
 	with pool.connection() as conn:
