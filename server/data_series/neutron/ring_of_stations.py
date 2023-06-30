@@ -18,11 +18,10 @@ def _determine_base(time, data):
 	return base_idx, base_idx + BASE_LENGTH
 
 def _filter(time, data):
-	mask = [[], []]
-	std = np.nanstd(data, axis=1)
-	med = np.nanmean(data, axis=1)
-	dist = np.abs(med[:,None] - data) / std[:,None]
-	mask = np.where(dist > 3)
+	std = np.nanstd(data, axis=1)[:,None]
+	med = np.nanmean(data, axis=1)[:,None]
+	dist = np.abs(med - data) / std
+	mask = np.where(dist > 3) # if dist to mean > 3 sigma
 	data[mask] = np.nan
 	
 	fl_ids, fl_counts = np.unique(mask[1], return_counts=True)
@@ -59,18 +58,7 @@ def precursor_idx(x, y, amp_cutoff = 1, details = False):
 	except:
 		return None
 
-def calc_index_windowed(time, variations, directions, window, amp_cutoff):
-	sorted = np.argsort(directions)
-	variations, directions = variations[:,sorted], directions[sorted]
-	result = []
-	for i in range(window, len(time)):
-		x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
-		y = np.concatenate([variations[i-t] for t in range(window)])
-		filter = np.isfinite(y)
-		x, y = x[filter], y[filter]
-		result.append(precursor_idx(x, y, amp_cutoff))
-	return time[window:].tolist(), result
-
+# TODO: remove amp_cutoff ?
 def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filter):
 	if window > 12 or window < 1: window = 3
 	if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
@@ -94,39 +82,38 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 
 		filtered, excluded = _filter(time, variation) if auto_filter else (0, [])
 
-		if details:
-			return index_details(time, variation, np.array(directions), int(details), window, amp_cutoff)
-		prec_idx = calc_index_windowed(time, variation, np.array(directions), window, amp_cutoff)
-
+		prec_idx = np.full_like(time, np.nan, dtype='f8')
+		irange = [np.searchsorted(time, details)] if details else range(window - 1, len(prec_idx))
+		for i in irange:
+			x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
+			y = np.concatenate([variation[i-t] for t in range(window)])
+			flt = np.isfinite(y)
+			x, y = x[flt], y[flt]
+			if details:
+				if not len(irange): return {}
+				return index_details(time[irange[0]], precursor_idx(x, y, amp_cutoff, details))
+			prec_idx[i] = precursor_idx(x, y, amp_cutoff)
+			
 	return dict({
 		'base': int(time[base_idx[0]]),
 		'time': time.tolist(),
 		'variation': np.where(~np.isfinite(variation), None, np.round(variation, 2)).tolist(),
 		'shift': directions,
 		'station': list(stations),
-		'precursor_idx': prec_idx,
+		'precursor_idx': [time.tolist(), np.where(~np.isfinite(prec_idx), None, np.round(prec_idx, 2)).tolist()],
 		'filtered': int(filtered),
 		'excluded': exclude + [stations[i] for i in excluded]
 	})
 
-def index_details(time, variations, directions, when, window, amp_cutoff):
-	idx = np.where(time == when)[0]
-	if not idx: return {}
-	sorted = np.argsort(directions)
-	variations, directions = variations[:,sorted], directions[sorted]
-	x = np.concatenate([directions + time[idx[0]-t] * 360 / 86400 for t in range(window)]) % 360
-	y = np.concatenate([variations[idx[0]-t] for t in range(window)])
-	filter = np.isfinite(y)
-	x, y = x[filter], y[filter]
-	res = precursor_idx(x, y, amp_cutoff, details=True)
-	if res is None: return {}
+def index_details(time, res):
+	if not res: return {}
 	x, y, shift, popt, index, scale, angle = res
 	x = (x - shift + 360) % 360
-	sorted = np.argsort(x)
-	x, y = x[sorted], y[sorted]
+	sort = np.argsort(x)
+	x, y = x[sort], y[sort]
 	rng = np.arange(0, 360, 1)
 	return dict({
-		'time': int(time[idx[0]]),
+		'time': int(time),
 		'x': np.round(x, 3).tolist(),
 		'y': np.round(y, 3).tolist(),
 		'fnx': rng.tolist(),

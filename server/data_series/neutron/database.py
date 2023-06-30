@@ -178,5 +178,5 @@ LEFT JOIN neutron_counts_corrections corr ON ts=corr.time''', [*interval]).fetch
 def select_rsm_stations(interval_end, exclude=[]):
 	with pool.connection() as conn:
 		rows = conn.execute('SELECT id, drift_longitude FROM neutron_stations ' + \
-			'WHERE closed_at IS NULL OR closed_at > to_timestamp(%s) ORDER BY id', [interval_end]).fetchall()
+			'WHERE closed_at IS NULL OR closed_at > to_timestamp(%s) ORDER BY drift_longitude', [interval_end]).fetchall()
 		return [(sid, lon) for sid, lon in rows if sid not in exclude]
