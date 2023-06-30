@@ -1,5 +1,5 @@
 import os, logging, pymysql.cursors, numpy
-from threading import Timer
+from threading import Timer, Lock, Thread
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -9,7 +9,10 @@ from core.database import pool, upsert_many
 log = logging.getLogger('aides')
 
 obtain_cache = dict()
+NMDB_KEEP_CONN_S = 180
 PERIOD = 3600
+cache_check_mutex = Lock()
+obtain_mutex = Lock()
 nmdb_conn = None
 discon_timer = None
 
@@ -46,7 +49,7 @@ def _connect_nmdb():
 	if discon_timer:
 		discon_timer.cancel()
 		discon_timer = None
-	discon_timer = Timer(180, _disconnect_nmdb)
+	discon_timer = Timer(NMDB_KEEP_CONN_S, _disconnect_nmdb)
 	discon_timer.start()
 
 def _obtain_nmdb(interval, stations):
@@ -127,6 +130,12 @@ def _obtain_local(interval, stations):
 	if data:
 		upsert_many('neutron_counts', ['time', *stations], data)
 
+def _obtain(interval, stations):
+	if interval[1] >= datetime(datetime.now().year, 1, 1).timestamp(): # FIXME: meh
+		_obtain_nmdb(interval, stations)
+	else:
+		_obtain_local(interval, stations)
+
 def fetch(interval: [int, int], stations: list[str]):
 	trim_future = int(datetime.now().timestamp()) // PERIOD * PERIOD
 	interval = (interval[0], min(trim_future - PERIOD, interval[1]))
@@ -134,12 +143,11 @@ def fetch(interval: [int, int], stations: list[str]):
 
 	# FIXME: better cache system
 	key = (*interval, *stations)
-	if key not in obtain_cache:
-		if interval[1] >= datetime(datetime.now().year, 1, 1).timestamp(): # FIXME: meh
-			_obtain_nmdb(interval, stations)
-		else:
-			_obtain_local(interval, stations)
-		obtain_cache[key] = True
+	# FIXME: allow parallel local obtains?
+	with obtain_mutex:
+		if key not in obtain_cache:
+			_obtain(interval, stations)
+			obtain_cache[key] = True
 	
 	with pool.connection() as conn:
 		rows = conn.execute(f'''SELECT EXTRACT(EPOCH FROM ts)::integer as time,
