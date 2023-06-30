@@ -155,8 +155,11 @@ def fetch(interval: [int, int], stations: list[str]):
 FROM generate_series(to_timestamp(%s), to_timestamp(%s), '{PERIOD} s'::interval) ts
 LEFT JOIN neutron_counts ori ON ts=ori.time
 LEFT JOIN neutron_counts_corrections corr ON ts=corr.time''', [*interval]).fetchall()
-	return numpy.array(rows, dtype='f8')
+	data = numpy.array(rows, dtype='f8')
+	return numpy.where(data == 0, numpy.nan, data)
 
-def select_stations():
+def select_rsm_stations(interval_end, exclude=[]):
 	with pool.connection() as conn:
-		return conn.execute('SELECT id, drift_longitude, closed_at FROM neutron_stations').fetchall()
+		rows = conn.execute('SELECT id, drift_longitude FROM neutron_stations ' + \
+			'WHERE closed_at IS NULL OR closed_at > to_timestamp(%s) ORDER BY id', [interval_end]).fetchall()
+		return [(sid, lon) for sid, lon in rows if sid not in exclude]
