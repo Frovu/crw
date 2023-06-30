@@ -18,19 +18,19 @@ def _determine_base(time, data):
 	return base_idx, base_idx + BASE_LENGTH
 
 def _filter(time, data):
-	variation = data / np.nanmean(data, axis=0) * 100 - 100
-	avg_variation = np.nanmedian(variation, axis=1)
-	deviation = variation - avg_variation[:,None]
-	mask = np.where((deviation > 5) | (deviation < -20)) # meh values
+	mask = [[], []]
+	std = np.nanstd(data, axis=1)
+	med = np.nanmean(data, axis=1)
+	dist = np.abs(med[:,None] - data) / std[:,None]
+	mask = np.where(dist > 3)
 	data[mask] = np.nan
 	
-	excluded = list()
-	for station_i in range(data.shape[1]): # exclude station if >10 spikes
-		if len(np.where(mask[1] == station_i)[0]) > 10:
-			data[:,station_i] = np.nan
-			excluded.append(station_i)
-	filtered = np.count_nonzero(~np.isin(mask[1], excluded))
-	return time, data, filtered, excluded
+	fl_ids, fl_counts = np.unique(mask[1], return_counts=True)
+	max_errors = data.shape[0] // 10
+	excluded = fl_ids[fl_counts > max_errors]
+	filtered = np.sum(fl_counts[fl_counts <= max_errors])
+	data[:,excluded] = np.nan
+	return filtered, excluded
 
 def anisotropy_fn(x, a, scale, sx, sy):
 	return np.cos(x * a * np.pi / 180 + sx) * scale + sy
@@ -82,8 +82,6 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 	with warnings.catch_warnings():
 		warnings.filterwarnings(action='ignore', message='Mean of empty slice')
 
-		time, data, filtered, excluded = _filter(time, data) if auto_filter else (time, data, 0, [])
-
 		if user_base and user_base >= t_from and user_base <= t_to - PERIOD * BASE_LENGTH:
 			user_base = user_base // PERIOD * PERIOD
 			idx = (user_base - t_from) // PERIOD
@@ -93,6 +91,9 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 
 		base_data = data[base_idx[0]:base_idx[1]]
 		variation = data / np.nanmean(base_data, axis=0) * 100 - 100
+
+		filtered, excluded = _filter(time, variation) if auto_filter else (0, [])
+
 		if details:
 			return index_details(time, variation, np.array(directions), int(details), window, amp_cutoff)
 		prec_idx = calc_index_windowed(time, variation, np.array(directions), window, amp_cutoff)
@@ -104,7 +105,7 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 		'shift': directions,
 		'station': list(stations),
 		'precursor_idx': prec_idx,
-		'filtered': filtered,
+		'filtered': int(filtered),
 		'excluded': exclude + [stations[i] for i in excluded]
 	})
 
