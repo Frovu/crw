@@ -125,23 +125,25 @@ def _obtain_local(interval, stations):
 
 def _check_integrity(interval, target):
 	with pool.connection() as conn:
-		rows = conn.execute('SELECT EXTRACT(EPOCH FROM interval_start), EXTRACT(EPOCH FROM interval_end) FROM neutron_obtain_log ' +\
+		rows = conn.execute('SELECT EXTRACT(EPOCH FROM interval_start)::integer, EXTRACT(EPOCH FROM interval_end)::integer FROM neutron_obtain_log ' +\
 			'WHERE NOT is_outdated AND to_timestamp(%s) <= interval_end AND interval_start <= to_timestamp(%s)' +\
 			'ORDER BY interval_start', interval).fetchall()
 			
 	verified_cursor = interval[0]
 	for i_start, i_end in rows:
 		if i_start > verified_cursor + PERIOD: # found a gap in coverage
-			return False
+			return verified_cursor # intentionally overlap 1 hour
 		if i_end >= interval[1]:
-			return True
+			return None
 		verified_cursor = i_end
-	return False
+	return verified_cursor
 
 def _obtain_if_needed(interval, stations, target='rsm'):
 	assert target == 'rsm'
-	if _check_integrity(interval, target):
+	rquired_obtain_from = _check_integrity(interval, target)
+	if not rquired_obtain_from:
 		return
+	interval = [rquired_obtain_from, interval[1]]
 	
 	source = 'nmdb' if interval[1] >= datetime(datetime.now().year, 1, 1).timestamp() else 'local'
 	data = { 'nmdb': _obtain_nmdb, 'local': _obtain_local }[source](interval, stations)
