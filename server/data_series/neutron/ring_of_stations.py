@@ -108,7 +108,11 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 
 def index_details(time, x0, y0):
 	res = precursor_idx(x0, y0, True)
-	if not res: return {}
+	if not res: return {
+		'time': int(time),
+		'x': x0.tolist(),
+		'y': y0.tolist(),
+	}
 	x, y, shift, popt, index, scale, angle = res
 	x = (x - shift + 360) % 360
 	sort = np.argsort(x)

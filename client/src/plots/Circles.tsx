@@ -38,11 +38,11 @@ type CirclesMomentResponse = {
 	time: number,
 	x: number[],
 	y: number[],
-	fnx: number[],
-	fny: number[],
-	index: number,
-	amplitude: number,
-	angle: number
+	fnx?: number[],
+	fny?: number[],
+	index?: number,
+	amplitude?: number,
+	angle?: number
 };
 
 function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
@@ -228,7 +228,7 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 		Math.max.apply(null, allData.variation.flat() as any),
 	];
 	return {
-		title: `[ ${moment}] i=${data.index.toFixed(2)} a=${data.amplitude.toFixed(2)}`,
+		title: `[ ${moment}] i=${data.index?.toFixed(2) ?? 'N/A'} a=${data.amplitude?.toFixed(2) ?? 'N/A'}`,
 		width: 480,
 		height: 480 - 32,
 		mode: 2,
@@ -352,7 +352,7 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 	const plot = useMemo(() => {
 		if (!query.data?.time) return null;
 		const options = circlesMomentPlotOptions(params, allData, query.data);
-		const data = [[], [query.data.x, query.data.y], [query.data.fnx, query.data.fny]] as any;
+		const data = [[], [query.data.x, query.data.y], [query.data.fnx ?? [], query.data.fny ?? []]] as any;
 		return <UplotReact {...{ options, data }}/>;
 	}, [params, allData, query.data]);
 
