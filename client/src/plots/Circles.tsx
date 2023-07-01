@@ -55,6 +55,8 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 		if (u.data == null || seriesIdx !== hoveredRect?.sidx)
 			return '';
 		const d = u.data[hoveredRect.sidx] as any;
+		if (hoveredRect.didx >= d[0].length) 
+			return '';
 		const stIdx = d[3][hoveredRect.didx], lon = d[1][hoveredRect.didx].toFixed(2);
 		const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
 		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
