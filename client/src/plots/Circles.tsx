@@ -18,7 +18,6 @@ export type CirclesParams = BasicPlotParams & {
 	base?: Date,
 	exclude?: string[],
 	window?: number,
-	minamp?: number,
 	variationShift?: number,
 	autoFilter?: boolean,
 	fixAmplitudeScale?: boolean,
@@ -287,7 +286,6 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 		...(base && { base: (base.getTime() / 1000).toFixed(0) }),
 		...(params.exclude && { exclude: params.exclude.join() }),
 		...(params.window && { window: params.window.toString() }),
-		...(params.minamp && { minamp: params.minamp.toString() }),
 		autoFilter: (params.autoFilter ?? true).toString()
 	}).toString();
 	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
@@ -483,9 +481,6 @@ export function CirclesParamsInput({ params, setParams }:
 			<br/> Idx window (h): 
 			<ValidatedInput type='number' value={params.window}
 				callback={callback('window')}/>
-			<br/> Idx threshold: 
-			<ValidatedInput type='number' value={params.minamp}
-				callback={callback('minamp')}/>
 			<br/> Draw onset: 
 			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
@@ -515,8 +510,7 @@ export default function PlotCirclesStandalone() {
 					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
 					new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
 				realtime: true,
-				window: 3,
-				minamp: .7
+				window: 3
 			}),
 			interactive: true,
 			autoFilter: true

@@ -34,7 +34,7 @@ def _filter(time, data):
 def anisotropy_fn(x, a, scale, sx, sy):
 	return np.cos(x * a * np.pi / 180 + sx) * scale + sy
 
-def precursor_idx(x, y, amp_cutoff = 1, details = False):
+def precursor_idx(x, y, details = False):
 	if not len(y): return None
 	amax, amin = x[np.argmax(y)], x[np.argmin(y)]
 	approx_dist = np.abs(amax - amin)
@@ -48,7 +48,7 @@ def precursor_idx(x, y, amp_cutoff = 1, details = False):
 		angle, scale = abs(popt[0]), abs(popt[1]) * 2
 		dists  = np.array([anisotropy_fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
 		# mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
-		if scale < amp_cutoff or scale > 5 or angle < 1 or angle > 2.5:
+		if scale < .5 or scale > 5 or angle < 1 or angle > 2.5:
 			index = 0
 		else:
 			index = round((scale * angle) ** 2 / 8, 2)
@@ -58,10 +58,8 @@ def precursor_idx(x, y, amp_cutoff = 1, details = False):
 	except:
 		return None
 
-# TODO: remove amp_cutoff ?
-def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filter):
+def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	if window > 12 or window < 1: window = 3
-	if amp_cutoff < 0 or amp_cutoff > 10: amp_cutoff = .7
 
 	stations, directions = zip(*database.select_rsm_stations(t_to, exclude))
 	neutron_data = database.fetch((t_from, t_to), stations)
@@ -82,17 +80,20 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 
 		filtered, excluded = _filter(time, variation) if auto_filter else (0, [])
 
-		prec_idx = np.full_like(time, np.nan, dtype='f8')
-		irange = [np.searchsorted(time, details)] if details else range(window - 1, len(prec_idx))
-		for i in irange:
+		def get_xy(i):
 			x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
 			y = np.concatenate([variation[i-t] for t in range(window)])
 			flt = np.isfinite(y)
-			x, y = x[flt], y[flt]
-			if details:
-				if not len(irange): return {}
-				return index_details(time[irange[0]], precursor_idx(x, y, amp_cutoff, details))
-			prec_idx[i] = precursor_idx(x, y, amp_cutoff)
+			return x[flt], y[flt]
+		
+		if details:
+			ii = (details - t_from) // PERIOD
+			if ii < 0 or ii >= len(time): return {}
+			return index_details(time[ii], *get_xy(ii))
+		
+		prec_idx = np.full_like(time, np.nan, dtype='f8')
+		for i in range(window - 1, len(prec_idx)):
+			prec_idx[i] = precursor_idx(*get_xy(i))
 			
 	return dict({
 		'base': int(time[base_idx[0]]),
@@ -105,7 +106,8 @@ def get(t_from, t_to, exclude, details, window, amp_cutoff, user_base, auto_filt
 		'excluded': exclude + [stations[i] for i in excluded]
 	})
 
-def index_details(time, res):
+def index_details(time, x0, y0):
+	res = precursor_idx(x0, y0, True)
 	if not res: return {}
 	x, y, shift, popt, index, scale, angle = res
 	x = (x - shift + 360) % 360

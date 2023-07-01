@@ -21,11 +21,10 @@ def get_circles():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	exclude = request.args.get('exclude')
-	details = request.args.get('details')
+	details = int(request.args.get('details', 0))
 	auto_filter = request.args.get('autoFilter', 'true') == 'true'
 	base = int(request.args.get('base', 0))
 	window = int(request.args.get('window', -1))
-	minamp = float(request.args.get('minamp', -1))
 	exclude = exclude.upper().split(',') if exclude else []
 	trim_future = datetime.now().timestamp()
 	t_to = t_to if t_to < trim_future else trim_future
@@ -34,5 +33,5 @@ def get_circles():
 	if t_to - t_from < 86400 * 2:
 		raise ValueError()
 
-	body = ring_of_stations.get(t_from, t_to, exclude, details, window, minamp, base, auto_filter)
+	body = ring_of_stations.get(t_from, t_to, exclude, details, window, base, auto_filter)
 	return body
