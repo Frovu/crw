@@ -1,4 +1,5 @@
 from data_series.neutron import database
+from dataclasses import dataclass
 from scipy import optimize
 import numpy as np
 import warnings
@@ -31,24 +32,31 @@ def _filter(time, data):
 	data[:,excluded] = np.nan
 	return filtered, excluded
 
-def ani_fn_simple_precursor_cos_0(x, a, scale, sx, sy):
-	return np.cos(x * a * np.pi / 180 + sx) * scale + sy
+@dataclass
+class AnisotropyFn:
+	fn: callable
+	phases: [int]
+ANI = {
+	'simple_precursor_cos': AnisotropyFn(lambda x, freq, a1, p1, a0: 
+		np.cos(x * freq * np.pi / 180 + p1) * a1 + a0,
+		[2]),
+	'harmonic': AnisotropyFn(lambda x, a0, a1, p1, a2, p2:
+		a0 + a1 * np.cos(x * np.pi / 180 + p1) + a2 * np.sin(x * np.pi / 90 + p2),
+		[2, 4])
+}
 
-def ani_fn_harmonic(x, a0, a1, p1, a2, p2):
-	return a0 + a1 * np.cos(x / + p1) + a2 * np.sin(x + p2)
-
-def precursor_idx0(x, y):
-	popt = curve_fit_shifted(x, y, ani_fn_simple_precursor_cos_0, trim_bounds=1/6)
+def precursor_idx0(x, y, curve):
+	popt = curve_fit_shifted(x, y, curve, trim_bounds=1/6)
 	if popt is None: return None, popt
 	angle, scale = abs(popt[0]), abs(popt[1]) * 2
 	if scale < .5 or scale > 5 or angle < 1 or angle > 2.5:
 		return 0, popt
 	return round((scale * angle) ** 2 / 8, 2), popt
 
-def precursor_idx(x, y):
-	return precursor_idx0(x, y)
+def precursor_idx(x, y, curve=ANI['simple_precursor_cos']):
+	return precursor_idx0(x, y, curve)
 
-def curve_fit_shifted(x, y, fn, trim_bounds=0):
+def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 	if not len(y): return None
 	amax, amin = x[np.argmax(y)], x[np.argmin(y)]
 	approx_dist = np.abs(amax - amin)
@@ -61,10 +69,11 @@ def curve_fit_shifted(x, y, fn, trim_bounds=0):
 		trim = np.where((x > bounds) & (x < 360-bounds))
 		x, y = x[trim], y[trim]
 	try:
-		popt, pcov = optimize.curve_fit(fn, x, y)
-		print(popt)
-		return [*popt, x, y] # FIXME
-	except:
+		popt, pcov = optimize.curve_fit(curve.fn, x, y)
+		popt = np.array(popt)
+		popt[curve.phases] += shift * np.pi / 180
+		return popt
+	except Exception as e:
 		return None
 
 def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
@@ -116,14 +125,17 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	})
 
 def index_details(time, x, y):
-	val, popt = precursor_idx(x, y)
+	curve = ANI['simple_precursor_cos']
+	val, popt = precursor_idx(x, y, curve)
 	fit_success = None if popt is None else True
-	x, y = (popt or [x, y])[-2:]
+
 	sort = np.argsort(x)
 	x, y = x[sort], y[sort]
 	x_range = np.arange(0, 360, 1)
-	y_res = fit_success and ani_fn_simple_precursor_cos_0(x_range, *popt[:-2])
+	y_res = fit_success and curve.fn(x_range, *popt)
 	amplitude = fit_success and abs(popt[1]) * 2
+
+	popt = curve_fit_shifted(x, y, ANI['harmonic'])
 
 	return dict({
 		'time': int(time),
@@ -131,6 +143,8 @@ def index_details(time, x, y):
 		'y': np.round(y, 3).tolist(),
 		'fnx': x_range.tolist(),
 		'fny': fit_success and np.round(y_res, 3).tolist(),
+		'fny2': None if popt is None else np.round(ANI['harmonic'].fn(x_range, *popt), 3).tolist(),
 		'index': val,
-		'amplitude': amplitude,
+		'a1': None if popt is None else abs(popt[1]),
+		'a2': None if popt is None else abs(popt[3])
 	})
