@@ -31,30 +31,39 @@ def _filter(time, data):
 	data[:,excluded] = np.nan
 	return filtered, excluded
 
-def anisotropy_fn(x, a, scale, sx, sy):
+def ani_fn_simple_precursor_cos_0(x, a, scale, sx, sy):
 	return np.cos(x * a * np.pi / 180 + sx) * scale + sy
 
-def precursor_idx(x, y, details = False):
+def ani_fn_harmonic(x, a0, a1, p1, a2, p2):
+	return a0 + a1 * np.cos(x / + p1) + a2 * np.sin(x + p2)
+
+def precursor_idx0(x, y):
+	popt = curve_fit_shifted(x, y, ani_fn_simple_precursor_cos_0, trim_bounds=1/6)
+	if popt is None: return None, popt
+	angle, scale = abs(popt[0]), abs(popt[1]) * 2
+	if scale < .5 or scale > 5 or angle < 1 or angle > 2.5:
+		return 0, popt
+	return round((scale * angle) ** 2 / 8, 2), popt
+
+def precursor_idx(x, y):
+	return precursor_idx0(x, y)
+
+def curve_fit_shifted(x, y, fn, trim_bounds=0):
 	if not len(y): return None
 	amax, amin = x[np.argmax(y)], x[np.argmin(y)]
 	approx_dist = np.abs(amax - amin)
 	center_target = 180 if approx_dist < 180 else 360
 	shift = center_target - (amax + amin) / 2
 	x = (x + shift + 360) % 360
-	bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) / 6
-	trim = np.where((x > bounds) & (x < 360-bounds))
+
+	if trim_bounds:
+		bounds = (approx_dist if approx_dist > 180 else (360-approx_dist)) * trim_bounds
+		trim = np.where((x > bounds) & (x < 360-bounds))
+		x, y = x[trim], y[trim]
 	try:
-		popt, pcov = optimize.curve_fit(anisotropy_fn, x[trim], y[trim])
-		angle, scale = abs(popt[0]), abs(popt[1]) * 2
-		dists  = np.array([anisotropy_fn(x[trim][j], *popt)-y[trim][j] for j in range(len(trim[0]))])
-		# mean_dist = (1.1 - np.mean(np.abs(dists)) / scale) ** 2
-		if scale < .5 or scale > 5 or angle < 1 or angle > 2.5:
-			index = 0
-		else:
-			index = round((scale * angle) ** 2 / 8, 2)
-		if details:
-			return x, y, shift, popt, index, scale, angle
-		return index
+		popt, pcov = optimize.curve_fit(fn, x, y)
+		print(popt)
+		return [*popt, x, y] # FIXME
 	except:
 		return None
 
@@ -93,7 +102,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		
 		prec_idx = np.full_like(time, np.nan, dtype='f8')
 		for i in range(window - 1, len(prec_idx)):
-			prec_idx[i] = precursor_idx(*get_xy(i))
+			prec_idx[i] = precursor_idx(*get_xy(i))[0]
 			
 	return dict({
 		'base': int(time[base_idx[0]]),
@@ -106,25 +115,22 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		'excluded': exclude + [stations[i] for i in excluded]
 	})
 
-def index_details(time, x0, y0):
-	res = precursor_idx(x0, y0, True)
-	if not res: return {
-		'time': int(time),
-		'x': x0.tolist(),
-		'y': y0.tolist(),
-	}
-	x, y, shift, popt, index, scale, angle = res
-	x = (x - shift + 360) % 360
+def index_details(time, x, y):
+	val, popt = precursor_idx(x, y)
+	fit_success = None if popt is None else True
+	x, y = (popt or [x, y])[-2:]
 	sort = np.argsort(x)
 	x, y = x[sort], y[sort]
-	rng = np.arange(0, 360, 1)
+	x_range = np.arange(0, 360, 1)
+	y_res = fit_success and ani_fn_simple_precursor_cos_0(x_range, *popt[:-2])
+	amplitude = fit_success and abs(popt[1]) * 2
+
 	return dict({
 		'time': int(time),
 		'x': np.round(x, 3).tolist(),
 		'y': np.round(y, 3).tolist(),
-		'fnx': rng.tolist(),
-		'fny': np.round(anisotropy_fn(rng+shift, *popt), 3).tolist(),
-		'index': index,
-		'amplitude': scale,
-		'angle': angle
+		'fnx': x_range.tolist(),
+		'fny': fit_success and np.round(y_res, 3).tolist(),
+		'index': val,
+		'amplitude': amplitude,
 	})

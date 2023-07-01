@@ -41,8 +41,7 @@ type CirclesMomentResponse = {
 	fnx?: number[],
 	fny?: number[],
 	index?: number,
-	amplitude?: number,
-	angle?: number
+	amplitude?: number
 };
 
 function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
