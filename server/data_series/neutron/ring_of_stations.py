@@ -1,8 +1,10 @@
 from data_series.neutron import database
 from dataclasses import dataclass
 from scipy import optimize
+from math import ceil
 import numpy as np
 import warnings
+pi = np.pi
 
 PERIOD = 3600
 BASE_LENGTH = 24
@@ -36,12 +38,25 @@ def _filter(time, data):
 class AnisotropyFn:
 	fn: callable
 	phases: [int]
+	bounds: [int] = (-np.inf, np.inf)
 ANI = {
-	'simple_precursor_cos': AnisotropyFn(lambda x, freq, a1, p1, a0: 
-		np.cos(x * freq * np.pi / 180 + p1) * a1 + a0,
-		[2]),
 	'harmonic': AnisotropyFn(lambda x, a0, a1, p1, a2, p2:
-		a0 + a1 * np.cos(x * np.pi / 180 + p1) + a2 * np.sin(x * np.pi / 90 + p2),
+		a0 + a1 * np.cos(x * pi / 180 + p1) + a2 * np.sin(x * pi / 90 + p2),
+		[2, 4]),
+	'simple_precursor_cos': AnisotropyFn(lambda x, freq, a1, p1, a0: 
+		np.cos(x * freq * pi / 180 + p1) * a1 + a0,
+		[2]),
+	'h1+decrease': AnisotropyFn(lambda x, a0, a1, p1, a2, p2:
+		a0 + a1 * np.cos(x * pi / 180 + p1) + \
+			 a2 * np.exp(-((x * pi / 180 - p2) ** 2)) ,
+		[2, 4]),
+	'harmonic_decrease_biased': AnisotropyFn(lambda x, a0, a1, p1, a2, p2:
+		a0 + a1 * np.cos(x * pi / 180 + p1) + \
+			 np.abs(a2) * np.cos(x * pi / 90  + p2 * 2) * (-np.exp(-2 * ((((x / 180 * pi + p2) % (2 * pi)) - pi) ** 2)) - 1 / 2 / pi) ,
+		[2, 4]),
+	'harmonic_narrow_biased': AnisotropyFn(lambda x, a0, a1, p1, a2, p2:
+		a0 + a1 * np.cos(x * pi / 180 + p1) + \
+			 a2 / 0.58 * np.sin(x * pi / 90  + p2 * 2) * (-np.exp(-6 * ((((x / 360 * pi + p2 / 2) % (2 * pi)) - pi) ** 2))) ,
 		[2, 4])
 }
 
@@ -69,11 +84,12 @@ def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 		trim = np.where((x > bounds) & (x < 360-bounds))
 		x, y = x[trim], y[trim]
 	try:
-		popt, pcov = optimize.curve_fit(curve.fn, x, y)
-		popt = np.array(popt)
-		popt[curve.phases] += shift * np.pi / 180
+		popt, pcov = optimize.curve_fit(curve.fn, x, y, bounds=curve.bounds)
+		print(np.round(popt,3).tolist())
+		popt[curve.phases] += shift * pi / 180
 		return popt
 	except Exception as e:
+		print(e)
 		return None
 
 def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
@@ -105,7 +121,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 			return x[flt], y[flt]
 		
 		if details:
-			ii = (details - t_from) // PERIOD
+			ii = ceil((details - t_from) / PERIOD)
 			if ii < 0 or ii >= len(time): return {}
 			return index_details(time[ii], *get_xy(ii))
 		
@@ -135,7 +151,9 @@ def index_details(time, x, y):
 	y_res = fit_success and curve.fn(x_range, *popt)
 	amplitude = fit_success and abs(popt[1]) * 2
 
-	popt = curve_fit_shifted(x, y, ANI['harmonic'])
+	# curve2 = ANI['harmonic_decrease_biased']
+	curve2 = ANI['harmonic']
+	popt = curve_fit_shifted(x, y, curve2)
 
 	return dict({
 		'time': int(time),
@@ -143,8 +161,8 @@ def index_details(time, x, y):
 		'y': np.round(y, 3).tolist(),
 		'fnx': x_range.tolist(),
 		'fny': fit_success and np.round(y_res, 3).tolist(),
-		'fny2': None if popt is None else np.round(ANI['harmonic'].fn(x_range, *popt), 3).tolist(),
+		'fny2': None if popt is None else np.round(curve2.fn(x_range, *popt), 3).tolist(),
 		'index': val,
-		'a1': None if popt is None else abs(popt[1]),
-		'a2': None if popt is None else abs(popt[3])
+		'a1': None if popt is None else 2*abs(popt[1]),
+		'a2': None if popt is None else 2*abs(popt[3])
 	})
