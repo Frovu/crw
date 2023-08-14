@@ -174,7 +174,7 @@ export function tracePaths(sizePx, arrows=true) {
 			p.moveTo(x, y);
 			if (i % lineStep === 2) {
 				const a0x = u.valToPos(u.data[0][i], 'x', true);
-				const a0y = u.valToPos(u.data[1][i], 'a0', true);
+				const a0y = u.valToPos(u.data[2][i], 'a0', true);
 				u.ctx.moveTo(x, y);
 				u.ctx.lineTo(a0x, a0y);
 			}

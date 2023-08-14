@@ -90,13 +90,13 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
 	}
 }
 
-export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
+export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
 	let xpos = -99, ypos = 0;
 	let xposClick = xpos, yposClick = ypos;
 	let clickx: number|null = null, clicky: number|null = null, drag = false;
 	return (u: uPlot) => {
-		const series = u.series.slice(1).filter(s => s.show) as any;
-		const labels = series.map((s: any) => fullLabels?.[s.label] ?? s.label ?? '???') as string[];
+		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
+		const labels = series.map(s => fullLabels[s.label]);
 
 		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
 		const width = 52 + 8 * maxLabelLen;

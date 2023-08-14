@@ -20,7 +20,7 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 				u => drawCustomLabels({ a0: ['A0(GSM) var, %', u.height / 5], az: ['Az(GSM) var, %', u.height / 4] })(u),
 				params.showLegend ? drawCustomLegend( {
 					'vector': 'CR Equatorial anisotropy vector ',
-					'A0(GSM)': 'CR Density var (corrected), % ',
+					'A0(GSM)': 'CR Density var, % ',
 					'Az(GSM)': 'CR Polar anisotropy var, %'
 				 }, {
 					'vector': 'arrow',
@@ -67,18 +67,6 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 		series: [
 			{ },
 			{
-				scale: 'a0',
-				label: 'A0(GSM)',
-				stroke: color('peach'),
-				width: 2,
-				points: {
-					show: params.showMarkers,
-					stroke: color('peach'),
-					fill: color('peach', .8),
-					paths: markersPaths('diamond', 6)
-				}
-			},
-			{
 				scale: 'az',
 				label: 'Az(GSM)',
 				stroke: color('cyan'),
@@ -88,6 +76,18 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 					stroke: color('cyan'),
 					fill: color('cyan', .8),
 					paths: markersPaths('triangleUp', 6)
+				}
+			},
+			{
+				scale: 'a0',
+				label: 'A0(GSM)',
+				stroke: color('peach'),
+				width: 2,
+				points: {
+					show: params.showMarkers,
+					stroke: color('peach'),
+					fill: color('peach', .8),
+					paths: markersPaths('diamond', 6)
 				}
 			},
 			{
@@ -105,7 +105,7 @@ export default function PlotGSMAnisotropy(params: BasicPlotParams) {
 	return (<BasicPlot {...{
 		queryKey: ['GSM', params.interval],
 		queryFn: async () => {
-			const data = await basicDataQuery('api/gsm/', params.interval, ['time', 'a10', 'az', 'ax', 'ay']);
+			const data = await basicDataQuery('api/gsm/', params.interval, ['time', 'az', 'a10', 'ax', 'ay']);
 			if (!data) return null;
 			return data;
 		},
