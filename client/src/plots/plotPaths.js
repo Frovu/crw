@@ -128,6 +128,9 @@ export function markersPaths(type, sizePx) {
 }
 
 export function tracePaths(sizePx, arrows=true) {
+	let xpos = null, ypos = null;
+	let xposClick = xpos, yposClick = ypos;
+	let clickx = 0, clicky = 0, drag = false;
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
 		const height = fullHeight * .6;
@@ -153,26 +156,8 @@ export function tracePaths(sizePx, arrows=true) {
 		const shiftx = width * .6 - (minx + xrange / 2) * scalex;
 		const shifty = (top + height / 2) - (miny + yrange / 2) * scaley;
 
-		u.ctx.save(); // 2002 11 01
+		u.ctx.save();
 		u.ctx.beginPath();
-		u.ctx.strokeStyle = u.series[seriesIdx].stroke();
-		u.ctx.fillStyle = u.ctx.strokeStyle;
-		u.ctx.lineWidth = 2;
-		x = (y > y0 && x > x0) || (y < y0 && x < x0) ? left + fullWidth - 28 : left;
-		y = top + 44;
-		u.ctx.moveTo(x, y);
-		const xarrow = Math.floor(64 / scalex);
-		const yarrow = Math.floor(64 / scaley);
-		drawArrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
-		u.ctx.moveTo(x, y);
-		drawArrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
-
-		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
-		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
-
-		u.ctx.stroke();
-		u.ctx.beginPath();
-
 		u.ctx.lineWidth = .7;
 		u.ctx.strokeStyle = color('green');
 		const nLines = 10;
@@ -195,6 +180,48 @@ export function tracePaths(sizePx, arrows=true) {
 			}
 		}
 		u.ctx.stroke();
+
+		u.ctx.beginPath();
+		u.ctx.strokeStyle = u.series[seriesIdx].stroke();
+		u.ctx.fillStyle = u.ctx.strokeStyle;
+		u.ctx.lineWidth = 2;
+		x = xpos = xpos ?? 22;
+		y = ypos = ypos ?? 40;
+		u.ctx.lineWidth = 2;
+		u.ctx.rect(x, y, 8, 8);
+		const xarrow = Math.floor(64 / scalex);
+		const yarrow = Math.floor(64 / scaley);
+		const legendWidth = xarrow * scalex + 12, legendHeight = yarrow * scaley + 4;
+		u.ctx.moveTo(x, y + 12);
+		drawArrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
+		u.ctx.moveTo(x + 12, y);
+		drawArrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
+
+		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
+		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
+		u.ctx.stroke();
+
+		u.over.parentElement.onmousemove = e => {
+			if (!drag) return;
+			const dx = e.clientX - u.rect.left + u.bbox.left - clickx;
+			const dy = e.clientY - u.rect.top + u.bbox.top - clicky;
+			xpos = Math.max(12, Math.min(xposClick + dx, -8 + u.rect.width + u.bbox.left));
+			ypos = Math.max(30, Math.min(yposClick + dy, 12 + u.bbox.height - legendHeight));
+			u.redraw();
+		};
+		u.over.parentElement.onmousedown = e => {
+			clickx = e.clientX - u.rect.left + u.bbox.left;
+			clicky = e.clientY - u.rect.top + u.bbox.top;
+			if (clickx > xpos && clickx < xpos + legendWidth && clicky > ypos - 24 && clicky < ypos + legendHeight) {
+				xposClick = xpos;
+				yposClick = ypos;
+				drag = true;
+			}
+		};
+		u.over.parentElement.onmouseup = u.over.parentElement.onmouseleave = e => {
+			drag = false;
+		};
+
 		u.ctx.restore();
 
 		return { stroke: p };
