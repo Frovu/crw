@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { BasicPlot, BasicPlotParams, axisDefaults, basicDataQuery, color, customTimeSplits, drawCustomLabels, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { BasicPlot, BasicPlotParams, axisDefaults, basicDataQuery, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
 import { tracePaths, markersPaths } from './plotPaths';
 
 function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> {
@@ -17,7 +17,16 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 			],
 			draw: [
-				u => drawCustomLabels({ a0: ['A0(GSM) var, %', u.height / 5], az: ['Az(GSM) var, %', u.height / 4] })(u)
+				u => drawCustomLabels({ a0: ['A0(GSM) var, %', u.height / 5], az: ['Az(GSM) var, %', u.height / 4] })(u),
+				params.showLegend ? drawCustomLegend( {
+					'vector': 'CR Equatorial anisotropy vector ',
+					'A0(GSM)': 'CR Density var (corrected), % ',
+					'Az(GSM)': 'CR Polar anisotropy var, %'
+				 }, {
+					'vector': 'arrow',
+					'A0(GSM)': 'diamond',
+					'Az(GSM)': 'triangleUp'
+				 }) : () => {}
 			],
 		},
 		axes: [
@@ -82,6 +91,7 @@ function anisotropyPlotOptions(params: BasicPlotParams): Partial<uPlot.Options> 
 				}
 			},
 			{
+				label: 'vector',
 				stroke: color('magenta'),
 				width: 2,
 				paths: tracePaths(2, params.showMarkers),

@@ -18,10 +18,26 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
+export function drawArrow(ctx: CanvasRenderingContext2D, dx: number, dy: number, tox: number, toy: number, headlen=10) {
+	const angle = Math.atan2(dy, dx);
+	ctx.lineTo(tox, toy);
+	ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+	ctx.moveTo(tox, toy);
+	ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+}
+
 export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 	return {
 		square: (x: number, y: number) => ctx.rect(x - radius*.7, y - radius*.7, radius*1.4, radius*1.4),
 		circle: (x: number, y: number) => ctx.arc(x, y, radius * 0.75, 0, 2 * Math.PI),
+		arrow: (x: number, y: number) => {
+			ctx.moveTo(x - radius, y);
+			const dx = radius * 2;
+			drawArrow(ctx, dx, 0, x + dx, y, radius * 1.75);
+			ctx.moveTo(x + dx, y);
+			ctx.lineTo(x + radius, y);
+			ctx.closePath();
+		},
 		triangleUp: (x: number, y: number) => {
 			ctx.moveTo(x, y - radius);
 			ctx.lineTo(x - radius, y + radius);
@@ -109,10 +125,11 @@ export function drawCustomLegend(fullLabels?: {[ser: string]: string}, shapes?: 
 			u.ctx.moveTo(x + 8, y);
 			u.ctx.lineTo(x + 32, y);
 			u.ctx.stroke();
-			u.ctx.lineWidth = 1;
 			const shape = shapes?.[s.label];
+			u.ctx.lineWidth = shape === 'arrow' ? 2 : 1;
 			if (shape) draw[shape](x + 20, y,);
-			u.ctx.fill();
+			if (shape !== 'arrow')
+				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
 			u.ctx.fillText(labels[i], x + 40, y);
 			u.ctx.stroke();

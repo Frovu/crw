@@ -26,8 +26,8 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u),
 				...(params.showLegend ? [drawCustomLegend({
-					'Axy': 'CR equatorial anisotropy var, % ',
-					'Az': 'CR north-south anisotropy var, % ',
+					'Axy': 'CR Equatorial anisotropy var, % ',
+					'Az': 'CR North-south anisotropy var, % ',
 					'A0(GSM)': 'CR Density var, %',
 					'A0m(GSM)': 'CR Density var (corrected), %',
 				 }, {

@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { color, drawShape } from './plotUtil';
+import { color, drawShape, drawArrow } from './plotUtil';
 
 export function circlePaths(callback, minMaxMagn=5) {
 	return (u, seriesIdx) => {
@@ -127,14 +127,6 @@ export function markersPaths(type, sizePx) {
 	};
 }
 
-function arrow(ctx, dx, dy, tox, toy, headlen=10) {
-	const angle = Math.atan2(dy, dx);
-	ctx.lineTo(tox, toy);
-	ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
-	ctx.moveTo(tox, toy);
-	ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
-}
-
 export function tracePaths(sizePx, arrows=true) {
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
@@ -171,9 +163,9 @@ export function tracePaths(sizePx, arrows=true) {
 		u.ctx.moveTo(x, y);
 		const xarrow = Math.floor(64 / scalex);
 		const yarrow = Math.floor(64 / scaley);
-		arrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
+		drawArrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
 		u.ctx.moveTo(x, y);
-		arrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
+		drawArrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
 
 		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
 		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
@@ -193,7 +185,7 @@ export function tracePaths(sizePx, arrows=true) {
 			const dy = dataY[i] * scaley;
 			x += dx;
 			y += dy;
-			arrows ? arrow(p, dx, dy, x, y, 7) : p.lineTo(x, y);
+			arrows ? drawArrow(p, dx, dy, x, y, 7) : p.lineTo(x, y);
 			p.moveTo(x, y);
 			if (i % lineStep === 2) {
 				const a0x = u.valToPos(u.data[0][i], 'x', true);
