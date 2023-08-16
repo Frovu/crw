@@ -85,7 +85,7 @@ def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 		x, y = x[trim], y[trim]
 	try:
 		popt, pcov = optimize.curve_fit(curve.fn, x, y, bounds=curve.bounds)
-		print(np.round(popt,3).tolist())
+		# print(np.round(popt,3).tolist())
 		popt[curve.phases] += shift * pi / 180
 		return popt
 	except Exception as e:
@@ -95,8 +95,9 @@ def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	if window > 12 or window < 1: window = 3
 
-	stations, directions = zip(*database.select_rsm_stations(t_to, exclude))
-	neutron_data = database.fetch((t_from, t_to), stations)
+	req_stations, directions = zip(*database.select_rsm_stations(t_to, exclude))
+	stations, neutron_data = database.fetch((t_from, t_to), req_stations)
+	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
 	time, data = np.uint64(neutron_data[:,0]), neutron_data[:,1:]
 	
 	with warnings.catch_warnings():
@@ -113,7 +114,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		variation = data / np.nanmean(base_data, axis=0) * 100 - 100
 
 		filtered, excluded = _filter(time, variation) if auto_filter else (0, [])
-
+		
 		def get_xy(i):
 			x = np.concatenate([directions + time[i-t] * 360 / 86400 for t in range(window)]) % 360
 			y = np.concatenate([variation[i-t] for t in range(window)])

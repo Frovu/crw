@@ -3,21 +3,6 @@ CREATE TABLE IF NOT EXISTS neutron_stations (
 	drift_longitude REAL,
 	closed_at TIMESTAMPTZ
 );
-CREATE TABLE IF NOT EXISTS neutron_counts (
-	time TIMESTAMPTZ PRIMARY KEY
-);
-CREATE TABLE IF NOT EXISTS neutron_counts_corrections (
-	time TIMESTAMPTZ PRIMARY KEY
-);
-CREATE TABLE IF NOT EXISTS neutron_obtain_log (
-	id SERIAL PRIMARY KEY,
-	time TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-	target TEXT NOT NULL,
-	source TEXT NOT NULL,
-	interval_start TIMESTAMPTZ NOT NULL,
-	interval_end TIMESTAMPTZ NOT NULL,
-	is_outdated BOOLEAN NOT NULL DEFAULT false
-);
 
 INSERT INTO neutron_stations(id, drift_longitude, closed_at) VALUES
 ('APTY',  73.05, NULL),
@@ -42,4 +27,4 @@ INSERT INTO neutron_stations(id, drift_longitude, closed_at) VALUES
 ('SNAE', 17.2,   NULL),
 ('TXBY', 161.9,  NULL),
 ('YKTK', 174.02, NULL)
-ON CONFLICT(id) DO NOTHING;
+ON CONFLICT(id) DO UPDATE SET drift_longitude=EXCLUDED.drift_longitude;
