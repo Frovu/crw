@@ -427,7 +427,7 @@ def compute_default_generics():
 	with pool.connection() as conn:
 		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
 		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
-	omni.ensure_prepared([first - 24 * HOUR, last + 48 * HOUR])
+	omni.ensure_prepared([first - 24 * HOUR, last + 72 * HOUR])
 	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())
 
 def add_generic(uid, entity, series, gtype, poi, shift):

@@ -299,8 +299,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>}) {
 	const query = useQuery({
 		queryKey,
-		queryFn,
-		staleTime: 36e5,
+		queryFn
 	});
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);

@@ -11,5 +11,5 @@ def get_result():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	fields = request.args.get('fields')
-	res, fields = database.fetch([t_from, t_to], fields.split(',') if fields else None)
+	res, fields = database.select([t_from, t_to], [f for f in fields.split(',') if f != 'time'] if fields else None)
 	return { "data": res, "fields": fields }
