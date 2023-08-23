@@ -127,6 +127,8 @@
 	padding: .5em .5em .5em  1em;
 	gap: 6px;
 	width: max-content;
+	max-height: calc(100vh - 64px);
+	overflow-y: scroll;
 }
 
 .MenuDropdown h4 {

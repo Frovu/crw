@@ -5,6 +5,7 @@ import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
 import { SampleMenu } from './Sample';
+import { useQueryClient } from 'react-query';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -19,6 +20,7 @@ export const KEY_COMB = {
 	'switchViewPlots': 'H',
 	'switchHistCorr': 'J',
 	'switchTheme': 'T',
+	'refetch': 'L',
 	'commitChanges': 'Ctrl+S',
 	'discardChanges': 'Ctrl+X'
 } as { [action: string]: string };
@@ -208,6 +210,7 @@ function ExportMenu() {
 }
 
 export function Menu() {
+	const queryClient = useQueryClient();
 	const { changes } = useContext(TableContext);
 	const { settings, set } = useContext(SettingsContext);
 	const { role } = useContext(AuthContext);
@@ -226,6 +229,9 @@ export function Menu() {
 	useEventListener('action+openColumnsSelector', () => {hideEverything(); setShowColumns(!showColumns);});
 	useEventListener('action+openGenericsSelector', () => {hideEverything(); setShowGenerics(!showGenerics);});
 	useEventListener('keydown', onKeydown);
+
+	useEventListener('action+refetch', () => queryClient.refetchQueries());
+
 	return (
 		<div>
 			<div className='Menu'>
