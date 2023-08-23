@@ -38,7 +38,8 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 				return <td key={column.id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
 					style={{ borderColor: !validInputs[i] ? 'var(--color-red)' : curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 					{!curs?.editing ?
-						<span className='Cell' style={{ ...width }}>{values[i]}
+						<span className='Cell' style={{ ...width }}>
+							{values[i]}
 							{isCompModified?.[i] && <span style={{ fontSize: '14px', display: 'inline-block', color: 'var(--color-magenta)', transform: 'translate(1px, -3px)' }}>*</span>}</span>
 						: column.type === 'enum' ?
 							<select autoFocus style={inpStype!} onChange={onChange(i)} onBlur={onChange(i, true)}>

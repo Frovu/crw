@@ -63,10 +63,10 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 		],
 		scales: {
 			imf: {
-				range: (u, min, max) => [min, Math.max(max, 20) * 3 / 2]
+				range: (u, min, max) => [min - 1, Math.max(max, 20) * 3 / 2]
 			},
 			speed: {
-				range: (u, min, max) => [min - (max-min), max]
+				range: (u, min, max) => [min - (max-min), max + 3]
 			}
 		},
 		series: [

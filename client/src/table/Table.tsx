@@ -110,9 +110,15 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 		default: return val;
 	}
 }
+
 export function valueToString(v: any) {
-	return v instanceof Date ? v.toISOString().replace(/\..+/, '').replace('T', ' ') : v?.toString() ?? '';
+	if (v instanceof Date)
+		return v.toISOString().replace(/\..+/, '').replace('T', ' ');
+	if (typeof v === 'number')
+		return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
+	return v?.toString() ?? '';
 }
+
 export function isValidColumnValue(val: any, column: ColumnDef) {
 	switch (column.type) {
 		case 'time': return !isNaN(val as any);
