@@ -7,6 +7,7 @@ requests.packages.urllib3.disable_warnings()
 log = logging.getLogger('aides')
 
 CRDT_HOST = os.environ.get('CRDT_HOST', 'http://localhost:5000')
+session = requests.Session()
 MAX_CACHE_ENTRIES = 4
 CACHE_LIFE_TIME = 30 # sec
 fetch_mutex = Lock()
@@ -28,7 +29,7 @@ def fetch(interval, stations):
 			return cache[interval]
 
 		log.info(f'RSM: querying neutrons {interval[0]}:{interval[1]}')
-		res = requests.get(CRDT_HOST + f'/api/neutron?from={interval[0]}&to={interval[1]}&stations={",".join(stations)}', verify=False)
+		res = session.get(CRDT_HOST + f'/api/neutron?from={interval[0]}&to={interval[1]}&stations={",".join(stations)}', verify=False)
 
 		if res.status_code != 200:
 			log.warn(f'Failed to obtain neutron data - HTTP {res.status_code}')
