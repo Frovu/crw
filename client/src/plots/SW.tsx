@@ -62,18 +62,6 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				value: '{YYYY}-{MM}-{DD} {HH}:{mm}'
 			},
 			{
-				label: 'Tp',
-				scale: 'temp',
-				stroke: color('cyan'),
-				width: 2,
-				points: {
-					show: params.showMarkers,
-					stroke: color('cyan'),
-					fill: color('cyan', .8),
-					paths: markersPaths('diamond', 6)
-				},
-			},
-			{
 				label: 'Dp',
 				scale: 'y',
 				stroke: color('peach'),
@@ -97,6 +85,18 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 					paths: markersPaths('square', 6)
 				},
 			},
+			{
+				label: 'Tp',
+				scale: 'temp',
+				stroke: color('cyan'),
+				width: 2,
+				points: {
+					show: params.showMarkers,
+					stroke: color('cyan'),
+					fill: color('cyan', .8),
+					paths: markersPaths('diamond', 6)
+				},
+			},
 		]
 	};
 }
@@ -105,7 +105,7 @@ export default function PlotSW(params: SWParams) {
 	const tColumn = params.useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
-		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', tColumn, 'sw_density', 'plasma_beta']),
+		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]),
 		options: plotOptions(params)
 	}}/>);
 }
