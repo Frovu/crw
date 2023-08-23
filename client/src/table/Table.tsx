@@ -75,9 +75,9 @@ export type Settings = {
 	plotImfBz: boolean,
 	plotImfBxBy: boolean,
 	plotTempIdx: boolean,
-	plotLeft?: typeof plotTypes[number],
-	plotTop?: typeof plotTypes[number],
-	plotBottom?: typeof plotTypes[number],
+	plotLeft: typeof plotTypes[number] | null,
+	plotTop: typeof plotTypes[number] | null,
+	plotBottom: typeof plotTypes[number] | null,
 	plotBottomSize: number,
 	plotsRightSize: number
 };
@@ -176,7 +176,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	const boundRight = bound && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
-		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px solid', ...boundRight, ...stretchTop }}>
+		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px var(--color-border) solid', ...boundRight, ...stretchTop }}>
 			{type === 'CR Anisotropy' && <PlotGSMAnisotropy {...params}/>}
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
@@ -327,7 +327,7 @@ function CoreWrapper() {
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
 		- 72) / 28 - 3 )); // FIXME: -3 gives space for long column header, there is a better way to do that
-	const shown = (s?: string) => s && options.viewPlots && (plotIdx != null || samplePlotTypes.includes(s as any));
+	const shown = (s: null | string) => s && options.viewPlots && (plotIdx != null || samplePlotTypes.includes(s as any));
 	const blockMode = !shown(settings.plotTop) && !shown(settings.plotBottom);
 
 	const tableViewContext = useMemo(() => {

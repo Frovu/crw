@@ -128,15 +128,15 @@ export function MenuSelect({ text, value, options, pretty, callback, width, with
 	);
 }
 
-export function SettingsSelect<T extends keyof Settings>({ what, options, allowEmpty=true }: { what: T, options: readonly (Settings[T])[], allowEmpty?: boolean }) {
+export function SettingsSelect<T extends keyof Settings>({ what, options, withNull=true }: { what: T, options: readonly (Settings[T])[], withNull?: boolean }) {
 	const { settings, set } = useContext(SettingsContext);
 	return (
 		<span>
 			{what}:
 			<select style={{ paddingLeft: '8px', margin: '0 4px 0 4px', ...(!settings[what] && { color: 'var(--color-text-dark)' }) }}
-				value={settings[what] as any || '--none'} onClick={e => e.stopPropagation()}
-				onChange={(e) => set(what, () => e.target.value === '--none' ? undefined : e.target.value as any)}> 
-				{allowEmpty && <option value='--none'>-- None --</option>}
+				value={settings[what] as any ?? '--none'} onClick={e => e.stopPropagation()}
+				onChange={(e) => set(what, () => e.target.value === '--none' ? null : e.target.value as any)}> 
+				{withNull && <option value='--none'>-- None --</option>}
 				{options.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)}
 			</select>
 		</span>
@@ -261,15 +261,15 @@ export function Menu() {
 				</MenuSection>
 				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
 					<h4>Select plots</h4>
-					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
+					<SettingsSelect what='plotLeft' options={plotTypes}/>
 					<MenuInput text='bottom plot height (%)' type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
 						onChange={(v: any) => set('plotBottomSize', () => v)}/>
 					<MenuInput text='right plots width (%)' type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
-					<SettingsSelect what='theme' options={themeOptions}/>
+					<SettingsSelect what='theme' options={themeOptions} withNull={false}/>
 					<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
 					<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
 					<MenuCheckbox text='Show legend' value={!!settings.plotLegend} callback={v => set('plotLegend', () => v)}/>
