@@ -283,7 +283,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 	return ordered;
 }
 
-export function clickDownloadPlot(e: React.MouseEvent) {
+export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	if (e.altKey) {
 		const a = document.createElement('a');
 		a.download = 'aid_plot.png';

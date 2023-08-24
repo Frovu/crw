@@ -21,6 +21,7 @@ export type CirclesParams = BasicPlotParams & {
 	variationShift?: number,
 	autoFilter?: boolean,
 	fixAmplitudeScale?: boolean,
+	linearSize?: boolean
 };
 
 type CirclesResponse = {
@@ -196,7 +197,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				stroke: color('cyan'),
 				fill: color('cyan2'),
 				value: legendValue(1),
-				paths: circlePaths((rect: any) => qt.add(rect))
+				paths: circlePaths((rect: any) => qt.add(rect), 6, params.linearSize)
 			},
 			{
 				label: '-',
@@ -204,7 +205,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				stroke: color('magenta'),
 				fill: color('magenta2'),
 				value: legendValue(2),
-				paths: circlePaths((rect: any) => qt.add(rect))
+				paths: circlePaths((rect: any) => qt.add(rect), 8, params.linearSize)
 			},
 			{
 				show: idxEnabled,
@@ -491,6 +492,7 @@ export function CirclesParamsInput({ params, setParams }:
 			<div style={{ lineHeight: '2em' }}>
 				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
+				<br/><MenuCheckbox text='Linear size scaling' value={!!params.linearSize} callback={callback('linearSize')}/>
 			</div>
 
 		</div>

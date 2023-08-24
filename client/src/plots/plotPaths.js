@@ -1,15 +1,14 @@
 import uPlot from 'uplot';
 import { color, drawShape, drawArrow } from './plotUtil';
 
-export function circlePaths(callback, minMaxMagn=5) {
+export function circlePaths(callback, minMaxMagn, linear=false) {
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
-			const strokeWidth = 1;
+			const strokeWidth = 1.5;
 			const deg360 = 2 * Math.PI;
 			const d = u.data[seriesIdx];
 
-			const maxSize = Math.min(64, 5 + u.height / 12);
-			// console.log('max size', maxSize);
+			const maxSize = Math.min(120, 16 + u.height / 8);
 			// console.time('circles');
 
 			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
@@ -25,10 +24,13 @@ export function circlePaths(callback, minMaxMagn=5) {
 			const filtRgt = u.posToVal(u.bbox.width / devicePixelRatio + maxSize / 2, scaleX.key);
 			const filtBtm = u.posToVal(u.bbox.height / devicePixelRatio + maxSize / 2, scaleY.key);
 			const filtTop = u.posToVal(-maxSize / 2, scaleY.key);
+			
 			for (let i = 0; i < d[0].length; i++) {
 				const xVal = d[0][i];
 				const yVal = d[1][i];
-				let size = (Math.abs(d[2][i]) / maxMagn * maxSize + 1) * devicePixelRatio;
+				let size = linear ?
+					Math.max(2, (Math.abs(d[2][i]) / maxMagn * maxSize)) * devicePixelRatio :
+					Math.max(2, maxSize / (minMaxMagn / 2.2)* Math.log(Math.abs(d[2][i]) + 1) - 6) * devicePixelRatio;
 				if (size > maxSize) size = maxSize;
 
 				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {

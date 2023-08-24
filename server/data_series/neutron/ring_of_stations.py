@@ -89,7 +89,8 @@ def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 		popt[curve.phases] += shift * pi / 180
 		return popt
 	except Exception as e:
-		print(e)
+		if 'maxfev =' not in str(e):
+			print(e)
 		return None
 
 def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
