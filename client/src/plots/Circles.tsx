@@ -143,6 +143,8 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
 							setBase(new Date(currentBase * 1e3));
+						} else if (e.altKey) {
+							clickDownloadPlot(e);
 						} else if (interactive && Math.abs(e.offsetX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
 							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
 							if (detailsIdx != null)
@@ -426,7 +428,7 @@ export function PlotCircles({ params, settingsOpen }:
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 
 	return (
-		<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
 			{moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
