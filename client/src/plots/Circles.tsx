@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
-import { linePaths, circlePaths, pointPaths } from './plotPaths';
+import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawOnsets } from './plotUtil';
 import { Onset } from '../table/Table';
 import { useQuery } from 'react-query';
@@ -19,6 +19,7 @@ export type CirclesParams = BasicPlotParams & {
 	exclude?: string[],
 	window?: number,
 	variationShift?: number,
+	sizeShift?: number
 	autoFilter?: boolean,
 	fixAmplitudeScale?: boolean,
 	linearSize?: boolean
@@ -46,6 +47,64 @@ type CirclesMomentResponse = {
 	a1?: number,
 	a2?: number
 };
+
+export function circlePaths(callback: any, minMaxMagn: number, params: CirclesParams) {
+	return (u: uPlot, seriesIdx: number) => {
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
+			const strokeWidth = 1.5;
+			const deg360 = 2 * Math.PI;
+			const d = u.data[seriesIdx] as any as number[][];
+
+			const maxSize = Math.min(120, 16 + u.height / 8);
+			// console.time('circles');
+
+			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
+
+			u.ctx.save();
+			u.ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
+			u.ctx.clip();
+			u.ctx.fillStyle = (series as any).fill();
+			u.ctx.strokeStyle = (series as any).stroke();
+			u.ctx.lineWidth = strokeWidth;
+
+			const filtLft = u.posToVal(-maxSize / 2, scaleX.key!);
+			const filtRgt = u.posToVal(u.bbox.width / devicePixelRatio + maxSize / 2, scaleX.key!);
+			const filtBtm = u.posToVal(u.bbox.height / devicePixelRatio + maxSize / 2, scaleY.key!);
+			const filtTop = u.posToVal(-maxSize / 2, scaleY.key!);
+			
+			for (let i = 0; i < d[0].length; i++) {
+				const xVal = d[0][i];
+				const yVal = d[1][i];
+				let size = params.linearSize ?
+					(Math.abs(d[2][i]) / maxMagn * maxSize) * devicePixelRatio :
+					(maxSize / (minMaxMagn / 2.2)* Math.log(Math.abs(d[2][i]) + 1) - 6) * devicePixelRatio;
+				size = Math.max(2, size + (params.sizeShift ?? 0));
+				if (size > maxSize) size = maxSize;
+
+				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
+					const cx = valToPosX(xVal, scaleX, xDim, xOff);
+					const cy = valToPosY(yVal, scaleY, yDim, yOff);
+					u.ctx.moveTo(cx + size/2, cy);
+					u.ctx.beginPath();
+					u.ctx.arc(cx, cy, size/2, 0, deg360);
+					u.ctx.fill();
+					u.ctx.stroke();
+					callback && callback({
+						x: cx - size/2 - strokeWidth/2 - u.bbox.left,
+						y: cy - size/2 - strokeWidth/2 - u.bbox.top,
+						w: size + strokeWidth,
+						h: size + strokeWidth,
+						sidx: seriesIdx,
+						didx: i
+					});
+				}
+			}
+			// console.timeEnd('circles');
+			u.ctx.restore();
+		});
+		return null;
+	};
+}
 
 function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
 	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
@@ -197,7 +256,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				stroke: color('cyan'),
 				fill: color('cyan2'),
 				value: legendValue(1),
-				paths: circlePaths((rect: any) => qt.add(rect), 6, params.linearSize)
+				paths: circlePaths((rect: any) => qt.add(rect), 6, params)
 			},
 			{
 				label: '-',
@@ -205,7 +264,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				stroke: color('magenta'),
 				fill: color('magenta2'),
 				value: legendValue(2),
-				paths: circlePaths((rect: any) => qt.add(rect), 8, params.linearSize)
+				paths: circlePaths((rect: any) => qt.add(rect), 8, params)
 			},
 			{
 				show: idxEnabled,
@@ -539,8 +598,13 @@ export default function PlotCirclesStandalone() {
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
 			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 52, width: '5em', borderRadius: 6 }}
-				type='number' min='-9' max='9' step='.05' value={params.variationShift?.toFixed(2)} placeholder='shift'
-				onChange={e => setParams(para => ({ ...para, variationShift: isNaN(e.target.valueAsNumber) ? undefined : e.target.valueAsNumber }))}></input>
+				type='number' min='-9' max='9' step='.05' value={params.variationShift?.toFixed(2) ?? ''} placeholder='shift'
+				onChange={e => setParams(para => ({ ...para, variationShift:
+					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 52 + 86, width: '5em', borderRadius: 6 }}
+				type='number' min='-99' max='99' step='1' value={params.sizeShift?.toFixed(0) ?? ''} placeholder='size'
+				onChange={e => setParams(para => ({ ...para, sizeShift:
+					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
 		</div>
 	);
 }
