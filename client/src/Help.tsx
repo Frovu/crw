@@ -48,7 +48,7 @@ export default function Help() {
 			Application provides three color themes, bright and monochrome themes are primarily intended to be used for exporting plot pictures. <b>{KEY_COMB.switchTheme}</b> key can be used to swiftly cycle between themes. In <button>Plot</button> menu dropdown one can also toggle plot grid and series markers on/off.
 		</p>
 		<p>
-			Tip: alt + click on plot to download it as .png
+			Tip: <b>Ctrl + click</b> on a plot to open it as an image in a new tab, or <b>Alt + click</b> to instantly download it as .png
 		</p>
 
 		<h4>Downloading data</h4>

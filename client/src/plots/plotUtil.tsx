@@ -284,9 +284,12 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 }
 
 export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
-	if (e.altKey) {
+	if (e.altKey || e.ctrlKey) {
 		const a = document.createElement('a');
-		a.download = 'aid_plot.png';
+		if (e.altKey)
+			a.download = 'aid_plot.png';
+		else
+			a.target = '_blank';
 		const canvas = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
 		if (!canvas)
 			return console.log('not found plot (click)');
