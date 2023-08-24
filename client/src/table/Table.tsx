@@ -166,6 +166,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 		return null;
 
 	const params = {
+		theme: settings.theme,
 		useAp: settings.plotIndexAp,
 		useTemperatureIndex: settings.plotTempIdx,
 		showGrid: settings.plotGrid,

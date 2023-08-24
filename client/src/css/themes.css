@@ -39,7 +39,7 @@
 	--color-green: rgb(0, 170, 0);
 	--color-skyblue: rgb(60, 156, 235);
 	--color-cyan: rgb(0, 206, 206);
-	--color-cyan2: rgb(0, 206, 206, .7);
+	--color-cyan2: rgba(0, 240, 240, 0.7);
 	--color-blue: rgb(0, 0, 255);
 	--color-purple: rgb(128, 0, 255);
 	--color-white: rgb(44,44,44);
@@ -59,7 +59,7 @@
 [main-theme="Monochrome"] {
 	--color-crimson: rgb(0, 0, 0);
 	--color-magenta: rgb(44, 44, 44);
-	--color-magenta2: rgb(111, 111, 111, .9);
+	--color-magenta2: rgb(88, 88, 88, .9);
 	--color-red: rgb(0, 0, 0);
 	--color-orange: rgb(111, 111, 111);
 	--color-peach: rgb(77, 77, 77);

@@ -14,6 +14,7 @@ import '../css/Circles.css';
 import { MenuCheckbox } from '../table/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
+	theme?: string,
 	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
@@ -203,7 +204,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
 							setBase(new Date(currentBase * 1e3));
-						} else if (e.altKey) {
+						} else if (e.altKey || e.ctrlKey) {
 							clickDownloadPlot(e);
 						} else if (interactive && Math.abs(e.offsetX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
 							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
@@ -548,6 +549,7 @@ export function CirclesParamsInput({ params, setParams }:
 			<br/> Draw onset: 
 			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
+			<select></select>
 			<div style={{ lineHeight: '2em' }}>
 				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
@@ -582,6 +584,9 @@ export default function PlotCirclesStandalone() {
 		};
 	});
 
+	if (params.theme)
+		document.documentElement.setAttribute('main-theme', params.theme);
+
 	useEventListener('visibilitychange', () => {
 		if (document.hidden) return;
 		setParams(para => {
@@ -597,11 +602,11 @@ export default function PlotCirclesStandalone() {
 			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
-			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 52, width: '5em', borderRadius: 6 }}
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48, width: '5em', borderRadius: 6 }}
 				type='number' min='-9' max='9' step='.05' value={params.variationShift?.toFixed(2) ?? ''} placeholder='shift'
 				onChange={e => setParams(para => ({ ...para, variationShift:
 					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
-			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 52 + 86, width: '5em', borderRadius: 6 }}
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48 + 86, width: '5em', borderRadius: 6 }}
 				type='number' min='-99' max='99' step='1' value={params.sizeShift?.toFixed(0) ?? ''} placeholder='size'
 				onChange={e => setParams(para => ({ ...para, sizeShift:
 					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
