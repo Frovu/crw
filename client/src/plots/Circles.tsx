@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawOnsets } from './plotUtil';
-import { Onset } from '../table/Table';
+import { Onset, themeOptions } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
 import uPlot from 'uplot';
@@ -549,7 +549,9 @@ export function CirclesParamsInput({ params, setParams }:
 			<br/> Draw onset: 
 			<ValidatedInput type='time' value={params.onsets?.[0] && showDate(params.onsets[0].time)}
 				callback={callback('onset')} allowEmpty={true}/>
-			<select></select>
+			<br/> Theme: <select value={params.theme || 'Dark'} onChange={e => callback('theme')(e.target.value)}>
+				{themeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+			</select>
 			<div style={{ lineHeight: '2em' }}>
 				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
@@ -586,6 +588,12 @@ export default function PlotCirclesStandalone() {
 
 	if (params.theme)
 		document.documentElement.setAttribute('main-theme', params.theme);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.code !== 'KeyT') return;
+		const theme = params.theme ?? 'Dark';
+		setParams({ ...params, theme: themeOptions[(themeOptions.indexOf(theme as any) + 1) % 3] });
+	});
 
 	useEventListener('visibilitychange', () => {
 		if (document.hidden) return;
