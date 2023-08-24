@@ -1,6 +1,7 @@
 :root {
 	--color-crimson: rgb(165, 0, 22);
-	--color-magenta: rgb(255, 10, 110);
+	--color-magenta: rgb(255, 0, 110);
+	--color-magenta2: rgba(216, 0, 94, 0.7);
 	--color-red: rgb(255, 24, 24);
 	--color-orange: rgb(255, 106, 20);
 	--color-peach: rgb(255, 99, 72);
@@ -9,6 +10,7 @@
 	--color-green: rgb(20, 255, 20);
 	--color-skyblue: rgb(155, 255, 255);
 	--color-cyan: rgb(0, 255, 255);
+	--color-cyan2: rgb(0, 255, 255, .8);
 	--color-blue: rgb(0, 0, 255);
 	--color-purple: rgb(128, 0, 255);
 	--color-white: rgb(255,255,255);
@@ -27,15 +29,17 @@
 
 [main-theme="Bright"] {
 	--color-crimson: rgb(165, 0, 22);
-	--color-magenta: rgb(255, 10, 110);
+	--color-magenta: rgb(235, 0, 110);
+	--color-magenta2: rgba(255, 55, 148, 0.7);
 	--color-red: rgb(255, 24, 24);
 	--color-orange: rgb(255, 106, 20);
 	--color-peach: rgb(255, 99, 72);
-	--color-gold: rgb(255, 219, 16);
-	--color-acid: rgb(255, 152, 55);
+	--color-gold: rgb(100, 0, 75);
+	--color-acid: rgb(255, 115, 0);
 	--color-green: rgb(0, 170, 0);
 	--color-skyblue: rgb(60, 156, 235);
 	--color-cyan: rgb(0, 206, 206);
+	--color-cyan2: rgb(0, 206, 206, .7);
 	--color-blue: rgb(0, 0, 255);
 	--color-purple: rgb(128, 0, 255);
 	--color-white: rgb(44,44,44);
@@ -54,17 +58,19 @@
 
 [main-theme="Monochrome"] {
 	--color-crimson: rgb(0, 0, 0);
-	--color-magenta: rgb(111, 111, 111);
+	--color-magenta: rgb(44, 44, 44);
+	--color-magenta2: rgb(111, 111, 111, .8);
 	--color-red: rgb(0, 0, 0);
 	--color-orange: rgb(111, 111, 111);
-	--color-peach: rgb(0, 0, 0);
-	--color-gold: rgb(166, 166, 166);
-	--color-acid: rgb(111, 111, 111);
+	--color-peach: rgb(77, 77, 77);
+	--color-gold: rgb(0, 0, 0);
+	--color-acid: rgb(0, 0, 0);
 	--color-green: rgb(33, 33, 33);
 	--color-skyblue: rgb(0, 0, 0);
-	--color-cyan: rgb(166, 166, 166);
+	--color-cyan: rgb(99, 99, 99);
+	--color-cyan2: rgba(145, 145, 145, 0.6);
 	--color-blue: rgb(0, 0, 0);
-	--color-purple: rgb(0, 0, 0);
+	--color-purple: rgb(77, 77, 77);
 	--color-white: rgb(33,33,33);
 
 	--color-bg: rgb(255,255,255);
@@ -73,8 +79,8 @@
 	--color-border: rgb(66,66,66);
 	--color-grid: rgb(222,222,222);
   	--color-active: red;
-	--color-area: rgba(111, 111, 111, 0.17);
-	--color-area2: rgba(111, 111, 111, 0.17);
+	--color-area: rgba(111, 111, 111, 0.27);
+	--color-area2: rgba(111, 111, 111, 0.27);
 
 	color-scheme: light;
 }

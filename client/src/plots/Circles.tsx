@@ -61,6 +61,12 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 		const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
 		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
 	};
+	const setSelect = (u: uPlot, val: number) => u.setSelect({
+		left: u.valToPos(val, 'x'),
+		top: 0,
+		width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
+		height: u.over.offsetHeight
+	});
 	return {
 		padding: [8, 8, 0, 0],
 		mode: 2,
@@ -85,7 +91,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				},
 				points: {
 					size: (u, seriesIdx) => {
-						return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.w / devicePixelRatio : 0;
+						return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.w + 1 / devicePixelRatio : 0;
 					}
 				}
 			})
@@ -100,12 +106,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 			drawClear: [
 				drawBackground,
 				u => {
-					u.setSelect({
-						left: u.valToPos(data.base, 'x'),
-						top: 0,
-						width: u.valToPos(data.base + 86400, 'x') - u.valToPos(data.base, 'x'),
-						height: u.over.offsetHeight
-					});
+					setSelect(u, data.base);
 					u.setCursor({ left: -1, top: -1 });
 					qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 					qt.clear();
@@ -120,13 +121,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					if (interactive)
 						u.over.style.setProperty('cursor', 'pointer');
 					let currentBase = data.base;
-					const setSelect = (val: number) => u.setSelect({
-						left: u.valToPos(val, 'x'),
-						top: 0,
-						width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
-						height: u.over.offsetHeight
-					});
-					setSelect(currentBase);
+					setSelect(u, currentBase);
 					let isDragged: boolean, clickX: number | undefined, clickY: number | undefined;
 					u.over.addEventListener('mousemove', e => {
 						if (isDragged) {
@@ -137,12 +132,13 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 							if (currentBase > u.scales.x.max! - 86400)
 								currentBase = u.scales.x.max! - 86400;
 						}
-						setSelect(currentBase);
+						setSelect(u, currentBase);
 					});
 					u.over.addEventListener('mousedown', e => {
 						clickX = e.offsetX;
 						clickY = e.offsetY;
 						isDragged = u.valToPos(data.base, 'x') < clickX && clickX < u.valToPos(data.base + 86400, 'x');
+						setSelect(u, currentBase);
 					});
 					u.over.addEventListener('mouseup', e => {
 						if (currentBase !== data.base) {
@@ -154,7 +150,6 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 						}
 						isDragged = false;
 						clickX = clickY = undefined;
-						// setSelect(currentBase);
 					});
 				}
 			]
@@ -197,7 +192,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				label: '+',
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 				stroke: color('cyan'),
-				fill: color('cyan', .5),
+				fill: color('cyan2'),
 				value: legendValue(1),
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
@@ -205,7 +200,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				label: '-',
 				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 				stroke: color('magenta'),
-				fill: color('magenta', .5),
+				fill: color('magenta2'),
 				value: legendValue(2),
 				paths: circlePaths((rect: any) => qt.add(rect))
 			},
@@ -213,7 +208,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				show: idxEnabled,
 				scale: 'idx',
 				label: 'idx',
-				stroke: color('acid'),
+				stroke: color('gold'),
 				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 				value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
 				paths: linePaths(1.75)
