@@ -70,7 +70,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				range: (u, min, max) => [min, max*2]
 			},
 			dst: {
-				range: (u, min, max) => [min - (max-min), max]
+				range: (u, min, max) => [min - (max-min), max + 1]
 			}
 		},
 		series: [

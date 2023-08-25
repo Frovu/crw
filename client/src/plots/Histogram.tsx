@@ -134,19 +134,22 @@ export default function HistogramPlot() {
 					{},
 					...[{
 						stroke: color(colors[0]),
-						fill: color(colors[0], .7),
+						fill: color(colors[0], .8),
+						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.8, 64], align: 1 })
 					},
 					{
 						stroke: color(colors[1]),
 						fill: color(colors[1]),
+						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.4, 64], align: 1 })
 					},
 					{
 						stroke: color(colors[2]),
 						fill: color(colors[2]),
+						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
