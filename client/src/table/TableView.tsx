@@ -217,7 +217,7 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
 					{changes.length > 0 && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
-					&nbsp;&nbsp;With [{changes.length}] unsaved{changes.length > 1 ? 's' : ''}&nbsp;
+					&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
 					</span>}
 				</span>
 				<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
