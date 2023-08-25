@@ -5,6 +5,7 @@ import Circles from './plots/Circles';
 import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
+import PlotIMF from './plots/IMF';
 
 const theQueryClient = new QueryClient();
 
@@ -111,13 +112,14 @@ export function AuthButton() {
 }
 
 function App() {
-	const apps = ['ros', 'help'];
+	const apps = ['ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'feid';
 	useEffect(() => {
 		document.title = {
 			ros: 'RoS',
 			help: 'AID Manual',
-			feid: 'FEID'
+			feid: 'FEID',
+			test: 'test',
 		}[app]!;
 	}, [app]);
 
@@ -138,6 +140,15 @@ function App() {
 			...query.data,
 			promptLogin: setAuthPrompt,
 		}}>
+			{app === 'test' && 
+				<div style={{ width: 1200, height: 600, position: 'relative' }}>
+					<PlotIMF {...{
+						interval: [new Date('2022-07-18'), new Date('2022-07-21')],
+						onsets: [ { time: new Date('2022-07-18T21:19:00Z'), type: 'SSC' } ],
+						clouds: [{ start: new Date('2022-07-19T05:00:00Z'), end: new Date('2022-07-20T11:00:00Z') }],
+						showGrid: true, showLegend: false, showMarkers: true, showBxBy: true, showBz: true }}/>
+
+				</div>}
 			{app === 'ros' && <Circles/>}
 			{app === 'feid' && <Table/>}
 			{app === 'help' && <Help/>}

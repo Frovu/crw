@@ -80,12 +80,28 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 }
 
 export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[]) {
+	const patternCanvas = document.createElement('canvas');
+	const ctx = patternCanvas.getContext('2d')!;
+	patternCanvas.height = patternCanvas.width = 16;
+	ctx.fillStyle = color('area2');
+
+	ctx.moveTo(10, 0);
+	ctx.lineTo(0, 10);
+	ctx.lineTo(0, 16);
+	ctx.lineTo(16, 0);
+	ctx.moveTo(10, 16);
+	ctx.lineTo(16, 10);
+	ctx.lineTo(16, 16);
+	ctx.fill();
+
 	for (const cloud of clouds) {
 		const startX = u.valToPos(cloud.start.getTime() / 1e3, 'x', true);
 		const endX = u.valToPos(cloud.end.getTime() / 1e3, 'x', true);
 		u.ctx.save();
-		u.ctx.fillStyle = u.ctx.strokeStyle = color('area2', .1);
+		u.ctx.beginPath();
+		u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
 		u.ctx.fillRect(startX, u.bbox.top, endX - startX, u.bbox.height);
+		u.ctx.fill();
 		u.ctx.restore();
 	}
 }

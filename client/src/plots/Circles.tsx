@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawOnsets } from './plotUtil';
+import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawMagneticClouds, drawOnsets } from './plotUtil';
 import { Onset, themeOptions } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -62,6 +62,7 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
 
 			u.ctx.save();
+			u.ctx.beginPath();
 			u.ctx.rect(u.bbox.left, u.bbox.top, u.bbox.width, u.bbox.height);
 			u.ctx.clip();
 			u.ctx.fillStyle = (series as any).fill();
@@ -176,7 +177,9 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					});
 				},
 			],
-			draw: [ u => (params.onsets?.length) && drawOnsets(u, params.onsets) ],
+			draw: [
+				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
+				u => (params.onsets?.length) && drawOnsets(u, params.onsets), ],
 			ready: [
 				u => {
 					if (interactive)
@@ -573,6 +576,8 @@ export default function PlotCirclesStandalone() {
 			referred.interval = referred.interval.map((d: any) => new Date(d));
 		if (referred?.onsets)
 			referred.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
+		if (referred?.clouds)
+			referred.clouds = referred.clouds.map((c: any) => ({ start: new Date(c.start), end: new Date(c.end) }));
 		return {
 			...(referred || {
 				interval: [
