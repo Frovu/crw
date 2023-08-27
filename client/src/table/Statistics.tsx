@@ -38,14 +38,16 @@ export type CorrParams = {
 	columnX: string,
 	columnY: string,
 	color: string,
-	regression: boolean,
+	loglog: boolean,
+	logx: boolean,
 };
 
 export const defaultCorrParams = {
 	columnX: 'fe_kp_max',
 	columnY: 'fe_bz_min',
 	color: 'magenta',
-	regression: true,
+	loglog: false,
+	logx: true,
 };
 
 export function HistogramMenu() {
@@ -93,6 +95,7 @@ export function CorrelationMenu() {
 		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
 		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
-		<MenuCheckbox text='Show regression' value={options.correlation.regression} callback={set('regression')}/>
+		<MenuCheckbox text='log-log' value={options.correlation.loglog} callback={set('loglog')}/>
+		<MenuCheckbox text='x-log' value={options.correlation.logx} callback={set('logx')}/>
 	</>);
 }

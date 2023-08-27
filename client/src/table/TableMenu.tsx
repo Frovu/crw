@@ -255,7 +255,8 @@ export function Menu() {
 			settingPlot = undefined;
 			return;
 		} else {
-			settingPlot = ({ Digit1: 'plotTop', Digit2: 'plotBottom', Digit3: 'plotLeft' } as const)[e.code];
+			if (e.ctrlKey)
+				settingPlot = ({ Digit1: 'plotTop', Digit2: 'plotBottom', Digit3: 'plotLeft' } as const)[e.code];
 			if (settingPlot) return;
 		}
 	
