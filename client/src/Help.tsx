@@ -37,6 +37,9 @@ export default function Help() {
 			Before drawing anything one should decide what he wants to see. Plotting interface setup is done under <button>Plot</button> menu tab. One can draw up to 3 plots simultaneously: two on the right (<u>top</u> and <u>bottom</u>) and one below the table (<u>left</u>). Select which type of plot goes where in the menu. One can also change relative size of plots in the same menu. While <u>height</u> setting is straightforward, the <u>right plots width</u> also affects height of the left plot. Just play with the values and it will become clear.
 		</p>
 		<p>
+			Tip: use <b>Ctrl + arrows</b> to change layout swiftly.
+		</p>
+		<p>
 			Statistical plots can be drawn with <b>{KEY_COMB.switchViewPlots}</b> key without selecting any event. To draw any other plot one should press <b>{KEY_COMB.plot}</b> key while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired row of the table. After that one can plot previous or next event by using square bracket keys (note that this does not respect applied filters). When event plots are not needed anymore, one can toggle them off using <b>{KEY_COMB.switchViewPlots}</b> key.
 		</p>
 		Tip: use <b>&lt; &gt;</b> keys to plot pervious/next event in applied sample, or <b>[ ]</b> across all events.

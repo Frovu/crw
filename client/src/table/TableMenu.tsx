@@ -237,6 +237,15 @@ export function Menu() {
 			return dispatchCustomEvent('escape');
 		if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement)
 			return;
+
+		const moveH = { ArrowLeft: 1, ArrowRight: -1 }[e.code], moveV = { ArrowUp: 1, ArrowDown: -1 }[e.code];
+		if (e.ctrlKey && (moveH || moveV)) {
+			if (moveH)
+				set('plotsRightSize', val => Math.max(30, Math.min(val + moveH * 5, 80)));
+			if (moveV)
+				set('plotBottomSize', val => Math.max(20, Math.min(val + moveV * 5, 80)));
+			return e.stopImmediatePropagation();
+		}
 	
 		if (settingPlot) {
 			const number = e.code.replace('Digit', '');
@@ -289,9 +298,9 @@ export function Menu() {
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
-					<MenuInput text='bottom plot height (%)' type='number' min='20' max='70' step='5' value={settings.plotBottomSize || 40}
+					<MenuInput text='bottom plot height (%)' type='number' min='20' max='80' step='5' value={settings.plotBottomSize || 40}
 						onChange={(v: any) => set('plotBottomSize', () => v)}/>
-					<MenuInput text='right plots width (%)' type='number' min='30' max='90' step='5' value={settings.plotsRightSize || 50}
+					<MenuInput text='right plots width (%)' type='number' min='30' max='80' step='5' value={settings.plotsRightSize || 50}
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
 					<SettingsSelect what='theme' options={themeOptions} withNull={false}/>
