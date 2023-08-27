@@ -243,11 +243,6 @@ function CoreWrapper() {
 	useEventListener('action+plotPrevShown', plotMove(-1, true));
 	useEventListener('action+plotNextShown', plotMove(+1, true));
 
-	useEventListener('action+setPlot', (e: CustomEvent) => {
-		const { which, number } = e.detail as { which: 'plotLeft'|'plotTop'|'plotBottom', number: number };
-		set(which, number > 0 ? plotTypes[number - 1] : null);
-	});
-
 	useEventListener('action+switchHistCorr', () => ['plotLeft', 'plotTop', 'plotBottom'].forEach(p => set(p as any, was =>
 		was === 'Histogram' ? 'Correlation' : was === 'Correlation' ? 'Histogram' : was )));
 	useEventListener('action+switchViewPlots', () => {
