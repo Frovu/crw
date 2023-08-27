@@ -50,6 +50,9 @@ export default function Help() {
 		<p>
 			Tip: <b>Ctrl + click</b> on a plot to open it as an image in a new tab, or <b>Alt + click</b> to instantly download it as .png
 		</p>
+		<p>
+			Tip: Pressing <b>Ctrl + 1/2/3</b> and then pressing a digit allows one to change plot (top/bottom/left) type using keyboard, numbers correspond to the same list as seen in menu.
+		</p>
 
 		<h4>Downloading data</h4>
 		<p>

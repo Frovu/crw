@@ -41,7 +41,7 @@ export type ColumnDef = {
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
 export const samplePlotTypes = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
-export const plotTypes = [ ...samplePlotTypes, 'Ring of Stations', 'Solar Wind', 'Cosmic Rays', 'CR Anisotropy', 'SW + Plasma', 'CR + Geomagn' ] as const;
+export const plotTypes = [ 'CR + Geomagn', 'SW + Plasma', 'CR Anisotropy', 'Ring of Stations', 'SW', 'CR', ...samplePlotTypes ] as const;
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
@@ -189,12 +189,12 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
-			{type === 'Solar Wind' && <PlotIMF {...params}/>}
+			{type === 'SW' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
 				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
 				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params}/></div> 
 			</>}
-			{type === 'Cosmic Rays' && <PlotGSM {...params}/>}
+			{type === 'CR' && <PlotGSM {...params}/>}
 			{type === 'CR + Geomagn' && <>
 				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
 				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params}/></div> 
@@ -242,6 +242,11 @@ function CoreWrapper() {
 	useEventListener('action+plotNext', plotMove(+1));
 	useEventListener('action+plotPrevShown', plotMove(-1, true));
 	useEventListener('action+plotNextShown', plotMove(+1, true));
+
+	useEventListener('action+setPlot', (e: CustomEvent) => {
+		const { which, number } = e.detail as { which: 'plotLeft'|'plotTop'|'plotBottom', number: number };
+		set(which, number > 0 ? plotTypes[number - 1] : null);
+	});
 
 	useEventListener('action+switchHistCorr', () => ['plotLeft', 'plotTop', 'plotBottom'].forEach(p => set(p as any, was =>
 		was === 'Histogram' ? 'Correlation' : was === 'Correlation' ? 'Histogram' : was )));

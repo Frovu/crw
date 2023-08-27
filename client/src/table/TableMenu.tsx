@@ -304,11 +304,24 @@ export function Menu() {
 	);
 }
 
+let settingPlot: undefined | string;
 function onKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape')
 		return dispatchCustomEvent('escape');
 	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement)
 		return;
+
+	if (settingPlot) {
+		const number = e.code.replace('Digit', '');
+		if (/[0-9]/.test(number))
+			dispatchCustomEvent('action+setPlot', { which: settingPlot, number: parseInt(number) });
+		settingPlot = undefined;
+		return;
+	} else {
+		settingPlot = { Digit1: 'plotTop', Digit2: 'plotBottom', Digit3: 'plotLeft' }[e.code];
+		if (settingPlot) return;
+	}
+
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
 	if (action) {
