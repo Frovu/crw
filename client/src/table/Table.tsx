@@ -180,6 +180,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 		showBxBy: settings.plotImfBxBy,
 		...context!
 	};
+
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
 	const boundRight = bound && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
@@ -188,7 +189,11 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
-			{type === 'Ring of Stations' && <PlotCircles params={params}/>}
+			{type === 'Ring of Stations' && <>
+				<PlotCircles params={params}/>
+				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
+					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
+			</>}
 			{type === 'SW' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
 				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
@@ -199,8 +204,6 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
 				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params}/></div> 
 			</>}
-			{type === 'Ring of Stations' && <a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }} href='./ros' target='_blank'
-				onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>}
 		</div>
 	);
 });
@@ -232,7 +235,8 @@ function CoreWrapper() {
 			return Math.max(0, Math.min(current + dir, data.length - 1));
 		const cur = data[current][0] + dir;
 		const moved = dir > 0 ? sampleData.findIndex(r => r[0] >= cur) : sampleData.findLastIndex(r => r[0] <= cur); 
-		const idx = Math.max(0, Math.min(moved, sampleData.length - 1));
+		
+		const idx = Math.max(0, Math.min(moved >= 0 ? moved : current, sampleData.length - 1));
 		const found = dataContext.data.findIndex(r => r[0] === sampleData[idx][0]);
 		setCursor(curs => ({ row: found, column: curs?.column ?? 0 }));
 		return data.findIndex(r => r[0] === sampleData[idx][0]);

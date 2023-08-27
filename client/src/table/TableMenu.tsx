@@ -244,7 +244,8 @@ export function Menu() {
 				set('plotsRightSize', val => Math.max(30, Math.min(val + moveH * 5, 80)));
 			if (moveV)
 				set('plotBottomSize', val => Math.max(20, Math.min(val + moveV * 5, 80)));
-			return e.stopImmediatePropagation();
+			e.stopImmediatePropagation();
+			return e.preventDefault();
 		}
 	
 		if (settingPlot) {
