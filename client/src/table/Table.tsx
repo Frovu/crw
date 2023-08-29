@@ -317,10 +317,10 @@ function CoreWrapper() {
 	const plotContext = useMemo(() => {
 		if (plotIdx == null) return null;
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
-		const plotDate = data[plotIdx][timeIdx];
+		const plotDate = data[plotIdx][timeIdx] as Date;
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
 		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
-		const onsets = rows.filter(r => interval[0] < r[timeIdx] && r[timeIdx] < interval[1])
+		const onsets = rows.filter(r => interval[0] < r[timeIdx].getTime() && r[timeIdx].getTime() < interval[1])
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
 		const clouds = rows.map(r => {
 			const time = r[cloudTime]?.getTime(), dur = r[cloudDur];

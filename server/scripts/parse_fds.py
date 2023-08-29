@@ -149,7 +149,7 @@ def parse_whole_file(conn, lines):
 		log.debug(f'{exists_count} found')
 		for table, cnt in count.items():
 			log.debug(f'[{cnt}] -> {table}')
-		return sum(count.values())
+		return count['forbush_effects']
 
 def main():
 	with pool.connection() as conn:

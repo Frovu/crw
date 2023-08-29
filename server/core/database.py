@@ -160,9 +160,10 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 	for g in generics:
 		name = f'{ENTITY_SHORT[g.entity]}_{g.name}'
 		columns.append(f'{g.entity}.{g.name} as {name}')
-	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM events.{root}\n{joins}'
+	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM events.{root}\n{joins} ORDER BY ' +\
+		f'{root}.time' if 'time' in tables_info[root] else f'{root}.id'
 	with pool.connection() as conn:
-		curs = conn.execute(select_query + f' ORDER BY {root}.id')
+		curs = conn.execute(select_query)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		if changelog:
 			entity_selector = '\nOR '.join([f'(entity_name = \'{ent}\' AND {ent}.id = event_id)' for ent in tables_info])
