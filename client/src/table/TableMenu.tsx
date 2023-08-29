@@ -1,4 +1,4 @@
-import { useState, useContext, Fragment, ReactNode, useMemo, CSSProperties } from 'react';
+import { useState, useContext, Fragment, ReactNode, CSSProperties } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
 import { CorrelationMenu, HistogramMenu } from './Statistics';
@@ -25,11 +25,11 @@ export const KEY_COMB = {
 	'discardChanges': 'Ctrl+X'
 } as { [action: string]: string };
 
-function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: any }) {
+function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: string[] }) {
 	const { isLoading, report, mutate, color } = useMutationHandler(fn, invalidate);
 	return (
 		<button className='MenuItem' onClick={e => {e.stopPropagation(); mutate(null);}}>
-			<span style={{ textAlign: 'center', width: text.length+'ch', color }}>
+			<span style={{ textAlign: 'center', width: Math.max(text.length, 16)+'ch', color }}>
 				{report && (report.error ?? report.success)}
 				{!report && (isLoading ? '...' : text)}
 			</span>
@@ -160,11 +160,13 @@ function MenuSection({ name, shownSection, setShownSection, children, style }:
 function ExportMenu() {
 	const { data: rData, columns: rColumns } = useContext(TableContext);
 	const { data: fData, columns: fColumns, averages } = useContext(DataContext);
+	const { role } = useContext(AuthContext); 
 
+	const [fileText, setFileText] = useState<string>();
 	const [ filtered, setFiltered ] = useState(true);
 	const [ format, setFormat ] = useState(false);
 	
-	const dataUrl = useMemo(() => {
+	const dataUrl = () => {
 		const data = (filtered ? fData : rData).map(row => row.slice(1));
 		const columns = filtered ? fColumns : rColumns.slice(1);
 		const cols = columns.map(({ fullName, type, description, enum: aenum }, i) => ({
@@ -197,14 +199,37 @@ function ExportMenu() {
 			text += '\r\n';
 		};
 		return URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-	}, [fColumns, fData, filtered, format, rColumns, rData, averages]);
+	};
 
 	const fname = (filtered ? 'some_' : 'all_') + 'events' + (format ? '.txt' : '.json');
 	return (
 		<>
+			<h4> Export table</h4>
 			<MenuCheckbox text={'format: '+(format?'plaintext':'JSON')} value={format} callback={setFormat} hide={true}/>
 			<MenuCheckbox text='apply filters' value={filtered} callback={setFiltered}/>
-			<a style={{ marginLeft: '.5em' }} href={dataUrl} download={fname}>download as a file</a>
+			<button style={{ marginLeft: '.5em' }} onClick={() => {
+				const a = document.createElement('a');
+				a.href = dataUrl();
+				a.download = fname;
+				a.click();
+			}}>Download a file</button>
+			{'admin' === role && <>
+				<h4>Import table</h4>
+				Upload FDs_fulltable.txt:
+				<input type='file' onChange={async (e) => setFileText(await e.target.files?.[0]?.text())}/>
+				<br/>
+				{fileText && <MutationButton text='Upload' invalidate={['tableData']} fn={async () => {
+					const res = await fetch(`${process.env.REACT_APP_API}api/events/import?type=fulltable`, {
+						credentials: 'include',
+						method: 'POST',
+						headers: { 'Content-Type': 'text/plain' },
+						body: fileText
+					});
+					if (res.status !== 200)
+						throw new Error('HTTP '+res.status);
+					return await res.text();
+				}}/>}
+			</>}
 		</>
 	);
 }
@@ -292,7 +317,6 @@ export function Menu() {
 					<SampleMenu/>
 				</MenuSection>
 				<MenuSection name='Export' style={{ left: '4em' }} {...{ shownSection, setShownSection }}>
-					<h4 style={{ textAlign: 'right' }}>Export table</h4>
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>

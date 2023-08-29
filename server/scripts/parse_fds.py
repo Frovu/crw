@@ -1,7 +1,10 @@
 from datetime import datetime, timezone
-import sys, os, re, psycopg
+import sys, os, re, psycopg, logging
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
 from core.database import pool, tables_info, upsert_many
+
+log = logging.getLogger('aides')
+log.setLevel('DEBUG')
 
 FNAME = 'data/FDs_fulltable.txt'
 
@@ -94,16 +97,18 @@ def parse_one_column(table: str, column: str, conn):
 		return True
 		
 # if target_columns contains field with Time, its corresponding Date column is parsed automatically
-def parse_whole_file(conn):
-	with open(FNAME) as file:
-		for line in file:
-			if not 'Date' in line: continue
+def parse_whole_file(conn, lines):
+		for li, line in enumerate(lines):
+			if not 'Date Time' in line: continue
 			columns_order = line.strip().split()
 			break
+		else:
+			log.debug('failed: columns desc not found')
+			return
 		count = dict([(k, 0) for k in tables_info])
 		unique_constraints = {tbl: re.sub(r'UNIQUE\s*\(([a-zA-Z\,\s]+)\)', r'\1', tables_info[tbl].get('_constraint', '')) for tbl in tables_info}
 		exists_count = 0
-		for line in file:
+		for line in lines[li+1:]:
 			try:
 				split, inserted_ids = fix_format(line).split(), dict()
 				table = list(tables_info)[0]
@@ -125,7 +130,7 @@ def parse_whole_file(conn):
 					nonnul = [columns[i] for i in range(len(columns)) if values[i] is None and columns_desc[columns[i]].get('not_null')]
 					if any(values):
 						if len(nonnul):
-							print(f'not null violation ({nonnul[0]}), discarding ({table})')
+							log.debug(f'not null violation ({nonnul[0]}), discarding ({table})')
 							continue
 						constraint = unique_constraints[table]
 						a_column = constraint.split(',')[0]
@@ -136,21 +141,23 @@ def parse_whole_file(conn):
 							count[table] += 1
 							inserted_ids[table] = inserted[0]
 			except Exception as e:
-				print(split[:2], type(e), e)
-				print(line)
+				log.debug(f'{split[:2]} {type(e)} {e}')
+				log.debug(line)
 				conn.rollback()
 				return
 
-		print(f'{exists_count} found')
+		log.debug(f'{exists_count} found')
 		for table, cnt in count.items():
-			print(f'[{cnt}] -> {table}')
+			log.debug(f'[{cnt}] -> {table}')
+		return sum(count.values())
 
 def main():
 	with pool.connection() as conn:
 		if len(sys.argv) < 2:
 			if input(f'parse whole FDs file? [y/n]: ') != 'y':
 				return
-			parse_whole_file(conn)
+			with open(FNAME) as file:
+				parse_whole_file(conn, file.readlines())
 			if input(f'commit insertion? [y/n]: ') == 'y':
 				conn.commit()
 			return

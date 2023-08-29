@@ -7,6 +7,7 @@ from core.generic_columns import recompute_generics, select_generics, add_generi
 from core.plots import epoch_collision
 import core.other_columns as other_columns
 import core.samples as samples
+from scripts.parse_fds import parse_whole_file
 from routers.utils import route_shielded, require_role
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -51,22 +52,6 @@ def _submit_changes():
 	if not changes or not len(changes): raise ValueError('Empty request')
 	database.submit_changes(uid, changes)
 	return 'OK'
-
-@bp.route('/recompute_generics', methods=['POST'])
-@route_shielded
-@require_role('admin')
-def _recompute_generics():
-	start = time()
-	compute_default_generics()
-	return f'Done ({round(time() - start, 1)} s)'
-
-@bp.route('/recompute_other', methods=['POST'])
-@route_shielded
-@require_role('admin')
-def _recompute_other():
-	start = time()
-	other_columns.compute_all()
-	return f'Done ({round(time() - start, 1)} s)'
 
 @bp.route('/generics/add', methods=['POST'])
 @route_shielded
@@ -139,3 +124,30 @@ def update_sample():
 	if not name: raise ValueError('Empty name')
 	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
 	return 'OK'
+
+
+@bp.route('/recompute_generics', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _recompute_generics():
+	start = time()
+	compute_default_generics()
+	return f'Done ({round(time() - start, 1)} s)'
+
+@bp.route('/recompute_other', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _recompute_other():
+	start = time()
+	other_columns.compute_all()
+	return f'Done ({round(time() - start, 1)} s)'
+
+@bp.route('/import', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _import_table():
+	start = time()
+	filetext = request.data.decode()
+	with database.pool.connection() as conn:
+		cnt = parse_whole_file(conn, filetext.splitlines())
+	return f'+ [{cnt}] ({round(time() - start, 1)} s)'
