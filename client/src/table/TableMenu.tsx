@@ -270,10 +270,10 @@ export function Menu() {
 			if (moveV)
 				set('plotBottomSize', val => Math.max(20, Math.min(val + moveV * 5, 80)));
 			e.stopImmediatePropagation();
-			return e.preventDefault();
 		}
 	
 		if (settingPlot) {
+			e.stopImmediatePropagation();
 			const number = e.code.replace('Digit', '');
 			if (/[0-9]/.test(number))
 				set(settingPlot, number !== '0' ? plotTypes[parseInt(number) - 1] : null);
@@ -282,7 +282,10 @@ export function Menu() {
 		} else {
 			if (e.ctrlKey)
 				settingPlot = ({ Digit1: 'plotTop', Digit2: 'plotBottom', Digit3: 'plotLeft' } as const)[e.code];
-			if (settingPlot) return;
+			if (settingPlot) {
+				e.stopImmediatePropagation();
+				return e.preventDefault();
+			}
 		}
 	
 		const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
