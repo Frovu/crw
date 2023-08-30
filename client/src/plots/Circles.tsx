@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
@@ -411,7 +411,7 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 	const query = useQuery({
 		staleTime: 0,
 		keepPreviousData: true,
-		queryKey: ['rosMoment', params, moment],
+		queryKey: ['rosMoment', JSON.stringify(params.interval), params.exclude, params.window, params.autoFilter, base, moment],
 		queryFn: (): Promise<CirclesMomentResponse | undefined> => fetchCircles(params, base, moment),
 	});
 
@@ -436,10 +436,10 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 }
 
 const LEGEND_H = 32;
-export function PlotCircles({ params: initParams, settingsOpen }:
-{ params: CirclesParams, settingsOpen?: boolean }) {
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	const size = useSize(container?.parentElement);
+export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean }) {
+	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const container = useRef<HTMLDivElement>(null);
+	const size = useSize(container.current?.parentElement);
 
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
 	const interactive = params.interactive;
@@ -464,8 +464,8 @@ export function PlotCircles({ params: initParams, settingsOpen }:
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
-		queryKey: ['ros', JSON.stringify({ ...params, variationShift: undefined }), base],
-		queryFn: () => fetchCircles(params, base),
+		queryKey: ['ros', JSON.stringify(params.interval), params.exclude, params.window, params.autoFilter, base],
+		queryFn: () => size.width ? fetchCircles(params, base) : null,
 		keepPreviousData: interactive
 	});
 
@@ -496,29 +496,26 @@ export function PlotCircles({ params: initParams, settingsOpen }:
 	});
 
 	const plotComponent = useMemo(() => {
-		if (!plotData || !container || size.height <= 0) return;
+		if (!plotData || !container.current || size.height <= 0) return;
 		const options = {
 			padding: [8, 8 + padRight, 0, 0],
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
 			...circlesPlotOptions(query.data, params, idxEnabled, setIdxEnabled, setBase, setMoment)
 		} as uPlot.Options;
-		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
+		return <UplotReact target={container.current} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	if (query.isLoading)
-		return <div className='Center'>LOADING...</div>;
-	if (!query.data)
-		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-
 	return (
-		<div ref={node => setContainer(node)} style={{ position: 'absolute' }}>
-			{moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
+		<div ref={container} style={{ position: 'absolute' }}>
+			{query.isLoading && <div className='Center'>LOADING...</div>}
+			{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen: initParams.settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
 				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
 					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
 				, uplot.over)}
-			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
+			{query.data && interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
 				{query.isFetching ? 'Fetching...' : (
 					(query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
 					(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')
@@ -631,7 +628,7 @@ export default function PlotCirclesStandalone() {
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
-			<PlotCircles {...{ params, settingsOpen }}/>
+			<PlotCircles {...{ ...params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
 			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48, width: '5em', borderRadius: 6 }}
