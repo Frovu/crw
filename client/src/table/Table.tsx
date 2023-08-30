@@ -15,6 +15,7 @@ import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from '
 import CorrelationPlot from '../plots/Correlate';
 import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import EpochCollision from '../plots/EpochCollision';
+import PlotExportView from './ExportPlot';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -196,7 +197,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'Ring of Stations' && <>
-				<PlotCircles params={params}/>
+				<PlotCircles {...params}/>
 				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
 					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
 			</>}
@@ -221,6 +222,7 @@ function CoreWrapper() {
 	const [sort, setSort] = useState<Sort>({ column: 'fe_time', direction: 1 });
 	const [plotIdx, setPlotIdx] = useState<number | null>(null);
 	const [cursor, setCursor] = useState<Cursor>(null);
+	const [viewExport, setViewExport] = useState(false);
 
 	const topDivRef = useRef<HTMLDivElement>(null);
 	useSize(document.body);
@@ -340,6 +342,8 @@ function CoreWrapper() {
 		return { interval: interval.map(t => new Date(t)) as [Date, Date], onsets, clouds };
 	}, [data, columns, plotIdx, settings]);
 
+	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
+
 	const viewSize = Math.max(4, Math.round(
 		(window.innerHeight - (topDivRef.current?.offsetHeight || 34)
 		- (options.viewPlots && settings.plotLeft ? window.innerWidth*(100-settings.plotsRightSize)/100 *3/4 : 64)
@@ -357,7 +361,8 @@ function CoreWrapper() {
 		<DataContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
 				<TableViewContext.Provider value={tableViewContext}>
-					<div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
+					{viewExport && <PlotExportView escape={() => setViewExport(false)}/>}
+					{!viewExport && <div className='TableApp' style={{ gridTemplateColumns: `minmax(480px, ${100-settings.plotsRightSize || 50}fr) ${settings.plotsRightSize || 50}fr`,
 						...(blockMode && { display: 'block' }) }}>
 						<div className='AppColumn'>
 							<div ref={topDivRef}>
@@ -371,7 +376,7 @@ function CoreWrapper() {
 							<PlotWrapper which='plotTop'/>
 							<PlotWrapper which='plotBottom'/>
 						</div>}
-					</div>
+					</div>}
 				</TableViewContext.Provider>
 			</PlotContext.Provider>
 		</DataContext.Provider>

@@ -12,6 +12,7 @@ export const KEY_COMB = {
 	'openGenericsSelector': 'G',
 	'addFilter': 'F',
 	'removeFilter': 'R',
+	'exportPlot': 'E',
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
@@ -336,6 +337,7 @@ export function Menu() {
 					<SampleMenu/>
 				</MenuSection>
 				<MenuSection name='Export' style={{ left: '4em' }} {...{ shownSection, setShownSection }}>
+					<MenuButton text='Export plots' action='exportPlot'/>
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>

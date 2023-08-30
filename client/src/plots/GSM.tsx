@@ -14,7 +14,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const az = params.showAz;
 	const a0m = params.useA0m;
 	return {
-		padding: [10, 0, params.paddingBottom ?? 0, 0],
+		padding: [8, 0, params.paddingBottom ?? 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,

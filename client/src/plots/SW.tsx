@@ -8,7 +8,7 @@ type SWParams = BasicPlotParams & {
 
 function plotOptions(params: SWParams): Partial<uPlot.Options> {
 	return {
-		padding: [7, 0, 12, 0],
+		padding: [8, 0, 8, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,

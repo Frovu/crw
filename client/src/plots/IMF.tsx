@@ -10,7 +10,7 @@ type IMFParams = BasicPlotParams & {
 function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > (u.scales.speed.max! - u.scales.speed.min!) / 2 + u.scales.speed.min! ? sp : null);
 	return {
-		padding: [10, 0, params.paddingBottom ?? 0, 0],
+		padding: [8, 0, params.paddingBottom ?? 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
