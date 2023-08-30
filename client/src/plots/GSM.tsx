@@ -28,8 +28,8 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				...(params.showLegend ? [drawCustomLegend({
 					'A0(GSM)': 'CR Density var, %',
 					'A0m(GSM)': 'CR Density var (corrected), %',
-					'Axy': 'CR Equatorial anisotropy var, % ',
-					'Az': 'CR North-south anisotropy var, % ',
+					'Axy': 'CR Equatorial anisotropy var, %',
+					'Az': 'CR North-south anisotropy var, %',
 				 }, {
 					'A0(GSM)': 'diamond',
 					'A0m(GSM)': 'diamond',

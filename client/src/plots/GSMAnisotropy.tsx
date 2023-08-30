@@ -108,16 +108,16 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 
 		u.over.parentElement!.onmousemove = e => {
 			if (!drag) return;
-			const dx = e.clientX - u.rect.left + u.bbox.left - clickx;
-			const dy = e.clientY - u.rect.top + u.bbox.top - clicky;
+			const dx = (e.clientX - u.rect.left + u.bbox.left) * devicePixelRatio - clickx;
+			const dy = (e.clientY - u.rect.top + u.bbox.top) * devicePixelRatio - clicky;
 			xpos = Math.max(12, Math.min(xposClick! + dx, -8 + u.rect.width + u.bbox.left));
 			ypos = Math.max(30, Math.min(yposClick! + dy, 12 + u.bbox.height - legendHeight));
 			u.redraw();
 		};
 		u.over.parentElement!.onmousedown = e => {
-			clickx = e.clientX - u.rect.left + u.bbox.left;
-			clicky = e.clientY - u.rect.top + u.bbox.top;
-			if (clickx > xpos && clickx < xpos + legendWidth && clicky > ypos - 24 && clicky < ypos + legendHeight) {
+			clickx = (e.clientX - u.rect.left + u.bbox.left) * devicePixelRatio;
+			clicky = (e.clientY - u.rect.top + u.bbox.top) * devicePixelRatio;
+			if (clickx >= xpos && clickx <= xpos + legendWidth && clicky >= ypos - 24 && clicky <= ypos + legendHeight) {
 				xposClick = xpos;
 				yposClick = ypos;
 				drag = true;

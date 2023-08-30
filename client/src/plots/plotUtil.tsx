@@ -115,28 +115,30 @@ export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {
 		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
 		const labels = series.map(s => fullLabels[s.label]);
 
+		u.ctx.font = font(14 * devicePixelRatio);
 		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
-		const width = 52 + 8 * maxLabelLen;
-		const height = series.length * 20 + 4;
+		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
+		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
+		const width = 48 + metric.width;
+		const height = series.length * lineHeight + 4;
 
-		if (xpos < -90)
-			xpos = 8 + u.bbox.width - width;
+		if (!drag && ypos === 0 && (xpos < -90 || xpos + width > u.bbox.width / 3 * 2))
+			xpos = u.bbox.width - width + 4;
 
 		const x = u.bbox.left + xpos;
 		let y = u.bbox.top + ypos;
 		u.ctx.save();
-		u.ctx.lineWidth = 2;
+		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.strokeStyle = color('text-dark');
 		u.ctx.fillStyle = color('bg');
 		u.ctx.fillRect(x, y, width, height);
 		u.ctx.strokeRect(x, y, width, height);
-		u.ctx.font = font(14);
 		u.ctx.textAlign = 'left';
 		u.ctx.lineCap = 'butt';
-		y += 12;
-		const draw = drawShape(u.ctx, 6) as any;
+		y += lineHeight / 2 + 3;
+		const draw = drawShape(u.ctx, 6 * devicePixelRatio) as any;
 		for (const [i, s] of series.entries()) {
-			u.ctx.lineWidth = 2;
+			u.ctx.lineWidth = 2 * devicePixelRatio;
 			u.ctx.fillStyle = u.ctx.strokeStyle = s.stroke();
 			u.ctx.beginPath();
 			u.ctx.moveTo(x + 8, y);
@@ -150,22 +152,22 @@ export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {
 			u.ctx.fillStyle = color('text');
 			u.ctx.fillText(labels[i], x + 40, y);
 			u.ctx.stroke();
-			y += 20;
+			y += lineHeight;
 		}
 		u.ctx.restore();
 
 		// FIXME: eh
 		u.over.onmousemove = e => {
 			if (!drag) return;
-			const dx = e.offsetX - clickx!;
-			const dy = e.offsetY - clicky!;
+			const dx = e.offsetX * devicePixelRatio - clickx!;
+			const dy = e.offsetY * devicePixelRatio - clicky!;
 			xpos = Math.max(-8, Math.min(xposClick + dx, 8 + u.bbox.width - width));
 			ypos = Math.max(0, Math.min(yposClick + dy, 12 + u.bbox.height - height));
 			u.redraw();
 		};
 		u.over.onmousedown = e => {
-			clickx = e.offsetX;
-			clicky = e.offsetY;
+			clickx = e.offsetX * devicePixelRatio;
+			clicky = e.offsetY * devicePixelRatio;
 			if (clickx! > xpos && clickx! < xpos + width && clicky! > ypos && clicky! < ypos + height) {
 				xposClick = xpos;
 				yposClick = ypos;
