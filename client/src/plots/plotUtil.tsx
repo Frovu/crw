@@ -18,7 +18,7 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
-export function drawArrow(ctx: CanvasRenderingContext2D, dx: number, dy: number, tox: number, toy: number, headlen=10) {
+export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, headlen=10) {
 	const angle = Math.atan2(dy, dx);
 	ctx.lineTo(tox, toy);
 	ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));

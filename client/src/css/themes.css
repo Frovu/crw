@@ -25,7 +25,7 @@
 	--color-grid: rgb(33,33,33);
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
-	--color-area2: rgba(0, 153, 128, 0.5);
+	--color-area2: rgba(0, 121, 101, 0.5);
 
 	color-scheme: dark;
 }

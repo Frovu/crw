@@ -2,7 +2,7 @@ import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
 
-type GSMParams = BasicPlotParams & {
+export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
 	maskGLE: boolean,
 	showAz: boolean,
@@ -29,7 +29,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 					'A0(GSM)': 'CR Density var, %',
 					'A0m(GSM)': 'CR Density var (corrected), %',
 					'Axy': 'CR Equatorial anisotropy var, % ',
-					'Az': 'CR Polar anisotropy var, % ',
+					'Az': 'CR North-south anisotropy var, % ',
 				 }, {
 					'A0(GSM)': 'diamond',
 					'A0m(GSM)': 'diamond',

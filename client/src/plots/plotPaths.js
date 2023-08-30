@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { color, drawShape, drawArrow } from './plotUtil';
+import { drawShape } from './plotUtil';
 
 export function linePaths(width = 1) {
 	return (u, seriesIdx) => {
@@ -69,106 +69,5 @@ export function markersPaths(type, sizePx) {
 			}
 		});
 		return { fill: p, stroke: p };
-	};
-}
-
-export function tracePaths(sizePx, arrows=true) {
-	let xpos = null, ypos = null;
-	let xposClick = xpos, yposClick = ypos;
-	let clickx = 0, clicky = 0, drag = false;
-	return (u, seriesIdx) => {
-		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
-		const height = fullHeight * .6;
-		const width = fullWidth * .85;
-		const dataX = u.data[seriesIdx+1]; // swapped
-		const dataY = u.data[seriesIdx];
-		const length = dataX.length;
-		const x0 = dataX[0], y0 = dataY[0];
-		let minx = x0, maxx = x0, miny = y0, maxy = y0;
-		let x = minx, y = miny;
-		for (let i = 0; i < length; i++) {
-			x += dataX[i];
-			y += dataY[i];
-			if (x < minx) minx = x;
-			if (y < miny) miny = y;
-			if (x > maxx) maxx = x;
-			if (y > maxy) maxy = y;
-		}
-		const xrange = maxx - minx;
-		const yrange = maxy - miny;
-		const scalex = width / Math.max(xrange, 20);
-		const scaley = height / Math.max(yrange, 20);
-		const shiftx = width * .6 - (minx + xrange / 2) * scalex;
-		const shifty = (top + height / 2) - (miny + yrange / 2) * scaley;
-
-		u.ctx.save();
-		u.ctx.beginPath();
-		u.ctx.lineWidth = .7;
-		u.ctx.strokeStyle = color('green');
-		const nLines = 10;
-		const lineStep = Math.floor(length / nLines);
-		const p = new Path2D();
-		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
-		p.moveTo(x, y);
-		for (let i = 1; i < length - 1; i++) {
-			const dx = dataX[i] * scalex;
-			const dy = dataY[i] * scaley;
-			x += dx;
-			y += dy;
-			arrows ? drawArrow(p, dx, dy, x, y, 7) : p.lineTo(x, y);
-			p.moveTo(x, y);
-			if (i % lineStep === 2) {
-				const a0x = u.valToPos(u.data[0][i], 'x', true);
-				const a0y = u.valToPos(u.data[2][i], 'a0', true);
-				u.ctx.moveTo(x, y);
-				u.ctx.lineTo(a0x, a0y);
-			}
-		}
-		u.ctx.stroke();
-
-		u.ctx.beginPath();
-		u.ctx.strokeStyle = u.series[seriesIdx].stroke();
-		u.ctx.fillStyle = u.ctx.strokeStyle;
-		u.ctx.lineWidth = 2;
-		x = xpos = xpos ?? 22;
-		y = ypos = ypos ?? 40;
-		u.ctx.lineWidth = 2;
-		u.ctx.rect(x, y, 8, 8);
-		const xarrow = Math.floor(64 / scalex);
-		const yarrow = Math.floor(64 / scaley);
-		const legendWidth = xarrow * scalex + 12, legendHeight = yarrow * scaley + 4;
-		u.ctx.moveTo(x, y + 12);
-		drawArrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
-		u.ctx.moveTo(x + 12, y);
-		drawArrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
-
-		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
-		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
-		u.ctx.stroke();
-
-		u.over.parentElement.onmousemove = e => {
-			if (!drag) return;
-			const dx = e.clientX - u.rect.left + u.bbox.left - clickx;
-			const dy = e.clientY - u.rect.top + u.bbox.top - clicky;
-			xpos = Math.max(12, Math.min(xposClick + dx, -8 + u.rect.width + u.bbox.left));
-			ypos = Math.max(30, Math.min(yposClick + dy, 12 + u.bbox.height - legendHeight));
-			u.redraw();
-		};
-		u.over.parentElement.onmousedown = e => {
-			clickx = e.clientX - u.rect.left + u.bbox.left;
-			clicky = e.clientY - u.rect.top + u.bbox.top;
-			if (clickx > xpos && clickx < xpos + legendWidth && clicky > ypos - 24 && clicky < ypos + legendHeight) {
-				xposClick = xpos;
-				yposClick = ypos;
-				drag = true;
-			}
-		};
-		u.over.parentElement.onmouseup = u.over.parentElement.onmouseleave = e => {
-			drag = false;
-		};
-
-		u.ctx.restore();
-
-		return { stroke: p };
 	};
 }
