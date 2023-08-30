@@ -228,6 +228,7 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 			})),
 			{
 				label: 'vector',
+				stroke: color('magenta'),
 				paths: tracePaths(params),
 				points: { show: false }
 			}

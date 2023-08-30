@@ -129,6 +129,23 @@ export function isValidColumnValue(val: any, column: ColumnDef) {
 	}
 }
 
+export function plotParamsFromSettings(settings: Settings) {
+	return {
+		theme: settings.theme,
+		useAp: settings.plotIndexAp,
+		useTemperatureIndex: settings.plotTempIdx,
+		showGrid: settings.plotGrid,
+		showMarkers: settings.plotMarkers,
+		showLegend: settings.plotLegend,
+		subtractTrend: settings.plotSubtractTrend,
+		maskGLE: settings.plotMaskGLE,
+		useA0m: settings.plotUseA0m,
+		showAz: settings.plotAz,
+		showBz: settings.plotImfBz,
+		showBxBy: settings.plotImfBxBy,
+	};
+}
+
 function defaultSettings(): Settings {
 	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before', 'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'];
 	return {
@@ -166,18 +183,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 		return null;
 
 	const params = {
-		theme: settings.theme,
-		useAp: settings.plotIndexAp,
-		useTemperatureIndex: settings.plotTempIdx,
-		showGrid: settings.plotGrid,
-		showMarkers: settings.plotMarkers,
-		showLegend: settings.plotLegend,
-		subtractTrend: settings.plotSubtractTrend,
-		maskGLE: settings.plotMaskGLE,
-		useA0m: settings.plotUseA0m,
-		showAz: settings.plotAz,
-		showBz: settings.plotImfBz,
-		showBxBy: settings.plotImfBxBy,
+		...plotParamsFromSettings(settings),
 		...context!
 	};
 
