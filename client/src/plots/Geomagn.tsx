@@ -67,10 +67,10 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 		],
 		scales: {
 			idx: {
-				range: (u, min, max) => [min, max*2]
+				range: (u, min, max) => [0, max*2.5]
 			},
 			dst: {
-				range: (u, min, max) => [min - (max-min), max + 1]
+				range: (u, min, max) => [min - (max-min), Math.max(10, max + 1)]
 			}
 		},
 		series: [

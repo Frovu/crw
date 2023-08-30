@@ -100,7 +100,8 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 		u.ctx.save();
 		u.ctx.beginPath();
 		u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
-		u.ctx.fillRect(startX, truncateY ?? u.bbox.top, endX - startX, u.bbox.height);
+		const h = u.bbox.height, fromY = truncateY ?? u.bbox.top;
+		u.ctx.fillRect(startX, fromY, endX - startX, truncateY ? (h + u.bbox.top - truncateY) : h);
 		u.ctx.fill();
 		u.ctx.restore();
 	}
