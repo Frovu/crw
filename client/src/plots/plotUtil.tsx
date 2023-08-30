@@ -68,13 +68,14 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 		u.ctx.font = font(14, true).replace('400', '600');
 		u.ctx.textBaseline = 'top';
+		u.ctx.textAlign = 'right';
 		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.beginPath();
 		u.ctx.moveTo(OnsetX, u.bbox.top);
 		u.ctx.lineTo(OnsetX, u.bbox.top + u.bbox.height);
-		u.ctx.stroke();
 		u.ctx.fillText(onset.type || 'ons',
 			OnsetX + 4, u.bbox.top + u.bbox.height + 2);
+		u.ctx.stroke();
 		u.ctx.restore();
 	}
 }

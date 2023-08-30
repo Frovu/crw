@@ -133,7 +133,7 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.az.max! / 3 + u.scales.az.min! ? sp : null);
 	return {
-		padding: [10, 4, params.paddingBottom ?? 0, 0],
+		padding: [10, params.showAz ? 4 : 64, params.paddingBottom ?? 0, 0],
 		legend: { show: params.interactive },
 		cursor: {
 			show: params.interactive,
