@@ -227,11 +227,12 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 			},
 			{
 				...axisDefaults(params.showGrid),
+				ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
 				scale: 'y',
+				label: 'effective longitude, deg',
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				space: 48,
-				gap: 2,
-				size: 42,
+				gap: 4,
 				incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
 			},
 			{
@@ -442,21 +443,19 @@ export function PlotCircles({ params: initParams, settingsOpen }:
 
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
 	const interactive = params.interactive;
-	let padLeft = 0, padRight = 0;
+	let padRight = 0;
 	if (!interactive && size.width) {
 		// tweak interval so that time axis would align with other (shorter) plots
-		const leftDelta = 18, rightDelta = 52;
+		const rightDelta = 52;
 		const initialInterval = initParams.interval;
 		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
 		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
-		const pwidth = size.width - 50;
-		const targetHourWidth = (pwidth - leftDelta - rightDelta) / len;
-		const addHoursLeft = Math.floor(leftDelta / targetHourWidth) - 1 + even;
+		const pwidth = size.width - 60;
+		const targetHourWidth = (pwidth - rightDelta) / len;
 		const addHoursRight = Math.floor(rightDelta / targetHourWidth) - 1 + even;
-		padLeft = leftDelta % targetHourWidth;
 		padRight = rightDelta % targetHourWidth;
 		params.interval = [
-			new Date(initialInterval[0].getTime() - 36e5 * addHoursLeft),
+			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
 			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight)
 		];
 	}
@@ -499,12 +498,12 @@ export function PlotCircles({ params: initParams, settingsOpen }:
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container || size.height <= 0) return;
 		const options = {
-			padding: [8, 8 + padRight, 0, padLeft],
+			padding: [8, 8 + padRight, 0, 0],
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
 			...circlesPlotOptions(query.data, params, idxEnabled, setIdxEnabled, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, container, size.height <= 0, initParams, padLeft, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
