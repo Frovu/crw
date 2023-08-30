@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import sys, os, re, psycopg, logging
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from core.database import pool, tables_info, upsert_many
+from core.database import pool, tables_info, upsert_many, select_ids_recursive
 
 log = logging.getLogger('aides')
 log.setLevel('DEBUG')
@@ -62,17 +62,7 @@ def parse_one_column(table: str, column: str, conn):
 			if not 'Date' in line: continue
 			columns_order = line.strip().split()
 			break
-		def recursive_search(tbl, target, path):
-			if tbl == target:
-				return path
-			for col_name, col_desc in tables_info[tbl].items():
-				if col_name.startswith('_'):
-					continue
-				if ref := col_desc.get('references'):
-					npath = f'(SELECT {col_name} FROM events.{tbl} WHERE id = {path})'
-					found = recursive_search(ref, target, npath)
-					if found: return found
-		select_id = recursive_search(first_table, table, f'(SELECT id FROM events.{first_table} WHERE time = data.time)')
+		select_id = select_ids_recursive(first_table, table, 'time = data.time')
 		data = []
 		for line in file:
 			line_split = fix_format(line).split()

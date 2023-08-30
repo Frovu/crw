@@ -163,8 +163,9 @@ function ExportMenu() {
 	const { role } = useContext(AuthContext); 
 
 	const [fileText, setFileText] = useState<string>();
-	const [ filtered, setFiltered ] = useState(true);
-	const [ format, setFormat ] = useState(false);
+	const [filtered, setFiltered] = useState(true);
+	const [format, setFormat] = useState(false);
+	const [delMonths, setDelMonths] = useState(1);
 	
 	const dataUrl = () => {
 		const data = (filtered ? fData : rData).map(row => row.slice(1));
@@ -215,6 +216,21 @@ function ExportMenu() {
 			}}>Download a file</button>
 			{'admin' === role && <>
 				<h4>Import table</h4>
+				<span>
+				Delete last <input style={{ width: '5ch' }} type='number' min='1' max='24' step='1' value={delMonths} onChange={e => setDelMonths(e.target.valueAsNumber)}/> months
+				</span>
+				<MutationButton text='Clear table' invalidate={['tableData']} fn={async () => {
+					const last = rData[rData.length-1][rColumns.findIndex(c => c.name === 'time')];
+					const res = await fetch(`${process.env.REACT_APP_API}api/events/wipe`, {
+						credentials: 'include',
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ from: Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1 - delMonths, 1) / 1000 })
+					});
+					if (res.status !== 200)
+						throw new Error('HTTP '+res.status);
+					return await res.text();
+				}}/>
 				Upload FDs_fulltable.txt:
 				<input type='file' onChange={async (e) => setFileText(await e.target.files?.[0]?.text())}/>
 				<br/>

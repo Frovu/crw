@@ -143,6 +143,19 @@ def render_table_info(uid):
 	series = { ser: SERIES[ser][2] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
+
+def select_ids_recursive(tbl, target, condition='', path=None):
+	if tbl == target:
+		return path
+	for col_name, col_desc in tables_info[tbl].items():
+		if col_name.startswith('_'):
+			continue
+		if ref := col_desc.get('references'):
+			npath = f'(SELECT {col_name} FROM events.{tbl}' + (' WHERE ' if path or condition else '') +\
+				(f'id IN {path}' if path else condition or '') + ')'
+			found = select_ids_recursive(ref, target, path=npath)
+			if found: return found
+
 def select_events(uid=None, root='forbush_effects', changelog=False):
 	generics = select_generics(uid)
 	columns, joins = [], ''
@@ -186,6 +199,13 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 					'new': new_val
 				})
 		return rows, fields, rendered if changelog else None
+
+def delete_since(t_from, root='forbush_effects'):
+	with pool.connection() as conn:
+		for tbl in list(tables_info.keys())[1:][::-1]:
+			print(select_ids_recursive(root, tbl, "time >= to_timestamp(%s)"))
+			conn.execute(f'DELETE FROM events.{tbl} WHERE id IN {select_ids_recursive(root, tbl, "time >= to_timestamp(%s)")}', [t_from])
+		return conn.execute(f'DELETE FROM events.{root} WHERE time >= to_timestamp(%s)', [t_from]).rowcount
 
 def submit_changes(uid, changes, root='forbush_effects'):
 	with pool.connection() as conn:

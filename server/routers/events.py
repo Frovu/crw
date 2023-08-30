@@ -151,3 +151,11 @@ def _import_table():
 	with database.pool.connection() as conn:
 		cnt = parse_whole_file(conn, filetext.splitlines())
 	return f'+ [{cnt}] ({round(time() - start, 1)} s)'
+
+@bp.route('/wipe', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _wipe_table():
+	t_from = int(request.json.get('from'))
+	cnt = database.delete_since(t_from)
+	return f'deleted [{cnt}]'

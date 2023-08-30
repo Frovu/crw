@@ -35,7 +35,8 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 				const curs = isSel && i === cursor?.column ? cursor : null;
 				const width = { width: column.width+.5+'ch' };
 				const inpStype = !curs?.editing ? null : { ...width, borderWidth: 0, padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) };
-				return <td key={column.id} onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
+				return <td key={column.id} title={i === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
+					onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}
 					style={{ borderColor: !validInputs[i] ? 'var(--color-red)' : curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 					{!curs?.editing ?
 						<span className='Cell' style={{ ...width }}>
