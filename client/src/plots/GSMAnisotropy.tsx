@@ -40,9 +40,9 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
 		points[0] = [x, y];
 		for (let i = 1; i < length; i++) {
-			const dx = dataX[i] * scalex;
+			const dx = dataX[i] == null ? null : dataX[i] * scalex;
 			const dy = dataY[i] * scaley;
-			x += dx; y += dy;
+			x += dx ?? 3; y += dy;
 			points[i] = [x, y, dx, dy];
 		}
 
@@ -52,7 +52,10 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 		const lineStep = Math.max(3, Math.floor((length - 12) / nLines));
 		for (let i = 4; i < length - 3; i += lineStep) {
 			const a0x = u.valToPos(u.data[0][i]!, 'x', true);
-			const a0y = u.valToPos(u.data[params.useA0m ? 3 : 2][i]!, 'a0', true);
+			const val = u.data[params.useA0m ? 3 : 2][i];
+			if (val == null)
+				continue;
+			const a0y = u.valToPos(val, 'a0', true);
 			u.ctx.moveTo(points[i][0], points[i][1]);
 			u.ctx.lineTo(a0x, a0y);
 		}
@@ -61,18 +64,25 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 		u.ctx.stroke();
 
 		u.ctx.beginPath();
-		u.ctx.moveTo(points[0][0], points[0][1]);
-		points.slice(1).forEach(([ax, ay, dx, dy]) => {
-			if (params.showMarkers) {
-				drawArrow(u.ctx, dx, dy, ax, ay, 7);
-				u.ctx.moveTo(ax, ay);
-			} else {
-				u.ctx.lineTo(ax, ay);
-			}
-		});
 		u.ctx.lineWidth = 2;
-		u.ctx.strokeStyle = colorArrow;
-		u.ctx.stroke();
+		u.ctx.moveTo(points[0][0], points[0][1]);
+		for (let i = 1; i < length; ++i) {
+			const [ax, ay, dx, dy] = points[i];
+			if (dx != null) {
+				if (params.showMarkers) {
+					drawArrow(u.ctx, dx, dy, ax, ay, 7);
+				} else {
+					u.ctx.lineTo(ax, ay);
+				}
+				const tstmp = u.data[0][i] * 1000;
+				const inMc = params.clouds?.find(({ start, end }) => tstmp > start.getTime() && tstmp <= end.getTime());
+				u.ctx.strokeStyle = inMc ? colorArrowMc : colorArrow;
+				u.ctx.stroke();
+
+			}
+			u.ctx.beginPath();
+			u.ctx.moveTo(ax, ay);
+		}
 
 		u.ctx.beginPath();
 		u.ctx.strokeStyle = u.ctx.fillStyle = colorArrow;
@@ -131,7 +141,7 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 		},
 		hooks: {
 			drawAxes: [
-				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
+				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds, u.valToPos(0, 'a0', true)),
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 			],
 			draw: [
@@ -185,7 +195,7 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				range: (u, min, max) => [min-.1, -1.5 * min + 1]
 			},
 			az: {
-				range: (u, min, max) => [Math.min(0, min) - 1, (Math.max(max, 3.5) - min) * 2 - min + 3]
+				range: (u, min, max) => [Math.min(0, min) - 1, (Math.max(max, 3.5) - min) * 3 - min + 3]
 			}
 		},
 		series: [
