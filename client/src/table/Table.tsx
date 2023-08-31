@@ -559,7 +559,10 @@ export default function TableWrapper() {
 		return { settings, set, options, setOpt };
 	}, [options, settings, setSettings]);
 
-	useEventListener('action+resetSettings', () => setSettings(defaultSettings()));
+	useEventListener('action+resetSettings', () => {
+		window.localStorage.removeItem('aidPlotExport');
+		setSettings(defaultSettings());
+	});
 
 	const firstTable = 'forbush_effects';
 	const query = useQuery({

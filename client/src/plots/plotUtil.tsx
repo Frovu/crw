@@ -227,7 +227,7 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 export function drawBackground(u: uPlot) {
 	u.ctx.save();
 	u.ctx.fillStyle = color('bg');
-	u.ctx.fillRect(0, 0, u.width, u.height);
+	u.ctx.fillRect(0, 0, u.width * devicePixelRatio, u.height * devicePixelRatio);
 	u.ctx.restore();
 }
 
