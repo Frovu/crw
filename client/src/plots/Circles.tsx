@@ -176,9 +176,10 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					});
 				},
 			],
-			draw: [
+			draw: params.showMetaInfo ? [
 				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
-				u => (params.onsets?.length) && drawOnsets(u, params.onsets), ],
+				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+			] : [],
 			ready: [
 				u => {
 					if (interactive)
@@ -464,7 +465,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	const [ moment, setMoment ] = useState<number | null>(null);
 	const query = useQuery({
 		queryKey: ['ros', JSON.stringify(params.interval), params.exclude, params.window, params.autoFilter, base],
-		queryFn: () => size.width ? fetchCircles(params, base) : null,
+		queryFn: () => (params.interactive || size.width) ? fetchCircles(params, base) : null,
 		keepPreviousData: interactive
 	});
 
@@ -505,7 +506,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	}, [interactive, plotData, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
-		<div ref={container} style={{ position: 'absolute' }}>
+		<div ref={container} style={{ position: query.data ? 'absolute' : 'unset' }}>
 			{query.isLoading && <div className='Center'>LOADING...</div>}
 			{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen: initParams.settingsOpen }}/>}

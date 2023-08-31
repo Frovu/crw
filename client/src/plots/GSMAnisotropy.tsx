@@ -133,17 +133,12 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.az.max! / 3 + u.scales.az.min! ? sp : null);
 	return {
-		padding: [10, params.showAz ? 4 : 64, params.paddingBottom ?? 0, 0],
-		legend: { show: params.interactive },
-		cursor: {
-			show: params.interactive,
-			drag: { x: false, y: false, setScale: false }
-		},
+		padding: [8, params.showAz ? 0 : 64, params.showTimeAxis ? 0 : 8, 0],
 		hooks: {
-			drawAxes: [
+			drawAxes: params.showMetaInfo ? [
 				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds, u.valToPos(0, 'a0', true)),
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
-			],
+			] : [],
 			draw: [
 				u => drawCustomLabels({
 					a0: [`A0${params.useA0m ? 'm' : ''}(GSM) var, %`, u.height / 5],
@@ -165,7 +160,7 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
-				...customTimeSplits()
+				...customTimeSplits(params)
 			},
 			{
 				...axisDefaults(params.showGrid),

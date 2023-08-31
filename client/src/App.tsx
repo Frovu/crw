@@ -146,7 +146,7 @@ function App() {
 						interval: [new Date('2022-07-18'), new Date('2022-07-21')],
 						onsets: [ { time: new Date('2022-07-18T21:19:00Z'), type: 'SSC' } ],
 						clouds: [{ start: new Date('2022-07-19T05:00:00Z'), end: new Date('2022-07-20T11:00:00Z') }],
-						showGrid: true, showLegend: true, showMarkers: true, showBxBy: true, showBz: true }}/>
+						showGrid: true, showLegend: true, showMarkers: true, showBxBy: true, showBz: true, showMetaInfo: true, showTimeAxis: true }}/>
 
 				</div>}
 			{app === 'ros' && <Circles/>}

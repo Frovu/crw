@@ -186,7 +186,8 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 	const params = {
 		...plotParamsFromSettings(settings),
 		...context!,
-		showTimeAxis: true
+		showTimeAxis: true,
+		showMetaInfo: true
 	};
 
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };

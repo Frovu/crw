@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useState } from 'react';
+import { useContext, useMemo, useRef } from 'react';
 import { useEventListener, usePersistedState } from '../util';
 import PlotSW from '../plots/SW';
 import PlotIMF from '../plots/IMF';
@@ -24,6 +24,7 @@ type PlotSettings = {
 	type: keyof typeof trivialPlots,
 	height: number,
 	showTime: boolean,
+	showMeta: boolean
 	id: number
 };
 type PlotExportSettings = {
@@ -36,21 +37,25 @@ const defaultSettings = (): PlotExportSettings => ({
 		type: 'Solar Wind',
 		height: 200,
 		showTime: true,
+		showMeta: true,
 		id: 0,
 	}, {
 		type: 'Cosmic Rays',
 		height: 200,
 		showTime: true,
+		showMeta: true,
 		id: 1,
 	}, {
 		type: 'Geomagn',
 		height: 100,
 		showTime: false,
+		showMeta: true,
 		id: 2,
 	}, {
 		type: 'Ring of Stations',
 		height: 300,
 		showTime: true,
+		showMeta: true,
 		id: 3,
 	}]
 });
@@ -107,11 +112,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
 					onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 					value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
-				
+				<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
 			</div>
-			<div style={{ padding: 8 }}>
-				{settings.plots.map(({ type, height, id, showTime }) => <div style={{ marginTop: 8, position: 'relative' }} key={id}>
-					<select style={{ width: 128 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}
+			<div style={{ padding: '8px 0 8px 8px' }}>
+				{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ marginTop: 8, position: 'relative' }} key={id}>
+					<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}
 						onWheel={e => setPlot(id, 'type',
 							plotsList[(plotsList.indexOf(type) + (e.deltaY < 0 ? 1 : -1) + plotsList.length) % plotsList.length] as any)}>
 						{plotsList.map(ptype =>
@@ -120,7 +125,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<label title='Plot height'> h=<input style={{ width: 54 }} type='number' min='80' max='1800' step='20'
 						onWheel={(e: any) => setPlot(id, 'height', clamp(80, 1800, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 						value={height} onChange={e => setPlot(id, 'height', clamp(80, 1800, e.target.valueAsNumber))}></input></label>
-					<label style={{ cursor: 'pointer' }}> tm<input type='checkbox' checked={showTime} onChange={e => setPlot(id, 'showTime', e.target.checked)}/></label>
+					<label style={{ cursor: 'pointer', marginLeft: 4 }}>tm
+						<input type='checkbox' checked={showTime} onChange={e => setPlot(id, 'showTime', e.target.checked)}/></label>
+					<label style={{ cursor: 'pointer', marginLeft: 4 }}>e
+						<input type='checkbox' checked={showMeta} onChange={e => setPlot(id, 'showMeta', e.target.checked)}/></label>
 					<span style={{ position: 'absolute', right: 0, top: 1 }} className='CloseButton' onClick={() =>
 						set('plots', settings.plots.filter(p => p.id !== id))}>&times;</span>
 				</div> )}
@@ -129,6 +137,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						height: 200,
 						type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
 						showTime: true,
+						showMeta: true,
 						id: Date.now()
 					}))}>+ <u>add new plot</u></button>
 			</div>
@@ -141,10 +150,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{ width: settings.width + 6, marginLeft: 8, cursor: 'pointer' }}>
-			{settings.plots.map(({ id, type, height, showTime }) => {
+			{settings.plots.map(({ id, type, height, showTime, showMeta }) => {
 				const Plot = trivialPlots[type];
 				return <div key={id} style={{ height: height + 2, position: 'relative' }}>
-					<Plot {...params} showTimeAxis={showTime}/>
+					<Plot {...params} showTimeAxis={showTime} showMetaInfo={showMeta}/>
 				</div>; })}
 		</div>
 

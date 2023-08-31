@@ -11,8 +11,8 @@ export type BasicPlotParams = {
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
-	paddingBottom?: number,
-	showTimeAxis?: boolean,
+	showTimeAxis: boolean,
+	showMetaInfo: boolean
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean
@@ -251,8 +251,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		show: !params || params.showTimeAxis,
-		size: !params || params.showTimeAxis ? 30 : 14
+		size: !params || params.showTimeAxis ? 30 : 4
 	};
 }
 
@@ -349,11 +348,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params }:
 	options.hooks = {
 		...options.hooks,
 		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
-		drawAxes: options.hooks?.drawAxes ?? [
+		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
 			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
 			u => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
-		]
-	
+		] : [])
 	};
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
