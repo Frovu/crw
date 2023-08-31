@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawMagneticClouds } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels } from './plotUtil';
 
 type MagnParams = BasicPlotParams & {
 	useAp?: boolean,
@@ -32,14 +32,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 		})(upl, seriesIdx, i0, i1);
 	};
 	return {
-		padding: [8, 0, 4, 0],
-		legend: { show: params.interactive },
-		cursor: {
-			show: params.interactive,
-			drag: { x: false, y: false, setScale: false }
-		},
 		hooks: {
-			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
 				drawCustomLabels({ dst: 'Dst idx', idx: (params.useAp ? 'Ap' : 'Kp') + ' idx' })
 			],
@@ -114,8 +107,9 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 
 export default function PlotGeoMagn(params: MagnParams) {
 	return (<BasicPlot {...{
-		queryKey: ['Magn', params.interval],
+		queryKey: ['geomagn', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
-		options: plotOptions(params)
+		options: plotOptions(params),
+		params
 	}}/>);
 }

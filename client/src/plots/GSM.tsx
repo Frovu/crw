@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend } from './plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -14,16 +14,8 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const az = params.showAz;
 	const a0m = params.useA0m;
 	return {
-		padding: [8, 0, params.paddingBottom ?? 0, 0],
-		legend: { show: params.interactive },
-		cursor: {
-			show: params.interactive,
-			drag: { x: false, y: false, setScale: false }
-		},
 		hooks: {
-			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
-				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u),
 				...(params.showLegend ? [drawCustomLegend({
 					'A0(GSM)': 'CR Density var, %',
@@ -39,7 +31,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
-				...customTimeSplits()
+				...customTimeSplits(params)
 			},
 			{
 				...axisDefaults(false),
@@ -113,6 +105,7 @@ export default function PlotGSM(params: GSMParams) {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
-		options: gsmPlotOptions(params)
+		options: gsmPlotOptions(params),
+		params
 	}}/>);
 }

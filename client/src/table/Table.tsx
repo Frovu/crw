@@ -185,7 +185,8 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 
 	const params = {
 		...plotParamsFromSettings(settings),
-		...context!
+		...context!,
+		showTimeAxis: true
 	};
 
 	const stretchTop = which === 'plotBottom' && !settings.plotTop && { gridRow: '1 / 3' };
@@ -203,13 +204,13 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			</>}
 			{type === 'SW' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} paddingBottom={-4}/></div> 
-				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params} showTimeAxis={false}/></div> 
 			</>}
 			{type === 'CR' && <PlotGSM {...params}/>}
 			{type === 'CR + Geomagn' && <>
-				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} paddingBottom={-4}/></div> 
-				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params}/></div> 
+				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params}/></div> 
+				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params} showTimeAxis={false}/></div> 
 			</>}
 		</div>
 	);

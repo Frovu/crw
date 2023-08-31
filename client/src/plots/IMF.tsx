@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend } from './plotUtil';
 
 type IMFParams = BasicPlotParams & {
 	showBz?: boolean,
@@ -10,16 +10,8 @@ type IMFParams = BasicPlotParams & {
 function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > (u.scales.speed.max! - u.scales.speed.min!) / 2 + u.scales.speed.min! ? sp : null);
 	return {
-		padding: [8, 0, params.paddingBottom ?? 0, 0],
-		legend: { show: params.interactive },
-		cursor: {
-			show: params.interactive,
-			drag: { x: false, y: false, setScale: false }
-		},
 		hooks: {
-			drawAxes: [u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds)],
 			draw: [
-				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u),
 				...(params.showLegend ? [drawCustomLegend({
 					'Vsw': 'Vsw, km/s',
@@ -39,7 +31,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
-				...customTimeSplits()
+				...customTimeSplits(params)
 			},
 			{
 				...axisDefaults(false),
@@ -119,6 +111,7 @@ export default function PlotIMF(params: IMFParams) {
 	return (<BasicPlot {...{
 		queryKey: ['IMF', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
-		options: imfPlotOptions(params)
+		options: imfPlotOptions(params),
+		params
 	}}/>);
 }

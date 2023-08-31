@@ -60,7 +60,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 	};
 }
 
-export function drawOnsets(u: uPlot, onsets: Onset[]) {
+export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
 	for (const onset of onsets) {
 		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 		const useColor = onset.secondary ? color('text', .6) : color('white');
@@ -73,7 +73,7 @@ export function drawOnsets(u: uPlot, onsets: Onset[]) {
 		u.ctx.beginPath();
 		u.ctx.moveTo(OnsetX, u.bbox.top);
 		u.ctx.lineTo(OnsetX, u.bbox.top + u.bbox.height);
-		u.ctx.fillText(onset.type || 'ons',
+		!hideLabel && u.ctx.fillText(onset.type || 'ons',
 			OnsetX + 4, u.bbox.top + u.bbox.height + 2);
 		u.ctx.stroke();
 		u.ctx.restore();
@@ -251,7 +251,8 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		size: !params || params.showTimeAxis ? 32 : 2,
+		show: !params || params.showTimeAxis,
+		size: !params || params.showTimeAxis ? 30 : 14
 	};
 }
 
@@ -318,8 +319,8 @@ export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	}
 }
 
-export function BasicPlot({ queryKey, queryFn, options: userOptions }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>}) {
+export function BasicPlot({ queryKey, queryFn, options: userOptions, params }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>, params: BasicPlotParams}) {
 	const query = useQuery({
 		queryKey,
 		queryFn
@@ -335,8 +336,25 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions }:
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	const options = { ...size, ...userOptions } as uPlot.Options;
-	options.hooks = { ...options.hooks, drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground) };
+	const options = {
+		...size,
+		padding: [8, 0, params.showTimeAxis ? 0 : 8, 0],
+		legend: { show: params.interactive },
+		cursor: {
+			show: params.interactive,
+			drag: { x: false, y: false, setScale: false }
+		},
+		...userOptions
+	} as uPlot.Options;
+	options.hooks = {
+		...options.hooks,
+		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
+		drawAxes: options.hooks?.drawAxes ?? [
+			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
+			u => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
+		]
+	
+	};
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 		<UplotReact {...{ options, data: query.data as any }}/>

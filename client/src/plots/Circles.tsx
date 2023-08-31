@@ -222,8 +222,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
-				size: 40,
-				...customTimeSplits()
+				...customTimeSplits(params),
 			},
 			{
 				...axisDefaults(params.showGrid),

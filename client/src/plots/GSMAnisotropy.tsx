@@ -243,6 +243,7 @@ export default function PlotGSMAnisotropy(params: GSMParams) {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
-		options: anisotropyPlotOptions(params)
+		options: anisotropyPlotOptions(params),
+		params
 	}}/>);
 }

@@ -141,10 +141,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{ width: settings.width + 6, marginLeft: 8, cursor: 'pointer' }}>
-			{settings.plots.map(({ id, type, height }) => {
+			{settings.plots.map(({ id, type, height, showTime }) => {
 				const Plot = trivialPlots[type];
 				return <div key={id} style={{ height: height + 2, position: 'relative' }}>
-					<Plot {...params}/>
+					<Plot {...params} showTimeAxis={showTime}/>
 				</div>; })}
 		</div>
 
