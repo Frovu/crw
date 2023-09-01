@@ -106,8 +106,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	};
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
-	return (<div style={{ display: 'flex', userSelect: 'none', width: settings.width + 320 + 8, padding: 16 }}>
-		<div style={{ width: 320 }} ref={el => el?.addEventListener('wheel', e => e.preventDefault(), { passive: false })}>
+	return (<div style={{ userSelect: 'none', padding: 8, display: 'grid', gridTemplateColumns: '340px auto', gap: 8, height: 'calc(100vh - 16px)' }}>
+		<div style={{ margin: '8px 0 0 8px' }} ref={el => el?.addEventListener('wheel', e => e.preventDefault(), { passive: false })}>
 			<div>
 				<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
 					onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
@@ -125,9 +125,9 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<label title='Plot height'> h=<input style={{ width: 54 }} type='number' min='80' max='1800' step='20'
 						onWheel={(e: any) => setPlot(id, 'height', clamp(80, 1800, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 						value={height} onChange={e => setPlot(id, 'height', clamp(80, 1800, e.target.valueAsNumber))}></input></label>
-					<label style={{ cursor: 'pointer', marginLeft: 4 }}>tm
+					<label style={{ cursor: 'pointer', marginLeft: 8 }}>tm
 						<input type='checkbox' checked={showTime} onChange={e => setPlot(id, 'showTime', e.target.checked)}/></label>
-					<label style={{ cursor: 'pointer', marginLeft: 4 }}>e
+					<label style={{ cursor: 'pointer', marginLeft: 8 }}>e
 						<input type='checkbox' checked={showMeta} onChange={e => setPlot(id, 'showMeta', e.target.checked)}/></label>
 					<span style={{ position: 'absolute', right: 0, top: 1 }} className='CloseButton' onClick={() =>
 						set('plots', settings.plots.filter(p => p.id !== id))}>&times;</span>
@@ -149,10 +149,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 
 			</div>
 		</div>
-		<div ref={container} style={{ width: settings.width + 6, marginLeft: 8, cursor: 'pointer' }}>
+		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
 			{settings.plots.map(({ id, type, height, showTime, showMeta }) => {
 				const Plot = trivialPlots[type];
-				return <div key={id} style={{ height: height + 2, position: 'relative' }}>
+				return <div key={id} style={{ height: height + 2, width: settings.width + 4, position: 'relative' }}>
 					<Plot {...params} showTimeAxis={showTime} showMetaInfo={showMeta}/>
 				</div>; })}
 		</div>
