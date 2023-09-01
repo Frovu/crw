@@ -350,8 +350,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params }:
 		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
 		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
 			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
-			u => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
-		] : [])
+		] : []),
+		draw: ((params.showMetaInfo && !options.hooks?.drawAxes?.length) ? [
+			(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
+		] : []).concat(options.hooks?.draw ?? [] as any)
 	};
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>

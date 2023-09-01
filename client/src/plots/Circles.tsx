@@ -360,7 +360,7 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 	return res.json();
 }
 
-function renderPlotData(resp: CirclesResponse, params: CirclesParams) {
+function renderPlotData(resp: CirclesResponse, shift?: number) {
 	const slen = resp.shift.length, tlen = resp.time.length;
 	if (tlen < 10) return;
 	const data = Array.from(Array(4), () => new Array(slen*tlen));
@@ -369,7 +369,7 @@ function renderPlotData(resp: CirclesResponse, params: CirclesParams) {
 		for (let si = 0; si < slen; ++si) {
 			const time = resp.time[ti];
 			const rawv = resp.variation[ti][si];
-			const vv = rawv != null ? rawv + (params.variationShift ?? 0) : null;
+			const vv = rawv != null ? rawv + (shift ?? 0) : null;
 			const idx = ti*slen + si;
 			// if (vv < maxVar) maxVar = vv;
 			if (vv == null) ++nullCount;
@@ -463,8 +463,9 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	const [ idxEnabled, setIdxEnabled ] = useState(true);
 	const [ base, setBase ] = useState(params.base);
 	const [ moment, setMoment ] = useState<number | null>(null);
+	
 	const query = useQuery({
-		queryKey: ['ros', JSON.stringify(params.interval), params.exclude, params.window, params.autoFilter, base],
+		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
 		queryFn: () => (params.interactive || size.width) ? fetchCircles(params, base) : null,
 		keepPreviousData: interactive
 	});
@@ -472,8 +473,8 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	const [ uplot, setUplot ] = useState<uPlot>();
 	const plotData = useMemo(() => {
 		if (!query.data) return null;
-		return renderPlotData(query.data, params);
-	}, [query.data, params]);
+		return renderPlotData(query.data, params.variationShift);
+	}, [query.data, params.variationShift]);
 
 	useEffect(() => setMoment(null), [params.interval]);
 

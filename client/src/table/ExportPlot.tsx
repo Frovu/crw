@@ -6,7 +6,7 @@ import PlotGSM from '../plots/GSM';
 import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import PlotGeoMagn from '../plots/Geomagn';
 import { PlotCircles } from '../plots/Circles';
-import { PlotContext, SettingsContext, plotParamsFromSettings } from './Table';
+import { PlotContext, SettingsContext, plotParamsFromSettings, themeOptions } from './Table';
 import { color } from '../plots/plotUtil';
 
 // const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
@@ -27,11 +27,20 @@ type PlotSettings = {
 	showMeta: boolean
 	id: number
 };
+
 type PlotExportSettings = {
+	showGrid: boolean,
+	showMarkers: boolean,
+	showLegend: boolean,
+	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[]
 };
 const defaultSettings = (): PlotExportSettings => ({
+	showGrid: true,
+	showMarkers: true,
+	showLegend: true,
+	theme: 'Dark',
 	width: 640,
 	plots: [{
 		type: 'Solar Wind',
@@ -65,6 +74,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const plotContext = useContext(PlotContext);
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 
+	document.documentElement.setAttribute('main-theme', settings.theme);
+
 	const set = <T extends keyof PlotExportSettings>(what: T, val: PlotExportSettings[T]) => setSettings(st => ({ ...st, [what]: val }));
 	const setPlot = <T extends keyof PlotSettings>(id: number, k: T, v: PlotSettings[T]) => setSettings(st => {
 		const i = st.plots.findIndex(p => p.id === id);
@@ -76,12 +87,16 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (['Escape', 'KeyE'].includes(e.code))
 			escape();
+		if ('KeyT' === e.code)
+			setSettings(st => ({ ...st, theme: themeOptions[(themeOptions.indexOf(st.theme) + 1) % themeOptions.length] }))
 	});
 
 	const params = useMemo(() => ({
 		...plotParamsFromSettings(tableSettings),
-		...plotContext!
-	}), [tableSettings, plotContext]);
+		...plotContext!,
+		...settings,
+		plots: undefined
+	}), [tableSettings, plotContext, settings]);
 
 	const doExport = (download?: boolean) => {
 		const canvas = document.createElement('canvas');
@@ -104,10 +119,43 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		a.href = canvas.toDataURL()!;
 		a.click();
 	};
+	/*
+<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
+<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
+<MenuCheckbox text='Show legend' value={!!settings.plotLegend} callback={v => set('plotLegend', () => v)}/>
+<div>
+	± Days:
+	<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
+		onChange={(v: any) => set('plotTimeOffset', (prev) => [v, prev[1]])}/>
+	/
+	<MenuInput type='number' min='1' max='14' step='.5' value={settings.plotTimeOffset?.[1]}
+		onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
+</div>
+<h4>Cosmic Rays</h4>
+<MenuCheckbox text='Show Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
+<MenuCheckbox text='Subtract variation trend' value={!!settings.plotSubtractTrend} callback={v => set('plotSubtractTrend', () => v)}/>
+<MenuCheckbox text='Mask GLE' value={!!settings.plotMaskGLE} callback={v => set('plotMaskGLE', () => v)}/>
+<MenuCheckbox text='Use dst corrected A0m' value={!!settings.plotUseA0m} callback={v => set('plotUseA0m', () => v)}/>
+<MenuCheckbox text={'Use index: ' + (settings.plotIndexAp ? 'Ap' : 'Kp')} hide={true} value={!!settings.plotIndexAp} callback={v => set('plotIndexAp', () => v)}/>
+<h4>Solar Wind</h4>
+<MenuCheckbox text={'Temperature: ' + (settings.plotTempIdx ? 'index' : 'plain')} hide={true} value={!!settings.plotTempIdx} callback={v => set('plotTempIdx', () => v)}/>
+<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
+<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
+	*/
+	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
+		return <label style={{ margin: '0 4px' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+	}
+	console.log(settings.plots)
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
 	return (<div style={{ userSelect: 'none', padding: 8, display: 'grid', gridTemplateColumns: '340px auto', gap: 8, height: 'calc(100vh - 16px)' }}>
 		<div style={{ margin: '8px 0 0 8px' }} ref={el => el?.addEventListener('wheel', e => e.preventDefault(), { passive: false })}>
+			<div style={{ margin: '0 0 16px 0' }}>
+				<button style={{ padding: '2px 12px' }}
+					onClick={() => doExport()}><u>O</u>pen image</button>
+				<button style={{ padding: '2px 12px', marginLeft: 14 }}
+					onClick={() => doExport(true)}><u>D</u>ownload image</button>
+			</div>
 			<div>
 				<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
 					onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
@@ -141,12 +189,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						id: Date.now()
 					}))}>+ <u>add new plot</u></button>
 			</div>
-			<div style={{ margin: '8px 0' }}>
-				<button style={{ padding: '2px 12px' }}
-					onClick={() => doExport()}>Open image</button>
-				<button style={{ padding: '2px 12px', marginLeft: 12 }}
-					onClick={() => doExport(true)}>Download image</button>
-
+			<div>
+				<Checkbox text='Grid' k='showGrid'/>
+				<Checkbox text='Markers' k='showMarkers'/>
+				<Checkbox text='Legend' k='showLegend'/>
 			</div>
 		</div>
 		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
