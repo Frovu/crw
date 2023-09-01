@@ -26,6 +26,7 @@ export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy
 	ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
 }
 
+type Shape = 'square' | 'circle' | 'arrow' | 'triangleUp' | 'triangleDown' | 'diamond';
 export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 	return {
 		square: (x: number, y: number) => ctx.rect(x - radius*.7, y - radius*.7, radius*1.4, radius*1.4),
@@ -57,7 +58,7 @@ export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 			ctx.lineTo(x + radius, y);
 			ctx.closePath();
 		}
-	};
+	} as { [shape in Shape]: (x: number, y: number) => void };
 }
 
 export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
@@ -108,7 +109,9 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 	}
 }
 
-export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {[ser: string]: string}) {
+type CustomLegendLabels = {[ser: string]: string};
+type CustomLegendShapes = {[ser: string]: Shape};
+export function drawCustomLegend(fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
 	let xpos = -99, ypos = 0;
 	let xposClick = xpos, yposClick = ypos;
 	let clickx: number|null = null, clicky: number|null = null, drag = false;
@@ -137,7 +140,7 @@ export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {
 		u.ctx.textAlign = 'left';
 		u.ctx.lineCap = 'butt';
 		y += lineHeight / 2 + 3;
-		const draw = drawShape(u.ctx, 6 * devicePixelRatio) as any;
+		const draw = drawShape(u.ctx, 6 * devicePixelRatio);
 		for (const [i, s] of series.entries()) {
 			u.ctx.lineWidth = 2 * devicePixelRatio;
 			u.ctx.fillStyle = u.ctx.strokeStyle = s.stroke();
@@ -181,10 +184,13 @@ export function drawCustomLegend(fullLabels: {[ser: string]: string}, shapes?: {
 	};
 }
 
-export function drawCustomLabels(scales: {[scale: string]: string | [string, number]}) {
+type CustomLabelsDesc = { [scale: string]: string | [string, number] | [string, number, number] };
+// [ label, shift (multiplied by height), shift (pixels) ]
+function drawCustomLabels(scales: CustomLabelsDesc) {
 	return (u: uPlot) => {
 		for (const [scale, value] of Object.entries(scales)) {
-			const [label, shift] = typeof value === 'string' ? [value, 0] : value;
+			const [label, shiftMulti, shiftPx] = typeof value === 'string' ? [value, 0, 0]
+				: value.concat(value.length < 3 ? [0] : []) as [string, number, number];
 			const axis = u.axes.find(ax => ax.scale === scale);
 			if (!axis) continue;
 			if (axis.side && axis.side % 2 === 0)
@@ -206,7 +212,8 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 			u.ctx.font = font(14, true);
 			u.ctx.translate(
 				Math.round((baseX + axis.labelGap! * flowDir * -1) * devicePixelRatio),
-				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2 + shift * devicePixelRatio),
+				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2
+					+ (u.height * shiftMulti + shiftPx) * devicePixelRatio),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = axis.label != null ? 'bottom' : 'middle';
@@ -218,9 +225,7 @@ export function drawCustomLabels(scales: {[scale: string]: string | [string, num
 				x += u.ctx.measureText(text).width;
 			}
 			u.ctx.restore();
-
 		}
-
 	};
 }
 
@@ -318,8 +323,9 @@ export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	}
 }
 
-export function BasicPlot({ queryKey, queryFn, options: userOptions, params }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>, params: BasicPlotParams}) {
+export function BasicPlot({ queryKey, queryFn, options: userOptions, params, labels, legend }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>,
+	params: BasicPlotParams, labels?: CustomLabelsDesc, legend?: [CustomLegendLabels, CustomLegendShapes] | CustomLegendLabels }) {
 	const query = useQuery({
 		queryKey,
 		queryFn
@@ -345,15 +351,19 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params }:
 		},
 		...userOptions
 	} as uPlot.Options;
+
 	options.hooks = {
 		...options.hooks,
 		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
 		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
 			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
 		] : []),
-		draw: ((params.showMetaInfo && !options.hooks?.drawAxes?.length) ? [
-			(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
-		] : []).concat(options.hooks?.draw ?? [] as any)
+		draw: [
+			...(labels ? [drawCustomLabels(labels)] : []),
+			...(legend && params.showLegend ? [drawCustomLegend(...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
+			...(params.showMetaInfo ? [(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis)] : []),
+			...(options.hooks?.draw ?? [])
+		]
 	};
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>

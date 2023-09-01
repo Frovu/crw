@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
 type IMFParams = BasicPlotParams & {
 	showBz?: boolean,
@@ -10,24 +10,6 @@ type IMFParams = BasicPlotParams & {
 function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > (u.scales.speed.max! - u.scales.speed.min!) / 2 + u.scales.speed.min! ? sp : null);
 	return {
-		hooks: {
-			draw: [
-				u => drawCustomLabels({ imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', 16 + -u.height / 4] })(u),
-				...(params.showLegend ? [drawCustomLegend({
-					'Vsw': 'Vsw, km/s',
-					'|B|': 'IMF |B|, nT',
-					'Bx': 'IMF  Bx, nT',
-					'By': 'IMF  By, nT',
-					'Bz': 'IMF  Bz, nT',
-				 }, {
-					'Vsw': 'diamond',
-					'|B|': 'circle',
-					'Bx': 'triangleDown',
-					'By': 'triangleUp',
-					'Bz': 'square',
-				})] : [])
-			]
-		},
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
@@ -112,6 +94,20 @@ export default function PlotIMF(params: IMFParams) {
 		queryKey: ['IMF', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 		options: imfPlotOptions(params),
-		params
+		params,
+		labels: { imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', -1 / 4, 16] },
+		legend: [{
+			'Vsw': 'Vsw, km/s',
+			'|B|': 'IMF |B|, nT',
+			'Bx': 'IMF  Bx, nT',
+			'By': 'IMF  By, nT',
+			'Bz': 'IMF  Bz, nT',
+		}, {
+			'Vsw': 'diamond',
+			'|B|': 'circle',
+			'Bx': 'triangleDown',
+			'By': 'triangleUp',
+			'Bz': 'square',
+		}]
 	}}/>);
 }

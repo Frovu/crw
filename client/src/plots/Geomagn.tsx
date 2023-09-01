@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
 type MagnParams = BasicPlotParams & {
 	useAp?: boolean,
@@ -32,11 +32,6 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 		})(upl, seriesIdx, i0, i1);
 	};
 	return {
-		hooks: {
-			draw: [
-				drawCustomLabels({ dst: 'Dst idx', idx: (params.useAp ? 'Ap' : 'Kp') + ' idx' })
-			],
-		},
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
@@ -112,6 +107,7 @@ export default function PlotGeoMagn(params: MagnParams) {
 		queryKey: ['geomagn', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		options: plotOptions(params),
-		params
+		params,
+		labels: { dst: 'Dst idx', idx: (params.useAp ? 'Ap' : 'Kp') + ' idx' }
 	}}/>);
 }

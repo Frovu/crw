@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend, superScript } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, superScript } from './plotUtil';
 
 type SWParams = BasicPlotParams & {
 	useTemperatureIndex?: boolean,
@@ -8,20 +8,6 @@ type SWParams = BasicPlotParams & {
 
 function plotOptions(params: SWParams): Partial<uPlot.Options> {
 	return {
-		hooks: {
-			draw: [
-				u => drawCustomLabels({ temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' })(u),
-				...(params.showLegend ? [drawCustomLegend({
-					'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
-					'Dp': 'Proton density, N/cm^3',
-					'beta': 'Plasma beta',
-				 }, {
-					'Tp': 'diamond',
-					'Dp': 'circle',
-					'beta': 'square',
-				})] : [])
-			],
-		},
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
@@ -42,8 +28,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 			},
 		],
 		scales: {
-			y: {
-			},
+			y: { },
 			temp: {
 				distr: params.useTemperatureIndex ? 1 : 3
 			}
@@ -98,7 +83,16 @@ export default function PlotSW(params: SWParams) {
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]),
-		options: plotOptions(params),
-		params
+		params, options: plotOptions(params),
+		labels: { temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' },
+		legend: [{
+			'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
+			'Dp': 'Proton density, N/cm^3',
+			'beta': 'Plasma beta',
+		 }, {
+			'Tp': 'diamond',
+			'Dp': 'circle',
+			'beta': 'square',
+		}]
 	}}/>);
 }

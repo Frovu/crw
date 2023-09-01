@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
-import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, drawCustomLabels, drawCustomLegend } from './plotUtil';
+import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -14,20 +14,6 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 	const az = params.showAz;
 	const a0m = params.useA0m;
 	return {
-		hooks: {
-			draw: [
-				u => drawCustomLabels({ var: `A0${a0m?'m':''}(GSM) var, %`, axy: ['Axy' + (az ? ',Az' : '') + ',%', u.height / 4] })(u),
-				...(params.showLegend ? [drawCustomLegend({
-					'A0(GSM)': 'CR Density var, %',
-					'A0m(GSM)': 'CR Density var (corrected), %',
-					'Axy': 'CR Equatorial anisotropy var, %',
-					'Az': 'CR North-south anisotropy var, %',
-				 }, {
-					'A0(GSM)': 'diamond',
-					'A0m(GSM)': 'diamond',
-				 })] : [])
-			],
-		},
 		axes: [
 			{
 				...axisDefaults(params.showGrid),
@@ -105,7 +91,16 @@ export default function PlotGSM(params: GSMParams) {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
-		options: gsmPlotOptions(params),
-		params
+		params, options: gsmPlotOptions(params),
+		labels: { var: `A0${params.useA0m?'m':''}(GSM) var, %`, axy: ['Axy' + (params.showAz ? ',Az' : '') + ',%', 1 / 4] },
+		legend: [{
+			'A0(GSM)': 'CR Density var, %',
+			'A0m(GSM)': 'CR Density var (corrected), %',
+			'Axy': 'CR Equatorial anisotropy var, %',
+			'Az': 'CR North-south anisotropy var, %',
+		 }, {
+			'A0(GSM)': 'diamond',
+			'A0m(GSM)': 'diamond',
+		 }]
 	}}/>);
 }
