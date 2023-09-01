@@ -145,11 +145,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
 		return <label style={{ margin: '0 4px' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 	}
-	console.log(settings.plots)
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
 	return (<div style={{ userSelect: 'none', padding: 8, display: 'grid', gridTemplateColumns: '340px auto', gap: 8, height: 'calc(100vh - 16px)' }}>
-		<div style={{ margin: '8px 0 0 8px' }} ref={el => el?.addEventListener('wheel', e => e.preventDefault(), { passive: false })}>
+		<div style={{ margin: '8px 0 0 8px' }}>
 			<div style={{ margin: '0 0 16px 0' }}>
 				<button style={{ padding: '2px 12px' }}
 					onClick={() => doExport()}><u>O</u>pen image</button>

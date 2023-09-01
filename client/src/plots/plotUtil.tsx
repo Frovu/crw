@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { MutableRefObject, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { useSize } from '../util';
 import uPlot from 'uplot';
@@ -109,12 +109,58 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 	}
 }
 
+type Size = { width: number, height: number };
+type Position = { x: number, y: number };
+export function usePlotOverlayPosition(defaultPos: Position | ((upl: uPlot, size: Size) => Position))
+	: [MutableRefObject<Position|null>, MutableRefObject<Size>, (u: uPlot) => void] {
+	const posRef = useRef<Position | null>(null);
+	const sizeRef = useRef<Size>({ width: 0, height: 0 });
+	let clickX = 0, clickY = 0, drag = false;
+	let savedPos = { x: 0, y: 0 };
+
+	return [posRef, sizeRef, (u: uPlot) => {
+		const getPosition = () => posRef.current ?? (typeof defaultPos == 'function' ? defaultPos(u, sizeRef.current) : defaultPos);
+		u.root.addEventListener('mousemove', e => {
+			if (!drag) {
+				if (posRef.current && posRef.current?.x > u.width * devicePixelRatio - sizeRef.current.width) {
+					posRef.current = null;
+					u.redraw();
+				}
+				return;
+			};
+
+			const rect = u.root.getBoundingClientRect();
+			const dx = (e.clientX - rect.left) * devicePixelRatio - clickX;
+			const dy = (e.clientY - rect.top)  * devicePixelRatio - clickY;
+			const { width, height } = sizeRef.current;
+			posRef.current = {
+				x: Math.max(2, Math.min(savedPos.x + dx, u.width  * devicePixelRatio - width - 2)),
+				y: Math.max(2, Math.min(savedPos.y + dy, u.height * devicePixelRatio - height - 2))
+			};
+			u.redraw();
+		});
+		u.root.addEventListener('mousedown', e => {
+			const rect = u.root.getBoundingClientRect();
+			clickX = (e.clientX - rect.left) * devicePixelRatio;
+			clickY = (e.clientY - rect.top) * devicePixelRatio;
+			const pos = getPosition();
+			const { width, height } = sizeRef.current;
+			console.log(pos.x, clickX, pos.x + width);
+			console.log(pos.y, clickY, pos.y + height);
+			if (clickX! >= pos.x && clickX! <= pos.x + width
+				&& clickY! >= pos.y && clickY! <= pos.y + height) {
+				savedPos = pos;
+				drag = true;
+			}
+		});
+		u.root.addEventListener('mouseleave', e => { drag = false; });
+		u.root.addEventListener('mouseup', e => { drag = false; });
+	}];
+}
+
 type CustomLegendLabels = {[ser: string]: string};
 type CustomLegendShapes = {[ser: string]: Shape};
-export function drawCustomLegend(fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
-	let xpos = -99, ypos = 0;
-	let xposClick = xpos, yposClick = ypos;
-	let clickx: number|null = null, clicky: number|null = null, drag = false;
+export function drawCustomLegend(position: MutableRefObject<Position|null>, size: MutableRefObject<Size>, fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
 	return (u: uPlot) => {
 		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
 		const labels = series.map(s => fullLabels[s.label]);
@@ -125,12 +171,13 @@ export function drawCustomLegend(fullLabels: CustomLegendLabels, shapes?: Custom
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const width = 48 + metric.width;
 		const height = series.length * lineHeight + 4;
+		size.current = { width, height };
 
-		if (!drag && ypos === 0 && (xpos < -90 || xpos + width > u.bbox.width / 3 * 2))
-			xpos = u.bbox.width - width + 4;
+		const maxX = u.bbox.left + u.bbox.width - width;
+		const pos = position.current ?? { x: maxX, y: u.bbox.top };
 
-		const x = u.bbox.left + xpos;
-		let y = u.bbox.top + ypos;
+		const x = pos.x;
+		let y = pos.y;
 		u.ctx.save();
 		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.strokeStyle = color('text-dark');
@@ -159,28 +206,6 @@ export function drawCustomLegend(fullLabels: CustomLegendLabels, shapes?: Custom
 			y += lineHeight;
 		}
 		u.ctx.restore();
-
-		// FIXME: eh
-		u.over.onmousemove = e => {
-			if (!drag) return;
-			const dx = e.offsetX * devicePixelRatio - clickx!;
-			const dy = e.offsetY * devicePixelRatio - clicky!;
-			xpos = Math.max(-8, Math.min(xposClick + dx, 8 + u.bbox.width - width));
-			ypos = Math.max(0, Math.min(yposClick + dy, 12 + u.bbox.height - height));
-			u.redraw();
-		};
-		u.over.onmousedown = e => {
-			clickx = e.offsetX * devicePixelRatio;
-			clicky = e.offsetY * devicePixelRatio;
-			if (clickx! > xpos && clickx! < xpos + width && clicky! > ypos && clicky! < ypos + height) {
-				xposClick = xpos;
-				yposClick = ypos;
-				drag = true;
-			}
-		};
-		u.over.onmouseup = u.over.onmouseleave = e => {
-			drag = false;
-		};
 	};
 }
 
@@ -334,6 +359,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
+	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition((u, { width }) => ({
+		x: u.bbox.left + u.bbox.width - width, 
+		y: u.bbox.top }));
+
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
 	if (query.isError)
@@ -351,7 +380,6 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 		},
 		...userOptions
 	} as uPlot.Options;
-
 	options.hooks = {
 		...options.hooks,
 		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
@@ -359,11 +387,14 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
 		] : []),
 		draw: [
-			...(labels ? [drawCustomLabels(labels)] : []),
-			...(legend && params.showLegend ? [drawCustomLegend(...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(params.showMetaInfo ? [(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis)] : []),
+			...(labels ? [drawCustomLabels(labels)] : []),
+			...(legend && params.showLegend ? [drawCustomLegend(legendPos, legendSize, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])
-		]
+		],
+		ready: [
+			handleDragLegend
+		].concat(options.hooks?.ready ?? [] as any)
 	};
 
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>

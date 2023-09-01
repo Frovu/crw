@@ -141,7 +141,7 @@ function App() {
 			promptLogin: setAuthPrompt,
 		}}>
 			{app === 'test' && 
-				<div style={{ width: 1200, height: 600, position: 'relative' }}>
+				<div style={{ width: 1200, marginLeft: 100, height: 600, position: 'relative' }}>
 					<PlotIMF {...{
 						interval: [new Date('2022-07-18'), new Date('2022-07-21')],
 						onsets: [ { time: new Date('2022-07-18T21:19:00Z'), type: 'SSC' } ],
