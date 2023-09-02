@@ -92,24 +92,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	});
 	const container = useRef<HTMLDivElement>(null);
 
-	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (['Escape', 'KeyE'].includes(e.code))
-			escape();
-		if ('KeyT' === e.code)
-			setSettings(st => ({ ...st, theme: themeOptions[(themeOptions.indexOf(st.theme) + 1) % themeOptions.length] }));
-	});
-
-	const params = useMemo(() => ({
-		...plotParamsFromSettings(tableSettings),
-		...plotContext!,
-		...settings,
-		interval: [
-			new Date(plotContext!.interval[0].getTime() + shrinkLeft * 36e5),
-			new Date(plotContext!.interval[1].getTime() - shrinkRight * 36e5)
-		] as [Date, Date],
-		plots: undefined
-	}), [tableSettings, plotContext, settings, shrinkLeft, shrinkRight]);
-
 	const doExport = (download?: boolean) => {
 		const canvas = document.createElement('canvas');
 		canvas.width = settings.width;
@@ -136,6 +118,28 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			blob && window.open(URL.createObjectURL(blob));
 		});
 	};
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (['Escape', 'KeyE'].includes(e.code))
+			escape();
+		else if ('KeyT' === e.code)
+			setSettings(st => ({ ...st, theme: themeOptions[(themeOptions.indexOf(st.theme) + 1) % themeOptions.length] }));
+		else if ('KeyO' === e.code)
+			doExport();
+		else if ('KeyD' === e.code)
+			doExport(true);
+	});
+
+	const params = useMemo(() => ({
+		...plotParamsFromSettings(tableSettings),
+		...plotContext!,
+		...settings,
+		interval: [
+			new Date(plotContext!.interval[0].getTime() + shrinkLeft * 36e5),
+			new Date(plotContext!.interval[1].getTime() - shrinkRight * 36e5)
+		] as [Date, Date],
+		plots: undefined
+	}), [tableSettings, plotContext, settings, shrinkLeft, shrinkRight]);
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
