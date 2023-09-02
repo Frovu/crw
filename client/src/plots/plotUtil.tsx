@@ -283,7 +283,7 @@ function drawCustomLabels(scales: CustomLabelsDesc) {
 export function drawBackground(u: uPlot) {
 	u.ctx.save();
 	u.ctx.fillStyle = color('bg');
-	u.ctx.fillRect(0, 0, u.width * devicePixelRatio, u.height * devicePixelRatio);
+	u.ctx.fillRect(0, 0, u.ctx.canvas.width, u.ctx.canvas.height);
 	u.ctx.restore();
 }
 
@@ -361,16 +361,18 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 
 export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	if (e.altKey || e.ctrlKey) {
-		const a = document.createElement('a');
-		if (e.altKey)
-			a.download = 'aid_plot.png';
-		else
-			a.target = '_blank';
 		const canvas = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
 		if (!canvas)
 			return console.log('not found plot (click)');
-		a.href = canvas.toDataURL()!;
-		a.click();
+		if (e.altKey) {
+			const a = document.createElement('a');
+			a.download = 'aid_plot.png';
+			a.href = canvas.toDataURL()!;
+			return a.click();
+		}
+		canvas.toBlob(blob => {
+			blob && window.open(URL.createObjectURL(blob));
+		});
 	}
 }
 
