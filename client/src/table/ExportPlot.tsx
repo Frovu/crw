@@ -7,7 +7,7 @@ import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import PlotGeoMagn from '../plots/Geomagn';
 import { PlotCircles } from '../plots/Circles';
 import { PlotContext, SettingsContext, plotParamsFromSettings, themeOptions } from './Table';
-import { color } from '../plots/plotUtil';
+import { Position, color } from '../plots/plotUtil';
 
 // const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 const trivialPlots = {
@@ -73,6 +73,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const { settings: tableSettings } = useContext(SettingsContext);
 	const plotContext = useContext(PlotContext);
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
+	const dragRef = useRef<Position | null>(null);
+	const divRef = useRef<HTMLDivElement>(null);
 
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
@@ -152,23 +154,44 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	}
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
-	return (<div style={{ userSelect: 'none', padding: 8, display: 'grid', gridTemplateColumns: `${340 / devicePixelRatio + 20}px auto`, gap: 8, height: 'calc(100vh - 16px)' }}>
+	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${336 / devicePixelRatio + 20}px auto`, height: 'calc(100vh - 16px)' }}>
 		<div>
-			<div style={{ margin: '8px 0 0 8px', position: 'absolute', transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left' }}>
-				<div style={{ margin: '0 0 16px 0' }}>
-					<button style={{ padding: '2px 12px' }}
-						onClick={() => doExport()}><u>O</u>pen image</button>
-					<button style={{ padding: '2px 12px', marginLeft: 14 }}
-						onClick={() => doExport(true)}><u>D</u>ownload image</button>
+			<div style={{ position: 'fixed', left: 0, top: 0, transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left' }}>
+				<div style={{ padding: '16px 0 0 16px' }}>
+					<div style={{ margin: '0 0 16px 0' }}>
+						<button style={{ padding: '2px 12px' }}
+							onClick={() => doExport()}><u>O</u>pen image</button>
+						<button style={{ padding: '2px 12px', marginLeft: 14 }}
+							onClick={() => doExport(true)}><u>D</u>ownload image</button>
+					</div>
+					<div>
+						<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
+							onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
+							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
+						<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
+					</div>
 				</div>
-				<div>
-					<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
-						onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
-						value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
-					<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
-				</div>
-				<div style={{ padding: '8px 0 8px 8px' }}>
-					{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ marginTop: 8, position: 'relative' }} key={id}>
+				<div ref={divRef} style={{ padding: '8px 0 8px 20px', width: 356, cursor: 'grab' }}
+					onMouseMove={e => {
+						if (!dragRef.current || !divRef.current) return;
+						const { top } = divRef.current.getBoundingClientRect();
+						const height = 34 / devicePixelRatio;
+						const srcIdx = clamp(0, settings.plots.length - 1,
+							Math.floor((dragRef.current.y - top - 12 / devicePixelRatio) / height));
+						const trgIdx = clamp(0, settings.plots.length - 1,
+							Math.floor((e.clientY - top  - 12/ devicePixelRatio) / height));
+						
+						if (srcIdx === trgIdx) return;
+						dragRef.current = { x: e.clientX, y: e.clientY };
+
+						const plots = settings.plots.slice();
+						[plots[srcIdx], plots[trgIdx]] = [plots[trgIdx], plots[srcIdx]];
+						setSettings({ ...settings, plots });
+					}}
+					onMouseDown={e => { dragRef.current = { x: e.clientX, y: e.clientY }; }}
+					onMouseUp={() => { dragRef.current = null; }}
+					onMouseLeave={() => { dragRef.current = null; }}>
+					{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ margin: '8px 0', position: 'relative' }} key={id}>
 						<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}
 							onWheel={e => setPlot(id, 'type',
 								plotsList[(plotsList.indexOf(type) + (e.deltaY < 0 ? 1 : -1) + plotsList.length) % plotsList.length] as any)}>
@@ -184,6 +207,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							<input type='checkbox' checked={showMeta} onChange={e => setPlot(id, 'showMeta', e.target.checked)}/></label>
 						<span style={{ position: 'absolute', marginLeft: 4, top: 1 }} className='CloseButton' onClick={() =>
 							set('plots', settings.plots.filter(p => p.id !== id))}>&times;</span>
+						<span style={{ position: 'absolute', fontSize: 22, marginLeft: 18, top: -4 }}><b>⋮</b></span>
+						<span style={{ position: 'absolute', fontSize: 22, left: -20, top: -4 }}><b>⋮</b></span>
 					</div> )}
 					<button style={{ marginTop: 4, borderColor: 'transparent', color: color('skyblue'), cursor: 'pointer' }}
 						onClick={() => set('plots', settings.plots.concat({
@@ -196,8 +221,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				</div>
 				<div>
 					<Checkbox text='Grid' k='showGrid'/>
-					<Checkbox text='Markers' k='showMarkers'/>
-					<Checkbox text='Legend' k='showLegend'/>
+					<Checkbox text=' Markers' k='showMarkers'/>
+					<Checkbox text=' Legend' k='showLegend'/>
 				</div>
 			</div>
 		</div>
