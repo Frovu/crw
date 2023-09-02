@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawBackground, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
 import { Onset, themeOptions } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -165,7 +165,6 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				}
 			],
 			drawClear: [
-				drawBackground,
 				u => {
 					setSelect(u, data.base);
 					u.setCursor({ left: -1, top: -1 });

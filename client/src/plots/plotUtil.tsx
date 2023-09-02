@@ -20,10 +20,11 @@ export type BasicPlotParams = {
 
 export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, headlen=10) {
 	const angle = Math.atan2(dy, dx);
+	const hlen = headlen * devicePixelRatio;
 	ctx.lineTo(tox, toy);
-	ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+	ctx.lineTo(tox - hlen * Math.cos(angle - Math.PI / 6), toy - hlen * Math.sin(angle - Math.PI / 6));
 	ctx.moveTo(tox, toy);
-	ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+	ctx.lineTo(tox - hlen * Math.cos(angle + Math.PI / 6), toy - hlen * Math.sin(angle + Math.PI / 6));
 }
 
 type Shape = 'square' | 'circle' | 'arrow' | 'triangleUp' | 'triangleDown' | 'diamond';
@@ -138,10 +139,13 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 
 //
 
-type Size = { width: number, height: number };
-type Position = { x: number, y: number };
-export function usePlotOverlayPosition(defaultPos: (upl: uPlot, size: Size) => Position)
-	: [MutableRefObject<Position|null>, MutableRefObject<Size>, (u: uPlot) => void] {
+export type Size = { width: number, height: number };
+export type Position = { x: number, y: number };
+export type SizeRef = MutableRefObject<Size>;
+export type PosRef = MutableRefObject<Position|null>;
+export type DefaultPosition = (upl: uPlot, size: Size) => Position;
+export function usePlotOverlayPosition(defaultPos: DefaultPosition)
+	: [PosRef, SizeRef, (u: uPlot) => void] {
 	const posRef = useRef<Position | null>(null);
 	const sizeRef = useRef<Size>({ width: 0, height: 0 });
 	const dragRef = useRef<{ click: Position, saved: Position } | null>(null);
@@ -281,13 +285,6 @@ function drawCustomLabels(scales: CustomLabelsDesc) {
 	};
 }
 
-export function drawBackground(u: uPlot) {
-	u.ctx.save();
-	u.ctx.fillStyle = color('bg');
-	u.ctx.fillRect(0, 0, u.ctx.canvas.width, u.ctx.canvas.height);
-	u.ctx.restore();
-}
-
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
 	return {
 		splits: (u, ax, min, max, incr, space) => {
@@ -361,20 +358,29 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 }
 
 export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
-	if (e.altKey || e.ctrlKey) {
-		const canvas = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
-		if (!canvas)
-			return console.log('not found plot (click)');
-		if (e.altKey) {
-			const a = document.createElement('a');
-			a.download = 'aid_plot.png';
-			a.href = canvas.toDataURL()!;
-			return a.click();
-		}
-		canvas.toBlob(blob => {
-			blob && window.open(URL.createObjectURL(blob));
-		});
+	if (!e.altKey && !e.ctrlKey)
+		return;
+	const src = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
+	if (!src)
+		return console.log('not found plot (click)');
+		
+	const canvas = document.createElement('canvas');
+	canvas.width = src.width;
+	canvas.height = src.height;
+	const ctx = canvas.getContext('2d')!;
+	ctx.fillStyle = color('bg');
+	ctx.fillRect(0, 0, src.width, src.height);
+	ctx.drawImage(src, 0, 0);
+
+	if (e.altKey) {
+		const a = document.createElement('a');
+		a.download = 'aid_plot.png';
+		a.href = canvas.toDataURL()!;
+		return a.click();
 	}
+	canvas.toBlob(blob => {
+		blob && window.open(URL.createObjectURL(blob));
+	});
 }
 
 export function BasicPlot({ queryKey, queryFn, options: userOptions, params, labels, legend }:
@@ -388,7 +394,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
-	const defaultPos: Parameters<typeof usePlotOverlayPosition>[0] = (u, { width }) => ({
+	const defaultPos: DefaultPosition = (u, { width }) => ({
 		x: u.bbox.left + u.bbox.width - width + 6, 
 		y: u.bbox.top });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
@@ -412,7 +418,6 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 	} as uPlot.Options;
 	options.hooks = {
 		...options.hooks,
-		drawClear: (options.hooks?.drawClear ?? []).concat(drawBackground),
 		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
 			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
 		] : []),

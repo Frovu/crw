@@ -2,7 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { MenuCheckbox, MenuSelect } from '../table/TableMenu';
 import { useSize } from '../util';
-import { axisDefaults, color, drawBackground } from './plotUtil';
+import { axisDefaults, color } from './plotUtil';
 import UplotReact from 'uplot-react';
 import { clickDownloadPlot } from './plotUtil';
 import { useQueries } from 'react-query';
@@ -14,11 +14,6 @@ const colors = ['purple', 'green', 'magenta'];
 function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boolean[]): Omit<uPlot.Options, 'height'|'width'> {
 	return {
 		padding: [8, 4, 0, 0],
-		// legend: { show: false },
-		hooks: {
-			drawClear: [ drawBackground ],
-			draw: [ ],
-		},
 		axes: [
 			{
 				...axisDefaults(grid),

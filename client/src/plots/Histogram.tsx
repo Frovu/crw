@@ -4,7 +4,7 @@ import UplotReact from 'uplot-react';
 import { HistOptions } from '../table/Statistics';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { useSize } from '../util';
-import { axisDefaults, clickDownloadPlot, color, drawBackground, font } from './plotUtil';
+import { axisDefaults, clickDownloadPlot, color, font } from './plotUtil';
 import { applySample } from '../table/Sample';
 
 const colors = ['magenta', 'acid', 'cyan'];
@@ -97,7 +97,6 @@ export default function HistogramPlot() {
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				hooks: {
-					drawClear: [ drawBackground ],
 					draw: [ drawAverages ]
 				},
 				axes: [

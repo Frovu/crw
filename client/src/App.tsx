@@ -6,6 +6,7 @@ import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
 import PlotIMF from './plots/IMF';
+import PlotGSMAnisotropy from './plots/GSMAnisotropy';
 
 const theQueryClient = new QueryClient();
 
@@ -141,8 +142,9 @@ function App() {
 			promptLogin: setAuthPrompt,
 		}}>
 			{app === 'test' && 
-				<div style={{ width: 1200, marginLeft: 100, height: 600, position: 'relative' }}>
-					<PlotIMF {...{
+				<div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
+					<PlotGSMAnisotropy {...{
+						subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
 						interval: [new Date('2022-07-18'), new Date('2022-07-21')],
 						onsets: [ { time: new Date('2022-07-18T21:19:00Z'), type: 'SSC' } ],
 						clouds: [{ start: new Date('2022-07-19T05:00:00Z'), end: new Date('2022-07-20T11:00:00Z') }],
