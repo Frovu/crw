@@ -140,17 +140,18 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 
 type Size = { width: number, height: number };
 type Position = { x: number, y: number };
-export function usePlotOverlayPosition(defaultPos: Position | ((upl: uPlot, size: Size) => Position))
+export function usePlotOverlayPosition(defaultPos: (upl: uPlot, size: Size) => Position)
 	: [MutableRefObject<Position|null>, MutableRefObject<Size>, (u: uPlot) => void] {
 	const posRef = useRef<Position | null>(null);
 	const sizeRef = useRef<Size>({ width: 0, height: 0 });
 	const dragRef = useRef<{ click: Position, saved: Position } | null>(null);
 
 	return [posRef, sizeRef, (u: uPlot) => {
-		const getPosition = () => posRef.current ?? (typeof defaultPos == 'function' ? defaultPos(u, sizeRef.current) : defaultPos);
+		const getPosition = () => posRef.current ?? defaultPos(u, sizeRef.current);
 		u.root.addEventListener('mousemove', e => {
 			if (!dragRef.current) {
-				if (posRef.current && posRef.current?.x > u.width * devicePixelRatio - sizeRef.current.width) {
+				if (posRef.current && (posRef.current?.x > u.width * devicePixelRatio - sizeRef.current.width
+						|| posRef.current?.y > u.height * devicePixelRatio - sizeRef.current.height)) {
 					posRef.current = null;
 					u.redraw();
 				}
@@ -186,7 +187,8 @@ export function usePlotOverlayPosition(defaultPos: Position | ((upl: uPlot, size
 
 type CustomLegendLabels = {[ser: string]: string};
 type CustomLegendShapes = {[ser: string]: Shape};
-export function drawCustomLegend(position: MutableRefObject<Position|null>, size: MutableRefObject<Size>, fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
+export function drawCustomLegend(position: MutableRefObject<Position|null>, size: MutableRefObject<Size>, defaultPos: (u: uPlot, csize: Size) => Position,
+	 fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
 	return (u: uPlot) => {
 		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
 		const labels = series.map(s => fullLabels[s.label]);
@@ -199,8 +201,7 @@ export function drawCustomLegend(position: MutableRefObject<Position|null>, size
 		const height = series.length * lineHeight + 4;
 		size.current = { width, height };
 
-		const maxX = u.bbox.left + u.bbox.width - width;
-		const pos = position.current ?? { x: maxX, y: u.bbox.top };
+		const pos = position.current ?? defaultPos(u, size.current);
 
 		const x = pos.x;
 		let y = pos.y;
@@ -387,9 +388,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition((u, { width }) => ({
-		x: u.bbox.left + u.bbox.width - width, 
-		y: u.bbox.top }));
+	const defaultPos: Parameters<typeof usePlotOverlayPosition>[0] = (u, { width }) => ({
+		x: u.bbox.left + u.bbox.width - width + 6, 
+		y: u.bbox.top });
+	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -417,7 +419,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 		draw: [
 			...(params.showMetaInfo ? [(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis)] : []),
 			...(labels ? [drawCustomLabels(labels)] : []),
-			...(legend && params.showLegend ? [drawCustomLegend(legendPos, legendSize, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
+			...(legend && params.showLegend ? [drawCustomLegend(legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])
 		],
 		ready: [
