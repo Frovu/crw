@@ -89,13 +89,22 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 	patternCanvas.height = patternCanvas.width = 16;
 	ctx.fillStyle = color('area2');
 
-	ctx.moveTo(10, 0);
-	ctx.lineTo(0, 10);
-	ctx.lineTo(0, 16);
-	ctx.lineTo(16, 0);
-	ctx.moveTo(10, 16);
-	ctx.lineTo(16, 10);
+	// ctx.moveTo(10, 0);
+	// ctx.lineTo(0, 10);
+	// ctx.lineTo(0, 16);
+	// ctx.lineTo(16, 0);
+	// ctx.moveTo(10, 16);
+	// ctx.lineTo(16, 10);
+	// ctx.lineTo(16, 16);
+	// ctx.fill();
+
+	ctx.moveTo(0, 6);
+	ctx.lineTo(10, 16);
 	ctx.lineTo(16, 16);
+	ctx.lineTo(0, 0);
+	ctx.moveTo(16, 0);
+	ctx.lineTo(16, 6);
+	ctx.lineTo(10, 0);
 	ctx.fill();
 
 	for (const cloud of clouds) {
