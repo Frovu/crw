@@ -81,7 +81,7 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 				let size = params.linearSize ?
 					(Math.abs(d[2][i]) / maxMagn * maxSize) * devicePixelRatio :
 					(maxSize / (minMaxMagn / 2.2)* Math.log(Math.abs(d[2][i]) + 1) - 6) * devicePixelRatio;
-				size = Math.max(2, size + (params.sizeShift ?? 0));
+				size = Math.max(1.5, size + (params.sizeShift ?? 0));
 				if (size > maxSize) size = maxSize;
 
 				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {

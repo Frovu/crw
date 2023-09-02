@@ -52,7 +52,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				gap: 6,
 				label: '',
 				scale: 'dst',
-				splits: (u, aidx, min, max) => [Math.round(min / 2), 0],
+				splits: (u, aidx, min, max) => [Math.round((min + Math.max(10, max))/2), 0],
 			},
 		],
 		scales: {
@@ -60,7 +60,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				range: (u, min, max) => [0, max*2.5]
 			},
 			dst: {
-				range: (u, min, max) => [min - (max-min), Math.max(10, max + 1)]
+				range: (u, min, max) => [min-(Math.max(10, max + 1)-min), Math.max(10, max + 1)]
 			}
 		},
 		series: [
