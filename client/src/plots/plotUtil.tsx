@@ -108,6 +108,35 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 		u.ctx.restore();
 	}
 }
+//
+
+//
+
+//
+
+//
+
+//
+
+//
+
+//
+
+// fix gsm anisotropy legend
+
+// toggle beta
+
+//
+
+//
+
+//
+
+//
+
+//
+
+//
 
 type Size = { width: number, height: number };
 type Position = { x: number, y: number };
@@ -115,13 +144,12 @@ export function usePlotOverlayPosition(defaultPos: Position | ((upl: uPlot, size
 	: [MutableRefObject<Position|null>, MutableRefObject<Size>, (u: uPlot) => void] {
 	const posRef = useRef<Position | null>(null);
 	const sizeRef = useRef<Size>({ width: 0, height: 0 });
-	let clickX = 0, clickY = 0, drag = false;
-	let savedPos = { x: 0, y: 0 };
+	const dragRef = useRef<{ click: Position, saved: Position } | null>(null);
 
 	return [posRef, sizeRef, (u: uPlot) => {
 		const getPosition = () => posRef.current ?? (typeof defaultPos == 'function' ? defaultPos(u, sizeRef.current) : defaultPos);
 		u.root.addEventListener('mousemove', e => {
-			if (!drag) {
+			if (!dragRef.current) {
 				if (posRef.current && posRef.current?.x > u.width * devicePixelRatio - sizeRef.current.width) {
 					posRef.current = null;
 					u.redraw();
@@ -130,31 +158,29 @@ export function usePlotOverlayPosition(defaultPos: Position | ((upl: uPlot, size
 			};
 
 			const rect = u.root.getBoundingClientRect();
-			const dx = (e.clientX - rect.left) * devicePixelRatio - clickX;
-			const dy = (e.clientY - rect.top)  * devicePixelRatio - clickY;
+			const { saved, click } = dragRef.current;
+			const dx = (e.clientX - rect.left) * devicePixelRatio - click.x;
+			const dy = (e.clientY - rect.top)  * devicePixelRatio - click.y;
 			const { width, height } = sizeRef.current;
 			posRef.current = {
-				x: Math.max(2, Math.min(savedPos.x + dx, u.width  * devicePixelRatio - width - 2)),
-				y: Math.max(2, Math.min(savedPos.y + dy, u.height * devicePixelRatio - height - 2))
+				x: Math.max(2, Math.min(saved.x + dx, u.width  * devicePixelRatio - width - 2)),
+				y: Math.max(2, Math.min(saved.y + dy, u.height * devicePixelRatio - height - 2))
 			};
 			u.redraw();
 		});
 		u.root.addEventListener('mousedown', e => {
 			const rect = u.root.getBoundingClientRect();
-			clickX = (e.clientX - rect.left) * devicePixelRatio;
-			clickY = (e.clientY - rect.top) * devicePixelRatio;
+			const x = (e.clientX - rect.left) * devicePixelRatio;
+			const y = (e.clientY - rect.top) * devicePixelRatio;
 			const pos = getPosition();
 			const { width, height } = sizeRef.current;
-			console.log(pos.x, clickX, pos.x + width);
-			console.log(pos.y, clickY, pos.y + height);
-			if (clickX! >= pos.x && clickX! <= pos.x + width
-				&& clickY! >= pos.y && clickY! <= pos.y + height) {
-				savedPos = pos;
-				drag = true;
+			if (x! >= pos.x && x! <= pos.x + width
+				&& y! >= pos.y && y! <= pos.y + height) {
+				dragRef.current = { saved: { ...pos }, click: { x, y } };
 			}
 		});
-		u.root.addEventListener('mouseleave', e => { drag = false; });
-		u.root.addEventListener('mouseup', e => { drag = false; });
+		u.root.addEventListener('mouseleave', e => { dragRef.current = null; });
+		u.root.addEventListener('mouseup', e => { dragRef.current = null; });
 	}];
 }
 
