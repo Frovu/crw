@@ -1,16 +1,14 @@
 import uPlot from 'uplot';
-import { BasicPlot, axisDefaults, basicDataQuery, color, customTimeSplits, drawArrow, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { BasicPlot, DefaultPosition, PosRef, SizeRef, axisDefaults, basicDataQuery, color,customTimeSplits, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from './plotUtil';
 import { markersPaths } from './plotPaths';
 import { GSMParams } from './GSM';
 
-export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
-	const colorLine = color('green');
+export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: DefaultPosition, params: GSMParams): uPlot.Series.PathBuilder {
+	const colorLine = color('green', .8);
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
+	const px = (a: number) => a * devicePixelRatio;
 
-	let xpos: number = 0, ypos: number = 0;
-	let xposClick: number = xpos, yposClick: number = ypos;
-	let clickx = 0, clicky = 0, drag = false;
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
 		const height = fullHeight * .6;
@@ -59,18 +57,18 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 			u.ctx.moveTo(points[i][0], points[i][1]);
 			u.ctx.lineTo(a0x, a0y);
 		}
-		u.ctx.lineWidth = .7;
+		u.ctx.lineWidth = px(1);
 		u.ctx.strokeStyle = colorLine;
 		u.ctx.stroke();
 
 		u.ctx.beginPath();
-		u.ctx.lineWidth = 2;
+		u.ctx.lineWidth = px(2);
 		u.ctx.moveTo(points[0][0], points[0][1]);
 		for (let i = 1; i < length; ++i) {
 			const [ax, ay, dx, dy] = points[i];
 			if (dx != null) {
 				if (params.showMarkers) {
-					drawArrow(u.ctx, dx, dy, ax, ay, 7);
+					drawArrow(u.ctx, dx, dy, ax, ay, 7 * devicePixelRatio);
 				} else {
 					u.ctx.lineTo(ax, ay);
 				}
@@ -84,53 +82,41 @@ export function tracePaths(params: GSMParams): uPlot.Series.PathBuilder {
 			u.ctx.moveTo(ax, ay);
 		}
 
+		const xArrowPercent = Math.floor(64 * devicePixelRatio / scalex);
+		const yArrowPercent = Math.floor(64 * devicePixelRatio / scaley);
+		const metric = u.ctx.measureText(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`);
+		const lineH = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
+		const lineW = metric.width;
+		const arrowRadius = px(6);
+
+		sizeRef.current = {
+			width:  Math.max(xArrowPercent * scalex, lineW + arrowRadius * 2) + px(2),
+			height: yArrowPercent * scaley + lineH + arrowRadius + px(2)
+		};
+		const { x: lx, y: ly } = posRef.current ?? defaultPos(u, sizeRef.current);
+		x = lx + arrowRadius + px(2); y = ly + lineH + px(2);
+
 		u.ctx.beginPath();
 		u.ctx.strokeStyle = u.ctx.fillStyle = colorArrow;
-		u.ctx.lineWidth = 2;
-		x = xpos = xpos || 22;
-		y = ypos = ypos || 40;
-		u.ctx.lineWidth = 2;
-		u.ctx.rect(x, y, 8, 8);
-		const xarrow = Math.floor(64 / scalex);
-		const yarrow = Math.floor(64 / scaley);
-		const legendWidth = xarrow * scalex + 12, legendHeight = yarrow * scaley + 4;
-		u.ctx.moveTo(x, y + 12);
-		drawArrow(u.ctx, 0, yarrow * scaley, x, y + yarrow * scaley);
-		u.ctx.moveTo(x + 12, y);
-		drawArrow(u.ctx, xarrow * scalex, 0, x + xarrow * scalex, y);
+		u.ctx.lineWidth = px(2);
+		u.ctx.rect(x, y, px(8), px(8));
+		u.ctx.moveTo(x, y + px(12));
+		drawArrow(u.ctx, 0, yArrowPercent * scaley, x, y + yArrowPercent * scaley);
+		u.ctx.moveTo(x + px(12), y);
+		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y);
 
 		u.ctx.textAlign = 'left';
-		u.ctx.fillText(`Ax, ${yarrow}%`, x + 8, y + yarrow * scaley - 16);
-		u.ctx.fillText(`Ay, ${xarrow}%`, x + xarrow * scalex - 40, y - 16);
+		u.ctx.fillText(`Ax, ${yArrowPercent}%`, x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
+		u.ctx.fillText(`Ay, ${xArrowPercent}%`, x + Math.max(0, xArrowPercent * scalex - lineW,), y - lineH / 2 - arrowRadius + px(2));
 		u.ctx.stroke();
 
 		u.ctx.restore();
-
-		u.over.parentElement!.onmousemove = e => {
-			if (!drag) return;
-			const dx = (e.clientX - u.rect.left + u.bbox.left) * devicePixelRatio - clickx;
-			const dy = (e.clientY - u.rect.top + u.bbox.top) * devicePixelRatio - clicky;
-			xpos = Math.max(12, Math.min(xposClick! + dx, -8 + u.rect.width + u.bbox.left));
-			ypos = Math.max(30, Math.min(yposClick! + dy, 12 + u.bbox.height - legendHeight));
-			u.redraw();
-		};
-		u.over.parentElement!.onmousedown = e => {
-			clickx = (e.clientX - u.rect.left + u.bbox.left) * devicePixelRatio;
-			clicky = (e.clientY - u.rect.top + u.bbox.top) * devicePixelRatio;
-			if (clickx >= xpos && clickx <= xpos + legendWidth && clicky >= ypos - 24 && clicky <= ypos + legendHeight) {
-				xposClick = xpos;
-				yposClick = ypos;
-				drag = true;
-			}
-		};
-		u.over.parentElement!.onmouseup = u.over.parentElement!.onmouseleave = e => {
-			drag = false;
-		};
 		return null;
 	};
 }
 
-function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
+function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition>, defaultPos: DefaultPosition, params: GSMParams): Partial<uPlot.Options> {
+	const [pos, size, handleDrag] = overlay;
 	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.az.max! / 3 + u.scales.az.min! ? sp : null);
 	return {
 		padding: [8, params.showAz ? 0 : 60, params.showTimeAxis ? 0 : 8, 0],
@@ -139,6 +125,9 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds, u.valToPos(0, 'a0', true)),
 				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
 			] : [],
+			ready: [
+				handleDrag
+			]
 		},
 		axes: [
 			{
@@ -207,7 +196,7 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 			{
 				label: 'vector',
 				stroke: color('magenta'),
-				paths: tracePaths(params),
+				paths: tracePaths(pos, size, defaultPos, params),
 				points: { show: false }
 			}
 		]
@@ -215,13 +204,17 @@ function anisotropyPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 }
 
 export default function PlotGSMAnisotropy(params: GSMParams) {
+
+	const defaultPos = () => ({ x: 8, y: 8 });
+	const overlay = usePlotOverlayPosition(defaultPos);
+
 	return (<BasicPlot {...{
 		queryKey: ['GSMani', params.interval, params.maskGLE, params.subtractTrend],
 		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'az', 'a10', 'a10m', 'ax', 'ay'], {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
-		options: anisotropyPlotOptions(params),
+		options: anisotropyPlotOptions(overlay, defaultPos, params),
 		params,
 		labels: {
 			a0: [`A0${params.useA0m ? 'm' : ''}(GSM) var, %`, 1 / 5],

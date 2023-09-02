@@ -5,7 +5,6 @@ import Circles from './plots/Circles';
 import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
-import PlotIMF from './plots/IMF';
 import PlotGSMAnisotropy from './plots/GSMAnisotropy';
 
 const theQueryClient = new QueryClient();

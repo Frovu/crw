@@ -18,9 +18,8 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
-export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, headlen=10) {
+export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=10*devicePixelRatio) {
 	const angle = Math.atan2(dy, dx);
-	const hlen = headlen * devicePixelRatio;
 	ctx.lineTo(tox, toy);
 	ctx.lineTo(tox - hlen * Math.cos(angle - Math.PI / 6), toy - hlen * Math.sin(angle - Math.PI / 6));
 	ctx.moveTo(tox, toy);
@@ -197,11 +196,12 @@ export function drawCustomLegend(position: MutableRefObject<Position|null>, size
 		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
 		const labels = series.map(s => fullLabels[s.label]);
 
-		u.ctx.font = font(14 * devicePixelRatio);
+		const px = (a: number) => a * devicePixelRatio;
+		u.ctx.font = font(px(14));
 		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
-		const width = 48 + metric.width;
+		const width = px(48) + metric.width;
 		const height = series.length * lineHeight + 4;
 		size.current = { width, height };
 
@@ -210,7 +210,7 @@ export function drawCustomLegend(position: MutableRefObject<Position|null>, size
 		const x = pos.x;
 		let y = pos.y;
 		u.ctx.save();
-		u.ctx.lineWidth = 2 * devicePixelRatio;
+		u.ctx.lineWidth = px(2);
 		u.ctx.strokeStyle = color('text-dark');
 		u.ctx.fillStyle = color('bg');
 		u.ctx.fillRect(x, y, width, height);
@@ -218,21 +218,21 @@ export function drawCustomLegend(position: MutableRefObject<Position|null>, size
 		u.ctx.textAlign = 'left';
 		u.ctx.lineCap = 'butt';
 		y += lineHeight / 2 + 3;
-		const draw = drawShape(u.ctx, 6 * devicePixelRatio);
+		const draw = drawShape(u.ctx, px(6));
 		for (const [i, s] of series.entries()) {
-			u.ctx.lineWidth = 2 * devicePixelRatio;
+			u.ctx.lineWidth = px(2);
 			u.ctx.fillStyle = u.ctx.strokeStyle = s.stroke();
 			u.ctx.beginPath();
-			u.ctx.moveTo(x + 8, y);
-			u.ctx.lineTo(x + 32, y);
+			u.ctx.moveTo(x + px(8), y);
+			u.ctx.lineTo(x + px(32), y);
 			u.ctx.stroke();
 			const shape = shapes?.[s.label];
-			u.ctx.lineWidth = shape === 'arrow' ? 2 : 1;
-			if (shape) draw[shape](x + 20, y,);
+			u.ctx.lineWidth = shape === 'arrow' ? px(2) : 1;
+			if (shape) draw[shape](x + px(20), y);
 			if (shape !== 'arrow')
 				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
-			u.ctx.fillText(labels[i], x + 40, y);
+			u.ctx.fillText(labels[i], x + px(40), y);
 			u.ctx.stroke();
 			y += lineHeight;
 		}
