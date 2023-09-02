@@ -57,7 +57,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				stroke: color('magenta', .8),
 				fill: color('magenta', .8),
 				width: 0,
-				paths: uPlot.paths.bars!({ size: [.4, 16] }),
+				paths: uPlot.paths.bars!({ size: [.4, 16], align: 1 }),
 				points: { show: false }
 			},
 			{
@@ -67,7 +67,7 @@ function gsmPlotOptions(params: GSMParams): Partial<uPlot.Options> {
 				stroke: color('purple'),
 				fill: color('purple'),
 				width: 0,
-				paths: uPlot.paths.bars!({ size: [.2, 10] }),
+				paths: uPlot.paths.bars!({ size: [.2, 10], align: 1 }),
 				points: { show: false }
 			},
 			...['A0', 'A0m'].map(what => ({

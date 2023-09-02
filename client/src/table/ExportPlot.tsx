@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef } from 'react';
+import { useContext, useMemo, useRef, useState } from 'react';
 import { useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/SW';
 import PlotIMF, { IMFParams } from '../plots/IMF';
@@ -79,6 +79,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 	const dragRef = useRef<Position | null>(null);
 	const divRef = useRef<HTMLDivElement>(null);
+	const [shrinkLeft, setLeft] = useState(0);
+	const [shrinkRight, setRight] = useState(0);
 
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
@@ -101,8 +103,12 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		...plotParamsFromSettings(tableSettings),
 		...plotContext!,
 		...settings,
+		interval: [
+			new Date(plotContext!.interval[0].getTime() + shrinkLeft * 36e5),
+			new Date(plotContext!.interval[1].getTime() - shrinkRight * 36e5)
+		] as [Date, Date],
 		plots: undefined
-	}), [tableSettings, plotContext, settings]);
+	}), [tableSettings, plotContext, settings, shrinkLeft, shrinkRight]);
 
 	const doExport = (download?: boolean) => {
 		const canvas = document.createElement('canvas');
@@ -130,34 +136,16 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			blob && window.open(URL.createObjectURL(blob));
 		});
 	};
-	/*
-<div>
-	± Days:
-	<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
-		onChange={(v: any) => set('plotTimeOffset', (prev) => [v, prev[1]])}/>
-	/
-	<MenuInput type='number' min='1' max='14' step='.5' value={settings.plotTimeOffset?.[1]}
-		onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
-</div>
-<h4>Cosmic Rays</h4>
-<MenuCheckbox text='Show Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
-<MenuCheckbox text='Subtract variation trend' value={!!settings.plotSubtractTrend} callback={v => set('plotSubtractTrend', () => v)}/>
-<MenuCheckbox text='Mask GLE' value={!!settings.plotMaskGLE} callback={v => set('plotMaskGLE', () => v)}/>
-<MenuCheckbox text='Use dst corrected A0m' value={!!settings.plotUseA0m} callback={v => set('plotUseA0m', () => v)}/>
-<MenuCheckbox text={'Use index: ' + (settings.plotIndexAp ? 'Ap' : 'Kp')} hide={true} value={!!settings.plotIndexAp} callback={v => set('plotIndexAp', () => v)}/>
-<h4>Solar Wind</h4>
-<MenuCheckbox text={'Temperature: ' + (settings.plotTempIdx ? 'index' : 'plain')} hide={true} value={!!settings.plotTempIdx} callback={v => set('plotTempIdx', () => v)}/>
-<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
-<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
-	*/
+
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 	}
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
-	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${336 / devicePixelRatio + 20}px auto`, height: 'calc(100vh - 16px)' }}>
+	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${360 / devicePixelRatio}px auto`, height: 'calc(100vh - 16px)' }}>
 		<div>
-			<div style={{ position: 'fixed', left: 0, top: 0, transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left' }}>
+			<div style={{ position: 'fixed', width: 366, height: `calc(${100*devicePixelRatio}vh - 16px)`, left: 0, top: 0,
+				transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left', overflowY: 'auto', overflowX: 'clip' }}>
 				<div style={{ padding: '16px 0 0 16px' }}>
 					<div style={{ marginBottom: 12 }}>
 						<button style={{ padding: '2px 12px' }}
@@ -226,7 +214,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						}))}>+ <u>add new plot</u></button>
 				</div>
 				<div style={{ padding: '12px 0 0 24px' }}>
-					<h4 style={{ margin: '0 0 16px 0' }}>Interval</h4>
+					<h4 style={{ margin: '0 0 8px 0' }}>Shrink Interval</h4>
+					<label style={{ marginLeft: 4 }}>Left/Right: <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
+						value={shrinkLeft} onChange={e => setLeft(e.target.valueAsNumber)}/></label>
+					<label> / <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
+						value={shrinkRight} onChange={e => setRight(e.target.valueAsNumber)}/> hours</label>
 					<h4 style={{ margin: '12px 0' }}>Global</h4>
 					<div>
 						<Checkbox text='Grid' k='showGrid'/>

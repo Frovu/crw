@@ -63,7 +63,9 @@ export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 
 export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
 	for (const onset of onsets) {
-		const OnsetX = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
+		const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
+		if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
+			continue;
 		const useColor = onset.secondary ? color('text', .6) : color('white');
 		u.ctx.save();
 		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
@@ -72,10 +74,10 @@ export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
 		u.ctx.textAlign = 'right';
 		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.beginPath();
-		u.ctx.moveTo(OnsetX, u.bbox.top);
-		u.ctx.lineTo(OnsetX, u.bbox.top + u.bbox.height);
+		u.ctx.moveTo(x, u.bbox.top);
+		u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 		!hideLabel && u.ctx.fillText(onset.type || 'ons',
-			OnsetX + 4, u.bbox.top + u.bbox.height + 2);
+			x + 4, u.bbox.top + u.bbox.height + 2);
 		u.ctx.stroke();
 		u.ctx.restore();
 	}
@@ -97,8 +99,8 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 	ctx.fill();
 
 	for (const cloud of clouds) {
-		const startX = u.valToPos(cloud.start.getTime() / 1e3, 'x', true);
-		const endX = u.valToPos(cloud.end.getTime() / 1e3, 'x', true);
+		const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
+		const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
 		u.ctx.save();
 		u.ctx.beginPath();
 		u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
@@ -108,35 +110,6 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 		u.ctx.restore();
 	}
 }
-//
-
-//
-
-//
-
-//
-
-//
-
-//
-
-//
-
-// fix gsm anisotropy legend
-
-// toggle beta
-
-//
-
-//
-
-//
-
-//
-
-//
-
-//
 
 export type Size = { width: number, height: number };
 export type Position = { x: number, y: number };
