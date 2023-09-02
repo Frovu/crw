@@ -138,7 +138,7 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				...axisDefaults(params.showGrid),
 				label: '',
 				scale: 'a0',
-				incrs: [1, 2, 2.5, 5, 10, 20],
+				incrs: [1, 2, 3, 5, 10, 20],
 				filter: (u, splits) => splits.map(sp => sp <= 0 ? sp : null),
 				ticks: {
 					...axisDefaults(params.showGrid).ticks,
@@ -151,7 +151,7 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				...axisDefaults(false),
 				label: '',
 				scale: 'az',
-				incrs: [.5, 1, 2, 2.5, 5, 10, 20],
+				incrs: [.5, 1, 2, 3, 5, 10, 20],
 				ticks: { ...axisDefaults(false).ticks, filter: filterAxy },
 				filter: filterAxy
 			},
