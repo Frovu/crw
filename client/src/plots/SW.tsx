@@ -2,8 +2,9 @@ import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, superScript } from './plotUtil';
 
-type SWParams = BasicPlotParams & {
+export type SWParams = BasicPlotParams & {
 	useTemperatureIndex?: boolean,
+	showBeta?: boolean
 };
 
 function plotOptions(params: SWParams): Partial<uPlot.Options> {
@@ -51,6 +52,7 @@ function plotOptions(params: SWParams): Partial<uPlot.Options> {
 				},
 			},
 			{
+				show: !!params.showBeta,
 				label: 'beta',
 				scale: 'y',
 				stroke: color('magenta'),
@@ -84,7 +86,7 @@ export default function PlotSW(params: SWParams) {
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]),
 		params, options: plotOptions(params),
-		labels: { temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³ & beta' },
+		labels: { temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³' + (params.showBeta ? '& beta' : '') },
 		legend: [{
 			'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
 			'Dp': 'Proton density, N/cm^3',

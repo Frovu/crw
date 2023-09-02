@@ -2,7 +2,7 @@ import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
-type IMFParams = BasicPlotParams & {
+export type IMFParams = BasicPlotParams & {
 	showBz?: boolean,
 	showBxBy?: boolean,
 };

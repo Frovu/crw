@@ -1,11 +1,11 @@
 import { useContext, useMemo, useRef } from 'react';
 import { useEventListener, usePersistedState } from '../util';
-import PlotSW from '../plots/SW';
-import PlotIMF from '../plots/IMF';
-import PlotGSM from '../plots/GSM';
+import PlotSW, { SWParams } from '../plots/SW';
+import PlotIMF, { IMFParams } from '../plots/IMF';
+import PlotGSM, { GSMParams } from '../plots/GSM';
 import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import PlotGeoMagn from '../plots/Geomagn';
-import { PlotCircles } from '../plots/Circles';
+import { CirclesParams, PlotCircles } from '../plots/Circles';
 import { PlotContext, SettingsContext, plotParamsFromSettings, themeOptions } from './Table';
 import { Position, color } from '../plots/plotUtil';
 
@@ -28,18 +28,22 @@ type PlotSettings = {
 	id: number
 };
 
-type PlotExportSettings = {
-	showGrid: boolean,
-	showMarkers: boolean,
-	showLegend: boolean,
+type PlotExportSettings = Omit<{
 	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[]
-};
+} & GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'>;
+
 const defaultSettings = (): PlotExportSettings => ({
 	showGrid: true,
 	showMarkers: true,
 	showLegend: true,
+	showAz: false,
+	showBxBy: false,
+	showBz: true,
+	useA0m: true,
+	subtractTrend: true,
+	maskGLE: true,
 	theme: 'Dark',
 	width: 640,
 	plots: [{
@@ -127,9 +131,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		});
 	};
 	/*
-<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
-<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
-<MenuCheckbox text='Show legend' value={!!settings.plotLegend} callback={v => set('plotLegend', () => v)}/>
 <div>
 	± Days:
 	<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
@@ -150,7 +151,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 <MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
 	*/
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
-		return <label style={{ margin: '0 4px' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 	}
 
 	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
@@ -158,7 +159,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		<div>
 			<div style={{ position: 'fixed', left: 0, top: 0, transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left' }}>
 				<div style={{ padding: '16px 0 0 16px' }}>
-					<div style={{ margin: '0 0 16px 0' }}>
+					<div style={{ marginBottom: 12 }}>
 						<button style={{ padding: '2px 12px' }}
 							onClick={() => doExport()}><u>O</u>pen image</button>
 						<button style={{ padding: '2px 12px', marginLeft: 14 }}
@@ -169,6 +170,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
 						<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
+					</div>
+					<div style={{ marginTop: 12 }}>
+						<label>Theme: <select value={settings.theme} onChange={e => set('theme', e.target.value as any)}>
+							{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
+						</select> </label>
 					</div>
 				</div>
 				<div ref={divRef} style={{ padding: '8px 0 8px 20px', width: 356, cursor: 'grab' }}
@@ -219,10 +225,43 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							id: Date.now()
 						}))}>+ <u>add new plot</u></button>
 				</div>
-				<div>
-					<Checkbox text='Grid' k='showGrid'/>
-					<Checkbox text=' Markers' k='showMarkers'/>
-					<Checkbox text=' Legend' k='showLegend'/>
+				<div style={{ padding: '12px 0 0 24px' }}>
+					<h4 style={{ margin: '0 0 16px 0' }}>Interval</h4>
+					<h4 style={{ margin: '12px 0' }}>Global</h4>
+					<div>
+						<Checkbox text='Grid' k='showGrid'/>
+						<Checkbox text=' Markers' k='showMarkers'/>
+						<Checkbox text=' Legend' k='showLegend'/>
+					</div>
+					<h4 style={{ margin: '12px 0' }}>Cosmic Rays</h4>
+					<Checkbox text='Show Az' k='showAz'/>
+					<div style={{ marginTop: 8 }}>
+						<Checkbox text=' Use A0m' k='useA0m'/>
+						<Checkbox text=' Mask GLE' k='maskGLE'/>
+					</div>
+					<div style={{ marginTop: 8 }}>
+						<Checkbox text='Subtract variation trend' k='subtractTrend'/>
+					</div>
+					<h4 style={{ margin: '12px 0' }}>Solar Wind</h4>
+					<Checkbox text='Bx,By' k='showBxBy'/>
+					<Checkbox text=' Bz' k='showBz'/>
+					<Checkbox text=' beta' k='showBeta'/>
+					<div style={{ marginTop: 8 }}>
+						<Checkbox text='Use temperature index' k='useTemperatureIndex'/>
+					</div>
+					<h4 style={{ margin: '12px 0' }}>Ring of Stations</h4>
+					<Checkbox text='Show precursor index' k='showPrecursorIndex'/>
+					<div style={{ marginTop: 8 }}>
+						<label style={{ marginLeft: 4 }}>Variation shift: <input style={{ width: '72px' }} type='number' min='-10' max='10' step='.05'
+							value={settings.variationShift ?? 0} onChange={e => set('variationShift', e.target.valueAsNumber)}/> %</label>
+					</div>
+					<div style={{ marginTop: 8 }}>
+						<label style={{ marginLeft: 4 }}>Circle size shift: <input style={{ width: '72px' }} type='number' min='-100' max='100' step='.5'
+							value={settings.sizeShift ?? 0} onChange={e => set('sizeShift', e.target.valueAsNumber)}/> px</label>
+					</div>
+					<div style={{ marginTop: 8 }}>
+						<Checkbox text='Linear size' k='linearSize'/>
+					</div>
 				</div>
 			</div>
 		</div>

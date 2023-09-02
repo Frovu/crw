@@ -23,7 +23,8 @@ export type CirclesParams = BasicPlotParams & {
 	sizeShift?: number
 	autoFilter?: boolean,
 	fixAmplitudeScale?: boolean,
-	linearSize?: boolean
+	linearSize?: boolean,
+	showPrecursorIndex?: boolean
 };
 
 type CirclesResponse = {
@@ -270,7 +271,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				paths: circlePaths((rect: any) => qt.add(rect), 8, params)
 			},
 			{
-				show: idxEnabled,
+				show: idxEnabled && (params.showPrecursorIndex ?? true),
 				scale: 'idx',
 				label: 'idx',
 				stroke: color('gold'),
