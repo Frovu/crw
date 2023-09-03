@@ -31,7 +31,7 @@ type PlotSettings = {
 type PlotExportSettings = Omit<{
 	theme: typeof themeOptions[number],
 	width: number,
-	plots: PlotSettings[]
+	plots: PlotSettings[],
 } & GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'>;
 
 const defaultSettings = (): PlotExportSettings => ({
@@ -46,6 +46,7 @@ const defaultSettings = (): PlotExportSettings => ({
 	maskGLE: true,
 	theme: 'Dark',
 	width: 640,
+	transformText: [],
 	plots: [{
 		type: 'Solar Wind',
 		height: 200,
@@ -120,6 +121,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	};
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.target instanceof HTMLInputElement)
+			return;
 		if (['Escape', 'KeyE'].includes(e.code))
 			escape();
 		else if ('KeyT' === e.code)
@@ -150,8 +153,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		<div>
 			<div style={{ position: 'fixed', width: 366, height: `calc(${100*devicePixelRatio}vh - 16px)`, left: 0, top: 0,
 				transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left', overflowY: 'auto', overflowX: 'clip' }}>
-				<div style={{ padding: '16px 0 0 16px' }}>
-					<div style={{ marginBottom: 12 }}>
+				<div style={{ padding: '8px 0 0 8px' }}>
+					<div style={{ marginBottom: 8 }}>
 						<button style={{ padding: '2px 12px' }}
 							onClick={() => doExport()}><u>O</u>pen image</button>
 						<button style={{ padding: '2px 12px', marginLeft: 14 }}
@@ -163,13 +166,13 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
 						<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
 					</div>
-					<div style={{ marginTop: 12 }}>
+					<div style={{ marginTop: 8 }}>
 						<label>Theme: <select value={settings.theme} onChange={e => set('theme', e.target.value as any)}>
 							{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
 						</select> </label>
 					</div>
 				</div>
-				<div ref={divRef} style={{ padding: '8px 0 8px 20px', width: 356, cursor: 'grab' }}
+				<div ref={divRef} style={{ padding: '4px 0 8px 20px', width: 356, cursor: 'grab' }}
 					onMouseMove={e => {
 						if (!dragRef.current || !divRef.current) return;
 						const { top } = divRef.current.getBoundingClientRect();
@@ -208,45 +211,63 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						<span style={{ position: 'absolute', fontSize: 22, marginLeft: 18, top: -4 }}><b>⋮</b></span>
 						<span style={{ position: 'absolute', fontSize: 22, left: -20, top: -4 }}><b>⋮</b></span>
 					</div> )}
-					<button style={{ marginTop: 4, borderColor: 'transparent', color: color('skyblue'), cursor: 'pointer' }}
-						onClick={() => set('plots', settings.plots.concat({
-							height: 200,
-							type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
-							showTime: true,
-							showMeta: true,
-							id: Date.now()
-						}))}>+ <u>add new plot</u></button>
+					<div style={{ textAlign: 'right', marginRight: 32 }}>
+						<button style={{ borderColor: 'transparent', color: color('skyblue'), cursor: 'pointer' }}
+							onClick={() => set('plots', settings.plots.concat({
+								height: 200,
+								type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
+								showTime: true,
+								showMeta: true,
+								id: Date.now()
+							}))}>+ <u>add new plot</u></button>
+					</div>
 				</div>
-				<div style={{ padding: '12px 0 0 24px' }}>
-					<h4 style={{ margin: '0 0 8px 0' }}>Shrink Interval</h4>
+				<div style={{ padding: '0 0 0 24px' }}>
+					<h4 style={{ margin: '-16px 0 8px 0' }}>Shrink Interval</h4>
 					<label style={{ marginLeft: 4 }}>Left/Right: <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
 						value={shrinkLeft} onChange={e => setLeft(e.target.valueAsNumber)}/></label>
 					<label> / <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
 						value={shrinkRight} onChange={e => setRight(e.target.valueAsNumber)}/> hours</label>
-					<h4 style={{ margin: '12px 0' }}>Global</h4>
-					<div>
+					<h4 style={{ margin: '10px 0' }}>Global</h4>
+					<div style={{ margin: '-4px 0 0 0' }}>
 						<Checkbox text='Grid' k='showGrid'/>
 						<Checkbox text=' Markers' k='showMarkers'/>
 						<Checkbox text=' Legend' k='showLegend'/>
 					</div>
-					<h4 style={{ margin: '12px 0' }}>Cosmic Rays</h4>
-					<Checkbox text='Show Az' k='showAz'/>
-					<div style={{ marginTop: 8 }}>
-						<Checkbox text=' Use A0m' k='useA0m'/>
-						<Checkbox text=' Mask GLE' k='maskGLE'/>
+					<div style={{ margin: '8px 0 20px 4px' }}>
+						<label title='Replace text in labels via RegExp which is applied to labels parts'>Replace
+							<input style={{ width: 92, margin: '0 4px' }} type='text' placeholder='regexp'
+								value={settings.transformText?.[0]?.search}
+								onChange={e => set('transformText', [{ replace: e.target.value, ...settings.transformText?.[0], search: e.target.value }])}/>
+						-&gt;</label><input style={{ width: 92, margin: '0 4px' }} type='text' placeholder='replace'
+							value={settings.transformText?.[0]?.replace}
+							onChange={e => set('transformText', [{ search: e.target.value, ...settings.transformText?.[0], replace: e.target.value }])}/>
+						<button style={{ borderColor: 'transparent', color: color('skyblue'), position: 'absolute', right: 42, marginTop: 32 }}
+							onClick={() => set('plots', settings.plots.concat({
+								height: 200,
+								type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
+								showTime: true,
+								showMeta: true,
+								id: Date.now()
+							}))}>+ <u>new replace</u></button>
 					</div>
+					<h4 style={{ margin: '10px 0' }}>Cosmic Rays</h4>
+					<Checkbox text='Show Az' k='showAz'/>
+					<Checkbox text='Use A0m' k='useA0m'/>
+					<Checkbox text='Mask GLE' k='maskGLE'/>
 					<div style={{ marginTop: 8 }}>
 						<Checkbox text='Subtract variation trend' k='subtractTrend'/>
 					</div>
-					<h4 style={{ margin: '12px 0' }}>Solar Wind</h4>
+					<h4 style={{ margin: '10px 0' }}>Solar Wind</h4>
 					<Checkbox text='Bx,By' k='showBxBy'/>
 					<Checkbox text=' Bz' k='showBz'/>
 					<Checkbox text=' beta' k='showBeta'/>
 					<div style={{ marginTop: 8 }}>
 						<Checkbox text='Use temperature index' k='useTemperatureIndex'/>
 					</div>
-					<h4 style={{ margin: '12px 0' }}>Ring of Stations</h4>
-					<Checkbox text='Show precursor index' k='showPrecursorIndex'/>
+					<h4 style={{ margin: '10px 0' }}>Ring of Stations</h4>
+					<Checkbox text='Show index' k='showPrecursorIndex'/>
+					<Checkbox text=' Linear size' k='linearSize'/>
 					<div style={{ marginTop: 8 }}>
 						<label style={{ marginLeft: 4 }}>Variation shift: <input style={{ width: '72px' }} type='number' min='-10' max='10' step='.05'
 							value={settings.variationShift ?? 0} onChange={e => set('variationShift', e.target.valueAsNumber)}/> %</label>
@@ -256,7 +277,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							value={settings.sizeShift ?? 0} onChange={e => set('sizeShift', e.target.valueAsNumber)}/> px</label>
 					</div>
 					<div style={{ marginTop: 8 }}>
-						<Checkbox text='Linear size' k='linearSize'/>
 					</div>
 				</div>
 			</div>

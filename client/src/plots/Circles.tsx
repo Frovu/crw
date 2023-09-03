@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useEventListener, useSize, ValidatedInput } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
 import { Onset, themeOptions } from '../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from './quadtree';
@@ -229,7 +229,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				...axisDefaults(params.showGrid),
 				ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
 				scale: 'y',
-				label: 'effective longitude, deg',
+				label: applyTextTransform(params.transformText)('effective longitude, deg'),
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
 				space: 48,
 				gap: 4,
@@ -354,7 +354,7 @@ async function fetchCircles(params: CirclesParams, base?: Date, moment?: number)
 		...(params.window && { window: params.window.toString() }),
 		autoFilter: (params.autoFilter ?? true).toString()
 	}).toString();
-	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara);
+	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara, { credentials: 'include' });
 	if (res.status !== 200)
 		return null;
 	return res.json();

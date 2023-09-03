@@ -6,16 +6,31 @@ import uPlot from 'uplot';
 import { MagneticCloud, Onset } from '../table/Table';
 import UplotReact from 'uplot-react';
 
+export type TextTransform = {
+	search: string,
+	replace: string
+};
 export type BasicPlotParams = {
 	interval: [Date, Date],
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
+	transformText?: TextTransform[],
 	showTimeAxis: boolean,
 	showMetaInfo: boolean
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean
+};
+
+export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
+	return transforms?.reduce((txt, { search, replace }) => {
+		try {
+			return txt.replace(new RegExp(search, 'g'), replace);
+		} catch(e) {
+			return txt;
+		}
+	}, text) ?? text;
 };
 
 export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=10*devicePixelRatio) {
@@ -172,11 +187,11 @@ export function usePlotOverlayPosition(defaultPos: DefaultPosition)
 
 type CustomLegendLabels = {[ser: string]: string};
 type CustomLegendShapes = {[ser: string]: Shape};
-export function drawCustomLegend(position: MutableRefObject<Position|null>, size: MutableRefObject<Size>, defaultPos: (u: uPlot, csize: Size) => Position,
-	 fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
+export function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
+	defaultPos: (u: uPlot, csize: Size) => Position, fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
 	return (u: uPlot) => {
 		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
-		const labels = series.map(s => fullLabels[s.label]);
+		const labels = series.map(s => fullLabels[s.label]).map(applyTextTransform(params.transformText));
 
 		const px = (a: number) => a * devicePixelRatio;
 		u.ctx.font = font(px(14));
@@ -224,7 +239,7 @@ export function drawCustomLegend(position: MutableRefObject<Position|null>, size
 
 type CustomLabelsDesc = { [scale: string]: string | [string, number] | [string, number, number] };
 // [ label, shift (multiplied by height), shift (pixels) ]
-function drawCustomLabels(scales: CustomLabelsDesc) {
+function drawCustomLabels(params: BasicPlotParams, scales: CustomLabelsDesc) {
 	return (u: uPlot) => {
 		for (const [scale, value] of Object.entries(scales)) {
 			const [label, shiftMulti, shiftPx] = typeof value === 'string' ? [value, 0, 0]
@@ -243,6 +258,11 @@ function drawCustomLabels(scales: CustomLabelsDesc) {
 				const stroke = typeof series.stroke === 'function' ? series.stroke(u, si) : series.stroke;
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
+
+			const parts = !params.transformText ? rec(label) : rec(label).map(([text, stroke]) => {
+				return [applyTextTransform(params.transformText)(text), stroke] as [string, string];
+			});
+			const newFullText =  parts.reduce((txt, [part, _]) => txt + part, '');
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = axis.label != null ? (axis as any)._lpos : (axis as any)._pos + (axis as any)._size / 2;
@@ -250,14 +270,14 @@ function drawCustomLabels(scales: CustomLabelsDesc) {
 			u.ctx.font = font(14, true);
 			u.ctx.translate(
 				Math.round((baseX + axis.labelGap! * flowDir * -1) * devicePixelRatio),
-				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(label).width / 2
+				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(newFullText).width / 2
 					+ (u.height * shiftMulti + shiftPx) * devicePixelRatio),
 			);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = axis.label != null ? 'bottom' : 'middle';
 			u.ctx.textAlign = 'left';
 			let x = 0;
-			for (const [text, stroke] of rec(label)) {
+			for (const [text, stroke] of parts) {
 				u.ctx.fillStyle = stroke;
 				u.ctx.fillText(text, x, 0);
 				x += u.ctx.measureText(text).width;
@@ -328,7 +348,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], field
 		fields: fields.join(),
 		...params
 	}).toString();
-	const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara);
+	const res = await fetch(process.env.REACT_APP_API + path + '?' + urlPara, { credentials: 'include' });
 	if (res.status !== 200)
 		throw Error('HTTP '+res.status);
 	const body = await res.json() as { data: any[][], fields: string[] };
@@ -405,8 +425,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 		] : []),
 		draw: [
 			...(params.showMetaInfo ? [(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis)] : []),
-			...(labels ? [drawCustomLabels(labels)] : []),
-			...(legend && params.showLegend ? [drawCustomLegend(legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
+			...(labels ? [drawCustomLabels(params, labels)] : []),
+			...(legend && params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])
 		],
 		ready: [
