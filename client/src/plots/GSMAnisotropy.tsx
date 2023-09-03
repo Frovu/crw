@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { BasicPlot, DefaultPosition, PosRef, SizeRef, axisDefaults, basicDataQuery, color,customTimeSplits, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from './plotUtil';
+import { BasicPlot, DefaultPosition, PosRef, SizeRef, applyTextTransform, axisDefaults, basicDataQuery, color,customTimeSplits, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from './plotUtil';
 import { markersPaths } from './plotPaths';
 import { GSMParams } from './GSM';
 
@@ -82,9 +82,10 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 			u.ctx.moveTo(ax, ay);
 		}
 
+		const transform = applyTextTransform(params.transformText);
 		const xArrowPercent = Math.floor(64 * devicePixelRatio / scalex);
 		const yArrowPercent = Math.floor(64 * devicePixelRatio / scaley);
-		const metric = u.ctx.measureText(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`);
+		const metric = u.ctx.measureText(transform(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`));
 		const lineH = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const lineW = metric.width;
 		const arrowRadius = px(6);
@@ -106,8 +107,8 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y);
 
 		u.ctx.textAlign = 'left';
-		u.ctx.fillText(`Ax, ${yArrowPercent}%`, x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
-		u.ctx.fillText(`Ay, ${xArrowPercent}%`, x + Math.max(0, xArrowPercent * scalex - lineW,), y - lineH / 2 - arrowRadius + px(2));
+		u.ctx.fillText(transform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
+		u.ctx.fillText(transform(`Ay, ${xArrowPercent}%`), x + Math.max(0, xArrowPercent * scalex - lineW,), y - lineH / 2 - arrowRadius + px(2));
 		u.ctx.stroke();
 
 		u.ctx.restore();

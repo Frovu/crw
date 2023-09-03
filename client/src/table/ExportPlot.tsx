@@ -1,4 +1,4 @@
-import { useContext, useMemo, useRef, useState } from 'react';
+import {  useContext, useMemo, useRef, useState } from 'react';
 import { useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/SW';
 import PlotIMF, { IMFParams } from '../plots/IMF';
@@ -7,7 +7,7 @@ import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import PlotGeoMagn from '../plots/Geomagn';
 import { CirclesParams, PlotCircles } from '../plots/Circles';
 import { PlotContext, SettingsContext, plotParamsFromSettings, themeOptions } from './Table';
-import { Position, color } from '../plots/plotUtil';
+import { Position, TextTransform, color } from '../plots/plotUtil';
 
 // const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 const trivialPlots = {
@@ -28,11 +28,13 @@ type PlotSettings = {
 	id: number
 };
 
-type PlotExportSettings = Omit<{
+type TranformEntry = TextTransform & { id: number };
+type PlotExportSettings = Omit<GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'> & {
 	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[],
-} & GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'>;
+	transformText: TranformEntry[]
+};
 
 const defaultSettings = (): PlotExportSettings => ({
 	showGrid: true,
@@ -86,11 +88,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
 	const set = <T extends keyof PlotExportSettings>(what: T, val: PlotExportSettings[T]) => setSettings(st => ({ ...st, [what]: val }));
-	const setPlot = <T extends keyof PlotSettings>(id: number, k: T, v: PlotSettings[T]) => setSettings(st => {
-		const i = st.plots.findIndex(p => p.id === id);
-		st.plots[i] = { ...st.plots[i], [k]: v };
-		return { ...st, plots: st.plots };
-	});
+	const setPlot = <T extends keyof PlotSettings>(id: number, k: T, v: PlotSettings[T]) =>
+		setSettings(st => ({ ...st, plots: st.plots.map(p => p.id === id ? ({ ...p, [k]: v }) : p) }));
+	const setTransform = (id: number, v: Partial<TranformEntry>) =>
+		setSettings(st => ({ ...st, transformText: st.transformText.map(t => t.id === id ? ({ ...t, ...v }) : t) }));
+
 	const container = useRef<HTMLDivElement>(null);
 
 	const doExport = (download?: boolean) => {
@@ -229,26 +231,26 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<label> / <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
 						value={shrinkRight} onChange={e => setRight(e.target.valueAsNumber)}/> hours</label>
 					<h4 style={{ margin: '10px 0' }}>Global</h4>
-					<div style={{ margin: '-4px 0 0 0' }}>
+					<div style={{ margin: '-2px 0 0 0' }}>
 						<Checkbox text='Grid' k='showGrid'/>
 						<Checkbox text=' Markers' k='showMarkers'/>
 						<Checkbox text=' Legend' k='showLegend'/>
 					</div>
 					<div style={{ margin: '8px 0 20px 4px' }}>
-						<label title='Replace text in labels via RegExp which is applied to labels parts'>Replace
-							<input style={{ width: 92, margin: '0 4px' }} type='text' placeholder='regexp'
-								value={settings.transformText?.[0]?.search}
-								onChange={e => set('transformText', [{ replace: e.target.value, ...settings.transformText?.[0], search: e.target.value }])}/>
-						-&gt;</label><input style={{ width: 92, margin: '0 4px' }} type='text' placeholder='replace'
-							value={settings.transformText?.[0]?.replace}
-							onChange={e => set('transformText', [{ search: e.target.value, ...settings.transformText?.[0], replace: e.target.value }])}/>
-						<button style={{ borderColor: 'transparent', color: color('skyblue'), position: 'absolute', right: 42, marginTop: 32 }}
-							onClick={() => set('plots', settings.plots.concat({
-								height: 200,
-								type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
-								showTime: true,
-								showMeta: true,
-								id: Date.now()
+						{settings.transformText.map(({ search, replace, id }) => <div style={{ marginBottom: 4 }} key={id}>
+							<label>RegExp
+								<input style={{ width: 100, margin: '0 6px' }} type='text' placeholder='search'
+									value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
+							-&gt;</label>
+							<input style={{ width: 100, margin: '0 4px' }} type='text' placeholder='replace'
+								value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/>
+							<span style={{ position: 'absolute', marginLeft: 2 }} className='CloseButton' onClick={() =>
+								set('transformText', settings.transformText.filter(t => t.id !== id))}>&times;</span>
+						</div>)}
+						<button title='Replace text in labels via RegExp which is applied to labels parts'
+							style={{ borderColor: 'transparent', color: color('skyblue'), position: 'absolute', right: 28 }}
+							onClick={() => set('transformText', settings.transformText.concat({
+								search: '', replace: '', id: Date.now()
 							}))}>+ <u>new replace</u></button>
 					</div>
 					<h4 style={{ margin: '10px 0' }}>Cosmic Rays</h4>
