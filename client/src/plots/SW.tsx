@@ -86,7 +86,7 @@ export default function PlotSW(params: SWParams) {
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]),
 		params, options: plotOptions(params),
-		labels: { temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³' + (params.showBeta ? '& beta' : '') },
+		labels: { temp: params.useTemperatureIndex ? 'Tp index' : 'Tp, K', y: 'Dp, N/cm³' + (params.showBeta ? ' & beta' : '') },
 		legend: [{
 			'Tp': params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
 			'Dp': 'Proton density, N/cm^3',

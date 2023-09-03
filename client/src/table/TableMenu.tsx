@@ -372,6 +372,8 @@ export function Menu() {
 					<MenuCheckbox text={'Temperature: ' + (settings.plotTempIdx ? 'index' : 'plain')} hide={true} value={!!settings.plotTempIdx} callback={v => set('plotTempIdx', () => v)}/>
 					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
 					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
+					<MenuCheckbox text='Show beta' value={!!settings.plotBeta} callback={v => set('plotBeta', () => v)}/>
+
 				</MenuSection>
 				<MenuSection name='Statistics' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
 					<h4>Histogram</h4>
