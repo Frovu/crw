@@ -4,7 +4,7 @@ import { markersPaths } from './plotPaths';
 import { GSMParams } from './GSM';
 
 export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: DefaultPosition, params: GSMParams): uPlot.Series.PathBuilder {
-	const colorLine = color('green', .8);
+	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
 	const px = (a: number) => a * devicePixelRatio;
@@ -46,9 +46,11 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 
 		u.ctx.save();
 		u.ctx.beginPath();
-		const nLines = 10;
-		const lineStep = Math.max(3, Math.floor((length - 12) / nLines));
-		for (let i = 4; i < length - 3; i += lineStep) {
+		const nMaxLines = 12;
+		const lineStep = [6, 8, 12, 24].find(s => s > length / nMaxLines) ?? 48;
+		const H = 3600;
+		const rem = lineStep - (u.data[0][0] / H) % lineStep;
+		for (let i = rem; i < length; i += lineStep) {
 			const a0x = u.valToPos(u.data[0][i]!, 'x', true);
 			const val = u.data[params.useA0m ? 3 : 2][i];
 			if (val == null)
@@ -172,12 +174,12 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				show: params.showAz,
 				scale: 'az',
 				label: 'Az(GSM)',
-				stroke: color('cyan'),
+				stroke: color('purple'),
 				width: 2,
 				points: {
 					show: params.showMarkers,
-					stroke: color('cyan'),
-					fill: color('cyan', .8),
+					stroke: color('purple'),
+					fill: color('purple', .8),
 					paths: markersPaths('triangleUp', 6)
 				}
 			},
@@ -185,12 +187,12 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				scale: 'a0',
 				show: what === (params.useA0m ? 'A0m' : 'A0'),
 				label: what + '(GSM)',
-				stroke: color('peach'),
+				stroke: color('green'),
 				width: 2,
 				points: {
 					show: params.showMarkers,
-					stroke: color('peach'),
-					fill: color('peach', .8),
+					stroke: color('green'),
+					fill: color('green', .8),
 					paths: markersPaths('diamond', 6)
 				}
 			})),

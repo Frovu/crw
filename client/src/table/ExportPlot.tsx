@@ -1,5 +1,5 @@
 import {  useContext, useMemo, useRef, useState } from 'react';
-import { clamp, useEventListener, usePersistedState } from '../util';
+import { clamp, dispatchCustomEvent, useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/SW';
 import PlotIMF, { IMFParams } from '../plots/IMF';
 import PlotGSM, { GSMParams } from '../plots/GSM';
@@ -133,6 +133,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			doExport();
 		else if ('KeyD' === e.code)
 			doExport(true);
+		else if ('Comma' === e.code)
+			dispatchCustomEvent('action+plotPrevShown');
+		else if ('Period' === e.code)
+			dispatchCustomEvent('action+plotNextShown');
 	});
 
 	const params = useMemo(() => ({
