@@ -1,6 +1,8 @@
 import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
+export const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
+
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }

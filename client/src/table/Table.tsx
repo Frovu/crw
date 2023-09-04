@@ -1,7 +1,7 @@
 import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
-import { useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
+import { clamp, useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
 import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
@@ -234,7 +234,7 @@ function CoreWrapper() {
 
 	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 
-	const plotMove = (dir: -1 | 0 | 1, inSample?: boolean) => () => setPlotIdx(current => {
+	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotIdx(current => {
 		if (dir === 0) { // set cursor to plotted line
 			setOpt('viewPlots', true);
 			if (cursor)
@@ -244,21 +244,20 @@ function CoreWrapper() {
 		}
 		if (current == null)
 			return null;
-		if (!inSample)
-			return Math.max(0, Math.min(current + dir, data.length - 1));
-		const cur = data[current][0] + dir;
-		const moved = dir > 0 ? sampleData.findIndex(r => r[0] >= cur) : sampleData.findLastIndex(r => r[0] <= cur); 
-		
-		const idx = Math.max(0, Math.min(moved >= 0 ? moved : current, sampleData.length - 1));
-		const found = dataContext.data.findIndex(r => r[0] === sampleData[idx][0]);
-		setCursor(curs => ({ row: found, column: curs?.column ?? 0 }));
-		return data.findIndex(r => r[0] === sampleData[idx][0]);
+		if (global)
+			return clamp(0, data.length - 1, current + dir);
+		const shownData = dataContext.data;
+		const found = shownData.findIndex(r => r[0] === data[current][0]);
+		const curIdx = found >= 0 ? found : cursor?.row;
+		if (curIdx == null) return current;
+		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
+		return data.findIndex(r => r[0] === shownData[movedIdx][0]);
 	});
 	useEventListener('action+plot', plotMove(0));
-	useEventListener('action+plotPrev', plotMove(-1));
-	useEventListener('action+plotNext', plotMove(+1));
-	useEventListener('action+plotPrevShown', plotMove(-1, true));
-	useEventListener('action+plotNextShown', plotMove(+1, true));
+	useEventListener('action+plotPrev', plotMove(-1, true));
+	useEventListener('action+plotNext', plotMove(+1, true));
+	useEventListener('action+plotPrevShown', plotMove(-1));
+	useEventListener('action+plotNextShown', plotMove(+1));
 
 	useEventListener('action+switchHistCorr', () => ['plotLeft', 'plotTop', 'plotBottom'].forEach(p => set(p as any, was =>
 		was === 'Histogram' ? 'Correlation' : was === 'Correlation' ? 'Histogram' : was )));
@@ -486,6 +485,9 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			const columnIdx = rawContext.columns.findIndex(c => c.id === column.id);
 			if (row) row[columnIdx] = value;
 		}
+		const sortIdx = rawContext.columns.findIndex(c => c.name === 'time');
+		if (sortIdx > 0) data.sort((a, b) => a[sortIdx] - b[sortIdx]);
+		
 		return {
 			...rawContext,
 			data,

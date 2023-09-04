@@ -1,5 +1,5 @@
 import {  useContext, useMemo, useRef, useState } from 'react';
-import { useEventListener, usePersistedState } from '../util';
+import { clamp, useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/SW';
 import PlotIMF, { IMFParams } from '../plots/IMF';
 import PlotGSM, { GSMParams } from '../plots/GSM';
@@ -150,7 +150,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 	}
 
-	const clamp = (min: number, max: number, val: number) => Math.max(min, Math.min(max, val));
 	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${360 / devicePixelRatio}px auto`, height: 'calc(100vh - 16px)' }}>
 		<div>
 			<div style={{ position: 'fixed', width: 366, height: `calc(${100*devicePixelRatio}vh - 16px)`, left: 0, top: 0,
