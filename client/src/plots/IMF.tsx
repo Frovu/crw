@@ -8,7 +8,7 @@ export type IMFParams = BasicPlotParams & {
 };
 
 function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
-	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp > (u.scales.speed.max! - u.scales.speed.min!) / 2 + u.scales.speed.min! ? sp : null);
+	const filterV = (u: uPlot, splits: number[]) => splits.map(sp => sp >= (u.scales.speed.max! - u.scales.speed.min!) / 2 - 50 + u.scales.speed.min! ? sp : null);
 	return {
 		axes: [
 			{
@@ -20,9 +20,10 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				label: '',
 				scale: 'speed',
 				side: 1,
+				incrs: [50, 100, 200, 300, 500],
 				ticks: { ...axisDefaults(false).ticks, filter: filterV },
 				filter: filterV,
-				values: (u, vals) => vals.map(v => v === 1000 ? '1e3' : v),
+				values: (u, vals) => vals,
 			},
 			{
 				...axisDefaults(params.showGrid),
@@ -40,7 +41,7 @@ function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {
 				range: (u, min, max) => [min - 1, Math.max(max, 20) * 3 / 2]
 			},
 			speed: {
-				range: (u, min, max) => [min - (max-min), max + 3]
+				range: (u, min, max) => [min - (max-min), max + 10]
 			}
 		},
 		series: [
@@ -95,7 +96,7 @@ export default function PlotIMF(params: IMFParams) {
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 		options: imfPlotOptions(params),
 		params,
-		labels: { imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: ['Vsw, km/s', -1 / 4, 16] },
+		labels: { imf: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`, speed: 'Vsw, km/s' },
 		legend: [{
 			'Vsw': 'Vsw, km/s',
 			'|B|': 'IMF |B|, nT',

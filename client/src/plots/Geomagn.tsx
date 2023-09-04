@@ -52,7 +52,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				gap: 6,
 				label: '',
 				scale: 'dst',
-				filter: (u, spl) => spl.map(s => s >= -20 || s > u.scales.dst.min! * 2 / 3 ? s : null)
+				filter: (u, spl) => spl.map(s => s >= -25 || s > u.scales.dst.min! * 2 / 3 ? s : null)
 			},
 		],
 		scales: {
