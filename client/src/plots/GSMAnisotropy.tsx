@@ -125,8 +125,8 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 		padding: [8, params.showAz ? 0 : 60, params.showTimeAxis ? 0 : 8, 0],
 		hooks: {
 			drawAxes: params.showMetaInfo ? [
-				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds, u.valToPos(0, 'a0', true)),
-				u => (params.onsets?.length) && drawOnsets(u, params.onsets),
+				u => (params.clouds?.length) && drawMagneticClouds(u, params, u.valToPos(0, 'a0', true)),
+				u => (params.onsets?.length) && drawOnsets(u, params, u.valToPos(0, 'a0', true)),
 			] : [],
 			ready: [
 				handleDrag

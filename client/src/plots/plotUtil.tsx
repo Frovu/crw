@@ -76,8 +76,9 @@ export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 	} as { [shape in Shape]: (x: number, y: number) => void };
 }
 
-export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
-	for (const onset of onsets) {
+export function drawOnsets(u: uPlot, params: BasicPlotParams, truncateY?: number) {
+	if (!params.onsets?.length) return;
+	for (const onset of params.onsets) {
 		const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 		if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 			continue;
@@ -89,16 +90,17 @@ export function drawOnsets(u: uPlot, onsets: Onset[], hideLabel?: boolean) {
 		u.ctx.textAlign = 'right';
 		u.ctx.lineWidth = 2 * devicePixelRatio;
 		u.ctx.beginPath();
-		u.ctx.moveTo(x, u.bbox.top);
+		u.ctx.moveTo(x, truncateY ?? u.bbox.top);
 		u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
-		!hideLabel && u.ctx.fillText(onset.type || 'ons',
+		params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
 			x + 4, u.bbox.top + u.bbox.height + 2);
 		u.ctx.stroke();
 		u.ctx.restore();
 	}
 }
 
-export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?: number) {
+export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?: number) {
+	if (!params.clouds?.length) return;
 	const patternCanvas = document.createElement('canvas');
 	const ctx = patternCanvas.getContext('2d')!;
 	patternCanvas.height = patternCanvas.width = 16;
@@ -122,7 +124,7 @@ export function drawMagneticClouds(u: uPlot, clouds: MagneticCloud[], truncateY?
 	ctx.lineTo(10, 0);
 	ctx.fill();
 
-	for (const cloud of clouds) {
+	for (const cloud of params.clouds) {
 		const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
 		const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
 		u.ctx.save();
@@ -421,10 +423,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 	options.hooks = {
 		...options.hooks,
 		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
-			u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
+			u => drawMagneticClouds(u, params),
 		] : []),
 		draw: [
-			...(params.showMetaInfo ? [(u: uPlot) => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis)] : []),
+			...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
 			...(labels ? [drawCustomLabels(params, labels)] : []),
 			...(legend && params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])

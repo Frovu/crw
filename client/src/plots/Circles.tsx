@@ -177,8 +177,8 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				},
 			],
 			draw: params.showMetaInfo ? [
-				u => (params.clouds?.length) && drawMagneticClouds(u, params.clouds),
-				u => (params.onsets?.length) && drawOnsets(u, params.onsets, !params.showTimeAxis),
+				u => (params.clouds?.length) && drawMagneticClouds(u, params),
+				u => (params.onsets?.length) && drawOnsets(u, params),
 			] : [],
 			ready: [
 				u => {
