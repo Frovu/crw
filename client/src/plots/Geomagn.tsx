@@ -52,7 +52,7 @@ function plotOptions(params: MagnParams): Partial<uPlot.Options> {
 				gap: 6,
 				label: '',
 				scale: 'dst',
-				splits: (u, aidx, min, max) => [Math.round((min + Math.max(10, max))/2), 0],
+				filter: (u, spl) => spl.map(s => s >= -20 || s > u.scales.dst.min! * 2 / 3 ? s : null)
 			},
 		],
 		scales: {
@@ -108,6 +108,6 @@ export default function PlotGeoMagn(params: MagnParams) {
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		options: plotOptions(params),
 		params,
-		labels: { dst: 'Dst idx', idx: (params.useAp ? 'Ap' : 'Kp') + ' idx' }
+		labels: { dst: 'Dst, nT', idx: (params.useAp ? 'Ap' : 'Kp') + ' idx' }
 	}}/>);
 }
