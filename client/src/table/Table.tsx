@@ -477,6 +477,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			series
 		} as const;
 	}, [tables, columns, firstTable, query.data, series]);
+
 	const context = useMemo(() => {
 		if (!rawContext) return null;
 		const data = [...rawContext.data.map(r => [...r])];
@@ -496,8 +497,9 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
 				if (!entityExists) return false;
 				
+				const isDifferent = column.type === 'time' ? row[colIdx].getTime() !== value.getTime() : row[colIdx] !== value;
 				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
-					...(row[colIdx] !== value ? [{ id, column, value }] : [])]);
+					...(isDifferent ? [{ id, column, value }] : [])]);
 				return true;
 			}
 		};
