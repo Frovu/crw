@@ -20,6 +20,14 @@ function plotOptions(params: GeomgnParams): Partial<uPlot.Options> {
 			size: [1 + (upl.data[0].length) / 1600, Infinity],
 			align: 1,
 			disp: {
+				y0: {
+					unit: 1,
+					values: (u) => u.data[seriesIdx].map(v => 0) as any
+				},
+				y1: {
+					unit: 1,
+					values: (u) => u.data[seriesIdx].map(v => !v ? 1 : v) as any
+				},
 				stroke: {
 					unit: 3,
 					values,
