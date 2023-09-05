@@ -127,6 +127,7 @@ export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?
 	for (const cloud of params.clouds) {
 		const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
 		const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
+		if (endX <= startX) continue;
 		u.ctx.save();
 		u.ctx.beginPath();
 		u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;

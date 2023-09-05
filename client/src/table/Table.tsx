@@ -307,7 +307,8 @@ function CoreWrapper() {
 		if (plotIdx == null) return null;
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[plotIdx][timeIdx] as Date;
-		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
+		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
+		const interval = settings.plotTimeOffset.map(days => new Date(hour + days * 864e5));
 		const allNeighbors = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 4));
 		const onsets = allNeighbors.filter(r => true)
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
@@ -320,7 +321,7 @@ function CoreWrapper() {
 			};
 		}).filter((v): v is MagneticCloud => v != null);
 		return {
-			interval: interval.map(t => new Date(t)) as [Date, Date],
+			interval: interval as [Date, Date],
 			onsets, clouds
 		};
 	}, [data, columns, plotIdx, settings]);

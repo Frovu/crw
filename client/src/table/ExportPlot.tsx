@@ -87,8 +87,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 	const dragRef = useRef<Position | null>(null);
 	const divRef = useRef<HTMLDivElement>(null);
-	const [shrinkLeft, setLeft] = useState(0);
-	const [shrinkRight, setRight] = useState(0);
+	const [shiftLeft, setLeft] = useState(0);
+	const [shiftRight, setRight] = useState(0);
 
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
@@ -146,15 +146,19 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			dispatchCustomEvent('action+plotNextShown');
 	});
 
-	const params = useMemo(() => ({
-		...tableSettings.plotParams,
-		...settings.plotParams,
-		...plotContext!,
-		interval: [
-			new Date(plotContext!.interval[0].getTime() + shrinkLeft * 36e5),
-			new Date(plotContext!.interval[1].getTime() - shrinkRight * 36e5)
-		] as [Date, Date],
-	}), [tableSettings, plotContext, settings, shrinkLeft, shrinkRight]);
+	const params = useMemo(() => {
+		const leftTime = plotContext!.interval[0].getTime() + shiftLeft * 36e5;
+		const rightTime = plotContext!.interval[1].getTime() + shiftRight * 36e5;
+		return {
+			...tableSettings.plotParams,
+			...settings.plotParams,
+			...plotContext!,
+			interval: [
+				new Date(leftTime),
+				new Date(Math.max(leftTime + 4*36e5, rightTime))
+			] as [Date, Date],
+		};
+	}, [tableSettings, plotContext, settings, shiftLeft, shiftRight]);
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
@@ -234,11 +238,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					</div>
 				</div>
 				<div style={{ padding: '0 0 0 24px' }}>
-					<h4 style={{ margin: '-16px 0 8px 0' }}>Shrink Interval</h4>
-					<label style={{ marginLeft: 4 }}>Left/Right: <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
-						value={shrinkLeft} onChange={e => setLeft(e.target.valueAsNumber)}/></label>
-					<label> / <input style={{ width: '48px' }} type='number' min='0' max='24' step='1'
-						value={shrinkRight} onChange={e => setRight(e.target.valueAsNumber)}/> hours</label>
+					<h4 style={{ margin: '-16px 0 8px 0' }}>Modify Interval</h4>
+					<label style={{ marginLeft: 4 }}>Left/Right: <input style={{ width: '48px' }} type='number' min='-36' max='25' step='1'
+						value={shiftLeft} onChange={e => setLeft(e.target.valueAsNumber)}/></label>
+					<label> / <input style={{ width: '48px' }} type='number' min='-24' max='36' step='1'
+						value={shiftRight} onChange={e => setRight(e.target.valueAsNumber)}/> hours</label>
 					<h4 style={{ margin: '10px 0' }}>Global</h4>
 					<div style={{ margin: '-2px 0 0 0' }}>
 						<Checkbox text='Grid' k='showGrid'/>
