@@ -3,8 +3,8 @@ import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
 export type IMFParams = BasicPlotParams & {
-	showBz?: boolean,
-	showBxBy?: boolean,
+	showBz: boolean,
+	showBxBy: boolean,
 };
 
 function imfPlotOptions(params: IMFParams): Partial<uPlot.Options> {

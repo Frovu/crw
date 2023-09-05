@@ -5,11 +5,11 @@ import { clamp, useEventListener, useMutationHandler, usePersistedState, useSize
 import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
-import { PlotCircles } from '../plots/Circles';
-import PlotGSM from '../plots/GSM';
-import PlotIMF from '../plots/IMF';
-import PlotSW from '../plots/SW';
-import PlotGeoMagn from '../plots/Geomagn';
+import { CirclesParams, PlotCircles } from '../plots/Circles';
+import PlotGSM, { GSMParams } from '../plots/GSM';
+import PlotIMF, { IMFParams } from '../plots/IMF';
+import PlotSW, { SWParams } from '../plots/SW';
+import PlotGeoMagn, { GeomgnParams } from '../plots/Geomagn';
 import HistogramPlot from '../plots/Histogram';
 import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
 import CorrelationPlot from '../plots/Correlate';
@@ -64,24 +64,14 @@ export type Settings = {
 	enabledColumns: string[],
 	computeAverages: boolean,
 	showChangelog: boolean,
+	plotOnlyShownEvents: boolean,
 	plotTimeOffset: [number, number], // as number of days
-	plotGrid: boolean,
-	plotMarkers: boolean,
-	plotLegend: boolean,
-	plotIndexAp: boolean,
-	plotUseA0m: boolean,
-	plotBeta: boolean,
-	plotSubtractTrend: boolean,
-	plotMaskGLE: boolean,
-	plotAz: boolean,
-	plotImfBz: boolean,
-	plotImfBxBy: boolean,
-	plotTempIdx: boolean,
 	plotLeft: typeof plotTypes[number] | null,
 	plotTop: typeof plotTypes[number] | null,
 	plotBottom: typeof plotTypes[number] | null,
 	plotBottomSize: number,
-	plotsRightSize: number
+	plotsRightSize: number,
+	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomgnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 };
 type VolatileSettings = {
 	hist: HistOptions,
@@ -131,24 +121,6 @@ export function isValidColumnValue(val: any, column: ColumnDef) {
 	}
 }
 
-export function plotParamsFromSettings(settings: Settings) {
-	return {
-		theme: settings.theme,
-		useAp: settings.plotIndexAp,
-		useTemperatureIndex: settings.plotTempIdx,
-		showGrid: settings.plotGrid,
-		showMarkers: settings.plotMarkers,
-		showLegend: settings.plotLegend,
-		subtractTrend: settings.plotSubtractTrend,
-		maskGLE: settings.plotMaskGLE,
-		showBeta: settings.plotBeta,
-		useA0m: settings.plotUseA0m,
-		showAz: settings.plotAz,
-		showBz: settings.plotImfBz,
-		showBxBy: settings.plotImfBxBy,
-	};
-}
-
 function defaultSettings(): Settings {
 	const SHOW = ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before', 'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'];
 	return {
@@ -156,18 +128,22 @@ function defaultSettings(): Settings {
 		enabledColumns: SHOW,
 		computeAverages: true,
 		showChangelog: false,
-		plotGrid: true,
-		plotMarkers: true,
-		plotLegend: false,
-		plotUseA0m: true,
-		plotSubtractTrend: true,
-		plotAz: false,
-		plotBeta: true,
-		plotMaskGLE: true,
-		plotIndexAp: false,
-		plotImfBz: true,
-		plotImfBxBy: false,
-		plotTempIdx: false,
+		plotParams: {
+			showGrid: true,
+			showMarkers: true,
+			showLegend: false,
+			useA0m: true,
+			subtractTrend: true,
+			showAz: false,
+			showBeta: true,
+			maskGLE: true,
+			useAp: false,
+			showBz: true,
+			showBxBy: false,
+			useTemperatureIndex: false,
+
+		},
+		plotOnlyShownEvents: false,
 		plotTimeOffset: [-2, 3],
 		plotTop: 'SW + Plasma',
 		plotLeft: 'Correlation',
@@ -187,8 +163,9 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 		return null;
 
 	const params = {
-		...plotParamsFromSettings(settings),
+		...settings.plotParams,
 		...context!,
+		theme: settings.theme,
 		showTimeAxis: true,
 		showMetaInfo: true
 	};
@@ -331,19 +308,21 @@ function CoreWrapper() {
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[plotIdx][timeIdx] as Date;
 		const interval = settings.plotTimeOffset.map(days => plotDate.getTime() + days * 864e5);
-		const rows = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 6));
-		const onsets = rows.filter(r => interval[0] < r[timeIdx].getTime() && r[timeIdx].getTime() < interval[1])
+		const allNeighbors = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 4));
+		const onsets = allNeighbors.filter(r => true)
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
-		const clouds = rows.map(r => {
+		const clouds = allNeighbors.map(r => {
 			const time = r[cloudTime]?.getTime(), dur = r[cloudDur];
 			if (!time || !dur) return null;
-			if (time + dur * 36e5 < interval[0] || interval[1] < time)
-				return null;
-			const start = new Date(Math.max(interval[0], time));
-			const end = new Date(Math.min(interval[1], time + dur * 36e5));
-			return { start, end };
+			return {
+				start: new Date(time),
+				end: new Date(time + dur * 36e5)
+			};
 		}).filter((v): v is MagneticCloud => v != null);
-		return { interval: interval.map(t => new Date(t)) as [Date, Date], onsets, clouds };
+		return {
+			interval: interval.map(t => new Date(t)) as [Date, Date],
+			onsets, clouds
+		};
 	}, [data, columns, plotIdx, settings]);
 
 	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));

@@ -11,7 +11,7 @@ const colors = ['magenta', 'acid', 'cyan'];
 
 export default function HistogramPlot() {
 	const { data, columns } = useContext(TableContext);
-	const { options: { hist: options }, settings: { plotGrid } } = useContext(SettingsContext);
+	const { options: { hist: options }, settings: { plotParams: { showGrid } } } = useContext(SettingsContext);
 	const { data: currentSample, samples: samplesList } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -101,7 +101,7 @@ export default function HistogramPlot() {
 				},
 				axes: [
 					{
-						...axisDefaults(plotGrid),
+						...axisDefaults(showGrid),
 						size: 30,
 						space: 64,
 						labelSize: 20,
@@ -113,7 +113,7 @@ export default function HistogramPlot() {
 						}),
 					},
 					{
-						...axisDefaults(plotGrid),
+						...axisDefaults(showGrid),
 						values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
 						size: 56,
 						space: 48
@@ -156,7 +156,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, currentSample, plotGrid, samplesList]);
+	}, [data, options, columns, currentSample, showGrid, samplesList]);
 
 	const opts = hist?.(size);
 	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;

@@ -6,7 +6,7 @@ import PlotGSM, { GSMParams } from '../plots/GSM';
 import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import PlotGeoMagn from '../plots/Geomagn';
 import { CirclesParams, PlotCircles } from '../plots/Circles';
-import { PlotContext, SettingsContext, plotParamsFromSettings, themeOptions } from './Table';
+import { PlotContext, SettingsContext, themeOptions } from './Table';
 import { Position, TextTransform, color } from '../plots/plotUtil';
 
 // const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
@@ -29,7 +29,8 @@ type PlotSettings = {
 };
 
 type TranformEntry = TextTransform & { id: number };
-type PlotExportSettings = Omit<GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'> & {
+type PlotExportSettings = {
+	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[],
@@ -37,15 +38,19 @@ type PlotExportSettings = Omit<GSMParams & SWParams & IMFParams & CirclesParams,
 };
 
 const defaultSettings = (): PlotExportSettings => ({
-	showGrid: true,
-	showMarkers: true,
-	showLegend: true,
-	showAz: false,
-	showBxBy: false,
-	showBz: true,
-	useA0m: true,
-	subtractTrend: true,
-	maskGLE: true,
+	plotParams: {
+		showGrid: true,
+		showMarkers: true,
+		showLegend: true,
+		showAz: false,
+		showBxBy: false,
+		showBz: true,
+		useA0m: true,
+		subtractTrend: true,
+		maskGLE: true,
+		useTemperatureIndex: true,
+		showBeta: true,
+	},
 	theme: 'Dark',
 	width: 640,
 	transformText: [],
@@ -88,6 +93,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
 	const set = <T extends keyof PlotExportSettings>(what: T, val: PlotExportSettings[T]) => setSettings(st => ({ ...st, [what]: val }));
+	const setParam = <T extends keyof PlotExportSettings['plotParams']>(what: T, val: PlotExportSettings['plotParams'][T]) =>
+		setSettings(st => ({ ...st, plotParams: { ...st.plotParams, [what]: val } }));
 	const setPlot = <T extends keyof PlotSettings>(id: number, k: T, v: PlotSettings[T]) =>
 		setSettings(st => ({ ...st, plots: st.plots.map(p => p.id === id ? ({ ...p, [k]: v }) : p) }));
 	const setTransform = (id: number, v: Partial<TranformEntry>) =>
@@ -140,18 +147,17 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	});
 
 	const params = useMemo(() => ({
-		...plotParamsFromSettings(tableSettings),
+		...tableSettings.plotParams,
+		...settings.plotParams,
 		...plotContext!,
-		...settings,
 		interval: [
 			new Date(plotContext!.interval[0].getTime() + shrinkLeft * 36e5),
 			new Date(plotContext!.interval[1].getTime() - shrinkRight * 36e5)
 		] as [Date, Date],
-		plots: undefined
 	}), [tableSettings, plotContext, settings, shrinkLeft, shrinkRight]);
 
-	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings }) {
-		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
+		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
 	}
 
 	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${360 / devicePixelRatio}px auto`, height: 'calc(100vh - 16px)' }}>
@@ -275,11 +281,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<Checkbox text=' Linear size' k='linearSize'/>
 					<div style={{ marginTop: 8 }}>
 						<label style={{ marginLeft: 4 }}>Variation shift: <input style={{ width: '72px' }} type='number' min='-10' max='10' step='.05'
-							value={settings.variationShift ?? 0} onChange={e => set('variationShift', e.target.valueAsNumber)}/> %</label>
+							value={settings.plotParams.variationShift ?? 0} onChange={e => setParam('variationShift', e.target.valueAsNumber)}/> %</label>
 					</div>
 					<div style={{ marginTop: 8 }}>
 						<label style={{ marginLeft: 4 }}>Circle size shift: <input style={{ width: '72px' }} type='number' min='-100' max='100' step='.5'
-							value={settings.sizeShift ?? 0} onChange={e => set('sizeShift', e.target.valueAsNumber)}/> px</label>
+							value={settings.plotParams.sizeShift ?? 0} onChange={e => setParam('sizeShift', e.target.valueAsNumber)}/> px</label>
 					</div>
 					<div style={{ marginTop: 8 }}>
 					</div>

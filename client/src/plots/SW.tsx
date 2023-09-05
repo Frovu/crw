@@ -3,8 +3,8 @@ import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits, superScript } from './plotUtil';
 
 export type SWParams = BasicPlotParams & {
-	useTemperatureIndex?: boolean,
-	showBeta?: boolean
+	useTemperatureIndex: boolean,
+	showBeta: boolean
 };
 
 function plotOptions(params: SWParams): Partial<uPlot.Options> {

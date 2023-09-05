@@ -313,6 +313,9 @@ export function Menu() {
 		}
 	});
 
+	const setPara = <T extends keyof typeof settings.plotParams>(k: T) => (v: typeof settings.plotParams[T]) =>
+		set('plotParams', prm => ({ ...prm, [k]: v }));
+	const para = settings.plotParams;
 	return (
 		<div>
 			<div className='Menu'>
@@ -351,9 +354,9 @@ export function Menu() {
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
 					<h4>Options</h4>
 					<SettingsSelect what='theme' options={themeOptions} withNull={false}/>
-					<MenuCheckbox text='Show markers' value={!!settings.plotMarkers} callback={v => set('plotMarkers', () => v)}/>
-					<MenuCheckbox text='Show grid' value={!!settings.plotGrid} callback={v => set('plotGrid', () => v)}/>
-					<MenuCheckbox text='Show legend' value={!!settings.plotLegend} callback={v => set('plotLegend', () => v)}/>
+					<MenuCheckbox text='Show markers' value={!!para.showMarkers} callback={setPara('showMarkers')}/>
+					<MenuCheckbox text='Show grid' value={!!para.showGrid} callback={setPara('showGrid')}/>
+					<MenuCheckbox text='Show legend' value={!!para.showLegend} callback={setPara('showLegend')}/>
 					<div>
 						± Days:
 						<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
@@ -363,16 +366,17 @@ export function Menu() {
 							onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
-					<MenuCheckbox text='Show Az' value={!!settings.plotAz} callback={v => set('plotAz', () => v)}/>
-					<MenuCheckbox text='Subtract variation trend' value={!!settings.plotSubtractTrend} callback={v => set('plotSubtractTrend', () => v)}/>
-					<MenuCheckbox text='Mask GLE' value={!!settings.plotMaskGLE} callback={v => set('plotMaskGLE', () => v)}/>
-					<MenuCheckbox text='Use dst corrected A0m' value={!!settings.plotUseA0m} callback={v => set('plotUseA0m', () => v)}/>
-					<MenuCheckbox text={'Use index: ' + (settings.plotIndexAp ? 'Ap' : 'Kp')} hide={true} value={!!settings.plotIndexAp} callback={v => set('plotIndexAp', () => v)}/>
+					<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
+					<MenuCheckbox text='Subtract variation trend' value={para.subtractTrend} callback={setPara('subtractTrend')}/>
+					<MenuCheckbox text='Mask GLE' value={para.maskGLE} callback={setPara('maskGLE')}/>
+					<MenuCheckbox text='Use dst corrected A0m' value={para.useA0m} callback={setPara('useA0m')}/>
+					<MenuCheckbox text={'Use index: ' + (para.useAp ? 'Ap' : 'Kp')} hide={true} value={!!para.useAp} callback={setPara('useAp')}/>
 					<h4>Solar Wind</h4>
-					<MenuCheckbox text={'Temperature: ' + (settings.plotTempIdx ? 'index' : 'plain')} hide={true} value={!!settings.plotTempIdx} callback={v => set('plotTempIdx', () => v)}/>
-					<MenuCheckbox text='Show IMF Bz' value={!!settings.plotImfBz} callback={v => set('plotImfBz', () => v)}/>
-					<MenuCheckbox text='Show IMF Bx,By' value={!!settings.plotImfBxBy} callback={v => set('plotImfBxBy', () => v)}/>
-					<MenuCheckbox text='Show beta' value={!!settings.plotBeta} callback={v => set('plotBeta', () => v)}/>
+					<MenuCheckbox text={'Temperature: ' + (para.useTemperatureIndex ? 'index' : 'plain')} hide={true}
+						value={para.useTemperatureIndex} callback={setPara('useTemperatureIndex')}/>
+					<MenuCheckbox text='Show IMF Bz' value={para.showBz} callback={setPara('showBz')}/>
+					<MenuCheckbox text='Show IMF Bx,By' value={para.showBxBy} callback={setPara('showBxBy')}/>
+					<MenuCheckbox text='Show beta' value={para.showBeta} callback={setPara('showBeta')}/>
 
 				</MenuSection>
 				<MenuSection name='Statistics' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>

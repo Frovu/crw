@@ -9,7 +9,7 @@ import { axisDefaults, clickDownloadPlot, color } from './plotUtil';
 import { CorrParams } from '../table/Statistics';
 
 export default function CorrelationPlot() {
-	const { options: { correlation: params }, settings: { plotGrid } } = useContext(SettingsContext);
+	const { options: { correlation: params }, settings: { plotParams: { showGrid } } } = useContext(SettingsContext);
 	const { columns } = useContext(TableContext);
 	const { data: sampleData } = useContext(SampleContext);
 
@@ -53,7 +53,7 @@ export default function CorrelationPlot() {
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
 					{
-						...axisDefaults(plotGrid),
+						...axisDefaults(showGrid),
 						label: columns.find(c => c.id === params.columnX)?.fullName,
 						labelSize: 22,
 						size: 30,
@@ -61,7 +61,7 @@ export default function CorrelationPlot() {
 						values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
 					{
-						...axisDefaults(plotGrid),
+						...axisDefaults(showGrid),
 						label: columns.find(c => c.id === params.columnY)?.fullName,
 						size: 32 + 11 * (maxWidthY - 2),
 						values: (u, vals) => vals.map(v => loglog ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
@@ -93,7 +93,7 @@ export default function CorrelationPlot() {
 			} as uPlot.Options,
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		}) ;
-	}, [params, columns, sampleData, plotGrid]);
+	}, [params, columns, sampleData, showGrid]);
 
 	if (!plotOpts) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>

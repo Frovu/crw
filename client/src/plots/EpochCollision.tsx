@@ -82,7 +82,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 }
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const { settings: { plotGrid, plotTimeOffset } } = useContext(SettingsContext);
+	const { settings: { plotTimeOffset, plotParams: { showGrid } } } = useContext(SettingsContext);
 	const { columns, series, data: tableData } = useContext(TableContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -156,7 +156,8 @@ export default function EpochCollision() {
 	const options = { 
 		width: size.width,
 		height: size.height - (container?.offsetHeight || 36) - (state.sample1 ? 64 : 32), 
-		...collisionOptions(plotGrid, state.showMedian, state.showStd, samples.map((s, i) => !!data?.[3+i*3])) };
+		...collisionOptions(showGrid, state.showMedian, state.showStd, samples.map((s, i) => !!data?.[3+i*3]))
+	};
 
 	const set = (key: string) => (value: any) => setState(st => st && ({ ...st, [key]: value }));
 	const timeOptions = columns.filter(col => col.type === 'time').map(col => col.fullName);
