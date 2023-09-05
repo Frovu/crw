@@ -16,6 +16,7 @@ export type BasicPlotParams = {
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
 	transformText?: TextTransform[],
+	stretch?: boolean,
 	showTimeAxis: boolean,
 	showMetaInfo: boolean
 	showGrid: boolean,

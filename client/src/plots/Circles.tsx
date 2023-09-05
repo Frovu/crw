@@ -443,17 +443,16 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
 	const interactive = params.interactive;
-	let padRight = 0;
-	if (!interactive && size.width) {
+	let padRight = 60;
+	if (params.stretch && size.width) {
 		// tweak interval so that time axis would align with other (shorter) plots
-		const rightDelta = 52;
 		const initialInterval = initParams.interval;
 		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
 		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
 		const pwidth = size.width - 60;
-		const targetHourWidth = (pwidth - rightDelta) / len;
-		const addHoursRight = Math.floor(rightDelta / targetHourWidth) - 1 + even;
-		padRight = rightDelta % targetHourWidth;
+		const targetHourWidth = (pwidth - padRight) / len;
+		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
+		padRight = padRight % targetHourWidth;
 		params.interval = [
 			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
 			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight)
@@ -466,7 +465,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	
 	const query = useQuery({
 		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
-		queryFn: () => (params.interactive || size.width) ? fetchCircles(params, base) : null,
+		queryFn: () => (!params.stretch || size.width) ? fetchCircles(params, base) : null,
 		keepPreviousData: interactive
 	});
 
@@ -499,7 +498,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	const plotComponent = useMemo(() => {
 		if (!plotData || !container.current || size.height <= 0) return;
 		const options = {
-			padding: [8, 8 + padRight, 0, 0],
+			padding: [8, params.interactive ? 12 : padRight, 0, 0],
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
 			...circlesPlotOptions(query.data, params, idxEnabled, setIdxEnabled, setBase, setMoment)
 		} as uPlot.Options;
@@ -510,6 +509,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 		<div ref={container} style={{ position: query.data ? 'absolute' : 'unset' }}>
 			{query.isLoading && <div className='Center'>LOADING...</div>}
 			{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+			{/* {size.width && query.isFetched && !query.data && <div className='Center'>LACKING DATA...</div>} */}
 			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen: initParams.settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
@@ -601,8 +601,9 @@ export default function PlotCirclesStandalone() {
 					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
 					new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
 				realtime: true,
-				window: 3
+				window: 3,
 			}),
+			stretch: false,
 			interactive: true,
 			autoFilter: true
 		};

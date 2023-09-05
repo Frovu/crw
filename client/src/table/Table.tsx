@@ -166,6 +166,7 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 		...settings.plotParams,
 		...context!,
 		theme: settings.theme,
+		stretch: true,
 		showTimeAxis: true,
 		showMetaInfo: true
 	};
