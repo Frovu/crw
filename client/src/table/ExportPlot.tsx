@@ -3,8 +3,7 @@ import { clamp, dispatchCustomEvent, useEventListener, usePersistedState } from 
 import PlotSW, { SWParams } from '../plots/SW';
 import PlotIMF, { IMFParams } from '../plots/IMF';
 import PlotGSM, { GSMParams } from '../plots/GSM';
-import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
-import PlotGeoMagn from '../plots/Geomagn';
+import PlotGeoMagn, { GeomagnParams } from '../plots/Geomagn';
 import { CirclesParams, PlotCircles } from '../plots/Circles';
 import { PlotContext, SettingsContext, themeOptions } from './Table';
 import { Position, TextTransform, color } from '../plots/plotUtil';
@@ -14,7 +13,6 @@ const trivialPlots = {
 	'Solar Wind': PlotIMF,
 	'SW Plasma': PlotSW,
 	'Cosmic Rays': PlotGSM,
-	'CR Anisotropy': PlotGSMAnisotropy,
 	'Geomagn': PlotGeoMagn,
 	'Ring of Stations': PlotCircles
 };
@@ -30,7 +28,7 @@ type PlotSettings = {
 
 type TranformEntry = TextTransform & { id: number };
 type PlotExportSettings = {
-	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
+	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[],
@@ -39,6 +37,7 @@ type PlotExportSettings = {
 
 const defaultSettings = (): PlotExportSettings => ({
 	plotParams: {
+		useAp: false,
 		showGrid: true,
 		showMarkers: true,
 		showLegend: true,

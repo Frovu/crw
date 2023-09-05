@@ -2,11 +2,11 @@ import uPlot from 'uplot';
 import { markersPaths } from './plotPaths';
 import { axisDefaults, basicDataQuery, BasicPlot, BasicPlotParams, color, customTimeSplits } from './plotUtil';
 
-export type GeomgnParams = BasicPlotParams & {
+export type GeomagnParams = BasicPlotParams & {
 	useAp: boolean,
 };
 
-function plotOptions(params: GeomgnParams): Partial<uPlot.Options> {
+function plotOptions(params: GeomagnParams): Partial<uPlot.Options> {
 	const myBars = (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
 		const colors = [color('green'), color('yellow'), color('orange'), color('red')];
 		const lastColor = color('crimson');
@@ -110,7 +110,7 @@ function plotOptions(params: GeomgnParams): Partial<uPlot.Options> {
 	};
 }
 
-export default function PlotGeoMagn(params: GeomgnParams) {
+export default function PlotGeoMagn(params: GeomagnParams) {
 	return (<BasicPlot {...{
 		queryKey: ['geomagn', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),

@@ -5,7 +5,7 @@ import Circles from './plots/Circles';
 import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
-import PlotGSMAnisotropy from './plots/GSMAnisotropy';
+import PlotGSM from './plots/GSM';
 
 const theQueryClient = new QueryClient();
 
@@ -142,7 +142,7 @@ function App() {
 		}}>
 			{app === 'test' && 
 				<div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
-					<PlotGSMAnisotropy {...{
+					<PlotGSM {...{
 						subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
 						interval: [new Date('2022-07-18'), new Date('2022-07-21')],
 						onsets: [ { time: new Date('2022-07-18T21:19:00Z'), type: 'SSC' } ],

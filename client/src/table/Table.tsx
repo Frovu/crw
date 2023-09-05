@@ -9,13 +9,12 @@ import { CirclesParams, PlotCircles } from '../plots/Circles';
 import PlotGSM, { GSMParams } from '../plots/GSM';
 import PlotIMF, { IMFParams } from '../plots/IMF';
 import PlotSW, { SWParams } from '../plots/SW';
-import PlotGeoMagn, { GeomgnParams } from '../plots/Geomagn';
-import HistogramPlot from '../plots/Histogram';
-import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
+import PlotGeoMagn, { GeomagnParams } from '../plots/Geomagn';
 import CorrelationPlot from '../plots/Correlate';
-import PlotGSMAnisotropy from '../plots/GSMAnisotropy';
 import EpochCollision from '../plots/EpochCollision';
 import PlotExportView from './ExportPlot';
+import HistogramPlot from '../plots/Histogram';
+import { CorrParams, defaultCorrParams, defaultHistOptions, HistOptions } from './Statistics';
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
@@ -42,7 +41,7 @@ export type ColumnDef = {
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
 export const samplePlotTypes = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
-export const plotTypes = [ 'CR + Geomagn', 'SW + Plasma', 'CR Anisotropy', 'Ring of Stations', 'SW', 'CR', ...samplePlotTypes ] as const;
+export const plotTypes = [ 'CR + Geomagn', 'SW + Plasma', 'Ring of Stations', 'SW', 'CR', ...samplePlotTypes ] as const;
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
@@ -71,7 +70,7 @@ export type Settings = {
 	plotBottom: typeof plotTypes[number] | null,
 	plotBottomSize: number,
 	plotsRightSize: number,
-	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomgnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
+	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 };
 type VolatileSettings = {
 	hist: HistOptions,
@@ -175,7 +174,6 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 	const boundRight = bound && { maxWidth: (100-settings.plotsRightSize) + '%' };
 	return (
 		<div className={which} style={{ overflow: 'clip', position: 'relative', border: '1px var(--color-border) solid', ...boundRight, ...stretchTop }}>
-			{type === 'CR Anisotropy' && <PlotGSMAnisotropy {...params}/>}
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
