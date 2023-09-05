@@ -58,7 +58,7 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 		const rem = lineStep - (u.data[0][0] / H) % lineStep;
 		for (let i = rem; i < length; i += lineStep) {
 			const a0x = u.valToPos(u.data[0][i]!, 'x', true);
-			const val = u.data[params.useA0m ? 3 : 2][i];
+			const val = u.data[params.useA0m ? 4 : 3][i];
 			if (val == null)
 				continue;
 			const a0y = u.valToPos(val, 'a0', true);
@@ -126,7 +126,7 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 
 function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition>, defaultPos: DefaultPosition, params: GSMParams): Partial<uPlot.Options> {
 	const [pos, size, handleDrag] = overlay;
-	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.az.max! / 3 + u.scales.az.min! ? sp : null);
+	const filterAxy = (u: uPlot, splits: number[]) => splits.map(sp => sp < u.scales.az.max! / 4 + u.scales.az.min! ? sp : null);
 	return {
 		padding: [8, params.showAz ? 0 : 60, params.showTimeAxis ? 0 : 8, 0],
 		hooks: {
@@ -166,44 +166,53 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
 			},
 			{
-				show: params.showAz,
-				side: 1,
+				show: false,
 				...axisDefaults(false),
 				label: '',
 				scale: 'az',
-				incrs: [.5, 1, 2, 3, 5, 10, 20],
-				ticks: { ...axisDefaults(false).ticks, filter: filterAxy },
-				filter: filterAxy
 			},
 		],
 		scales: {
 			x: { },
 			a0: {
-				range: (u, min, max) => [min-.1, -1.5 * min + 1]
+				range: (u, min, max) => [min*2, -3 * min + 1]
 			},
 			az: {
 				range: (u, min, max) => [Math.min(0, min) - 1, (Math.max(max, 3.5) - min) * 3 - min + 3]
 			},
 			axy: {
-				range: (u, min, max) => [Math.min(0, min), (Math.max(max, 3.5) - min) * 2 - min]
+				range: (u, min, max) => [Math.min(0, min), (Math.max(max, 3.5) - min) * 3 - min]
 			}
 		},
 		series: [
 			{ },
 			{
-				show: params.showAz,
+				scale: 'axy',
+				label: 'Axy',
+				stroke: color('magenta', .75),
+				fill: color('magenta', .75),
+				width: 0,
+				paths: uPlot.paths.bars!({ size: [.4, 16, 1], align: 1 }),
+				points: { show: false }
+			},
+			{
 				scale: 'az',
 				label: 'Az',
 				stroke: color('purple'),
-				width: 2,
-				// paths: uPlot.paths.bars!({ size: [.2, 10], align: 1, disp: {
-				// 	y0: 
-				// } }),
-				points: {
-					show: params.showMarkers,
-					stroke: color('purple'),
-					fill: color('purple', .8),
-					paths: markersPaths('triangleUp', 6)
+				fill: color('purple'),
+				width: 1,
+				points: { show: false },
+				paths: (u, sidx, i0, i1) => {
+					const a0inAzScale = u.data[sidx + (params.useA0m ? 2 : 1)].map(v => v == null ? 0 : u.posToVal(u.valToPos(v, 'a0'), 'az')) as number[];
+					const y1 = u.data[sidx].map((v, i) => v == null ? null : (a0inAzScale[i] + v) as any);
+					return uPlot.paths.bars!({
+						size: [.1, 8, 1],
+						align: 0,
+						disp: {
+							y0: { unit: 1, values: () => a0inAzScale },
+							y1: { unit: 1, values: () => y1 as any  }
+						}
+					})(u, sidx, i0, i1);
 				}
 			},
 			...['A0', 'A0m'].map(what => ({
@@ -220,15 +229,6 @@ function anisotropyPlotOptions(overlay: ReturnType<typeof usePlotOverlayPosition
 				}
 			})),
 			{
-				scale: 'axy',
-				label: 'Axy',
-				stroke: color('magenta', .8),
-				fill: color('magenta', .8),
-				width: 0,
-				paths: uPlot.paths.bars!({ size: [.4, 16], align: 1 }),
-				points: { show: false }
-			},
-			{
 				label: 'vector',
 				stroke: color('magenta'),
 				paths: tracePaths(pos, size, defaultPos, params),
@@ -244,7 +244,7 @@ export default function PlotGSMAnisotropy(params: GSMParams) {
 
 	return (<BasicPlot {...{
 		queryKey: ['GSMani', params.interval, params.maskGLE, params.subtractTrend],
-		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'az', 'a10', 'a10m', 'axy', 'ax', 'ay'], {
+		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10', 'a10m', 'ax', 'ay'], {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
@@ -252,19 +252,18 @@ export default function PlotGSMAnisotropy(params: GSMParams) {
 		params,
 		labels: {
 			a0: [`A0${params.useA0m ? 'm' : ''}(GSM) var, %`, 1 / 5],
-			...(params.showAz && { az: ['Az var, %', 1 / 4] })
+			axy: ['Axy var, %', 1 / 3]
 		},
 		legend: [{
 			'A0(GSM)': 'CR Density var, % ',
 			'A0m(GSM)': 'CR Density var (corrected), %',
 			'Az': 'CR North-south anisotropy var, %',
-			'vector': 'CR Equatorial anisotropy vector ',
 			'Axy': 'CR Equatorial anisotropy var, %',
+			'vector': 'CR Equatorial anisotropy vector ',
 		}, {
 			'vector': 'arrow',
 			'A0(GSM)': 'diamond',
-			'A0m(GSM)': 'diamond',
-			'Az': 'triangleUp'
+			'A0m(GSM)': 'diamond'
 		}]
 	}}/>);
 }

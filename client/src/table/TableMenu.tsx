@@ -360,10 +360,10 @@ export function Menu() {
 					<div>
 						± Days:
 						<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
-							onChange={(v: any) => set('plotTimeOffset', (prev) => [v, prev[1]])}/>
+							onChange={(v: any) => set('plotTimeOffset', (prev) => isNaN(v) ? prev : [v, prev[1]])}/>
 						/
 						<MenuInput type='number' min='1' max='14' step='.5' value={settings.plotTimeOffset?.[1]}
-							onChange={(v: any) => set('plotTimeOffset', (prev) => [prev[0], v])}/>
+							onChange={(v: any) => set('plotTimeOffset', (prev) => isNaN(v) ? prev : [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
 					<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
