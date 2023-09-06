@@ -63,6 +63,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		gap: 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
 		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
+		...(filter && { filter })
 	};
 }
 
@@ -392,15 +393,15 @@ export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 }
 
 type CustomAxis = uPlot.Axis & {
+	label: string,
+	fullLabel?: string,
 	position?: [number, number],
 	forceZero?: boolean,
 	showGrid?: boolean,
 	whole?: boolean,
-	
 };
 type CustomSeries = uPlot.Series & {
 	marker?: Shape,
-
 };
 
 export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params, legend, labels }:
@@ -436,6 +437,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		},
 		scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 			range: (u, min, max) => {
+				(u as any).scales[ax.label].dataMin = min;
+				(u as any).scales[ax.label].dataMax = max;
 				const [ bottom, top ] = ax.position ?? [0, 1];
 				const h = max - min;
 				const resultingH = h / (top - bottom);
@@ -449,14 +452,19 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		axes: [{
 			...axisDefaults(params.showGrid),
 			...customTimeSplits(params)
-		}].concat((axes ?? []).map(ax => ({
-			...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter),
-			values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
-			...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
-			scale: ax.label,
-			...ax,
-			label: '',
-		}))),
+		}].concat((axes ?? []).map(ax => {
+			return {
+				...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ((u, splits) => {
+					const { dataMax: max, dataMin: min } = u.scales[ax.scale ?? ax.label] as any;
+					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
+				})),
+				values: (u, vals) => vals.map(v => v?.toFixed(vals[0] > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
+				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
+				scale: ax.label,
+				...ax,
+				label: '',
+			};
+		})),
 		series: [{ }].concat((series ?? []).map(ser => ({
 			points: !ser.marker ? { show: false } : {
 				show: params.showMarkers,
@@ -476,8 +484,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			u => drawMagneticClouds(u, params),
 		] : []),
 		draw: [
+			drawCustomLabels(params, labels ?? Object.fromEntries(axes?.filter(a => a.fullLabel).map(ax => [ax.label, ax.fullLabel!]) ?? [])),
 			...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
-			...(labels ? [drawCustomLabels(params, labels)] : []),
 			...(legend && params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])
 		],
