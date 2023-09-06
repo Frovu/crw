@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { useEventListener, useSize, ValidatedInput } from '../util';
-import { linePaths, pointPaths } from './plotPaths';
-import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from './plotUtil';
-import { Onset, themeOptions } from '../table/Table';
+import { useEventListener, useSize, ValidatedInput } from '../../util';
+import { linePaths, pointPaths } from '../plotPaths';
+import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from '../plotUtil';
+import { Onset, themeOptions } from '../../table/Table';
 import { useQuery } from 'react-query';
-import { Quadtree } from './quadtree';
+import { Quadtree } from '../quadtree';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
-import '../css/Circles.css';
-import { MenuCheckbox } from '../table/TableMenu';
+import '../../css/Circles.css';
+import { MenuCheckbox } from '../../table/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,

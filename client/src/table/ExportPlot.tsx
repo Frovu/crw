@@ -1,10 +1,10 @@
 import {  useContext, useMemo, useRef, useState } from 'react';
 import { clamp, dispatchCustomEvent, useEventListener, usePersistedState } from '../util';
-import PlotSW, { SWParams } from '../plots/SW';
-import PlotIMF, { IMFParams } from '../plots/IMF';
-import PlotGSM, { GSMParams } from '../plots/GSM';
-import PlotGeoMagn, { GeomagnParams } from '../plots/Geomagn';
-import { CirclesParams, PlotCircles } from '../plots/Circles';
+import PlotSW, { SWParams } from '../plots/time/SW';
+import PlotIMF, { IMFParams } from '../plots/time/IMF';
+import PlotGSM, { GSMParams } from '../plots/time/GSM';
+import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
+import { CirclesParams, PlotCircles } from '../plots/time/Circles';
 import { PlotContext, SettingsContext, themeOptions } from './Table';
 import { Position, TextTransform, color } from '../plots/plotUtil';
 
@@ -153,6 +153,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		return {
 			...tableSettings.plotParams,
 			...settings.plotParams,
+			transformText: settings.transformText,
 			...plotContext!,
 			interval: [
 				new Date(leftTime),

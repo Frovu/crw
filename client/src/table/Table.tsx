@@ -5,11 +5,11 @@ import { clamp, useEventListener, useMutationHandler, usePersistedState, useSize
 import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
-import { CirclesParams, PlotCircles } from '../plots/Circles';
-import PlotGSM, { GSMParams } from '../plots/GSM';
-import PlotIMF, { IMFParams } from '../plots/IMF';
-import PlotSW, { SWParams } from '../plots/SW';
-import PlotGeoMagn, { GeomagnParams } from '../plots/Geomagn';
+import { CirclesParams, PlotCircles } from '../plots/time/Circles';
+import PlotGSM, { GSMParams } from '../plots/time/GSM';
+import PlotIMF, { IMFParams } from '../plots/time/IMF';
+import PlotSW, { SWParams } from '../plots/time/SW';
+import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
 import PlotExportView from './ExportPlot';
@@ -186,13 +186,13 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			</>}
 			{type === 'SW' && <PlotIMF {...params}/>}
 			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params}/></div> 
-				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params} showTimeAxis={false}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} showTimeAxis={false}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params}/></div> 
 			</>}
 			{type === 'CR' && <PlotGSM {...params}/>}
 			{type === 'CR + Geomagn' && <>
-				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params}/></div> 
-				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params} showTimeAxis={false}/></div> 
+				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} showTimeAxis={false}/></div> 
+				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params} /></div> 
 			</>}
 		</div>
 	);

@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from 'react-query';
 import { createContext, useContext, useEffect, useState } from 'react';
 import Table from './table/Table';
-import Circles from './plots/Circles';
+import Circles from './plots/time/Circles';
 import { useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
-import PlotGSM from './plots/GSM';
+import PlotGSM from './plots/time/GSM';
 
 const theQueryClient = new QueryClient();
 
@@ -145,7 +145,7 @@ function App() {
 					<PlotGSM {...{
 						showAxy: true, showAxyVector: true,
 						subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
-						interval: [new Date('2023-04-23'), new Date('2023-04-26T10:00:00')],
+						interval: [new Date('2023-04-23 08:00'), new Date('2023-04-26T10:00:00')],
 						onsets: [ { time: new Date('2023-04-23T17:38:00Z'), type: 'SSC' } ],
 						clouds: [{ start: new Date('2023-04-24T01:00:00Z'), end: new Date('2023-04-25T19:00:00Z') }],
 						showGrid: true, showLegend: true, showMarkers: true, showBxBy: true, showBz: true, showMetaInfo: true, showTimeAxis: true }}/>

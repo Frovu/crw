@@ -1,11 +1,10 @@
 import React, { MutableRefObject, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
-import { useSize } from '../util';
+import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../table/Table';
 import UplotReact from 'uplot-react';
-import { markersPaths } from './plotPaths';
 
 export type TextTransform = {
 	search: string,
@@ -76,7 +75,7 @@ export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy
 }
 
 type Shape = 'square' | 'circle' | 'arrow' | 'triangleUp' | 'triangleDown' | 'diamond';
-export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
+export function drawShape(ctx: CanvasRenderingContext2D | Path2D, radius: number) {
 	return {
 		square: (x: number, y: number) => ctx.rect(x - radius*.7, y - radius*.7, radius*1.4, radius*1.4),
 		circle: (x: number, y: number) => ctx.arc(x, y, radius * 0.75, 0, 2 * Math.PI),
@@ -108,6 +107,27 @@ export function drawShape(ctx: CanvasRenderingContext2D, radius: number) {
 			ctx.closePath();
 		}
 	} as { [shape in Shape]: (x: number, y: number) => void };
+}
+
+export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuilder {
+	return (u, seriesIdx) => {
+		const size = sizePx * devicePixelRatio;
+		const p = new Path2D();
+		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+			const radius = size / 2;
+			const draw = drawShape(p, radius)[type];
+			for (let i = 0; i < dataX.length; i++) {
+				const val = dataY[i];
+				if (val == null || val <= scaleY.min! || val >= scaleY.max!)
+					continue;
+				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
+				const cy = valToPosY(val, scaleY, yDim, yOff);
+				p.moveTo(cx + radius, cy);
+				draw(cx, cy);
+			}
+		});
+		return { fill: p, stroke: p };
+	};
 }
 
 export function drawOnsets(u: uPlot, params: BasicPlotParams, truncateY?: number) {
@@ -222,17 +242,16 @@ export function usePlotOverlayPosition(defaultPos: DefaultPosition)
 	}];
 }
 
-type CustomLegendLabels = {[ser: string]: string};
-type CustomLegendShapes = {[ser: string]: Shape};
 export function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
-	defaultPos: (u: uPlot, csize: Size) => Position, fullLabels: CustomLegendLabels, shapes?: CustomLegendShapes) {
-	return (u: uPlot) => {
-		const series: any[] = Object.keys(fullLabels).map(lbl => u.series.find(s => s.label === lbl)).filter(s => s?.show!);
-		const labels = series.map(s => fullLabels[s.label]).map(applyTextTransform(params.transformText));
+	defaultPos: (u: uPlot, csize: Size) => Position) {
+	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => {
+		const series = u.series.filter(s => s.show! && s.legend)
+			.map(s => ({ ...s, legend: applyTextTransform(params.transformText)(s.legend!) }));
+		if (!series.length) return;
 
 		const px = (a: number) => a * devicePixelRatio;
 		u.ctx.font = font(px(14));
-		const maxLabelLen = Math.max.apply(null, labels.map(l => l.length));
+		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const width = px(48) + metric.width;
@@ -253,20 +272,20 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 		u.ctx.lineCap = 'butt';
 		y += lineHeight / 2 + 3;
 		const draw = drawShape(u.ctx, px(6));
-		for (const [i, s] of series.entries()) {
+		for (const { stroke, marker, legend } of series) {
 			u.ctx.lineWidth = px(2);
-			u.ctx.fillStyle = u.ctx.strokeStyle = s.stroke();
+			u.ctx.fillStyle = u.ctx.strokeStyle = (stroke as any)();
 			u.ctx.beginPath();
 			u.ctx.moveTo(x + px(8), y);
 			u.ctx.lineTo(x + px(32), y);
 			u.ctx.stroke();
-			const shape = shapes?.[s.label];
-			u.ctx.lineWidth = shape === 'arrow' ? px(2) : 1;
-			if (shape) draw[shape](x + px(20), y);
-			if (shape !== 'arrow')
+			u.ctx.lineWidth = marker === 'arrow' ? px(2) : 1;
+			if (marker)
+				draw[marker](x + px(20), y);
+			if (marker !== 'arrow')
 				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
-			u.ctx.fillText(labels[i], x + px(40), y);
+			u.ctx.fillText(legend, x + px(40), y);
 			u.ctx.stroke();
 			y += lineHeight;
 		}
@@ -274,12 +293,10 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 	};
 }
 
-type CustomLabelsDesc = { [scale: string]: string | [string, number] | [string, number, number] };
-// [ label, shift (multiplied by height), shift (pixels) ]
-function drawCustomLabels(params: BasicPlotParams, scales?: CustomLabelsDesc) {
+function drawCustomLabels(params: BasicPlotParams) {
 	return (u: uPlot) => {
 		for (const axis of (u.axes as CustomAxis[])) {
-			if (!axis.fullLabel) continue;
+			if (!axis.show || !axis.fullLabel) continue;
 			if (axis.side && axis.side % 2 === 0)
 				return console.error('only implemented left or right axis');
 
@@ -302,13 +319,15 @@ function drawCustomLabels(params: BasicPlotParams, scales?: CustomLabelsDesc) {
 			u.ctx.save();
 			u.ctx.font = font(14, true);
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
-			const bottom = parseFloat(axis._values!.find(v => !!v)!);
-			const top = parseFloat(axis._values!.findLast(v => !!v)!);
-			const targetY = u.valToPos((top + bottom) / 2, axis.scale!, true) + flowDir * textWidth / 2;
+			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
+			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
+			const targetY = (axis.distr === 3 ? u.bbox.top + u.bbox.height/2 : u.valToPos((top + bottom) / 2, axis.scale!, true))
+				+ flowDir * textWidth / 2;
 			
+			const bottomX = u.height;
 			const posX = Math.round((baseX + axis.labelGap! * -flowDir) * devicePixelRatio);
-			const posY = flowDir > 0 ? Math.max(u.bbox.top + textWidth, targetY)
-				: Math.min(u.bbox.top + u.bbox.height - textWidth, targetY);
+			const posY = flowDir > 0 ? clamp(textWidth + 4, bottomX - 2, targetY, true)
+				: clamp(2, bottomX - textWidth - 4, targetY);
 			
 			u.ctx.translate(posX, posY);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
@@ -393,22 +412,24 @@ export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	});
 }
 
-type CustomAxis = uPlot.Axis & {
+export type CustomAxis = uPlot.Axis & {
 	label: string,
 	fullLabel?: string,
 	position?: [number, number],
-	forceZero?: boolean,
+	minMax?: [number|null, number|null],
 	showGrid?: boolean,
 	whole?: boolean,
+	distr?: number,
 	_values?: (string | undefined)[]
+	_splits?: number[]
 };
-type CustomSeries = uPlot.Series & {
+export type CustomSeries = uPlot.Series & {
+	legend?: string,
 	marker?: Shape,
 };
 
-export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params, legend, labels }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>, params: BasicPlotParams, labels?: CustomLabelsDesc,
-	axes?: CustomAxis[], series?: CustomSeries[], legend?: [CustomLegendLabels, CustomLegendShapes] | CustomLegendLabels }) {
+export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams, options?: Partial<uPlot.Options>, axes: CustomAxis[], series: CustomSeries[] }) {
 	const query = useQuery({
 		queryKey,
 		queryFn
@@ -438,7 +459,11 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			drag: { x: false, y: false, setScale: false }
 		},
 		scales: Object.fromEntries(axes?.map(ax => [ax.label, {
-			range: (u, min, max) => {
+			distr: ax.distr ?? 1,
+			...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
+				const [fmin, fmax] = ax.minMax ?? [null, null];
+				const min = Math.min(dmin, fmin ?? dmin);
+				const max = Math.max(dmax, fmax ?? dmax);
 				(u as any).scales[ax.label].dataMin = min;
 				(u as any).scales[ax.label].dataMax = max;
 				const [ bottom, top ] = ax.position ?? [0, 1];
@@ -446,33 +471,32 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				const resultingH = h / (top - bottom);
 				const margin = h / 50;
 				return [
-					ax.forceZero ? 0 : min - resultingH * bottom - margin,
-					max + resultingH * (1 - top) + margin
+					min - resultingH * bottom    - ((dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
+					max + resultingH * (1 - top) + ((dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
 				];
-			}
+			} })
 		} as uPlot.Scale]) ?? []),
 		axes: [{
 			...axisDefaults(params.showGrid),
 			...customTimeSplits(params)
-		}].concat((axes ?? []).map(ax => {
-			return {
-				...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ((u, splits) => {
-					const { dataMax: max, dataMin: min } = u.scales[ax.scale ?? ax.label] as any;
-					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
-				})),
-				values: (u, vals) => vals.map(v => v?.toFixed(Math.abs(vals[1] - vals[0]) < 1 ? 1 : 0)),
-				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
-				scale: ax.label,
-				...ax,
-				label: '',
-			};
-		})),
+		}].concat((axes ?? []).map(ax => ({
+			...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ax.distr === 3 ? undefined : ((u, splits) => {
+				const { dataMax: max, dataMin: min } = u.scales[ax.scale ?? ax.label] as any;
+				return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
+			})),
+			values: (u, vals) => vals.map(v => v?.toString()),
+			...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
+			scale: ax.label,
+			...ax,
+			label: '',
+		}))),
 		series: [{ }].concat((series ?? []).map(ser => ({
 			points: !ser.marker ? { show: false } : {
 				show: params.showMarkers,
 				stroke: ser.stroke,
-				fill: ser.fill,
-				paths: markersPaths(ser.marker, 6)
+				fill: ser.fill ?? ser.stroke,
+				width: 0,
+				paths: markersPaths(ser.marker, 8)
 			},
 			scale: ser.label,
 			...ser,
@@ -488,7 +512,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		draw: [
 			drawCustomLabels(params),
 			...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
-			...(legend && params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
+			...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
 			...(options.hooks?.draw ?? [])
 		],
 		ready: [

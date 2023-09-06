@@ -1,5 +1,4 @@
 import uPlot from 'uplot';
-import { drawShape } from './plotUtil';
 
 export function linePaths(width = 1) {
 	return (u, seriesIdx) => {
@@ -48,26 +47,5 @@ export function pointPaths(sizePx) {
 			u.ctx.fill(p);
 		});
 		return null;
-	};
-}
-
-export function markersPaths(type, sizePx) {
-	return (u, seriesIdx) => {
-		const size = sizePx * devicePixelRatio;
-		const p = new Path2D();
-		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-			const radius = size / 2;
-			const draw = drawShape(p, radius)[type];
-			for (let i = 0; i < dataX.length; i++) {
-				const val = dataY[i];
-				if (val == null || val <= scaleY.min || val >= scaleY.max)
-					continue;
-				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
-				const cy = valToPosY(val, scaleY, yDim, yOff);
-				p.moveTo(cx + radius, cy);
-				draw(cx, cy);
-			}
-		});
-		return { fill: p, stroke: p };
 	};
 }
