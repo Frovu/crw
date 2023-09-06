@@ -152,6 +152,7 @@ export default function PlotGSMAnisotropy(params: GSMParams) {
 			label: 'A0',
 			fullLabel: 'A0' + (params.showAz ? ' & Az' : '') + ' var, %',
 			position: [1/8, 2/5],
+			whole: true,
 		}, {
 			label: 'Axy',
 			fullLabel: 'Axy var, %',

@@ -276,17 +276,14 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 
 type CustomLabelsDesc = { [scale: string]: string | [string, number] | [string, number, number] };
 // [ label, shift (multiplied by height), shift (pixels) ]
-function drawCustomLabels(params: BasicPlotParams, scales: CustomLabelsDesc) {
+function drawCustomLabels(params: BasicPlotParams, scales?: CustomLabelsDesc) {
 	return (u: uPlot) => {
-		for (const [scale, value] of Object.entries(scales)) {
-			const [label, shiftMulti, shiftPx] = typeof value === 'string' ? [value, 0, 0]
-				: value.concat(value.length < 3 ? [0] : []) as [string, number, number];
-			const axis = u.axes.find(ax => ax.scale === scale);
-			if (!axis) continue;
+		for (const axis of (u.axes as CustomAxis[])) {
+			if (!axis.fullLabel) continue;
 			if (axis.side && axis.side % 2 === 0)
 				return console.error('only implemented left or right axis');
 
-			const rec = (txt: string): string[][] => {
+			const rec = (txt: string=axis.fullLabel!): string[][] => {
 				if (!txt) return [];
 				const si = u.series.findIndex(s => txt.includes(s.label!));
 				const series = si >= 0 && u.series[si];
@@ -296,22 +293,26 @@ function drawCustomLabels(params: BasicPlotParams, scales: CustomLabelsDesc) {
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
 
-			const parts = !params.transformText ? rec(label) : rec(label).map(([text, stroke]) => {
+			const parts = !params.transformText ? rec() : rec().map(([text, stroke]) => {
 				return [applyTextTransform(params.transformText)(text), stroke] as [string, string];
 			});
-			const newFullText =  parts.reduce((txt, [part, _]) => txt + part, '');
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
-			const baseX = axis.label != null ? (axis as any)._lpos : (axis as any)._pos + (axis as any)._size / 2;
+			const baseX = (axis as any)._pos + (axis as any)._size * -flowDir;
 			u.ctx.save();
 			u.ctx.font = font(14, true);
-			u.ctx.translate(
-				Math.round((baseX + axis.labelGap! * flowDir * -1) * devicePixelRatio),
-				Math.round(u.bbox.top + u.bbox.height / 2 + flowDir * u.ctx.measureText(newFullText).width / 2
-					+ (u.height * shiftMulti + shiftPx) * devicePixelRatio),
-			);
+			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
+			const bottom = parseFloat(axis._values!.find(v => !!v)!);
+			const top = parseFloat(axis._values!.findLast(v => !!v)!);
+			const targetY = u.valToPos((top + bottom) / 2, axis.scale!, true) + flowDir * textWidth / 2;
+			
+			const posX = Math.round((baseX + axis.labelGap! * -flowDir) * devicePixelRatio);
+			const posY = flowDir > 0 ? Math.max(u.bbox.top + textWidth, targetY)
+				: Math.min(u.bbox.top + u.bbox.height - textWidth, targetY);
+			
+			u.ctx.translate(posX, posY);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
-			u.ctx.textBaseline = axis.label != null ? 'bottom' : 'middle';
+			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'left';
 			let x = 0;
 			for (const [text, stroke] of parts) {
@@ -399,6 +400,7 @@ type CustomAxis = uPlot.Axis & {
 	forceZero?: boolean,
 	showGrid?: boolean,
 	whole?: boolean,
+	_values?: (string | undefined)[]
 };
 type CustomSeries = uPlot.Series & {
 	marker?: Shape,
@@ -458,7 +460,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 					const { dataMax: max, dataMin: min } = u.scales[ax.scale ?? ax.label] as any;
 					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
 				})),
-				values: (u, vals) => vals.map(v => v?.toFixed(vals[0] > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
+				values: (u, vals) => vals.map(v => v?.toFixed(Math.abs(vals[1] - vals[0]) < 1 ? 1 : 0)),
 				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
 				scale: ax.label,
 				...ax,
@@ -484,7 +486,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			u => drawMagneticClouds(u, params),
 		] : []),
 		draw: [
-			drawCustomLabels(params, labels ?? Object.fromEntries(axes?.filter(a => a.fullLabel).map(ax => [ax.label, ax.fullLabel!]) ?? [])),
+			drawCustomLabels(params),
 			...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
 			...(legend && params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos, ...(Array.isArray(legend) ? legend : [legend]) as [any])] : []),
 			...(options.hooks?.draw ?? [])
