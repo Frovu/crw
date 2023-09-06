@@ -9,12 +9,25 @@ export default function PlotSW(params: SWParams) {
 	const tColumn = params.useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
-		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]),
+		queryFn: async () => {
+			const data = await basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
+			return data?.concat([Array(data[0].length).fill(.5)]) ?? null;
+		},
 		params,
+		options: params.useTemperatureIndex ? {
+			bands: [{
+				series: [3,4],
+				fill: color('cyan', .7),
+				dir: 1
+			}],
+			hooks: { ready: [console.log] }
+		} : {},
 		axes: [
 			{
 				label: 'y',
 				fullLabel: 'Dp, N/cm³' + (params.showBeta ? ' & beta' : ''),
+				position: [1/8, 1],
+				whole: true,
 				side: 1,
 			},
 			{
@@ -42,7 +55,7 @@ export default function PlotSW(params: SWParams) {
 				scale: 'y',
 				marker: 'square',
 				stroke: color('magenta'),
-				width: 2,
+				width: 1,
 			},
 			{
 				label: 'Tp',
@@ -52,6 +65,9 @@ export default function PlotSW(params: SWParams) {
 				stroke: color('cyan'),
 				width: 2,
 			},
+			{
+				scale: 'temp'
+			}
 		]
 	}}/>);
 }

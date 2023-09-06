@@ -47,7 +47,7 @@ export default function PlotGeoMagn(params: GeomagnParams) {
 			{
 				label: 'idx',
 				fullLabel: (params.useAp ? 'Ap' : 'Kp') + ' index',
-				position: [0, 1/2 - 1/50],
+				position: [0, 2/5 - 1/20],
 				minMax: [0, 50],
 				showGrid: false,
 				values: (u, vals) => vals.map(v => v == null ? v : (params.useAp ? v : v / 10).toFixed(0))
@@ -55,7 +55,7 @@ export default function PlotGeoMagn(params: GeomagnParams) {
 			{
 				label: 'Dst',
 				fullLabel: 'Dst, nT',
-				position: [1/2, 1],
+				position: [2/5, 1],
 				minMax: [null, 0],
 				side: 1,
 				ticks: { show: false },

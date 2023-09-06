@@ -469,7 +469,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				const [ bottom, top ] = ax.position ?? [0, 1];
 				const h = max - min;
 				const resultingH = h / (top - bottom);
-				const margin = h / 50;
+				const margin = h / 20;
 				return [
 					min - resultingH * bottom    - ((dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
 					max + resultingH * (1 - top) + ((dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
