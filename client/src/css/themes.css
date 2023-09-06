@@ -5,7 +5,7 @@
 	--color-cyan2: rgba(0, 219, 219, 0.863);
 
 	--color-skyblue: rgb(155, 255, 255);
-	--color-blue: rgb(0, 0, 255);
+	--color-blue: rgb(33, 0, 255);
 	--color-purple: rgb(128, 0, 255);
 	--color-peach: rgb(255, 99, 72);
 	--color-white: rgb(255,255,255);
@@ -25,7 +25,7 @@
 	--color-grid: rgb(33,33,33);
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
-	--color-area2: rgba(0, 121, 101, 0.5);
+	--color-area2: rgba(0, 104, 86, 0.5);
 
 	color-scheme: dark;
 }
@@ -37,10 +37,10 @@
 	--color-cyan2: rgba(0, 240, 240, 0.7);
 
 	--color-peach: rgb(255, 99, 72);
-	--color-gold: rgb(100, 0, 75);
+	--color-gold: rgb(63, 0, 100);
 	--color-acid: rgb(255, 115, 0);
-	--color-skyblue: rgb(60, 156, 235);
-	--color-blue: rgb(0, 0, 255);
+	--color-skyblue: rgb(62, 127, 230);
+	--color-blue: rgb(56, 56, 201);
 	--color-purple: rgb(128, 0, 255);
 	--color-white: rgb(44,44,44);
 
@@ -57,7 +57,7 @@
 	--color-grid: rgb(222, 222, 222);
 	--color-active: rgb(228, 0, 106);
 	--color-area: rgba(177, 82, 255, 0.1);
-	--color-area2: rgba(255, 255, 50, 0.5);
+	--color-area2: rgba(255, 255, 50, .75);
 
 	color-scheme: light;
 }

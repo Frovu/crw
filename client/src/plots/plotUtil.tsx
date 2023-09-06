@@ -5,6 +5,7 @@ import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../table/Table';
 import UplotReact from 'uplot-react';
+import { markersPaths } from './plotPaths';
 
 export type TextTransform = {
 	search: string,
@@ -33,6 +34,37 @@ export const applyTextTransform = (transforms?: TextTransform[]) => (text: strin
 		}
 	}, text) ?? text;
 };
+
+export function color(name: string, opacity=1) {
+	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
+	const parts = col.includes('rgb') ? col.match(/[\d.]+/g)! :
+		(col.startsWith('#') ? [1,2,3].map(d => parseInt(col.length===7 ? col.slice(1+(d-1)*2, 1+d*2) : col.slice(d, 1+d), 16) * (col.length===7 ? 1 : 17 )) : null);
+	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
+}
+
+export function font(size=16, scale=false) {
+	const fnt = window.getComputedStyle(document.body).font;
+	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
+}
+
+export function superScript(digit: number) {
+	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
+}
+
+export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
+	return {
+		font: font(14),
+		labelFont: font(14),
+		stroke: color('text'),
+		labelSize: 20,
+		labelGap: 0,
+		space: 32,
+		size: 40,
+		gap: 2,
+		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
+		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
+	};
+}
 
 export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=10*devicePixelRatio) {
 	const angle = Math.atan2(dy, dx);
@@ -315,36 +347,6 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function axisDefaults(grid: boolean): Partial<uPlot.Axis> {
-	return {
-		font: font(14),
-		labelFont: font(14),
-		stroke: color('text'),
-		labelSize: 20,
-		labelGap: 0,
-		size: 40,
-		gap: 2,
-		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
-		ticks: { stroke: color('grid'), width: 2 },
-	};
-}
-
-export function color(name: string, opacity=1) {
-	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
-	const parts = col.includes('rgb') ? col.match(/[\d.]+/g)! :
-		(col.startsWith('#') ? [1,2,3].map(d => parseInt(col.length===7 ? col.slice(1+(d-1)*2, 1+d*2) : col.slice(d, 1+d), 16) * (col.length===7 ? 1 : 17 )) : null);
-	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
-}
-
-export function font(size=16, scale=false) {
-	const fnt = window.getComputedStyle(document.body).font;
-	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
-}
-
-export function superScript(digit: number) {
-	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
-}
-
 export async function basicDataQuery(path: string, interval: [Date, Date], fields: string[], params?: {}) {
 	const urlPara = new URLSearchParams({
 		from: (interval[0].getTime() / 1000).toFixed(0),
@@ -389,9 +391,21 @@ export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
 	});
 }
 
-export function BasicPlot({ queryKey, queryFn, options: userOptions, params, labels, legend }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>,
-	params: BasicPlotParams, labels?: CustomLabelsDesc, legend?: [CustomLegendLabels, CustomLegendShapes] | CustomLegendLabels }) {
+type CustomAxis = uPlot.Axis & {
+	position?: [number, number],
+	forceZero?: boolean,
+	showGrid?: boolean,
+	whole?: boolean,
+	
+};
+type CustomSeries = uPlot.Series & {
+	marker?: Shape,
+
+};
+
+export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params, legend, labels }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, options: Partial<uPlot.Options>, params: BasicPlotParams, labels?: CustomLabelsDesc,
+	axes?: CustomAxis[], series?: CustomSeries[], legend?: [CustomLegendLabels, CustomLegendShapes] | CustomLegendLabels }) {
 	const query = useQuery({
 		queryKey,
 		queryFn
@@ -420,8 +434,42 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, params, lab
 			show: params.interactive,
 			drag: { x: false, y: false, setScale: false }
 		},
+		scales: Object.fromEntries(axes?.map(ax => [ax.label, {
+			range: (u, min, max) => {
+				const [ bottom, top ] = ax.position ?? [0, 1];
+				const h = max - min;
+				const resultingH = h / (top - bottom);
+				const margin = h / 50;
+				return [
+					ax.forceZero ? 0 : min - resultingH * bottom - margin,
+					max + resultingH * (1 - top) + margin
+				];
+			}
+		} as uPlot.Scale]) ?? []),
+		axes: [{
+			...axisDefaults(params.showGrid),
+			...customTimeSplits(params)
+		}].concat((axes ?? []).map(ax => ({
+			...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter),
+			values: (u, vals) => vals.map(v => v?.toFixed(v > 0 && vals[1] - vals[0] < 1 ? 1 : 0)),
+			...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
+			scale: ax.label,
+			...ax,
+			label: '',
+		}))),
+		series: [{ }].concat((series ?? []).map(ser => ({
+			points: !ser.marker ? { show: false } : {
+				show: params.showMarkers,
+				stroke: ser.stroke,
+				fill: ser.fill,
+				paths: markersPaths(ser.marker, 6)
+			},
+			scale: ser.label,
+			...ser,
+		}))),
 		...userOptions
 	} as uPlot.Options;
+
 	options.hooks = {
 		...options.hooks,
 		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [

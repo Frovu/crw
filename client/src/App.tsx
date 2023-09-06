@@ -143,6 +143,7 @@ function App() {
 			{app === 'test' && 
 				<div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
 					<PlotGSM {...{
+						showAxy: true, showAxyVector: true,
 						subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
 						interval: [new Date('2023-04-23'), new Date('2023-04-26T10:00:00')],
 						onsets: [ { time: new Date('2023-04-23T17:38:00Z'), type: 'SSC' } ],

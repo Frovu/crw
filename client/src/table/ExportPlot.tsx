@@ -42,6 +42,8 @@ const defaultSettings = (): PlotExportSettings => ({
 		showMarkers: true,
 		showLegend: true,
 		showAz: false,
+		showAxy: true,
+		showAxyVector: false,
 		showBxBy: false,
 		showBz: true,
 		useA0m: true,
@@ -266,9 +268,13 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							}))}>+ <u>new replace</u></button>
 					</div>
 					<h4 style={{ margin: '10px 0' }}>Cosmic Rays</h4>
-					<Checkbox text='Show Az' k='showAz'/>
-					<Checkbox text='Use A0m' k='useA0m'/>
-					<Checkbox text='Mask GLE' k='maskGLE'/>
+					<Checkbox text='Az' k='showAz'/>
+					<Checkbox text='Axy' k='showAxy'/>
+					<Checkbox text='vector' k='showAxyVector'/>
+					<div style={{ marginTop: 8 }}>
+						<Checkbox text='Use A0m' k='useA0m'/>
+						<Checkbox text='Mask GLE' k='maskGLE'/>
+					</div>
 					<div style={{ marginTop: 8 }}>
 						<Checkbox text='Subtract variation trend' k='subtractTrend'/>
 					</div>

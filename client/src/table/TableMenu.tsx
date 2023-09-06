@@ -367,6 +367,8 @@ export function Menu() {
 					</div>
 					<h4>Cosmic Rays</h4>
 					<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
+					<MenuCheckbox text='Show Axy' value={para.showAxy} callback={setPara('showAxy')}/>
+					<MenuCheckbox text='Show vecor' value={para.showAxyVector} callback={setPara('showAxyVector')}/>
 					<MenuCheckbox text='Subtract variation trend' value={para.subtractTrend} callback={setPara('subtractTrend')}/>
 					<MenuCheckbox text='Mask GLE' value={para.maskGLE} callback={setPara('maskGLE')}/>
 					<MenuCheckbox text='Use dst corrected A0m' value={para.useA0m} callback={setPara('useA0m')}/>
