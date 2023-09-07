@@ -40,7 +40,7 @@ export default function PlotIMF(params: IMFParams) {
 				width: 2,
 				marker: 'circle',
 			},
-			...[['Bx', 'cyan', 'triangleDown'], ['By', 'green', 'triangleUp'], ['Bz', 'magenta', 'square']].map(([label, stroke, marker]) => ({
+			...[['Bx', 'green', 'triangleDown'], ['By', 'cyan', 'triangleUp'], ['Bz', 'magenta', 'square']].map(([label, stroke, marker]) => ({
 				show: label === 'Bz' ? params.showBz : params.showBxBy,
 				label,
 				legend: `IMF  ${label}, nT`,
