@@ -22,6 +22,8 @@
   },
   "include": [
     "src",
-    "src/table"
+    "src/table",
+    "src/plots",
+    "src/plots/time"
   ]
 }

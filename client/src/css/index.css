@@ -57,10 +57,6 @@ input:disabled, button:disabled, select:disabled {
 	color: var(--color-text-dark);
 }
 
-details:hover {
-	text-decoration: underline;
-}
-
 .PopupBackground {
 	background-color: var(--color-bg);
 	opacity: 0.7;

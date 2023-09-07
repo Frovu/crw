@@ -19,19 +19,18 @@ export default function PlotSW(params: SWParams) {
 				series: [3,4],
 				fill: color('cyan', .7),
 				dir: 1
-			}],
-			hooks: { ready: [console.log] }
+			}]
 		} : {},
 		axes: [
 			{
-				label: 'y',
+				label: 'Dp',
 				fullLabel: 'Dp, N/cm³' + (params.showBeta ? ' & beta' : ''),
 				position: [1/8, 1],
 				whole: true,
 				side: 1,
 			},
 			{
-				label: 'temp',
+				label: 'Tp',
 				...(params.useTemperatureIndex && { minMax: [0, null] }),
 				fullLabel: params.useTemperatureIndex ? 'Tp index' : 'Tp, K',
 				showGrid: false,
@@ -43,7 +42,7 @@ export default function PlotSW(params: SWParams) {
 			{
 				label: 'Dp',
 				legend: 'Plasma beta',
-				scale: 'y',
+				scale: 'Dp',
 				marker: 'circle',
 				stroke: color('peach'),
 				width: 2,
@@ -52,7 +51,7 @@ export default function PlotSW(params: SWParams) {
 				show: !!params.showBeta,
 				label: 'beta',
 				legend: 'Proton density, N/cm^3',
-				scale: 'y',
+				scale: 'Dp',
 				marker: 'square',
 				stroke: color('magenta'),
 				width: 1,
@@ -60,13 +59,13 @@ export default function PlotSW(params: SWParams) {
 			{
 				label: 'Tp',
 				legend: params.useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
-				scale: 'temp',
+				scale: 'Tp',
 				marker: 'diamond',
 				stroke: color('cyan'),
 				width: 2,
 			},
 			{
-				scale: 'temp'
+				scale: 'Tp'
 			}
 		]
 	}}/>);

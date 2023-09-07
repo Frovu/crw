@@ -12,13 +12,13 @@ export default function PlotIMF(params: IMFParams) {
 		params,
 		axes: [
 			{
-				label: 'speed',
+				label: 'Vsw',
 				position: [1/2, 1],
 				fullLabel: 'Vsw, km/s',
 				showGrid: false,
 				side: 1,
 			}, {
-				label: 'imf',
+				label: 'IMF',
 				position: [0, 3/5],
 				fullLabel: `IMF(|B|${params.showBxBy?',Bx,By':''}${params.showBz?',Bz':''}), nT`,
 				whole: true,
@@ -28,14 +28,14 @@ export default function PlotIMF(params: IMFParams) {
 			{
 				label: 'Vsw',
 				legend: 'Vsw, km/s',
-				scale: 'speed',
+				scale: 'Vsw',
 				stroke: color('acid'),
 				width: 2,
 				marker: 'diamond',
 			}, {
 				label: '|B|',
 				legend: 'IMF |B|, nT',
-				scale: 'imf',
+				scale: 'IMF',
 				stroke: color('purple'),
 				width: 2,
 				marker: 'circle',
@@ -44,7 +44,7 @@ export default function PlotIMF(params: IMFParams) {
 				show: label === 'Bz' ? params.showBz : params.showBxBy,
 				label,
 				legend: `IMF  ${label}, nT`,
-				scale: 'imf',
+				scale: 'IMF',
 				stroke: color(stroke),
 				marker,
 			} as CustomSeries))

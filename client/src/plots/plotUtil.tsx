@@ -10,12 +10,21 @@ export type TextTransform = {
 	search: string,
 	replace: string
 };
+export type ScaleParams = {
+	min: number, max: number, bottom: number, top: number
+};
+export type OverrideScales = {
+	[scale: string]: { }
+};
+
 export type BasicPlotParams = {
 	interval: [Date, Date],
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
 	transformText?: TextTransform[],
+	overrideScales?: { [scale: string]: ScaleParams },
+	scalesCallback?: (scale: string, para: ScaleParams) => void
 	stretch?: boolean,
 	showTimeAxis: boolean,
 	showMetaInfo: boolean
@@ -461,18 +470,20 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 			distr: ax.distr ?? 1,
 			...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
+				const override = params.overrideScales?.[ax.label];
 				const [fmin, fmax] = ax.minMax ?? [null, null];
-				const min = Math.min(dmin, fmin ?? dmin);
-				const max = Math.max(dmax, fmax ?? dmax);
+				const min = override?.min ?? Math.min(dmin, fmin ?? dmin);
+				const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
 				(u as any).scales[ax.label].dataMin = min;
 				(u as any).scales[ax.label].dataMax = max;
-				const [ bottom, top ] = ax.position ?? [0, 1];
+				const [ bottom, top ] = override ? [override.bottom, override.top] : ax.position ?? [0, 1];
+				params.scalesCallback?.(ax.label, { min, max, bottom, top });
 				const h = max - min;
 				const resultingH = h / (top - bottom);
 				const margin = h / 20;
 				return [
-					min - resultingH * bottom    - ((dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
-					max + resultingH * (1 - top) + ((dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
+					min - resultingH * bottom    - (!override && (dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
+					max + resultingH * (1 - top) + (!override && (dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
 				];
 			} })
 		} as uPlot.Scale]) ?? []),

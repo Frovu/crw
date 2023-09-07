@@ -1,4 +1,4 @@
-import {  useContext, useMemo, useRef, useState } from 'react';
+import React, {  ChangeEvent, useContext, useMemo, useRef, useState } from 'react';
 import { clamp, dispatchCustomEvent, useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/time/SW';
 import PlotIMF, { IMFParams } from '../plots/time/IMF';
@@ -6,7 +6,7 @@ import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import { CirclesParams, PlotCircles } from '../plots/time/Circles';
 import { PlotContext, SettingsContext, themeOptions } from './Table';
-import { Position, TextTransform, color } from '../plots/plotUtil';
+import { BasicPlotParams, Position, ScaleParams, TextTransform, color } from '../plots/plotUtil';
 
 // const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 const trivialPlots = {
@@ -32,7 +32,7 @@ type PlotExportSettings = {
 	theme: typeof themeOptions[number],
 	width: number,
 	plots: PlotSettings[],
-	transformText: TranformEntry[]
+	transformText: TranformEntry[],
 };
 
 const defaultSettings = (): PlotExportSettings => ({
@@ -50,6 +50,7 @@ const defaultSettings = (): PlotExportSettings => ({
 		subtractTrend: true,
 		maskGLE: true,
 		useTemperatureIndex: true,
+		showPrecursorIndex: true,
 		showBeta: true,
 	},
 	theme: 'Dark',
@@ -88,8 +89,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 	const dragRef = useRef<Position | null>(null);
 	const divRef = useRef<HTMLDivElement>(null);
+	const [, setTrig] = useState(false);
+	const trigger = () => setTrig(s => !s);
 	const [shiftLeft, setLeft] = useState(0);
 	const [shiftRight, setRight] = useState(0);
+	const overridesRef = useRef<{ [scale: string]: ScaleParams & { inactive?: boolean } }>(settings.plotParams.overrideScales ?? {});
 
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
@@ -150,6 +154,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const params = useMemo(() => {
 		const leftTime = plotContext!.interval[0].getTime() + shiftLeft * 36e5;
 		const rightTime = plotContext!.interval[1].getTime() + shiftRight * 36e5;
+		
 		return {
 			...tableSettings.plotParams,
 			...settings.plotParams,
@@ -159,8 +164,27 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				new Date(leftTime),
 				new Date(Math.max(leftTime + 4*36e5, rightTime))
 			] as [Date, Date],
+			scalesCallback: ((scale, para) => {
+				const ov = overridesRef.current;
+				overridesRef.current = ov[scale]?.inactive === false ? ov : { ...ov, [scale]: { ...para, inactive: true } };
+			}) as BasicPlotParams['scalesCallback']
 		};
 	}, [tableSettings, plotContext, settings, shiftLeft, shiftRight]);
+
+	const setOverride = (scale: string, what: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
+		const scl = overridesRef.current[scale];
+		if (!scl) return;
+		if (what === 'active') {
+			scl.inactive = !e.target.checked;
+		} else {
+			const val = parseFloat(e.target.value);
+			if (!isNaN(val))
+				scl[what] = val;
+		}
+		const overrideScales = Object.fromEntries(Object.entries(overridesRef.current)
+			.filter(([_, para]) => para.inactive === false));
+		setSettings(st => ({ ...st, plotParams: { ...st.plotParams, overrideScales } }));
+	};
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
@@ -181,7 +205,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
 							onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
-						<button style={{ marginLeft: 20, width: 100 }} onClick={() => setSettings(defaultSettings())}>Reset all</button>
+						<button style={{ marginLeft: 20, width: 100 }} onClick={() => { setSettings(defaultSettings()); overridesRef.current = {}; }}>Reset all</button>
 					</div>
 					<div style={{ marginTop: 8 }}>
 						<label>Theme: <select value={settings.theme} onChange={e => set('theme', e.target.value as any)}>
@@ -268,6 +292,29 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 								search: '', replace: '', id: Date.now()
 							}))}>+ <u>new replace</u></button>
 					</div>
+					<details style={{ margin: '8px 16px -8px -14px' }} onClick={trigger}>
+						<summary style={{ cursor: 'pointer' }}><b>Override scales</b></summary>
+						<div style={{ textAlign: 'right', marginTop: 4 }}>
+							{Object.entries(overridesRef.current).sort((a,b) => a[0].localeCompare(b[0])).map(([scale, { min, max, bottom, top, inactive }]) =>
+								<div key={scale} style={{ marginTop: 2, color: (inactive??true) ? color('text-dark') : 'unset', }}>
+									<label style={{ cursor: 'pointer' }} title='Click to toggle override'>
+										<span style={{ textDecoration: inactive ? 'unset' : 'underline' }}>{scale}</span>
+										<input type='checkbox' hidden={true} checked={!inactive} onChange={setOverride(scale, 'active')}/>
+										<input disabled={inactive??true} title='Scale minimum' style={{ width: 64, marginLeft: 8 }} type='text'
+											value={(Math.round(min*100)/100).toString()} onChange={setOverride(scale, 'min')}/>/
+										<input disabled={inactive??true} title='Scale maximum' style={{ width: 64, marginLeft: 0 }} type='text'
+											value={(Math.round(max*100)/100).toString()} onChange={setOverride(scale, 'max')}/>
+										<input disabled={inactive??true} title='Position from bottom (0-1)' style={{ width: 48, marginLeft: 16 }} type='text'
+											value={(Math.round(bottom*100)/100).toString().replace('0.', '.')}
+											onChange={setOverride(scale, 'bottom')}/>/
+										<input disabled={inactive??true} title='Top position from bottom (1-0)' style={{ width: 48, marginLeft: 0 }} type='text'
+											value={(Math.round(top*100)/100).toString().replace('0.', '.')}
+											onChange={setOverride(scale, 'top')}/>
+									</label>
+								</div>)}
+							<div style={{ marginRight: 4, cursor: 'pointer' }}>update</div>
+						</div>
+					</details>
 					<h4 style={{ margin: '10px 0' }}>Cosmic Rays</h4>
 					<Checkbox text='Az' k='showAz'/>
 					<Checkbox text='Axy' k='showAxy'/>
@@ -296,8 +343,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<div style={{ marginTop: 8 }}>
 						<label style={{ marginLeft: 4 }}>Circle size shift: <input style={{ width: '72px' }} type='number' min='-100' max='100' step='.5'
 							value={settings.plotParams.sizeShift ?? 0} onChange={e => setParam('sizeShift', e.target.valueAsNumber)}/> px</label>
-					</div>
-					<div style={{ marginTop: 8 }}>
 					</div>
 				</div>
 			</div>
