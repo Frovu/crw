@@ -52,6 +52,7 @@ const defaultSettings = (): PlotExportSettings => ({
 		useTemperatureIndex: true,
 		showPrecursorIndex: true,
 		showBeta: true,
+		overrideScales: {},
 	},
 	theme: 'Dark',
 	width: 640,
@@ -93,7 +94,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const trigger = () => setTrig(s => !s);
 	const [shiftLeft, setLeft] = useState(0);
 	const [shiftRight, setRight] = useState(0);
-	const overridesRef = useRef<{ [scale: string]: ScaleParams & { inactive?: boolean } }>(settings.plotParams.overrideScales ?? {});
+	const [autoScales, setScales] = useState<{ [scale: string]: ScaleParams }>({});
 
 	document.documentElement.setAttribute('main-theme', settings.theme);
 
@@ -151,11 +152,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			dispatchCustomEvent('action+plotNextShown');
 	});
 
-	const params = useMemo(() => {
+	const plotComponents = useMemo(() => {
 		const leftTime = plotContext!.interval[0].getTime() + shiftLeft * 36e5;
 		const rightTime = plotContext!.interval[1].getTime() + shiftRight * 36e5;
 		
-		return {
+		const params =  {
 			...tableSettings.plotParams,
 			...settings.plotParams,
 			transformText: settings.transformText,
@@ -164,27 +165,35 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				new Date(leftTime),
 				new Date(Math.max(leftTime + 4*36e5, rightTime))
 			] as [Date, Date],
-			scalesCallback: ((scale, para) => {
-				const ov = overridesRef.current;
-				overridesRef.current = ov[scale]?.inactive === false ? ov : { ...ov, [scale]: { ...para, inactive: true } };
-			}) as BasicPlotParams['scalesCallback']
+			scalesCallback: ((scale, para) => ( console.log(scale, para) as any) ||
+				setScales(st => ({ ...st, [scale]: para }))) as BasicPlotParams['scalesCallback']
 		};
+		return settings.plots.map(({ id, type, height, showTime, showMeta }) => {
+			const Plot = trivialPlots[type];
+			return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
+				<Plot {...params} showTimeAxis={showTime} showMetaInfo={showMeta}/>
+			</div>;
+		});
 	}, [tableSettings, plotContext, settings, shiftLeft, shiftRight]);
 
 	const setOverride = (scale: string, what: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
-		const scl = overridesRef.current[scale];
-		if (!scl) return;
+		const scales = settings.plotParams.overrideScales ?? {};
 		if (what === 'active') {
-			scl.inactive = !e.target.checked;
+			const { [scale]: _, ...filtered } = scales;
+			const newOv = e.target.checked ? { ...filtered, [scale]: autoScales[scale] } : filtered;
+			setSettings(st => ({ ...st, plotParams: { ...st.plotParams, overrideScales: newOv } }));
 		} else {
+			if (!scales[scale]) return;
 			const val = parseFloat(e.target.value);
-			if (!isNaN(val))
-				scl[what] = val;
+			if (!isNaN(val)) {
+				scales[scale][what] = val; // FIXME: im lazy
+				setSettings(st => ({ ...st }));
+			}
 		}
-		const overrideScales = Object.fromEntries(Object.entries(overridesRef.current)
-			.filter(([_, para]) => para.inactive === false));
-		setSettings(st => ({ ...st, plotParams: { ...st.plotParams, overrideScales } }));
 	};
+	const effectiveScales = { ...autoScales, ...settings.plotParams.overrideScales } as { [scale: string]: ScaleParams & { active?: boolean } };
+	for (const sc in settings.plotParams.overrideScales)
+		effectiveScales[sc].active = true;
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
 		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
@@ -196,16 +205,17 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				transform: `scale(${1 / devicePixelRatio})`, transformOrigin: 'top left', overflowY: 'auto', overflowX: 'clip' }}>
 				<div style={{ padding: '8px 0 0 8px' }}>
 					<div style={{ marginBottom: 8 }}>
-						<button style={{ padding: '2px 12px' }}
+						<button style={{ padding: '2px 6px' }} onClick={escape}>Esc</button>
+						<button style={{ padding: '2px 14px', marginLeft: 8 }}
 							onClick={() => doExport()}><u>O</u>pen image</button>
-						<button style={{ padding: '2px 12px', marginLeft: 14 }}
-							onClick={() => doExport(true)}><u>D</u>ownload image</button>
+						<button style={{ padding: '2px 14px', marginLeft: 10 }}
+							onClick={() => doExport(true)}><u>D</u>ownload png</button>
 					</div>
 					<div>
 						<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
 							onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
-						<button style={{ marginLeft: 20, width: 100 }} onClick={() => { setSettings(defaultSettings()); overridesRef.current = {}; }}>Reset all</button>
+						<button style={{ marginLeft: 20, width: 100 }} onClick={() => { setSettings(defaultSettings()); }}>Reset all</button>
 					</div>
 					<div style={{ marginTop: 8 }}>
 						<label>Theme: <select value={settings.theme} onChange={e => set('theme', e.target.value as any)}>
@@ -234,21 +244,20 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					onMouseUp={() => { dragRef.current = null; }}
 					onMouseLeave={() => { dragRef.current = null; }}>
 					{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ margin: '8px 0', position: 'relative' }} key={id}>
-						<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}
-							onWheel={e => setPlot(id, 'type',
-								plotsList[(plotsList.indexOf(type) + (e.deltaY < 0 ? 1 : -1) + plotsList.length) % plotsList.length] as any)}>
+						<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}>
 							{plotsList.map(ptype =>
 								<option key={ptype} value={ptype}>{ptype}</option>)}
 						</select>
 						<label title='Plot height'> h=<input style={{ width: 54 }} type='number' min='80' max='1800' step='20'
-							onWheel={(e: any) => setPlot(id, 'height', clamp(80, 1800, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
 							value={height} onChange={e => setPlot(id, 'height', clamp(80, 1800, e.target.valueAsNumber))}></input></label>
 						<label style={{ cursor: 'pointer', marginLeft: 8 }}>tm
 							<input type='checkbox' checked={showTime} onChange={e => setPlot(id, 'showTime', e.target.checked)}/></label>
 						<label style={{ cursor: 'pointer', marginLeft: 8 }}>e
 							<input type='checkbox' checked={showMeta} onChange={e => setPlot(id, 'showMeta', e.target.checked)}/></label>
-						<span style={{ position: 'absolute', marginLeft: 4, top: 1 }} className='CloseButton' onClick={() =>
-							set('plots', settings.plots.filter(p => p.id !== id))}>&times;</span>
+						<span style={{ position: 'absolute', marginLeft: 4, top: 1 }} className='CloseButton' onClick={() => {
+							setScales({});
+							set('plots', settings.plots.filter(p => p.id !== id));
+						}}>&times;</span>
 						<span style={{ position: 'absolute', fontSize: 22, marginLeft: 18, top: -4 }}><b>⋮</b></span>
 						<span style={{ position: 'absolute', fontSize: 22, left: -20, top: -4 }}><b>⋮</b></span>
 					</div> )}
@@ -292,27 +301,26 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 								search: '', replace: '', id: Date.now()
 							}))}>+ <u>new replace</u></button>
 					</div>
-					<details style={{ margin: '8px 16px -8px -14px' }} onClick={trigger}>
+					<details style={{ margin: '8px 16px 0 -14px' }} onClick={trigger}>
 						<summary style={{ cursor: 'pointer' }}><b>Override scales</b></summary>
 						<div style={{ textAlign: 'right', marginTop: 4 }}>
-							{Object.entries(overridesRef.current).sort((a,b) => a[0].localeCompare(b[0])).map(([scale, { min, max, bottom, top, inactive }]) =>
-								<div key={scale} style={{ marginTop: 2, color: (inactive??true) ? color('text-dark') : 'unset', }}>
+							{Object.entries(effectiveScales).sort((a,b) => a[0].localeCompare(b[0])).map(([scale, { min, max, bottom, top, active }]) =>
+								<div key={scale} style={{ marginTop: 2, color: !active ? color('text-dark') : 'unset', }}>
 									<label style={{ cursor: 'pointer' }} title='Click to toggle override'>
-										<span style={{ textDecoration: inactive ? 'unset' : 'underline' }}>{scale}</span>
-										<input type='checkbox' hidden={true} checked={!inactive} onChange={setOverride(scale, 'active')}/>
-										<input disabled={inactive??true} title='Scale minimum' style={{ width: 64, marginLeft: 8 }} type='text'
+										<span style={{ textDecoration: !active ? 'unset' : 'underline' }}>{scale}</span>
+										<input type='checkbox' hidden={true} checked={active} onChange={setOverride(scale, 'active')}/>
+										<input disabled={!active} title='Scale minimum' style={{ width: 64, marginLeft: 8 }} type='text'
 											value={(Math.round(min*100)/100).toString()} onChange={setOverride(scale, 'min')}/>/
-										<input disabled={inactive??true} title='Scale maximum' style={{ width: 64, marginLeft: 0 }} type='text'
+										<input disabled={!active} title='Scale maximum' style={{ width: 64, marginLeft: 0 }} type='text'
 											value={(Math.round(max*100)/100).toString()} onChange={setOverride(scale, 'max')}/>
-										<input disabled={inactive??true} title='Position from bottom (0-1)' style={{ width: 48, marginLeft: 16 }} type='text'
+										<input disabled={!active} title='Position from bottom (0-1)' style={{ width: 48, marginLeft: 16 }} type='text'
 											value={(Math.round(bottom*100)/100).toString().replace('0.', '.')}
 											onChange={setOverride(scale, 'bottom')}/>/
-										<input disabled={inactive??true} title='Top position from bottom (1-0)' style={{ width: 48, marginLeft: 0 }} type='text'
+										<input disabled={!active} title='Top position from bottom (1-0)' style={{ width: 48, marginLeft: 0 }} type='text'
 											value={(Math.round(top*100)/100).toString().replace('0.', '.')}
 											onChange={setOverride(scale, 'top')}/>
 									</label>
 								</div>)}
-							<div style={{ marginRight: 4, cursor: 'pointer' }}>update</div>
 						</div>
 					</details>
 					<h4 style={{ margin: '10px 0' }}>Cosmic Rays</h4>
@@ -348,11 +356,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
-			{settings.plots.map(({ id, type, height, showTime, showMeta }) => {
-				const Plot = trivialPlots[type];
-				return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
-					<Plot {...params} showTimeAxis={showTime} showMetaInfo={showMeta}/>
-				</div>; })}
+			{plotComponents}
 		</div>
 		<div></div>
 

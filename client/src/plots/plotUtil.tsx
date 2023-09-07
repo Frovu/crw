@@ -1,4 +1,4 @@
-import React, { MutableRefObject, useRef, useState } from 'react';
+import React, { MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
@@ -456,6 +456,93 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		y: u.bbox.top });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
+	const [ uplot, setUplot ] = useState<uPlot>();
+	useEffect(() => {
+		if (!uplot) return;
+		uplot.setSize({ ...size });
+		for (const scl in uplot.scales) {
+			const scale: CustomScale = uplot.scales[scl];
+			if (scale.positionValue)
+				params.scalesCallback?.(scl, { ...scale.scaleValue!, ...scale.positionValue! });
+		}
+	}, [params, uplot, size]);
+
+	const plot = useMemo(() => {
+		const options = {
+			...size,
+			padding: [8, 0, params.showTimeAxis ? 0 : 8, 0],
+			legend: { show: params.interactive },
+			cursor: {
+				show: params.interactive,
+				drag: { x: false, y: false, setScale: false }
+			},
+			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
+				distr: ax.distr ?? 1,
+				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
+					const override = params.overrideScales?.[ax.label];
+					const [fmin, fmax] = ax.minMax ?? [null, null];
+					const min = override?.min ?? Math.min(dmin, fmin ?? dmin);
+					const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
+					const [ bottom, top ] = override ? [override.bottom, override.top] : ax.position ?? [0, 1];
+					const scale: CustomScale = u.scales[ax.label];
+					scale.scaleValue = { min, max };
+					scale.positionValue = { bottom, top };
+					const h = max - min;
+					const resultingH = h / (top - bottom);
+					const margin = h / 20;
+					return [
+						min - resultingH * bottom    - (!override && (dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
+						max + resultingH * (1 - top) + (!override && (dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
+					];
+				} })
+			} as uPlot.Scale]) ?? []),
+			axes: [{
+				...axisDefaults(params.showGrid),
+				...customTimeSplits(params)
+			}].concat((axes ?? []).map(ax => ({
+				...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ax.distr === 3 ? undefined : ((u, splits) => {
+					const scale = u.scales[ax.scale ?? ax.label] as CustomScale;
+					const { min, max } = scale.scaleValue!;
+					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
+				})),
+				values: (u, vals) => vals.map(v => v?.toString()),
+				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
+				scale: ax.label,
+				...ax,
+				label: '',
+			}))),
+			series: [{ }].concat((series ?? []).map(ser => ({
+				points: !ser.marker ? { show: false } : {
+					show: params.showMarkers,
+					stroke: ser.stroke,
+					fill: ser.fill ?? ser.stroke,
+					width: 0,
+					paths: markersPaths(ser.marker, 8)
+				},
+				scale: ser.label,
+				...ser,
+			}))),
+			...userOptions
+		} as uPlot.Options;
+	
+		options.hooks = {
+			...options.hooks,
+			drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
+				u => drawMagneticClouds(u, params),
+			] : []),
+			draw: [
+				drawCustomLabels(params),
+				...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
+				...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
+				...(options.hooks?.draw ?? [])
+			],
+			ready: [
+				handleDragLegend
+			].concat(options.hooks?.ready ?? [] as any)
+		};
+		return <UplotReact {...{ options, data: query.data as any, onCreate: setUplot }}/>;
+	}, [params, query.data]); // eslint-disable-line
+
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
 	if (query.isError)
@@ -463,82 +550,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	if (!query.data)
 		return <div className='Center'>NO DATA</div>;
 
-	const options = {
-		...size,
-		padding: [8, 0, params.showTimeAxis ? 0 : 8, 0],
-		legend: { show: params.interactive },
-		cursor: {
-			show: params.interactive,
-			drag: { x: false, y: false, setScale: false }
-		},
-		scales: Object.fromEntries(axes?.map(ax => [ax.label, {
-			distr: ax.distr ?? 1,
-			...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
-				const override = params.overrideScales?.[ax.label];
-				const [fmin, fmax] = ax.minMax ?? [null, null];
-				const min = override?.min ?? Math.min(dmin, fmin ?? dmin);
-				const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
-				const [ bottom, top ] = override ? [override.bottom, override.top] : ax.position ?? [0, 1];
-				params.scalesCallback?.(ax.label, { min, max, bottom, top });
-				const scale: CustomScale = u.scales[ax.label];
-				scale.scaleValue = { min, max };
-				scale.positionValue = { bottom, top };
-				const h = max - min;
-				const resultingH = h / (top - bottom);
-				const margin = h / 20;
-				return [
-					min - resultingH * bottom    - (!override && (dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
-					max + resultingH * (1 - top) + (!override && (dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
-				];
-			} })
-		} as uPlot.Scale]) ?? []),
-		axes: [{
-			...axisDefaults(params.showGrid),
-			...customTimeSplits(params)
-		}].concat((axes ?? []).map(ax => ({
-			...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ax.distr === 3 ? undefined : ((u, splits) => {
-				const scale = u.scales[ax.scale ?? ax.label] as CustomScale;
-				const { min, max } = scale.scaleValue!;
-				return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
-			})),
-			values: (u, vals) => vals.map(v => v?.toString()),
-			...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
-			scale: ax.label,
-			...ax,
-			label: '',
-		}))),
-		series: [{ }].concat((series ?? []).map(ser => ({
-			points: !ser.marker ? { show: false } : {
-				show: params.showMarkers,
-				stroke: ser.stroke,
-				fill: ser.fill ?? ser.stroke,
-				width: 0,
-				paths: markersPaths(ser.marker, 8)
-			},
-			scale: ser.label,
-			...ser,
-		}))),
-		...userOptions
-	} as uPlot.Options;
-
-	options.hooks = {
-		...options.hooks,
-		drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
-			u => drawMagneticClouds(u, params),
-		] : []),
-		draw: [
-			drawCustomLabels(params),
-			...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
-			...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
-			...(options.hooks?.draw ?? [])
-		],
-		ready: [
-			handleDragLegend
-		].concat(options.hooks?.ready ?? [] as any)
-	};
-
 	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-		<UplotReact {...{ options, data: query.data as any }}/>
+		{plot}
 	</div>);
 
 }

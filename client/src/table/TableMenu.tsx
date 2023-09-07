@@ -295,7 +295,7 @@ export function Menu() {
 			if (/[0-9]/.test(number))
 				set(settingPlot, number !== '0' ? plotTypes[parseInt(number) - 1] : null);
 			settingPlot = undefined;
-			return;
+			return e.preventDefault();;
 		} else {
 			if (e.ctrlKey)
 				settingPlot = ({ Digit1: 'plotTop', Digit2: 'plotBottom', Digit3: 'plotLeft' } as const)[e.code];
