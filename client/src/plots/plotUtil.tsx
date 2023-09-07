@@ -436,6 +436,10 @@ export type CustomSeries = uPlot.Series & {
 	legend?: string,
 	marker?: Shape,
 };
+export type CustomScale = uPlot.Scale & {
+	scaleValue?: { min: number, max: number },
+	positionValue?: { bottom: number, top: number },
+};
 
 export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams, options?: Partial<uPlot.Options>, axes: CustomAxis[], series: CustomSeries[] }) {
@@ -474,10 +478,11 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				const [fmin, fmax] = ax.minMax ?? [null, null];
 				const min = override?.min ?? Math.min(dmin, fmin ?? dmin);
 				const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
-				(u as any).scales[ax.label].dataMin = min;
-				(u as any).scales[ax.label].dataMax = max;
 				const [ bottom, top ] = override ? [override.bottom, override.top] : ax.position ?? [0, 1];
 				params.scalesCallback?.(ax.label, { min, max, bottom, top });
+				const scale: CustomScale = u.scales[ax.label];
+				scale.scaleValue = { min, max };
+				scale.positionValue = { bottom, top };
 				const h = max - min;
 				const resultingH = h / (top - bottom);
 				const margin = h / 20;
@@ -492,7 +497,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			...customTimeSplits(params)
 		}].concat((axes ?? []).map(ax => ({
 			...axisDefaults(ax.showGrid ?? params.showGrid, ax.filter ?? ax.distr === 3 ? undefined : ((u, splits) => {
-				const { dataMax: max, dataMin: min } = u.scales[ax.scale ?? ax.label] as any;
+				const scale = u.scales[ax.scale ?? ax.label] as CustomScale;
+				const { min, max } = scale.scaleValue!;
 				return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
 			})),
 			values: (u, vals) => vals.map(v => v?.toString()),

@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { BasicPlot, BasicPlotParams, CustomSeries, DefaultPosition, PosRef, SizeRef, applyTextTransform, basicDataQuery, color, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from '../plotUtil';
+import { BasicPlot, BasicPlotParams, CustomScale, CustomSeries, DefaultPosition, PosRef, SizeRef, applyTextTransform, basicDataQuery, color, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -18,8 +18,8 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
-		const a0top = (u.axes.find(a => a.scale === 'A0') as any).position[1] * .9;
-		const height = fullHeight * (1 - a0top);
+		const posBottom = (u.scales.vec as CustomScale).positionValue?.bottom ?? 1/2;
+		const height = fullHeight * (1 - posBottom);
 		const width = fullWidth * .85;
 		const dataX = u.data[seriesIdx+1]  as number[]; // swapped
 		const dataY = u.data[seriesIdx]  as number[];
@@ -161,6 +161,10 @@ export default function PlotGSMAnisotropy(params: GSMParams) {
 			minMax: [0, null],
 			side: 1,
 			showGrid: false,
+		}, {
+			show: false,
+			label: 'vec',
+			position: [1/2, 1],
 		}],
 		series: [{
 			show: params.showAxy,

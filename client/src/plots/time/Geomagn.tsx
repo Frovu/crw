@@ -45,7 +45,7 @@ export default function PlotGeoMagn(params: GeomagnParams) {
 		params,
 		axes: [
 			{
-				label: 'idx',
+				label: 'Kp',
 				fullLabel: (params.useAp ? 'Ap' : 'Kp') + ' index',
 				position: [0, 2/5 - 1/20],
 				minMax: [0, 50],
@@ -66,7 +66,7 @@ export default function PlotGeoMagn(params: GeomagnParams) {
 			{
 				show: !params.useAp,
 				label: 'Kp',
-				scale: 'idx',
+				scale: 'Kp',
 				width: 0,
 				stroke: color('green'),
 				paths: myBars(params),
@@ -74,7 +74,7 @@ export default function PlotGeoMagn(params: GeomagnParams) {
 			{
 				show: params.useAp,
 				label: 'Ap',
-				scale: 'idx',
+				scale: 'Kp',
 				width: 0,
 				stroke: color('yellow'),
 				paths: myBars(params),

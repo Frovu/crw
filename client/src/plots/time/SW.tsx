@@ -41,7 +41,7 @@ export default function PlotSW(params: SWParams) {
 		series: [
 			{
 				label: 'Dp',
-				legend: 'Plasma beta',
+				legend: 'Proton density, N/cm^3',
 				scale: 'Dp',
 				marker: 'circle',
 				stroke: color('peach'),
@@ -50,7 +50,7 @@ export default function PlotSW(params: SWParams) {
 			{
 				show: !!params.showBeta,
 				label: 'beta',
-				legend: 'Proton density, N/cm^3',
+				legend: 'Plasma beta',
 				scale: 'Dp',
 				marker: 'square',
 				stroke: color('magenta'),
@@ -65,7 +65,7 @@ export default function PlotSW(params: SWParams) {
 				width: 2,
 			},
 			{
-				scale: 'Tp'
+				scale:  params.useTemperatureIndex ? 'Tp' : 'y'
 			}
 		]
 	}}/>);
