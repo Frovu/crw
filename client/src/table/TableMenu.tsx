@@ -6,6 +6,7 @@ import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
 import { SampleMenu } from './Sample';
 import { useQueryClient } from 'react-query';
+import ImportMenu from './Import';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -161,12 +162,9 @@ function MenuSection({ name, shownSection, setShownSection, children, style }:
 function ExportMenu() {
 	const { data: rData, columns: rColumns } = useContext(TableContext);
 	const { data: fData, columns: fColumns, averages } = useContext(DataContext);
-	const { role } = useContext(AuthContext); 
-
-	const [fileText, setFileText] = useState<string>();
+	
 	const [filtered, setFiltered] = useState(true);
 	const [format, setFormat] = useState(false);
-	const [delMonths, setDelMonths] = useState(1);
 	
 	const dataUrl = () => {
 		const data = (filtered ? fData : rData).map(row => row.slice(1));
@@ -215,38 +213,6 @@ function ExportMenu() {
 				a.download = fname;
 				a.click();
 			}}>Download a file</button>
-			{'admin' === role && <>
-				<h4>Import table</h4>
-				<span>
-				Delete last <input style={{ width: '5ch' }} type='number' min='1' max='24' step='1' value={delMonths} onChange={e => setDelMonths(e.target.valueAsNumber)}/> months
-				</span>
-				<MutationButton text='Clear table' invalidate={['tableData']} fn={async () => {
-					const last = rData[rData.length-1][rColumns.findIndex(c => c.name === 'time')];
-					const res = await fetch(`${process.env.REACT_APP_API}api/events/wipe`, {
-						credentials: 'include',
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ from: Date.UTC(last.getUTCFullYear(), last.getUTCMonth() + 1 - delMonths, 1) / 1000 })
-					});
-					if (res.status !== 200)
-						throw new Error('HTTP '+res.status);
-					return await res.text();
-				}}/>
-				Upload FDs_fulltable.txt:
-				<input type='file' onChange={async (e) => setFileText(await e.target.files?.[0]?.text())}/>
-				<br/>
-				{fileText && <MutationButton text='Upload' invalidate={['tableData']} fn={async () => {
-					const res = await fetch(`${process.env.REACT_APP_API}api/events/import?type=fulltable`, {
-						credentials: 'include',
-						method: 'POST',
-						headers: { 'Content-Type': 'text/plain' },
-						body: fileText
-					});
-					if (res.status !== 200)
-						throw new Error('HTTP '+res.status);
-					return await res.text();
-				}}/>}
-			</>}
 		</>
 	);
 }
@@ -257,22 +223,26 @@ export function Menu() {
 	const { changes } = useContext(TableContext);
 	const { settings, set } = useContext(SettingsContext);
 	const { role } = useContext(AuthContext);
-	const [showColumns, setShowColumns] = useState(false);
-	const [showGenerics, setShowGenerics] = useState(false);
+	const [shownPopup, setShownPopup] = useState<'columns'|'generics'|'import'|null>(null);
 	const [shownSection, setShownSection] = useState<string | null>(null);
 
 	const hideEverything = () => {
-		setShowColumns(false);
-		setShowGenerics(false);
+		setShownPopup(null);
 		setShownSection(null);
 	};
+	const togglePopup = (s: typeof shownPopup) => {
+		hideEverything();
+		setShownPopup(shownPopup === s ? null : s);
+	};
+
 	useEventListener('escape', hideEverything);
 	useEventListener('click', hideEverything);
 
 	useEventListener('action+refetch', () => queryClient.refetchQueries());
 
-	useEventListener('action+openColumnsSelector', () => {hideEverything(); setShowColumns(!showColumns);});
-	useEventListener('action+openGenericsSelector', () => {hideEverything(); setShowGenerics(!showGenerics);});
+	useEventListener('action+openImportMenu', () => togglePopup('import'));
+	useEventListener('action+openColumnsSelector', () => togglePopup('columns'));
+	useEventListener('action+openGenericsSelector', () => togglePopup('generics'));
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'Escape')
@@ -341,6 +311,7 @@ export function Menu() {
 				</MenuSection>
 				<MenuSection name='Export' style={{ left: '4em' }} {...{ shownSection, setShownSection }}>
 					<MenuButton text='Export plots' action='exportPlot'/>
+					{role === 'admin' && <MenuButton text='Import table' action='openImportMenu'/>}
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
@@ -387,8 +358,9 @@ export function Menu() {
 					<CorrelationMenu/>
 				</MenuSection>
 			</div>
-			{showColumns && <ColumnsSelector/>}
-			{showGenerics && <GenericsSelector/>}
+			{shownPopup === 'import' && <ImportMenu/>}
+			{shownPopup === 'columns' && <ColumnsSelector/>}
+			{shownPopup === 'generics' && <GenericsSelector/>}
 		</div>
 	);
 }

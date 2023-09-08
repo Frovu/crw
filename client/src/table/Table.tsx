@@ -36,7 +36,10 @@ export type ColumnDef = {
 		series: string,
 		poi: string,
 		shift: number
-	} 
+	},
+	parseName: null | string,
+	parseStub: null | string,
+	parseValue: null | { [key: string|number]: string|number|null }
 };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean } | null;
@@ -572,7 +575,7 @@ export default function TableWrapper() {
 						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
 						case 'time': return 19;
 						case 'text': return 14;
-						default: return 6;
+						default: return 6; 
 					}
 				})();
 				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');

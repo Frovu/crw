@@ -70,7 +70,6 @@ input:disabled, button:disabled, select:disabled {
 
 .Popup {
 	position: fixed;
-	transform: translate(-50%);
 	background-color: var(--color-bg);
 	border: 2px var(--color-border) solid;
 	padding: 1em 2em 1.5em 2em;

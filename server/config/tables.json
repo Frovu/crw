@@ -5,15 +5,15 @@
 			"not_null":true,
 			"type": "time",
 			"description": "Event onset time",
-			"parse_name": "Time"
+			"parseName": "Time"
 		},
 		"onset_type": {
 			"name": "onset type",
 			"type": "enum",
 			"enum": ["SSC", "iSW", "SI"],
 			"description": "Onset time origin: SSC; SI - Sudden impulse, ground data; iSW - satellite data",
-			"parse_name": "OType",
-			"parse_value": {
+			"parseName": "OType",
+			"parseValue": {
 				"1": "SSC",
 				"2": "iSW",
 				"3": "SI",
@@ -102,12 +102,12 @@
 		"old_magnitude": {
 			"name": "_magnitude",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
-			"parse_name": "MagnM"
+			"parseName": "MagnM"
 		},
 		"gamma": {
 			"name": "gamma",
 			"description": "rigidity spectrum exponent during the hour of minimum CR density",
-			"parse_name": "GammaM"
+			"parseName": "GammaM"
 		},
 		"comment": {
 			"type": "text",
@@ -123,25 +123,25 @@
 	"solar_sources": {
 		"time": {
 			"type": "time",
-			"parse_name": "STime"
+			"parseName": "STime"
 		},
 		"type": {
 			"type": "real",
 			"range": [1, 99],
 			"description": "It's complicated",
-			"parse_name": "SType"
+			"parseName": "SType"
 		},
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parse_name": "Source",
-			"parse_stub": "_None____"
+			"parseName": "Source",
+			"parseStub": "_None____"
 		},
 		"confidence": {
 			"type": "enum",
 			"enum": ["low", "okay", "high"],
-			"parse_name": "Qs",
-			"parse_value": {
+			"parseName": "Qs",
+			"parseValue": {
 				"3": "low",
 				"4": "okay",
 				"5": "high"
@@ -160,47 +160,47 @@
 	"coronal_mass_ejections": {
 		"time": {
 			"type": "time",
-			"parse_name": "CMETime"
+			"parseName": "CMETime"
 		},
 		"v_start": {
 			"description": "CME velocity near the Sun",
-			"parse_name": "Vsp"
+			"parseName": "Vsp"
 		},
 		"v_mean_0": {
 			"description": "CME initial velocity from coronagraph",
-			"parse_name": "VMean0"
+			"parseName": "VMean0"
 		},
 		"v_mean_x": {
 			"description": "CME average velocity using X-ray flare time",
-			"parse_name": "Vmean"
+			"parseName": "Vmean"
 		},
 		"v_mean_c": {
 			"description": "CME average velocity using CME observation time",
-			"parse_name": "VmeanC"
+			"parseName": "VmeanC"
 		},
 		"width": {
 			"description": "Angular width",
-			"parse_name": "CMEWidth"
+			"parseName": "CMEWidth"
 		},
 		"angle": {
 			"description": "Direction of the maximum velocity",
-			"parse_name": "CMEAngle"
+			"parseName": "CMEAngle"
 		}
 	},
 	"coronal_holes": {
 		"polarity": {
-			"parse_name": "SPol"
+			"parseName": "SPol"
 		}
 	},
 	"solar_flares": {
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parse_name": "Fdata",
-			"parse_stub": "None"
+			"parseName": "Fdata",
+			"parseStub": "None"
 		},
 		"magnitude": {
-			"parse_name": "Xmagn",
+			"parseName": "Xmagn",
 			"description": "Maximum X-ray power (W/m/m)"
 		}
 	},
@@ -208,16 +208,16 @@
 		"time": {
 			"not_null": true,
 			"type": "time",
-			"parse_name": "MCStartTime"
+			"parseName": "MCStartTime"
 		},
 		"originator": {
 			"type": "text"
 		},
 		"duration": {
-			"parse_name": "MCDur"
+			"parseName": "MCDur"
 		},
 		"size": {
-			"parse_name": "RMC"
+			"parseName": "RMC"
 		},
 		"_constraint": "UNIQUE (time)"
 	}
