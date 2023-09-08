@@ -22,7 +22,7 @@ def select(interval: [int, int], what='A10m', mask_gle=True):
 		curs = conn.execute(q, interval)
 		return np.array(curs.fetchall(), dtype='f8'), [desc[0] for desc in curs.description]
 
-def normalize_variation(data, with_trend=False):
+def normalize_variation(data, with_trend=False, to_avg=False):
 	if with_trend:
 		xs = np.arange(data.shape[0])
 		mask = np.isfinite(data)
@@ -30,5 +30,5 @@ def normalize_variation(data, with_trend=False):
 		if trend[0] > 0:
 			ys = np.poly1d(trend)(xs)
 			data = data - ys + ys[0]
-	d_max = np.nanmax(data)
+	d_max = np.nanmean(data) if to_avg else np.nanmax(data)
 	return (data - d_max) / (1 + d_max / 100)

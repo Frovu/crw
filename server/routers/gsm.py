@@ -19,4 +19,6 @@ def get_result():
 	for i, f in enumerate(fields):
 		if len(res) and f in ['a10', 'a10m']:
 			res[:,i] = np.round(normalize_variation(res[:,i], subtract_trend), 2)
+		if len(res) and f == 'az':
+			res[:,i] = np.round(normalize_variation(res[:,i], False, True), 2)
 	return { "data": np.where(np.isnan(res), None, res).tolist(), "fields": fields }
