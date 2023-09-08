@@ -97,6 +97,10 @@ type SettingsSetter = <T extends keyof Settings>(key: T, a: SetStateAction<Setti
 type OptionsSetter = <T extends keyof VolatileSettings>(key: T, a: SetStateAction<VolatileSettings[T]>) => void;
 export const SettingsContext = createContext<{ settings: Settings, set: SettingsSetter, options: VolatileSettings, setOpt: OptionsSetter }>({} as any);
 
+export function equalValues(a: Value, b: Value) {
+	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;
+}
+
 export function parseColumnValue(val: string, column: ColumnDef) {
 	switch (column.type) {
 		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
@@ -489,12 +493,8 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
 				if (!entityExists) return false;
 				
-				const val = row[colIdx];
-				const isDifferent = column.type === 'time' ?
-					(val as Date|null)?.getTime() !== (value as Date|null)?.getTime()
-					: val !== value;
 				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
-					...(isDifferent ? [{ id, column, value }] : [])]);
+					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
 				return true;
 			}
 		};

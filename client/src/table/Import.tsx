@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { TableContext } from './Table';
+import { TableContext, equalValues, valueToString } from './Table';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -8,15 +8,11 @@ const FIXES = [
 	[/_*None_*/g, 'None']
 ] as [RegExp, string][];
 
-type Parsed = {
-	interval: [Date, Date],
-};
-
 export default function ImportMenu() {
-	const { columns: allColumns } = useContext(TableContext);
+	const { columns: allColumns, data: currentData } = useContext(TableContext);
 	const [fileText, setFileText] = useState<string>();
 
-	const parsed: { error?: string, parsed?: Parsed }|null = useMemo(() => {
+	const parsed = useMemo(() => {
 		if (!fileText) return null;
 
 		const text = FIXES.reduce((txt, [re, ch]) => txt.replace(re, ch), fileText);
@@ -28,7 +24,7 @@ export default function ImportMenu() {
 		const columns = allColumns.filter(c => colsIndex.includes(c.parseName!))
 			.map(c => ({ ...c , idx: colsIndex.indexOf(c.parseName!) }));
 		const lines = allLines.slice(headerIdx + 1).filter(l => l.length > 0);
-		const rows: (Date|string|number|null)[][] = [...Array(lines.length)].map(r => Array(columns.length));
+		const rows: typeof currentData = [...Array(lines.length)].map(r => Array(columns.length));
 
 		for (const [ri, line] of lines.entries()) {
 			try {
@@ -64,15 +60,48 @@ export default function ImportMenu() {
 			} catch(e) {
 				return { error: `failed to parse line: ${line}` };
 			}
-	
 		}
-		console.log(columns, rows)
+
+		const interval = [rows[0]?.[0], rows.at(-1)?.[0]] as [Date, Date];
+		const diff = {
+			found: 0,
+			added: [] as Date[],
+			deleted: [] as Date[], 
+			changes: [] as [Date, { name: string, before: typeof rows[number][number], after: typeof rows[number][number] }[]][]
+		};
+		const timeIdx = allColumns.findIndex(c => c.fullName === 'time');
+		const targetData = currentData.filter(r => interval[0] <= (r[timeIdx] as Date) && (r[timeIdx] as Date) <= interval[1]);
+		for (const row of rows) {
+			const time = row[0] as Date;
+			const found = targetData.find(r => (r[timeIdx] as Date).getTime() === time.getTime());
+			if (found) {
+				++diff.found;
+				const changes: typeof diff.changes[number][1] = [];
+				for (const [ci, { id, fullName }] of columns.entries()) {
+					const oldVal = found[allColumns.findIndex(c => c.id === id)];
+					const newVal = row[ci];
+					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
+						continue;
+					changes.push({
+						name: fullName,
+						before: oldVal == null ? null : valueToString(oldVal),
+						after: newVal == null ? null : valueToString(newVal),
+					});
+				}
+				if (changes.length)
+					diff.changes.push([time, changes]);
+			} else {
+				diff.added.push(time);
+			}
+		}
 
 		return { parsed: {
-			interval: [rows[0]?.[0], rows.at(-1)?.[0]] as any
+			...diff,
+			total: rows.length,
+			interval: interval as [Date, Date]
 		} };
 
-	}, [allColumns, fileText]);
+	}, [allColumns, currentData, fileText]);
 
 	return (<>
 		<div className='PopupBackground'></div>
@@ -83,9 +112,28 @@ export default function ImportMenu() {
 			</div>
 			{parsed?.error && <div style={{ maxWidth: 800, color: 'var(--color-red)' }}>Error: {parsed.error}</div> }
 			{parsed?.parsed && (()=>{
-				const { interval: [first, last] } = parsed.parsed;
-				return (<div>
-					<div style={{ margin: 8 }}>Target interval: {first?.toISOString().replace(/T.*/,'')} to {last?.toISOString().replace(/T.*/,'')}</div>
+				const { interval: [first, last], found, total, added, deleted, changes } = parsed.parsed;
+				const nihil = <span style={{ color: 'var(--color-text-dark)' }}><i>null</i></span>;
+				return (<div style={{ textAlign: 'left', lineHeight: 1.5 }}>
+					<div>Target interval: {first?.toISOString().replace(/T.*/,'')} to {last?.toISOString().replace(/T.*/,'')}</div>
+					<div style={{ color: 'var(--color-text-dark)' }}>
+						Found: {found} of {total}</div>
+					<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>
+						Added: {added.length}</div>
+					<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}>
+						&nbsp;Lost: {deleted.length}</div>
+					<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)' }}>
+						Altered: {changes.length}</div>
+					{changes.length && <div style={{ maxHeight: 240, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
+						{changes.map(([date, list]) => <div key={date.getTime()} style={{ marginBottom: 12 }}>
+							<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
+							{list.map(({ name, before, after }) =>
+								<div style={{ marginLeft: 16 }}>
+									[{name}] {before == null ? nihil : valueToString(before)}
+									&nbsp;-&gt;&nbsp;<b>{after == null ? nihil : valueToString(after)}</b>
+								</div> )}
+						</div>)}
+					</div>}
 				</div>);
 			})()}
 		</div>
