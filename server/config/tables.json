@@ -134,8 +134,7 @@
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parseName": "Source",
-			"parseStub": "_None____"
+			"parseName": "Source"
 		},
 		"confidence": {
 			"type": "enum",
@@ -196,8 +195,7 @@
 		"description": {
 			"name": "info",
 			"type": "text",
-			"parseName": "Fdata",
-			"parseStub": "None"
+			"parseName": "Fdata"
 		},
 		"magnitude": {
 			"parseName": "Xmagn",

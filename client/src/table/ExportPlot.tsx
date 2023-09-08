@@ -138,7 +138,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.target instanceof HTMLInputElement)
 			return;
-		if (['Escape', 'KeyE'].includes(e.code))
+		if (['Escape', 'KeyE', 'KeyH'].includes(e.code))
 			escape();
 		else if ('KeyT' === e.code)
 			setSettings(st => ({ ...st, theme: themeOptions[(themeOptions.indexOf(st.theme) + 1) % themeOptions.length] }));

@@ -38,7 +38,6 @@ export type ColumnDef = {
 		shift: number
 	},
 	parseName: null | string,
-	parseStub: null | string,
 	parseValue: null | { [key: string|number]: string|number|null }
 };
 export type Sort = { column: string, direction: 1 | -1 };

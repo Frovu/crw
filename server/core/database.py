@@ -116,7 +116,6 @@ def render_table_info(uid):
 			info[table][tag] = {
 				'parseName': col_desc.get('parseName'),
 				'parseValue': col_desc.get('parseValue'),
-				'parseStub': col_desc.get('parseStub'),
 				'name': col_desc.get('name', col),
 				'type': col_desc.get('type', 'real'),
 				'isComputed': col_desc.get('computed', 'generic' in col_desc)
