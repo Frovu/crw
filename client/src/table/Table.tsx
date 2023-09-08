@@ -24,6 +24,7 @@ export type ColumnDef = {
 	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
 	description?: string,
 	enum?: string[],
+	nullable: boolean,
 	table: string,
 	width: number,
 	id: string,
@@ -80,14 +81,15 @@ type VolatileSettings = {
 	viewPlots: boolean
 };
 
+type Value = Date | string | number | null;
 type FiltersCollection = { filter: Filter, id: number }[];
-type ChangeValue = { id: number, column: ColumnDef, value: any };
-export const TableContext = createContext<{ data: any[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
+type ChangeValue = { id: number, column: ColumnDef, value: Value };
+export const TableContext = createContext<{ data: Value[][], columns: ColumnDef[], firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
-export const SampleContext = createContext<{ data: any[][], sample: SampleState, samples: Sample[], isEditing: boolean,
+export const SampleContext = createContext<{ data: Value[][], sample: SampleState, samples: Sample[], isEditing: boolean,
 	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void,
 	filters: FiltersCollection, setFilters: (a: SetStateAction<FiltersCollection>) => void }>({} as any);
-export const DataContext = createContext<{ data: any[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
+export const DataContext = createContext<{ data: Value[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
 export const TableViewContext = createContext<{ sort: Sort, cursor: Cursor, plotId: null | number,
 	setSort: (s: SetStateAction<Sort>) => void, setCursor: (s: SetStateAction<Cursor>) => void}>({} as any);
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
@@ -104,7 +106,7 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 	}
 }
 
-export function valueToString(v: any) {
+export function valueToString(v: Value) {
 	if (v instanceof Date)
 		return v.toISOString().replace(/\..+/, '').replace('T', ' ');
 	if (typeof v === 'number')
@@ -112,13 +114,16 @@ export function valueToString(v: any) {
 	return v?.toString() ?? '';
 }
 
-export function isValidColumnValue(val: any, column: ColumnDef) {
+export function isValidColumnValue(val: Value, column: ColumnDef) {
+	if (val == null)
+		return column.nullable;
 	switch (column.type) {
-		case 'time': return !isNaN(val as any);
+		case 'time': return (val instanceof Date) && !isNaN(val.getTime());
 		case 'real':
-		case 'integer': return !isNaN(val as number);
+		case 'integer': return (typeof val == 'number') && !isNaN(val);
 		case 'enum': return column.enum?.includes(val as string);
-		default: return (val as string).length > 0;
+		default:
+			return val !== '';
 	}
 }
 
@@ -262,7 +267,7 @@ function CoreWrapper() {
 		const column =  dataContext.columns[cursor?.column];
 		const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
 		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
-		const value = (column.type === 'time' ? val?.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
+		const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
 		return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
 	}));
 	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
@@ -278,8 +283,10 @@ function CoreWrapper() {
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
 		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]));
 		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
-		const idxs = [...renderedData.keys()];
-		idxs.sort((a, b) => (renderedData[a][sortIdx] - renderedData[b][sortIdx]) * sort.direction);
+		const idxs = [...renderedData.keys()], column = cols[sortIdx-1];
+		idxs.sort((a: number, b: number) => sort.direction * (['text','enum'].includes(column.type) ?
+			(renderedData[a][sortIdx] as string ??'').localeCompare(renderedData[b][sortIdx] as string ??'') :
+			(renderedData[a][sortIdx]??0 as any) - (renderedData[b][sortIdx]??0 as any)));
 		if (markers && sort.column === '_sample') {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
@@ -316,7 +323,7 @@ function CoreWrapper() {
 		const onsets = allNeighbors.filter(r => true)
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
 		const clouds = allNeighbors.map(r => {
-			const time = r[cloudTime]?.getTime(), dur = r[cloudDur];
+			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
 			if (!time || !dur) return null;
 			return {
 				start: new Date(time),
@@ -340,7 +347,7 @@ function CoreWrapper() {
 
 	const tableViewContext = useMemo(() => {
 		return {
-			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0]
+			sort, setSort, cursor, setCursor, plotId: plotIdx && data[plotIdx][0] as number
 		};
 	}, [sort, setSort, cursor, setCursor, plotIdx, data]);
 
@@ -431,7 +438,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			const res = await fetch(`${process.env.REACT_APP_API}api/events/?changelog=true`, { credentials: 'include' });
 			if (res.status !== 200)
 				throw new Error('HTTP '+res.status);
-			return await res.json() as {data: any[][], fields: string[], changelog: ChangeLog};
+			return await res.json() as {data: Value[][], fields: string[], changelog: ChangeLog};
 		}
 	});
 	const rawContext = useMemo(() => {
@@ -439,13 +446,13 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		const fields = query.data.fields;
 		const filtered = columns.filter(c => fields.includes(c.id));
 		const indexes = filtered.map(c => fields.indexOf(c.id));
-		const data = query.data.data.map((row: any[]) => indexes.map((i) => row[i]));
+		const data = query.data.data.map((row: Value[]) => indexes.map((i) => row[i]));
 		for (const [i, col] of Object.values(filtered).entries()) {
 			if (col.type === 'time') {
 				for (const row of data) {
 					if (row[i] === null) continue;
-					const date = new Date(parseInt(row[i]) * 1e3);
-					row[i] = isNaN(date as any) ? null : date;
+					const date = new Date((row[i] as number) * 1e3);
+					row[i] = isNaN(date.getTime()) ? null : date;
 				}
 			}
 		}
@@ -469,7 +476,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 			if (row) row[columnIdx] = value;
 		}
 		const sortIdx = rawContext.columns.findIndex(c => c.name === 'time');
-		if (sortIdx > 0) data.sort((a, b) => a[sortIdx] - b[sortIdx]);
+		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
 		
 		return {
 			...rawContext,
@@ -482,7 +489,10 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
 				if (!entityExists) return false;
 				
-				const isDifferent = column.type === 'time' ? row[colIdx].getTime() !== value.getTime() : row[colIdx] !== value;
+				const val = row[colIdx];
+				const isDifferent = column.type === 'time' ?
+					(val as Date|null)?.getTime() !== (value as Date|null)?.getTime()
+					: val !== value;
 				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
 					...(isDifferent ? [{ id, column, value }] : [])]);
 				return true;

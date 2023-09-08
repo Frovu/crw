@@ -162,7 +162,7 @@ function MenuSection({ name, shownSection, setShownSection, children, style }:
 function ExportMenu() {
 	const { data: rData, columns: rColumns } = useContext(TableContext);
 	const { data: fData, columns: fColumns, averages } = useContext(DataContext);
-	
+
 	const [filtered, setFiltered] = useState(true);
 	const [format, setFormat] = useState(false);
 	
@@ -193,7 +193,7 @@ function ExportMenu() {
 		for (const row of data) {
 			for (const [i, col] of columns.entries()) {
 				const v = row[i];
-				const val = col.type === 'time' ? v?.toISOString().replace(/\..+/,'Z') : v;
+				const val = v instanceof Date ? v?.toISOString().replace(/\..+/,'Z') : v;
 				text += (val == null ? 'N/A' : val).toString().replace(/\s/, '_').padStart(col.width + (i === 0 ? 0 : 4), ' '.repeat(col.width)) + ' ';
 			}
 			text += '\r\n';

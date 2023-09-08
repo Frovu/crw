@@ -17,12 +17,18 @@ export default function CorrelationPlot() {
 	const size = useSize(container?.parentElement);
 
 	const plotOpts = useMemo(() => {
-		if (!sampleData.length) return null;
+		if (!sampleData.length)
+			return null;
 		const loglog = params.loglog;
 		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrParams]));
-		if (colIdx.includes(-1)) return null;
+		if (colIdx.includes(-1))
+			return null;
+		const [colX, colY] = colIdx.map(c => columns[c]);
+		if (!['integer', 'real'].includes(colX.type) || !['integer', 'real'].includes(colY.type))
+			return null;
+
 		const filter = loglog ? ((r: number[]) => r[0] > 1 && r[1] > 1) : ((r: number[]) => r[0] != null && r[1] != null);
-		const data = sampleData.map(row => colIdx.map(i => row[i])).filter(filter).sort((a, b) => a[0] - b[0]);
+		const data = (sampleData as number[][]).map(row => colIdx.map(i => row[i])).filter(filter).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
 		if (data.length < 8) return null;
@@ -54,7 +60,7 @@ export default function CorrelationPlot() {
 				axes: [
 					{
 						...axisDefaults(showGrid),
-						label: columns.find(c => c.id === params.columnX)?.fullName,
+						label: colX.fullName,
 						labelSize: 22,
 						size: 30,
 						...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
@@ -62,7 +68,7 @@ export default function CorrelationPlot() {
 					},
 					{
 						...axisDefaults(showGrid),
-						label: columns.find(c => c.id === params.columnY)?.fullName,
+						label: colY.fullName,
 						size: 32 + 11 * (maxWidthY - 2),
 						values: (u, vals) => vals.map(v => loglog ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
