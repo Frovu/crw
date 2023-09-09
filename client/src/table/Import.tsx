@@ -71,14 +71,16 @@ export default function ImportMenu() {
 		};
 		const timeIdx = allColumns.findIndex(c => c.fullName === 'time');
 		const targetData = currentData.filter(r => interval[0] <= (r[timeIdx] as Date) && (r[timeIdx] as Date) <= interval[1]);
+		const lost = targetData.slice() as (typeof rows[number][number][]|null)[];
 		for (const row of rows) {
 			const time = row[0] as Date;
-			const found = targetData.find(r => (r[timeIdx] as Date).getTime() === time.getTime());
-			if (found) {
+			const found = targetData.findIndex(r => (r[timeIdx] as Date).getTime() === time.getTime());
+			if (found >= 0) {
 				++diff.found;
+				lost[found] = null;
 				const changes: typeof diff.changes[number][1] = [];
 				for (const [ci, { id, fullName }] of columns.entries()) {
-					const oldVal = found[allColumns.findIndex(c => c.id === id)];
+					const oldVal = targetData[found][allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
 					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
 						continue;
@@ -94,6 +96,7 @@ export default function ImportMenu() {
 				diff.added.push(time);
 			}
 		}
+		diff.deleted = lost.filter(l => !!l).map(l => l![timeIdx] as Date);
 
 		return { parsed: {
 			...diff,
@@ -115,16 +118,27 @@ export default function ImportMenu() {
 				const { interval: [first, last], found, total, added, deleted, changes } = parsed.parsed;
 				const nihil = <span style={{ color: 'var(--color-text-dark)' }}><i>null</i></span>;
 				return (<div style={{ textAlign: 'left', lineHeight: 1.5 }}>
-					<div>Target interval: {first?.toISOString().replace(/T.*/,'')} to {last?.toISOString().replace(/T.*/,'')}</div>
+					<div>Target table: forbush_effects</div>
+					<div>Target interval: <b>{first?.toISOString().replace(/T.*/,'')} to {last?.toISOString().replace(/T.*/,'')}</b></div>
 					<div style={{ color: 'var(--color-text-dark)' }}>
 						Found: {found} of {total}</div>
-					<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>
-						Added: {added.length}</div>
-					<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}>
-						&nbsp;Lost: {deleted.length}</div>
-					<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)' }}>
+					<div style={{ display: 'inline-block' }}>
+						<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>
+							Added: <b>{added.length}</b></div>
+						{added.length > 0 && <div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-cyan)' }}>
+							{added.map(dt => <div>+ {valueToString(dt)}</div>)}
+						</div>}
+					</div>
+					<div style={{ display: 'inline-block', marginLeft: 16, }}>
+						<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}>
+							&nbsp;Lost: <b>{deleted.length}</b></div>
+						{deleted.length > 0 && <div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-magenta)' }}>
+							{deleted.map(dt => <div>- {valueToString(dt)}</div>)}
+						</div>}
+					</div>
+					<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)', marginTop: 4 }}>
 						Altered: {changes.length}</div>
-					{changes.length && <div style={{ maxHeight: 240, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
+					{changes.length > 0 && <div style={{ maxHeight: 240, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
 						{changes.map(([date, list]) => <div key={date.getTime()} style={{ marginBottom: 12 }}>
 							<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
 							{list.map(({ name, before, after }) =>
