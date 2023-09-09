@@ -1,7 +1,7 @@
 import '../css/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
-import { clamp, useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
+import { apiGet, apiPost, clamp, useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';
 import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
@@ -400,8 +400,7 @@ export function SampleWrapper() {
 	});
 
 	const query = useQuery('samples', async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples`, { credentials: 'include' });
-		const samples = (await res.json()).samples as Sample[];
+		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
 		console.log('%cavailable samples:', 'color: #0f0', samples);
 		if (sample && !samples.find(s => s.id === sample.id)) {
 			setEditing(false);
@@ -438,12 +437,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
 		queryKey: ['tableData'], 
-		queryFn: async () => {
-			const res = await fetch(`${process.env.REACT_APP_API}api/events/?changelog=true`, { credentials: 'include' });
-			if (res.status !== 200)
-				throw new Error('HTTP '+res.status);
-			return await res.json() as {data: Value[][], fields: string[], changelog: ChangeLog};
-		}
+		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog: ChangeLog }>('events', { changelog: 'true' })
 	});
 	const rawContext = useMemo(() => {
 		if (!query.data) return null;
@@ -503,20 +497,11 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
 	useEventListener('action+discardChanges', () => setChanges([]));
 
-	const { mutate, report, color } = useMutationHandler(async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/changes`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				changes: changes.map(c => ({ ...c, entity: c.column.table, column: c.column.id }))
-			}) 
-		});
-		if (res.status === 400)
-			throw new Error(await res.text());
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.text();
-	}, ['tableData']);
+	const { mutate, report, color } = useMutationHandler(() =>
+		apiPost('events/changes', {
+			changes: changes.map(c => ({ ...c, entity: c.column.table, column: c.column.id }))
+		})
+	, ['tableData']);
 
 	if (query.isLoading)
 		return <div>Loading data..</div>;
@@ -572,11 +557,11 @@ export default function TableWrapper() {
 		staleTime: Infinity,
 		queryKey: ['tableStructure'],
 		queryFn: async () => {
-			const res = await fetch(`${process.env.REACT_APP_API}api/events/info/`, { credentials: 'include' });
-			if (res.status !== 200)
-				throw new Error('HTTP '+res.status);
-			const json = await res.json();
-			const tables: { [name: string]: { [name: string]: ColumnDef } } = json.tables;
+			type Info = {
+				tables: { [name: string]: { [name: string]: ColumnDef } },
+				series: { [s: string]: string }
+			};
+			const { tables, series } = await apiGet<Info>('events/info');
 
 			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([id, desc]) => {
 				const width = (()=>{
@@ -599,7 +584,7 @@ export default function TableWrapper() {
 			return {
 				tables: Object.keys(tables),
 				columns: [ { id: 'id', hidden: true, table: firstTable } as ColumnDef, ...columns],
-				series: json.series as { [s: string]: string }
+				series: series
 			};
 		}
 	});

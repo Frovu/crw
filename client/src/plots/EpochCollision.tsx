@@ -1,7 +1,7 @@
 import { useContext, useMemo, useState } from 'react';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
 import { MenuCheckbox, MenuSelect } from '../table/TableMenu';
-import { useSize } from '../util';
+import { apiPost, useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 import UplotReact from 'uplot-react';
 import { clickDownloadPlot } from './plotUtil';
@@ -112,25 +112,21 @@ export default function EpochCollision() {
 		const colIdx = columns.findIndex(c => c.fullName === state.timeColumn)!;
 		const interval = plotTimeOffset.map(i => i * 24);
 		const times = sample.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 3600);
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/epoch_collision`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ times, interval, series: state.series })
+		
+		type Res = { offset: number[], mean: number[], median: number[], std: number[] };
+		const { offset, median, mean, std } = await apiPost<Res>('events/epoch_collision', {
+			times, interval, series: state.series
 		});
-	
-		if (res.status !== 200)
-			throw Error('HTTP '+res.status);
-		const body = await res.json() as { offset: number[], mean: number[], median: number[], std: number[] };
 		return [
-			body.offset,
-			body.median,
-			body.mean,
-			body.std.map((s, i, all) => body.mean[i] + s / Math.sqrt(all.length)),
-			body.std.map((s, i, all) => body.mean[i] - s / Math.sqrt(all.length))
+			offset,
+			median,
+			mean,
+			std.map((s, i, all) => mean[i] + s / Math.sqrt(all.length)),
+			std.map((s, i, all) => mean[i] - s / Math.sqrt(all.length))
 		];
 	};
 
-	const qk = ['epoch', plotTimeOffset, state.series, state.timeColumn];
+	const qk = ['epoch', ...plotTimeOffset, state.series, state.timeColumn];
 	const queries = useQueries([
 		{ queryKey: [...qk, samples[0]], queryFn: queryHandler(samples[0]), staleTime: Infinity },
 		{ queryKey: [...qk, samples[1]], queryFn: queryHandler(samples[1]), staleTime: Infinity },

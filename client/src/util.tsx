@@ -4,6 +4,28 @@ import { useMutation, useQueryClient } from 'react-query';
 export const clamp = (min: number, max: number, val: number, minFirst: boolean=false) =>
 	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
 
+export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
+	const res = await fetch(process.env.REACT_APP_API + 'api/' + url, {
+		method: 'POST', credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: body && JSON.stringify(body)
+	});
+	const json = await res.json();
+	if (res.status !== 200)
+		throw new Error(json.message ?? ('HTTP '+res.status));
+	return json;
+}
+export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
+	let uri = process.env.REACT_APP_API + 'api/' + url;
+	if (query)
+		uri += '?' + new URLSearchParams(query).toString();
+	const res = await fetch(uri, { credentials: 'include' });
+	const json = await res.json();
+	if (res.status !== 200)
+		throw new Error(json.message ?? ('HTTP '+res.status));
+	return json;
+}
+
 export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
@@ -70,15 +92,16 @@ export function useSize<T extends HTMLElement>(target: T | null | undefined) {
 	return size;
 }
 
-export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?: string[]) {
+export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn: F, invalidate?: string[]) {
 	const queryClient = useQueryClient();
 	const [report, setReport] = useState<{ success?: string, error?: string } | null>(null);
-	const mutation = useMutation(fn, {
+	type V = Parameters<F>[number];
+	const mutation = useMutation<Awaited<ReturnType<F>>, Error, [V] extends [never] ? any : V>(fn, {
 		onError: (e: Error) => setReport({ error: e.message }),
-		onSuccess: (res?: any) => {
-			setReport({ success: res?.toString() });
+		onSuccess: (res: Awaited<ReturnType<F>>) => {
+			setReport({ success: res.message?.toString() });
 			if (invalidate)
-				invalidate.forEach((key: any) => queryClient.invalidateQueries([key]));
+				invalidate.forEach(key => queryClient.invalidateQueries([key]));
 		}
 	});
 

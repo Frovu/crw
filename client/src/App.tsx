@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider, useMutation, useQuery } from 'react-query';
+import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
 import { createContext, useContext, useEffect, useState } from 'react';
 import Table from './table/Table';
 import Circles from './plots/time/Circles';
-import { useEventListener, useMutationHandler } from './util';
+import { apiGet, apiPost, useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
 import PlotGSM from './plots/time/GSM';
@@ -19,22 +19,11 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 	const [password, setPassword] = useState('');
 	const [newPassword, setnewPassword] = useState('');
 	const [newPassword2, setnewPassword2] = useState('');
-	const { mutate, isSuccess, color, report, setReport } = useMutationHandler(async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/auth/${type}`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(upsertMode ? { login, password, role } : passMode ? { password, newPassword } : { login, password })
-		});
-		if (res.status === 400)
-			throw new Error('Bad request');
-		if (res.status === 404)
-			throw new Error('User not found');
-		if (res.status === 401)
-			throw new Error('Wrong password');
-		if (res.status !== 200)
-			throw new Error(`HTTP: ${res.status}`);
-		return await res.text();
-	}, ['auth', 'samples', 'tableStructure', 'tableData']);
+	const { mutate, isSuccess, color, report, setReport } = useMutationHandler(() => apiPost(`auth/${type}`,
+		upsertMode ? { login, password, role } :
+			passMode ? { password, newPassword } :
+				{ login, password }),
+	['auth', 'samples', 'tableStructure', 'tableData']);
 
 	useEffect(() => {
 		const timeout = setTimeout(() => setError(null), 3000);
@@ -76,7 +65,7 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 				<button style={{ width: '5em', height: '1.5em' }} onClick={() => {
 					if (passMode && (!newPassword || newPassword !== newPassword2))
 						return setReport({ error: 'Passwords do not match' });
-					mutate(null);
+					mutate({});
 				}}>{passMode ? 'Change' : upsertMode ? 'Upsert' : 'Login' }</button>
 			</div>
 		</div>
@@ -86,19 +75,13 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 export function AuthButton() {
 	const [ hovered, setHovered ] = useState(0);
 	const { login, role, promptLogin } = useContext(AuthContext);
-	const mutation = useMutation(async () => {
-		await fetch(`${process.env.REACT_APP_API}api/auth/logout`, {
-			method: 'POST', credentials: 'include'
-		});
-	}, {
-		onSuccess: () => ['auth', 'samples', 'tableStructure', 'tableData'].forEach(a => theQueryClient.invalidateQueries([a]))
-	});
+	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'tableStructure', 'tableData']);
 
 	return (
 		<div style={{ cursor: 'pointer', width: '12em', textAlign: 'center' }}>
 			<div style={{ color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 				onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}
-				onClick={e => {e.stopPropagation(); login ? mutation.mutate() : promptLogin('login');}}>
+				onClick={e => {e.stopPropagation(); login ? mutate({}) : promptLogin('login');}}>
 				{login ? (hovered ? 'log out?' : `user: ${login}`) : (hovered ? 'log in?' : 'not logged in')}
 			</div>
 			{login && <div style={{ color: hovered === 2 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
@@ -124,12 +107,7 @@ function App() {
 	}, [app]);
 
 	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login' | 'upsert'>(null);
-	const query = useQuery(['auth'], async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/auth/login`, { credentials: 'include' });
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.json();
-	});
+	const query = useQuery(['auth'], () => apiGet('auth/login'));
 	if (query.error)
 		console.error('Failed to fetch auth: ', query.error);
 

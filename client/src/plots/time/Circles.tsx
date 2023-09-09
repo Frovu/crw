@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { useEventListener, useSize, ValidatedInput } from '../../util';
+import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
 import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from '../plotUtil';
 import { Onset, themeOptions } from '../../table/Table';
@@ -344,20 +344,21 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 	};
 }
 
-async function fetchCircles(params: CirclesParams, base?: Date, moment?: number) {
-	const urlPara = new URLSearchParams({
-		from: (params.interval[0].getTime() / 1000).toFixed(0),
-		to:   (params.interval[1].getTime() / 1000).toFixed(0),
-		...(moment && { details: moment.toFixed(0) }),
-		...(base && { base: (base.getTime() / 1000).toFixed(0) }),
-		...(params.exclude && { exclude: params.exclude.join() }),
-		...(params.window && { window: params.window.toString() }),
-		autoFilter: (params.autoFilter ?? true).toString()
-	}).toString();
-	const res = await fetch(process.env.REACT_APP_API + 'api/neutron/ros/?' + urlPara, { credentials: 'include' });
-	if (res.status !== 200)
+async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(params: CirclesParams, base?: Date, moment?: number) {
+	try {
+		const res = await apiGet('neutron/ros', {
+			from: (params.interval[0].getTime() / 1000).toFixed(0),
+			to:   (params.interval[1].getTime() / 1000).toFixed(0),
+			...(moment && { details: moment.toFixed(0) }),
+			...(base && { base: (base.getTime() / 1000).toFixed(0) }),
+			...(params.exclude && { exclude: params.exclude.join() }),
+			...(params.window && { window: params.window.toString() }),
+			autoFilter: (params.autoFilter ?? true).toString()
+		});
+		return res as T;
+	} catch(e) {
 		return null;
-	return res.json();
+	}
 }
 
 function renderPlotData(resp: CirclesResponse, shift?: number) {
@@ -412,7 +413,7 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 		staleTime: 0,
 		keepPreviousData: true,
 		queryKey: ['rosMoment', JSON.stringify(params.interval), params.exclude, params.window, params.autoFilter, base, moment],
-		queryFn: (): Promise<CirclesMomentResponse | undefined> => fetchCircles(params, base, moment),
+		queryFn: () => fetchCircles<CirclesMomentResponse>(params, base, moment),
 	});
 
 	const plot = useMemo(() => {
@@ -465,7 +466,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 	
 	const query = useQuery({
 		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
-		queryFn: () => (!params.stretch || size.width) ? fetchCircles(params, base) : null,
+		queryFn: () => (!params.stretch || size.width) ? fetchCircles<CirclesResponse>(params, base) : null,
 		keepPreviousData: interactive
 	});
 
@@ -500,7 +501,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 		const options = {
 			padding: [8, params.interactive ? 12 : padRight, 0, 0],
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(query.data, params, idxEnabled, setIdxEnabled, setBase, setMoment)
+			...circlesPlotOptions(query.data!, params, idxEnabled, setIdxEnabled, setBase, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container.current} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
 	}, [interactive, plotData, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps

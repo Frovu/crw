@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { useQueryClient } from 'react-query';
-import { useMutationHandler } from '../util';
+import { apiPost, useMutationHandler } from '../util';
 import { ColumnDef, prettyTable, SettingsContext, TableContext } from './Table';
 import { MenuInput, MenuSelect } from './TableMenu';
 
@@ -10,16 +10,10 @@ const TYPE_OPTIONS = ['time_to', 'time_to_%', ...EXTREMUM_OPTIONS, 'mean', 'medi
 function GenericCard({ column, setState }: { column: ColumnDef, setState: (a: any) => void }) {
 	const queryClient = useQueryClient();
 	const { set: setSetting } = useContext(SettingsContext);
-	const { mutate, report, color, isLoading } = useMutationHandler(async (action) => {
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/${action}`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ id: column.generic!.id })
-		});
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.text();
-	});
+	
+	const { mutate, report, color, isLoading } = useMutationHandler((action: 'compute'|'remove') =>
+		apiPost(`events/generics/${action}`, { id: column.generic!.id }));
+
 	const copyToInputState = () => {
 		const g = column.generic!;
 		let poi = g.poi;
@@ -88,24 +82,17 @@ export function GenericsSelector() {
 	const { isLoading, report, setReport, mutate, color } = useMutationHandler(async () => {
 		const { entity, type, shift } = state;
 		const poi = state.poi !== 'extremum' ? state.poi : `${state.poiType}_${state.poiSeries}`;
-		const body = {
+
+		return await apiPost('events/generics/add', {
 			entity, type,
 			...(!type?.includes('time') && { series: state.series }),
 			...(poi && { poi }),
 			...(!type?.includes('diff') && { shift })
+		}) as {
+			id: string,
+			name: string,
+			time: number,
 		};
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/generics/add`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body)
-		});
-		if (res.status === 401)
-			throw new Error('Not authorized');
-		if (res.status === 400)
-			throw new Error(await res.text());
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.json();
 	}, ['tableStructure', 'tableData']);
 
 	const entityOptions = tables.filter(t => columns.find(c => c.table === t && c.name === 'time'));

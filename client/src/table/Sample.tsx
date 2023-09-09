@@ -1,6 +1,6 @@
 import { useContext, useLayoutEffect, useState } from 'react';
 import { AuthContext } from '../App';
-import { useMutationHandler } from '../util';
+import { apiPost, useMutationHandler } from '../util';
 import { ColumnDef, TableContext, SampleContext, parseColumnValue, isValidColumnValue } from './Table';
 import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
 
@@ -170,23 +170,13 @@ export function SampleMenu() {
 	const stripFilters = sample && { ...sample, filters: sample.filters && sample.filters.map(({ column, operation, value }) => ({ column, operation, value })) };
 	const stateJson = JSON.stringify(stripFilters);
 	const { mutate, report, color } = useMutationHandler(async (action: 'create' | 'remove' | 'update') => {
-		const body = (() => {
+		return await apiPost(`events/samples/${action}`, (() => {
 			switch (action) {
 				case 'create': return { name: nameInput };
 				case 'remove': return { id: sample?.id };
-				case 'update': return stripFilters;
+				case 'update': return stripFilters ?? {};
 			}
-		})();
-		const res = await fetch(`${process.env.REACT_APP_API}api/events/samples/${action}`, {
-			method: 'POST', credentials: 'include',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body) 
-		});
-		if (res.status === 400)
-			throw new Error(await res.text());
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return action === 'create' ? await res.json() : await res.text();
+		})()) as typeof action extends 'remove' ? { message?: string } : Sample;
 	}, ['samples']);
 
 	const setFilters = (fn: (a: FilterWithId[]) => FilterWithId[]) => setSample(st => st && ({ ...st, filters: st.filters && fn(st.filters) }));

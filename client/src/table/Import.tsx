@@ -110,7 +110,7 @@ export default function ImportMenu() {
 	}, [allColumns, currentData, fileText]);
 
 	const { report, mutate, isSuccess } = useMutationHandler(async () => {
-		throw Error('eroro kljsd aolkjasidj reoeor oero eoroeor ');
+		
 	}, ['tableData']);
 
 	if (isSuccess)

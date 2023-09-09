@@ -8,7 +8,7 @@ from core.plots import epoch_collision
 import core.other_columns as other_columns
 import core.samples as samples
 from scripts.parse_fds import parse_whole_file
-from routers.utils import route_shielded, require_role
+from routers.utils import route_shielded, require_role, msg
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 
@@ -51,7 +51,7 @@ def _submit_changes():
 	uid = session.get('uid')
 	if not changes or not len(changes): raise ValueError('Empty request')
 	database.submit_changes(uid, changes)
-	return 'OK'
+	return msg('OK')
 
 @bp.route('/generics/add', methods=['POST'])
 @route_shielded
@@ -70,7 +70,7 @@ def _remove_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
 	remove_generic(uid, gid)
-	return 'OK'
+	return msg('OK')
 
 @bp.route('/generics/compute', methods=['POST'])
 @route_shielded
@@ -80,11 +80,11 @@ def _compute_generic():
 	gid = int(request.json.get('id'))
 	generic = next((g for g in select_generics(uid) if g.id == gid), None)
 	if not generic:
-		return 'Generic not found', 404
+		return msg('Generic not found' ), 404
 	start = time()
 	if not recompute_generics(generic):
-		return 'Failed miserably', 500
-	return f'Computed in {round(time() - start, 1)} s'
+		return msg('Failed miserably'), 500
+	return msg(f'Computed in {round(time() - start, 1)} s')
 @bp.route('/samples', methods=['GET'])
 @route_shielded
 def get_samples():
@@ -107,7 +107,7 @@ def remove_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
 	samples.remove_sample(uid, sid)
-	return 'OK'
+	return msg('OK')
 
 @bp.route('/samples/update', methods=['POST'])
 @route_shielded
@@ -123,7 +123,7 @@ def update_sample():
 	blacklist = request.json.get('blacklist')
 	if not name: raise ValueError('Empty name')
 	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
-	return 'OK'
+	return msg('OK')
 
 
 @bp.route('/recompute_generics', methods=['POST'])
@@ -132,7 +132,7 @@ def update_sample():
 def _recompute_generics():
 	start = time()
 	compute_default_generics()
-	return f'Done ({round(time() - start, 1)} s)'
+	return msg(f'Done ({round(time() - start, 1)} s)')
 
 @bp.route('/recompute_other', methods=['POST'])
 @route_shielded
@@ -140,22 +140,4 @@ def _recompute_generics():
 def _recompute_other():
 	start = time()
 	other_columns.compute_all()
-	return f'Done ({round(time() - start, 1)} s)'
-
-@bp.route('/import', methods=['POST'])
-@route_shielded
-@require_role('admin')
-def _import_table():
-	start = time()
-	filetext = request.data.decode()
-	with database.pool.connection() as conn:
-		cnt = parse_whole_file(conn, filetext.splitlines())
-	return f'+ [{cnt}] ({round(time() - start, 1)} s)'
-
-@bp.route('/wipe', methods=['POST'])
-@route_shielded
-@require_role('admin')
-def _wipe_table():
-	t_from = int(request.json.get('from'))
-	cnt = database.delete_since(t_from)
-	return f'deleted [{cnt}]'
+	return msg(f'Done ({round(time() - start, 1)} s)')

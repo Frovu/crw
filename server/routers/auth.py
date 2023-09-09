@@ -39,9 +39,8 @@ def upsert():
 		return {}, 400
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT login FROM users WHERE login = %s', [login]).fetchone()
-		print(exists)
 		if not exists and not passw:
-			return 'Not exists'
+			return msg('Not exists')
 		fields, values = [], []
 		if passw:
 			pwd = bcrypt.generate_password_hash(passw, rounds=10).decode()
@@ -54,7 +53,7 @@ def upsert():
 			ON CONFLICT(login) DO UPDATE SET ''' + ','.join([f'{f} = EXCLUDED.{f}' for f in fields]),
 			[login] + values)
 	log.info(f'AUTH: user upserted: {login}' + ('role -> ' + role if role else ''))
-	return 'Modified' if exists else 'Created'
+	return msg('Modified' if exists else 'Created')
 
 @bp.route('/login', methods=['POST'])
 def login():
@@ -64,10 +63,10 @@ def login():
 		return {}, 400
 	with pool.connection() as conn:
 		res = conn.execute('SELECT uid, login, password FROM users WHERE login = %s', [login]).fetchone()
-		if not res: return {}, 404
+		if not res: return msg('User not found'), 404
 		uid, uname, pwd = res
 		if not bcrypt.check_password_hash(pwd.encode(), passw):
-			return {}, 401
+			return msg('Wrong password'), 401
 		conn.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE login = %s', [login])
 	session['uid'] = uid
 	session['uname'] = uname
@@ -79,14 +78,16 @@ def password():
 	new_pass = request.json.get('newPassword')
 	req_pass = request.json.get('password')
 	uid = session.get('uid')
-	if not uid: return {}, 401
-	if not new_pass or len(new_pass) < 6: return {}, 400
+	if not uid:
+		return {}, 401
+	if not new_pass or len(new_pass) < 6:
+		return {}, 400
 	with pool.connection() as conn:
 		res = conn.execute('SELECT uid, login, password FROM users WHERE uid = %s', [uid]).fetchone()
-		if not res: return {}, 404
+		if not res: return msg('User not found'), 404
 		uid, uname, pwd = res
 		if not bcrypt.check_password_hash(pwd.encode(), req_pass):
-			return {}, 401
+			return msg('Wrong password'), 401
 		new_pwd = bcrypt.generate_password_hash(new_pass, rounds=10).decode()
 		conn.execute('UPDATE users SET password = %s WHERE uid = %s', [new_pwd, uid])
 	log.info(f'AUTH: user changed password: {uname}')

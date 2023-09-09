@@ -1,6 +1,6 @@
 import { useState, useContext, Fragment, ReactNode, CSSProperties } from 'react';
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, prettyTable, themeOptions } from './Table';
-import { useEventListener, dispatchCustomEvent, useMutationHandler } from '../util';
+import { useEventListener, dispatchCustomEvent, useMutationHandler, apiPost } from '../util';
 import { CorrelationMenu, HistogramMenu } from './Statistics';
 import { AuthButton, AuthContext } from '../App';
 import { GenericsSelector } from './Generics';
@@ -41,19 +41,12 @@ function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Prom
 
 function AdminMenu() {
 	const { promptLogin } = useContext(AuthContext);
-	const wrapFetch = (uri: string) => async () => {
-		const res = await fetch(`${process.env.REACT_APP_API}${uri}`, {
-			method: 'POST', credentials: 'include' });
-		if (res.status !== 200)
-			throw new Error('HTTP '+res.status);
-		return await res.text();
-	};
-	const computeGenerics = wrapFetch('api/events/recompute_generics');
-	const computeOther = wrapFetch('api/events/recompute_other');
 	return (
 		<>
-			<MutationButton text='Recompute generics' fn={computeGenerics} invalidate={['tableData']}/>
-			<MutationButton text='Recompute other' fn={computeOther} invalidate={['tableData']}/>
+			<MutationButton text='Recompute generics' invalidate={['tableData']}
+				fn={() => apiPost('api/events/recompute_generics')}/>
+			<MutationButton text='Recompute other' invalidate={['tableData']}
+				fn={() => apiPost('api/events/recompute_other')}/>
 			<button className='MenuItem' onClick={() => promptLogin('upsert')}>Upsert user</button>
 		</>
 	);
