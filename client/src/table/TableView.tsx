@@ -33,7 +33,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 			</td>}
 			{columns.map((column, i) => {
 				const curs = isSel && i === cursor?.column ? cursor : null;
-				const width = { width: column.width+.5+'ch' };
+				const width = { width: column.width+'ch' };
 				const inpStype = !curs?.editing ? null : { ...width, borderWidth: 0, padding: 0, boxShadow: ' 0 0 16px 4px ' + (!validInputs[i] ? 'var(--color-red)' : 'var(--color-active)' ) };
 				return <td key={column.id} title={i === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 					onClick={() => setCursor({ row: index, column: i, editing: isSel && i === cursor?.column })}

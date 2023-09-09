@@ -112,7 +112,7 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 
 export function valueToString(v: Value) {
 	if (v instanceof Date)
-		return v.toISOString().replace(/\..+/, '').replace('T', ' ');
+		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
 	if (typeof v === 'number')
 		return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 	return v?.toString() ?? '';
@@ -288,7 +288,7 @@ function CoreWrapper() {
 		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]));
 		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
 		const idxs = [...renderedData.keys()], column = cols[sortIdx-1];
-		idxs.sort((a: number, b: number) => sort.direction * (['text','enum'].includes(column.type) ?
+		idxs.sort((a: number, b: number) => sort.direction * (['text','enum'].includes(column?.type) ?
 			(renderedData[a][sortIdx] as string ??'').localeCompare(renderedData[b][sortIdx] as string ??'') :
 			(renderedData[a][sortIdx]??0 as any) - (renderedData[b][sortIdx]??0 as any)));
 		if (markers && sort.column === '_sample') {
@@ -582,7 +582,7 @@ export default function TableWrapper() {
 				const width = (()=>{
 					switch (desc.type) {
 						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
-						case 'time': return 19;
+						case 'time': return 17;
 						case 'text': return 14;
 						default: return 6; 
 					}
