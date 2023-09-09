@@ -3,17 +3,17 @@
 		"_constraint": "UNIQUE(time)",
 		"time": {
 			"not_null":true,
-			"type": "time",
+			"dtype": "time",
 			"description": "Event onset time",
-			"parseName": "Time"
+			"parse_name": "Time"
 		},
 		"onset_type": {
-			"name": "onset type",
-			"type": "enum",
+			"pretty_name": "onset type",
+			"dtype": "enum",
 			"enum": ["SSC", "iSW", "SI"],
 			"description": "Onset time origin: SSC; SI - Sudden impulse, ground data; iSW - satellite data",
-			"parseName": "OType",
-			"parseValue": {
+			"parse_name": "OType",
+			"parse_value": {
 				"1": "SSC",
 				"2": "iSW",
 				"3": "SI",
@@ -21,7 +21,7 @@
 			}
 		},
 		"magnitude": {
-			"name": "magnitude",
+			"pretty_name": "magnitude",
 			"description": "Range between min and max CR density variation correcetd for Dst, corrected for trend, in window from ons-2h to next event or ons+72h",
 			"generic": {
 				"type": "range",
@@ -29,7 +29,7 @@
 			}
 		},
 		"v_before": {
-			"name": "V before",
+			"pretty_name": "V before",
 			"generic": {
 				"type": "value",
 				"series": "v_sw",
@@ -44,7 +44,7 @@
 			}
 		},
 		"b_before": {
-			"name": "B before",
+			"pretty_name": "B before",
 			"generic": {
 				"type": "value",
 				"series": "imf",
@@ -72,7 +72,7 @@
 		},
 		"vmbm": {
 			"computed": true,
-			"name": "VmBm",
+			"pretty_name": "VmBm",
 			"description": "Vmax / 400 * Bmax / 5"
 		},
 		"ap_max": {
@@ -100,122 +100,121 @@
 			}
 		},
 		"old_magnitude": {
-			"name": "_magnitude",
+			"pretty_name": "_magnitude",
 			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
-			"parseName": "MagnM"
+			"parse_name": "MagnM"
 		},
 		"gamma": {
-			"name": "gamma",
+			"pretty_name": "gamma",
 			"description": "rigidity spectrum exponent during the hour of minimum CR density",
-			"parseName": "GammaM"
+			"parse_name": "GammaM"
 		},
 		"comment": {
-			"type": "text",
+			"dtype": "text",
 			"description": "Additional information"
-		},
-		"source_id": {
-			"references": "solar_sources"
-		},
-		"mc_id": {
-			"references": "magnetic_clouds"
 		}
 	},
 	"solar_sources": {
+		"fe_id": {
+			"references": "forbush_effects"
+		},
 		"time": {
-			"type": "time",
-			"parseName": "STime"
+			"dtype": "time",
+			"parse_name": "STime"
 		},
 		"type": {
-			"type": "real",
-			"range": [1, 99],
+			"dtype": "real",
 			"description": "It's complicated",
-			"parseName": "SType"
+			"parse_name": "SType"
 		},
 		"description": {
-			"name": "info",
-			"type": "text",
-			"parseName": "Source"
+			"pretty_name": "info",
+			"dtype": "text",
+			"parse_name": "Source"
 		},
 		"confidence": {
-			"type": "enum",
+			"dtype": "enum",
 			"enum": ["low", "okay", "high"],
-			"parseName": "Qs",
-			"parseValue": {
+			"parse_name": "Qs",
+			"parse_value": {
 				"3": "low",
 				"4": "okay",
 				"5": "high"
 			}
-		},
-		"cme_id": {
-			"references": "coronal_mass_ejections"
-		},
-		"ch_id": {
-			"references": "coronal_holes"
-		},
-		"sf_id": {
-			"references": "solar_flares"
 		}
 	},
 	"coronal_mass_ejections": {
+		"ss_id": {
+			"references": "solar_sources"
+		},
 		"time": {
-			"type": "time",
-			"parseName": "CMETime"
+			"dtype": "time",
+			"parse_name": "CMETime"
 		},
 		"v_start": {
 			"description": "CME velocity near the Sun",
-			"parseName": "Vsp"
+			"parse_name": "Vsp"
 		},
 		"v_mean_0": {
 			"description": "CME initial velocity from coronagraph",
-			"parseName": "VMean0"
+			"parse_name": "VMean0"
 		},
 		"v_mean_x": {
 			"description": "CME average velocity using X-ray flare time",
-			"parseName": "Vmean"
+			"parse_name": "Vmean"
 		},
 		"v_mean_c": {
 			"description": "CME average velocity using CME observation time",
-			"parseName": "VmeanC"
+			"parse_name": "VmeanC"
 		},
 		"width": {
 			"description": "Angular width",
-			"parseName": "CMEWidth"
+			"parse_name": "CMEWidth"
 		},
 		"angle": {
 			"description": "Direction of the maximum velocity",
-			"parseName": "CMEAngle"
+			"parse_name": "CMEAngle"
 		}
 	},
 	"coronal_holes": {
+		"ss_id": {
+			"references": "solar_sources"
+		},
 		"polarity": {
-			"parseName": "SPol"
+			"parse_name": "SPol"
 		}
 	},
 	"solar_flares": {
+		"ss_id": {
+			"references": "solar_sources"
+		},
 		"description": {
-			"name": "info",
-			"type": "text",
-			"parseName": "Fdata"
+			"pretty_name": "info",
+			"dtype": "text",
+			"parse_name": "Fdata"
 		},
 		"magnitude": {
-			"parseName": "Xmagn",
+			"parse_name": "Xmagn",
 			"description": "Maximum X-ray power (W/m/m)"
 		}
 	},
 	"magnetic_clouds": {
+		"fe_id": {
+			"references": "forbush_effects"
+		},
 		"time": {
 			"not_null": true,
-			"type": "time",
-			"parseName": "MCStartTime"
+			"dtype": "time",
+			"parse_name": "MCStartTime"
 		},
 		"originator": {
-			"type": "text"
+			"dtype": "text"
 		},
 		"duration": {
-			"parseName": "MCDur"
+			"parse_name": "MCDur"
 		},
 		"size": {
-			"parseName": "RMC"
+			"parse_name": "RMC"
 		},
 		"_constraint": "UNIQUE (time)"
 	}

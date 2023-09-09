@@ -20,7 +20,7 @@ def route_shielded(func):
 		except ValueError as e:
 			if str(e): log.error(f'Error in {func.__name__}: {traceback.format_exc()}')
 			return { 'message': str(e) }, 400
-		except Exception:
+		except Exception as e:
 			log.error(f'Error in {func.__name__}: {traceback.format_exc()}')
 			return { 'message': f'Error in {func.__name__}, {str(e)}' }, 500
 	wrapper.__name__ = func.__name__

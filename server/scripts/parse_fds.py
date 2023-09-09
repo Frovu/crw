@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 import sys, os, re, psycopg, logging
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from core.database import pool, tables_info, upsert_many, select_ids_recursive
+from core.database import pool, tables_info, select_ids_recursive
 
 log = logging.getLogger('aides')
 log.setLevel('DEBUG')

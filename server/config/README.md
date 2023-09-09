@@ -13,7 +13,7 @@ File describes all tables and columns od the database as folows:
 }
 ```
 
-Tables order is important because when parsing it goes from bottom to top to establish references properly
+Tables order is important
 
 Column parameters: 
 - `name` specifies the column name visible by user (equal to column_name by default)
@@ -26,5 +26,3 @@ Column parameters:
 - `parse_name` column name to parse from .txt export
 - `parse_value` {} override particular values (used to parse enums)
 - `parse_stub` value is transltaed to null when parsed
-
-When type is integer or real and parse_stub is not specified values < 0 will be accounted as null

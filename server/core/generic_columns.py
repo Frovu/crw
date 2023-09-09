@@ -1,4 +1,4 @@
-from core.database import log, pool, upsert_many, tables_info, tables_tree, tables_refs, get_joins_path, ENTITY_SHORT
+from core.database import log, pool, tables_info, get_joins_path, ENTITY_SHORT
 from dataclasses import dataclass
 from datetime import datetime
 from time import time

@@ -1,7 +1,7 @@
 import json, os, logging
-from psycopg_pool import ConnectionPool
-from psycopg import sql
 from datetime import datetime, timezone
+from dataclasses import dataclass
+from psycopg_pool import ConnectionPool
 
 log = logging.getLogger('aides')
 pool = ConnectionPool(kwargs = {
@@ -11,73 +11,106 @@ pool = ConnectionPool(kwargs = {
 	'host': os.environ.get('DB_HOST')
 })
 
-dirname = os.path.dirname(__file__)
-with open(os.path.join(dirname, '../config/tables.json')) as file:
-	tables_info = json.load(file)
-	tables_tree = dict()
-	tables_refs = dict()
-	for table in tables_info:
-		for column, desc in tables_info[table].items():
-			if column.startswith('_'): continue
-			if ref := desc.get('references'):
-				tables_tree[table] = (tables_tree.get(table) or []) + [ref]
-				tables_refs[(table, ref)] = column
-ENTITY_SHORT = {t: ''.join([a[0].lower() for a in t.split('_')]) for t in tables_info}
+def entity_short(entity):
+	return ''.join([a[0].lower() for a in entity.split('_')])
 
-def enum_name(table, column):
-	return f'enum_{table}_{column}'
+@dataclass
+class ColumnDef:
+	entity: str
+	name: str   # sql column name
+	computed: bool=False
+	not_null: bool=False
+	generic: dict=None       # generic column description
+	pretty_name: str=id     # name visible by user
+	dtype: str='real' # time|integer|real|text|enum
+	enum: list=None
+	references: str=None
+	description: str=None
+	parse_name: str=None
+	parse_value: str=None
+	parse_stub: str=None
+	sql: str=None
 
-def column_definition(table, name, desc):
-	dtype = desc.get('type', 'real')
-	if dtype == 'time':
-		dtype = 'timestamp with time zone'
-	if dtype == 'enum':
-		dtype = 'text'
-	if ref := desc.get("references"):
-		dtype = f'integer REFERENCES events.{ref} ON DELETE SET NULL'
-	if desc.get("not_null"):
-		dtype += " NOT NULL"
-	if desc.get("enum"):
-		dtype += f' REFERENCES events.{enum_name(table, name)} ON UPDATE CASCADE'
-	return f'{name} {dtype}'
+	def enum_name(self):
+		return f'enum_{self.entity}_{self.name}'
 
-with pool.connection() as conn:
-	conn.execute('CREATE SCHEMA IF NOT EXISTS events')
-	for table, table_desc in list(tables_info.items())[::-1]:
-		columns = [k for k in table_desc if not k.startswith('_')]
-		for column in columns:
-			desc = table_desc[column]
-			if enum := desc.get('enum'):
-				conn.execute(f'CREATE TABLE IF NOT EXISTS events.{enum_name(table, column)} (value TEXT PRIMARY KEY)')
-				conn.execute(f'INSERT INTO events.{enum_name(table, column)} VALUES {",".join(["(%s)" for i in enum])} ON CONFLICT DO NOTHING', enum)
-			column_def = column_definition(table, column, desc)
-			conn.execute(f'ALTER TABLE IF EXISTS events.{table} ADD COLUMN IF NOT EXISTS {column_def}')
-		create_columns = ',\n\t'.join(['id SERIAL PRIMARY KEY'] + [column_definition(table, c, table_desc[c]) for c in columns])
-		constraint = table_desc.get('_constraint')
-		create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns}\n{(","+constraint) if constraint else ""})'
-		conn.execute(create_table)
-	conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (
-		id SERIAL PRIMARY KEY,
-		author integer references users on delete set null,
-		time timestamptz not null default CURRENT_TIMESTAMP,
-		event_id integer,
-		entity_name text,
-		column_name text,
-		old_value text,
-		new_value text)''')
+	def __post_init__(self):
+		dtype = self.dtype
+		if dtype == 'time':
+			dtype = 'timestamp with time zone'
+		if dtype == 'enum':
+			dtype = 'text'
+		if ref := self.references:
+			dtype = f'integer REFERENCES events.{ref} ON DELETE SET NULL'
+		if self.not_null:
+			dtype += " NOT NULL"
+		if self.enum:
+			dtype += f' REFERENCES events.{self.enum_name()} ON UPDATE CASCADE'
+		self.sql = self.name + ' ' + dtype
+
+		if self.generic:
+			self.computed = True
+
+tables_tree = {}
+tables_refs = {}
+all_columns = []
+table_columns = {}
+
+def _init():
+	dirname = os.path.dirname(__file__)
+	with pool.connection() as conn, \
+			open(os.path.join(dirname, '../config/tables.json'), encoding='utf-8') as file:
+		conn.execute('CREATE SCHEMA IF NOT EXISTS events')
+		tables_json = json.load(file)
+		for table, columns_dict in tables_json.items():
+			columns = [ColumnDef(**desc, entity=table, name=name) for name, desc
+				in columns_dict.items() if not name.startswith('_')]
+			data_columns = [c for c in columns if not c.references]
+			table_columns[table] = data_columns
+			all_columns.extend(data_columns)
+			for column in columns:
+				if ref := column.references:
+					tables_tree[ref] = tables_tree.get(ref, []) + [table]
+					tables_refs[(table, ref)] = column.name
+				if enum := column.enum:
+					conn.execute(f'CREATE TABLE IF NOT EXISTS events.{column.enum_name()} (value TEXT PRIMARY KEY)')
+					conn.execute(f'INSERT INTO events.{column.enum_name()} VALUES {",".join(["(%s)" for i in enum])} ON CONFLICT DO NOTHING', enum)
+				conn.execute(f'ALTER TABLE IF EXISTS events.{table} ADD COLUMN IF NOT EXISTS {column.sql}')
+			constraint = columns_dict.get('_constraint', '')
+			create_columns = ',\n\t'.join(['id SERIAL PRIMARY KEY'] + [c.sql for c in columns])
+			create_table  = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns}\n{"," if constraint else ""}{constraint})'
+			conn.execute(create_table)
+		conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (
+			id SERIAL PRIMARY KEY,
+			author integer references users on delete set null,
+			time timestamptz not null default CURRENT_TIMESTAMP,
+			event_id integer,
+			entity_name text,
+			column_name text,
+			old_value text,
+			new_value text)''')
+_init()
+
+print(tables_tree)
+
+from core.generic_columns import select_generics, SERIES, DERIVED_TYPES
 
 def get_joins_path(src, dst):
-	if src == dst: return ''
+	if src == dst:
+		return ''
 	joins = ''
 	def rec_find(a, b, path=[src], direction=[1]):
-		if a == b: return path, direction
+		if a == b:
+			return path, direction
 		lst = tables_tree.get(a)
 		for ent in lst or []:
-			if ent in path: continue
+			if ent in path:
+				continue
 			if p := rec_find(ent, b, path + [ent], direction+[1]):
 				return p
-		upper = next((t for t in tables_tree if a in tables_tree[t]), None)
-		if not upper or upper in path: return None
+		upper = next((t for t, ent in tables_tree.items() if a in ent), None)
+		if not upper or upper in path:
+			return None
 		return rec_find(upper, b, path + [upper], direction+[-1])
 	found = rec_find(src, dst)
 	if not found:
@@ -92,42 +125,39 @@ def get_joins_path(src, dst):
 def upsert_many(table, columns, data, constants=[], conflict_constant='time', do_nothing=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		cur.execute(f'CREATE TEMP TABLE tmp (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP')
-		for c, z in zip(columns, constants):
-			cur.execute(f'ALTER TABLE tmp DROP COLUMN {c}')
+		for col in columns[:len(constants)]:
+			cur.execute(f'ALTER TABLE tmp DROP COLUMN {col}')
 		with cur.copy(f'COPY tmp({",".join(columns[len(constants):])}) FROM STDIN') as copy:
 			for row in data:
 				copy.write_row(row)
 		placeholders = ','.join(['%s' for c in constants]) + ',' if constants else ''
-		cur.execute(f'INSERT INTO {table}({",".join(columns)}) SELECT {placeholders}{",".join(columns[len(constants):])} FROM tmp ' +
+		cur.execute(f'INSERT INTO {table}({",".join(columns)}) SELECT' +
+			f'{placeholders}{",".join(columns[len(constants):])} FROM tmp ' +
 			('ON CONFLICT DO NOTHING' if do_nothing else
-			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' + ','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})' for c in columns if c not in conflict_constant])), constants)
-
-from core.generic_columns import select_generics, SERIES, DERIVED_TYPES
+			f'ON CONFLICT ({conflict_constant}) DO UPDATE SET ' +
+			','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})'
+			for c in columns if c not in conflict_constant])), constants)
 
 def render_table_info(uid):
 	generics = select_generics(uid)
-	info = dict()
-	for i, (table, table_info) in enumerate(tables_info.items()):
-		info[table] = dict()
-		for col, col_desc in table_info.items():
-			if col.startswith('_') or col_desc.get('references'):
-				continue
-			tag = ENTITY_SHORT[table] + '_' + col
-			info[table][tag] = {
-				'parseName': col_desc.get('parseName'),
-				'parseValue': col_desc.get('parseValue'),
-				'nullable': not col_desc.get('not_null', False),
-				'name': col_desc.get('name', col),
-				'type': col_desc.get('type', 'real'),
-				'isComputed': col_desc.get('computed', 'generic' in col_desc)
+	info = {}
+	for table, columns in table_columns.items():
+		info[table] = {}
+		for col in columns:
+			info[table][col] = {
+				'parseName': col.parse_name,
+				'parseValue': col.parse_value,
+				'nullable': not col.not_null,
+				'name': col.pretty_name,
+				'type': col.type,
+				'isComputed': col.computed
 			}
-			if enum := col_desc.get('enum'):
-				info[table][tag]['enum'] = enum
-			if description := col_desc.get('description'):
-				info[table][tag]['description'] = description
+			if col.enum:
+				info[table][col]['enum'] = col.enum
+			if col.description:
+				info[table][col]['description'] = col.description
 	for g in generics:
-		name = ENTITY_SHORT[g.entity] + '_' + g.name
-		info[g.entity][name] = {
+		info[g.entity][g.name] = {
 			'name': g.pretty_name,
 			'type': 'real',
 			'description': g.description,
@@ -142,31 +172,16 @@ def render_table_info(uid):
 			}
 		}
 		if uid in g.users:
-			info[g.entity][name]['user_generic_id'] = g.id
+			info[g.entity][g.name]['user_generic_id'] = g.id
 	series = { ser: SERIES[ser][2] for ser in SERIES }
 	return { 'tables': info, 'series': series }
-
-
-def select_ids_recursive(tbl, target, condition='', path=None):
-	if tbl == target:
-		return path
-	for col_name, col_desc in tables_info[tbl].items():
-		if col_name.startswith('_'):
-			continue
-		if ref := col_desc.get('references'):
-			npath = f'(SELECT {col_name} FROM events.{tbl}' + (' WHERE ' if path or condition else '') +\
-				(f'id IN {path}' if path else condition or '') + ')'
-			found = select_ids_recursive(ref, target, path=npath)
-			if found: return found
 
 def select_events(uid=None, root='forbush_effects', changelog=False):
 	generics = select_generics(uid)
 	columns, joins = [], ''
-	for table in tables_info:
-		for column, desc in tables_info[table].items():
-			if column.startswith('_'):
-				continue
-			if ref := desc.get('references'):
+	for table, columns in table_columns:
+		for column in columns:
+			if ref := column.references:
 				joins += f'LEFT JOIN events.{ref} ON {ref}.id = {table}.{column}\n'
 			else:
 				col = f'{table}.{column}'
@@ -203,21 +218,12 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 				})
 		return rows, fields, rendered if changelog else None
 
-def delete_since(t_from, root='forbush_effects'):
-	with pool.connection() as conn:
-		for tbl in list(tables_info.keys())[1:][::-1]:
-			print(select_ids_recursive(root, tbl, "time >= to_timestamp(%s)"))
-			conn.execute(f'DELETE FROM events.{tbl} WHERE id IN {select_ids_recursive(root, tbl, "time >= to_timestamp(%s)")}', [t_from])
-		return conn.execute(f'DELETE FROM events.{root} WHERE time >= to_timestamp(%s)', [t_from]).rowcount
-
 def submit_changes(uid, changes, root='forbush_effects'):
 	with pool.connection() as conn:
 		for change in changes:
 			root_id, entity, column, value = [change.get(w) for w in ['id', 'entity', 'column', 'value']]
 			if entity not in tables_info:
 				raise ValueError(f'Unknown entity: {entity}')
-			if column and column.startswith(ENTITY_SHORT[entity] + '_'):
-				column = column[len(ENTITY_SHORT[entity])+1:]
 			found_column = tables_info[entity].get(column)
 			generics = not found_column and select_generics(uid)
 			found_generic = generics and next((g for g in generics if g.entity == entity and g.name == column), False)
@@ -249,4 +255,12 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s)',
 				[uid, target_id, entity, column, old_str, new_str])
 			log.info(f'Change authored by user ({uid}): {entity}.{column} {old_value} -> {new_value_str}')
-			
+
+def import_fds(columns, rows_to_add, ids_to_remove, precomputed_changes):
+	for table, col in columns:
+		if col not in tables_info[table]:
+			raise ValueError(f'{col} not found in {table}')
+	with pool.connection() as conn:
+		for table, column_desc in tables_info:
+			pass
+		

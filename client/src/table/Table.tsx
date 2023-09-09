@@ -28,6 +28,7 @@ export type ColumnDef = {
 	table: string,
 	width: number,
 	id: string,
+	sqlId: string, // not unique across tables
 	hidden?: boolean,
 	isComputed: boolean,
 	generic?: {
@@ -499,7 +500,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 
 	const { mutate, report, color } = useMutationHandler(() =>
 		apiPost('events/changes', {
-			changes: changes.map(c => ({ ...c, entity: c.column.table, column: c.column.id }))
+			changes: changes.map((c) => ({ ...c, entity: c.column.table, column: c.column.sqlId }))
 		})
 	, ['tableData']);
 
@@ -572,8 +573,14 @@ export default function TableWrapper() {
 						default: return 6; 
 					}
 				})();
-				const fullName = desc.name + (table !== firstTable ? ' of ' + prettyTable(table).replace(/([A-Z])[a-z ]+/g, '$1') : '');
-				return { ...desc, table, width, id,
+				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
+				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
+				return {
+					...desc,
+					table,
+					width,
+					id: shortTable + '_' + id, // unique
+					sqlId: id, // not unique across tables
 					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
 					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
 					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description

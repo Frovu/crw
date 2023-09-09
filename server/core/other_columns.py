@@ -1,7 +1,8 @@
-from core.database import pool, log, tables_info
-from core.generic_columns import apply_changes
 import traceback
 import numpy as np
+from core.database import pool, log
+from core.generic_columns import apply_changes
+
 
 def _compute_vmbm(entity='forbush_effects', column='vmbm'):
 	with pool.connection() as conn:
@@ -11,11 +12,11 @@ def _compute_vmbm(entity='forbush_effects', column='vmbm'):
 
 		data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), data[:,0].astype('i8')))
 		apply_changes(data[:,1], data[:,0], entity, column, conn)
-		q = f'UPDATE events.{entity} SET {column} = %s WHERE {entity}.id = %s'
-		conn.cursor().executemany(q, data.tolist())
-	
+		query = f'UPDATE events.{entity} SET {column} = %s WHERE {entity}.id = %s'
+		conn.cursor().executemany(query, data.tolist())
+
 def compute_all():
 	try:
 		_compute_vmbm()
 	except:
-		log.error(f'Failed to compute other columns: {traceback.format_exc()}')
+		log.error('Failed to compute other columns: %s', traceback.format_exc())

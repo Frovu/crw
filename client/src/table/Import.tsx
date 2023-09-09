@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from 'react';
-import { TableContext, equalValues, prettyTable, valueToString } from './Table';
-import { dispatchCustomEvent, useMutationHandler } from '../util';
+import { TableContext, equalValues, valueToString } from './Table';
+import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -73,6 +73,7 @@ export default function ImportMenu() {
 		const timeIdx = allColumns.findIndex(c => c.fullName === 'time');
 		const targetData = currentData.filter(r => interval[0] <= (r[timeIdx] as Date) && (r[timeIdx] as Date) <= interval[1]);
 		const lost = targetData.slice() as (typeof rows[number][number][]|null)[];
+		const added = [];
 		for (const row of rows) {
 			const time = row[0] as Date;
 			const foundIdx = targetData.findIndex(r => (r[timeIdx] as Date).getTime() === time.getTime());
@@ -95,26 +96,27 @@ export default function ImportMenu() {
 				if (changes.length)
 					diff.changes.push([found[0] as number, time, changes]);
 			} else {
+				added.push(row);
 				diff.added.push(time);
 			}
 		}
-		diff.deleted = lost.filter(l => !!l).map(l => l![timeIdx] as Date);
-
+		const actuallyLost = lost.filter(l => !!l);
+		diff.deleted = actuallyLost.map(l => l![timeIdx] as Date);
+		
 		return { parsed: {
 			...diff,
+			add: added,
+			remove: actuallyLost.map(l => l![0] as number),
 			total: rows.length,
 			interval: interval as [Date, Date],
-			rows, columns
+			columns: columns.map(c => [ c.table, c.sqlId ] )
 		} };
 
 	}, [allColumns, currentData, fileText]);
 
-	const { report, mutate, isSuccess } = useMutationHandler(async () => {
-		
-	}, ['tableData']);
-
-	if (isSuccess)
-		dispatchCustomEvent('escape');
+	const { report, mutate } = useMutationHandler(({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
+		apiPost('events/importTable', { columns, remove, add, changes })
+	, ['tableData']);
 
 	return (<>
 		<div className='PopupBackground'></div>
@@ -160,7 +162,9 @@ export default function ImportMenu() {
 					</div>}
 					<div style={{ margin: '8px 8px 4px 0' }}>
 						<div style={{ color: 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>{report?.error ?? ''}</div>
-						<button style={{ padding: '2px 12px', margin: 4, verticalAlign: 'top' }} onClick={mutate}>! Upsert !</button>
+						<button style={{ padding: '2px 12px', margin: 4, verticalAlign: 'top' }} onClick={() => mutate(parsed.parsed, {
+							onSuccess: () => setTimeout(() => dispatchCustomEvent('escape'), 1000) as any
+						})}>! Upsert !</button>
 					</div>
 				</div>);
 			})()}

@@ -1,4 +1,4 @@
-from core.database import pool, upsert_many
+from core.database import pool
 from threading import Lock
 import os, logging, time, requests
 import numpy as np
