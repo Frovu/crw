@@ -93,7 +93,7 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 	};
 
 	useLayoutEffect(() => {
-		setViewIndex(idx => clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : idx));
+		setViewIndex(clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : data.length));
 	}, [data.length, viewSize, sort, cursor]);
 	useEffect(() => {
 		if (!ref.current) return;

@@ -83,7 +83,7 @@ export function useMutationHandler(fn: (arg?: any) => Promise<any>, invalidate?:
 	});
 
 	useEffect(() => {
-		const timeout = setTimeout(() => setReport(null), report?.success ? 5000 : 2000);
+		const timeout = setTimeout(() => setReport(null), report?.success ? 15000 : 5000);
 		return () => clearTimeout(timeout);
 	}, [report]);
 

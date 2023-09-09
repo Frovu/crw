@@ -216,7 +216,7 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			root_id, entity, column, value = [change.get(w) for w in ['id', 'entity', 'column', 'value']]
 			if entity not in tables_info:
 				raise ValueError(f'Unknown entity: {entity}')
-			if column and column.startswith(ENTITY_SHORT[entity]):
+			if column and column.startswith(ENTITY_SHORT[entity] + '_'):
 				column = column[len(ENTITY_SHORT[entity])+1:]
 			found_column = tables_info[entity].get(column)
 			generics = not found_column and select_generics(uid)

@@ -1,5 +1,6 @@
 import { useContext, useMemo, useState } from 'react';
-import { TableContext, equalValues, valueToString } from './Table';
+import { TableContext, equalValues, prettyTable, valueToString } from './Table';
+import { dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -67,31 +68,32 @@ export default function ImportMenu() {
 			found: 0,
 			added: [] as Date[],
 			deleted: [] as Date[], 
-			changes: [] as [Date, { name: string, before: typeof rows[number][number], after: typeof rows[number][number] }[]][]
+			changes: [] as [number, Date, { entity: string, column: string, before: typeof rows[number][number], after: typeof rows[number][number] }[]][]
 		};
 		const timeIdx = allColumns.findIndex(c => c.fullName === 'time');
 		const targetData = currentData.filter(r => interval[0] <= (r[timeIdx] as Date) && (r[timeIdx] as Date) <= interval[1]);
 		const lost = targetData.slice() as (typeof rows[number][number][]|null)[];
 		for (const row of rows) {
 			const time = row[0] as Date;
-			const found = targetData.findIndex(r => (r[timeIdx] as Date).getTime() === time.getTime());
-			if (found >= 0) {
+			const foundIdx = targetData.findIndex(r => (r[timeIdx] as Date).getTime() === time.getTime());
+			if (foundIdx >= 0) {
+				const found = targetData[foundIdx];
 				++diff.found;
-				lost[found] = null;
-				const changes: typeof diff.changes[number][1] = [];
-				for (const [ci, { id, fullName }] of columns.entries()) {
-					const oldVal = targetData[found][allColumns.findIndex(c => c.id === id)];
+				lost[foundIdx] = null;
+				const changes: typeof diff.changes[number][2] = [];
+				for (const [ci, { id, name, table }] of columns.entries()) {
+					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
 					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
 						continue;
 					changes.push({
-						name: fullName,
+						entity: table, column: name,
 						before: oldVal == null ? null : valueToString(oldVal),
 						after: newVal == null ? null : valueToString(newVal),
 					});
 				}
 				if (changes.length)
-					diff.changes.push([time, changes]);
+					diff.changes.push([found[0] as number, time, changes]);
 			} else {
 				diff.added.push(time);
 			}
@@ -101,14 +103,22 @@ export default function ImportMenu() {
 		return { parsed: {
 			...diff,
 			total: rows.length,
-			interval: interval as [Date, Date]
+			interval: interval as [Date, Date],
+			rows, columns
 		} };
 
 	}, [allColumns, currentData, fileText]);
 
+	const { report, mutate, isSuccess } = useMutationHandler(async () => {
+		throw Error('eroro kljsd aolkjasidj reoeor oero eoroeor ');
+	}, ['tableData']);
+
+	if (isSuccess)
+		dispatchCustomEvent('escape');
+
 	return (<>
 		<div className='PopupBackground'></div>
-		<div className='Popup' style={{ left: 4, padding: 32, border: '2px var(--color-border) solid' }} onClick={e => e.stopPropagation()}>
+		<div className='Popup' style={{ left: 4, padding: '16px 32px 8px 32px', border: '2px var(--color-border) solid' }} onClick={e => e.stopPropagation()}>
 			<h4 style={{ marginTop: 0 }}>Import FDs_fulltable</h4>
 			<div style={{ margin: 8 }}>
 				File: <input type='file' onChange={async (e) => setFileText(await e.target.files?.[0]?.text())}/>
@@ -138,16 +148,20 @@ export default function ImportMenu() {
 					</div>
 					<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)', marginTop: 4 }}>
 						Altered: {changes.length}</div>
-					{changes.length > 0 && <div style={{ maxHeight: 240, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
-						{changes.map(([date, list]) => <div key={date.getTime()} style={{ marginBottom: 12 }}>
+					{changes.length > 0 && <div style={{ maxHeight: 160, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
+						{changes.map(([_, date, list]) => <div key={date.getTime()} style={{ marginBottom: 12 }}>
 							<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
-							{list.map(({ name, before, after }) =>
+							{list.map(({ entity, column, before, after }) =>
 								<div style={{ marginLeft: 16 }}>
-									[{name}] {before == null ? nihil : valueToString(before)}
+									[{entity.replace(/([a-z])[a-z]+_?/ig, '$1')}.{column}] {before == null ? nihil : valueToString(before)}
 									&nbsp;-&gt;&nbsp;<b>{after == null ? nihil : valueToString(after)}</b>
 								</div> )}
 						</div>)}
 					</div>}
+					<div style={{ margin: '8px 8px 4px 0' }}>
+						<div style={{ color: 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>{report?.error ?? ''}</div>
+						<button style={{ padding: '2px 12px', margin: 4, verticalAlign: 'top' }} onClick={mutate}>! Upsert !</button>
+					</div>
 				</div>);
 			})()}
 		</div>
