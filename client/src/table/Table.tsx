@@ -324,7 +324,7 @@ function CoreWrapper() {
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = settings.plotTimeOffset.map(days => new Date(hour + days * 864e5));
 		const allNeighbors = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 4));
-		const onsets = allNeighbors.filter(r => true)
+		const onsets = allNeighbors.filter(r => !viewExport || sampleData.find(sr => sr[0] === r[0]))
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
@@ -338,7 +338,7 @@ function CoreWrapper() {
 			interval: interval as [Date, Date],
 			onsets, clouds
 		};
-	}, [data, columns, plotIdx, settings]);
+	}, [data, columns, plotIdx, settings, sampleData, viewExport]);
 
 	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
 
