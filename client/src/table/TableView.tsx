@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
-import { dispatchCustomEvent, useEventListener } from '../util';
+import { clamp, dispatchCustomEvent, useEventListener } from '../util';
 import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, valueToString, TableContext, SettingsContext } from './Table';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
@@ -92,9 +92,9 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize + changesRows));
 	};
 
-	useLayoutEffect(() => { // ??
-		setViewIndex(Math.max(0, data.length - viewSize));
-	}, [data.length, viewSize, sort]);
+	useLayoutEffect(() => {
+		setViewIndex(idx => clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : idx));
+	}, [data.length, viewSize, sort, cursor]);
 	useEffect(() => {
 		if (!ref.current) return;
 		ref.current.onwheel = e => setViewIndex(idx => {
@@ -113,7 +113,7 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 		ref.current?.scrollTo({ left });
 		const log = ref.current?.parentElement?.querySelector('#changelog');
 		log?.scrollTo(0, log.scrollHeight);
-	}, [cursor]); // eslint-disable-line
+	}, [cursor, ref.current?.offsetWidth]); // eslint-disable-line
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
