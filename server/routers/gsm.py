@@ -15,7 +15,6 @@ def get_result():
 	mask_gle = request.args.get('mask_gle', 'true').lower() != 'false'
 	subtract_trend = request.args.get('subtract_trend', 'true').lower() != 'false'
 	res, fields = select([t_from, t_to], what, mask_gle)
-	var_fields = [i for i, f in enumerate(fields) if f in ['a10', 'a10m']]
 	for i, f in enumerate(fields):
 		if len(res) and f in ['a10', 'a10m']:
 			res[:,i] = np.round(normalize_variation(res[:,i], subtract_trend), 2)
