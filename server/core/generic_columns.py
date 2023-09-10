@@ -172,7 +172,7 @@ def _init():
 			if g_desc := column.generic:
 				generic = GenericColumn(None, None, None, column.entity, [], g_desc['type'],
 							g_desc.get('series', ''), g_desc.get('poi', ''),  g_desc.get('shift', 0))
-				column.pretty_name = column.name or generic.pretty_name
+				column.pretty_name = column.pretty_name or generic.pretty_name
 				column.description = column.description or generic.description
 				PRESET_GENERICS[column.name] = generic
 _init()
@@ -420,7 +420,7 @@ def compute_generic(generic, col_name=None):
 		return False
 
 def recompute_generics(generics, columns=None):
-	if isinstance(generics, list):
+	if not isinstance(generics, list):
 		generics = [generics]
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		res = executor.map(compute_generic, generics, columns) \
@@ -498,7 +498,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			'ON CONFLICT ON CONSTRAINT params DO UPDATE SET users = array(select distinct unnest(tbl.users || %s)) RETURNING *',
 			[[uid], entity, series or '', gtype, poi or '', int(shift) if shift else 0, uid]).fetchone()
 		generic = GenericColumn(*row)
-		if next((g for g in PRESET_GENERICS.values() if g.entity == entity and g.name == generic.name), None):
+		if next((g for g in PRESET_GENERICS.values() if g.entity == entity and g.pretty_name == generic.pretty_name), None):
 			conn.rollback()
 			raise ValueError('Column exists')
 		ALL_GENERICS[row[0]] = generic

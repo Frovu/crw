@@ -215,7 +215,6 @@
 		},
 		"size": {
 			"parse_name": "RMC"
-		},
-		"_constraint": "UNIQUE (time)"
+		}
 	}
 }

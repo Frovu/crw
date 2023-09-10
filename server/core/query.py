@@ -26,7 +26,7 @@ def render_table_info(uid):
 				info[table][name]['description'] = col.description
 	for g in generics:
 		info[g.entity][g.name] = {
-			'id': g.name,
+			'id': column_id(g),
 			'name': g.pretty_name,
 			'type': 'real',
 			'description': g.description,
@@ -53,9 +53,10 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 		value = f'EXTRACT(EPOCH FROM {col})::integer' if column.dtype == 'time' else col
 		columns.append(f'{value} as {column_id(column)}')
 	for gen in generics:
-		columns.append(f'{gen.entity}.{gen.name} as {gen.name}')
+		columns.append(f'{gen.entity}.{gen.name} as {column_id(gen)}')
 	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM {select_from_root[root]} ORDER BY ' +\
 		f'{root}.time' if 'time' in table_columns[root] else f'{root}.id'
+	print(select_query)
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
@@ -71,6 +72,10 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 				if eid not in rendered:
 					rendered[eid] = {}
 				name = column if column.startswith('g__') else column_id(table_columns[ent][column])
+				if column in table_columns[ent]:
+					name = column_id(table_columns[ent][column])
+				else:
+					name = next((column_id(g) for g in generics if g.name == column), column)
 				if name not in rendered[eid]:
 					rendered[eid][name] = []
 				rendered[eid][name].append({
@@ -94,7 +99,7 @@ def submit_changes(uid, changes, root='forbush_effects'):
 				raise ValueError(f'Column not found: {column}')
 			if found_generic and found_generic.type in DERIVED_TYPES:
 				raise ValueError('Can\'t edit derived generics')
-			dtype = found_column.get('type', 'real') if found_column else found_generic.data_type
+			dtype = found_column.dtype if found_column else found_generic.data_type
 			new_value = value
 			if value is not None:
 				if dtype == 'time':

@@ -109,7 +109,7 @@ export default function ImportMenu() {
 			remove: actuallyLost.map(l => l![0] as number),
 			total: rows.length,
 			interval: interval as [Date, Date],
-			columns: columns.map(c => [ c.table, c.sqlId ] )
+			columns: columns.map(c => [ c.table, c.sqlName ] )
 		} };
 
 	}, [allColumns, currentData, fileText]);

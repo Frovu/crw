@@ -28,7 +28,7 @@ export type ColumnDef = {
 	table: string,
 	width: number,
 	id: string,
-	sqlId: string, // not unique across tables
+	sqlName: string, // not unique across tables
 	hidden?: boolean,
 	isComputed: boolean,
 	generic?: {
@@ -500,7 +500,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 
 	const { mutate, report, color } = useMutationHandler(() =>
 		apiPost('events/changes', {
-			changes: changes.map((c) => ({ ...c, entity: c.column.table, column: c.column.sqlId }))
+			changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
 		})
 	, ['tableData']);
 
@@ -564,7 +564,7 @@ export default function TableWrapper() {
 			};
 			const { tables, series } = await apiGet<Info>('events/info');
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([id, desc]) => {
+			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([sqlName, desc]) => {
 				const width = (()=>{
 					switch (desc.type) {
 						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
@@ -579,8 +579,7 @@ export default function TableWrapper() {
 					...desc,
 					table,
 					width,
-					id: shortTable + '_' + id, // unique
-					sqlId: id, // not unique across tables
+					sqlName,
 					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
 					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
 					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
