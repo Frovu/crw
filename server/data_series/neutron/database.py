@@ -1,8 +1,8 @@
-from core.database import pool
 from threading import Lock
 import os, logging, time, requests
 import numpy as np
-requests.packages.urllib3.disable_warnings() 
+from core.database import pool
+requests.packages.urllib3.disable_warnings() # pylint: disable=no-member
 
 log = logging.getLogger('aides')
 
@@ -15,7 +15,7 @@ cache = dict()
 cache_time = dict()
 
 def _init():
-	with open(os.path.join(os.path.dirname(__file__), './database_init.sql')) as file:
+	with open(os.path.join(os.path.dirname(__file__), './database_init.sql'), encoding='utf-8') as file:
 		init_text =  file.read()
 	with pool.connection() as conn:
 		conn.execute(init_text)
@@ -23,31 +23,32 @@ _init()
 
 def fetch(interval, stations):
 	with fetch_mutex:
-		cached_at = cache_time.get(interval)
+		cache_key = (interval, stations)
+		cached_at = cache_time.get(cache_key)
 		if cached_at and time.time() - cached_at < CACHE_LIFE_TIME:
-			cache_time[interval] = time.time()
-			return cache[interval]
+			cache_time[cache_key] = time.time()
+			return cache[cache_key]
 
 		log.info(f'RSM: querying neutrons {interval[0]}:{interval[1]}')
 		res = session.get(CRDT_HOST + f'/api/neutron?from={interval[0]}&to={interval[1]}&stations={",".join(stations)}', verify=False)
 
 		if res.status_code != 200:
-			log.warn(f'Failed to obtain neutron data - HTTP {res.status_code}')
+			log.warning(f'Failed to obtain neutron data - HTTP {res.status_code}')
 			raise Exception('Failed to fetch neutrons')
 		
 		json = res.json()
 
 		data = [json['fields'][1:], np.array(json['rows'], 'f8')]
-		if not len(data):
+		if len(data) < 1:
 			raise Exception('No neutron data')
 
 		if len(cache.keys()) >= MAX_CACHE_ENTRIES:
-			val, interv = min((val, interv) for (interv, val) in cache_time.items())
-			del cache[interv]
-			del cache_time[interv]
+			val, key = min((val, key) for (key, val) in cache_time.items())
+			del cache[key]
+			del cache_time[key]
 
-		cache[interval] = data
-		cache_time[interval] = time.time()
+		cache[cache_key] = data
+		cache_time[cache_key] = time.time()
 		return data
 
 

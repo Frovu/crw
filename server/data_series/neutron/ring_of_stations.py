@@ -13,7 +13,8 @@ def _determine_base(time, data):
 	mean_val = np.nanmean(data, axis=0)
 	mean_var = np.nanmean(data / mean_val, axis=1)
 	indices = np.where(mean_var[:-1*BASE_LENGTH] > 1)[0]
-	if not len(indices): indices = [0]
+	if not len(indices):
+		indices = [0]
 	deviations = np.array([np.std(data[i:i+BASE_LENGTH], 0) for i in indices])
 	mean_std = 1 / np.nanmean(deviations, axis=1)
 	weightened_std = mean_std * (mean_var[indices] - 1)
@@ -94,9 +95,11 @@ def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
 		return None
 
 def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
-	if window > 12 or window < 1: window = 3
+	if window > 12 or window < 1:
+		window = 3
 
 	req_stations, directions = zip(*database.select_rsm_stations(t_to, exclude))
+
 	stations, neutron_data = database.fetch((t_from, t_to), req_stations)
 	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
 	time, data = np.uint64(neutron_data[:,0]), neutron_data[:,1:]

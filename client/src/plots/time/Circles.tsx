@@ -614,7 +614,7 @@ export default function PlotCirclesStandalone() {
 		document.documentElement.setAttribute('main-theme', params.theme);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (e.code !== 'KeyT') return;
+		if (e.code !== 'KeyT' || e.target instanceof HTMLInputElement) return;
 		const theme = params.theme ?? 'Dark';
 		setParams({ ...params, theme: themeOptions[(themeOptions.indexOf(theme as any) + 1) % 3] });
 	});
