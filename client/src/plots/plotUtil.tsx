@@ -373,7 +373,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		size: !params || params.showTimeAxis ? 30 : 4
+		size: (params?.showTimeAxis ?? true) ? 30 : 4
 	};
 }
 
