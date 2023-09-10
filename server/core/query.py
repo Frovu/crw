@@ -56,7 +56,6 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 		columns.append(f'{gen.entity}.{gen.name} as {column_id(gen)}')
 	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM {select_from_root[root]} ORDER BY ' +\
 		f'{root}.time' if 'time' in table_columns[root] else f'{root}.id'
-	print(select_query)
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]

@@ -122,6 +122,7 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 def import_fds(import_columns, rows_to_add, ids_to_remove, precomputed_changes):
 	rows = np.array(rows_to_add)
 	with pool.connection() as conn, conn.cursor() as curs:
+		inserted_ids = {t: np.full(len(rows), None) for t in tables_tree}
 		for table, columns_dict in table_columns.items():
 			index_names = [[i, name] for i, (tbl, name) in enumerate(import_columns) if tbl == table]
 			if name := next((name for i, name in index_names if name not in columns_dict), None):
@@ -129,20 +130,36 @@ def import_fds(import_columns, rows_to_add, ids_to_remove, precomputed_changes):
 			indexes, names = zip(*index_names)
 			data = rows[:,indexes]
 
+			not_null = np.where(np.any((data != None) & (data != 0) , axis=1)) # pylint: disable=singleton-comparison
+
+			for a_node, children in tables_tree.items():
+				if table in children:
+					# presumes parent was already inserted
+					data = np.column_stack((inserted_ids[a_node], data))
+					names = [tables_refs[(a_node, table)]] + list(names)
+
+			data = data[not_null]
+			if len(data) < 1:
+				continue
+			
 			# presumes no conflicts to arise
 			query = f'INSERT INTO events.{table} ({", ".join(names)}) VALUES ({("%s,"*len(names))[:-1]}) RETURNING id'
 			curs.executemany(query, data.tolist(), returning=True)
+
 			ids = []
-			while True:
+			while table in tables_tree:
 				ids.append(curs.fetchone()[0])
 				if not curs.nextset():
 					break
-			print(table, ids)
-
+			inserted_ids[table][not_null] = ids
+			
 		# TODO: do something with other associated entities
 		curs.execute('DELETE FROM events.forbush_effects WHERE id = ANY(%s)', [ids_to_remove])
 
-'''S
+		raise ValueError('cool')
+
+
+'''
 DROP TABLE IF EXISTS events.magnetic_clouds CASCADE;
 DROP TABLE IF EXISTS events.solar_flares CASCADE;
 DROP TABLE IF EXISTS events.coronal_holes CASCADE;

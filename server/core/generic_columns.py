@@ -511,7 +511,8 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 def remove_generic(uid, gid):
 	with pool.connection() as conn:
 		row = conn.execute('UPDATE events.generic_columns_info SET users = array_remove(users, %s) WHERE id = %s RETURNING *', [uid, gid]).fetchone()
-		if not row: return
+		if not row:
+			return
 		generic = GenericColumn(*row) 
 		if not generic.users:
 			conn.execute(f'DELETE FROM events.generic_columns_info WHERE id = {generic.id}')
