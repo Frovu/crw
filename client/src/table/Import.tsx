@@ -82,15 +82,16 @@ export default function ImportMenu() {
 				++diff.found;
 				lost[foundIdx] = null;
 				const changes: typeof diff.changes[number][2] = [];
-				for (const [ci, { id, name, table }] of columns.entries()) {
+				for (const [ci, { id, sqlName, table }] of columns.entries()) {
 					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
 					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
 						continue;
 					changes.push({
-						entity: table, column: name,
-						before: oldVal == null ? null : valueToString(oldVal),
-						after: newVal == null ? null : valueToString(newVal),
+						entity: table,
+						column: sqlName,
+						before: oldVal,
+						after: newVal,
 					});
 				}
 				if (changes.length)
@@ -114,8 +115,8 @@ export default function ImportMenu() {
 
 	}, [allColumns, currentData, fileText]);
 
-	const { report, mutate } = useMutationHandler(({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
-		apiPost('events/importTable', { columns, remove, add, changes })
+	const { report, mutate, isLoading } = useMutationHandler(({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
+		apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) })
 	, ['tableData']);
 
 	return (<>
@@ -161,10 +162,11 @@ export default function ImportMenu() {
 						</div>)}
 					</div>}
 					<div style={{ margin: '8px 8px 4px 0' }}>
-						<div style={{ color: 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>{report?.error ?? ''}</div>
-						<button style={{ padding: '2px 12px', margin: 4, verticalAlign: 'top' }} onClick={() => mutate(parsed.parsed, {
+						<div style={{ color: report?.success ? 'var(--color-green)' : 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>
+							{report?.error ?? report?.success ?? ''}</div>
+						<button style={{ width: 110, margin: 4, verticalAlign: 'top' }} onClick={() => mutate(parsed.parsed, {
 							onSuccess: () => setTimeout(() => dispatchCustomEvent('escape'), 1000) as any
-						})}>! Upsert !</button>
+						})}>{isLoading ? '...' : '! Upsert !'}</button>
 					</div>
 				</div>);
 			})()}

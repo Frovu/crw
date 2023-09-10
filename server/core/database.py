@@ -1,4 +1,5 @@
 import json, os, logging
+from datetime import datetime
 from dataclasses import dataclass
 from psycopg_pool import ConnectionPool
 import numpy as np
@@ -84,6 +85,7 @@ def _init():
 			id SERIAL PRIMARY KEY,
 			author integer references users on delete set null,
 			time timestamptz not null default CURRENT_TIMESTAMP,
+			special text,
 			event_id integer,
 			entity_name text,
 			column_name text,
@@ -119,45 +121,74 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 			','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})'
 			for c in columns if c not in conflict_constant])), constants)
 
-def import_fds(import_columns, rows_to_add, ids_to_remove, precomputed_changes):
+def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_changes, root='forbush_effects'):
 	rows = np.array(rows_to_add)
 	with pool.connection() as conn, conn.cursor() as curs:
-		inserted_ids = {t: np.full(len(rows), None) for t in tables_tree}
-		for table, columns_dict in table_columns.items():
-			index_names = [[i, name] for i, (tbl, name) in enumerate(import_columns) if tbl == table]
-			if name := next((name for i, name in index_names if name not in columns_dict), None):
-				raise ValueError(f'Not found {name} in {table}')
-			indexes, names = zip(*index_names)
-			data = rows[:,indexes]
+		if len(rows) > 0:
+			inserted_ids = {t: np.full(len(rows), None) for t in tables_tree}
+			for table, columns_dict in table_columns.items():
+				index_names = [[i, name] for i, (tbl, name) in enumerate(import_columns) if tbl == table]
+				if name := next((name for i, name in index_names if name not in columns_dict), None):
+					raise ValueError(f'Not found {name} in {table}')
+				indexes, names = zip(*index_names)
+				data = rows[:,indexes]
 
-			not_null = np.where(np.any((data != None) & (data != 0) , axis=1)) # pylint: disable=singleton-comparison
+				not_null = np.where(np.any((data != None) & (data != 0) , axis=1)) # pylint: disable=singleton-comparison
 
-			for a_node, children in tables_tree.items():
-				if table in children:
-					# presumes parent was already inserted
-					data = np.column_stack((inserted_ids[a_node], data))
-					names = [tables_refs[(a_node, table)]] + list(names)
+				for a_node, children in tables_tree.items():
+					if table in children:
+						# presumes parent was already inserted
+						data = np.column_stack((inserted_ids[a_node], data))
+						names = [tables_refs[(a_node, table)]] + list(names)
 
-			data = data[not_null]
-			if len(data) < 1:
-				continue
-			
-			# presumes no conflicts to arise
-			query = f'INSERT INTO events.{table} ({", ".join(names)}) VALUES ({("%s,"*len(names))[:-1]}) RETURNING id'
-			curs.executemany(query, data.tolist(), returning=True)
+				data = data[not_null]
+				if len(data) < 1:
+					continue
 
-			ids = []
-			while table in tables_tree:
-				ids.append(curs.fetchone()[0])
-				if not curs.nextset():
-					break
-			inserted_ids[table][not_null] = ids
+				# presumes no conflicts to arise
+				query = f'INSERT INTO events.{table} ({", ".join(names)}) VALUES ({("%s,"*len(names))[:-1]}) RETURNING id'
+				curs.executemany(query, data.tolist(), returning=True)
+
+				if table in tables_tree:
+					ids = []
+					while True:
+						ids.append(curs.fetchone()[0])
+						if not curs.nextset():
+							break
+					inserted_ids[table][not_null] = ids
 			
 		# TODO: do something with other associated entities
-		curs.execute('DELETE FROM events.forbush_effects WHERE id = ANY(%s)', [ids_to_remove])
+		curs.execute(f'DELETE FROM events.{root} WHERE id = ANY(%s)', [ids_to_remove])
 
-		raise ValueError('cool')
+		if len(precomputed_changes) > 0:
+			sorted_changes = sorted(precomputed_changes, key=lambda c: c[0])
+			root_ids, changes_lists = zip(*sorted_changes)
+			id_columns = ','.join(t + '.id' for t in table_columns)
+			curs.execute(f'SELECT {id_columns} FROM (select * from unnest(%s :: int[])) as ids(id) LEFT JOIN ' +\
+					f'{select_from_root[root]} ON {root}.id = ids.id ORDER BY ids.id', [list(root_ids)])
+			ids = dict(zip(table_columns.keys(), [list(a) for a in zip(*curs.fetchall())]))
 
+			for i, changes in enumerate(changes_lists):
+				for change in changes:
+					entity, col_name, old_val, new_val = change['entity'], change['column'], change['before'], change['after']
+					target_id = ids[entity][i]
+
+					if target_id is None:
+						curs.execute(f'INSERT INTO events.{entity} DEFAULT VALUES RETURNING id')
+						ids[entity][i] = target_id = curs.fetchone()[0]
+						for node, children in tables_tree.items():
+							if entity in children:
+								ref = tables_refs[(node, entity)]
+								curs.execute(f'UPDATE events.{entity} SET {ref} = %s ' + \
+									'WHERE id = %s', [ids[node][i], target_id])
+
+					if table_columns[entity][col_name].dtype == 'time':
+						new_val = datetime.fromisoformat(new_val)
+					curs.execute(f'UPDATE events.{entity} SET {col_name} = %s WHERE id = {target_id}', [new_val])
+					curs.execute('INSERT INTO events.changes_log (author, special, event_id, ' + \
+						'entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s,%s)',
+						[uid, 'import', target_id, entity, col_name, old_val, new_val])
+	log.info('Performed table import by uid=%s', uid)
 
 '''
 DROP TABLE IF EXISTS events.magnetic_clouds CASCADE;

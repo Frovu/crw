@@ -149,6 +149,7 @@ def _recompute_other():
 @route_shielded
 @require_role('admin')
 def _import_table():
+	uid = session.get('uid')
 	body = request.json
-	import_fds(body['columns'], body['add'], body['remove'], body['changes'])
+	import_fds(uid, body['columns'], body['add'], body['remove'], body['changes'])
 	return msg('OK')
