@@ -122,6 +122,7 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 			for c in columns if c not in conflict_constant])), constants)
 
 def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_changes, root='forbush_effects'):
+	log.info('Starting table import')
 	rows = np.array(rows_to_add)
 	with pool.connection() as conn, conn.cursor() as curs:
 		if len(rows) > 0:
@@ -174,6 +175,12 @@ def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_chan
 					target_id = ids[entity][i]
 
 					if target_id is None:
+						orphaned = False
+						for node, children in tables_tree.items():
+							if entity in children and ids[node][i] is None:
+								orphaned = True # skip orphaned by birth
+						if orphaned:
+							continue
 						curs.execute(f'INSERT INTO events.{entity} DEFAULT VALUES RETURNING id')
 						ids[entity][i] = target_id = curs.fetchone()[0]
 						for node, children in tables_tree.items():
@@ -185,9 +192,10 @@ def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_chan
 					if table_columns[entity][col_name].dtype == 'time':
 						new_val = datetime.fromisoformat(new_val)
 					curs.execute(f'UPDATE events.{entity} SET {col_name} = %s WHERE id = {target_id}', [new_val])
-					curs.execute('INSERT INTO events.changes_log (author, special, event_id, ' + \
-						'entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s,%s)',
-						[uid, 'import', target_id, entity, col_name, old_val, new_val])
+					if old_val is not None:
+						curs.execute('INSERT INTO events.changes_log (author, special, event_id, ' + \
+							'entity_name, column_name, old_value, new_value) VALUES (%s,%s,%s,%s,%s,%s,%s)',
+							[uid, 'import', target_id, entity, col_name, old_val, new_val])
 	log.info('Performed table import by uid=%s', uid)
 
 '''

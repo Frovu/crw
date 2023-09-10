@@ -455,7 +455,7 @@ function SourceDataWrapper({ tables, columns, series, firstTable }:
 				}
 			}
 		}
-		console.log('%crendered table:', 'color: #0f0', query.data.fields, data);
+		console.log('%crendered table:', 'color: #0f0', query.data.fields, data, query.data.changelog);
 		return {
 			data: data,
 			columns: filtered,

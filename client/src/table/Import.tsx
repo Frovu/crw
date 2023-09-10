@@ -4,7 +4,7 @@ import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
-	[/(\d)-\d9\d+/g, '$1 -9900'],
+	[/ -?([\d.]+)-([\d.]+) /g, ' $1 $2 '],
 	[/(:\d\d:\d\d)([.\d-]+)/g, '$1 $2'],
 	[/_*None_*/g, 'None']
 ] as [RegExp, string][];
@@ -15,6 +15,7 @@ export default function ImportMenu() {
 
 	const parsed = useMemo(() => {
 		if (!fileText) return null;
+		console.time('parseFDs');
 
 		const text = FIXES.reduce((txt, [re, ch]) => txt.replace(re, ch), fileText);
 		const allLines = text.split('\n');
@@ -94,7 +95,11 @@ export default function ImportMenu() {
 						after: newVal,
 					});
 				}
-				if (changes.length)
+
+				const notAllNull = changes.find(({ entity, before, after }) => entity === 'forbush_effects'
+					|| (before != null || typeof after != 'number' || ![-999, 0, -99.9, 1, -1].includes(after) ))
+
+				if (changes.length && notAllNull)
 					diff.changes.push([found[0] as number, time, changes]);
 			} else {
 				added.push(row);
@@ -103,6 +108,8 @@ export default function ImportMenu() {
 		}
 		const actuallyLost = lost.filter(l => !!l);
 		diff.deleted = actuallyLost.map(l => l![timeIdx] as Date);
+
+		console.timeEnd('parseFDs');
 		
 		return { parsed: {
 			...diff,
@@ -139,14 +146,14 @@ export default function ImportMenu() {
 						<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>
 							Added: <b>{added.length}</b></div>
 						{added.length > 0 && <div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-cyan)' }}>
-							{added.map(dt => <div>+ {valueToString(dt)}</div>)}
+							{added.map(dt => <div key={dt.getTime()}>+ {valueToString(dt)}</div>)}
 						</div>}
 					</div>
 					<div style={{ display: 'inline-block', marginLeft: 16, }}>
 						<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}>
 							&nbsp;Lost: <b>{deleted.length}</b></div>
 						{deleted.length > 0 && <div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-magenta)' }}>
-							{deleted.map(dt => <div>- {valueToString(dt)}</div>)}
+							{deleted.map(dt => <div key={dt.getTime()}>- {valueToString(dt)}</div>)}
 						</div>}
 					</div>
 					<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)', marginTop: 4 }}>
@@ -155,7 +162,7 @@ export default function ImportMenu() {
 						{changes.map(([_, date, list]) => <div key={date.getTime()} style={{ marginBottom: 12 }}>
 							<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
 							{list.map(({ entity, column, before, after }) =>
-								<div style={{ marginLeft: 16 }}>
+								<div style={{ marginLeft: 16 }} key={entity+column}>
 									[{entity.replace(/([a-z])[a-z]+_?/ig, '$1')}.{column}] {before == null ? nihil : valueToString(before)}
 									&nbsp;-&gt;&nbsp;<b>{after == null ? nihil : valueToString(after)}</b>
 								</div> )}
@@ -164,7 +171,7 @@ export default function ImportMenu() {
 					<div style={{ margin: '8px 8px 4px 0' }}>
 						<div style={{ color: report?.success ? 'var(--color-green)' : 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>
 							{report?.error ?? report?.success ?? ''}</div>
-						<button style={{ width: 110, margin: 4, verticalAlign: 'top' }} onClick={() => mutate(parsed.parsed, {
+						<button style={{ width: 110, margin: 4, verticalAlign: 'top' }} disabled={isLoading} onClick={() => mutate(parsed.parsed, {
 							onSuccess: () => setTimeout(() => dispatchCustomEvent('escape'), 1000) as any
 						})}>{isLoading ? '...' : '! Upsert !'}</button>
 					</div>
