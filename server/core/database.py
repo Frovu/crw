@@ -1,6 +1,7 @@
 import json, os, logging
 from dataclasses import dataclass
 from psycopg_pool import ConnectionPool
+import numpy as np
 
 log = logging.getLogger('aides')
 pool = ConnectionPool(kwargs = {
@@ -118,11 +119,34 @@ def upsert_many(table, columns, data, constants=[], conflict_constant='time', do
 			','.join([f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})'
 			for c in columns if c not in conflict_constant])), constants)
 
-# def import_fds(columns, rows_to_add, ids_to_remove, precomputed_changes):
-# 	for table, col in columns:
-# 		if col not in tables_info[table]:
-# 			raise ValueError(f'{col} not found in {table}')
-# 	with pool.connection() as conn:
-# 		for table, column_desc in tables_info:
-# 			pass
-		
+def import_fds(import_columns, rows_to_add, ids_to_remove, precomputed_changes):
+	rows = np.array(rows_to_add)
+	with pool.connection() as conn, conn.cursor() as curs:
+		for table, columns_dict in table_columns.items():
+			index_names = [[i, name] for i, (tbl, name) in enumerate(import_columns) if tbl == table]
+			if name := next((name for i, name in index_names if name not in columns_dict), None):
+				raise ValueError(f'Not found {name} in {table}')
+			indexes, names = zip(*index_names)
+			data = rows[:,indexes]
+
+			# presumes no conflicts to arise
+			query = f'INSERT INTO events.{table} ({", ".join(names)}) VALUES ({("%s,"*len(names))[:-1]}) RETURNING id'
+			curs.executemany(query, data.tolist(), returning=True)
+			ids = []
+			while True:
+				ids.append(curs.fetchone()[0])
+				if not curs.nextset():
+					break
+			print(table, ids)
+
+		# TODO: do something with other associated entities
+		curs.execute('DELETE FROM events.forbush_effects WHERE id = ANY(%s)', [ids_to_remove])
+
+'''S
+DROP TABLE IF EXISTS events.magnetic_clouds CASCADE;
+DROP TABLE IF EXISTS events.solar_flares CASCADE;
+DROP TABLE IF EXISTS events.coronal_holes CASCADE;
+DROP TABLE IF EXISTS events.forbush_effects CASCADE;
+DROP TABLE IF EXISTS events.coronal_mass_ejections CASCADE;
+DROP TABLE IF EXISTS events.solar_sources CASCADE;
+'''

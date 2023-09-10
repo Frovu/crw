@@ -2,7 +2,7 @@ import json
 from time import time
 import numpy as np
 from flask import Blueprint, request, session
-from core.database import ENTITY_SHORT
+from core.database import ENTITY_SHORT, import_fds
 from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics
 from core.plots import epoch_collision
 from core import other_columns
@@ -144,3 +144,11 @@ def _recompute_other():
 	start = time()
 	other_columns.compute_all()
 	return msg(f'Done ({round(time() - start, 1)} s)')
+
+@bp.route('/importTable', methods=['POST'])
+@route_shielded
+@require_role('admin')
+def _import_table():
+	body = request.json
+	import_fds(body['columns'], body['add'], body['remove'], body['changes'])
+	return msg('OK')
