@@ -1,24 +1,26 @@
-from core.database import log, pool, tables_info, get_joins_path, ENTITY_SHORT
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
-from pathlib import Path
-from math import floor, ceil
-from concurrent.futures import ThreadPoolExecutor
+import traceback
+import numpy as np
+from core.database import log, pool, table_columns, all_columns, select_from_root, ENTITY_SHORT
 import data_series.omni.database as omni
 import data_series.gsm.database as gsm
-import json, traceback
-import numpy as np
 
 HOUR = 3600
 MAX_EVENT_LENGTH_H = 72
 MAX_EVENT_LENGTH = MAX_EVENT_LENGTH_H * HOUR
 EXTREMUM_TYPES = ['min', 'max', 'abs_min', 'abs_max']
-GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'avg_value', 'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
+GENERIC_TYPES = EXTREMUM_TYPES + ['range', 'mean', 'median', 'value', 'avg_value',
+									'time_to_%', 'time_to', 'coverage', 'clone', 'diff', 'abs_diff']
 DERIVED_TYPES = ['clone', 'diff', 'abs_diff']
 
-ENTITY = [t for t in tables_info if 'time' in tables_info[t]]
-ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in tables_info[t]]
+PRESET_GENERICS = {}
+ALL_GENERICS = {} # except preset
+
+ENTITY = [t for t in table_columns if 'time' in table_columns[t]]
+ENTITY_WITH_DURATION = [t for t in ENTITY if 'duration' in table_columns[t]]
 ENTITY_POI = ENTITY + ['end_' + t for t in ENTITY_WITH_DURATION]
 
 SERIES = { # order matters (no it does not)
@@ -75,11 +77,11 @@ class GenericColumn:
 	def info_from_name(cls, name, entity):
 		try:
 			if not name.startswith('g__'):
-				found = tables_info[entity][name]
+				found = table_columns[entity][name]
 				return found.get('name', name), found.get('type', 'real')
 			found = ALL_GENERICS[int(name[3:])]
 		except:
-			log.warn('Could not find generic target column: ' + name)
+			log.warning('Could not find generic target column: %s', name)
 			return '<DELETED>', 'real'
 		return found.pretty_name, found.data_type
 
@@ -146,47 +148,45 @@ class GenericColumn:
 			else:
 				self.description += f' between {event} start and ' + (poi_h if poi else f'{event} end | next {event} | +{MAX_EVENT_LENGTH_H}h')
 
-with pool.connection() as conn:
-	conn.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
-		id serial primary key,
-		created timestamp with time zone not null default CURRENT_TIMESTAMP,
-		last_computed timestamp with time zone,
-		entity text not null,
-		users smallint[],
-		type text not null,
-		series text not null default '',
-		poi text not null default '',
-		shift integer not null default 0,
-		CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
-	ALL_GENERICS = dict() # except preset ones ofc
-	for row in conn.execute('SELECT * FROM events.generic_columns_info'):
-		ALL_GENERICS[row[0]] = GenericColumn(*row)
-		# except:
-		# 	conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
-		# 	log.warn(f'Failed to understand generic, deleting: {row}')
-	for generic in ALL_GENERICS.values():
-		conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
-	PRESET_GENERICS = dict()
-	for table in tables_info:
-		for name, column_desc in tables_info[table].items():
-			if name.startswith('_'): continue
-			if g_desc := column_desc.get('generic'):
-				generic = GenericColumn(None, None, None, table, [], g_desc['type'], g_desc.get('series', ''), g_desc.get('poi', ''),  g_desc.get('shift', 0))
-				column_desc['name'] = column_desc.get('name', generic.pretty_name)
-				column_desc['description'] = column_desc.get('description', generic.description)
-				PRESET_GENERICS[name] = generic
-	
-def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'):
-	joins = get_joins_path(entity, target_entity) if target_entity else ''
+def _init():
+	with pool.connection() as conn:
+		conn.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns_info (
+			id serial primary key,
+			created timestamp with time zone not null default CURRENT_TIMESTAMP,
+			last_computed timestamp with time zone,
+			entity text not null,
+			users smallint[],
+			type text not null,
+			series text not null default '',
+			poi text not null default '',
+			shift integer not null default 0,
+			CONSTRAINT params UNIQUE (entity, type, series, poi, shift))''')
+		for row in conn.execute('SELECT * FROM events.generic_columns_info'):
+			ALL_GENERICS[row[0]] = GenericColumn(*row)
+			# except:
+			# 	conn.execute('DELETE FROM events.generic_columns_info WHERE id = %s', [row[0]])
+			# 	log.warn(f'Failed to understand generic, deleting: {row}')
+		for generic in ALL_GENERICS.values():
+			conn.execute(f'ALTER TABLE events.{generic.entity} ADD COLUMN IF NOT EXISTS {generic.name} {generic.data_type}')
+		for column in all_columns:
+			if g_desc := column.generic:
+				generic = GenericColumn(None, None, None, column.entity, [], g_desc['type'],
+							g_desc.get('series', ''), g_desc.get('poi', ''),  g_desc.get('shift', 0))
+				column.pretty_name = column.name or generic.pretty_name
+				column.description = column.description or generic.description
+				PRESET_GENERICS[column.name] = generic
+_init()
+
+def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8', root='forbush_effects'):
 	query = [ (entity, 'id'), (target_entity, target_column) if target_column else (entity, 'time') ]
-	if 'duration' in tables_info[entity] and not target_column:
+	if entity in ENTITY_WITH_DURATION:
 		query.append((entity, 'duration'))
 	if target_entity and not target_column:
 		query.append((target_entity, 'time'))
-	if target_entity and not target_column and 'duration' in tables_info[target_entity]:
+	if target_entity and not target_column and entity in ENTITY_WITH_DURATION:
 		query.append((target_entity, 'duration'))
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' == c else f'{e}.{c}' for e, c in query])
-	select_query = f'SELECT {columns}\nFROM events.{entity}\n{joins}ORDER BY {entity}.time'
+	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} ORDER BY {entity}.time'
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
 		res = np.array(curs.fetchall(), dtype=dtype)
@@ -263,7 +263,8 @@ def compute_generic(generic, col_name=None):
 			length = len(event_id)
 
 			def apply_delta(data, series):
-				if not data.size or not series.startswith('$d_'): return data
+				if not data.size or not series.startswith('$d_'):
+					return data
 				delta = np.empty_like(data)
 				delta[1:] = data[1:] - data[:-1]
 				delta[0] = np.nan
@@ -294,24 +295,24 @@ def compute_generic(generic, col_name=None):
 				left = np.searchsorted(d_time, left_hour, side='left')
 				slice_len[np.logical_or(left_hour < d_time[0], left_hour > d_time[-1])] = 0 # eh
 				return left, np.where(np.isnan(slice_len), 0, slice_len).astype('i8')
-			
+
 			def find_extremum(typ, ser, left, slice_len, data=data_series):
 				is_max, is_abs = 'max' in typ, 'abs' in typ
 				d_time, value = data[:,0], data[:,1]
 				result = np.full((length, 2), np.nan, dtype='f8')
 				value = np.abs(value) if is_abs else value
-				fn = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
+				func = lambda d: 0 if np.isnan(d).all() else (np.nanargmax(d) if is_max else np.nanargmin(d))
 				if ser in ['a10', 'a10m']:
 					for i in range(length):
 						if slice_len[i] > 1:
 							window = value[left[i]:left[i]+slice_len[i]]
 							val = gsm.normalize_variation(window, with_trend=True)
 							val = apply_delta(val, ser)
-							idx = fn(val)
+							idx = func(val)
 							result[i] = (d_time[left[i] + idx], val[idx])
 				else:
 					value = apply_delta(value, ser)
-					idx = np.array([fn(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
+					idx = np.array([func(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
 					nonempty = np.where(slice_len > 0)[0]
 					didx = left[nonempty] + idx[nonempty]
 					result[nonempty] = np.column_stack((d_time[didx], value[didx]))
@@ -326,7 +327,8 @@ def compute_generic(generic, col_name=None):
 			elif generic.poi:
 				typ, ser = parse_extremum_poi(generic.poi)
 				data = data_series if ser == generic.series else \
-					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, ser[3:] if ser.startswith('$d_') else ser), dtype='f8')
+					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH,
+						ser[3:] if ser.startswith('$d_') else ser), dtype='f8')
 				left, slice_len = get_event_windows(data[:,0], ser)
 				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
 
@@ -347,11 +349,12 @@ def compute_generic(generic, col_name=None):
 				result = find_extremum(generic.type, generic.series, target_left, target_slen)[:,1]
 			elif generic.type in ['mean', 'median']:
 				result = np.full(length, np.nan, dtype='f8')
-				fn = np.nanmean if generic.type == 'mean' else np.nanmedian
+				func = np.nanmean if generic.type == 'mean' else np.nanmedian
 				for i in range(length):
-					if target_slen[i] < 1: continue
+					if target_slen[i] < 1:
+						continue
 					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
-					result[i] = fn(window)
+					result[i] = func(window)
 			elif generic.type == 'range':
 				r_max = find_extremum('max', generic.series, target_left, target_slen)[:,1]
 				r_min = find_extremum('min', generic.series, target_left, target_slen)[:,1]
@@ -359,7 +362,8 @@ def compute_generic(generic, col_name=None):
 			elif generic.type == 'coverage':
 				result = np.full(length, np.nan, dtype='f8')
 				for i in range(length):
-					if target_slen[i] < 1: continue
+					if target_slen[i] < 1:
+						continue
 					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
 					result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
 			elif generic.type in ['value', 'avg_value']:
@@ -378,16 +382,15 @@ def compute_generic(generic, col_name=None):
 					window_offset = np.int32((data_time[ev_left] - start_hour) / HOUR)
 					for i in range(length):
 						sl = slice_len[i]
-						if not sl: continue
+						if not sl:
+							continue
 						window = data_value[left[i]:left[i]+sl]
-						times  = data_time[left[i]:left[i]+sl]
 						idx = window_offset[i]
-						if len(window) < window_len + idx: continue
+						if len(window) < window_len + idx:
+							continue
 						values = gsm.normalize_variation(window, with_trend=True)
 						values = apply_delta(values, generic.series)
-						wslice = values[idx:idx+window_len]
 						per_hour[i,] = values[idx:idx+window_len]
-						# if datetime.utcfromtimestamp(event_start[i]) == datetime(1991,10,28,15,37,0):
 				else:
 					data_value = apply_delta(data_value, generic.series)
 					for h in range(window_len):
@@ -400,7 +403,7 @@ def compute_generic(generic, col_name=None):
 				assert False
 
 			if generic.series == 'kp':
-				result[result != None] /= 10
+				result[result is not None] /= 10
 			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
 
@@ -412,17 +415,18 @@ def compute_generic(generic, col_name=None):
 			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
 		log.info(f'Computed {column} in {round(time()-t_start,2)}s')
 		return True
-	except Exception as e:
+	except:
 		log.error(f'Failed at {column}: {traceback.format_exc()}')
 		return False
 
 def recompute_generics(generics, columns=None):
-	if type(generics) != list:
+	if isinstance(generics, list):
 		generics = [generics]
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(compute_generic, generics, columns) if columns else executor.map(compute_generic, generics)
+		res = executor.map(compute_generic, generics, columns) \
+			if columns else executor.map(compute_generic, generics)
 	return any(res)
-		
+
 def compute_default_generics():
 	with pool.connection() as conn:
 		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
@@ -431,7 +435,7 @@ def compute_default_generics():
 	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())
 
 def add_generic(uid, entity, series, gtype, poi, shift):
-	if entity not in tables_info or not gtype:
+	if entity not in table_columns or not gtype:
 		raise ValueError('Unknown entity')
 	if entity not in ENTITY:
 		raise ValueError('Entity doesn\'t know time')
@@ -458,9 +462,9 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		if shift:
 			raise ValueError('Shift not supported')
 		generics = select_generics(uid)
-		if series not in tables_info[entity] and not next((g for g in generics if g.entity == entity and g.name == series), False):
+		if series not in table_columns[entity] and not next((g for g in generics if g.entity == entity and g.name == series), False):
 			raise ValueError('Column 1 not found')
-		if poi not in tables_info[entity] and not next((g for g in generics if g.entity == entity and g.name == poi), False):
+		if poi not in table_columns[entity] and not next((g for g in generics if g.entity == entity and g.name == poi), False):
 			raise ValueError('Column 2 not found')
 		if len(series) + len(poi) + len(gtype) > 60:
 			raise ValueError('Reached underworld')
@@ -472,7 +476,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 		if len(series) >= 48:
 			raise ValueError('Max clone depth reached')
 		generics = select_generics(uid)
-		if series not in tables_info[poi] and not next((g for g in generics if g.entity == poi and g.name == series), False):
+		if series not in table_columns[poi] and not next((g for g in generics if g.entity == poi and g.name == series), False):
 			raise ValueError('Target column not found')
 	elif 'time_to' in gtype:
 		if not poi:
@@ -481,7 +485,7 @@ def add_generic(uid, entity, series, gtype, poi, shift):
 			raise ValueError('Time_to does not support series')
 		if shift and poi not in ENTITY_POI:
 			raise ValueError('Shift with extremum not supported')
-		if '%' in gtype and 'duration' not in tables_info[entity]:
+		if '%' in gtype and entity not in ENTITY_WITH_DURATION:
 			raise ValueError('Time fractions not supported')
 	elif gtype in EXTREMUM_TYPES:
 		if 'abs' in gtype and series in ['a10', 'a10m']:

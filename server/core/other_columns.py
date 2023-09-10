@@ -3,7 +3,6 @@ import numpy as np
 from core.database import pool, log
 from core.generic_columns import apply_changes
 
-
 def _compute_vmbm(entity='forbush_effects', column='vmbm'):
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT id, v_max, b_max FROM events.{entity}')

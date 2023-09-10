@@ -25,7 +25,8 @@ def select(uid=None):
 def create_sample(uid, name):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE name = %s AND %s = ANY(authors)', [name, uid]).fetchone()
-		if exists: raise ValueError('Already exists')
+		if exists:
+			raise ValueError('Already exists')
 		curs = conn.execute('INSERT INTO events.samples(name, authors) VALUES (%s, %s) RETURNING '+
 		'id, name, array(select login from users where uid = ANY(authors)) as authors, public, filters, whitelist, blacklist', [name, [uid,]])
 		return { f: val for val, f in zip(curs.fetchone(), [desc[0] for desc in curs.description]) }
@@ -33,18 +34,21 @@ def create_sample(uid, name):
 def remove_sample(uid, sid):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE id = %s AND %s = ANY(authors)', [sid, uid]).fetchone()
-		if not exists: raise ValueError('Not found or not authorized')
+		if not exists:
+			raise ValueError('Not found or not authorized')
 		conn.execute('DELETE FROM events.samples WHERE id = %s', [sid])
 
 def update_sample(uid, sid, name, authors, public, filters_json, whitelist=[], blacklist=[]):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE id = %s AND %s = ANY(authors)', [sid, uid]).fetchone()
-		if not exists: raise ValueError('Not found or not authorized')
+		if not exists:
+			raise ValueError('Not found or not authorized')
 		found_authors = conn.execute('SELECT name, uid FROM (SELECT DISTINCT UNNEST(%s::text[])) AS q(name) LEFT JOIN users ON login = name', [authors]).fetchall()
-		names, author_ids = zip(*found_authors)
+		_, author_ids = zip(*found_authors)
 		if uid not in author_ids:
 			raise ValueError('Can\'t relinquish authorship')
 		for aname, uid in found_authors:
-			if not uid: raise ValueError('User not found: '+aname)
+			if not uid:
+				raise ValueError('User not found: '+aname)
 		conn.execute('UPDATE events.samples SET name=%s, authors=%s, public=%s, filters=%s, whitelist=%s, blacklist=%s WHERE id=%s',
 			[name, list(author_ids), public, filters_json, whitelist, blacklist, sid])

@@ -1,13 +1,13 @@
-from flask import Blueprint, request, session
-from time import time
 import json
+from time import time
 import numpy as np
-from core import database
-from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics, ENTITY_SHORT
+from flask import Blueprint, request, session
+from core.database import ENTITY_SHORT
+from core.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics
 from core.plots import epoch_collision
-import core.other_columns as other_columns
-import core.samples as samples
-from scripts.parse_fds import parse_whole_file
+from core import other_columns
+from core import samples
+from core import query
 from routers.utils import route_shielded, require_role, msg
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -32,7 +32,7 @@ def _epoch_collision():
 def list_events():
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = database.select_events(uid, changelog=changelog)
+	res = query.select_events(uid, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
 	if changelog and uid is not None:
 		result['changelog'] = res[2]
@@ -41,7 +41,7 @@ def list_events():
 @bp.route('/info/', methods=['GET'])
 @route_shielded
 def events_tables_info():
-	return database.render_table_info(session.get('uid'))
+	return query.render_table_info(session.get('uid'))
 
 @bp.route('/changes', methods=['POST'])
 @route_shielded
@@ -49,8 +49,9 @@ def events_tables_info():
 def _submit_changes():
 	changes = request.json.get('changes')
 	uid = session.get('uid')
-	if not changes or not len(changes): raise ValueError('Empty request')
-	database.submit_changes(uid, changes)
+	if not changes or len(changes) < 1:
+		raise ValueError('Empty request')
+	query.submit_changes(uid, changes)
 	return msg('OK')
 
 @bp.route('/generics/add', methods=['POST'])
@@ -97,7 +98,8 @@ def get_samples():
 def add_sample():
 	uid = session.get('uid')
 	name = request.json.get('name')
-	if not name: raise ValueError('Empty name')
+	if not name:
+		raise ValueError('Empty name')
 	return samples.create_sample(uid, name)
 
 @bp.route('/samples/remove', methods=['POST'])
@@ -121,7 +123,8 @@ def update_sample():
 	filters_json = json.dumps(request.json.get('filters'))
 	whitelist = request.json.get('whitelist')
 	blacklist = request.json.get('blacklist')
-	if not name: raise ValueError('Empty name')
+	if not name:
+		raise ValueError('Empty name')
 	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
 	return msg('OK')
 

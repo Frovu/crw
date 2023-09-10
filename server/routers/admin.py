@@ -1,7 +1,7 @@
-from flask import Blueprint, send_file
+import os
+from flask import Blueprint
 from routers.utils import require_role
 from core.database import pool, ENTITY_SHORT
-import os
 
 bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -9,13 +9,12 @@ bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 @require_role('admin')
 def kill():
 	os._exit(0)
-	return { 'rip': 'aid' }
 
 @bp.route('/log')
 @bp.route('/logs')
 @require_role('admin')
-def logs():
-	with open('logs/aid.log') as file:
+def get_logs():
+	with open('logs/aid.log', encoding='utf-8') as file:
 		text = file.read()
 	return f'''<html><head></head>
 	<body style="color: #ccc; background-color: #000; font-size: 14px">
@@ -25,7 +24,7 @@ def logs():
 
 @bp.route('/users')
 @require_role('admin')
-def users():
+def get_users():
 	with pool.connection() as conn:
 		rows = conn.execute('SELECT uid, login, role, last_login FROM users').fetchall()
 		text = ''
@@ -35,7 +34,7 @@ def users():
 
 @bp.route('/generics')
 @require_role('admin')
-def generics():
+def get_generics():
 	with pool.connection() as conn:
 		rows = conn.execute('SELECT * FROM events.generic_columns_info ORDER BY last_computed').fetchall()
 		text = ''
@@ -46,7 +45,7 @@ def generics():
 @bp.route('/changes')
 @bp.route('/changelog')
 @require_role('admin')
-def changes():
+def get_changes():
 	with pool.connection() as conn:
 		rows = conn.execute('''SELECT time, (select login from users where uid = author), event_id, entity_name, column_name, old_value, new_value
 			FROM events.changes_log ORDER BY time''').fetchall()
