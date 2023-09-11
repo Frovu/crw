@@ -109,6 +109,7 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 		if (!cursor) return;
 		updateViewIndex(cursor);
 		const cell = ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
+		if (!cell) return;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
 		ref.current?.scrollTo({ left });
 		const log = ref.current?.parentElement?.querySelector('#changelog');

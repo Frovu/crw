@@ -44,9 +44,9 @@ function AdminMenu() {
 	return (
 		<>
 			<MutationButton text='Recompute generics' invalidate={['tableData']}
-				fn={() => apiPost('api/events/recompute_generics')}/>
+				fn={() => apiPost('events/recompute_generics')}/>
 			<MutationButton text='Recompute other' invalidate={['tableData']}
-				fn={() => apiPost('api/events/recompute_other')}/>
+				fn={() => apiPost('events/recompute_other')}/>
 			<button className='MenuItem' onClick={() => promptLogin('upsert')}>Upsert user</button>
 		</>
 	);

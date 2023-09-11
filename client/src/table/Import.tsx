@@ -4,8 +4,6 @@ import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
-	[/ -?([\d.]+)-([\d.]+) /g, ' $1 $2 '],
-	[/(:\d\d:\d\d)([.\d-]+)/g, '$1 $2'],
 	[/_*None_*/g, 'None']
 ] as [RegExp, string][];
 
@@ -97,7 +95,7 @@ export default function ImportMenu() {
 				}
 
 				const notAllNull = changes.find(({ entity, before, after }) => entity === 'forbush_effects'
-					|| (before != null || typeof after != 'number' || ![-999, 0, -99.9, 1, -1].includes(after) ))
+					|| (before != null || typeof after != 'number' || ![-999, -99, -99.9, 0, 1, -1].includes(after) ));
 
 				if (changes.length && notAllNull)
 					diff.changes.push([found[0] as number, time, changes]);
