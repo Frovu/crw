@@ -330,14 +330,18 @@ function drawCustomLabels(params: BasicPlotParams) {
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
 			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
 			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
-			const targetY = (axis.distr === 3 ? u.bbox.top + u.bbox.height/2 : u.valToPos((top + bottom) / 2, axis.scale!, true))
-				+ flowDir * textWidth / 2;
+			const targetY = (axis.distr === 3 ? (u.bbox.top + u.bbox.height/2)
+				 : u.valToPos((top + bottom) / 2, axis.scale!, true))
+					+ flowDir * textWidth / 2;
 			
-			const bottomX = u.height;
-			const posX = Math.round((baseX + axis.labelGap! * -flowDir) * devicePixelRatio);
-			const posY = flowDir > 0 ? clamp(textWidth + 4, bottomX - 2, targetY, true)
-				: clamp(2, bottomX - textWidth - 4, targetY);
-			
+			const px = (a: number) => a * devicePixelRatio;
+			const bottomX = px(u.height);
+			const posX = px(Math.round((baseX + axis.labelGap! * -flowDir)));
+			const posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetY, true)
+				: clamp(px(2), bottomX - textWidth - px(4), targetY);
+
+			if (isNaN(posY))
+				continue;
 			u.ctx.translate(posX, posY);
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = 'bottom';
