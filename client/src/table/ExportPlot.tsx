@@ -161,6 +161,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			...settings.plotParams,
 			transformText: settings.transformText,
 			...plotContext!,
+			stretch: settings.plots.length < 2,
 			interval: [
 				new Date(leftTime),
 				new Date(Math.max(leftTime + 4*36e5, rightTime))
