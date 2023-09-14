@@ -1,8 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
-import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets } from '../plotUtil';
+import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape } from '../plotUtil';
 import { Onset, themeOptions } from '../../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
@@ -110,7 +109,7 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 }
 
 function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
-	setBase: (b: Date) => void, setMoment: (time: number) => void): Partial<uPlot.Options> {
+	setBase: (b: Date) => void, moment: number | null, setMoment: (time: number) => void): Partial<uPlot.Options> {
 	const interactive = params.interactive;
 	let qt: Quadtree;
 	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
@@ -176,10 +175,22 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 					});
 				},
 			],
-			draw: params.showMetaInfo ? [
-				u => (params.clouds?.length) && drawMagneticClouds(u, params),
-				u => (params.onsets?.length) && drawOnsets(u, params),
-			] : [],
+			draw: [
+				u => {
+					if (!moment) return;
+					const x = u.valToPos(moment, 'x', true);
+					const y = u.bbox.height;
+					u.ctx.save();
+					u.ctx.beginPath();
+					u.ctx.strokeStyle = color('green');
+					u.ctx.lineWidth = 2;
+					drawShape(u.ctx, 6 * devicePixelRatio)['triangleUp'](x, y + 14 * devicePixelRatio);
+					u.ctx.stroke();
+					u.ctx.restore();
+				},
+				u => (params.showMetaInfo) && drawMagneticClouds(u, params),
+				u => (params.showMetaInfo) && drawOnsets(u, params),
+			],
 			ready: [
 				u => {
 					if (interactive)
@@ -209,8 +220,8 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 							setBase(new Date(currentBase * 1e3));
 						} else if (e.altKey || e.ctrlKey) {
 							clickDownloadPlot(e);
-						} else if (interactive && Math.abs(e.offsetX - clickX!) + Math.abs(e.clientY - clickY!) < 30) {
-							const detailsIdx = u.posToIdx(u.cursor.left! * devicePixelRatio);
+						} else if (interactive && (u.cursor.left ?? 0) > 0 && Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30) {
+							const detailsIdx = u.posToIdx(u.cursor.left!);
 							if (detailsIdx != null)
 								setMoment(data.precursor_idx[0][detailsIdx]);
 						}
@@ -291,8 +302,8 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 	];
 	return {
 		title: `[ ${moment}] a1=${data.a1?.toFixed(2) ?? 'N/A'} a2=${data.a2?.toFixed(2) ?? 'N/A'}`,
-		width: 480,
-		height: 480 - 32,
+		width: 480 / devicePixelRatio,
+		height: 480 / devicePixelRatio - 32,
 		mode: 2,
 		padding: [0, 16, 0, 0],
 		legend: { show: false, live: false },
@@ -479,10 +490,6 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 	useEffect(() => setMoment(null), [params.interval]);
 
 	useLayoutEffect(() => {
-		if (uplot && plotData) uplot.setData(plotData as any);
-	}, [uplot, plotData]);
-
-	useLayoutEffect(() => {
 		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - LEGEND_H })  });
 	}, [uplot, size, interactive]);
 
@@ -501,10 +508,10 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 		const options = {
 			padding: [8, params.interactive ? 12 : padRight, 0, 0],
 			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(query.data!, params, idxEnabled, setIdxEnabled, setBase, setMoment)
+			...circlesPlotOptions(query.data!, params, idxEnabled, setIdxEnabled, setBase, moment, setMoment)
 		} as uPlot.Options;
 		return <UplotReact target={container.current} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<div ref={container} style={{ position: query.data ? 'absolute' : 'unset' }}>
@@ -513,10 +520,6 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 			{/* {size.width && query.isFetched && !query.data && <div className='Center'>LACKING DATA...</div>} */}
 			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
-			{uplot && moment && ReactDOM.createPortal(
-				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
-					width: 0, fontSize: 22, color: color('purple'), transform: 'translate(-9px)', textShadow: '0 0 14px '+color('text') }}>⬆</div>
-				, uplot.over)}
 			{query.data && interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
 				{query.isFetching ? 'Fetching...' : (
 					(query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
