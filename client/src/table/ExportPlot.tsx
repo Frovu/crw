@@ -4,22 +4,14 @@ import PlotSW, { SWParams } from '../plots/time/SW';
 import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
-import { CirclesParams, PlotCircles } from '../plots/time/Circles';
+import PlotCircles, { CirclesParams } from '../plots/time/Circles';
 import { PlotContext, SettingsContext, themeOptions } from './Table';
 import { BasicPlotParams, Position, ScaleParams, TextTransform, color } from '../plots/plotUtil';
 
-// const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
-const trivialPlots = {
-	'Solar Wind': PlotIMF,
-	'SW Plasma': PlotSW,
-	'Cosmic Rays': PlotGSM,
-	'Geomagn': PlotGeoMagn,
-	'Ring of Stations': PlotCircles
-};
-const plotsList = Object.keys(trivialPlots) as (keyof typeof trivialPlots)[];
+const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
 type PlotSettings = {
-	type: keyof typeof trivialPlots,
+	type: typeof trivialPlots[number],
 	height: number,
 	showTime: boolean,
 	showMeta: boolean
@@ -90,8 +82,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 	const dragRef = useRef<Position | null>(null);
 	const divRef = useRef<HTMLDivElement>(null);
-	const [, setTrig] = useState(false);
-	const trigger = () => setTrig(s => !s);
 	const [shiftLeft, setLeft] = useState(0);
 	const [shiftRight, setRight] = useState(0);
 	const [autoScales, setScales] = useState<{ [scale: string]: ScaleParams }>({});
@@ -152,11 +142,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			dispatchCustomEvent('action+plotNextShown');
 	});
 
-	const plotComponents = useMemo(() => {
+	const params = useMemo(() => {
 		const leftTime = plotContext!.interval[0].getTime() + shiftLeft * 36e5;
 		const rightTime = plotContext!.interval[1].getTime() + shiftRight * 36e5;
 		
-		const params =  {
+		return {
 			...tableSettings.plotParams,
 			...settings.plotParams,
 			transformText: settings.transformText,
@@ -166,15 +156,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				new Date(leftTime),
 				new Date(Math.max(leftTime + 4*36e5, rightTime))
 			] as [Date, Date],
+			showTimeAxis: true,
+			showMetaInfo: true,
 			scalesCallback: ((scale, para) => ( console.log(scale, para) as any) ||
 				setScales(st => ({ ...st, [scale]: para }))) as BasicPlotParams['scalesCallback']
 		};
-		return settings.plots.map(({ id, type, height, showTime, showMeta }) => {
-			const Plot = trivialPlots[type];
-			return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
-				<Plot {...params} showTimeAxis={showTime} showMetaInfo={showMeta}/>
-			</div>;
-		});
 	}, [tableSettings, plotContext, settings, shiftLeft, shiftRight]);
 
 	const setOverride = (scale: string, what: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
@@ -246,7 +232,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					onMouseLeave={() => { dragRef.current = null; }}>
 					{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ margin: '8px 0', position: 'relative' }} key={id}>
 						<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}>
-							{plotsList.map(ptype =>
+							{trivialPlots.map(ptype =>
 								<option key={ptype} value={ptype}>{ptype}</option>)}
 						</select>
 						<label title='Plot height'> h=<input style={{ width: 54 }} type='number' min='80' max='1800' step='20'
@@ -266,7 +252,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						<button style={{ borderColor: 'transparent', color: color('skyblue'), cursor: 'pointer' }}
 							onClick={() => set('plots', settings.plots.concat({
 								height: 200,
-								type: plotsList.find(t => !settings.plots.find(p => p.type === t)) ?? plotsList[0],
+								type: trivialPlots.find(t => !settings.plots.find(p => p.type === t)) ?? trivialPlots[0],
 								showTime: true,
 								showMeta: true,
 								id: Date.now()
@@ -302,7 +288,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 								search: '', replace: '', id: Date.now()
 							}))}>+ <u>new replace</u></button>
 					</div>
-					<details style={{ margin: '8px 16px 0 -14px' }} onClick={trigger}>
+					<details style={{ margin: '8px 16px 0 -14px' }}>
 						<summary style={{ cursor: 'pointer' }}><b>Override scales</b></summary>
 						<div style={{ textAlign: 'right', marginTop: 4 }}>
 							{Object.entries(effectiveScales).sort((a,b) => a[0].localeCompare(b[0])).map(([scale, { min, max, bottom, top, active }]) =>
@@ -357,7 +343,14 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
-			{plotComponents}
+			{settings.plots.map(({ id, type, height, showTime, showMeta }) => 
+				<div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
+					{type === 'Solar Wind' && <PlotIMF  {...{ params }}/>}
+					{type === 'SW Plasma' && <PlotSW    {...{ params }}/>}
+					{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
+					{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
+					{type === 'Ring of Stations' && <PlotCircles {...{ params }}/>}
+				</div>)}
 		</div>
 		<div></div>
 

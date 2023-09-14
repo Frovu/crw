@@ -5,7 +5,7 @@ export type SWParams = BasicPlotParams & {
 	showBeta: boolean
 };
 
-export default function PlotSW(params: SWParams) {
+export default function PlotSW({ params }: { params: SWParams }) {
 	const tColumn = params.useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],

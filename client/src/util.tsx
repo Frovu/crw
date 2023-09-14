@@ -64,21 +64,21 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, (
 }
  
 type ResizeInfo = { width: number, height: number };
-export function useResizeObserver<T extends HTMLElement>(target: T | null | undefined, callback: (e: ResizeInfo) => void) {
+export function useResizeObserver<T extends Element>(target: T | null | undefined, callback: (e: ResizeInfo) => void) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
 	
 	useLayoutEffect(() => {
 		if (!target) return;
 		const observer = new ResizeObserver(() => {
-			savedCallback.current({ width: target.offsetWidth - 2, height: target.offsetHeight - 2 });
+			savedCallback.current({ width: target.clientWidth, height: target.clientHeight });
 		});
 		observer.observe(target);
 		return () => observer.unobserve(target);
 	}, [target]);
 }
 
-export function useSize<T extends HTMLElement>(target: T | null | undefined) {
+export function useSize<T extends Element>(target: T | null | undefined) {
 	const [ size, setSize ] = useState({ width: 0, height: 0 });
 
 	useResizeObserver(target, newSize => {

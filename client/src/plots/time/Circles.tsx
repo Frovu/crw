@@ -437,7 +437,7 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 }
 
 const LEGEND_H = 32;
-export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean }) {
+export default function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesParams, settingsOpen?: boolean }) {
 	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const container = useRef<HTMLDivElement>(null);
 	const size = useSize(container.current?.parentElement);
@@ -511,7 +511,7 @@ export function PlotCircles(initParams: CirclesParams & { settingsOpen?: boolean
 			{query.isLoading && <div className='Center'>LOADING...</div>}
 			{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 			{/* {size.width && query.isFetched && !query.data && <div className='Center'>LACKING DATA...</div>} */}
-			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen: initParams.settingsOpen }}/>}
+			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
 			{plotComponent}
 			{uplot && moment && ReactDOM.createPortal(
 				<div style={{ position: 'absolute', bottom: -22, left: uplot.valToPos(moment, 'x'),
@@ -583,7 +583,7 @@ export function CirclesParamsInput({ params, setParams }:
 	);
 }
 
-export default function PlotCirclesStandalone() {
+export function PlotCirclesStandalone() {
 	const [settingsOpen, setOpen] = useState(false);
 
 	const [params, setParams] = useState<CirclesParams>(() => {
@@ -631,7 +631,7 @@ export default function PlotCirclesStandalone() {
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
-			<PlotCircles {...{ ...params, settingsOpen }}/>
+			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
 			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48, width: '5em', borderRadius: 6 }}

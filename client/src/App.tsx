@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
 import { createContext, useContext, useEffect, useState } from 'react';
 import Table from './table/Table';
-import Circles from './plots/time/Circles';
+import { PlotCirclesStandalone } from './plots/time/Circles';
 import { apiGet, apiPost, useEventListener, useMutationHandler } from './util';
 import './css/index.css';
 import Help from './Help';
@@ -120,16 +120,16 @@ function App() {
 		}}>
 			{app === 'test' && 
 				<div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
-					<PlotGSM {...{
+					<PlotGSM params={{
 						showAxy: true, showAxyVector: true,
 						subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
 						interval: [new Date('2023-04-23 08:00'), new Date('2023-04-26T10:00:00')],
 						onsets: [ { time: new Date('2023-04-23T17:38:00Z'), type: 'SSC' } ],
 						clouds: [{ start: new Date('2023-04-24T01:00:00Z'), end: new Date('2023-04-25T19:00:00Z') }],
-						showGrid: true, showLegend: true, showMarkers: true, showBxBy: true, showBz: true, showMetaInfo: true, showTimeAxis: true }}/>
+						showGrid: true, showLegend: true, showMarkers: true, showMetaInfo: true, showTimeAxis: true }}/>
 
 				</div>}
-			{app === 'ros' && <Circles/>}
+			{app === 'ros' && <PlotCirclesStandalone/>}
 			{app === 'feid' && <Table/>}
 			{app === 'help' && <Help/>}
 			{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}

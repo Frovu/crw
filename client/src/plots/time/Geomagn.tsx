@@ -38,7 +38,7 @@ const myBars = (params: GeomagnParams) => (upl: uPlot, seriesIdx: number, i0: nu
 	})(upl, seriesIdx, i0, i1);
 };
 
-export default function PlotGeoMagn(params: GeomagnParams) {
+export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 	return (<BasicPlot {...{
 		queryKey: ['geomagn', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),

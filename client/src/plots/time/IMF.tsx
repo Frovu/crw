@@ -5,7 +5,7 @@ export type IMFParams = BasicPlotParams & {
 	showBxBy: boolean,
 };
 
-export default function PlotIMF(params: IMFParams) {
+export default function PlotIMF({ params }: { params: IMFParams }) {
 	return (<BasicPlot {...{
 		queryKey: ['IMF', params.interval],
 		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),

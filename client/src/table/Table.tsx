@@ -5,7 +5,7 @@ import { apiGet, apiPost, clamp, useEventListener, useMutationHandler, usePersis
 import { Filter, Sample, SampleState, TableSampleInput, applySample, renderFilters, sampleEditingMarkers } from './Sample';
 import { ConfirmationPopup, Menu } from './TableMenu';
 import TableView from './TableView';
-import { CirclesParams, PlotCircles } from '../plots/time/Circles';
+import PlotCircles, { CirclesParams } from '../plots/time/Circles';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotSW, { SWParams } from '../plots/time/SW';
@@ -192,19 +192,19 @@ const PlotWrapper = React.memo(({ which, bound }: { which: 'plotLeft' | 'plotTop
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'Ring of Stations' && <>
-				<PlotCircles {...params}/>
+				<PlotCircles {...{ params }}/>
 				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
 					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
 			</>}
-			{type === 'SW' && <PlotIMF {...params}/>}
+			{type === 'SW' && <PlotIMF {...{ params }}/>}
 			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%', position: 'relative' }}><PlotIMF {...params} showTimeAxis={false}/></div> 
-				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...params}/></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotIMF params={{ ...params, showTimeAxis: false }} /></div> 
+				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...{ params }}/></div> 
 			</>}
-			{type === 'CR' && <PlotGSM {...params}/>}
+			{type === 'CR' && <PlotGSM {...{ params }}/>}
 			{type === 'CR + Geomagn' && <>
-				<div style={{ height: '75%', position: 'relative' }}><PlotGSM {...params} showTimeAxis={false}/></div> 
-				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...params} /></div> 
+				<div style={{ height: '75%', position: 'relative' }}><PlotGSM params={{ ...params, showTimeAxis: false }}/></div> 
+				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...{ params }} /></div> 
 			</>}
 		</div>
 	);
@@ -278,7 +278,8 @@ function CoreWrapper() {
 	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 
 	// I did not know any prettier way to do this
-	document.documentElement.setAttribute('main-theme', settings.theme);
+	if (!viewExport)
+		document.documentElement.setAttribute('main-theme', settings.theme);
 	
 	// dataContext.data[i][0] should be an unique id
 	const dataContext = useMemo(() => {
