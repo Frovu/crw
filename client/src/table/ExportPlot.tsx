@@ -142,11 +142,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			dispatchCustomEvent('action+plotNextShown');
 	});
 
-	const params = useMemo(() => {
+	const plotParams = useMemo(() => {
 		const leftTime = plotContext!.interval[0].getTime() + shiftLeft * 36e5;
 		const rightTime = plotContext!.interval[1].getTime() + shiftRight * 36e5;
 		
-		return {
+		const params = {
 			...tableSettings.plotParams,
 			...settings.plotParams,
 			transformText: settings.transformText,
@@ -161,6 +161,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			scalesCallback: ((scale, para) => ( console.log(scale, para) as any) ||
 				setScales(st => ({ ...st, [scale]: para }))) as BasicPlotParams['scalesCallback']
 		};
+
+		return settings.plots.map(({ id, height, type, showMeta, showTime }) => ({ id, height, type, params: {
+			...params, showTimeAxis: showTime, showMetaInfo: showMeta
+		} }));
 	}, [tableSettings, plotContext, settings, shiftLeft, shiftRight]);
 
 	const setOverride = (scale: string, what: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
@@ -343,14 +347,15 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
-			{settings.plots.map(({ id, type, height, showTime, showMeta }) => 
-				<div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
+			{plotParams.map(({ id, type, height, params }) => {
+				return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
 					{type === 'Solar Wind' && <PlotIMF  {...{ params }}/>}
 					{type === 'SW Plasma' && <PlotSW    {...{ params }}/>}
 					{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
 					{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
 					{type === 'Ring of Stations' && <PlotCircles {...{ params }}/>}
-				</div>)}
+				</div>;
+			})}
 		</div>
 		<div></div>
 
