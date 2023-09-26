@@ -474,6 +474,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	const plot = useMemo(() => {
 		const options = {
 			...size,
+			pxAlign: true,
 			padding: [8, 0, params.showTimeAxis ? 0 : 8, 0],
 			legend: { show: params.interactive },
 			cursor: {

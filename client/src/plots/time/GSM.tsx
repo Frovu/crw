@@ -18,8 +18,8 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
-		const posBottom = (u.scales.vec as CustomScale).positionValue?.bottom ?? 1/2;
-		const height = fullHeight * (1 - posBottom);
+		const { bottom: posBottom, top: posTop } = (u.scales.vec as CustomScale).positionValue ?? { bottom: 1/2, top: 1 };
+		const height = fullHeight * (posTop - posBottom);
 		const width = fullWidth * .85;
 		const dataX = u.data[seriesIdx+1]  as number[]; // swapped
 		const dataY = u.data[seriesIdx]  as number[];
@@ -37,13 +37,14 @@ export function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: Default
 		}
 		const xrange = maxx - minx;
 		const yrange = maxy - miny;
-		const scalex = width / Math.max(xrange, 20);
-		const scaley = height / Math.max(yrange, 20);
+		const scalex = width / Math.max(xrange, 10);
+		const scaley = height / Math.max(yrange, 10);
 		const shiftx = width * .6 - (minx + xrange / 2) * scalex;
-		const shifty = (top + height / 2) - (miny + yrange / 2) * scaley;
+		const shifty = top + (1 - posTop) * fullHeight - miny * scaley;
 
 		const points = Array(length).fill([0, 0, 0, 0]);
 		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
+
 		points[0] = [x, y];
 		for (let i = 1; i < length; i++) {
 			const dx = dataX[i] == null ? null : dataX[i] * scalex;
