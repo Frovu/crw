@@ -166,7 +166,7 @@ export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?
 	if (!params.clouds?.length) return;
 	const patternCanvas = document.createElement('canvas');
 	const ctx = patternCanvas.getContext('2d')!;
-	patternCanvas.height = patternCanvas.width = 16;
+	patternCanvas.height = patternCanvas.width = 16 * devicePixelRatio;
 	ctx.fillStyle = color('area2');
 
 	// ctx.moveTo(10, 0);
@@ -178,6 +178,7 @@ export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?
 	// ctx.lineTo(16, 16);
 	// ctx.fill();
 
+	ctx.scale(devicePixelRatio, devicePixelRatio);
 	ctx.moveTo(0, 6);
 	ctx.lineTo(10, 16);
 	ctx.lineTo(16, 16);
@@ -486,8 +487,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
 					const override = params.overrideScales?.[ax.label];
 					const [fmin, fmax] = ax.minMax ?? [null, null];
-					const min = override?.min ?? Math.min(dmin, fmin ?? dmin);
-					const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
+					const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - .0001;
+					const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + .0001;
 					const [ bottom, top ] = override ? [override.bottom, override.top] : ax.position ?? [0, 1];
 					const scale: CustomScale = u.scales[ax.label];
 					scale.scaleValue = { min, max };
