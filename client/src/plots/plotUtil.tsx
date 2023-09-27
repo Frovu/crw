@@ -166,7 +166,8 @@ export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?
 	if (!params.clouds?.length) return;
 	const patternCanvas = document.createElement('canvas');
 	const ctx = patternCanvas.getContext('2d')!;
-	patternCanvas.height = patternCanvas.width = 16 * devicePixelRatio;
+	const scale = devicePixelRatio / 1;
+	patternCanvas.height = patternCanvas.width = 16 * scale;
 	ctx.fillStyle = color('area2');
 
 	// ctx.moveTo(10, 0);
@@ -178,7 +179,7 @@ export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?
 	// ctx.lineTo(16, 16);
 	// ctx.fill();
 
-	ctx.scale(devicePixelRatio, devicePixelRatio);
+	ctx.scale(scale, scale);
 	ctx.moveTo(0, 6);
 	ctx.lineTo(10, 16);
 	ctx.lineTo(16, 16);

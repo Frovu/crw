@@ -346,7 +346,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 				</div>
 			</div>
 		</div>
-		<div ref={container} style={{ display: 'inline-block', cursor: 'pointer', overflow: 'auto' }}>
+		<div ref={container} style={{  display: 'inline-block', cursor: 'pointer',
+			transform: `scale(${Math.min(1, (document.body.clientWidth * devicePixelRatio - 380) / settings.width)})`, transformOrigin: 'top left' }}>
 			{plotParams.map(({ id, type, height, params }) => {
 				return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
 					{type === 'Solar Wind' && <PlotIMF  {...{ params }}/>}
