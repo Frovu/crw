@@ -50,7 +50,8 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				position: [0, 2/5 - 1/20],
 				minMax: [0, 50],
 				showGrid: false,
-				values: (u, vals) => vals.map(v => v == null ? v : (params.useAp ? v : v / 10).toFixed(0))
+				values: (u, vals) => vals.map(v => v == null ? v : (params.useAp ? v : v / 10).toFixed(0)),
+				splits: (u, aidx, min, max) => [0, max > 50 ? 90 : 50]
 			},
 			{
 				label: 'Dst',

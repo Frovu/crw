@@ -61,13 +61,13 @@ export function superScript(digit: number) {
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
 	return {
-		font: font(14),
-		labelFont: font(14),
+		font: font(16),
+		labelFont: font(16),
 		stroke: color('text'),
 		labelSize: 20,
 		labelGap: 0,
 		space: 32,
-		size: 40,
+		size: 44,
 		gap: 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
 		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
@@ -148,7 +148,7 @@ export function drawOnsets(u: uPlot, params: BasicPlotParams, truncateY?: number
 		const useColor = onset.secondary ? color('text', .6) : color('white');
 		u.ctx.save();
 		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
-		u.ctx.font = font(14, true).replace('400', '600');
+		u.ctx.font = font(16, true).replace('400', '600');
 		u.ctx.textBaseline = 'top';
 		u.ctx.textAlign = 'right';
 		u.ctx.lineWidth = 2 * devicePixelRatio;
@@ -259,7 +259,7 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 		if (!series.length) return;
 
 		const px = (a: number) => a * devicePixelRatio;
-		u.ctx.font = font(px(14));
+		u.ctx.font = font(16, true);
 		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
@@ -326,7 +326,7 @@ function drawCustomLabels(params: BasicPlotParams) {
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = (axis as any)._pos + (axis as any)._size * -flowDir;
 			u.ctx.save();
-			u.ctx.font = font(14, true);
+			u.ctx.font = font(16, true);
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
 			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
 			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
@@ -377,7 +377,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		gap: 6,
-		size: (params?.showTimeAxis ?? true) ? 30 : 4
+		size: (params?.showTimeAxis ?? true) ? 32 : 4
 	};
 }
 
