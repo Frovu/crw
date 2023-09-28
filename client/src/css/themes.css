@@ -31,10 +31,10 @@
 }
 
 [main-theme="Bright"] {
-	--color-magenta: rgb(235, 0, 110);
-	--color-magenta2: rgba(255, 55, 148, 0.7);
-	--color-cyan: rgb(0, 206, 206);
-	--color-cyan2: rgba(0, 240, 240, 0.7);
+	--color-magenta: rgb(231, 37, 111);
+	--color-magenta2: rgba(255, 85, 136, 0.7);
+	--color-cyan: rgb(0, 204, 204);
+	--color-cyan2: rgba(36, 230, 230, 0.7);
 
 	--color-peach: rgb(255, 99, 72);
 	--color-gold: rgb(86, 0, 136);

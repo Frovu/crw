@@ -51,12 +51,12 @@ type CirclesMomentResponse = {
 
 export function circlePaths(callback: any, minMaxMagn: number, params: CirclesParams) {
 	return (u: uPlot, seriesIdx: number) => {
-		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
-			const strokeWidth = 1.5;
+		uPlot.orient(u, seriesIdx, (series, dataX, datapeY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
+			const strokeWidth = Math.max(1.5, devicePixelRatio);
 			const deg360 = 2 * Math.PI;
 			const d = u.data[seriesIdx] as any as number[][];
 
-			const maxSize = Math.min(120, 16 + u.height / 8);
+			const maxSize = u.height / 10 + (params.sizeShift ?? 0);
 			// console.time('circles');
 
 			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
@@ -77,11 +77,11 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 			for (let i = 0; i < d[0].length; i++) {
 				const xVal = d[0][i];
 				const yVal = d[1][i];
-				let size = params.linearSize ?
-					(Math.abs(d[2][i]) / maxMagn * maxSize) * devicePixelRatio :
-					(maxSize / (minMaxMagn / 2.2)* Math.log(Math.abs(d[2][i]) + 1) - 6) * devicePixelRatio;
-				size = Math.max(1.5, size + (params.sizeShift ?? 0));
-				if (size > maxSize) size = maxSize;
+				const v = Math.abs(d[2][i]);
+				const sz = params.linearSize ?
+					(v / maxMagn * maxSize) :
+					maxSize * (10 - Math.pow((v + 38.7) / 50, -9)) / 10;
+				const size = Math.max(1.5, sz) * devicePixelRatio;
 
 				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 					const cx = valToPosX(xVal, scaleX, xDim, xOff);
@@ -152,7 +152,7 @@ function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEna
 				},
 				points: {
 					size: (u, seriesIdx) => {
-						return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.w + 1 / devicePixelRatio : 0;
+						return hoveredRect && seriesIdx === hoveredRect.sidx ? (hoveredRect.w + 1) / devicePixelRatio : 0;
 					}
 				}
 			})
