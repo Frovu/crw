@@ -82,6 +82,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	const [settings, setSettings] = usePersistedState('aidPlotExport', defaultSettings);
 	const dragRef = useRef<Position | null>(null);
 	const divRef = useRef<HTMLDivElement>(null);
+	const [scaleDown, setScaleDown] = useState(false);
 	const [shiftLeft, setLeft] = useState(0);
 	const [shiftRight, setRight] = useState(0);
 	const [autoScales, setScales] = useState<{ [scale: string]: ScaleParams }>({});
@@ -203,15 +204,17 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 							onClick={() => doExport(true)}><u>D</u>ownload png</button>
 					</div>
 					<div>
-						<label>Width: <input style={{ width: 64 }} type='number' min='200' max='3600' step='20'
-							onWheel={(e: any) => set('width', clamp(320, 3600, (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20)))}
-							value={settings.width} onChange={e => set('width', clamp(320, 3600, e.target.valueAsNumber))}/> px</label>
+						<label>Width: <input style={{ width: 64 }} type='number' min='200' max='8000' step='20'
+							onWheel={(e: any) => set('width', (e.target.valueAsNumber || 0) + (e.deltaY < 0 ? 20 : -20))}
+							value={settings.width} onChange={e => !isNaN(e.target.valueAsNumber) && e.target.valueAsNumber > 200 && e.target.valueAsNumber < 8000
+								&& set('width', e.target.valueAsNumber)}/> px</label>
 						<button style={{ marginLeft: 20, width: 100 }} onClick={() => { setSettings(defaultSettings()); }}>Reset all</button>
 					</div>
 					<div style={{ marginTop: 8 }}>
 						<label>Theme: <select value={settings.theme} onChange={e => set('theme', e.target.value as any)}>
 							{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
 						</select> </label>
+						<label>Scale: <input type='checkbox' checked={scaleDown} onChange={e => setScaleDown(e.target.checked)}/></label>
 					</div>
 				</div>
 				<div ref={divRef} style={{ padding: '4px 0 8px 20px', width: 356, cursor: 'grab' }}
@@ -235,12 +238,13 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					onMouseUp={() => { dragRef.current = null; }}
 					onMouseLeave={() => { dragRef.current = null; }}>
 					{settings.plots.map(({ type, height, id, showTime, showMeta }) => <div style={{ margin: '8px 0', position: 'relative' }} key={id}>
-						<select style={{ width: 114 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}>
+						<select style={{ width: 111 }} value={type} onChange={e => setPlot(id, 'type', e.target.value as any)}>
 							{trivialPlots.map(ptype =>
 								<option key={ptype} value={ptype}>{ptype}</option>)}
 						</select>
-						<label title='Plot height'> h=<input style={{ width: 54 }} type='number' min='80' max='1800' step='20'
-							value={height} onChange={e => setPlot(id, 'height', clamp(80, 1800, e.target.valueAsNumber))}></input></label>
+						<label title='Plot height'> h=<input style={{ width: 56 }} type='number' min='20' max='8000' step='20'
+							defaultValue={height} onChange={e => !isNaN(e.target.valueAsNumber) && e.target.valueAsNumber > 20 && e.target.valueAsNumber < 8000 &&
+								setPlot(id, 'height', e.target.valueAsNumber)}></input></label>
 						<label style={{ cursor: 'pointer', marginLeft: 8 }}>tm
 							<input type='checkbox' checked={showTime} onChange={e => setPlot(id, 'showTime', e.target.checked)}/></label>
 						<label style={{ cursor: 'pointer', marginLeft: 8 }}>e
@@ -347,7 +351,8 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			</div>
 		</div>
 		<div ref={container} style={{  display: 'inline-block', cursor: 'pointer',
-			transform: `scale(${Math.min(1, (document.body.clientWidth * devicePixelRatio - 380) / settings.width)})`, transformOrigin: 'top left' }}>
+			...(scaleDown ? { transform: `scale(${Math.min(1, (document.body.clientWidth * devicePixelRatio - 380) / settings.width)})`, transformOrigin: 'top left' } : { overflow: 'auto' })
+		}}>
 			{plotParams.map(({ id, type, height, params }) => {
 				return <div key={id} style={{ height: height / devicePixelRatio + 2, width: settings.width / devicePixelRatio + 2, position: 'relative' }}>
 					{type === 'Solar Wind' && <PlotIMF  {...{ params }}/>}
