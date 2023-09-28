@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
-import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape } from '../plotUtil';
+import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
 import { Onset, themeOptions } from '../../table/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
@@ -33,7 +33,8 @@ type CirclesResponse = {
 	variation: (number | null)[][],
 	shift: number[],
 	station: string[],
-	a0r: number[]
+	a0r: number[],
+	a0m: null | number[], 
 	precursor_idx: number[], // eslint-disable-line camelcase
 	filtered: number,
 	excluded: string[]
@@ -145,6 +146,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 	});
 
 	const [ uplot, setUplot ] = useState<uPlot>();
+	const [ uplot2, setUplot2 ] = useState<uPlot>();
 	const plotData = useMemo(() => {
 		if (!query.data) return null;
 		return renderPlotData(query.data, params.variationShift);
@@ -157,7 +159,8 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 
 	useLayoutEffect(() => {
 		if (uplot) uplot.setSize(plotSize(0));
-	}, [uplot, size, plotSize]);
+		if (uplot2) uplot2.setSize(plotSize(1));
+	}, [uplot, uplot2, size, plotSize]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (!interactive) return;
@@ -194,7 +197,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 
 		const options: uPlot.Options = {
 			padding: [8, params.interactive ? 12 : padRight, 0, 0],
-			...size,
+			...plotSize(0),
 			mode: 2,
 			legend: { show: interactive },
 			cursor: {
@@ -357,11 +360,12 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 				} as uPlot.Series] : [])
 			]
 		};
-		console.log(plotData.slice(0, twoPlots ? -2 : -1))
 		return <>
-			<UplotReact {...{ options, data: plotData.slice(0, twoPlots ? -2 : -1) as any, onCreate: setUplot }}/>
+			<UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>
 			{twoPlots && <UplotReact {...{ options: {
 				tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
+				cursor: { drag: { setScale: false } },
+				legend: { show: interactive },
 				padding: [0, 12, 0, 0],
 				...plotSize(1),
 				scales: {
@@ -392,17 +396,35 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					label: 'idx',
 					scale: 'idx',
 					width: 2,
+					points: { show: false },
+					value: (u, val) => val !== null ? val?.toString() : u.cursor.idx != null ? 'NaN' : '--',
 					stroke: color('acid')
+				}, {
+					show: data.a0m != null,
+					label: 'A0m',
+					scale: 'a0',
+					points: { show: false },
+					width: 1,
+					value: (u, val) => data.a0m != null && val !== null ? val?.toString() + ' %' : '--',
+					stroke: color('magenta')
 				}, {
 					label: 'A0r',
 					scale: 'a0',
-					width: 3,
+					width: 2,
 					value: (u, val) => val !== null ? val?.toString() + ' %' : '--',
-					stroke: color('purple')
+					stroke: color('purple'),
+					points: {
+						show: true,
+						stroke: color('purple'),
+						fill: color('purple'),
+						width: 0,
+						paths: markersPaths('diamond', 9) as any
+					},
 				}]
-			}, data: [data.time, data.precursor_idx, data.a0r] as any }}/>}
+			}, data: [data.time, data.precursor_idx, data.a0m ?? [], data.a0r] as any,
+			onCreate: setUplot2 }}/>}
 		</>;
-	}, [interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [twoPlots, interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return <div ref={container}>
 		{query.isLoading && <div className='Center'>LOADING...</div>}
@@ -542,7 +564,7 @@ function renderPlotData(resp: CirclesResponse, shift?: number) {
 		}
 	}
 	console.log('circles data', resp, [ resp.time, pdata, ndata, resp.a0r, resp.precursor_idx ]);
-	return [ resp.time, pdata, ndata, [resp.time, resp.a0r], [resp.time, resp.precursor_idx] ];
+	return [ resp.time, pdata, ndata, [resp.time, resp.precursor_idx] ];
 }
 
 export function PlotCirclesMoment({ params, data: allData, base, moment, setMoment, settingsOpen }:
@@ -624,6 +646,7 @@ export function CirclesParamsInput({ params, setParams }:
 				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
 				<br/><MenuCheckbox text='Linear size scaling' value={!!params.linearSize} callback={callback('linearSize')}/>
+				<br/><MenuCheckbox text='Show second plot' value={!!params.twoPlots} callback={callback('twoPlots')}/>
 			</div>
 
 		</div>

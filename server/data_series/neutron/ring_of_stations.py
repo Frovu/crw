@@ -1,5 +1,6 @@
 from data_series.neutron import database
 from dataclasses import dataclass
+from data_series.gsm import database as gsm
 from scipy import optimize
 from math import ceil
 import numpy as np
@@ -141,6 +142,12 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 			prec_idx[i] = precursor_idx(*get_xy(i))[0]
 	
 	a0r = compute_a0r(variation)
+	gsm_res, _ = gsm.select([int(time[0]), int(time[-1])], 'A10m')
+	a0m = None if len(gsm_res) != len(a0r) else gsm_res[:,1]
+	if a0m is not None:
+		base = np.nanmean(a0m[base_idx[0]:base_idx[1]])
+		a0m = (a0m - base) / (1 + base / 100)
+		a0m = np.where(~np.isfinite(a0m), None, np.round(a0m, 2)).tolist()
 			
 	return dict({
 		'base': int(time[base_idx[0]]),
@@ -148,6 +155,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		'precursor_idx': np.where(~np.isfinite(prec_idx), None, np.round(prec_idx, 2)).tolist(),
 		'variation': np.where(~np.isfinite(variation), None, np.round(variation, 2)).tolist(),
 		'a0r': np.where(~np.isfinite(a0r), None, np.round(a0r, 2)).tolist(),
+		'a0m': a0m,
 		'shift': directions,
 		'station': list(stations),
 		'filtered': int(filtered),
