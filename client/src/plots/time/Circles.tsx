@@ -14,7 +14,7 @@ import { MenuCheckbox } from '../../table/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,
-	twoPlots?: boolean,
+	rsmExtended?: boolean,
 	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
@@ -118,7 +118,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 	const size = useSize(container.current?.parentElement);
 
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
-	const { twoPlots, interactive } = params;
+	const { rsmExtended: twoPlots, interactive } = params;
 	let padRight = 60;
 	if (params.stretch && size.width) {
 		// tweak interval so that time axis would align with other (shorter) plots
@@ -364,9 +364,9 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 			<UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>
 			{twoPlots && <UplotReact {...{ options: {
 				tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
-				cursor: { drag: { setScale: false } },
+				cursor: { show: interactive, drag: { setScale: false } },
 				legend: { show: interactive },
-				padding: [0, 12, 0, 0],
+				padding: [8, 12, 0, 0],
 				...plotSize(1),
 				scales: {
 					a0: {
@@ -379,9 +379,10 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 				axes: [{
 					...axisDefaults(true),
 					...customTimeSplits(params),
+					size: 8,
 				}, {
 					...axisDefaults(true),
-					label: 'A0r, %',
+					label: 'variation, %',
 					labelSize: 20,
 					size: 44,
 					gap: 8,
@@ -395,7 +396,6 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 				}, {
 					label: 'idx',
 					scale: 'idx',
-					width: 2,
 					points: { show: false },
 					value: (u, val) => val !== null ? val?.toString() : u.cursor.idx != null ? 'NaN' : '--',
 					stroke: color('acid')
@@ -404,7 +404,6 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					label: 'A0m',
 					scale: 'a0',
 					points: { show: false },
-					width: 1,
 					value: (u, val) => data.a0m != null && val !== null ? val?.toString() + ' %' : '--',
 					stroke: color('magenta')
 				}, {
@@ -646,7 +645,7 @@ export function CirclesParamsInput({ params, setParams }:
 				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
 				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
 				<br/><MenuCheckbox text='Linear size scaling' value={!!params.linearSize} callback={callback('linearSize')}/>
-				<br/><MenuCheckbox text='Show second plot' value={!!params.twoPlots} callback={callback('twoPlots')}/>
+				<br/><MenuCheckbox text='Show second plot' value={!!params.rsmExtended} callback={callback('rsmExtended')}/>
 			</div>
 
 		</div>
@@ -667,17 +666,17 @@ export function PlotCirclesStandalone() {
 		if (referred?.clouds)
 			referred.clouds = referred.clouds.map((c: any) => ({ start: new Date(c.start), end: new Date(c.end) }));
 		return {
+			rsmExtended: false,
+			stretch: false,
+			interactive: true,
+			autoFilter: true,
 			...(referred || {
 				interval: [
 					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
 					new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
 				realtime: true,
 				window: 3,
-			}),
-			twoPlots: true,
-			stretch: false,
-			interactive: true,
-			autoFilter: true
+			})
 		};
 	});
 

@@ -154,7 +154,7 @@ function defaultSettings(): Settings {
 			showBz: true,
 			showBxBy: false,
 			useTemperatureIndex: false,
-
+			rsmExtended: false,
 		},
 		plotOnlyShownEvents: false,
 		plotTimeOffset: [-2, 3],

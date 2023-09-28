@@ -330,6 +330,7 @@ export function Menu() {
 							onChange={(v: any) => set('plotTimeOffset', (prev) => isNaN(v) ? prev : [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
+					<MenuCheckbox text='RSM Extended' value={!!para.rsmExtended} callback={setPara('rsmExtended')}/>
 					<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
 					<MenuCheckbox text='Show Axy' value={para.showAxy} callback={setPara('showAxy')}/>
 					<MenuCheckbox text='Show vecor' value={para.showAxyVector} callback={setPara('showAxyVector')}/>
