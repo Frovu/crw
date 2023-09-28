@@ -537,7 +537,7 @@ function renderPlotData(resp: CirclesResponse, shift?: number) {
 			if (vv == null) ++nullCount;
 			else if (vv >= 0) ++posCount;
 			data[0][idx] = time;
-			data[1][idx] = (time / 86400 * 360 + resp.shift[si]) % 360;
+			data[1][idx] = (360 + time % 86400 / 86400 * 360 + resp.shift[si]) % 360;
 			data[2][idx] = vv;
 			data[3][idx] = si;
 		}
