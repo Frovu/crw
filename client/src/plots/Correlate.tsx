@@ -1,5 +1,4 @@
-import { useContext, useMemo, useState } from 'react';
-import uPlot from 'uplot';
+import { ReactElement, useContext, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
 import regression from 'regression';
 import { SampleContext, SettingsContext, TableContext } from '../table/Table';
@@ -16,7 +15,7 @@ export default function CorrelationPlot() {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
-	const plotOpts = useMemo(() => {
+	const memo = useMemo((): null | [ReactElement|null, (asize: { width: number, height: number }) => Parameters<typeof UplotReact>[0]] => {
 		if (!sampleData.length)
 			return null;
 		const loglog = params.loglog;
@@ -31,7 +30,8 @@ export default function CorrelationPlot() {
 		const data = (sampleData as number[][]).map(row => colIdx.map(i => row[i])).filter(filter).sort((a, b) => a[0] - b[0]);
 		const plotData = [0, 1].map(i => data.map(r => r[i]));
 
-		if (data.length < 8) return null;
+		if (data.length < 8)
+			return null;
 
 		const minx = data[0][0];
 		const maxx = data[data.length-1][0];
@@ -39,22 +39,27 @@ export default function CorrelationPlot() {
 		const maxy = Math.max.apply(null, plotData[1]);
 
 		const regrData = loglog ? data.map(r => [Math.log(r[0]), Math.log(r[1])]) : data;
-		const regr = regression.linear(regrData as any, { precision: 6 });
-		const [a, b] = regr.equation;
-		const equ = `${loglog?'ln(y)':'y'} = ${a.toFixed(4)}${loglog?' ln(x)':' x'} ${b>0?'+':'-'} ${Math.abs(b).toFixed(1)}`;
-		// const equ = loglog ? 'ln(y)' : 'y' + a.toFixed(4) `ln(x) + ${b.toFixed(1)}` : `y = ${a.toFixed(4)}x + ${b.toFixed(1)}`;
-		const regrPoints = Array(128).fill(0).map((_, i) => minx + i * (maxx-minx)/128);
-		const regrPredicts = regrPoints.map(x => loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1] );
-		const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toString().length));
+		const regr = regression.linear(regrData as any, { precision: 8 });
+		const [gradient, intercept] = regr.equation;
 
-		return (asize: { width: number, height: number }) => ({
+		// standard error: https://en.wikipedia.org/wiki/Simple_linear_regression#Normality_assumption
+		const meanX = regrData.reduce((a, b) => a + b[0], 0) / data.length;
+		const sumE = regr.points.reduce((a, b) => a + b[1] * b[1], 0);
+		const sdmX = regrData.reduce((a, b) => a + Math.pow(b[0] - meanX, 2), 0);
+		const err = Math.sqrt(sumE / sdmX / (data.length - 2));
+		
+		const regrPoints = Array(128).fill(0).map((_, i) => minx + i * (maxx-minx)/128);
+		const regrPredicts = regrPoints.map(x => loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]);
+		const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
+
+		const title = regr ? <span><span style={{ color: color('text-dark') }}>α={intercept.toFixed(2)}; </span>
+			β={gradient.toFixed(3)} ± {err.toFixed(3)}; r={Math.sqrt(regr.r2).toFixed(2)}</span> : null;
+
+		return [title, (asize) => ({
 			options: {
 				...asize,
-				height: asize.height - 30,
-				// width: Math.min(asize.width, asize.height*1.5),
 				mode: 2,
-				padding: [8, 12, 0, 0],
-				title: (regr ? `${equ}; r = ${Math.sqrt(regr.r2).toFixed(2)}` : ''),
+				padding: [8, 16, 6, 0],
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
@@ -62,14 +67,17 @@ export default function CorrelationPlot() {
 						...axisDefaults(showGrid),
 						label: colX.fullName,
 						labelSize: 22,
-						size: 30,
+						space: 50,
+						size: 34,
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
 						...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
 						values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
 					{
 						...axisDefaults(showGrid),
 						label: colY.fullName,
-						size: 32 + 11 * (maxWidthY - 2),
+						size: 18 + 10 * (maxWidthY),
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 						values: (u, vals) => vals.map(v => loglog ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
 				],
@@ -86,7 +94,7 @@ export default function CorrelationPlot() {
 		
 				},
 				series: [
-					null,
+					{},
 					{
 						stroke: color(params.color),
 						paths: pointPaths(4)
@@ -96,13 +104,17 @@ export default function CorrelationPlot() {
 						paths: linePaths(2)
 					}
 				]
-			} as uPlot.Options,
+			},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
-		}) ;
+		})];
 	}, [params, columns, sampleData, showGrid]);
 
-	if (!plotOpts) return <div className='Center'>NOT ENOUGH DATA</div>;
-	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-		<UplotReact {...plotOpts(size)}/>
+	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
+	const [titleText, plotOpts] = memo;
+	return (<div ref={setContainer}>
+		{titleText && <div style={{ textAlign: 'center' }}>{titleText}</div>}
+		<div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+			<UplotReact {...plotOpts({ ...size, height: size.height - (titleText ? 16 : 0) })}/>
+		</div>
 	</div>);
 }
