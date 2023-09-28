@@ -382,6 +382,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					size: 8,
 				}, {
 					...axisDefaults(true),
+					incrs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20],
 					label: 'variation, %',
 					labelSize: 20,
 					size: 44,

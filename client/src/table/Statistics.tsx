@@ -73,8 +73,10 @@ export function HistogramMenu() {
 				<MenuSelect key={colKey} text={'Column '+letter} value={hist[colKey] as string ?? null} callback={set(colKey)} width='10em' options={options} pretty={pretty} withNull={true}/>
 				<MenuSelect key={sampleKey} text={'Sample '+letter} value={hist[sampleKey] as string} callback={set(sampleKey)} width='10em' options={sampleOptions} pretty={samplePretty}/>
 			</Fragment>);})}
-		<MenuCheckbox text='Draw median' value={hist.drawMedian} callback={set('drawMedian')}/>
-		<MenuCheckbox text='Draw mean' value={hist.drawMean} callback={set('drawMean')}/>
+		<div>
+			<MenuCheckbox text='Draw mean' value={hist.drawMean} callback={set('drawMean')}/>
+			<MenuCheckbox text='median' value={hist.drawMedian} callback={set('drawMedian')}/>
+		</div>
 		<MenuSelect text='Y scale' value={hist.yScale} options={yScaleOptions} callback={set('yScale')}/>
 		<MenuInput text='Limit X >=' type='text' defaultValue={hist.forceMin ?? ''} onChange={setBoundary('forceMin')}/>
 		<MenuInput text='Limit X < ' type='text' defaultValue={hist.forceMax ?? ''} onChange={setBoundary('forceMax')}/>
@@ -95,7 +97,9 @@ export function CorrelationMenu() {
 		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
 		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
-		<MenuCheckbox text='log-log' value={options.correlation.loglog} callback={set('loglog')}/>
-		<MenuCheckbox text='x-log' value={options.correlation.logx} callback={set('logx')}/>
+		<div>
+			<MenuCheckbox text='log-log' value={options.correlation.loglog} callback={set('loglog')}/>
+			<MenuCheckbox text='x-log' value={options.correlation.logx} callback={set('logx')}/>
+		</div>
 	</>);
 }

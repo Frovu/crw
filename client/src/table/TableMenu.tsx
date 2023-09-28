@@ -308,7 +308,6 @@ export function Menu() {
 					<ExportMenu/>
 				</MenuSection>
 				<MenuSection name='Plot' style={{ left: '4em', minWidth: '19em' }} {...{ shownSection, setShownSection }}>
-					<h4>Select plots</h4>
 					<SettingsSelect what='plotTop' options={plotTypes}/>
 					<SettingsSelect what='plotBottom' options={plotTypes}/>
 					<SettingsSelect what='plotLeft' options={plotTypes}/>
@@ -316,11 +315,13 @@ export function Menu() {
 						onChange={(v: any) => set('plotBottomSize', () => v)}/>
 					<MenuInput text='right plots width (%)' type='number' min='30' max='80' step='5' value={settings.plotsRightSize || 50}
 						onChange={(v: any) => set('plotsRightSize', () => v)}/>
-					<h4>Options</h4>
+					<h4>General</h4>
+					<div>
+						<MenuCheckbox text='markers' value={!!para.showMarkers} callback={setPara('showMarkers')}/>
+						<MenuCheckbox text='grid' value={!!para.showGrid} callback={setPara('showGrid')}/>
+						<MenuCheckbox text='legend' value={!!para.showLegend} callback={setPara('showLegend')}/>
+					</div>
 					<SettingsSelect what='theme' options={themeOptions} withNull={false}/>
-					<MenuCheckbox text='Show markers' value={!!para.showMarkers} callback={setPara('showMarkers')}/>
-					<MenuCheckbox text='Show grid' value={!!para.showGrid} callback={setPara('showGrid')}/>
-					<MenuCheckbox text='Show legend' value={!!para.showLegend} callback={setPara('showLegend')}/>
 					<div>
 						± Days:
 						<MenuInput type='number' min='-7' max='0' step='.5' value={settings.plotTimeOffset?.[0]}
@@ -330,19 +331,25 @@ export function Menu() {
 							onChange={(v: any) => set('plotTimeOffset', (prev) => isNaN(v) ? prev : [prev[0], v])}/>
 					</div>
 					<h4>Cosmic Rays</h4>
-					<MenuCheckbox text='RSM Extended' value={!!para.rsmExtended} callback={setPara('rsmExtended')}/>
-					<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
-					<MenuCheckbox text='Show Axy' value={para.showAxy} callback={setPara('showAxy')}/>
-					<MenuCheckbox text='Show vecor' value={para.showAxyVector} callback={setPara('showAxyVector')}/>
-					<MenuCheckbox text='Subtract variation trend' value={para.subtractTrend} callback={setPara('subtractTrend')}/>
-					<MenuCheckbox text='Mask GLE' value={para.maskGLE} callback={setPara('maskGLE')}/>
+					<div>
+						<MenuCheckbox text='Show Az' value={para.showAz} callback={setPara('showAz')}/>
+						<MenuCheckbox text='Axy' value={para.showAxy} callback={setPara('showAxy')}/>
+						<MenuCheckbox text='vecor' value={para.showAxyVector} callback={setPara('showAxyVector')}/>
+					</div>
 					<MenuCheckbox text='Use dst corrected A0m' value={para.useA0m} callback={setPara('useA0m')}/>
-					<MenuCheckbox text={'Use index: ' + (para.useAp ? 'Ap' : 'Kp')} hide={true} value={!!para.useAp} callback={setPara('useAp')}/>
+					<MenuCheckbox text='Subtract variation trend' value={para.subtractTrend} callback={setPara('subtractTrend')}/>
+					<div>
+						<MenuCheckbox text='Mask GLE' value={para.maskGLE} callback={setPara('maskGLE')}/>
+						<MenuCheckbox text='RSM Extended' value={!!para.rsmExtended} callback={setPara('rsmExtended')}/>
+
+					</div>
+					{/* <MenuCheckbox text={'Use index: ' + (para.useAp ? 'Ap' : 'Kp')} hide={true} value={!!para.useAp} callback={setPara('useAp')}/> */}
 					<h4>Solar Wind</h4>
-					<MenuCheckbox text={'Temperature: ' + (para.useTemperatureIndex ? 'index' : 'plain')} hide={true}
-						value={para.useTemperatureIndex} callback={setPara('useTemperatureIndex')}/>
-					<MenuCheckbox text='Show IMF Bz' value={para.showBz} callback={setPara('showBz')}/>
-					<MenuCheckbox text='Show IMF Bx,By' value={para.showBxBy} callback={setPara('showBxBy')}/>
+					<MenuCheckbox text={'Use temperature index'} value={para.useTemperatureIndex} callback={setPara('useTemperatureIndex')}/>
+					<div>
+						<MenuCheckbox text='Show IMF Bz' value={para.showBz} callback={setPara('showBz')}/>
+						<MenuCheckbox text='Bx,By' value={para.showBxBy} callback={setPara('showBxBy')}/>
+					</div>
 					<MenuCheckbox text='Show beta' value={para.showBeta} callback={setPara('showBeta')}/>
 
 				</MenuSection>

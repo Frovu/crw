@@ -133,7 +133,7 @@
 
 .MenuDropdown h4 {
 	text-align: center;
-	margin: 4px 0 8px 0;
+	margin: 6px 0 0 0;
 }
 
 .MenuItem {
@@ -144,6 +144,7 @@
 }
 
 .MenuInput {
+	padding-left: 8px;
 	border: 1px solid transparent;
 	cursor: pointer;
 	user-select: none;
