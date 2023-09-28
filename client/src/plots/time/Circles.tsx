@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
 import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape } from '../plotUtil';
@@ -14,6 +14,7 @@ import { MenuCheckbox } from '../../table/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,
+	twoPlots?: boolean,
 	realtime?: boolean,
 	base?: Date,
 	exclude?: string[],
@@ -32,7 +33,8 @@ type CirclesResponse = {
 	variation: (number | null)[][],
 	shift: number[],
 	station: string[],
-	precursor_idx: [number[], number[]], // eslint-disable-line camelcase
+	a0r: number[]
+	precursor_idx: number[], // eslint-disable-line camelcase
 	filtered: number,
 	excluded: string[]
 };
@@ -108,190 +110,316 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 	};
 }
 
-function circlesPlotOptions(data: CirclesResponse, params: CirclesParams, idxEnabled: boolean, setIdxEnabled: (en: boolean) => void,
-	setBase: (b: Date) => void, moment: number | null, setMoment: (time: number) => void): Partial<uPlot.Options> {
-	const interactive = params.interactive;
-	let qt: Quadtree;
-	let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
-	const legendValue = (seriesIdx: number) => (u: uPlot) => {
-		if (u.data == null || seriesIdx !== hoveredRect?.sidx)
-			return '';
-		const d = u.data[hoveredRect.sidx] as any;
-		if (hoveredRect.didx >= d[0].length) 
-			return '';
-		const stIdx = d[3][hoveredRect.didx], lon = d[1][hoveredRect.didx].toFixed(2);
-		const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
-		return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
-	};
-	const setSelect = (u: uPlot, val: number) => u.setSelect({
-		left: u.valToPos(val, 'x'),
-		top: 0,
-		width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
-		height: u.over.offsetHeight
+const LEGEND_H = 32;
+export default function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesParams, settingsOpen?: boolean }) {
+	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const container = useRef<HTMLDivElement>(null);
+	const size = useSize(container.current?.parentElement);
+
+	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
+	const { twoPlots, interactive } = params;
+	let padRight = 60;
+	if (params.stretch && size.width) {
+		// tweak interval so that time axis would align with other (shorter) plots
+		const initialInterval = initParams.interval;
+		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
+		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
+		const pwidth = size.width - 60;
+		const targetHourWidth = (pwidth - padRight) / len;
+		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
+		padRight = padRight % targetHourWidth;
+		params.interval = [
+			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
+			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight)
+		];
+	}
+
+	const [ idxEnabled, setIdxEnabled ] = useState(true);
+	const [ base, setBase ] = useState(params.base);
+	const [ moment, setMoment ] = useState<number | null>(null);
+	
+	const query = useQuery({
+		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
+		queryFn: () => (!params.stretch || size.width) ? fetchCircles<CirclesResponse>(params, base) : null,
+		keepPreviousData: interactive
 	});
-	return {
-		mode: 2,
-		legend: { show: interactive },
-		cursor: {
-			show: interactive,
-			drag: { x: false, y: false, setScale: false },
-			...(interactive && {
-				dataIdx: (u, seriesIdx) => {
-					if (seriesIdx > 2) {
-						return u.posToIdx(u.cursor.left! * devicePixelRatio);
-					} 
-					if (seriesIdx === 1) {
-						const cx = u.cursor.left! * devicePixelRatio;
-						const cy = u.cursor.top! * devicePixelRatio;
-						hoveredRect = null;
-						qt.hover(cx, cy, (o: any) => {
-							hoveredRect = o;
+
+	const [ uplot, setUplot ] = useState<uPlot>();
+	const plotData = useMemo(() => {
+		if (!query.data) return null;
+		return renderPlotData(query.data, params.variationShift);
+	}, [query.data, params.variationShift]);
+
+	useEffect(() => setMoment(null), [params.interval]);
+
+	const plotSize = useCallback((i: 0 | 1) =>
+		({ ...size, height: size.height * (twoPlots ? i > 0 ? .3 : .7 : 1) - (interactive ? LEGEND_H : 0) }), [interactive, twoPlots, size]);
+
+	useLayoutEffect(() => {
+		if (uplot) uplot.setSize(plotSize(0));
+	}, [uplot, size, plotSize]);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (!interactive) return;
+		if (e.target instanceof HTMLInputElement) return;
+		if (e.code === 'Escape') setMoment(() => null);
+		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
+		if (!move) return;
+		const [ min, max ] = params.interval.map(d => Math.ceil(d.getTime() / 36e5) * 3600);
+		setMoment(mm => mm && Math.min(Math.max(mm + move, min), max));
+	});
+
+	const plotComponent = useMemo(() => {
+		if (!plotData || !container.current || size.height <= 0) return null;
+		const data = query.data!;
+
+		let qt: Quadtree;
+		let hoveredRect: { sidx: number, didx: number, w: number } | null = null;
+		const legendValue = (seriesIdx: number) => (u: uPlot) => {
+			if (u.data == null || seriesIdx !== hoveredRect?.sidx)
+				return '';
+			const d = u.data[hoveredRect.sidx] as any;
+			if (hoveredRect.didx >= d[0].length) 
+				return '';
+			const stIdx = d[3][hoveredRect.didx], lon = d[1][hoveredRect.didx].toFixed(2);
+			const time = new Date(d[0][hoveredRect.didx] * 1000).toISOString().replace(/\..*|T/g, ' ');
+			return `[ ${data.station[stIdx]} ] v = ${d[2][hoveredRect.didx].toFixed(2)}%, aLon = ${lon}, time = ${time}`;
+		};
+		const setSelect = (u: uPlot, val: number) => u.setSelect({
+			left: u.valToPos(val, 'x'),
+			top: 0,
+			width: u.valToPos(val + 86400, 'x') - u.valToPos(val, 'x'),
+			height: u.over.offsetHeight
+		});
+
+		const options: uPlot.Options = {
+			padding: [8, params.interactive ? 12 : padRight, 0, 0],
+			...size,
+			mode: 2,
+			legend: { show: interactive },
+			cursor: {
+				show: interactive,
+				drag: { x: false, y: false, setScale: false },
+				...(interactive && {
+					dataIdx: (u, seriesIdx) => {
+						if (seriesIdx > 2) {
+							return u.posToIdx(u.cursor.left! * devicePixelRatio);
+						} 
+						if (seriesIdx === 1) {
+							const cx = u.cursor.left! * devicePixelRatio;
+							const cy = u.cursor.top! * devicePixelRatio;
+							hoveredRect = null;
+							qt.hover(cx, cy, (o: any) => {
+								hoveredRect = o;
+							});
+						}
+						return (hoveredRect && seriesIdx === hoveredRect.sidx) ? hoveredRect.didx : -1;
+					},
+					points: {
+						size: (u, seriesIdx) => {
+							return hoveredRect && seriesIdx === hoveredRect.sidx ? (hoveredRect.w + 1) / devicePixelRatio : 0;
+						}
+					}
+				})
+			},
+			hooks: {
+				setSeries: [
+					(u, sIdx) => {
+						if (sIdx !== 3) return;
+						setIdxEnabled(u.series[3].show!);
+					}
+				],
+				drawClear: [
+					u => {
+						setSelect(u, data.base);
+						u.setCursor({ left: -1, top: -1 });
+						qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
+						qt.clear();
+						u.series.forEach((s, i) => {
+							if (i > 0) (s as any)._paths = null;
+						});
+					},
+				],
+				draw: [
+					u => {
+						if (!moment) return;
+						const x = u.valToPos(moment, 'x', true);
+						const y = u.bbox.height;
+						u.ctx.save();
+						u.ctx.beginPath();
+						u.ctx.strokeStyle = color('green');
+						u.ctx.lineWidth = 2;
+						drawShape(u.ctx, 6 * devicePixelRatio)['triangleUp'](x, y + 14 * devicePixelRatio);
+						u.ctx.stroke();
+						u.ctx.restore();
+					},
+					u => (params.showMetaInfo) && drawMagneticClouds(u, params),
+					u => (params.showMetaInfo) && drawOnsets(u, params),
+				],
+				ready: [
+					u => {
+						if (interactive)
+							u.over.style.setProperty('cursor', 'pointer');
+						let currentBase = data.base;
+						setSelect(u, currentBase);
+						let isDragged: boolean, clickX: number | undefined, clickY: number | undefined;
+						u.over.addEventListener('mousemove', e => {
+							if (isDragged) {
+								const dragValue = u.posToVal(e.offsetX, 'x') - u.posToVal(clickX!, 'x');
+								currentBase = Math.round((data.base + dragValue) / 3600) * 3600;
+								if (currentBase < u.scales.x.min!)
+									currentBase = u.scales.x.min!;
+								if (currentBase > u.scales.x.max! - 86400)
+									currentBase = u.scales.x.max! - 86400;
+							}
+							setSelect(u, currentBase);
+						});
+						u.over.addEventListener('mousedown', e => {
+							clickX = e.offsetX;
+							clickY = e.offsetY;
+							isDragged = u.valToPos(data.base, 'x') < clickX && clickX < u.valToPos(data.base + 86400, 'x');
+							setSelect(u, currentBase);
+						});
+						u.over.addEventListener('mouseup', e => {
+							if (currentBase !== data.base) {
+								setBase(new Date(currentBase * 1e3));
+							} else if (e.altKey || e.ctrlKey) {
+								clickDownloadPlot(e);
+							} else if (interactive && (u.cursor.left ?? 0) > 0 && Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30) {
+								const detailsIdx = u.posToIdx(u.cursor.left!);
+								if (detailsIdx != null)
+									setMoment(data.time[detailsIdx]);
+							}
+							isDragged = false;
+							clickX = clickY = undefined;
 						});
 					}
-					return (hoveredRect && seriesIdx === hoveredRect.sidx) ? hoveredRect.didx : -1;
+				]
+			},
+			axes: [
+				{
+					...axisDefaults(params.showGrid),
+					...customTimeSplits(params),
 				},
-				points: {
-					size: (u, seriesIdx) => {
-						return hoveredRect && seriesIdx === hoveredRect.sidx ? (hoveredRect.w + 1) / devicePixelRatio : 0;
-					}
-				}
-			})
-		},
-		hooks: {
-			setSeries: [
-				(u, sIdx) => {
-					if (sIdx !== 3) return;
-					setIdxEnabled(u.series[3].show!);
+				{
+					...axisDefaults(params.showGrid),
+					ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
+					scale: 'y',
+					label: applyTextTransform(params.transformText)('effective longitude, deg'),
+					values: (u, vals) => vals.map(v => v.toFixed(0)),
+					space: 48,
+					gap: 4,
+					incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
+				},
+				{
+					scale: 'idx',
+					show: false
 				}
 			],
-			drawClear: [
-				u => {
-					setSelect(u, data.base);
-					u.setCursor({ left: -1, top: -1 });
-					qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
-					qt.clear();
-					u.series.forEach((s, i) => {
-						if (i > 0) (s as any)._paths = null;
-					});
+			scales: {
+				x: {
+					time: false,
+					range: (u, min, max) => [min, max],
 				},
-			],
-			draw: [
-				u => {
-					if (!moment) return;
-					const x = u.valToPos(moment, 'x', true);
-					const y = u.bbox.height;
-					u.ctx.save();
-					u.ctx.beginPath();
-					u.ctx.strokeStyle = color('green');
-					u.ctx.lineWidth = 2;
-					drawShape(u.ctx, 6 * devicePixelRatio)['triangleUp'](x, y + 14 * devicePixelRatio);
-					u.ctx.stroke();
-					u.ctx.restore();
+				y: {
+					range: [-5, 365],
 				},
-				u => (params.showMetaInfo) && drawMagneticClouds(u, params),
-				u => (params.showMetaInfo) && drawOnsets(u, params),
-			],
-			ready: [
-				u => {
-					if (interactive)
-						u.over.style.setProperty('cursor', 'pointer');
-					let currentBase = data.base;
-					setSelect(u, currentBase);
-					let isDragged: boolean, clickX: number | undefined, clickY: number | undefined;
-					u.over.addEventListener('mousemove', e => {
-						if (isDragged) {
-							const dragValue = u.posToVal(e.offsetX, 'x') - u.posToVal(clickX!, 'x');
-							currentBase = Math.round((data.base + dragValue) / 3600) * 3600;
-							if (currentBase < u.scales.x.min!)
-								currentBase = u.scales.x.min!;
-							if (currentBase > u.scales.x.max! - 86400)
-								currentBase = u.scales.x.max! - 86400;
-						}
-						setSelect(u, currentBase);
-					});
-					u.over.addEventListener('mousedown', e => {
-						clickX = e.offsetX;
-						clickY = e.offsetY;
-						isDragged = u.valToPos(data.base, 'x') < clickX && clickX < u.valToPos(data.base + 86400, 'x');
-						setSelect(u, currentBase);
-					});
-					u.over.addEventListener('mouseup', e => {
-						if (currentBase !== data.base) {
-							setBase(new Date(currentBase * 1e3));
-						} else if (e.altKey || e.ctrlKey) {
-							clickDownloadPlot(e);
-						} else if (interactive && (u.cursor.left ?? 0) > 0 && Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30) {
-							const detailsIdx = u.posToIdx(u.cursor.left!);
-							if (detailsIdx != null)
-								setMoment(data.precursor_idx[0][detailsIdx]);
-						}
-						isDragged = false;
-						clickX = clickY = undefined;
-					});
+				idx: {
+					range: [ -.04, 3.62 ]
 				}
+			},
+			series: [
+				{ facets: [ { scale: 'x', auto: true } ] },
+				{
+					label: '+',
+					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
+					stroke: color('cyan'),
+					fill: color('cyan2'),
+					value: legendValue(1),
+					paths: circlePaths((rect: any) => qt.add(rect), 6, params)
+				},
+				{
+					label: '-',
+					facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
+					stroke: color('magenta'),
+					fill: color('magenta2'),
+					value: legendValue(2),
+					paths: circlePaths((rect: any) => qt.add(rect), 8, params)
+				},
+				...(!twoPlots ? [{
+					show: idxEnabled && (params.showPrecursorIndex ?? true),
+					scale: 'idx',
+					label: 'idx',
+					stroke: color('gold'),
+					facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
+					value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
+					paths: linePaths(1.75)
+				} as uPlot.Series] : [])
 			]
-		},
-		axes: [
-			{
-				...axisDefaults(params.showGrid),
-				...customTimeSplits(params),
-			},
-			{
-				...axisDefaults(params.showGrid),
-				ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
-				scale: 'y',
-				label: applyTextTransform(params.transformText)('effective longitude, deg'),
-				values: (u, vals) => vals.map(v => v.toFixed(0)),
-				space: 48,
-				gap: 4,
-				incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
-			},
-			{
-				scale: 'idx',
-				show: false
-			}
-		],
-		scales: {
-			x: {
-				time: false,
-				range: (u, min, max) => [min, max],
-			},
-			y: {
-				range: [-5, 365],
-			},
-			idx: {
-				range: [ -.04, 3.62 ]
-			}
-		},
-		series: [
-			{ facets: [ { scale: 'x', auto: true } ] },
-			{
-				label: '+',
-				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-				stroke: color('cyan'),
-				fill: color('cyan2'),
-				value: legendValue(1),
-				paths: circlePaths((rect: any) => qt.add(rect), 6, params)
-			},
-			{
-				label: '-',
-				facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-				stroke: color('magenta'),
-				fill: color('magenta2'),
-				value: legendValue(2),
-				paths: circlePaths((rect: any) => qt.add(rect), 8, params)
-			},
-			{
-				show: idxEnabled && (params.showPrecursorIndex ?? true),
-				scale: 'idx',
-				label: 'idx',
-				stroke: color('gold'),
-				facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
-				value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
-				paths: linePaths(1.75)
-			}
-		]
-	};
+		};
+		console.log(plotData.slice(0, twoPlots ? -2 : -1))
+		return <>
+			<UplotReact {...{ options, data: plotData.slice(0, twoPlots ? -2 : -1) as any, onCreate: setUplot }}/>
+			{twoPlots && <UplotReact {...{ options: {
+				tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
+				padding: [0, 12, 0, 0],
+				...plotSize(1),
+				scales: {
+					a0: {
+						range: (u, min, max) => [min-.5, max+.5]
+					},
+					idx: {
+						range: (u, min, max) => [-.1, Math.max(6, max * 1.2)]
+					}
+				},
+				axes: [{
+					...axisDefaults(true),
+					...customTimeSplits(params),
+				}, {
+					...axisDefaults(true),
+					label: 'A0r, %',
+					labelSize: 20,
+					size: 44,
+					gap: 8,
+					scale: 'a0',
+				}, {
+					scale: 'idx',
+					show: false
+				}],
+				series: [{
+					value: '{YYYY}-{MM}-{DD} {HH}:{mm}', label: 't', stroke: color('text')
+				}, {
+					label: 'idx',
+					scale: 'idx',
+					width: 2,
+					stroke: color('acid')
+				}, {
+					label: 'A0r',
+					scale: 'a0',
+					width: 3,
+					value: (u, val) => val !== null ? val?.toString() + ' %' : '--',
+					stroke: color('purple')
+				}]
+			}, data: [data.time, data.precursor_idx, data.a0r] as any }}/>}
+		</>;
+	}, [interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	return <div ref={container}>
+		{query.isLoading && <div className='Center'>LOADING...</div>}
+		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		{/* {size.width && query.isFetched && !query.data && <div className='Center'>LACKING DATA...</div>} */}
+		{query.data && <div style={{ position: 'absolute' }}>
+			{plotComponent}
+			{moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
+			{interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
+				{query.isFetching ? 'Fetching...' : (
+					(query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
+					(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')
+				)}
+			</div>}
+		</div>}
+
+	</div>;
 }
 
 function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesResponse, data: CirclesMomentResponse): uPlot.Options {
@@ -413,9 +541,8 @@ function renderPlotData(resp: CirclesResponse, shift?: number) {
 			ni++;
 		}
 	}
-	const precIdx = resp.precursor_idx;
-	console.log('circles data', resp, [ precIdx[0], pdata, ndata, precIdx ]);
-	return [ precIdx[0], pdata, ndata, precIdx ];
+	console.log('circles data', resp, [ resp.time, pdata, ndata, resp.a0r, resp.precursor_idx ]);
+	return [ resp.time, pdata, ndata, [resp.time, resp.a0r], [resp.time, resp.precursor_idx] ];
 }
 
 export function PlotCirclesMoment({ params, data: allData, base, moment, setMoment, settingsOpen }:
@@ -443,89 +570,6 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 		<div style={{ position: 'absolute', top: 0, ...pos, zIndex: 1, backgroundColor: color('bg', .95), border: '2px dashed' }}
 			onClick={() => setMoment(null)}>
 			{plot}
-		</div>
-	);
-}
-
-const LEGEND_H = 32;
-export default function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesParams, settingsOpen?: boolean }) {
-	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	const container = useRef<HTMLDivElement>(null);
-	const size = useSize(container.current?.parentElement);
-
-	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
-	const interactive = params.interactive;
-	let padRight = 60;
-	if (params.stretch && size.width) {
-		// tweak interval so that time axis would align with other (shorter) plots
-		const initialInterval = initParams.interval;
-		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
-		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
-		const pwidth = size.width - 60;
-		const targetHourWidth = (pwidth - padRight) / len;
-		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
-		padRight = padRight % targetHourWidth;
-		params.interval = [
-			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
-			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight)
-		];
-	}
-
-	const [ idxEnabled, setIdxEnabled ] = useState(true);
-	const [ base, setBase ] = useState(params.base);
-	const [ moment, setMoment ] = useState<number | null>(null);
-	
-	const query = useQuery({
-		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
-		queryFn: () => (!params.stretch || size.width) ? fetchCircles<CirclesResponse>(params, base) : null,
-		keepPreviousData: interactive
-	});
-
-	const [ uplot, setUplot ] = useState<uPlot>();
-	const plotData = useMemo(() => {
-		if (!query.data) return null;
-		return renderPlotData(query.data, params.variationShift);
-	}, [query.data, params.variationShift]);
-
-	useEffect(() => setMoment(null), [params.interval]);
-
-	useLayoutEffect(() => {
-		if (uplot) uplot.setSize({ ...size, ...(interactive && { height: size.height - LEGEND_H })  });
-	}, [uplot, size, interactive]);
-
-	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (!interactive) return;
-		if (e.target instanceof HTMLInputElement) return;
-		if (e.code === 'Escape') setMoment(() => null);
-		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
-		if (!move) return;
-		const [ min, max ] = params.interval.map(d => Math.ceil(d.getTime() / 36e5) * 3600);
-		setMoment(mm => mm && Math.min(Math.max(mm + move, min), max));
-	});
-
-	const plotComponent = useMemo(() => {
-		if (!plotData || !container.current || size.height <= 0) return;
-		const options = {
-			padding: [8, params.interactive ? 12 : padRight, 0, 0],
-			...size, ...(interactive && { height: size.height - LEGEND_H }),
-			...circlesPlotOptions(query.data!, params, idxEnabled, setIdxEnabled, setBase, moment, setMoment)
-		} as uPlot.Options;
-		return <UplotReact target={container.current} {...{ options, data: plotData as any, onCreate: setUplot }}/>;
-	}, [interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	return (
-		<div ref={container} style={{ position: query.data ? 'absolute' : 'unset' }}>
-			{query.isLoading && <div className='Center'>LOADING...</div>}
-			{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
-			{/* {size.width && query.isFetched && !query.data && <div className='Center'>LACKING DATA...</div>} */}
-			{query.data && moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }}/>}
-			{plotComponent}
-			{query.data && interactive && <div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
-				{query.isFetching ? 'Fetching...' : (
-					(query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
-					(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')
-				)}
-			</div>}
 		</div>
 	);
 }
@@ -607,6 +651,7 @@ export function PlotCirclesStandalone() {
 				realtime: true,
 				window: 3,
 			}),
+			twoPlots: true,
 			stretch: false,
 			interactive: true,
 			autoFilter: true

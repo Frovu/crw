@@ -9,6 +9,9 @@ pi = np.pi
 PERIOD = 3600
 BASE_LENGTH = 24
 
+def compute_a0r(data):
+	return np.nanmean(data, axis=1)
+
 def _determine_base(time, data):
 	mean_val = np.nanmean(data, axis=0)
 	mean_var = np.nanmean(data / mean_val, axis=1)
@@ -63,7 +66,8 @@ ANI = {
 
 def precursor_idx0(x, y, curve):
 	popt = curve_fit_shifted(x, y, curve, trim_bounds=1/6)
-	if popt is None: return None, popt
+	if popt is None:
+		return None, popt
 	angle, scale = abs(popt[0]), abs(popt[1]) * 2
 	if scale < .5 or scale > 5 or angle < 1 or angle > 2.5:
 		return 0, popt
@@ -73,7 +77,8 @@ def precursor_idx(x, y, curve=ANI['simple_precursor_cos']):
 	return precursor_idx0(x, y, curve)
 
 def curve_fit_shifted(x, y, curve: AnisotropyFn, trim_bounds=0):
-	if not len(y): return None
+	if not len(y):
+		return None
 	amax, amin = x[np.argmax(y)], x[np.argmin(y)]
 	approx_dist = np.abs(amax - amin)
 	center_target = 180 if approx_dist < 180 else 360
@@ -102,7 +107,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 
 	stations, neutron_data = database.fetch((t_from, t_to), req_stations)
 	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
-	time, data = np.uint64(neutron_data[:,0]), neutron_data[:,1:]
+	time, data = np.array(neutron_data[:,0], dtype='i8'), neutron_data[:,1:]
 	
 	with warnings.catch_warnings():
 		warnings.filterwarnings(action='ignore', message='Mean of empty slice')
@@ -127,20 +132,24 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		
 		if details:
 			ii = ceil((details - t_from) / PERIOD)
-			if ii < 0 or ii >= len(time): return {}
+			if ii < 0 or ii >= len(time):
+				return {}
 			return index_details(time[ii], *get_xy(ii))
 		
 		prec_idx = np.full_like(time, np.nan, dtype='f8')
 		for i in range(window - 1, len(prec_idx)):
 			prec_idx[i] = precursor_idx(*get_xy(i))[0]
+	
+	a0r = compute_a0r(variation)
 			
 	return dict({
 		'base': int(time[base_idx[0]]),
 		'time': time.tolist(),
+		'precursor_idx': np.where(~np.isfinite(prec_idx), None, np.round(prec_idx, 2)).tolist(),
 		'variation': np.where(~np.isfinite(variation), None, np.round(variation, 2)).tolist(),
+		'a0r': np.where(~np.isfinite(a0r), None, np.round(a0r, 2)).tolist(),
 		'shift': directions,
 		'station': list(stations),
-		'precursor_idx': [time.tolist(), np.where(~np.isfinite(prec_idx), None, np.round(prec_idx, 2)).tolist()],
 		'filtered': int(filtered),
 		'excluded': exclude + [stations[i] for i in excluded]
 	})
