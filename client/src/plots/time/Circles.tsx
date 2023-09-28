@@ -119,13 +119,13 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
 	const { rsmExtended: twoPlots, interactive } = params;
-	let padRight = 60;
+	let padRight = 64;
 	if (params.stretch && size.width) {
 		// tweak interval so that time axis would align with other (shorter) plots
 		const initialInterval = initParams.interval;
 		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
 		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
-		const pwidth = size.width - 60;
+		const pwidth = size.width - 64;
 		const targetHourWidth = (pwidth - padRight) / len;
 		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
 		padRight = padRight % targetHourWidth;
@@ -311,7 +311,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					label: applyTextTransform(params.transformText)('effective longitude, deg'),
 					values: (u, vals) => vals.map(v => v.toFixed(0)),
 					space: 48,
-					gap: 4,
+					gap: 2,
 					incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
 				},
 				{

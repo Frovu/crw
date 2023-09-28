@@ -110,9 +110,10 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 		let y = 0;
 		settings.plots.forEach((plot, i) => {
-			const plotCanvas = container.current!.children[i].querySelector('canvas');
-			if (!plotCanvas) return;
-			ctx.drawImage(plotCanvas, 0, y);
+			const nodes = container.current!.children[i].querySelectorAll('canvas');
+			for (const can of nodes) {
+				ctx.drawImage(can, 0, y + (can.offsetParent as HTMLDivElement)?.offsetTop ?? 0);
+			}
 			y += plot.height;
 		});
 
@@ -281,7 +282,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						<Checkbox text='Grid' k='showGrid'/>
 						<Checkbox text='Markers' k='showMarkers'/>
 						<Checkbox text='Legend' k='showLegend'/>
-						<label style={{ paddingLeft: 4, cursor: 'pointer' }}>
+						<label title='Draw magnetic clouds' style={{ paddingLeft: 4, cursor: 'pointer' }}>
 							MC<input type='checkbox' checked={settings.showClouds} onChange={e => set('showClouds', e.target.checked)}/></label>
 						
 					</div>
