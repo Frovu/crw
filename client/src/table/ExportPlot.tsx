@@ -22,6 +22,7 @@ type TranformEntry = TextTransform & { id: number };
 type PlotExportSettings = {
 	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 	theme: typeof themeOptions[number],
+	showClouds: boolean,
 	width: number,
 	plots: PlotSettings[],
 	transformText: TranformEntry[],
@@ -46,6 +47,7 @@ const defaultSettings = (): PlotExportSettings => ({
 		showBeta: true,
 		overrideScales: {},
 	},
+	showClouds: true,
 	theme: 'Dark',
 	width: 640,
 	transformText: [],
@@ -152,6 +154,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			...settings.plotParams,
 			transformText: settings.transformText,
 			...plotContext!,
+			clouds: settings.showClouds ? plotContext?.clouds : [],
 			stretch: settings.plots.length < 2,
 			interval: [
 				new Date(leftTime),
@@ -188,7 +191,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 		effectiveScales[sc].active = true;
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
-		return <label style={{ margin: '0 4px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 8 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
+		return <label style={{ margin: '0 6px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 4 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;
 	}
 
 	return (<div style={{ userSelect: 'none', padding: 8 / devicePixelRatio, display: 'grid', gridTemplateColumns: `${360 / devicePixelRatio}px auto`, height: 'calc(100vh - 16px)' }}>
@@ -276,8 +279,11 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 					<h4 style={{ margin: '10px 0' }}>Global</h4>
 					<div style={{ margin: '-2px 0 0 0' }}>
 						<Checkbox text='Grid' k='showGrid'/>
-						<Checkbox text=' Markers' k='showMarkers'/>
-						<Checkbox text=' Legend' k='showLegend'/>
+						<Checkbox text='Markers' k='showMarkers'/>
+						<Checkbox text='Legend' k='showLegend'/>
+						<label style={{ paddingLeft: 4, cursor: 'pointer' }}>
+							MC<input type='checkbox' checked={settings.showClouds} onChange={e => set('showClouds', e.target.checked)}/></label>
+						
 					</div>
 					<div style={{ margin: '8px 0 20px 4px' }}>
 						{settings.transformText.map(({ search, replace, id }) => <div style={{ marginBottom: 4 }} key={id}>
