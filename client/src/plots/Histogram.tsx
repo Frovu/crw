@@ -1,11 +1,11 @@
 import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { HistOptions } from '../table/Statistics';
-import { SampleContext, SettingsContext, TableContext } from '../table/Table';
+import { HistOptions } from '../events/Statistics';
+import { SampleContext, SettingsContext, TableContext } from '../events/Table';
 import { useSize } from '../util';
 import { axisDefaults, clickDownloadPlot, color, font } from './plotUtil';
-import { applySample } from '../table/Sample';
+import { applySample } from '../events/Sample';
 
 const colors = ['magenta', 'acid', 'cyan'];
 

@@ -1,5 +1,6 @@
 import uPlot from 'uplot';
-import { basicDataQuery, BasicPlot, BasicPlotParams, color } from '../plotUtil';
+import { BasicPlot, basicDataQuery } from '../BasicPlot';
+import { BasicPlotParams, color } from '../plotUtil';
 
 export type GeomagnParams = BasicPlotParams & {
 	useAp: boolean,
@@ -41,7 +42,7 @@ const myBars = (params: GeomagnParams) => (upl: uPlot, seriesIdx: number, i0: nu
 export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 	return (<BasicPlot {...{
 		queryKey: ['geomagn', params.interval],
-		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
+		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		params,
 		axes: [
 			{

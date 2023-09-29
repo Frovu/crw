@@ -1,5 +1,5 @@
-import './css/Table.css';
-import { KEY_COMB } from './table/TableMenu';
+import './styles/Table.css';
+import { KEY_COMB } from './events/TableMenu';
 
 export default function Help() {
 	return (<div style={{ padding: '1em 0 20em 3em', maxWidth: '80ch', textAlign: 'justify' }}>

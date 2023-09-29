@@ -1,4 +1,4 @@
-import '../css/Table.css';
+import '../styles/Table.css';
 import React, { useState, createContext, useContext, useMemo, useRef, SetStateAction } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, apiPost, clamp, useEventListener, useMutationHandler, usePersistedState, useSize } from '../util';

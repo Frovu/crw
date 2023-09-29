@@ -79,7 +79,7 @@ def revision(author, comment, stationRevisions):
 			log.info(f'Neutron: inserting revision of length {len(revs)} for {sid.upper()} around {revs[0,0]}')
 			conn.execute('INSERT INTO neutron.revision_log (author, comment, station, rev_time, rev_value)' +\
 				'VALUES (%s, %s, %s, %s, %s)', [author, comment, sid, revs[:,0].tolist(), revs[:,1].tolist()])
-			upsert_many(conn, f'nm.{sid}_1h', ['time', 'revised'], revs.tolist(), write_nulls=True)
+			upsert_many(f'nm.{sid}_1h', ['time', 'revised'], revs.tolist(), write_nulls=True)
 			update_result_table(conn, sid, [revs[0,0], revs[-1,0]])
 
 def revert_revision(rid):

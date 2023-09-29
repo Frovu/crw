@@ -65,6 +65,7 @@ def _obtain_similar(interval, stations, source):
 		log.debug(f'Neutron: splitting obtain interval of len {int((interval[1] - interval[0]) / HOUR)} (> {MAX_OBTAIN_LENGTH / HOUR})')
 		i = interval[0]
 		while i < interval[1]:
+			print([i, interval[1]], i < interval[1])
 			last = i + MAX_OBTAIN_LENGTH > interval[1]
 			to = interval[1] if last else i + MAX_OBTAIN_LENGTH - HOUR
 			_obtain_similar([i, to], stations, source)
@@ -101,10 +102,10 @@ def _obtain_similar(interval, stations, source):
 	log.debug(f'Neutron: obtained {source} [{len(data)} * {len(stations)}] {res_dt_interval[0]} to {res_dt_interval[1]}')
 	with pool.connection() as conn:
 		for i, station in enumerate(stations):
-			upsert_many(conn, f'nm.{station}_1h', ['time', 'corrected'],
+			upsert_many(f'nm.{station}_1h', ['time', 'corrected'],
 				np.column_stack((data[:,0], data[:,1+i])), write_nulls=True) # FIXME: should we really write_nulls?
 			if src_res == 60:
-				upsert_many(conn, f'nm.{station}_1min', ['time', 'corrected'],
+				upsert_many(f'nm.{station}_1min', ['time', 'corrected'],
 					np.column_stack((src_data[:,0], src_data[:,1+i])))
 			else:
 				assert src_res == HOUR

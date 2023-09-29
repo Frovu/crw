@@ -1,13 +1,13 @@
 import { useContext, useMemo, useState } from 'react';
-import { SampleContext, SettingsContext, TableContext } from '../table/Table';
-import { MenuCheckbox, MenuSelect } from '../table/TableMenu';
+import { SampleContext, SettingsContext, TableContext } from '../events/Table';
+import { MenuCheckbox, MenuSelect } from '../events/TableMenu';
 import { apiPost, useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 import UplotReact from 'uplot-react';
 import { clickDownloadPlot } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
-import { applySample } from '../table/Sample';
+import { applySample } from '../events/Sample';
 
 const colors = ['purple', 'green', 'magenta'];
 

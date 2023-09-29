@@ -1,5 +1,6 @@
 import uPlot from 'uplot';
-import { BasicPlot, BasicPlotParams, CustomScale, CustomSeries, DefaultPosition, PosRef, SizeRef, applyTextTransform, basicDataQuery, color, drawArrow, drawMagneticClouds, drawOnsets, usePlotOverlayPosition } from '../plotUtil';
+import { CustomScale, BasicPlot, basicDataQuery, CustomSeries } from '../BasicPlot';
+import { BasicPlotParams, PosRef, SizeRef, DefaultPosition, color, drawArrow, applyTextTransform, usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -133,7 +134,7 @@ export default function PlotGSMAnisotropy({ params }: { params: GSMParams }) {
 
 	return (<BasicPlot {...{
 		queryKey: ['GSMani', params.interval, params.maskGLE, params.subtractTrend],
-		queryFn: () => basicDataQuery('api/gsm/', params.interval, ['time', 'axy', 'az', 'a10m', 'a10', 'ax', 'ay'], {
+		queryFn: () => basicDataQuery('cream/gsm', params.interval, ['time', 'axy', 'az', 'a10m', 'a10', 'ax', 'ay'], {
 			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),

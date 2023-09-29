@@ -109,9 +109,11 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	stations_q = database.get_stations(group_partial=True) # FIXME
 	req_stations, directions = zip(*[(s.id, s.drift_longitude) for s in stations_q])
 
-	stations, neutron_data = database.fetch((t_from, t_to), req_stations)
+	neutron_data, stations = database.fetch((t_from, t_to), stations_q)
+	print(123)
+	neutron_data = np.array(neutron_data, dtype=np.float64)
 	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
-	time, data = np.array(neutron_data[:,0], dtype='i8'), neutron_data[:,1:]
+	time, data = neutron_data[:,0].astype(np.int64), neutron_data[:,1:]
 	
 	with warnings.catch_warnings():
 		warnings.filterwarnings(action='ignore', message='Mean of empty slice')
@@ -145,7 +147,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 			prec_idx[i] = precursor_idx(*get_xy(i))[0]
 	
 	a0r = compute_a0r(variation)
-	gsm_res, _ = gsm.select([int(time[0]), int(time[-1])], 'A10m')
+	gsm_res = gsm.select([int(time[0]), int(time[-1])], 'A10m')
 	a0m = None if len(gsm_res) != len(a0r) else gsm_res[:,1]
 	if a0m is not None:
 		base = np.nanmean(a0m[base_idx[0]:base_idx[1]])

@@ -22,7 +22,8 @@
   },
   "include": [
     "src",
-    "src/table",
+    "src/data",
+    "src/events",
     "src/plots",
     "src/plots/time"
   ]

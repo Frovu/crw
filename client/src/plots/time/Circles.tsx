@@ -2,15 +2,15 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
 import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
-import { Onset, themeOptions } from '../../table/Table';
+import { Onset, themeOptions } from '../../events/Table';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
-import '../../css/Circles.css';
-import { MenuCheckbox } from '../../table/TableMenu';
+import '../../styles/Circles.css';
+import { MenuCheckbox } from '../../events/TableMenu';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,
@@ -507,7 +507,7 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 
 async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(params: CirclesParams, base?: Date, moment?: number) {
 	try {
-		const res = await apiGet('neutron/ros', {
+		const res = await apiGet('cream/ros', {
 			from: (params.interval[0].getTime() / 1000).toFixed(0),
 			to:   (params.interval[1].getTime() / 1000).toFixed(0),
 			...(moment && { details: moment.toFixed(0) }),

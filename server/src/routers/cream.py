@@ -36,13 +36,14 @@ def get_circles():
 def get_result():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
-	what = request.args.get('fields', 'a10m,a10,ax,ay,az,axy').split(',')
+	query = request.args.get('query', 'a10m,a10,ax,ay,az,axy').split(',')
 	mask_gle = request.args.get('mask_gle', 'true').lower() != 'false'
 	subtract_trend = request.args.get('subtract_trend', 'true').lower() != 'false'
-	res, fields = gsm.select([t_from, t_to], what, mask_gle)
+	res, fields = gsm.select([t_from, t_to], query, mask_gle, with_fields=True)
+	res = np.array(res)
 	for i, f in enumerate(fields):
-		if len(res) and f in ['a10', 'a10m']:
+		if len(res) > 0 and f in ['a10', 'a10m']:
 			res[:,i] = np.round(gsm.normalize_variation(res[:,i], subtract_trend), 2)
-		if len(res) and f == 'az':
+		if len(res) > 0 and f == 'az':
 			res[:,i] = np.round(gsm.normalize_variation(res[:,i], False, True), 2)
-	return { "data": np.where(np.isnan(res), None, res).tolist(), "fields": fields }
+	return { 'fields': fields, 'rows': np.where(np.isnan(res), None, res).tolist() }

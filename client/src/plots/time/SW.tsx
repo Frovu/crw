@@ -1,4 +1,5 @@
-import { basicDataQuery, BasicPlot, BasicPlotParams, color, superScript } from '../plotUtil';
+import { BasicPlot, basicDataQuery } from '../BasicPlot';
+import { BasicPlotParams, color, superScript } from '../plotUtil';
 
 export type SWParams = BasicPlotParams & {
 	useTemperatureIndex: boolean,
@@ -10,7 +11,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 	return (<BasicPlot {...{
 		queryKey: ['SW', params.interval, params.useTemperatureIndex],
 		queryFn: async () => {
-			const data = await basicDataQuery('api/omni/', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
+			const data = await basicDataQuery('omni', params.interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
 			return data?.concat([Array(data[0].length).fill(.5)]) ?? null;
 		},
 		params,

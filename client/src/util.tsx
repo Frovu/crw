@@ -1,5 +1,11 @@
-import React, { SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
+
+export function prettyDate(inp: Date | number | null, short=false) {
+	if (inp == null) return 'N/A';
+	const date = inp instanceof Date ? inp : new Date(1e3 * inp);
+	return isNaN(date.getTime()) ? 'Invalid' : date.toISOString().replace('T', ' ').replace(short ? /\s.*/ : /(:00)?\..*/, '');
+}
 
 export const clamp = (min: number, max: number, val: number, minFirst: boolean=false) =>
 	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
@@ -152,4 +158,32 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 
 	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
 		ref={ref} onChange={onChange} onBlur={() => valid && callback(input && parseInput(type, input))}></input>;
+}
+
+const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?: number) {
+	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
+	const init = initial ?? new Date();
+	const [{ year, month, count, interval }, dispatch] = useReducer<R>((state, { action, value }) => {
+		const st = { ...state, [action]: value };
+		st.interval = [0, st.count].map(inc => new Date(Date.UTC(st.year, st.month + inc)).getTime() / 1e3);
+		return st;
+	}, {
+		year: init.getFullYear(),
+		month: init.getMonth(),
+		count: initialMonths ?? 1,
+		interval: [0, initialMonths ?? 1].map(inc => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3)
+	});
+	const set = (action: 'month'|'year'|'count', value: number) => dispatch({ action, value });
+
+	return [interval, <div style={{ display: 'inline-block' }}>
+		<select onWheel={e => set('month', Math.max(0, Math.min(month + Math.sign(e.deltaY), 11)))}
+			value={monthNames[month]} onChange={e => set('month', monthNames.indexOf(e.target.value))}>
+			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
+		</select> <input style={{ width: '6ch' }} type='number' min='1957' max={new Date().getFullYear()}
+			value={year} onChange={e => !isNaN(e.target.valueAsNumber) && set('year', e.target.valueAsNumber)}
+		/> + <input style={{ width: '4ch', textAlign: 'center' }} type='number' min='1' max={maxMonths ?? 24}
+			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
+		/> month{count === 1 ? '' : 's'}
+	</div>] as [number[], ReactElement];
 }

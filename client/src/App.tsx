@@ -1,11 +1,15 @@
 import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
 import { createContext, useContext, useEffect, useState } from 'react';
-import Table from './table/Table';
+import Table from './events/Table';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import { apiGet, apiPost, useEventListener, useMutationHandler } from './util';
-import './css/index.css';
+import './styles/index.css';
 import Help from './Help';
 import PlotGSM from './plots/time/GSM';
+import TemperatureApp from './data/muon/Temperature';
+import Neutron from './data/neutron/Neutron';
+import MuonApp from './data/muon/Muon';
+import OmniApp from './data/omni/Omni';
 
 const theQueryClient = new QueryClient();
 
@@ -95,14 +99,19 @@ export function AuthButton() {
 }
 
 function App() {
-	const apps = ['ros', 'help', 'test'];
-	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'feid';
+	const apps = ['feid', 'ros', 'help', 'test', 'meteo', 'muon', 'neutron', 'omni'];
+	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
 	useEffect(() => {
 		document.title = {
+			meteo: 'Crow: meteo',
+			neutron: 'CREAM: NM',
+			muon: 'CREAM: MT',
+			omni: 'Crow: Omni',
 			ros: 'RoS',
-			help: 'AID Manual',
+			help: 'Manual',
 			feid: 'FEID',
 			test: 'test',
+			none: 'Swan & Crow'
 		}[app]!;
 	}, [app]);
 
@@ -132,6 +141,19 @@ function App() {
 			{app === 'ros' && <PlotCirclesStandalone/>}
 			{app === 'feid' && <Table/>}
 			{app === 'help' && <Help/>}
+			{app === 'meteo' && <TemperatureApp/>}
+			{app === 'neutron' && <Neutron/>}
+			{app === 'muon' && <MuonApp/>}
+			{app === 'omni' && <OmniApp/>}
+			{app === 'none' && <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
+				<h4>Select an application:</h4>
+				- <a href='feid'>Forbush Effects and Interplanetary Disturbances catalogue</a><br/>
+				- <a href='ros'>Ring of Stations method</a><br/>
+				- <a href='meteo'>Atmospheric temperature</a><br/>
+				- <a href='neutron'>Neutron monitors</a><br/>
+				- <a href='muon'>Muon telescopes</a><br/>
+				- <a href='omni'>Interplanetary medium (omni)</a>
+			</div>}
 			{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}
 		</AuthContext.Provider>
 	);

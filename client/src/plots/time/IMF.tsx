@@ -1,4 +1,5 @@
-import { basicDataQuery, BasicPlot, BasicPlotParams, color, CustomSeries } from '../plotUtil';
+import { BasicPlot, basicDataQuery, CustomSeries } from '../BasicPlot';
+import { BasicPlotParams, color } from '../plotUtil';
 
 export type IMFParams = BasicPlotParams & {
 	showBz: boolean,
@@ -8,7 +9,7 @@ export type IMFParams = BasicPlotParams & {
 export default function PlotIMF({ params }: { params: IMFParams }) {
 	return (<BasicPlot {...{
 		queryKey: ['IMF', params.interval],
-		queryFn: () => basicDataQuery('api/omni/', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
+		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 		params,
 		axes: [
 			{
