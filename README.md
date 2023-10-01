@@ -1,5 +1,7 @@
 # CRW
-Cosmic Research Workhorse, a monolithic system for various solar activity, space weather and cosmic rays research.
+**C**osmic **R**esearch **W**orkhorse - a monolithic system for various solar activity, space weather and cosmic rays research.
+
+Developed and used at IZMIRAN
 
 Includes applications such as:
 - **FEID**: Forbush Effects and Interplanetary Disturbances comprehensive interactive catalogue

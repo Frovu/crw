@@ -14,7 +14,7 @@ type PlotSettings = {
 	type: typeof trivialPlots[number],
 	height: number,
 	showTime: boolean,
-	showMeta: boolean
+	showMeta: boolean,
 	id: number
 };
 

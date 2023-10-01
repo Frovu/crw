@@ -2,30 +2,12 @@ import { useState, useContext, Fragment, ReactNode, CSSProperties } from 'react'
 import { TableContext, DataContext, SettingsContext, Settings, plotTypes, prettyTable, themeOptions } from './Table';
 import { useEventListener, dispatchCustomEvent, useMutationHandler, apiPost } from '../util';
 import { CorrelationMenu, HistogramMenu } from './Statistics';
-import { AuthButton, AuthContext } from '../App';
+import { AuthButton } from '../Auth';
 import { GenericsSelector } from './Generics';
 import { SampleMenu } from './Sample';
 import { useQueryClient } from 'react-query';
 import ImportMenu from './Import';
-
-export const KEY_COMB = {
-	'openColumnsSelector': 'C',
-	'openGenericsSelector': 'G',
-	'addFilter': 'F',
-	'removeFilter': 'R',
-	'exportPlot': 'E',
-	'plot': 'P',
-	'plotPrev': 'BracketLeft%[',
-	'plotNext': 'BracketRight%]',
-	'plotPrevShown': 'Comma%<',
-	'plotNextShown': 'Period%<',
-	'switchViewPlots': 'H',
-	'switchHistCorr': 'J',
-	'switchTheme': 'T',
-	'refetch': 'L',
-	'commitChanges': 'Ctrl+S',
-	'discardChanges': 'Ctrl+X'
-} as { [action: string]: string };
+import { AuthContext, KEY_COMB } from '../constants';
 
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: string[] }) {
 	const { isLoading, report, mutate, color } = useMutationHandler(fn, invalidate);

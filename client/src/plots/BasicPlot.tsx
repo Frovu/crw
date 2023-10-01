@@ -6,7 +6,7 @@ import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font } from './plotUtil';
 import uPlot from 'uplot';
 
-export function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
+function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => {
 		const series = u.series.filter(s => s.show! && s.legend)
