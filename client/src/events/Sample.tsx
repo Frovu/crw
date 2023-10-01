@@ -2,7 +2,7 @@ import { useContext, useLayoutEffect, useState } from 'react';
 import { apiPost, useMutationHandler } from '../util';
 import { ColumnDef, TableContext, SampleContext, parseColumnValue, isValidColumnValue } from './Table';
 import { ConfirmationPopup, MenuInput, MenuSelect } from './TableMenu';
-import { AuthContext } from '../constants';
+import { AuthContext } from '../app';
 
 const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
 export type Filter = {

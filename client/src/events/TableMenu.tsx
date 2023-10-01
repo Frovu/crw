@@ -7,7 +7,7 @@ import { GenericsSelector } from './Generics';
 import { SampleMenu } from './Sample';
 import { useQueryClient } from 'react-query';
 import ImportMenu from './Import';
-import { AuthContext, KEY_COMB } from '../constants';
+import { AuthContext, KEY_COMB } from '../app';
 
 function MutationButton({ text, fn, invalidate }: { text: string, fn: () => Promise<any>, invalidate?: string[] }) {
 	const { isLoading, report, mutate, color } = useMutationHandler(fn, invalidate);

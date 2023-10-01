@@ -1,4 +1,4 @@
-import { KEY_COMB } from './constants';
+import { KEY_COMB } from './app';
 import './styles/Table.css';
 
 export default function Help() {

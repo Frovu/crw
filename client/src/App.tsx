@@ -11,10 +11,13 @@ import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
+import { useEventListener } from './util';
+import { themeOptions, useSettings } from './app';
 
 const theQueryClient = new QueryClient();
 
 function App() {
+	const { theme, setTheme } = useSettings();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -31,6 +34,10 @@ function App() {
 			none: 'Swan & Crow'
 		}[app]!;
 	}, [app]);
+
+	useEventListener('action+switchTheme', () => 
+		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
+	document.documentElement.setAttribute('main-theme', theme);
 
 	if (app === 'none')
 		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
@@ -65,11 +72,16 @@ function App() {
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
-		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none',
+		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', justifyContent: 'space-between',
 			 	color: 'var(--color-text-dark)', borderTop: '1px var(--color-border) solid' }}>
 			<select style={{ border: 'none', padding: 0 }} value={app} onChange={e => { window.location.href = e.target.value; }}>
 				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 			</select>
+			<div title='Application colors scheme' style={{ border: '1px var(--color-border) solid', borderWidth: '0 0 0 1px' }}>
+				<select style={{ border: 'none', padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
+				</select>
+			</div>
 		</div>}
 	</div>);
 }
