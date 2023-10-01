@@ -1,6 +1,7 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, ReactNode } from 'react';
 import { AuthContext } from './constants';
-import { useMutationHandler, apiPost } from './util';
+import { useMutationHandler, apiPost, apiGet, useEventListener } from './util';
+import { useQuery } from 'react-query';
 
 export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'login' | 'password' | 'upsert'}) {
 	const { login: currentLogin } = useContext(AuthContext);
@@ -83,4 +84,22 @@ export function AuthButton() {
 
 		</div>
 	);
+}
+
+export function AuthWrapper({ children }: { children: ReactNode }) {
+
+	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login' | 'upsert'>(null);
+	const query = useQuery(['auth'], () => apiGet('auth/login'));
+	if (query.error)
+		console.error('Failed to fetch auth: ', query.error);
+
+	useEventListener('escape', () => setAuthPrompt(null));
+
+	return <AuthContext.Provider value={{
+		...query.data,
+		promptLogin: setAuthPrompt,
+	}}>
+		{children}
+		{authPrompt && <AuthPrompt type={authPrompt} closePrompt={() => setAuthPrompt(null)}/>}
+	</AuthContext.Provider>;
 }
