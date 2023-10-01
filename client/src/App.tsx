@@ -41,7 +41,7 @@ function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'logi
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
 		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 2.5em 2em' }}>
-			<b>{upsertMode ? 'Upsert user' : !passMode ? 'AID Login' : 'Change password'}</b>
+			<b>{upsertMode ? 'Upsert user' : !passMode ? 'CRW Login' : 'Change password'}</b>
 			<div style={{ textAlign: 'right' }}>
 				<p>
 					User:&nbsp;

@@ -2,9 +2,7 @@ import json, os, logging
 from datetime import datetime
 from dataclasses import dataclass
 import numpy as np
-from database import pool
-
-log = logging.getLogger('aides')
+from database import pool, log
 
 @dataclass
 class ColumnDef:

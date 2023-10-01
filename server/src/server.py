@@ -14,7 +14,7 @@ def rotator(source, dest):
 	os.remove(source)
 
 formatter = logging.Formatter('%(asctime)s/%(levelname)s: %(message)s')
-log_rotate = logging.handlers.TimedRotatingFileHandler('logs/aid.log', 'midnight')
+log_rotate = logging.handlers.TimedRotatingFileHandler('logs/crw.log', 'midnight')
 log_rotate.rotator = rotator
 log_rotate.setLevel(logging.DEBUG)
 log_rotate.setFormatter(formatter)
@@ -22,7 +22,7 @@ log_rotate.setFormatter(formatter)
 sh = logging.StreamHandler()
 sh.setFormatter(formatter)
 
-logger = logging.getLogger('aides')
+logger = logging.getLogger('crw')
 logger.handlers = [ log_rotate, sh ]
 logger.setLevel(logging.DEBUG)
 logger.propagate = False
@@ -38,7 +38,7 @@ from flask import Flask, session
 from flask_session import Session
 from flask_bcrypt import Bcrypt
 
-app = Flask('aides')
+app = Flask('crw')
 if hasattr(app, 'json'):
 	app.json.sort_keys = False
 	app.json.indent = 0

@@ -110,7 +110,6 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	req_stations, directions = zip(*[(s.id, s.drift_longitude) for s in stations_q])
 
 	neutron_data, stations = database.fetch((t_from, t_to), stations_q)
-	print(123)
 	neutron_data = np.array(neutron_data, dtype=np.float64)
 	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
 	time, data = neutron_data[:,0].astype(np.int64), neutron_data[:,1:]

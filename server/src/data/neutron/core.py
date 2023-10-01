@@ -65,7 +65,6 @@ def _obtain_similar(interval, stations, source):
 		log.debug(f'Neutron: splitting obtain interval of len {int((interval[1] - interval[0]) / HOUR)} (> {MAX_OBTAIN_LENGTH / HOUR})')
 		i = interval[0]
 		while i < interval[1]:
-			print([i, interval[1]], i < interval[1])
 			last = i + MAX_OBTAIN_LENGTH > interval[1]
 			to = interval[1] if last else i + MAX_OBTAIN_LENGTH - HOUR
 			_obtain_similar([i, to], stations, source)

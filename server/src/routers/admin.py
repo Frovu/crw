@@ -14,7 +14,7 @@ def kill():
 @bp.route('/logs')
 @require_role('admin')
 def get_logs():
-	with open('logs/aid.log', encoding='utf-8') as file:
+	with open('logs/crw.log', encoding='utf-8') as file:
 		text = file.read()
 	return f'''<html><head></head>
 	<body style="color: #ccc; background-color: #000; font-size: 14px">

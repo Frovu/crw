@@ -1,7 +1,11 @@
-# cr-aid
-**A**pprehend **I**nterplanetary **D**isturbances - An interactive Furbush effect catalog
+# CRW
+Cosmic Research Workhorse, a monolithic system for various solar activity, space weather and cosmic rays research.
 
-# Notes
+Includes applications such as:
+- **FEID**: Forbush Effects and Interplanetary Disturbances comprehensive interactive catalogue
+- **CREAM**: Cosmic Rays Experiments Amalgamation Module
+
+# Notes on FEID
 
 ## Generic columns
 

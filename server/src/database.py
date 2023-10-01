@@ -1,10 +1,10 @@
 import os, logging
 from psycopg_pool import ConnectionPool
 
-log = logging.getLogger('aides')
+log = logging.getLogger('crw')
 pool = ConnectionPool(kwargs = {
-	'dbname': 'cr_aid',
-	'user': 'cr_aid',
+	'dbname': 'crw',
+	'user': 'crw',
 	'password': os.environ.get('DB_PASSWORD'),
 	'host': os.environ.get('DB_HOST')
 })

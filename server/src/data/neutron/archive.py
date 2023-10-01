@@ -1,8 +1,7 @@
-import os, logging
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
-
-log = logging.getLogger('aides')
+from database import log
 
 def obtain(interval, stations):
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in interval]
