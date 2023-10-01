@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
 import { clamp, useEventListener, useSize } from '../util';
-import { LayoutItem } from './EventsApp';
+import { LayoutContent } from './EventsApp';
 
 export type Size = { width: number, height: number };
 
@@ -23,25 +23,32 @@ type Layout = {
 };
 
 type LayoutsState = {
+	dragFrom: null | string,
+	dragTo: null | string,
 	active: string,
 	list: { [name: string]: Layout },
-	updateRatio: (nodeId: string, ratio: number) => void
-};
+	updateRatio: (nodeId: string, ratio: number) => void,
+	startDrag: (nodeId: string | null) => void,
+	dragOver: (nodeId: string) => void,
+	finishDrag: (nodeId: string) => void,
+}; 
 
 export const useLayoutsStore = create<LayoutsState>()(
 	// persist(
 	immer((set, get) => ({
+		dragFrom: null, // FIXME: don't persist this
+		dragTo: null,
 		active: 'default',
 		list: {
 			default: {
 				tree: {
 					root: {
-						split: 'row',
+						split: 'column',
 						ratio: .3,
 						children: ['l', 'rig']
 					},
 					rig: {
-						split: 'column',
+						split: 'row',
 						ratio: .5,
 						children: ['r', 't']
 					}
@@ -53,6 +60,13 @@ export const useLayoutsStore = create<LayoutsState>()(
 				}
 			}
 		},
+		startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
+		dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
+		finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
+			if (!dragFrom || !dragTo) return;
+			const items = list[active].items;
+			[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
+		}),
 		updateRatio: (nodeId: string, ratio: number) =>
 			set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; })
 	}))
@@ -60,13 +74,29 @@ export const useLayoutsStore = create<LayoutsState>()(
 );
 
 const useLayout = () => ({
-	...useLayoutsStore(state => state.list[state.active]),
-	updateRatio: useLayoutsStore(st => st.updateRatio)
+	...useLayoutsStore(({ dragFrom, dragTo, list, active }) => {
+		const st = list[active];
+		if (!dragFrom || !dragTo)
+			return st;
+		return { ...st, items: { ...st.items, [dragFrom]: st.items[dragTo], [dragTo]: st.items[dragFrom] } };
+	})
 });
+
+function Item({ id, size }: { id: string, size: Size }) {
+	const { startDrag, dragOver, finishDrag } = useLayoutsStore();
+	const { items } = useLayout();
+	return <div style={{ ...size, position: 'relative' }}
+		onMouseDown={() => startDrag(id)}
+		onMouseEnter={() => dragOver(id)}
+		onMouseUp={() => finishDrag(id)}>
+		<LayoutContent {...{ params: items[id], size }}/>
+	</div>;
+}
 
 function Node({ id, size }: { id: string, size: Size }) {
 	const drag = useRef<{ ratio: number, click: number } | null>(null);
-	const { tree, items, updateRatio } = useLayout();
+	const { updateRatio, startDrag } = useLayoutsStore();
+	const { tree } = useLayout();
 	const { split, children, ratio } = tree[id]!;
 
 	useEventListener('mousemove', (e: MouseEvent) => {
@@ -75,6 +105,7 @@ function Node({ id, size }: { id: string, size: Size }) {
 		updateRatio(id, clamp(.1, .9, drag.current.ratio + delta / size[dim]));
 	});
 	useEventListener('mouseup', (e: MouseEvent) => {
+		startDrag(null);
 		drag.current = null;
 	});
 
@@ -87,12 +118,12 @@ function Node({ id, size }: { id: string, size: Size }) {
 
 	return <div style={{ ...size, position: 'relative',
 		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}>
-		{tree[propsA.id] ? <Node {...propsA}/> : <LayoutItem {...{ params: items[propsA.id], size: propsA.size }}/>}
+		{tree[propsA.id] ? <Node {...propsA}/> : <Item {...propsA}/>}
 		<div style={{ ...size, [dim]: 12, position: 'absolute', userSelect: 'none',
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 			cursor: isRow ? 'col-resize' : 'row-resize' }}
 		onMouseDown={e => { drag.current = { ratio, click: isRow ? e.clientX : e.clientY }; }}/>
-		{tree[propsB.id] ? <Node {...propsB}/> : <LayoutItem {...{ params: items[propsB.id], size: propsB.size }}/>}
+		{tree[propsB.id] ? <Node {...propsB}/> : <Item {...propsB}/>}
 	</div>;
 }
 
