@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
-import { clamp, useEventListener, useSize } from '../util';
+import { clamp, useSize } from '../util';
 import { LayoutContent } from './EventsApp';
 
 export type Size = { width: number, height: number };
@@ -95,19 +95,9 @@ function Item({ id, size }: { id: string, size: Size }) {
 
 function Node({ id, size }: { id: string, size: Size }) {
 	const drag = useRef<{ ratio: number, click: number } | null>(null);
-	const { updateRatio, startDrag } = useLayoutsStore();
+	const { updateRatio } = useLayoutsStore();
 	const { tree } = useLayout();
 	const { split, children, ratio } = tree[id]!;
-
-	useEventListener('mousemove', (e: MouseEvent) => {
-		if (!drag.current) return;
-		const delta = (isRow ? e.clientX : e.clientY) - drag.current.click;
-		updateRatio(id, clamp(.1, .9, drag.current.ratio + delta / size[dim]));
-	});
-	useEventListener('mouseup', (e: MouseEvent) => {
-		startDrag(null);
-		drag.current = null;
-	});
 
 	const isRow = split === 'row';
 	const dim = isRow ? 'width' : 'height';
@@ -117,7 +107,14 @@ function Node({ id, size }: { id: string, size: Size }) {
 		size: { ...size, [dim]: size[dim] * (1 - ratio!) - 2 } };
 
 	return <div style={{ ...size, position: 'relative',
-		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}>
+		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}
+	onMouseMove={e => {
+		if (!drag.current) return;
+		const delta = (isRow ? e.clientX : e.clientY) - drag.current.click;
+		updateRatio(id, clamp(.1, .9, drag.current.ratio + delta / size[dim]));
+	}}
+	onMouseUp={() => { drag.current = null; }}
+	onMouseLeave={() => { drag.current = null; }}>
 		{tree[propsA.id] ? <Node {...propsA}/> : <Item {...propsA}/>}
 		<div style={{ ...size, [dim]: 12, position: 'absolute', userSelect: 'none',
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
@@ -128,9 +125,11 @@ function Node({ id, size }: { id: string, size: Size }) {
 }
 
 export default function AppLayout() {
+	const { startDrag } = useLayoutsStore();
 	const [container, setContainer] = useState<HTMLDivElement>();
 	const size = useSize(container);
-	return <div style={{ width: '100%', height: '100%' }} ref={el => setContainer(el!)}>
+	return <div style={{ width: '100%', height: '100%' }} ref={el => setContainer(el!)}
+		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
 		<Node {...{ size, id: 'root' }}/>
 	</div>;
 }
