@@ -369,7 +369,7 @@ function CoreWrapper() {
 								<Menu/>
 								<TableSampleInput/>
 							</div>
-							<TableView {...{ viewSize, plotId: plotIdx && data[plotIdx][0] }}/>
+							{/* <TableView {...{ viewSize, plotId: plotIdx && data[plotIdx][0] }}/> */}
 							<PlotWrapper which='plotLeft' bound={blockMode && samplePlotTypes.includes(settings.plotLeft as any)}/>
 						</div>
 						{!blockMode && <div className='AppColumn' style={{ gridTemplateRows: `${100-settings.plotBottomSize}% calc(${settings.plotBottomSize}% - 4px)` }}>

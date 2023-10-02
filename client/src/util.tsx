@@ -1,6 +1,8 @@
 import React, { ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
+export type Size = { width: number, height: number };
+
 export function prettyDate(inp: Date | number | null, short=false) {
 	if (inp == null) return 'N/A';
 	const date = inp instanceof Date ? inp : new Date(1e3 * inp);

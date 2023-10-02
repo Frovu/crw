@@ -23,13 +23,13 @@ export const KEY_COMB = {
 
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
-type Settings = {
+type AppSettings = {
 	theme: typeof themeOptions[number],
-	setTheme: (theme: Settings['theme']) => void,
+	setTheme: (theme: AppSettings['theme']) => void,
 	// set: <T extends keyof Settings>(key: T, val: Settings[T]) => void
 };
 
-export const useSettings = create<Settings>()(
+export const useAppSettings = create<AppSettings>()(
 	persist((set) => ({
 		theme: themeOptions[0],
 		setTheme: (theme) => set(state => ({ ...state, theme }))

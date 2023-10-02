@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
-import { clamp, dispatchCustomEvent, useEventListener } from '../util';
-import { ColumnDef, Cursor, DataContext, prettyTable, TableViewContext, parseColumnValue, isValidColumnValue, valueToString, TableContext, SettingsContext } from './Table';
+import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
+import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef, MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
-	const { markers, columns } = useContext(DataContext);
-	const { makeChange, changelog: wholeChangelog } = useContext(TableContext);
-	const { cursor, setCursor, plotId } = useContext(TableViewContext);
+	const { markers, columns } = useContext(TableViewContext);
+	const { makeChange, changelog: wholeChangelog } = useContext(MainTableContext);
+	const { cursor, setCursor, setEditing, plotId } = useViewState();
 	const [values, setValues] = useState(Object.fromEntries(row.slice(1).map((value, i) =>
 		[i, valueToString(value)])));
 	const [validInputs, setValidInputs] = useState(Object.fromEntries(row.slice(1).map((r, i) => [i, true])));
@@ -21,7 +21,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 		const value = str === '' ? null : auto ? 'auto' : parseColumnValue(str.trim(), columns[i]);
 		const isValid = auto || value == null || isValidColumnValue(value, columns[i]);
 		const isOk = isValid && (update ? makeChange({ id: row[0], column: columns[i], value }) : true);
-		if (update) setCursor(cur => cur && ({ ...cur, editing: false }));
+		if (update) setEditing(false);
 		setValues(vv => ({ ...vv, [i]: str }));
 		setValidInputs(vv => ({ ...vv, [i]: isOk }));
 	};
@@ -54,13 +54,16 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 	);
 }
 
-function ColumnHeader({ col }: { col: ColumnDef }) {
-	const { sort, setSort } = useContext(TableViewContext);
+function ColumnHeader({ id, col }: { id: string, col?: ColumnDef }) {
+	const { sort, setSort } = useViewState();
+	const desc = id === '_sample' ? 'f is filter, + is whitelist, - is blacklist' : col?.description;
 	return (
-		<td title={col.description} style={{ maxWidth: col.width+.5+'ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', wordBreak: 'break-word', cursor: 'pointer', userSelect: 'none' }}
-			onClick={()=>setSort({ column: col.id, direction: sort.column === col.id ? sort.direction * -1 as any : 1 })}>
-			{col.name}
-			{sort.column === col.id &&
+		<td rowSpan={ id === '_sample' ? 2 : 1} title={desc} style={{ maxWidth: (col?.width ?? 2)+.5+'ch',
+			position: 'relative', cursor: 'pointer', userSelect: 'none',
+			clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', wordBreak: 'break-word' }}
+		onClick={()=>setSort({ column: id, direction: sort.column === id ? sort.direction * -1 as any : 1 })}>
+			{col?.name ?? '##'}
+			{sort.column === id &&
 				<div style={{ backgroundColor: 'transparent', position: 'absolute', left: 0, width: '100%', height: 1,
 					[sort.direction < 0 ? 'top' : 'bottom']: -2, boxShadow: '0 0px 20px 6px var(--color-active)' }}/> }
 		</td>
@@ -68,14 +71,16 @@ function ColumnHeader({ col }: { col: ColumnDef }) {
 }
 
 const MAX_CHANGELOG_ROWS = 3;
-export default function TableView({ viewSize: maxViewSize }: { viewSize: number }) {
-	const { changes, changelog: wholeChangelog } = useContext(TableContext);
-	const { data, columns, averages, markers } = useContext(DataContext);
-	const { sort, setSort, cursor, setCursor } = useContext(TableViewContext);
-	const { settings: { showChangelog } } = useContext(SettingsContext);
+export default function TableView({ size }: { size: Size }) {
+	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
+	const { data, columns, averages, markers } = useContext(TableViewContext);
+	const { sort, cursor, setCursor, escapeCursor } = useViewState();
+	const { showChangelog } = useEventsSettings();
+
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(0);
-	const viewSize = averages ? Math.max(2, maxViewSize - 4) : maxViewSize;
+	
+	const viewSize = Math.floor(size.height / 28) - 4; // FIXME
 
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0] as number];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
@@ -85,26 +90,31 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 	// changelog?.map(chg => )
 	const changesRows = Math.min(3, changelog?.length ?? 0);
 
-	const updateViewIndex = (curs: Exclude<Cursor, null>) => {
+	const updateViewIndex = (curs: Cursor) => {
 		const indent = showChangelog ? MAX_CHANGELOG_ROWS + 1 : 1;
 		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
 			(curs.row + indent >= viewIndex+viewSize ? curs.row - viewSize + indent + 1 : viewIndex);
 		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize + changesRows));
 	};
 
+	useEventListener('escape', escapeCursor);
+
 	useLayoutEffect(() => {
 		setViewIndex(clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : data.length));
 	}, [data.length, viewSize, sort, cursor]);
+
 	useEffect(() => {
 		if (!ref.current) return;
-		ref.current.onwheel = e => setViewIndex(idx => {
+		ref.current.onwheel = e => setViewIndex(idx => { // FIXME
 			const table = ref.current?.children[0];
-			if (!table?.contains(e.target as Node)) return idx;
-			const newIdx = Math.min(Math.max(idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2), 0), data.length <= viewSize ? 0 : data.length - viewSize);
-			setCursor(((curs: Cursor) => ((curs?.row! > newIdx + viewSize || curs?.row! < newIdx) ? null : curs)) as any);
-			return newIdx;
+			if (!table?.contains(e.target as Node))
+				return idx;
+			queueMicrotask(() => setCursor(null));
+			const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
+			return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 		});
 	}, [data.length, viewSize, setCursor]);
+
 	useLayoutEffect(() => {
 		if (!cursor) return;
 		updateViewIndex(cursor);
@@ -170,19 +180,18 @@ export default function TableView({ viewSize: maxViewSize }: { viewSize: number 
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>(); // this is weird
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
-	return ( // https://stackoverflow.com/questions/43311943/prevent-content-from-expanding-grid-items
+	return ( 
 		<div style={{ minWidth: 0, maxWidth: 'fit-content', border: '1px solid var(--color-border)' }}>
 			<div className='Table' ref={ref}>
 				<table style={{ tableLayout: 'fixed', minWidth: 264 }}>
 					<thead>
 						<tr>
-							{markers && <td key='smpl' style={{ minWidth: '3ch', position: 'relative', clipPath: 'polygon(0 0,0 100%,100% 100%, 100% 0)', cursor: 'pointer' }} title='f is filter, + is whitelist, - is blacklist'
-								onClick={()=>setSort({ column: '_sample', direction: sort.column !== '_sample' ? 1 : sort.direction*-1 as any })} rowSpan={2}>##{sort.column === '_sample' && <div style={{ backgroundColor: 'transparent', position: 'absolute', left: 0, width: '100%', height: 1,
-									[sort.direction < 0 ? 'top' : 'bottom']: -2, boxShadow: '0 0px 20px 6px var(--color-active)' }}/>}</td>}
-							{[...tables].map(([table, cols]) => <td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
+							{markers && <ColumnHeader id='_sample'/>}
+							{[...tables].map(([table, cols]) =>
+								<td key={table} colSpan={cols.length}>{prettyTable(table)}</td>)}
 						</tr>
 						<tr>
-							{columns.map(col => <ColumnHeader key={col.id} {...{ col, sort, setSort }}/>)}
+							{columns.map(col => <ColumnHeader key={col.id} id={col.id} col={col}/>)}
 						</tr>
 					</thead>
 					<tbody>

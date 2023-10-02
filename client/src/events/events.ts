@@ -8,6 +8,7 @@ import { GSMParams } from '../plots/time/GSM';
 import { GeomagnParams } from '../plots/time/Geomagn';
 import { IMFParams } from '../plots/time/IMF';
 import { SWParams } from '../plots/time/SW';
+import { immer } from 'zustand/middleware/immer';
 
 type EventsSettings = {
 	showColumns: string[],
@@ -26,7 +27,8 @@ const defaultSettings = {
 	plotOffsetDays: [-1, 2],
 };
 
-export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>
+export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams
+ 	, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>;
 export const defaultPlotParams: CommonPlotParams = {
 	showGrid: true,
 	showMarkers: true,
@@ -139,7 +141,7 @@ export type ChangeLog = {
 export type Value = Date | string | number | null;
 export type ChangeValue = { id: number, column: ColumnDef, value: Value };
 export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, editing?: boolean } | null;
+export type Cursor = { row: number, column: number, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{ data: Value[][], columns: ColumnDef[],
@@ -154,7 +156,37 @@ export const TableViewContext = createContext<{ data: Value[][], columns: Column
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 
-// export const useViewState = create()
+type ViewState = {
+	cursor: Cursor | null,
+	sort: Sort,
+	plotId: number | null,
+	setEditing: (val: boolean) => void,
+	setCursor: (cursor: ViewState['cursor']) => void,
+	setSort: (sort: ViewState['sort']) => void,
+	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
+	escapeCursor: () => void,
+};
+
+const defaultViewSate = {
+	cursor: null,
+	sort: { column: 'fe_time', direction: 1 } as const,
+	plotId: null,
+};
+
+export const useViewState = create<ViewState>()(
+	immer(
+		set => ({
+			...defaultViewSate,
+			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
+			setCursor: (cursor) => set(st => ({ ...st, cursor })),
+			setSort: (sort) => set(st => ({ ...st, sort })),
+			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
+			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
+		})
+	)
+);
+
+export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 
 export function equalValues(a: Value, b: Value) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;

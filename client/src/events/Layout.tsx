@@ -3,11 +3,9 @@ import { useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
-import { clamp, useEventListener, useSize } from '../util';
+import { clamp, useEventListener, useSize, Size } from '../util';
 import { ContextMenuContent, LayoutContent } from './EventsApp';
 import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, panelOptions } from './events';
-
-export type Size = { width: number, height: number };
 
 type LayoutTreeNode = {
 	split: 'row' | 'column',
@@ -43,22 +41,26 @@ const defaultState = {
 };
 
 export const useLayoutsStore = create<LayoutsState>()(
-	// persist(
-	immer((set, get) => ({
-		...defaultState,
-		closeContextMenu: () => set(state => ({ ...state, contextMenu: null })),
-		openContextMenu: (x, y, id) => set(state => ({ ...state, contextMenu: state.contextMenu ? null : { x, y, id } })),
-		startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
-		dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
-		finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
-			if (!dragFrom || !dragTo) return;
-			const items = list[active].items;
-			[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
-		}),
-		updateRatio: (nodeId: string, ratio: number) =>
-			set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; })
-	}))
-	// , { name: 'eventsAppLayouts' })
+	persist(
+		immer((set, get) => ({
+			...defaultState,
+			closeContextMenu: () => set(state => ({ ...state, contextMenu: null })),
+			openContextMenu: (x, y, id) => set(state => ({ ...state, contextMenu: state.contextMenu ? null : { x, y, id } })),
+			startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
+			dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
+			finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
+				if (!dragFrom || !dragTo) return;
+				const items = list[active].items;
+				[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
+			}),
+			updateRatio: (nodeId: string, ratio: number) =>
+				set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; })
+		})),
+		{ 
+			name: 'eventsAppLayouts',
+			partialize: ({ active, list }) => ({ active, list })
+		}
+	)
 );
 
 export const resetLayouts = () => useLayoutsStore.setState(defaultState);
@@ -115,7 +117,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		{items[id]?.type ? <LayoutContent {...{ id, params: items[id] }}/> : <div className='Center'><ContextMenu id={id}/></div>}
+		{items[id]?.type ? <LayoutContent {...{ size, params: items[id] }}/> : <div className='Center'><ContextMenu id={id}/></div>}
 	</div>;
 }
 

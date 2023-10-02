@@ -11,14 +11,14 @@ import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { themeOptions, useSettings } from './app';
+import { themeOptions, useAppSettings } from './app';
 import { resetLayouts, useLayoutsStore } from './events/Layout';
 
 const theQueryClient = new QueryClient();
 
 function App() {
 	const [menu, setMenu] = useState<{ left: number } | null>(null);
-	const { theme, setTheme } = useSettings();
+	const { theme, setTheme } = useAppSettings();
 	const { contextMenu, closeContextMenu } = useLayoutsStore();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
