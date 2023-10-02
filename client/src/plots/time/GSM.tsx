@@ -128,7 +128,7 @@ function tracePaths(posRef: PosRef, sizeRef: SizeRef, defaultPos: DefaultPositio
 	};
 }
 
-export default function PlotGSMAnisotropy({ params }: { params: GSMParams }) {
+export default function PlotGSM({ params }: { params: GSMParams }) {
 	const defaultPos = () => ({ x: 8, y: 8 });
 	const [pos, size, handleDrag] = usePlotOverlayPosition(defaultPos);
 

@@ -1,11 +1,19 @@
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useState, useRef, useMemo } from 'react';
+import { useSize, useEventListener, clamp } from '../util';
+import EventsDataProvider from './EventsData';
 import AppLayout from './Layout';
-import { ChangeLog, ChangeValue, ColumnDef, FiltersCollection, MainTableContext, PanelParams, SampleContext, Value, useEventsSettings } from './events';
-import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
-import { useQuery } from 'react-query';
-import { SampleState, Sample, applySample, renderFilters } from './Sample';
-import { TableContext, equalValues, valueToString } from './Table';
-import { ConfirmationPopup } from './TableMenu';
+import { sampleEditingMarkers } from './Sample';
+import { Cursor, MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
+	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings } from './events';
+import TableView from './TableView';
+import CorrelationPlot from '../plots/Correlate';
+import EpochCollision from '../plots/EpochCollision';
+import HistogramPlot from '../plots/Histogram';
+import PlotCircles from '../plots/time/Circles';
+import PlotGeoMagn from '../plots/time/Geomagn';
+import PlotIMF from '../plots/time/IMF';
+import PlotSW from '../plots/time/SW';
+import PlotGSM from '../plots/time/GSM';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: (p: Partial<PanelParams>) => void }) {
 	return <>
@@ -16,215 +24,172 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	</>;
 }
 
-export function LayoutContent({ id, params }: { id: string, params: PanelParams }) {
-	return <div style={{ height: '100%', border: '1px cyan solid', color: 'red', userSelect: 'none', fontSize: 20 }}>
-		<div className='Center'>{params.type}</div></div>;
+export function LayoutContent({ params: state }: { params: PanelParams }) {
+	const plotContext = useContext(PlotContext);
+	const type = state.type;
+
+	const params = plotContext && {
+		...defaultPlotParams,
+		...plotContext!,
+		stretch: true,
+		showTimeAxis: true,
+		showMetaInfo: true
+	};
+
+	return <div style={{ height: '100%', border: '1px cyan solid', userSelect: 'none', overflow: 'clip' }}>
+		{type === 'MainTable' && <TableView/>}
+		{type === 'Histogram' && <HistogramPlot/>}
+		{type === 'Correlation' && <CorrelationPlot/>}
+		{type === 'Epoch collision' && <EpochCollision/>}
+		{type === 'Ring of Stations' && <>
+			<PlotCircles {...{ params }}/>
+			<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
+				href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
+		</>}
+		{type === 'SW' && <PlotIMF {...{ params }}/>}
+		{type === 'SW + Plasma' && <>
+			<div style={{ height: '50%', position: 'relative' }}><PlotIMF params={{ ...params, showTimeAxis: false }} /></div> 
+			<div style={{ height: '50%', position: 'relative' }}><PlotSW {...{ params }}/></div> 
+		</>}
+		{type === 'CR' && <PlotGSM {...{ params }}/>}
+		{type === 'CR + Geomagn' && <>
+			<div style={{ height: '75%', position: 'relative' }}><PlotGSM params={{ ...params, showTimeAxis: false }}/></div> 
+			<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...{ params }} /></div> 
+		</>}
+	</div>;
 }
-export default function EventsApp() {
-	const { showChangelog, reset } = useEventsSettings();
 
-	useEventListener('resetSettings', reset);
+function EventsView() {
+	const { showAverages, showColumns, plotOffsetDays } = useEventsSettings();
+	const { columns, data } = useContext(MainTableContext);
+	const { sample, data: sampleData, isEditing: editingSample, setFilters } = useContext(SampleContext);
+	const [sort, setSort] = useState<Sort>({ column: 'fe_time', direction: 1 });
+	const [plotIdx, setPlotIdx] = useState<number | null>(null);
+	const [cursor, setCursor] = useState<Cursor>(null);
+	const [viewExport, setViewExport] = useState(false);
 
-	// ************************************************************************************
-	// 								  MAIN TABLE STRUCTURE
-	// ************************************************************************************
+	const topDivRef = useRef<HTMLDivElement>(null);
+	useSize(document.body);
 
-	const firstTable = 'forbush_effects'; // FIXME: actually this is weird stuff
-	const structureQuery = useQuery({
-		cacheTime: 60 * 60 * 1000,
-		staleTime: Infinity,
-		queryKey: ['mainTableStructure'],
-		queryFn: async () => {
-			const { tables, series } = await apiGet<{
-				tables: { [name: string]: { [name: string]: ColumnDef } },
-				series: { [s: string]: string }
-			}>('events/info');
+	useEventListener('escape', () => setCursor(curs => curs?.editing ? { ...curs, editing: false } : null));
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([sqlName, desc]) => {
-				const width = (()=>{
-					switch (desc.type) {
-						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
-						case 'time': return 17;
-						case 'text': return 14;
-						default: return 6; 
-					}
-				})();
-				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
-				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
-				return {
-					...desc, table, width, sqlName,
-					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
-					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
-					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
-				} as ColumnDef;
-			}) 	);
-			console.log('%cavailable columns:', 'color: #0f0' , columns);
-			return {
-				tables: Object.keys(tables),
-				columns: [ { id: 'id', hidden: true, table: firstTable } as ColumnDef, ...columns],
-				series: series
-			};
+	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotIdx(current => {
+		if (dir === 0) { // set cursor to plotted line
+			if (cursor)
+				return data.findIndex(r => r[0] === dataContext.data[cursor.row][0]);
+			const found = dataContext.data.findIndex(r => r[0] === data[current!]?.[0]);
+			if (found >= 0) setCursor({ row: found, column: 0 });
 		}
+		if (current == null)
+			return null;
+		if (global)
+			return clamp(0, data.length - 1, current + dir);
+		const shownData = dataContext.data;
+		const found = shownData.findIndex(r => r[0] === data[current][0]);
+		const curIdx = found >= 0 ? found : cursor?.row;
+		if (curIdx == null) return current;
+		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
+		return data.findIndex(r => r[0] === shownData[movedIdx][0]);
+	});
+	useEventListener('action+plot', plotMove(0));
+	useEventListener('action+plotPrev', plotMove(-1, true));
+	useEventListener('action+plotNext', plotMove(+1, true));
+	useEventListener('action+plotPrevShown', plotMove(-1));
+	useEventListener('action+plotNextShown', plotMove(+1));
+
+	useEventListener('setColumn', e => {
+		// const which = e.detail.which, column = e.detail.column.id;
+		// const corrKey = which === 1 ? 'columnX' : 'columnY';
+		// const histKey = 'column' + Math.min(which - 1, 2) as keyof HistOptions;
+		// setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
+		// setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
 	});
 
-	// ************************************************************************************
-	// 								  MAIN TABLE DATA
-	// ************************************************************************************
-
-	const [showCommit, setShowCommit] = useState(false);
-	const [changes, setChanges] = useState<ChangeValue[]>([]);
-	const dataQuery = useQuery({
-		cacheTime: 60 * 60 * 1000,
-		staleTime: Infinity,
-		queryKey: ['tableData', showChangelog], 
-		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: showChangelog })
-	});
-	const rawMainContext = useMemo(() => {
-		if (!dataQuery.data || !structureQuery.data) return null;
-		const { columns, tables, series } = structureQuery.data;
-		const { data: rawData, fields, changelog } = dataQuery.data;
-		const filtered = columns.filter(c => fields.includes(c.id));
-		const indexes = filtered.map(c => fields.indexOf(c.id));
-		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i]));
-		for (const [i, col] of Object.values(filtered).entries()) {
-			if (col.type === 'time') {
-				for (const row of data) {
-					if (row[i] === null) continue;
-					const date = new Date((row[i] as number) * 1e3);
-					row[i] = isNaN(date.getTime()) ? null : date;
-				}
-			}
-		}
-		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
-		return {
-			data,
-			columns: filtered,
-			changelog,
-			firstTable,
-			tables: Array.from(tables),
-			series
-		} as const;
-	}, [dataQuery.data, structureQuery.data]);
-
-	const mainContext = useMemo(() => {
-		if (!rawMainContext) return null;
-		const { data: rawData, columns } = rawMainContext;
-		const data = [...rawData.map(r => [...r])];
-		for (const { id, column, value } of changes) {
-			const row = data.find(r => r[0] === id);
-			const columnIdx = columns.findIndex(c => c.id === column.id);
-			if (row) row[columnIdx] = value;
-		}
-		const sortIdx = columns.findIndex(c => c.name === 'time');
-		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
-		
-		return {
-			...rawMainContext,
-			data,
-			changes,
-			makeChange: ({ id, column, value }: ChangeValue) => {
-				const row = rawData.find(r => r[0] === id);
-				// FIXME: create entity if not exists
-				const colIdx = columns.findIndex(c => c.id === column.id);
-				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
-				if (!entityExists) return false;
-				
-				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
-					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
-				return true;
-			}
-		};
-	}, [rawMainContext, changes]);
-
-	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
-	useEventListener('action+discardChanges', () => setChanges([]));
-
-	const { mutate: doCommit, report, color } = useMutationHandler(() =>
-		apiPost('events/changes', {
-			changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
-		})
-	, ['tableData']);
-
-	// ************************************************************************************
-	// 										SAMPLE
-	// ************************************************************************************
-
-	const [sample, setSample] = useState<SampleState>(null);
-	const [isEditing, setEditing] = useState(false);
-	const [filters, setFilters] = useState<FiltersCollection>([]);
+	useEventListener('action+addFilter', () => setFilters(fltrs => {
+		if (!cursor)
+			return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
+		const column =  dataContext.columns[cursor?.column];
+		const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
+		const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
+		const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
+		return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
+	}));
+	useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 	
-	useEventListener('sampleEdit', (e) => {
-		if (!sample || !isEditing) return;
-		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
-		const target = sample[action];
-		const found = target.indexOf(id);
-		const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
-		setSample(smpl => ({ ...smpl!,
-			[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
-			[opposite]: sample[opposite].filter(i => i !== id)
-		}));
-	});
-
-	const samplesQuery = useQuery('samples', async () => {
-		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
-		console.log('%cavailable samples:', 'color: #0f0', samples);
-		if (sample && !samples.find(s => s.id === sample.id)) {
-			setEditing(false);
-			setSample(null);
+	// dataContext.data[i][0] should be an unique id
+	const dataContext = useMemo(() => {
+		console.time('compute table');
+		const cols = columns.filter(c => showColumns.includes(c.id));
+		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
+		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
+		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]));
+		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
+		const idxs = [...renderedData.keys()], column = cols[sortIdx-1];
+		idxs.sort((a: number, b: number) => sort.direction * (['text','enum'].includes(column?.type) ?
+			(renderedData[a][sortIdx] as string ??'').localeCompare(renderedData[b][sortIdx] as string ??'') :
+			(renderedData[a][sortIdx]??0 as any) - (renderedData[b][sortIdx]??0 as any)));
+		if (markers && sort.column === '_sample') {
+			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
+			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
-		return samples;
-	});
-
-	const sampleContext = useMemo(() => {
-		if (!mainContext || !samplesQuery.data) return null;
-		const { columns, data } = mainContext;
-		console.time('compute sample');
-		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
-		const filterFn = renderFilters(filters.map(f => f.filter), columns);
-		const filtered = applied.filter(row => filterFn(row));
-		console.timeEnd('compute sample');
+		const averages = showAverages ? null : cols.map((col, i) => {
+			if (col.type !== 'real') return null;
+			const sorted = renderedData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
+			if (!sorted.length) return null;
+			const mid = Math.floor(sorted.length / 2);
+			const median = sorted.length % 2 === 0 ? ((sorted[mid-1] + sorted[mid]) / 2) : sorted[mid];
+			const sum = sorted.reduce((a, b) => a + b, 0);
+			const n = sorted.length;
+			const mean = sum / n;
+			const std = Math.sqrt(sorted.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+			const sem = std / Math.sqrt(n);
+			return [median, mean, std, sem];
+		});
+		console.timeEnd('compute table');
 		return {
-			data: filtered, 
-			samples: samplesQuery.data,
-			sample, setSample, isEditing, setEditing, filters, setFilters
+			averages,
+			data: idxs.map(i => renderedData[i]),
+			markers: markers && idxs.map(i => markers[i]),
+			columns: cols
 		};
-	}, [filters, isEditing, mainContext, sample, samplesQuery.data]);
+	}, [columns, sampleData, editingSample, sample, sort, showAverages, showColumns]);
 
-	if (!mainContext || !sampleContext || !structureQuery.data || !dataQuery.data || !samplesQuery.data) {
-		return <div style={{ padding: 8 }}>
-			<div>{structureQuery.isLoading && 'Loading tables..'}</div>
-			<div>{dataQuery.isLoading && 'Loading data...'}</div>
-			<div>{samplesQuery.isLoading && 'Loading samples...'}</div>
-			<div style={{ color: 'var(--color-red)' }}>
-				<div>{structureQuery.error?.toString() ?? dataQuery.error?.toString() ?? samplesQuery.error?.toString()}</div>
-			</div>
-		</div>;
-	}
+	const plotContext = useMemo(() => {
+		if (plotIdx == null) return null;
+		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
+		const plotDate = data[plotIdx][timeIdx] as Date;
+		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
+		const interval = plotOffsetDays.map(days => new Date(hour + days * 864e5));
+		const allNeighbors = data.slice(Math.max(0, plotIdx - 4), Math.min(data.length, plotIdx + 4));
+		const onsets = allNeighbors.filter(r => !viewExport || sampleData.find(sr => sr[0] === r[0]))
+			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== data[plotIdx][0] }) as Onset);
+		const clouds = allNeighbors.map(r => {
+			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
+			if (!time || !dur) return null;
+			return {
+				start: new Date(time),
+				end: new Date(time + dur * 36e5)
+			};
+		}).filter((v): v is MagneticCloud => v != null);
+		return {
+			interval: interval as [Date, Date],
+			onsets, clouds
+		};
+	}, [plotIdx, data, plotOffsetDays, columns, viewExport, sampleData]);
+
+	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
+
 	return (
-		<MainTableContext.Provider value={mainContext}>
-			<SampleContext.Provider value={sampleContext}>
-				{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => doCommit(null, {
-					onSuccess: () => { setShowCommit(false); setChanges([]); }
-				})} close={() => setShowCommit(false)} persistent={true}>
-					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
-					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
-						{changes.map(({ id, column, value }) => {
-							const row = mainContext.data.find(r => r[0] === id);
-							const colIdx = mainContext.columns.findIndex(c => c.id === column.id);
-							const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
-							const val1 = value == null ? 'null' : valueToString(value);
-							return (<div key={id+column.id+value}>
-								<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
-								<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
-								<span className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
-									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}>&times;</span>
-							</div>);})}
-					</div>
-					<div style={{ height: '1em', color }}>{report?.error ?? report?.success}</div>
-				</ConfirmationPopup>}
+		<TableViewContext.Provider value={dataContext}> 
+			<PlotContext.Provider value={plotContext}>
 				<AppLayout/>
-			</SampleContext.Provider>
-		</MainTableContext.Provider>
+			</PlotContext.Provider>
+		</TableViewContext.Provider>
 	);
+}
 
+export default function EventsApp() {
+	return <EventsDataProvider>
+		<EventsView/>
+	</EventsDataProvider>;
 }

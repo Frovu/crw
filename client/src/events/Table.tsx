@@ -382,3 +382,226 @@ function CoreWrapper() {
 		</DataContext.Provider>
 	);
 }
+
+export function SampleWrapper() {
+	const { data: tableData, columns } = useContext(TableContext);
+	const [sample, setSample] = useState<SampleState>(null);
+	const [isEditing, setEditing] = useState(false);
+	const [filters, setFilters] = useState<FiltersCollection>([]);
+	
+	useEventListener('sampleEdit', (e) => {
+		if (!sample || !isEditing) return;
+		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
+		const target = sample[action];
+		const found = target.indexOf(id);
+		const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
+		setSample(smpl => ({ ...smpl!,
+			[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
+			[opposite]: sample[opposite].filter(i => i !== id)
+		}));
+	});
+
+	const query = useQuery('samples', async () => {
+		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
+		console.log('%cavailable samples:', 'color: #0f0', samples);
+		if (sample && !samples.find(s => s.id === sample.id)) {
+			setEditing(false);
+			setSample(null);
+		}
+		return samples;
+	});
+
+	const data = useMemo(() => {
+		console.time('compute sample');
+		const applied = isEditing ? tableData.map(row => [...row]) : applySample(tableData, sample, columns);
+		const filterFn = renderFilters(filters.map(f => f.filter), columns);
+		const filtered = applied.filter(row => filterFn(row));
+		console.timeEnd('compute sample');
+		return filtered;
+	}, [columns, filters, isEditing, sample, tableData]);
+
+	if (query.isLoading)
+		return <div>Loading samples info..</div>;
+	if (!query.data)
+		return <div>Failed to load samples info</div>;
+	return (
+		<SampleContext.Provider value={{ data, sample, setSample, isEditing, setEditing, filters, setFilters, samples: query.data }}>
+			<CoreWrapper/>
+		</SampleContext.Provider>
+	);
+}
+
+function SourceDataWrapper({ tables, columns, series, firstTable }:
+{ tables: string[], columns: ColumnDef[], series: { [s: string]: string }, firstTable: string }) {
+	const [showCommit, setShowCommit] = useState(false);
+	const [changes, setChanges] = useState<ChangeValue[]>([]);
+	const query = useQuery({
+		cacheTime: 60 * 60 * 1000,
+		staleTime: Infinity,
+		queryKey: ['tableData'], 
+		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog: ChangeLog }>('events', { changelog: 'true' })
+	});
+	const rawContext = useMemo(() => {
+		if (!query.data) return null;
+		const fields = query.data.fields;
+		const filtered = columns.filter(c => fields.includes(c.id));
+		const indexes = filtered.map(c => fields.indexOf(c.id));
+		const data = query.data.data.map((row: Value[]) => indexes.map((i) => row[i]));
+		for (const [i, col] of Object.values(filtered).entries()) {
+			if (col.type === 'time') {
+				for (const row of data) {
+					if (row[i] === null) continue;
+					const date = new Date((row[i] as number) * 1e3);
+					row[i] = isNaN(date.getTime()) ? null : date;
+				}
+			}
+		}
+		console.log('%crendered table:', 'color: #0f0', query.data.fields, data, query.data.changelog);
+		return {
+			data: data,
+			columns: filtered,
+			changelog: query.data.changelog,
+			firstTable,
+			tables: Array.from(tables),
+			series
+		} as const;
+	}, [tables, columns, firstTable, query.data, series]);
+
+	const context = useMemo(() => {
+		if (!rawContext) return null;
+		const data = [...rawContext.data.map(r => [...r])];
+		for (const { id, column, value } of changes) {
+			const row = data.find(r => r[0] === id);
+			const columnIdx = rawContext.columns.findIndex(c => c.id === column.id);
+			if (row) row[columnIdx] = value;
+		}
+		const sortIdx = rawContext.columns.findIndex(c => c.name === 'time');
+		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
+		
+		return {
+			...rawContext,
+			data,
+			changes,
+			makeChange: ({ id, column, value }: ChangeValue) => {
+				const row = rawContext.data.find(r => r[0] === id);
+				// FIXME: create entity if not exists
+				const colIdx = columns.findIndex(c => c.id === column.id);
+				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
+				if (!entityExists) return false;
+				
+				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
+					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
+				return true;
+			}
+		};
+	}, [rawContext, changes, setChanges, columns]);
+
+	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
+	useEventListener('action+discardChanges', () => setChanges([]));
+
+	const { mutate, report, color } = useMutationHandler(() =>
+		apiPost('events/changes', {
+			changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
+		})
+	, ['tableData']);
+
+	if (query.isLoading)
+		return <div>Loading data..</div>;
+	if (!query.data)
+		return <div>Failed to load data</div>;
+	return (
+		<TableContext.Provider value={context!}>
+			{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => mutate(null, {
+				onSuccess: () => {
+					setShowCommit(false);
+					setChanges([]);
+				}
+			})} close={() => setShowCommit(false)} persistent={true}>
+				<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
+				<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
+					{changes.map(({ id, column, value }) => {
+						const row = rawContext?.data.find(r => r[0] === id);
+						const colIdx = columns.findIndex(c => c.id === column.id);
+						const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
+						const val1 = value == null ? 'null' : valueToString(value);
+						return (<div key={id+column.id+value}>
+							<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
+							<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
+							<span className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
+								setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}>&times;</span>
+						</div>);})}
+				</div>
+				<div style={{ height: '1em', color }}>{report?.error ?? report?.success}</div>
+			</ConfirmationPopup>}
+			<SampleWrapper/>
+		</TableContext.Provider>
+	);
+}
+
+export default function TableWrapper() {
+	const [settings, setSettings] = usePersistedState('tableColEnabled', () => defaultSettings());
+	const [options, setOptions] = useState<VolatileSettings>(() => ({
+		hist: defaultHistOptions, viewPlots: false, correlation: defaultCorrParams }));
+	const settingsContext = useMemo(() => {
+		const set: SettingsSetter = (key, arg) => setSettings(sets => ({ ...sets, [key]: typeof arg === 'function' ? arg(sets[key]) : arg }));
+		const setOpt: OptionsSetter = (key, arg) => setOptions(sets => ({ ...sets, [key]: typeof arg === 'function' ? arg(sets[key]) : arg }));
+		return { settings, set, options, setOpt };
+	}, [options, settings, setSettings]);
+
+	useEventListener('action+resetSettings', () => {
+		window.localStorage.removeItem('aidPlotExport');
+		setSettings(defaultSettings());
+	});
+
+	const firstTable = 'forbush_effects';
+	const query = useQuery({
+		cacheTime: 60 * 60 * 1000,
+		staleTime: Infinity,
+		queryKey: ['tableStructure'],
+		queryFn: async () => {
+			type Info = {
+				tables: { [name: string]: { [name: string]: ColumnDef } },
+				series: { [s: string]: string }
+			};
+			const { tables, series } = await apiGet<Info>('events/info');
+
+			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([sqlName, desc]) => {
+				const width = (()=>{
+					switch (desc.type) {
+						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
+						case 'time': return 17;
+						case 'text': return 14;
+						default: return 6; 
+					}
+				})();
+				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
+				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
+				return {
+					...desc,
+					table,
+					width,
+					sqlName,
+					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
+					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
+					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
+				} as ColumnDef;
+			}) 	);
+			
+			console.log('%cavailable columns:', 'color: #0f0' , columns);
+			return {
+				tables: Object.keys(tables),
+				columns: [ { id: 'id', hidden: true, table: firstTable } as ColumnDef, ...columns],
+				series: series
+			};
+		}
+	});
+	if (query.isLoading)
+		return <div>Loading tables..</div>;
+	if (!query.data)
+		return <div>Failed to load tables</div>;
+	return (
+		<SettingsContext.Provider value={settingsContext}>
+			<SourceDataWrapper {...{ ...query.data, firstTable }}/>
+		</SettingsContext.Provider>
+	);
+}

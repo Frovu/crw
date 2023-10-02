@@ -3,6 +3,11 @@ import { persist } from 'zustand/middleware';
 import { Filter, Sample, SampleState } from './Sample';
 import { Layout } from './Layout';
 import { SetStateAction, createContext } from 'react';
+import { CirclesParams } from '../plots/time/Circles';
+import { GSMParams } from '../plots/time/GSM';
+import { GeomagnParams } from '../plots/time/Geomagn';
+import { IMFParams } from '../plots/time/IMF';
+import { SWParams } from '../plots/time/SW';
 
 type EventsSettings = {
 	showColumns: string[],
@@ -19,6 +24,25 @@ const defaultSettings = {
 	showChangelog: false,
 	showAverages: true,
 	plotOffsetDays: [-1, 2],
+};
+
+export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>
+export const defaultPlotParams: CommonPlotParams = {
+	showGrid: true,
+	showMarkers: true,
+	showLegend: false,
+	useA0m: true,
+	subtractTrend: true,
+	showAz: true,
+	showAxy: true,
+	showAxyVector: false,
+	showBeta: true,
+	maskGLE: true,
+	useAp: false,
+	showBz: true,
+	showBxBy: false,
+	useTemperatureIndex: false,
+	rsmExtended: false
 };
 
 export const useEventsSettings = create<EventsSettings>()(
@@ -126,5 +150,42 @@ export const SampleContext = createContext<{ data: Value[][], sample: SampleStat
 	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void,
 	filters: FiltersCollection, setFilters: (a: SetStateAction<FiltersCollection>) => void }>({} as any);
 
+export const TableViewContext = createContext<{ data: Value[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
+
+export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
+
 // export const useViewState = create()
 
+export function equalValues(a: Value, b: Value) {
+	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;
+}
+
+export function parseColumnValue(val: string, column: ColumnDef) {
+	switch (column.type) {
+		case 'time': return new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
+		case 'real': return parseFloat(val);
+		case 'integer': return parseInt(val);
+		default: return val;
+	}
+}
+
+export function valueToString(v: Value) {
+	if (v instanceof Date)
+		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
+	if (typeof v === 'number')
+		return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
+	return v?.toString() ?? '';
+}
+
+export function isValidColumnValue(val: Value, column: ColumnDef) {
+	if (val == null)
+		return column.nullable;
+	switch (column.type) {
+		case 'time': return (val instanceof Date) && !isNaN(val.getTime());
+		case 'real':
+		case 'integer': return (typeof val == 'number') && !isNaN(val);
+		case 'enum': return column.enum?.includes(val as string);
+		default:
+			return val !== '';
+	}
+}
