@@ -1,14 +1,15 @@
+import '../styles/ContextMenu.css';
 import { useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
 import { clamp, useSize } from '../util';
-import { LayoutContent } from './EventsApp';
+import { ContextMenuContent, LayoutContent } from './EventsApp';
 
 export type Size = { width: number, height: number };
 
 export type LayoutItemParams = {
-	color: string
+	color?: string
 };
 
 type LayoutTreeNode = {
@@ -23,10 +24,13 @@ type Layout = {
 };
 
 type LayoutsState = {
+	contextMenu: { x: number, y: number, id: string } | null,
 	dragFrom: null | string,
 	dragTo: null | string,
 	active: string,
 	list: { [name: string]: Layout },
+	openContextMenu: (x: number, y: number, id: string) => void,
+	closeContextMenu: () => void,
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
@@ -36,6 +40,7 @@ type LayoutsState = {
 export const useLayoutsStore = create<LayoutsState>()(
 	// persist(
 	immer((set, get) => ({
+		contextMenu: null,
 		dragFrom: null, // FIXME: don't persist this
 		dragTo: null,
 		active: 'default',
@@ -60,6 +65,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 				}
 			}
 		},
+		closeContextMenu: () => set(state => ({ ...state, contextMenu: null })),
+		openContextMenu: (x, y, id) => set(state => ({ ...state, contextMenu: state.contextMenu ? null : { x, y, id } })),
 		startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
 		dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
 		finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
@@ -73,6 +80,37 @@ export const useLayoutsStore = create<LayoutsState>()(
 	// , { name: 'eventsAppLayouts' })
 );
 
+const setParams = (nodeId: string, para: Partial<LayoutItemParams>)  => useLayoutsStore.setState(state => {
+	const { items } = state.list[state.active];
+	Object.assign(items[nodeId], para);
+});
+
+const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
+	const { tree, items } = state.list[state.active];
+	const parent = Object.keys(tree).find(node => tree[node]?.children.includes(nodeId));
+	if (!parent) return state;
+	const otherNodeId = tree[parent]!.children.filter(ch => ch !== nodeId)[0];
+	items[parent] = items[otherNodeId];
+	tree[parent] = tree[otherNodeId];
+	delete tree[otherNodeId];
+	delete items[nodeId];
+	delete items[otherNodeId];
+});
+
+const splitNode = (nodeId: string, split: 'row'|'column', empty: boolean) => useLayoutsStore.setState(state => {
+	const { tree, items } = state.list[state.active];
+	const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString()); // meh
+
+	tree[nodeId] = {
+		split,
+		ratio: .5,
+		children: [aId, bId]
+	};
+	items[aId] = items[nodeId];
+	items[bId] = empty ? {} : { ...items[nodeId] };
+	delete items[nodeId];
+});
+
 const useLayout = () => ({
 	...useLayoutsStore(({ dragFrom, dragTo, list, active }) => {
 		const st = list[active];
@@ -83,13 +121,18 @@ const useLayout = () => ({
 });
 
 function Item({ id, size }: { id: string, size: Size }) {
-	const { startDrag, dragOver, finishDrag } = useLayoutsStore();
+	const { startDrag, dragOver, finishDrag, openContextMenu } = useLayoutsStore();
 	const { items } = useLayout();
 	return <div style={{ ...size, position: 'relative' }}
+		onContextMenu={e => {
+			e.preventDefault();
+			e.stopPropagation();
+			openContextMenu(e.clientX, e.clientY, id);
+		}}
 		onMouseDown={() => startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		<LayoutContent {...{ params: items[id], size }}/>
+		<LayoutContent {...{ id, params: items[id] }}/>
 	</div>;
 }
 
@@ -97,6 +140,10 @@ function Node({ id, size }: { id: string, size: Size }) {
 	const drag = useRef<{ ratio: number, click: number } | null>(null);
 	const { updateRatio } = useLayoutsStore();
 	const { tree } = useLayout();
+
+	if (tree[id] == null)
+		return <Item {...{ id, size }}/>;
+
 	const { split, children, ratio } = tree[id]!;
 
 	const isRow = split === 'row';
@@ -115,21 +162,41 @@ function Node({ id, size }: { id: string, size: Size }) {
 	}}
 	onMouseUp={() => { drag.current = null; }}
 	onMouseLeave={() => { drag.current = null; }}>
-		{tree[propsA.id] ? <Node {...propsA}/> : <Item {...propsA}/>}
+		<Node {...propsA}/>
 		<div style={{ ...size, [dim]: 12, position: 'absolute', userSelect: 'none',
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 			cursor: isRow ? 'col-resize' : 'row-resize' }}
 		onMouseDown={e => { drag.current = { ratio, click: isRow ? e.clientX : e.clientY }; }}/>
-		{tree[propsB.id] ? <Node {...propsB}/> : <Item {...propsB}/>}
+		<Node {...propsB}/>
+	</div>;
+}
+
+function ContextMenu({ id }: { id: string }) {
+	const { items, tree } = useLayout();
+	const parentNode = Object.values(tree).find((node) => node?.children.includes(id));
+	const isFirst = parentNode?.children[0] === id;
+	const relDir = parentNode?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
+	return <div className='ContextMenu'
+		onClick={e => !(e.target instanceof HTMLButtonElement) && e.stopPropagation()}>
+		<ContextMenuContent {...{ params: items[id], setParams: (para) => setParams(id, para) }}/>
+		<button onClick={() => splitNode(id, 'row', false)}>Split vertical</button>
+		<button onClick={() => splitNode(id, 'column', false)}>Split horizontal</button>
+		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</div>;
 }
 
 export default function AppLayout() {
-	const { startDrag } = useLayoutsStore();
+	const { startDrag, contextMenu, closeContextMenu } = useLayoutsStore();
 	const [container, setContainer] = useState<HTMLDivElement>();
 	const size = useSize(container);
 	return <div style={{ width: '100%', height: '100%' }} ref={el => setContainer(el!)}
-		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
+		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}
+		onContextMenu={e => {e.preventDefault(); closeContextMenu();}}
+		onClick={e => {e.preventDefault(); closeContextMenu();}}>
 		<Node {...{ size, id: 'root' }}/>
+		{contextMenu && <div style={{ position: 'fixed',
+			left: Math.min(contextMenu.x, size.width - 172), top: contextMenu.y }}>
+			<ContextMenu id={contextMenu.id}/>
+		</div>}
 	</div>;
 }
