@@ -115,7 +115,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		<LayoutContent {...{ id, params: items[id] }}/>
+		{items[id]?.type ? <LayoutContent {...{ id, params: items[id] }}/> : <div className='Center'><ContextMenu id={id}/></div>}
 	</div>;
 }
 
@@ -156,19 +156,22 @@ function Node({ id, size }: { id: string, size: Size }) {
 
 function ContextMenu({ id }: { id: string }) {
 	const { items, tree } = useLayout();
+	if (!items[id]) return null;
 	const parentNode = Object.values(tree).find((node) => node?.children.includes(id));
 	const isFirst = parentNode?.children[0] === id;
 	const relDir = parentNode?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
+	const type = items[id]?.type;
 	return <div className='ContextMenu'
 		onClick={e => !(e.target instanceof HTMLButtonElement) && e.stopPropagation()}>
-		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={items[id].type} onChange={e => setParams(id, { type: e.target.value as any })}>
+		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'} onChange={e => setParams(id, { type: e.target.value as any })}>
+			{type == null && <option value={'empty'}>Select panel</option>}
 			{panelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
 		</select>
+		{type && <div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>}
+		{type && <ContextMenuContent {...{ params: items[id], setParams: (para) => setParams(id, para) }}/>}
 		<div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>
-		<ContextMenuContent {...{ params: items[id], setParams: (para) => setParams(id, para) }}/>
-		<div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>
-		{items[id].type && <button onClick={() => splitNode(id, 'row')}>Split vertical</button>}
-		{items[id].type && <button onClick={() => splitNode(id, 'column')}>Split horizontal</button>}
+		{type && <button onClick={() => splitNode(id, 'row')}>Split vertical</button>}
+		{type && <button onClick={() => splitNode(id, 'column')}>Split horizontal</button>}
 		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</div>;
 }
