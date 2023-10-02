@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import Help from './Help';
@@ -10,13 +10,16 @@ import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
-import { useEventListener } from './util';
+import { dispatchCustomEvent, useEventListener } from './util';
 import { themeOptions, useSettings } from './app';
+import { resetLayouts, useLayoutsStore } from './events/Layout';
 
 const theQueryClient = new QueryClient();
 
 function App() {
+	const [menu, setMenu] = useState<{ left: number } | null>(null);
 	const { theme, setTheme } = useSettings();
+	const { closeContextMenu } = useLayoutsStore();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -39,6 +42,16 @@ function App() {
 	useEventListener('action+switchTheme', () => 
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
+
+	const handleClick = (e: MouseEvent, open?: boolean) => {
+		e.preventDefault();
+		e.stopPropagation();
+		closeContextMenu();
+		console.log(open)
+		setMenu(open ? { left: e.clientX } : null);
+	};
+	useEventListener('click', handleClick);
+	useEventListener('contextmenu', handleClick);
 
 	if (app === 'none')
 		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
@@ -74,8 +87,13 @@ function App() {
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
+		{menu && <div className='ContextMenu' style={{ ...menu, bottom: 0, position: 'fixed' }}>
+			<button onClick={() => resetLayouts()}>Reset layouts</button>
+			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
+		</div>}
 		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', justifyContent: 'space-between',
-			 	color: 'var(--color-text-dark)', borderTop: borderDef }}>
+			 	color: 'var(--color-text-dark)', borderTop: borderDef }}
+		onContextMenu={e => { handleClick(e.nativeEvent, true);}}>
 			<select style={{ border: 'none', padding: 0, borderRight: borderDef }} value={app} onChange={e => { window.location.href = e.target.value; }}>
 				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 			</select>
