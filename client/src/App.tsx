@@ -19,7 +19,7 @@ const theQueryClient = new QueryClient();
 function App() {
 	const [menu, setMenu] = useState<{ left: number } | null>(null);
 	const { theme, setTheme } = useSettings();
-	const { closeContextMenu } = useLayoutsStore();
+	const { contextMenu, closeContextMenu } = useLayoutsStore();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -47,7 +47,6 @@ function App() {
 		e.preventDefault();
 		e.stopPropagation();
 		closeContextMenu();
-		console.log(open)
 		setMenu(open ? { left: e.clientX } : null);
 	};
 	useEventListener('click', handleClick);
@@ -87,7 +86,7 @@ function App() {
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
-		{menu && <div className='ContextMenu' style={{ ...menu, bottom: 0, position: 'fixed' }}>
+		{!contextMenu && menu && <div className='ContextMenu' style={{ ...menu, bottom: 0, position: 'fixed' }}>
 			<button onClick={() => resetLayouts()}>Reset layouts</button>
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</div>}
