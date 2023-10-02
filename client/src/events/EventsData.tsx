@@ -163,11 +163,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const sampleContext = useMemo(() => {
 		if (!mainContext || !samplesQuery.data) return null;
 		const { columns, data } = mainContext;
-		console.time('compute sample');
 		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
 		const filterFn = renderFilters(filters.map(f => f.filter), columns);
 		const filtered = applied.filter(row => filterFn(row));
-		console.timeEnd('compute sample');
 		return {
 			data: filtered, 
 			samples: samplesQuery.data,

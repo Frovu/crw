@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from 'react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
 import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
@@ -17,6 +17,7 @@ import { resetLayouts, useLayoutsStore } from './events/Layout';
 const theQueryClient = new QueryClient();
 
 function App() {
+	const queryClient = useQueryClient();
 	const [menu, setMenu] = useState<{ left: number } | null>(null);
 	const { theme, setTheme } = useAppSettings();
 	const { contextMenu, closeContextMenu } = useLayoutsStore();
@@ -44,6 +45,7 @@ function App() {
 	document.documentElement.setAttribute('main-theme', theme);
 
 	const handleClick = (e: MouseEvent, open?: boolean) => {
+		if (e.target instanceof HTMLAnchorElement && e.target.href) return;
 		e.preventDefault();
 		e.stopPropagation();
 		closeContextMenu();
@@ -87,6 +89,7 @@ function App() {
 			{app === 'omni' && <OmniApp/>}
 		</div>
 		{!contextMenu && menu && <div className='ContextMenu' style={{ ...menu, bottom: 0, position: 'fixed' }}>
+			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
 			<button onClick={() => resetLayouts()}>Reset layouts</button>
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</div>}

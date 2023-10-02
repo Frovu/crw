@@ -77,10 +77,10 @@ export default function TableView({ size }: { size: Size }) {
 	const { sort, cursor, setCursor, escapeCursor } = useViewState();
 	const { showChangelog } = useEventsSettings();
 
-	const ref = useRef<HTMLDivElement>(null);
-	const [viewIndex, setViewIndex] = useState(0);
-	
 	const viewSize = Math.floor(size.height / 28) - 4; // FIXME
+	const ref = useRef<HTMLDivElement>(null);
+	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
+	
 
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0] as number];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
@@ -99,7 +99,10 @@ export default function TableView({ size }: { size: Size }) {
 
 	useEventListener('escape', escapeCursor);
 
+	// TODO: less rerenders?
+
 	useLayoutEffect(() => {
+		console.log('eff')
 		setViewIndex(clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : data.length));
 	}, [data.length, viewSize, sort, cursor]);
 
@@ -176,6 +179,8 @@ export default function TableView({ size }: { size: Size }) {
 			column: Math.min(Math.max(0, column + deltaCol), columns.length - 1)
 		});		
 	});
+
+	console.log(viewIndex, viewIndex + viewSize - changesRows)
 	
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>(); // this is weird
@@ -195,7 +200,7 @@ export default function TableView({ size }: { size: Size }) {
 						</tr>
 					</thead>
 					<tbody>
-						{data.slice(viewIndex, viewIndex + viewSize - changesRows).map((row, i) =>
+						{data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) =>
 							<Row key={JSON.stringify(row)} {...{ index: i + viewIndex, row }}/>)}
 					</tbody>
 					{averages && (<tfoot>

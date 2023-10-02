@@ -1,6 +1,7 @@
 import { createContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { dispatchCustomEvent } from './util';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -40,3 +41,17 @@ export const useAppSettings = create<AppSettings>()(
 );
 
 export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
+
+export function handleGlobalKeydown(e: KeyboardEvent) {
+	if (e.code === 'Escape')
+		return dispatchCustomEvent('escape');
+	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement)
+		return;
+
+	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
+	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
+	if (action) {
+		e.preventDefault();
+		dispatchCustomEvent('action+' + action);
+	}
+}

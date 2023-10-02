@@ -112,6 +112,7 @@ function EventsView() {
 	// useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 	
 	// dataContext.data[i][0] should be an unique id
+	
 	const dataContext = useMemo(() => {
 		console.time('compute table');
 		const cols = columns.filter(c => showColumns.includes(c.id));
