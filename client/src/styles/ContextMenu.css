@@ -1,0 +1,17 @@
+
+.ContextMenu {
+	padding: 8px;
+	background-color: var(--color-bg);
+	border: 1px var(--color-border) solid;
+}
+
+.ContextMenu > button {
+	display: block;
+	border: none;
+	padding: 2px;
+}
+
+.ContextMenu > button:hover {
+	color: var(--color-active);
+	text-decoration: underline;
+}

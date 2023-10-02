@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { useEffect } from 'react';
-import Table from './events/Table';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import Help from './Help';
@@ -35,6 +34,8 @@ function App() {
 		}[app]!;
 	}, [app]);
 
+	// TODO: reset settings
+
 	useEventListener('action+switchTheme', () => 
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
@@ -61,6 +62,7 @@ function App() {
 				showGrid: true, showLegend: true, showMarkers: true, showMetaInfo: true, showTimeAxis: true }}/>
 		</div>;
 
+	const borderDef = '1px var(--color-border) solid';
 	const showNav = !['ros', 'help'].includes(app);
 	return (<div className='bbox' style={{  }}>
 		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: 4 }}>
@@ -73,12 +75,12 @@ function App() {
 			{app === 'omni' && <OmniApp/>}
 		</div>
 		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', justifyContent: 'space-between',
-			 	color: 'var(--color-text-dark)', borderTop: '1px var(--color-border) solid' }}>
-			<select style={{ border: 'none', padding: 0 }} value={app} onChange={e => { window.location.href = e.target.value; }}>
+			 	color: 'var(--color-text-dark)', borderTop: borderDef }}>
+			<select style={{ border: 'none', padding: 0, borderRight: borderDef }} value={app} onChange={e => { window.location.href = e.target.value; }}>
 				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 			</select>
-			<div title='Application colors scheme' style={{ border: '1px var(--color-border) solid', borderWidth: '0 0 0 1px' }}>
-				<select style={{ border: 'none', padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+			<div title='Application colors scheme' style={{ borderLeft: borderDef }}>
+				<select style={{ width: theme.length+4+'ch', border: 'none', padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
 					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
 				</select>
 			</div>
