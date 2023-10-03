@@ -134,9 +134,9 @@ function Node({ id, size }: { id: string, size: Size }) {
 	const isRow = split === 'row';
 	const dim = isRow ? 'width' : 'height';
 	const propsA = { id: children![0],
-		size: { ...size, [dim]: size[dim] * ratio! - 2 } };
+		size: { ...size, [dim]: size[dim] * ratio! - 1 } };
 	const propsB = { id: children![1],
-		size: { ...size, [dim]: size[dim] * (1 - ratio!) - 2 } };
+		size: { ...size, [dim]: size[dim] * (1 - ratio!) - 1 } };
 
 	return <div style={{ ...size, position: 'relative',
 		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}
@@ -172,8 +172,8 @@ function ContextMenu({ id }: { id: string }) {
 		{type && <div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>}
 		{type && <ContextMenuContent {...{ params: items[id], setParams: (para) => setParams(id, para) }}/>}
 		<div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>
-		{type && <button onClick={() => splitNode(id, 'row')}>Split vertical</button>}
-		{type && <button onClick={() => splitNode(id, 'column')}>Split horizontal</button>}
+		{type && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
+		{type && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
 		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</div>;
 }

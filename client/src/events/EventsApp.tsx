@@ -36,26 +36,20 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 		showMetaInfo: true
 	};
 
-	return <div style={{ height: '100%', border: '1px cyan solid', userSelect: 'none', overflow: 'clip' }}>
+	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
 		{type === 'MainTable' && <TableView size={size}/>}
 		{params && <>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
+			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
+			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
+			{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
+			{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
 			{type === 'Ring of Stations' && <>
 				<PlotCircles {...{ params }}/>
 				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
 					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
-			</>}
-			{type === 'SW' && <PlotIMF {...{ params }}/>}
-			{type === 'SW + Plasma' && <>
-				<div style={{ height: '50%', position: 'relative' }}><PlotIMF params={{ ...params, showTimeAxis: false }} /></div> 
-				<div style={{ height: '50%', position: 'relative' }}><PlotSW {...{ params }}/></div> 
-			</>}
-			{type === 'CR' && <PlotGSM {...{ params }}/>}
-			{type === 'CR + Geomagn' && <>
-				<div style={{ height: '75%', position: 'relative' }}><PlotGSM params={{ ...params, showTimeAxis: false }}/></div> 
-				<div style={{ height: '25%', position: 'relative' }}><PlotGeoMagn {...{ params }} /></div> 
 			</>}
 		</>}
 	</div>;
@@ -64,54 +58,9 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 function EventsView() {
 	const { showAverages, showColumns, plotOffsetDays } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
-	const { data: shownData } = useContext(TableViewContext);
 	const { sample, data: sampleData, isEditing: editingSample, setFilters } = useContext(SampleContext);
 	const [viewExport, setViewExport] = useState(false);
 	const { sort, cursor, setCursor, plotId, setPlotId } = useViewState();
-
-	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
-		if (dir === 0) { // set cursor to plotted line
-			if (cursor)
-				return data.findIndex(r => r[0] === shownData[cursor.row][0]);
-			const found = shownData.findIndex(r => r[0] === data[current!]?.[0]);
-			if (found >= 0) setCursor({ row: found, column: 0 });
-		}
-		if (current == null)
-			return null;
-		if (global)
-			return data[clamp(0, data.length - 1, data.findIndex(r => r[0] === current) + dir)][0] as number;
-		const found = shownData.findIndex(r => r[0] === data[current][0]);
-		const curIdx = found >= 0 ? found : cursor?.row;
-		if (curIdx == null) return current;
-		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
-		return shownData[movedIdx][0] as number;
-	});
-	useEventListener('action+plot', plotMove(0));
-	useEventListener('action+plotPrev', plotMove(-1, true));
-	useEventListener('action+plotNext', plotMove(+1, true));
-	useEventListener('action+plotPrevShown', plotMove(-1));
-	useEventListener('action+plotNextShown', plotMove(+1));
-
-	useEventListener('setColumn', e => {
-		// const which = e.detail.which, column = e.detail.column.id;
-		// const corrKey = which === 1 ? 'columnX' : 'columnY';
-		// const histKey = 'column' + Math.min(which - 1, 2) as keyof HistOptions;
-		// setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
-		// setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
-	});
-
-	// useEventListener('action+addFilter', () => setFilters(fltrs => {
-	// 	if (!cursor)
-	// 		return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
-	// 	const column =  dataContext.columns[cursor?.column];
-	// 	const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
-	// 	const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
-	// 	const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
-	// 	return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
-	// }));
-	// useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
-	
-	// dataContext.data[i][0] should be an unique id
 	
 	const dataContext = useMemo(() => {
 		console.time('compute table');
@@ -152,6 +101,7 @@ function EventsView() {
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
+		console.log(idx)
 		if (idx == null || idx < 0) return null;
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[idx][timeIdx] as Date;
@@ -174,7 +124,51 @@ function EventsView() {
 		};
 	}, [plotId, data, plotOffsetDays, columns, viewExport, sampleData]);
 
+	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
+		const shownData = dataContext.data;
+		if (dir === 0) { // set cursor to plotted line
+			if (cursor)
+				return shownData[cursor.row][0] as number;
+			const found = shownData.findIndex(r => r[0] === data[current!]?.[0]);
+			if (found >= 0) setCursor({ row: found, column: 0 });
+		}
+		if (current == null)
+			return null;
+		if (global)
+			return data[clamp(0, data.length - 1, data.findIndex(r => r[0] === current) + dir)][0] as number;
+		const found = shownData.findIndex(r => r[0] === data[current][0]);
+		const curIdx = found >= 0 ? found : cursor?.row;
+		if (curIdx == null) return current;
+		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
+		return shownData[movedIdx][0] as number;
+	});
+
+	useEventListener('action+plot', plotMove(0));
+	useEventListener('action+plotPrev', plotMove(-1, true));
+	useEventListener('action+plotNext', plotMove(+1, true));
+	useEventListener('action+plotPrevShown', plotMove(-1));
+	useEventListener('action+plotNextShown', plotMove(+1));
+
 	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
+
+	useEventListener('setColumn', e => {
+		// const which = e.detail.which, column = e.detail.column.id;
+		// const corrKey = which === 1 ? 'columnX' : 'columnY';
+		// const histKey = 'column' + Math.min(which - 1, 2) as keyof HistOptions;
+		// setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
+		// setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
+	});
+
+	// useEventListener('action+addFilter', () => setFilters(fltrs => {
+	// 	if (!cursor)
+	// 		return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
+	// 	const column =  dataContext.columns[cursor?.column];
+	// 	const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
+	// 	const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
+	// 	const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
+	// 	return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
+	// }));
+	// useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
-import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef, MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
+import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
+	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 
 function Row({ index, row }: { index: number, row: any[] } ) {
 	const { markers, columns } = useContext(TableViewContext);
@@ -27,7 +28,7 @@ function Row({ index, row }: { index: number, row: any[] } ) {
 	};
 
 	return (
-		<tr {...(plotId === row[0] && { style: { color: 'var(--color-cyan)' } })}>
+		<tr {...(plotId === row[0] && { style: { backgroundColor: 'var(--color-area)' } })}>
 			{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit', { action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] }  )}>
 				<span className='Cell' style={{ color: mLast === '+' ? 'var(--color-cyan)' : mLast === '-' ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 			</td>}
@@ -80,7 +81,6 @@ export default function TableView({ size }: { size: Size }) {
 	const viewSize = Math.floor(size.height / 28) - 4; // FIXME
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
-	
 
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0] as number];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
@@ -102,7 +102,6 @@ export default function TableView({ size }: { size: Size }) {
 	// TODO: less rerenders?
 
 	useLayoutEffect(() => {
-		console.log('eff')
 		setViewIndex(clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : data.length));
 	}, [data.length, viewSize, sort, cursor]);
 
@@ -179,14 +178,12 @@ export default function TableView({ size }: { size: Size }) {
 			column: Math.min(Math.max(0, column + deltaCol), columns.length - 1)
 		});		
 	});
-
-	console.log(viewIndex, viewIndex + viewSize - changesRows)
 	
 	const simulateKey = (key: string, ctrl: boolean=false) => () => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 	const tables = new Map<any, ColumnDef[]>(); // this is weird
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 	return ( 
-		<div style={{ minWidth: 0, maxWidth: 'fit-content', border: '1px solid var(--color-border)' }}>
+		<div style={{ minWidth: 0, maxWidth: 'fit-content' }}>
 			<div className='Table' ref={ref}>
 				<table style={{ tableLayout: 'fixed', minWidth: 264 }}>
 					<thead>

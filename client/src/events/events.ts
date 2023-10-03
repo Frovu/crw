@@ -85,7 +85,7 @@ export type ColumnDef = {
 };
 
 export const statPlotOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
-export const plotOptions = [ 'CR + Geomagn', 'SW + Plasma', 'Ring of Stations', 'SW', 'CR', ...statPlotOptions ] as const;
+export const plotOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations', ...statPlotOptions ] as const;
 export const panelOptions = [ ...plotOptions, 'MainTable' ] as const;
 
 export const isPanelDraggable = (panel: string) => plotOptions.includes(panel as any);
@@ -107,17 +107,33 @@ export const defaultLayouts: { [name: string]: Layout } = {
 				split: 'column',
 				ratio: .5,
 				children: ['top', 'bottom']
-			}
+			},
+			top: {
+				split: 'column',
+				ratio: .6,
+				children: ['p1', 'p2']
+			},
+			bottom: {
+				split: 'column',
+				ratio: .7,
+				children: ['p3', 'p4']
+			},
 		},
 		items: {
 			left: {
 				type: 'MainTable'
 			},
-			top: {
-				type: 'SW + Plasma'
+			p1: {
+				type: 'IMF + Speed'
 			},
-			bottom: {
-				type: 'CR + Geomagn'
+			p2: {
+				type: 'SW Plasma'
+			},
+			p3: {
+				type: 'Cosmic Rays'
+			},
+			p4: {
+				type: 'Geomagn'
 			}
 		}
 	}

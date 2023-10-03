@@ -11,7 +11,7 @@ import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { themeOptions, useAppSettings } from './app';
+import { handleGlobalKeydown, themeOptions, useAppSettings } from './app';
 import { resetLayouts, useLayoutsStore } from './events/Layout';
 
 const theQueryClient = new QueryClient();
@@ -53,6 +53,7 @@ function App() {
 	};
 	useEventListener('click', handleClick);
 	useEventListener('contextmenu', handleClick);
+	useEventListener('keydown', handleGlobalKeydown);
 
 	if (app === 'none')
 		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
@@ -78,7 +79,7 @@ function App() {
 
 	const borderDef = '1px var(--color-border) solid';
 	const showNav = !['ros', 'help'].includes(app);
-	return (<div className='bbox' style={{  }}>
+	return (<div className='bbox' style={{ overflow: 'clip' }}>
 		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: 4 }}>
 			{app === 'ros' && <PlotCirclesStandalone/>}
 			{app === 'feid' && <EventsApp/>}

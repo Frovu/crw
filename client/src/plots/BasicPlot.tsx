@@ -176,7 +176,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		const options = {
 			...size,
 			pxAlign: true,
-			padding: [8, 0, params.showTimeAxis ? 0 : 8, 0],
+			padding: [10, 0, params.showTimeAxis ? 0 : 8, 0],
 			legend: { show: params.interactive },
 			cursor: {
 				show: params.interactive,

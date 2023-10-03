@@ -21,7 +21,7 @@
 	--color-bg: rgb(0,0,0);
 	--color-text: rgb(190,190,190);
 	--color-text-dark: rgb(76,76,76);
-	--color-border: grey;
+	--color-border: rgb(88,88,88);
 	--color-grid: rgb(33,33,33);
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
@@ -53,10 +53,10 @@
 	--color-bg: rgb(255,255,255);
 	--color-text: rgb(22,22,22);
 	--color-text-dark: rgb(77,77,77);
-	--color-border: rgb(66,66,66);
+	--color-border: rgb(88,88,88);
 	--color-grid: rgb(222, 222, 222);
 	--color-active: rgb(228, 0, 106);
-	--color-area: rgba(177, 82, 255, 0.1);
+	--color-area: rgba(168, 61, 255, 0.2);
 	--color-area2: rgba(255, 255, 32, 0.5);
 
 	color-scheme: light;
