@@ -1,21 +1,31 @@
 import { ReactElement, useContext, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
 import regression from 'regression';
-import { SampleContext, SettingsContext, TableContext } from '../events/Table';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, clickDownloadPlot, color } from './plotUtil';
 import { CorrParams } from '../events/Statistics';
+import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 
 export default function CorrelationPlot() {
-	const { options: { correlation: params }, settings: { plotParams: { showGrid } } } = useContext(SettingsContext);
-	const { columns } = useContext(TableContext);
+	const { showGrid } = useEventsSettings();
+	const { columns } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
+
+	
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
 	const memo = useMemo((): null | [ReactElement|null, (asize: { width: number, height: number }) => Parameters<typeof UplotReact>[0]] => {
+		const params: CorrParams = {
+			columnX: 'fe_v_max',
+			columnY: 'fe_magnitude',
+			loglog: false,
+			logx: false,
+			color: 'green'
+		}
+
 		if (!sampleData.length)
 			return null;
 		const loglog = params.loglog;
@@ -107,7 +117,7 @@ export default function CorrelationPlot() {
 			},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		})];
-	}, [params, columns, sampleData, showGrid]);
+	}, [columns, sampleData, showGrid]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const [titleText, plotOpts] = memo;

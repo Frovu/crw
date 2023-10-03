@@ -1,54 +1,3 @@
-
-.TableApp {
-	background-color: var(--color-bg);
-	width: 100%;
-	height: 100%;
-	gap: 4px;
-}
-
-.AppColumn {
-	height: 100%;
-	display: grid;
-	grid-template-rows: auto auto 1fr;
-	gap: 4px;
-}
-
-@media (min-width: 960px) {
-	.TableApp {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-	}
-	.plotTop {
-		grid-row: 1;
-	}
-}
-
-@media (max-width: 960px) {
-	.TableApp {
-		display: block;
-	}
-	.plotTop, .plotLeft, .plotBottom {
-		height: 80vw;
-	}
-	
-}
-
-.Table table {
-	text-align: center;
-}
-
-.Table td {
-	border: 1px solid var(--color-border);
-}
-
-.Cell {
-	white-space: pre;
-	cursor: pointer;
-	user-select: none;
-	display: inline-block;
-	overflow: clip;
-}
-
 .Table {
 	overflow-x: scroll;
 	-ms-overflow-style: none;  /* IE and Edge */
@@ -59,7 +8,48 @@
 	display: none;
 }
 
-.tableControl {
+.Table table {
+	user-select: none;
+	text-align: center;
+	table-layout: fixed;
+}
+
+.Table td {
+	border: 1px solid var(--color-border);
+}
+
+.ColumnHeader {
+	clip-path: polygon(0 0, 0 100%, 100% 100%, 100% 0);
+	position: relative;
+	cursor: pointer;
+	word-break: break-word;
+}
+
+.SortShadow {
+	box-shadow: 0 0 20px 6px var(--color-active);
+	background-color: transparent;
+	position: absolute;
+	left: 0;
+	height: 1px;
+	width: 100%;
+}
+
+.Cell {
+	cursor: pointer;
+	white-space: pre;
+	display: inline-block;
+	overflow: clip;
+}
+
+.ModifiedMarker {
+	content: '*';
+	font-size: 14px;
+	display: inline-block;
+	color: var(--color-magenta);
+	transform: translate(1px, -3px);
+}
+
+.TableControl {
 	border-color: var(--color-text-dark);
 	color: var(--color-text-dark);
 	position: relative;
@@ -67,7 +57,7 @@
 	height: 18px;
 	width: 18px;
 }
-.tableControl * {
+.TableControl * {
 	font-size: 16px;
 	font-weight: bold;
 	position: absolute;

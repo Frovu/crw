@@ -1,5 +1,5 @@
 import '../styles/ContextMenu.css';
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';

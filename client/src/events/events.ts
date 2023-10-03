@@ -14,6 +14,9 @@ type EventsSettings = {
 	showColumns: string[],
 	showChangelog: boolean,
 	showAverages: boolean,
+	showGrid: boolean,
+	showMarkers: boolean,
+	showLegend: boolean,
 	plotOffsetDays: number[],
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
 	reset: () => void
@@ -25,6 +28,9 @@ const defaultSettings = {
 	showChangelog: false,
 	showAverages: true,
 	plotOffsetDays: [-1, 2],
+	showGrid: true,
+	showMarkers: true,
+	showLegend: false,
 };
 
 export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams
@@ -178,7 +184,7 @@ type ViewState = {
 	plotId: number | null,
 	setEditing: (val: boolean) => void,
 	setCursor: (cursor: ViewState['cursor']) => void,
-	setSort: (sort: ViewState['sort']) => void,
+	toggleSort: (column: string) => void,
 	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
 	escapeCursor: () => void,
 };
@@ -195,7 +201,8 @@ export const useViewState = create<ViewState>()(
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
 			setCursor: (cursor) => set(st => ({ ...st, cursor })),
-			setSort: (sort) => set(st => ({ ...st, sort })),
+			toggleSort: (column) => set(st => ({ ...st, sort: { column,
+				direction: st.sort.column === column ? -1 * st.sort.direction : 1 } })),
 			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
 			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
 		})

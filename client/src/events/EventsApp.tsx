@@ -1,10 +1,10 @@
-import { useContext, useState, useRef, useMemo } from 'react';
+import { useContext, useState, useRef, useMemo, useEffect } from 'react';
 import { useSize, useEventListener, clamp, Size } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from './Layout';
 import { sampleEditingMarkers } from './Sample';
 import { Cursor, MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
-	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState } from './events';
+	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState, plotOptions } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -28,16 +28,18 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 	const plotContext = useContext(PlotContext);
 	const type = state.type;
 
-	const params = plotContext && {
-		...defaultPlotParams,
-		...plotContext!,
-		stretch: true,
-		showTimeAxis: true,
-		showMetaInfo: true
-	};
+	const params = useMemo(() => {
+		return plotContext && plotOptions.includes(type as any) && {
+			...defaultPlotParams,
+			...plotContext!,
+			stretch: true,
+			showTimeAxis: true,
+			showMetaInfo: true
+		};
+	}, [plotContext, type]);
 
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
-		{type === 'MainTable' && <TableView size={size}/>}
+		{type === 'MainTable' && <MainTablePanel size={size}/>}
 		{params && <>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
@@ -55,12 +57,52 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 	</div>;
 }
 
+function MainTablePanel({ size }: { size: Size }) {
+	const { columns, data: allData } = useContext(MainTableContext);
+	const { data: sampleData } = useContext(SampleContext);
+	const { data: shownData } = useContext(TableViewContext);
+	const { plotId, setPlotId, cursor, setCursor } = useViewState();
+
+	useEffect(() => {;
+		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
+		if (plotId == null || !shownData.find(r => r[0] === plotId))
+			setPlotId(() => sampleData.findLast(r => r[magn] as number > 2.5)?.[0] as number ?? null);
+	}, [sampleData, columns, plotId, setPlotId, shownData]);
+
+	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
+		if (dir === 0) { // set cursor to plotted line
+			if (cursor)
+				return shownData[cursor.row][0] as number;
+			const found = shownData.findIndex(r => r[0] === allData[current!]?.[0]);
+			if (found >= 0) setCursor({ row: found, column: 0 });
+		}
+		if (current == null)
+			return null;
+		if (global)
+			return allData[clamp(0, allData.length - 1, allData.findIndex(r => r[0] === current) + dir)][0] as number;
+		const found = shownData.findIndex(r => r[0] === allData[current][0]);
+		const curIdx = found >= 0 ? found : cursor?.row;
+		if (curIdx == null) return current;
+		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
+		return shownData[movedIdx][0] as number;
+	});
+
+	useEventListener('action+plot', plotMove(0));
+	useEventListener('action+plotPrev', plotMove(-1, true));
+	useEventListener('action+plotNext', plotMove(+1, true));
+	useEventListener('action+plotPrevShown', plotMove(-1));
+	useEventListener('action+plotNextShown', plotMove(+1));
+
+	return <TableView size={size}/>;
+}
+
 function EventsView() {
 	const { showAverages, showColumns, plotOffsetDays } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
 	const { sample, data: sampleData, isEditing: editingSample, setFilters } = useContext(SampleContext);
 	const [viewExport, setViewExport] = useState(false);
-	const { sort, cursor, setCursor, plotId, setPlotId } = useViewState();
+	const sort = useViewState(state => state.sort);
+	const plotId = useViewState(state => state.plotId);
 	
 	const dataContext = useMemo(() => {
 		console.time('compute table');
@@ -101,7 +143,6 @@ function EventsView() {
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
-		console.log(idx)
 		if (idx == null || idx < 0) return null;
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[idx][timeIdx] as Date;
@@ -123,31 +164,6 @@ function EventsView() {
 			onsets, clouds
 		};
 	}, [plotId, data, plotOffsetDays, columns, viewExport, sampleData]);
-
-	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
-		const shownData = dataContext.data;
-		if (dir === 0) { // set cursor to plotted line
-			if (cursor)
-				return shownData[cursor.row][0] as number;
-			const found = shownData.findIndex(r => r[0] === data[current!]?.[0]);
-			if (found >= 0) setCursor({ row: found, column: 0 });
-		}
-		if (current == null)
-			return null;
-		if (global)
-			return data[clamp(0, data.length - 1, data.findIndex(r => r[0] === current) + dir)][0] as number;
-		const found = shownData.findIndex(r => r[0] === data[current][0]);
-		const curIdx = found >= 0 ? found : cursor?.row;
-		if (curIdx == null) return current;
-		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
-		return shownData[movedIdx][0] as number;
-	});
-
-	useEventListener('action+plot', plotMove(0));
-	useEventListener('action+plotPrev', plotMove(-1, true));
-	useEventListener('action+plotNext', plotMove(+1, true));
-	useEventListener('action+plotPrevShown', plotMove(-1));
-	useEventListener('action+plotNextShown', plotMove(+1));
 
 	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
 
