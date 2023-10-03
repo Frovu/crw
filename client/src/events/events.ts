@@ -10,7 +10,7 @@ import { IMFParams } from '../plots/time/IMF';
 import { SWParams } from '../plots/time/SW';
 import { immer } from 'zustand/middleware/immer';
 
-type EventsSettings = {
+export type EventsSettings = {
 	showColumns: string[],
 	showChangelog: boolean,
 	showAverages: boolean,
@@ -33,9 +33,10 @@ const defaultSettings = {
 	showLegend: false,
 };
 
-export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams
- 	, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>;
+export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
 export const defaultPlotParams: CommonPlotParams = {
+	showMetaInfo: true,
+	showTimeAxis: true,
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
@@ -90,15 +91,16 @@ export type ColumnDef = {
 	parseValue: null | { [key: string|number]: string|number|null }
 };
 
-export const statPlotOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
-export const plotOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations', ...statPlotOptions ] as const;
-export const panelOptions = [ ...plotOptions, 'MainTable' ] as const;
+export const statPanelOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
+export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
+export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable' ] as const;
 
-export const isPanelDraggable = (panel: string) => plotOptions.includes(panel as any);
-export const isPanelDuplicatable = (panel: string) => statPlotOptions.includes(panel as any);
+export const isPanelDraggable = (panel: string) => plotPanelOptions.includes(panel as any);
+export const isPanelDuplicatable = (panel: string) => statPanelOptions.includes(panel as any);
 
 export type PanelParams = {
-	type?: typeof panelOptions[number],
+	type?: typeof allPanelOptions[number],
+	plotParams?: Partial<CommonPlotParams>
 };
 
 export const defaultLayouts: { [name: string]: Layout } = {

@@ -5,7 +5,7 @@ import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
 import { clamp, useEventListener, useSize, Size } from '../util';
 import { ContextMenuContent, LayoutContent } from './EventsApp';
-import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, panelOptions } from './events';
+import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events';
 
 type LayoutTreeNode = {
 	split: 'row' | 'column',
@@ -65,9 +65,10 @@ export const useLayoutsStore = create<LayoutsState>()(
 
 export const resetLayouts = () => useLayoutsStore.setState(defaultState);
 
-const setParams = (nodeId: string, para: Partial<PanelParams>)  => useLayoutsStore.setState(state => {
+export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
+const setParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
 	const { items } = state.list[state.active];
-	Object.assign(items[nodeId], para);
+	items[nodeId][k] = typeof items[nodeId][k] == 'object' ? Object.assign(items[nodeId][k] as any, para) : para;
 });
 
 const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
@@ -165,13 +166,14 @@ function ContextMenu({ id }: { id: string }) {
 	const type = items[id]?.type;
 	return <div className='ContextMenu'
 		onClick={e => !(e.target instanceof HTMLButtonElement) && e.stopPropagation()}>
-		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'} onChange={e => setParams(id, { type: e.target.value as any })}>
+		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
+			onChange={e => setParams(id, 'type', e.target.value as any)}>
 			{type == null && <option value={'empty'}>Select panel</option>}
-			{panelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+			{allPanelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
 		</select>
-		{type && <div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>}
-		{type && <ContextMenuContent {...{ params: items[id], setParams: (para) => setParams(id, para) }}/>}
-		<div style={{ backgroundColor: 'var(--color-text-dark)', height: 1 }}></div>
+		{type && <div className='separator'/>}
+		{type && <ContextMenuContent {...{ params: items[id], setParams: (key, para) => setParams(id, key, para) }}/>}
+		<div className='separator'/>
 		{type && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
 		{type && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
 		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
@@ -189,7 +191,7 @@ export default function AppLayout() {
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
 		<Node {...{ size, id: 'root' }}/>
 		{contextMenu && <div style={{ position: 'fixed', transform: contextMenu.y > size.height / 2 ? 'translateY(-100%)' : 'unset',
-			left: Math.min(contextMenu.x, size.width - 200), top: contextMenu.y }}>
+			left: Math.min(contextMenu.x, size.width - 256), top: contextMenu.y }}>
 			<ContextMenu id={contextMenu.id}/>
 		</div>}
 	</div>;

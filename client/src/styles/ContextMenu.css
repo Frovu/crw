@@ -5,13 +5,24 @@
 	border: 1px var(--color-border) solid;
 }
 
-.ContextMenu > button, input {
+.ContextMenu > button, .ContextMenu > input {
 	display: block;
 	border: none;
 	padding: 2px 0 2px 0;
 }
 
-.ContextMenu > button:hover {
+.ContextMenu label {
+	user-select: none;
+	cursor: pointer;
+}
+
+.ContextMenu > button:hover, .ContextMenu label:hover {
 	color: var(--color-active);
 	text-decoration: underline;
+}
+
+div.separator {
+	background-color: var(--color-border);
+	margin: 4px 0 4px 0;
+	height: 1px;
 }

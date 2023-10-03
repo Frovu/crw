@@ -1,10 +1,10 @@
-import { useContext, useState, useRef, useMemo, useEffect } from 'react';
+import { useContext, useState, useRef, useMemo, useEffect, ChangeEvent } from 'react';
 import { useSize, useEventListener, clamp, Size } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout from './Layout';
+import AppLayout, { ParamsSetter } from './Layout';
 import { sampleEditingMarkers } from './Sample';
 import { Cursor, MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
-	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState, plotOptions } from './events';
+	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState, plotPanelOptions, CommonPlotParams, EventsSettings } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -15,28 +15,51 @@ import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 
-export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: (p: Partial<PanelParams>) => void }) {
+export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const { showGrid, showMarkers, showLegend, set } = useEventsSettings();
+	const { showTimeAxis, showMetaInfo } = {
+		...defaultPlotParams,
+		...params?.plotParams
+	};
+
+	const checkGlob = (k: keyof EventsSettings) => (e: ChangeEvent<HTMLInputElement>) => set(k, e.target.checked);
+	const check = (k: keyof CommonPlotParams) => (e: ChangeEvent<HTMLInputElement>) => setParams('plotParams', { [k]: e.target.checked });
+
 	return <>
-		<div> asdasd</div>
-		{/* <label><select value={params.color} onChange={e => setParams({ color: e.target.value })}>
-			{['blue', 'orange', 'green'].map(cl => <option key={cl} value={cl}>{cl}</option>)}
-		</select></label> */}
+		{plotPanelOptions.includes(params.type as any) && <>
+			<div style={{ display: 'flex', gap: 8 }}>
+				<label>grid<input type='checkbox' style={{ paddingLeft: 4 }}
+					checked={showGrid} onChange={checkGlob('showGrid')}/></label>
+				<label>markers<input type='checkbox' style={{ paddingLeft: 4 }}
+					checked={showMarkers} onChange={checkGlob('showMarkers')}/></label>
+				<label>legend<input type='checkbox' style={{ paddingLeft: 4 }}
+					checked={showLegend} onChange={checkGlob('showLegend')}/></label>
+			</div>
+			<div className='separator'/>
+			<div style={{ display: 'flex', gap: 8 }}>
+				<label>time axis<input type='checkbox' style={{ paddingLeft: 4 }}
+					checked={showTimeAxis} onChange={check('showTimeAxis')}/></label>
+				<label>meta info<input type='checkbox' style={{ paddingLeft: 4 }}
+					checked={showMetaInfo} onChange={check('showMetaInfo')}/></label>
+			</div>
+		</>}
 	</>;
 }
 
 export function LayoutContent({ size, params: state }: { size: Size, params: PanelParams }) {
+	const settings = useEventsSettings();
 	const plotContext = useContext(PlotContext);
 	const type = state.type;
 
 	const params = useMemo(() => {
-		return plotContext && plotOptions.includes(type as any) && {
+		return plotContext && plotPanelOptions.includes(type as any) && {
 			...defaultPlotParams,
+			...settings,
 			...plotContext!,
+			...state.plotParams,
 			stretch: true,
-			showTimeAxis: true,
-			showMetaInfo: true
 		};
-	}, [plotContext, type]);
+	}, [plotContext, settings, state.plotParams, type]);
 
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
 		{type === 'MainTable' && <MainTablePanel size={size}/>}
