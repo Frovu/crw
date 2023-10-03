@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import Help from './Help';
@@ -11,16 +11,31 @@ import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { handleGlobalKeydown, themeOptions, useAppSettings } from './app';
-import { resetLayouts, useLayoutsStore } from './events/Layout';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu } from './app';
+import { LayoutContextMenu, resetLayouts } from './Layout';
 
 const theQueryClient = new QueryClient();
 
-function App() {
+function ContextMenu() {
 	const queryClient = useQueryClient();
-	const [menu, setMenu] = useState<{ left: number } | null>(null);
+	const { menu } = useContextMenu();
+	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
+	
+	return !menu ? null : <div ref={setDiv} className='ContextMenu'
+		style={{ left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
+				 top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)) }}
+		onClick={e => { if (!(e.target instanceof HTMLButtonElement)) e.stopPropagation(); }}>
+		{menu.type === 'app' && <>
+			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
+			<button onClick={() => resetLayouts()}>Reset layouts</button>
+			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
+		</>}
+		{menu.type === 'layout' && <LayoutContextMenu {...menu.detail as any}/>}
+	</div>;
+}
+
+function App() {
 	const { theme, setTheme } = useAppSettings();
-	const { contextMenu, closeContextMenu } = useLayoutsStore();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -44,15 +59,8 @@ function App() {
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
 
-	const handleClick = (e: MouseEvent, open?: boolean) => {
-		if (e.target instanceof HTMLAnchorElement && e.target.href) return;
-		e.preventDefault();
-		e.stopPropagation();
-		closeContextMenu();
-		setMenu(open ? { left: e.clientX } : null);
-	};
-	useEventListener('click', handleClick);
-	useEventListener('contextmenu', handleClick);
+	useEventListener('click', closeContextMenu);
+	useEventListener('contextmenu', (e: PointerEvent) => { e.preventDefault(); closeContextMenu(); });
 	useEventListener('keydown', handleGlobalKeydown);
 
 	if (app === 'none')
@@ -89,14 +97,9 @@ function App() {
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
-		{!contextMenu && menu && <div className='ContextMenu' style={{ ...menu, bottom: 0, position: 'fixed' }}>
-			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
-			<button onClick={() => resetLayouts()}>Reset layouts</button>
-			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
-		</div>}
+		<ContextMenu/>
 		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', justifyContent: 'space-between',
-			 	color: 'var(--color-text-dark)', borderTop: borderDef }}
-		onContextMenu={e => { handleClick(e.nativeEvent, true);}}>
+			 	color: 'var(--color-text-dark)', borderTop: borderDef }} onContextMenu={openContextMenu('app')}>
 			<select style={{ border: 'none', padding: 0, borderRight: borderDef }} value={app} onChange={e => { window.location.href = e.target.value; }}>
 				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 			</select>

@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { MouseEvent, createContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
@@ -39,6 +39,25 @@ export const useAppSettings = create<AppSettings>()(
 		name: 'crwAppSettings'
 	})
 );
+
+type ContextMenu = {
+	menu: null | {
+		x: number, y: number,
+		type: 'layout' | 'app' | 'events',
+		detail?: object
+	}
+};
+
+export const useContextMenu = create<ContextMenu>()(set => ({
+	menu: null
+}));
+
+export const openContextMenu = (type: 'layout' | 'app' | 'events', detail?: object) => (e: MouseEvent) => {
+	e.preventDefault(); e.stopPropagation();
+	useContextMenu.setState(({ menu }) =>
+		({ menu: menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
+};
+export const closeContextMenu = () => useContextMenu.setState({ menu: null });
 
 export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
 

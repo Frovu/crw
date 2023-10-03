@@ -1,5 +1,7 @@
 
 .ContextMenu {
+	width: max-content;
+	position: fixed;
 	padding: 8px;
 	background-color: var(--color-bg);
 	border: 1px var(--color-border) solid;

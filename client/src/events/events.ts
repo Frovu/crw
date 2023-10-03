@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Filter, Sample, SampleState } from './Sample';
-import { Layout } from './Layout';
+import { Layout } from '../Layout';
 import { SetStateAction, createContext } from 'react';
 import { CirclesParams } from '../plots/time/Circles';
 import { GSMParams } from '../plots/time/GSM';

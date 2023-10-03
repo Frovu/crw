@@ -1,7 +1,7 @@
 import { useContext, useState, useRef, useMemo, useEffect, ChangeEvent } from 'react';
 import { useSize, useEventListener, clamp, Size } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { ParamsSetter } from './Layout';
+import AppLayout, { ParamsSetter } from '../Layout';
 import { sampleEditingMarkers } from './Sample';
 import { Cursor, MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState, plotPanelOptions, CommonPlotParams, EventsSettings } from './events';

@@ -1,11 +1,12 @@
-import '../styles/ContextMenu.css';
+import './styles/ContextMenu.css';
 import React, { useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
-import { clamp, useEventListener, useSize, Size } from '../util';
-import { ContextMenuContent, LayoutContent } from './EventsApp';
-import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events';
+import { clamp, useEventListener, useSize, Size } from './util';
+import { ContextMenuContent, LayoutContent } from './events/EventsApp';
+import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
+import { openContextMenu } from './app';
 
 type LayoutTreeNode = {
 	split: 'row' | 'column',
@@ -19,13 +20,10 @@ export type Layout = {
 };
 
 type LayoutsState = {
-	contextMenu: { x: number, y: number, id: string } | null,
 	dragFrom: null | string,
 	dragTo: null | string,
 	active: string,
 	list: { [name: string]: Layout },
-	openContextMenu: (x: number, y: number, id: string) => void,
-	closeContextMenu: () => void,
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
@@ -33,8 +31,7 @@ type LayoutsState = {
 }; 
 
 const defaultState = {
-	contextMenu: null,
-	dragFrom: null, // FIXME: don't persist this
+	dragFrom: null,
 	dragTo: null,
 	active: 'default',
 	list: defaultLayouts,
@@ -44,8 +41,6 @@ export const useLayoutsStore = create<LayoutsState>()(
 	persist(
 		immer((set, get) => ({
 			...defaultState,
-			closeContextMenu: () => set(state => ({ ...state, contextMenu: null })),
-			openContextMenu: (x, y, id) => set(state => ({ ...state, contextMenu: state.contextMenu ? null : { x, y, id } })),
 			startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
 			dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
 			finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
@@ -107,18 +102,14 @@ const useLayout = () => ({
 });
 
 function Item({ id, size }: { id: string, size: Size }) {
-	const { startDrag, dragOver, finishDrag, openContextMenu } = useLayoutsStore();
+	const { startDrag, dragOver, finishDrag } = useLayoutsStore();
 	const { items } = useLayout();
 	return <div style={{ ...size, position: 'relative' }}
-		onContextMenu={e => {
-			e.preventDefault();
-			e.stopPropagation();
-			openContextMenu(e.clientX, e.clientY, id);
-		}}
+		onContextMenu={openContextMenu('layout', { id })}
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		{items[id]?.type ? <LayoutContent {...{ size, params: items[id] }}/> : <div className='Center'><ContextMenu id={id}/></div>}
+		{items[id]?.type ? <LayoutContent {...{ size, params: items[id] }}/> : <div className='Center'><LayoutContextMenu id={id}/></div>}
 	</div>;
 }
 
@@ -157,15 +148,14 @@ function Node({ id, size }: { id: string, size: Size }) {
 	</div>;
 }
 
-function ContextMenu({ id }: { id: string }) {
+export function LayoutContextMenu({ id }: { id: string }) {
 	const { items, tree } = useLayout();
 	if (!items[id]) return null;
 	const parentNode = Object.values(tree).find((node) => node?.children.includes(id));
 	const isFirst = parentNode?.children[0] === id;
 	const relDir = parentNode?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const type = items[id]?.type;
-	return <div className='ContextMenu'
-		onClick={e => !(e.target instanceof HTMLButtonElement) && e.stopPropagation()}>
+	return <>
 		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
 			onChange={e => setParams(id, 'type', e.target.value as any)}>
 			{type == null && <option value={'empty'}>Select panel</option>}
@@ -177,11 +167,11 @@ function ContextMenu({ id }: { id: string }) {
 		{type && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
 		{type && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
 		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
-	</div>;
+	</>;
 }
 
 export default function AppLayout() {
-	const { startDrag, contextMenu } = useLayoutsStore();
+	const { startDrag } = useLayoutsStore();
 	const [container, setContainer] = useState<HTMLDivElement>();
 	const size = useSize(container);
 
@@ -190,9 +180,5 @@ export default function AppLayout() {
 	return <div style={{ width: '100%', height: '100%' }} ref={el => setContainer(el!)}
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
 		<Node {...{ size, id: 'root' }}/>
-		{contextMenu && <div style={{ position: 'fixed', transform: contextMenu.y > size.height / 2 ? 'translateY(-100%)' : 'unset',
-			left: Math.min(contextMenu.x, size.width - 256), top: contextMenu.y }}>
-			<ContextMenu id={contextMenu.id}/>
-		</div>}
 	</div>;
 }
