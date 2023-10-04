@@ -32,3 +32,11 @@ Event's right boundary **(not inclusive)** is defined as follows:
 - Start hour + duration if duration exists
 - Or else the first hour of next event (if offset <= 48h)
 - Or else start hour + 48 hours 
+
+# TODO
+
+## FEID
+
+- Favourite samples
+
+- Distinguish samples in list

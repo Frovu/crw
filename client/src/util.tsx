@@ -189,3 +189,24 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 		/> month{count === 1 ? '' : 's'}
 	</div>] as [number[], ReactElement];
 }
+
+export function useConfirmation(text: string, callback: () => void) {
+	const [open, setOpen] = useState(false);
+	useEventListener('click', () => setOpen(false));
+	useEventListener('keydown', (e) => e.code === 'KeyY' && callback());
+
+	return {
+		askConfirmation: () => setOpen(true),
+		confirmation: !open ? null : <>
+			<div className='PopupBackground'/>
+			<div className='Popup' style={{ left: '30vw', top: '20vh', width: '20em' }}>
+				<h4>Confirm action</h4>
+				<p>{text ?? 'Beware of irreversible consequences'}</p>
+				<div style={{ marginTop: '1em' }}>
+					<button style={{ width: '8em' }} onClick={e => {callback(); e.stopPropagation();}}>Confirm (Y)</button>
+					<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => setOpen(false)}>Cancel (N)</button>
+				</div>
+			</div>
+		</>
+	};
+}

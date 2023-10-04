@@ -2,7 +2,7 @@ import React, { MutableRefObject, useRef, useState } from 'react';
 import { useSize } from '../util';
 import uPlot from 'uplot';
 
-import { MagneticCloud, Onset } from '../events/Table';
+import { MagneticCloud, Onset } from '../events/events';
 import UplotReact from 'uplot-react';
 
 export type TextTransform = {

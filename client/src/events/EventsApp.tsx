@@ -1,10 +1,11 @@
-import { useContext, useState, useRef, useMemo, useEffect, ChangeEvent } from 'react';
-import { useSize, useEventListener, clamp, Size } from '../util';
+import { useContext, useState, useMemo, useEffect, ChangeEvent } from 'react';
+import { useEventListener, clamp, Size } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { ParamsSetter } from '../Layout';
-import { sampleEditingMarkers } from './Sample';
-import { Cursor, MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
-	defaultPlotParams, SampleContext, Sort, TableViewContext, useEventsSettings, useViewState, plotPanelOptions, CommonPlotParams, EventsSettings } from './events';
+import { sampleEditingMarkers, useSampleState } from './sample';
+import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
+	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
+	useViewState, plotPanelOptions, CommonPlotParams, EventsSettings } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -122,7 +123,8 @@ function MainTablePanel({ size }: { size: Size }) {
 function EventsView() {
 	const { showAverages, showColumns, plotOffsetDays } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
-	const { sample, data: sampleData, isEditing: editingSample, setFilters } = useContext(SampleContext);
+	const { current: sample, data: sampleData } = useContext(SampleContext);
+	const editingSample = useSampleState(state => state.isPicking);
 	const [viewExport, setViewExport] = useState(false);
 	const sort = useViewState(state => state.sort);
 	const plotId = useViewState(state => state.plotId);

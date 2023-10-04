@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { TableContext, equalValues, valueToString } from './Table';
+import { MainTableContext, equalValues, valueToString } from './events';
 import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
@@ -8,7 +8,7 @@ const FIXES = [
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
-	const { columns: allColumns, data: currentData } = useContext(TableContext);
+	const { columns: allColumns, data: currentData } = useContext(MainTableContext);
 	const [fileText, setFileText] = useState<string>();
 
 	const parsed = useMemo(() => {

@@ -84,63 +84,10 @@
 }
 
 .FilterCard {
-	display: inline-flex;
-	justify-content: space-between;
 	padding: 1px;
-	/* margin: 2px; */
-	text-align: left;
-}
-
-.AddFilter {
-	margin: 2px;
-	text-align: right;
-}
-
-.Menu {
-	display: flex;
-	gap: 4px;
-	position: relative;
-	z-index: 10;
-	margin-top: 4px;
-	margin-bottom: 4px;
-}
-
-.MenuDropdown {
-	text-align: right;
-	position: absolute;
-	display: flex;
-	flex-direction: column;
-	background-color: var(--color-bg);
-	z-index: 10;
-	border: 1px solid var(--color-border);
-	padding: .5em .5em .5em  1em;
-	gap: 6px;
-	width: max-content;
-	max-height: calc(100vh - 64px);
-	overflow-y: scroll;
-}
-
-.MenuDropdown h4 {
-	text-align: center;
-	margin: 6px 0 0 0;
-}
-
-.MenuItem {
-	border-color: transparent;
-	padding: 2px 6px 2px 6px;
 	display: inline-flex;
 	justify-content: space-between;
-}
-
-.MenuInput {
-	padding-left: 8px;
-	border: 1px solid transparent;
-	cursor: pointer;
-	user-select: none;
-}
-.MenuInput:hover {
-	border: 1px solid var(--color-active);
-	
+	text-align: left;
 }
 
 .keyComb {

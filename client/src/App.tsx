@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import Help from './Help';

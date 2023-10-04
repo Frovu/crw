@@ -89,6 +89,7 @@ input:disabled, button:disabled, select:disabled {
 }
 
 .CloseButton {
+	content: '&times;';
 	display: inline-block;
 	user-select: none;
 	cursor: pointer;

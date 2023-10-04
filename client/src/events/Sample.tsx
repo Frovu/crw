@@ -87,6 +87,18 @@ export function SampleMenu() {
 			}
 		})()), { onSuccess: () => queryClient.invalidateQueries(['sample']) });
 
+	// useEventListener('sampleEdit', (e) => {
+	// 	if (!sample || !isEditing) return;
+	// 	const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
+	// 	const target = sample[action];
+	// 	const found = target.indexOf(id);
+	// 	const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
+	// 	setSample(smpl => ({ ...smpl!,
+	// 		[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
+	// 		[opposite]: sample[opposite].filter(i => i !== id)
+	// 	}));
+	// });
+
 	const unsavedChanges = sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
 
@@ -105,7 +117,7 @@ export function SampleMenu() {
 			{confirmation}
 			<div>
 				<select title='Events sample' style={{ width: '14em' }} value={sample?.name ?? 'none'}
-					onChange={e => setSample(samples.find(s => s.name === e.target.value))}>
+					onChange={e => setSample(samples.find(s => s.name === e.target.value) ?? null)}>
 					<option value='none'>all events</option>
 					{samples.map(({ name }) => <option key={name} value={name}>{name}</option>)}
 				</select>

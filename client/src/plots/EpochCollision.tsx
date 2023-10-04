@@ -1,13 +1,13 @@
 import { useContext, useMemo, useState } from 'react';
-import { SampleContext, SettingsContext, TableContext } from '../events/Table';
-import { MenuCheckbox, MenuSelect } from '../events/TableMenu';
 import { apiPost, useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 import UplotReact from 'uplot-react';
 import { clickDownloadPlot } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
-import { applySample } from '../events/Sample';
+import { applySample } from '../events/sample';
+import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
+import { MenuSelect, MenuCheckbox } from '../events/TableMenu';
 
 const colors = ['purple', 'green', 'magenta'];
 
@@ -82,8 +82,8 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 }
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const { settings: { plotTimeOffset, plotParams: { showGrid } } } = useContext(SettingsContext);
-	const { columns, series, data: tableData } = useContext(TableContext);
+	const { plotOffsetDays, showGrid } = useEventsSettings();
+	const { columns, series, data: tableData } = useContext(MainTableContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -110,7 +110,7 @@ export default function EpochCollision() {
 	const queryHandler = (sample: any[][] | null) => async () => {
 		if (!sample || !sample.length) return;
 		const colIdx = columns.findIndex(c => c.fullName === state.timeColumn)!;
-		const interval = plotTimeOffset.map(i => i * 24);
+		const interval = plotOffsetDays.map(i => i * 24);
 		const times = sample.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 3600);
 		
 		type Res = { offset: number[], mean: number[], median: number[], std: number[] };
@@ -126,7 +126,7 @@ export default function EpochCollision() {
 		];
 	};
 
-	const qk = ['epoch', ...plotTimeOffset, state.series, state.timeColumn];
+	const qk = ['epoch', ...plotOffsetDays, state.series, state.timeColumn];
 	const queries = useQueries([
 		{ queryKey: [...qk, samples[0]], queryFn: queryHandler(samples[0]), staleTime: Infinity },
 		{ queryKey: [...qk, samples[1]], queryFn: queryHandler(samples[1]), staleTime: Infinity },

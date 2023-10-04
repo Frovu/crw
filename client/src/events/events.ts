@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Filter, Sample, SampleState } from './Sample';
+import { Filter, Sample } from './sample';
 import { Layout } from '../Layout';
-import { SetStateAction, createContext } from 'react';
+import { createContext } from 'react';
 import { CirclesParams } from '../plots/time/Circles';
 import { GSMParams } from '../plots/time/GSM';
 import { GeomagnParams } from '../plots/time/Geomagn';
@@ -172,9 +172,8 @@ export const MainTableContext = createContext<{ data: Value[][], columns: Column
 	firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 
-export const SampleContext = createContext<{ data: Value[][], sample: SampleState, samples: Sample[], isEditing: boolean,
-	setEditing: (a: boolean) => void, setSample: (d: SetStateAction<SampleState>) => void,
-	filters: FiltersCollection, setFilters: (a: SetStateAction<FiltersCollection>) => void }>({} as any);
+export const SampleContext = createContext<{ data: Value[][], current: Sample | null, samples: Sample[],
+	apply: (data: Value[][], sampleId: number) => Value[][] }>({} as any);
 
 export const TableViewContext = createContext<{ data: Value[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
 

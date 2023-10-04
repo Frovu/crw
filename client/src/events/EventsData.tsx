@@ -1,8 +1,8 @@
 import { ReactNode, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, FiltersCollection, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
+import { ChangeLog, ChangeValue, ColumnDef, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
-import { SampleState, Sample, applySample, renderFilters } from './Sample';
+import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { ConfirmationPopup } from './TableMenu';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
@@ -91,6 +91,10 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		} as const;
 	}, [dataQuery.data, structureQuery.data]);
 
+	// ************************************************************************************
+	// 						 	  MAIN TABLE DATA WITH CHANGES
+	// ************************************************************************************
+
 	const mainContext = useMemo(() => {
 		if (!rawMainContext) return null;
 		const { data: rawData, columns } = rawMainContext;
@@ -134,44 +138,30 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// 										SAMPLE
 	// ************************************************************************************
 
-	const [sample, setSample] = useState<SampleState>(null);
-	const [isEditing, setEditing] = useState(false);
-	const [filters, setFilters] = useState<FiltersCollection>([]);
-	
-	useEventListener('sampleEdit', (e) => {
-		if (!sample || !isEditing) return;
-		const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
-		const target = sample[action];
-		const found = target.indexOf(id);
-		const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
-		setSample(smpl => ({ ...smpl!,
-			[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
-			[opposite]: sample[opposite].filter(i => i !== id)
-		}));
-	});
+	const filters = useSampleState(state => state.filters);
+	const sample = useSampleState(state => state.current);
+	const isPicking = useSampleState(state => state.isPicking);
 
 	const samplesQuery = useQuery('samples', async () => {
 		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
 		console.log('%cavailable samples:', 'color: #0f0', samples);
-		if (sample && !samples.find(s => s.id === sample.id)) {
-			setEditing(false);
-			setSample(null);
-		}
 		return samples;
 	});
 
 	const sampleContext = useMemo(() => {
-		if (!mainContext || !samplesQuery.data) return null;
+		const samples = samplesQuery.data;
+		if (!mainContext || !samples) return null;
 		const { columns, data } = mainContext;
-		const applied = isEditing ? data.map(row => [...row]) : applySample(data, sample, columns);
-		const filterFn = renderFilters(filters.map(f => f.filter), columns);
+		const applied = isPicking ? data.map(row => [...row]) : applySample(data, sample, columns);
+		const filterFn = renderFilters(filters, columns);
 		const filtered = applied.filter(row => filterFn(row));
 		return {
 			data: filtered, 
-			samples: samplesQuery.data,
-			sample, setSample, isEditing, setEditing, filters, setFilters
+			current: sample,
+			apply: (dt: any[][], id: number) => applySample(dt, samples?.find(s => s.id === id) ?? null, columns),
+			samples,
 		};
-	}, [filters, isEditing, mainContext, sample, samplesQuery.data]);
+	}, [filters, isPicking, mainContext, sample, samplesQuery.data]);
 
 	if (!mainContext || !sampleContext || !structureQuery.data || !dataQuery.data || !samplesQuery.data) {
 		return <div style={{ padding: 8 }}>

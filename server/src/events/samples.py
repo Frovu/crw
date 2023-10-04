@@ -7,9 +7,9 @@ def _init():
 			created TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			last_modified TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			name TEXT NOT NULL,
-			authors int[],
+			authors int[] NOT NULL,
 			public BOOLEAN NOT NULL DEFAULT 'f',
-			filters JSON,
+			filters JSON NOT NULL,
 			whitelist int[] NOT NULL DEFAULT '{}',
 			blacklist int[] NOT NULL DEFAULT '{}',
 			UNIQUE (name, authors))''')

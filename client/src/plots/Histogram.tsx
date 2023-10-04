@@ -2,17 +2,30 @@ import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { HistOptions } from '../events/Statistics';
-import { SampleContext, SettingsContext, TableContext } from '../events/Table';
 import { useSize } from '../util';
 import { axisDefaults, clickDownloadPlot, color, font } from './plotUtil';
-import { applySample } from '../events/Sample';
+import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 
 const colors = ['magenta', 'acid', 'cyan'];
 
+const options: HistOptions = {
+	binCount: 16,
+	forceMin: null,
+	forceMax: null,
+	yScale: 'count',
+	sample0: 'current',
+	sample1: 'current',
+	sample2: 'current',
+	column0: 'fe_v_max',
+	column1: null,
+	column2: null,
+	drawMean: false,
+	drawMedian: false
+};
 export default function HistogramPlot() {
-	const { data, columns } = useContext(TableContext);
-	const { options: { hist: options }, settings: { plotParams: { showGrid } } } = useContext(SettingsContext);
-	const { data: currentSample, samples: samplesList } = useContext(SampleContext);
+	const { data: allData, columns } = useContext(MainTableContext);
+	const { showGrid } = useEventsSettings();
+	const { data: sampleData, apply: applySample } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
@@ -25,24 +38,24 @@ export default function HistogramPlot() {
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
 			
-			const sample = sampleId === 'current' ? currentSample : sampleId === 'none' ? data :
-				applySample(data, samplesList.find(s => s.id.toString() === sampleId)!, columns);
-			return sample.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
+			const data = sampleId === 'current' ? sampleData : sampleId === 'none' ? allData :
+				applySample(allData, sampleId as number);
+			return data.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex(s => s.length);
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
 		const enumMode = !!column.enum;
-		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v) + 1))] : allSamples;
+		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v as any) + 1))] : allSamples;
 		const averages = {
-			mean: options.drawMean && samples.map(smpl => smpl.length ? smpl.reduce((a, b) => a + b, 0) / smpl.length : null),
+			mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
 			median: options.drawMedian && samples.map(smpl => {
-				const s = smpl.sort(), mid = Math.floor(smpl.length / 2);
+				const s = smpl.sort() as any, mid = Math.floor(smpl.length / 2);
 				return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
 			})
 		} as {[key: string]: (number | null)[]};
 
-		const everything = samples.flat();
+		const everything = samples.flat() as number[];
 		const min = options.forceMin ?? Math.min.apply(null, everything);
 		let max = options.forceMax ?? Math.max.apply(null, everything);
 		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : options.binCount;
@@ -57,7 +70,7 @@ export default function HistogramPlot() {
 			if (!sample.length) return null;
 			const bins = Array(binCount).fill(0);
 			for (const val of sample) {
-				const bin = Math.floor((val - min) / binSize);
+				const bin = Math.floor(((val as number) - min) / binSize);
 				if (bin >= 0 && bin < binCount)
 					++bins[bin];
 			}
@@ -156,7 +169,7 @@ export default function HistogramPlot() {
 			} as uPlot.Options,
 			data: [binsValues, ...transformed] as any
 		}) ;
-	}, [data, options, columns, currentSample, showGrid, samplesList]);
+	}, [columns, sampleData, allData, applySample, showGrid]);
 
 	const opts = hist?.(size);
 	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;
