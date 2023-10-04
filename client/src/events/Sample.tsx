@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { AuthContext, showError } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
@@ -72,22 +72,27 @@ export function SampleView() {
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show,
-		set, setSample, setPicking, setShow, addFilter } = useSampleState();
+		set, setSample, setPicking, setShow, clearFilters, addFilter } = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [nameInput, setNameInput] = useState<string | null>(null);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
 		() => mutate('remove', { onSuccess: () => setSample(null) }));
 	
+	const newName = (i: number=0): string => {
+		const name = 'New Sample #' + i;
+		return samples.find(s => s.name === name) ? newName(i + 1) : name; };
 	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
-	const { mutate } = useMutation(async (action: 'create' | 'remove' | 'update') => 
+	const { mutate, isLoading } = useMutation(async (action: 'create' | 'remove' | 'update') => 
 		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(`events/samples/${action}`, (() => {
 			switch (action) {
-				case 'create': return { name: nameInput };
+				case 'create': return {
+					name: newName(),
+					filters: filters.map(({ column, operation, value }) => ({ column, operation, value })) };
 				case 'remove': return { id: sample?.id };
 				case 'update': return stripFilters ?? {};
 			}
-		})()), { onSuccess: () => queryClient.invalidateQueries(['sample']), onError: showError });
+		})()), { onSuccess: () => queryClient.invalidateQueries(['samples']), onError: showError });
 
 	useEventListener('escape', () => setNameInput(null));
 
@@ -102,14 +107,21 @@ export function SampleView() {
 	// 		[opposite]: sample[opposite].filter(i => i !== id)
 	// 	}));
 	// });
+
 	const createSample = () => mutate('create', { onSuccess: (smpl: Sample) => {
-		setShow(true);
-		setNameInput(null);
-		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null });
- 	} });
+		setShow(true); setNameInput(smpl.name); clearFilters();
+		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? null });
+		
+	 } });
 
 	const unsavedChanges = sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
+	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && s.name === nameInput);
+
+	useEffect(() => {
+		if (!show && unsavedChanges)
+			setSample(samples.find(s => s.id === sample?.id) ?? null);
+	}, [unsavedChanges, setSample, samples, sample, show]);
 
 	const applied = sample && applySample(tableData, sample, columns);
 	const whitelisted = sample && sample.whitelist.filter(id => tableData.find(row => row[0] === id)).length;
@@ -124,22 +136,21 @@ export function SampleView() {
 	return (<div>
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
-			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0,
-				...(samples.find(s => s.name === nameInput) && { borderColor: 'var(--color-red)' }) }}
-			placeholder='Sample name' autoFocus onBlur={() => setNameInput(null)}
-			value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.code === 'Enter' && createSample()}/>}
-			{nameInput == null && <select title='Select events sample' style={{ flex: '6 8em' }} value={sample?.name ?? '_none'}
-				onChange={e => e.target.value !== '_create' && setSample(samples.find(s => s.name === e.target.value) ?? null)}>
-				<option value='_create' onClick={() => setNameInput('')}>-- Create sample --</option>
+			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
+				...(!nameValid && { borderColor: 'var(--color-red)' }) }} onKeyDown={e => e.code === 'Enter' && (e.target as any)?.blur()}
+			placeholder='Sample name' autoFocus onFocus={e => e.target.select()} onBlur={(e) => {
+				if (nameValid) set({ name: nameInput });
+				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
+			value={nameInput} onChange={e => setNameInput(e.target.value)}/>}
+			{nameInput == null && <select title='Select events sample' style={{ flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
+				onChange={e => e.target.value !== '_create' && setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
+				<option value='_create' onClick={createSample}>-- Create sample --</option>
 				<option value='_none'>-- All events --</option>
-				{samples.map(({ name }) => <option key={name} value={name}>{name}</option>)}
+				{samples.map(({ id, name }) => <option key={id} value={id}>{sample?.id === id ? sample.name : name}</option>)}
 			</select>}
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
 				onClick={() => setShow(!show)}>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
-			{nameInput == null && !sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }}
-				onClick={() => setNameInput('')}>Create sample</button>}
-			{nameInput != null && <button style={{ flex: '1 fit-content', color: nameInput.length ? 'var(--color-active)' : 'unset' }}
-				onClick={createSample}>Create sample</button>}
+			{!sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }} onClick={createSample}>Create sample</button>}
 			<button style={{ flex: '1 fit-content' }} onClick={() => addFilter()}>Add filter</button>
 		</div>
 		
@@ -159,19 +170,21 @@ export function SampleView() {
 				public<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type='checkbox'/></label>
 		</div>
 		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}>
-			<div style={{ width: 'max-content' }} onMouseEnter={() => setHoverAuthors(a => a < 1 ? 1 : a)}
+			<div style={{ width: 'max-content', paddingTop: 2, paddingRight: 4 }} onMouseEnter={() => setHoverAuthors(a => a < 1 ? 1 : a)}
 				onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
-				{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)', paddingRight: 4, paddingTop: 2 }}>by {sample.authors.join(',')}</span>}
-				{hoverAuthors === 1 && <div style={{ cursor: 'pointer', color: 'var(--color-active)', paddingTop: 2, paddingRight: 4 }}
+				{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
+				{hoverAuthors === 1 && <div style={{ cursor: 'pointer', color: 'var(--color-active)' }}
 					onClick={()=>setHoverAuthors(2)}>Edit authors?</div>}
 			</div>
 			{hoverAuthors === 2 && <><span>by </span><input autoFocus onBlur={() => setHoverAuthors(0)}
-				defaultValue={sample.authors.join(',')} style={{ flex: 2, maxWidth: '12em', minWidth: '2em' }}
+				defaultValue={sample.authors.join(',')} style={{ flex: 2, maxWidth: '12em', minWidth: '6em' }}
 				onChange={e => set({ authors: e.target.value.trim().split(/[,\s]+/g).sort() })}/></>}
-			<button style={{ flex: '1 4em', minWidth: '6em', maxWidth: '12em' }} onClick={askConfirmation}>Delete</button>
-			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '1 4em', minWidth: 'fit-content',
+			<button id='rename' style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }}
+				onClick={() => setNameInput(nameInput ? null : sample.name)}>Rename</button>
+			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
+			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
 				maxWidth: '12em', color: unsavedChanges ? 'var(--color-active)' : 'unset' }}
-			onClick={() => mutate('update', { onSuccess: () => setHoverAuthors(0) })}>Save changes</button>}
+			onClick={() => mutate('update', { onSuccess: () => { setShow(false); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
 		</div></>}
 		{filters.length > 0 && <div className='Filters' style={{ padding: '2px 0 2px 0' }}>
 			{filters.map(filter => <FilterCard key={filter.id} filter={filter}/>)}

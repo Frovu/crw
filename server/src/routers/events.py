@@ -86,6 +86,7 @@ def _compute_generic():
 	if not recompute_generics(generic):
 		return msg('Failed miserably'), 500
 	return msg(f'Computed in {round(time() - start, 1)} s')
+
 @bp.route('/samples', methods=['GET'])
 @route_shielded
 def get_samples():
@@ -98,9 +99,10 @@ def get_samples():
 def add_sample():
 	uid = session.get('uid')
 	name = request.json.get('name')
+	filters_json = json.dumps(request.json.get('filters'))
 	if not name:
 		raise ValueError('Empty name')
-	return samples.create_sample(uid, name)
+	return samples.create_sample(uid, name, filters_json)
 
 @bp.route('/samples/remove', methods=['POST'])
 @route_shielded

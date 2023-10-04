@@ -9,7 +9,7 @@ def _init():
 			name TEXT NOT NULL,
 			authors int[] NOT NULL,
 			public BOOLEAN NOT NULL DEFAULT 'f',
-			filters JSON NOT NULL,
+			filters JSON NOT NULL DEFAULT '{}',
 			whitelist int[] NOT NULL DEFAULT '{}',
 			blacklist int[] NOT NULL DEFAULT '{}',
 			UNIQUE (name, authors))''')
@@ -18,17 +18,17 @@ _init()
 def select(uid=None):
 	with pool.connection() as conn:
 		curs = conn.execute('SELECT id, name, array(select login from users where uid = ANY(authors) order by login) as authors, public, filters, whitelist, blacklist ' + 
-		'FROM events.samples WHERE public' + ('' if uid is None else ' OR %s = ANY(authors)'), [] if uid is None else [uid])
+		'FROM events.samples WHERE public' + ('' if uid is None else ' OR %s = ANY(authors)') + 'ORDER BY name', [] if uid is None else [uid])
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		return [{ f: val for val, f in zip(row, fields) } for row in rows]
 
-def create_sample(uid, name):
+def create_sample(uid, name, filters_json):
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT id FROM events.samples WHERE name = %s AND %s = ANY(authors)', [name, uid]).fetchone()
 		if exists:
 			raise ValueError('Already exists')
-		curs = conn.execute('INSERT INTO events.samples(name, authors) VALUES (%s, %s) RETURNING '+
-		'id, name, array(select login from users where uid = ANY(authors)) as authors, public, filters, whitelist, blacklist', [name, [uid,]])
+		curs = conn.execute('INSERT INTO events.samples(name, authors, filters) VALUES (%s, %s, %s) RETURNING '+
+		'id, name, array(select login from users where uid = ANY(authors)) as authors, public, filters, whitelist, blacklist', [name, [uid,], filters_json])
 		return { f: val for val, f in zip(curs.fetchone(), [desc[0] for desc in curs.description]) }
 
 def remove_sample(uid, sid):

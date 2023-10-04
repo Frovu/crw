@@ -31,6 +31,7 @@ export type SampleState = {
 	addFilter: (filter?: Filter) => void,
 	changeFilter: (filter: Filter) => void,
 	removeFilter: (id?: number) => void,
+	clearFilters: () => void,
 	setSample: (s: null | Sample) => void
 };
 
@@ -43,7 +44,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	filters: [],
 	set: (arg) => set(state => { state.current && Object.assign(state.current, arg); }),
 	setPicking: (arg) => set(st => ({ ...st, isPicking: arg })),
-	setShow: (arg) => set(st => ({ ...st, showDetails: arg })),
+	setShow: (arg) => set(st => ({ ...st, showDetails: arg, filters: arg ? [] : st.filters })),
 	addFilter: (filter) => set(state => {
 		const target = (state.showDetails ? state.current : null) ?? state;
 		const fl = filter ?? state.filters.at(-1) ?? defaultFilter;
@@ -57,6 +58,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 		const target = (state.showDetails ? state.current : null) ?? state;
 		target.filters = target.filters.filter((f) => f.id !== id);
 	}),
+	clearFilters: () => set(state => ({ ...state, filters: [] })),
 	setSample: (sample) => set(state => {
 		if (sample == null) {
 			state.current = null;

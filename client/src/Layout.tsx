@@ -41,7 +41,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 	persist(
 		immer((set, get) => ({
 			...defaultState,
-			startDrag: (nodeId: string | null) => set(state => ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
+			startDrag: (nodeId: string | null) => set(state =>
+				state.dragFrom === nodeId ? state : ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
 			dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
 			finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
 				if (!dragFrom || !dragTo) return;
@@ -115,7 +116,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 
 function Node({ id, size }: { id: string, size: Size }) {
 	const drag = useRef<{ ratio: number, click: number } | null>(null);
-	const { updateRatio } = useLayoutsStore();
+	const updateRatio = useLayoutsStore(st => st.updateRatio);
 	const { tree } = useLayout();
 
 	if (tree[id] == null)
@@ -171,7 +172,7 @@ export function LayoutContextMenu({ id }: { id: string }) {
 }
 
 export default function AppLayout() {
-	const { startDrag } = useLayoutsStore();
+	const startDrag = useLayoutsStore(st => st.startDrag);
 	const [container, setContainer] = useState<HTMLDivElement>();
 	const size = useSize(container);
 
