@@ -43,35 +43,35 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 	
 	return (
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select disabled={disabled} style={{ width: '8em', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
+			<select disabled={disabled} style={{ flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
 				value={columnId} onChange={set('column')}>
 				{columns.filter(col => !col.hidden).map(col =>
 					<option value={col.id} key={col.table+col.name}>{col.fullName}</option>)}
 				{!column && <option value={columnId} key={columnId}>{columnId}</option>}
 			</select>
-			<select disabled={disabled} style={{ width: operation.includes('null') ? '8em' : '62px', textAlign: 'center',
+			<select disabled={disabled} style={{ flex: '2', textAlign: 'center', maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
 				borderColor: column?.type === 'enum' && isInvalid ? 'var(--color-red)' : 'transparent', marginRight: '4px' }}
 			value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 			</select>
 			{!operation.includes('null') && !isSelectInput &&
-			<input type='text' disabled={disabled} style={{ width: '7em', textAlign: 'center',
+			<input type='text' disabled={disabled} style={{ textAlign: 'center', flex: '2', minWidth: 0, maxWidth: '8em',
 				...(isInvalid && { borderColor: 'var(--color-red)' }) }} value={value} onChange={set('value')}/>}
 			{!operation.includes('null') && isSelectInput &&
-			<select disabled={disabled} style={{ width: 'calc(7em - 4px)' }} value={value} onChange={set('value')}>
+			<select disabled={disabled} style={{ flex: '2', maxWidth: '8em', minWidth: 0 }} value={value} onChange={set('value')}>
 				{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 			</select>}
-			{!disabled && <span className='CloseButton' onClick={() => removeFilter(filter.id)}/>}
+			{!disabled && <div className='CloseButton' onClick={() => removeFilter(filter.id)}/>}
 		</div>
 	);
 }
 
-export function SampleMenu() {
+export function SampleView() {
 	const queryClient = useQueryClient();
 	const { data: tableData, columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
-	const { current: sample, isPicking, set, setSample, setPicking, setShow, addFilter } = useSampleState();
+	const { current: sample, filters, isPicking, set, setSample, setPicking, setShow, addFilter } = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
@@ -113,20 +113,22 @@ export function SampleMenu() {
 		<span style={{ color: 'var(--color-text-dark)' }}> = [{applied!.length}]</span>
 	</span>);
 	return (
-		<div style={{ marginTop: '4px' }}>
+		<div style={{ }}>
 			{confirmation}
-			<div>
-				<select title='Events sample' style={{ width: '14em' }} value={sample?.name ?? 'none'}
+			<div style={{ display: 'flex', paddingBottom: 2, gap: 4, flexWrap: 'wrap' }}>
+				<select title='Events sample' style={{ flex: '3', flexBasis: 'max-content' }} value={sample?.name ?? 'none'}
 					onChange={e => setSample(samples.find(s => s.name === e.target.value) ?? null)}>
 					<option value='none'>all events</option>
 					{samples.map(({ name }) => <option key={name} value={name}>{name}</option>)}
 				</select>
-				<button style={{ width: '18ch' }} onClick={() => addFilter()}>Add filter</button>
+				<button style={{ flex: '1 fit-content' }} onClick={() => addFilter()}>Add filter</button>
+				<button>{allowEdit ? 'Modify' : 'Show'}</button>
+				{!sample && role && <button style={{  }} onClick={() => mutate('create', {
+					onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
+				})}>Save sample</button>}
 			</div>
-			{!sample && role && <button style={{ margin: '8px 4px 0 0', width: '18ch', height: '1.5em' }} onClick={() => mutate('create', {
-				onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
-			})}>Create new sample</button>}
-			{sample?.filters && <div style={{ textAlign: 'center', margin: '8px 0 12px 0', width: '26em' }}>
+			
+			{sample?.filters && <div style={{ textAlign: 'center' }}>
 				{sample.filters.map((filter) => <FilterCard key={filter.id} filter={filter} disabled={!allowEdit}/>)}
 			</div>}
 			{sample && !allowEdit && <div style={{ padding: '6px' }}>
@@ -158,6 +160,9 @@ export function SampleMenu() {
 					<button style={{ width: '18ch' }} onClick={askConfirmation}>Delete sample</button>
 				</div>
 			</>}
+			{filters.length > 0 && <div className='Filters' style={{ padding: '2px 0 2px 0' }}>
+				{filters.map(filter => <FilterCard key={filter.id} filter={filter}/>)}
+			</div>}
 		</div>
 	);
 }

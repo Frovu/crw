@@ -37,7 +37,7 @@ export default function TableView({ size }: { size: Size }) {
 	const { plotId, sort, cursor, toggleSort, setCursor, escapeCursor } = useViewState();
 	const { showChangelog } = useEventsSettings();
 
-	const viewSize = Math.floor(size.height / 28) - 4; // FIXME
+	const viewSize = Math.floor(size.height / 28) - 8; // FIXME
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 

@@ -89,15 +89,17 @@ input:disabled, button:disabled, select:disabled {
 }
 
 .CloseButton {
-	content: '&times;';
+	height: 1.5em;
+	color: var(--color-red);
+}
+.CloseButton::after {
+	content: '×';
 	display: inline-block;
 	user-select: none;
 	cursor: pointer;
-	margin: 0 4px 0 4px;
+	padding: 0 2px 0 4px;
 	font-size: 24px;
-	color: var(--color-red);
-	max-height: 1em;
-	transform: translateY(-5px);
+	transform: translateY(-4px);
 }
 .CloseButton:hover {
 	color: var(--color-active) !important;

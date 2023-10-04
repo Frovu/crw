@@ -41,7 +41,7 @@
 	overflow: clip;
 }
 
-.ModifiedMarker {
+.ModifiedMarker::after {
 	content: '*';
 	font-size: 14px;
 	display: inline-block;
@@ -77,17 +77,25 @@
 }
 
 .Filters {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, 354px); 
-	padding: 2px;
+	justify-content: left;
+	display: flex;
+	flex-wrap: wrap;
 	gap: 2px;
 }
 
 .FilterCard {
+	display: flex;
 	padding: 1px;
-	display: inline-flex;
-	justify-content: space-between;
+	flex: 1 1 26ch;
+	min-width: min(100%, 26ch);
+	max-width: 100%;
+	justify-content: left;
 	text-align: left;
+}
+
+.FilterCard > select {
+	min-width: 2em;
+	max-width: max-content;
 }
 
 .keyComb {

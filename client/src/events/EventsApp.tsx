@@ -15,6 +15,7 @@ import PlotGeoMagn from '../plots/time/Geomagn';
 import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
+import { SampleView } from './Sample';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { showGrid, showMarkers, showLegend, set } = useEventsSettings();
@@ -117,7 +118,10 @@ function MainTablePanel({ size }: { size: Size }) {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
-	return <TableView size={size}/>;
+	return <div>
+		<SampleView/>
+		<TableView size={size}/>
+	</div>;
 }
 
 function EventsView() {

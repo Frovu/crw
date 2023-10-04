@@ -19,6 +19,7 @@
 	--color-crimson: rgb(148, 0, 37);
 
 	--color-bg: rgb(0,0,0);
+	--color-input-bg: rgb(25, 25, 25);
 	--color-text: rgb(190,190,190);
 	--color-text-dark: rgb(76,76,76);
 	--color-border: rgb(88,88,88);
@@ -51,6 +52,7 @@
 	--color-crimson: rgb(165, 0, 22);
 
 	--color-bg: rgb(255,255,255);
+	--color-input-bg: rgb(200, 200, 200);
 	--color-text: rgb(22,22,22);
 	--color-text-dark: rgb(77,77,77);
 	--color-border: rgb(88,88,88);
@@ -81,6 +83,7 @@
 	--color-yellow: rgb(32, 32, 32);
 
 	--color-bg: rgb(255,255,255);
+	--color-input-bg: rgb(200, 200, 200);
 	--color-text: rgb(0,0,0);
 	--color-text-dark: rgb(77,77,77);
 	--color-border: rgb(66,66,66);
