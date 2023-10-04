@@ -25,6 +25,7 @@ export const KEY_COMB = {
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 type AppSettings = {
+	error: null | string,
 	theme: typeof themeOptions[number],
 	setTheme: (theme: AppSettings['theme']) => void,
 	// set: <T extends keyof Settings>(key: T, val: Settings[T]) => void
@@ -32,13 +33,18 @@ type AppSettings = {
 
 export const useAppSettings = create<AppSettings>()(
 	persist((set) => ({
+		error: null,
 		theme: themeOptions[0],
 		setTheme: (theme) => set(state => ({ ...state, theme }))
 		// set: (key, val) => set(state => ({ ...state, [key]: val }))
 	}), {
-		name: 'crwAppSettings'
+		name: 'crwAppSettings',
+		partialize: ({ theme }) => ({ theme })
 	})
 );
+
+export const showError = (err: null | string) => useAppSettings.setState(state =>
+	({ ...state, error: err?.toString() }));
 
 type ContextMenu = {
 	menu: null | {

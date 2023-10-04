@@ -140,7 +140,7 @@ function Node({ id, size }: { id: string, size: Size }) {
 	onMouseUp={() => { drag.current = null; }}
 	onMouseLeave={() => { drag.current = null; }}>
 		<Node {...propsA}/>
-		<div style={{ ...size, [dim]: 12, position: 'absolute', userSelect: 'none',
+		<div style={{ ...size, [dim]: 12, position: 'absolute', zIndex: 2, userSelect: 'none',
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 			cursor: isRow ? 'col-resize' : 'row-resize' }}
 		onMouseDown={e => { drag.current = { ratio, click: isRow ? e.clientX : e.clientY }; }}/>

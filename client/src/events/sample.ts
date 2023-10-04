@@ -34,7 +34,7 @@ export type SampleState = {
 	setSample: (s: null | Sample) => void
 };
 
-const defaultFilter = () => ({ column: 'fe_magnitude', operation: '>=', value: '3', id: Date.now() } as const);
+const defaultFilter = { column: 'fe_magnitude', operation: '>=', value: '3' } as const;
 
 export const useSampleState = create<SampleState>()(immer(set => ({
 	showDetails: false,
@@ -46,8 +46,8 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	setShow: (arg) => set(st => ({ ...st, showDetails: arg })),
 	addFilter: (filter) => set(state => {
 		const target = state.current ?? state;
-		const fl = filter ?? state.filters.at(-1) ?? defaultFilter();
-		target.filters.push(fl);
+		const fl = filter ?? state.filters.at(-1) ?? defaultFilter;
+		target.filters.push({ ...fl, id: Date.now() });
 	}),
 	changeFilter: (filter) => set(state => {
 		const target = state.current ?? state;

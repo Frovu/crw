@@ -88,7 +88,7 @@
 	padding: 1px;
 	flex: 1 1 26ch;
 	min-width: min(100%, 26ch);
-	max-width: 100%;
+	max-width: min(100%, 46ch);
 	justify-content: left;
 	text-align: left;
 }

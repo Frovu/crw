@@ -11,7 +11,7 @@ import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu } from './app';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, showError, themeOptions, useAppSettings, useContextMenu } from './app';
 import { LayoutContextMenu, resetLayouts } from './Layout';
 
 const theQueryClient = new QueryClient();
@@ -35,7 +35,7 @@ function ContextMenu() {
 }
 
 function App() {
-	const { theme, setTheme } = useAppSettings();
+	const { error, theme, setTheme } = useAppSettings();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -98,11 +98,12 @@ function App() {
 			{app === 'omni' && <OmniApp/>}
 		</div>
 		<ContextMenu/>
-		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', justifyContent: 'space-between',
+		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', gap: 8, justifyContent: 'space-between',
 			 	color: 'var(--color-text-dark)', borderTop: borderDef }} onContextMenu={openContextMenu('app')}>
 			<select style={{ border: 'none', padding: 0, borderRight: borderDef }} value={app} onChange={e => { window.location.href = e.target.value; }}>
 				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 			</select>
+			{error && <div style={{ color: 'var(--color-red)', textAlign: 'left', flex: 1 }} onClick={() => showError(null)}>{error}</div>}
 			<div title='Application colors scheme' style={{ borderLeft: borderDef }}>
 				<select style={{ width: theme.length+4+'ch', border: 'none', padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
 					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}

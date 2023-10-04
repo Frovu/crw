@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
-import { AuthContext } from '../app';
-import { apiPost, useConfirmation } from '../util';
+import { AuthContext, showError } from '../app';
+import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
@@ -73,6 +73,7 @@ export function SampleView() {
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, set, setSample, setPicking, setShow, addFilter } = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
+	const [nameInput, setNameInput] = useState<string | null>(null);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
 		() => () => mutate('remove', { onSuccess: () => setSample(null) }));
@@ -81,11 +82,13 @@ export function SampleView() {
 	const { mutate } = useMutation(async (action: 'create' | 'remove' | 'update') => 
 		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(`events/samples/${action}`, (() => {
 			switch (action) {
-				// case 'create': return { name: nameInput };
+				case 'create': return { name: nameInput };
 				case 'remove': return { id: sample?.id };
 				case 'update': return stripFilters ?? {};
 			}
-		})()), { onSuccess: () => queryClient.invalidateQueries(['sample']) });
+		})()), { onSuccess: () => queryClient.invalidateQueries(['sample']), onError: showError });
+
+	useEventListener('escape', () => setNameInput(null));
 
 	// useEventListener('sampleEdit', (e) => {
 	// 	if (!sample || !isEditing) return;
@@ -98,6 +101,8 @@ export function SampleView() {
 	// 		[opposite]: sample[opposite].filter(i => i !== id)
 	// 	}));
 	// });
+	const createSample = () => mutate('create', {
+		onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null }) });
 
 	const unsavedChanges = sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
@@ -115,17 +120,23 @@ export function SampleView() {
 	return (
 		<div style={{ }}>
 			{confirmation}
-			<div style={{ display: 'flex', paddingBottom: 2, gap: 4, flexWrap: 'wrap' }}>
-				<select title='Events sample' style={{ flex: '3', flexBasis: 'max-content' }} value={sample?.name ?? 'none'}
+			<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
+				{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0,
+					...(samples.find(s => s.name === nameInput) && { borderColor: 'var(--color-red)' }) }} placeholder='Sample name' autoFocus
+				value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.code === 'Enter' && createSample()}/>}
+				{nameInput == null && <select title='Events sample' style={{ flex: '6 8em' }} value={sample?.name ?? 'none'}
 					onChange={e => setSample(samples.find(s => s.name === e.target.value) ?? null)}>
 					<option value='none'>all events</option>
 					{samples.map(({ name }) => <option key={name} value={name}>{name}</option>)}
-				</select>
+				</select>}
 				<button style={{ flex: '1 fit-content' }} onClick={() => addFilter()}>Add filter</button>
-				<button>{allowEdit ? 'Modify' : 'Show'}</button>
-				{!sample && role && <button style={{  }} onClick={() => mutate('create', {
-					onSuccess: (smpl: Sample) => setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now()+i })) ?? null })
-				})}>Save sample</button>}
+				{sample && <button>{allowEdit ? 'Modify' : 'Show'}</button>}
+				{nameInput == null && !sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }}
+					onClick={() => setNameInput('')}>Create sample</button>}
+				{nameInput != null && <button style={{ flex: '1 fit-content', color: nameInput.length ? 'var(--color-active)' : 'unset' }}
+					onClick={createSample}>Create sample</button>}
+				{allowEdit && <button disabled={!unsavedChanges} style={{ flex: '1 fit-content', boxShadow: unsavedChanges ? '0 0 16px var(--color-active)' : 'none' }}
+					onClick={() => mutate('update', { onSuccess: () => setHoverAuthors(0) })}>Save changes</button>}
 			</div>
 			
 			{sample?.filters && <div style={{ textAlign: 'center' }}>
