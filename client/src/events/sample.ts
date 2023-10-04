@@ -45,26 +45,26 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	setPicking: (arg) => set(st => ({ ...st, isPicking: arg })),
 	setShow: (arg) => set(st => ({ ...st, showDetails: arg })),
 	addFilter: (filter) => set(state => {
-		const target = state.current ?? state;
+		const target = (state.showDetails ? state.current : null) ?? state;
 		const fl = filter ?? state.filters.at(-1) ?? defaultFilter;
 		target.filters.push({ ...fl, id: Date.now() });
 	}),
 	changeFilter: (filter) => set(state => {
-		const target = state.current ?? state;
+		const target = (state.showDetails ? state.current : null) ?? state;
 		target.filters = target.filters.map(f => f.id !== filter.id ? f : filter);
 	}),
 	removeFilter: (id) => set(state => {
-		const target = state.current ?? state;
+		const target = (state.showDetails ? state.current : null) ?? state;
 		target.filters = target.filters.filter((f) => f.id !== id);
 	}),
 	setSample: (sample) => set(state => {
-		state.current = sample;
-		if (state.current) {
-			state.current.filters = state.current.filters.map(
-			   (f, i) => ({ ...f, id: Date.now() + i })) ?? [];
-		} else {
+		if (sample == null) {
+			state.current = null;
 			state.isPicking = false;
 			state.filters = [];
+		} else {
+			state.current = { ...sample, filters: sample.filters?.map(
+			   (f, i) => ({ ...f, id: Date.now() + i })) ?? [] };
 		}
 	}) 
 })));

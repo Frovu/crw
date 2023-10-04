@@ -1,4 +1,4 @@
-import React, { ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import React, { MouseEvent, ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
 export type Size = { width: number, height: number };
@@ -193,17 +193,22 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 export function useConfirmation(text: string, callback: () => void) {
 	const [open, setOpen] = useState(false);
 	useEventListener('click', () => setOpen(false));
-	useEventListener('keydown', (e) => e.code === 'KeyY' && callback());
+	useEventListener('escape', () => setOpen(false));
+	useEventListener('keydown', (e) => {
+		if (e.code === 'KeyY')
+			callback();
+		setOpen(false);
+	});
 
 	return {
-		askConfirmation: () => setOpen(true),
+		askConfirmation: (e?: MouseEvent) => { setOpen(true); e?.stopPropagation(); },
 		confirmation: !open ? null : <>
 			<div className='PopupBackground'/>
-			<div className='Popup' style={{ left: '30vw', top: '20vh', width: '20em' }}>
+			<div className='Popup' style={{ left: '30vw', top: '20vh', width: '24em' }} onClick={e => e.stopPropagation()}>
 				<h4>Confirm action</h4>
 				<p>{text ?? 'Beware of irreversible consequences'}</p>
 				<div style={{ marginTop: '1em' }}>
-					<button style={{ width: '8em' }} onClick={e => {callback(); e.stopPropagation();}}>Confirm (Y)</button>
+					<button style={{ width: '8em' }} onClick={e => {callback(); setOpen(false);}}>Confirm (Y)</button>
 					<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => setOpen(false)}>Cancel (N)</button>
 				</div>
 			</div>
