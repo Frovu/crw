@@ -1,5 +1,5 @@
 import { useState, useRef, useContext, useLayoutEffect, ChangeEvent } from 'react';
-import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
+import { clamp, dispatchCustomEvent, useEventListener, Size, useSize } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
 	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 import { pickEventForSampe } from './sample';
@@ -32,14 +32,16 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 }
 
 const MAX_CHANGELOG_ROWS = 3;
-export default function TableView({ size }: { size: Size }) {
+export default function TableView() {
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, averages, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, escapeCursor } = useViewState();
 	const { showChangelog } = useEventsSettings();
 
-	const viewSize = Math.floor(size.height / 28) - 8; // FIXME
-	const ref = useRef<HTMLDivElement>(null);
+	const ref = useRef<HTMLDivElement | null>(null);
+	const size = useSize(ref.current?.parentElement?.parentElement);
+	const viewSize = Math.floor((size.height - 80) / 26) - 1; // FIXME
+	const heightRem = (size.height - 80) % 26;
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
@@ -133,7 +135,7 @@ export default function TableView({ size }: { size: Size }) {
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
 	return ( 
-		<div style={{ border: '1px var(--color-border) solid' }}>
+		<div style={{ position: 'absolute', bottom: 0, border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
 			<div className='Table' ref={ref}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
@@ -143,14 +145,16 @@ export default function TableView({ size }: { size: Size }) {
 					});}}>
 					<thead><tr>
 						{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
-							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={()=>toggleSort('_sample')}>
+							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
-							<td key={table} colSpan={cls.length}>{prettyTable(table)}</td>)}
+							<td key={table} colSpan={cls.length}>
+								<div style={{ minHeight: 26 + heightRem }}>{prettyTable(table)}</div></td>)}
 					</tr><tr>
-						{columns.map(({ id, name, width, description }) => <td title={description}
-							className='ColumnHeader' style={{  width: width + .5 + 'ch' }} onClick={()=>(console.log(id) as any) || toggleSort(id)}>
-							{name}{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}
+						{columns.map(({ id, name, description }) => <td title={`[${name}] ${description}`}
+							className='ColumnHeader' onClick={() => toggleSort(id)}>
+							<div><span>{name}</span>
+								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
 					<tbody> {data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) => {

@@ -118,9 +118,9 @@ function MainTablePanel({ size }: { size: Size }) {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
-	return <div>
+	return <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
 		<SampleView/>
-		<TableView size={size}/>
+		<div style={{ flex: 1 }}><TableView/></div>
 	</div>;
 }
 
@@ -129,7 +129,6 @@ function EventsView() {
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
-	const [viewExport, setViewExport] = useState(false);
 	const sort = useViewState(state => state.sort);
 	const plotId = useViewState(state => state.plotId);
 	
@@ -178,7 +177,7 @@ function EventsView() {
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffsetDays.map(days => new Date(hour + days * 864e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
-		const onsets = allNeighbors.filter(r => !viewExport || sampleData.find(sr => sr[0] === r[0]))
+		const onsets = allNeighbors.filter(r => sampleData.find(sr => sr[0] === r[0])) // TODO: show only onsets from sample
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset);
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
@@ -192,17 +191,7 @@ function EventsView() {
 			interval: interval as [Date, Date],
 			onsets, clouds
 		};
-	}, [plotId, data, plotOffsetDays, columns, viewExport, sampleData]);
-
-	useEventListener('action+exportPlot', () => plotContext && setViewExport(true));
-
-	useEventListener('setColumn', e => {
-		// const which = e.detail.which, column = e.detail.column.id;
-		// const corrKey = which === 1 ? 'columnX' : 'columnY';
-		// const histKey = 'column' + Math.min(which - 1, 2) as keyof HistOptions;
-		// setOpt('correlation', corr => ({ ...corr, [corrKey]: column }));
-		// setOpt('hist', corr => ({ ...corr, [histKey]: corr[histKey]  === column ? null : column }));
-	});
+	}, [plotId, data, plotOffsetDays, columns, sampleData]);
 
 	// useEventListener('action+addFilter', () => setFilters(fltrs => {
 	// 	if (!cursor)

@@ -15,6 +15,7 @@
 }
 
 .Table td {
+	padding: 0;
 	border: 1px solid var(--color-border);
 }
 
@@ -23,6 +24,18 @@
 	position: relative;
 	cursor: pointer;
 	word-break: break-word;
+}
+
+.ColumnHeader > div {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 46px;
+	padding: 0 2px;
+}
+
+.ColumnHeader > div > * {
+	max-height: 44px;
 }
 
 .SortShadow {

@@ -88,7 +88,7 @@ function App() {
 	const borderDef = '1px var(--color-border) solid';
 	const showNav = !['ros', 'help'].includes(app);
 	return (<div className='bbox' style={{ overflow: 'clip' }}>
-		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: 4 }}>
+		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
 			{app === 'ros' && <PlotCirclesStandalone/>}
 			{app === 'feid' && <EventsApp/>}
 			{app === 'help' && <Help/>}
