@@ -85,7 +85,7 @@ export default function TableView({ size }: { size: Size }) {
 		if (cursor?.editing) return;
 
 		if (cursor && ['-', '+', '='].includes(e.key))
-			return dispatchCustomEvent('sampleEdit', { id: data[cursor.row][0], action: '-' === e.key ? 'blacklist' : 'whitelist' });
+			return pickEventForSampe('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 		if (cursor && ['1', '2', '3', '4'].includes(e.key))
 			return dispatchCustomEvent('setColumn', { which: parseInt(e.key), column: columns[cursor?.column] });
 
@@ -142,7 +142,7 @@ export default function TableView({ size }: { size: Size }) {
 						return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 					});}}>
 					<thead><tr>
-						{markers && <td rowSpan={2} title='f is filter, + is whitelist, - is blacklist'
+						{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
 							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={()=>toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
@@ -159,7 +159,8 @@ export default function TableView({ size }: { size: Size }) {
 						const rowChanges = wholeChangelog?.[row[0]];
 						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
 						return <tr key={row[0] as any} style={{ backgroundColor: plotId === row[0] ? 'var(--color-area)' : 'unset' }}>
-							{marker && <td onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
+							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
+								onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
 									marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 							</td>}

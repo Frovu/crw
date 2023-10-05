@@ -92,21 +92,9 @@ export function SampleView() {
 				case 'remove': return { id: sample?.id };
 				case 'update': return stripFilters ?? {};
 			}
-		})()), { onSuccess: () => queryClient.invalidateQueries(['samples']), onError: showError });
+		})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: showError });
 
 	useEventListener('escape', () => setNameInput(null));
-
-	// useEventListener('sampleEdit', (e) => {
-	// 	if (!sample || !isEditing) return;
-	// 	const { action, id } = e.detail as { action: 'whitelist' | 'blacklist', id: number };
-	// 	const target = sample[action];
-	// 	const found = target.indexOf(id);
-	// 	const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
-	// 	setSample(smpl => ({ ...smpl!,
-	// 		[action]: found < 0 ? target.concat(id) : target.filter(i => i !== id),
-	// 		[opposite]: sample[opposite].filter(i => i !== id)
-	// 	}));
-	// });
 
 	const createSample = () => mutate('create', { onSuccess: (smpl: Sample) => {
 		setShow(true); setNameInput(smpl.name); clearFilters();

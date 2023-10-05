@@ -44,7 +44,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	filters: [],
 	set: (arg) => set(state => { state.current && Object.assign(state.current, arg); }),
 	setPicking: (arg) => set(st => ({ ...st, isPicking: arg })),
-	setShow: (arg) => set(st => ({ ...st, showDetails: arg, filters: arg ? [] : st.filters })),
+	setShow: (arg) => set(st => ({ ...st, isPicking: false, showDetails: arg, filters: arg ? [] : st.filters })),
 	addFilter: (filter) => set(state => {
 		const target = (state.showDetails ? state.current : null) ?? state;
 		const fl = filter ?? state.filters.at(-1) ?? defaultFilter;
@@ -73,7 +73,13 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 })));
 
 export function pickEventForSampe(action: 'whitelist' | 'blacklist', id: number) {
-
+	useSampleState.setState(({ current, isPicking }) => {
+		if (!current || !isPicking) return;
+		const found = current[action].indexOf(id);
+		const opposite = action === 'blacklist' ? 'whitelist' : 'blacklist';
+		current[action] = found < 0 ? current[action].concat(id) : current[action].filter(i => i !== id);
+		current[opposite] = current[opposite].filter(i => i !== id);
+	});
 }
 
 export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
