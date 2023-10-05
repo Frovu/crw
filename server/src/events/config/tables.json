@@ -8,7 +8,7 @@
 			"parse_name": "Time"
 		},
 		"onset_type": {
-			"pretty_name": "onset type",
+			"pretty_name": "ons type",
 			"dtype": "enum",
 			"enum": ["SSC", "iSW", "SI"],
 			"description": "Onset time origin: SSC; SI - Sudden impulse, ground data; iSW - satellite data",

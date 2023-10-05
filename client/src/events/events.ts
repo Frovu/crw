@@ -135,13 +135,19 @@ export const defaultLayouts: { [name: string]: Layout } = {
 				type: 'IMF + Speed'
 			},
 			p2: {
-				type: 'SW Plasma'
+				type: 'SW Plasma',
+				plotParams: {
+					showTimeAxis: false,
+				}
 			},
 			p3: {
 				type: 'Cosmic Rays'
 			},
 			p4: {
-				type: 'Geomagn'
+				type: 'Geomagn',
+				plotParams: {
+					showTimeAxis: false,
+				}
 			}
 		}
 	}

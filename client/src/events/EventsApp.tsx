@@ -1,4 +1,4 @@
-import { useContext, useState, useMemo, useEffect, ChangeEvent, useRef } from 'react';
+import { useContext, useMemo, useEffect, ChangeEvent, useRef } from 'react';
 import { useEventListener, clamp, Size, useSize } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { ParamsSetter } from '../Layout';
@@ -19,31 +19,53 @@ import { SampleView } from './Sample';
 import { useAppSettings } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
-	const { showGrid, showMarkers, showLegend, set } = useEventsSettings();
-	const { showTimeAxis, showMetaInfo } = {
+	const { set, ...settings } = useEventsSettings();
+	const isPlot = plotPanelOptions.includes(params.type as any);
+	const cur = (isPlot && {
 		...defaultPlotParams,
 		...params?.plotParams
-	};
+	}) as CommonPlotParams;
 
-	const checkGlob = (k: keyof EventsSettings) => (e: ChangeEvent<HTMLInputElement>) => set(k, e.target.checked);
-	const check = (k: keyof CommonPlotParams) => (e: ChangeEvent<HTMLInputElement>) => setParams('plotParams', { [k]: e.target.checked });
+	const CheckboxGlob = ({ text, k }: { text: string, k: keyof typeof settings }) =>
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+	const Checkbox = ({ text, k }: { text: string, k: keyof CommonPlotParams }) =>
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={cur[k] as boolean} onChange={e => setParams('plotParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
-		{plotPanelOptions.includes(params.type as any) && <>
-			<div style={{ display: 'flex', gap: 8 }}>
-				<label>grid<input type='checkbox' style={{ paddingLeft: 4 }}
-					checked={showGrid} onChange={checkGlob('showGrid')}/></label>
-				<label>markers<input type='checkbox' style={{ paddingLeft: 4 }}
-					checked={showMarkers} onChange={checkGlob('showMarkers')}/></label>
-				<label>legend<input type='checkbox' style={{ paddingLeft: 4 }}
-					checked={showLegend} onChange={checkGlob('showLegend')}/></label>
+		{isPlot && <>
+			<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+				<CheckboxGlob text='grid' k='showGrid'/>
+				<CheckboxGlob text='markers' k='showMarkers'/>
+				<CheckboxGlob text='legend' k='showLegend'/>
 			</div>
 			<div className='separator'/>
-			<div style={{ display: 'flex', gap: 8 }}>
-				<label>time axis<input type='checkbox' style={{ paddingLeft: 4 }}
-					checked={showTimeAxis} onChange={check('showTimeAxis')}/></label>
-				<label>meta info<input type='checkbox' style={{ paddingLeft: 4 }}
-					checked={showMetaInfo} onChange={check('showMetaInfo')}/></label>
+			<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+				<Checkbox text='time axis' k='showTimeAxis'/>
+				<Checkbox text='meta info' k='showMetaInfo'/>
+			</div>
+			<div className='separator'/>
+			<div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'right' }}>
+				{params.type === 'Cosmic Rays' && <>
+					<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+						<Checkbox text='Show Axy' k='showAxy'/>
+						<Checkbox text='Az' k='showAz'/>
+						<Checkbox text='vector' k='showAxyVector'/>
+					</div>
+					<Checkbox text='Use corrected A0m' k='useA0m'/>
+					<Checkbox text='Subtract trend' k='subtractTrend'/>
+					<Checkbox text='Use corrected A0m' k='useA0m'/>
+					<Checkbox text='Mask GLE' k='maskGLE'/>
+				</>}
+				{params.type === 'SW Plasma' && <>
+					<Checkbox text='Show T index' k='useTemperatureIndex'/>
+					<Checkbox text='Show beta' k='showBeta'/>
+				</>}
+				{params.type === 'IMF + Speed' && <>
+					<Checkbox text='Show Bx, By' k='showBxBy'/>
+					<Checkbox text='Show Bz' k='showBz'/>
+				</>}
 			</div>
 		</>}
 	</>;

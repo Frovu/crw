@@ -24,7 +24,7 @@ function ContextMenu() {
 	return !menu ? null : <div ref={setDiv} className='ContextMenu'
 		style={{ left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
 				 top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)) }}
-		onClick={e => { if (!(e.target instanceof HTMLButtonElement)) e.stopPropagation(); }}>
+		onMouseDown={e => { if (!(e.target instanceof HTMLButtonElement)) e.stopPropagation(); }}>
 		{menu.type === 'app' && <>
 			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
 			<button onClick={() => resetLayouts()}>Reset layouts</button>
@@ -59,7 +59,7 @@ function App() {
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
 
-	useEventListener('click', closeContextMenu);
+	useEventListener('mousedown', closeContextMenu);
 	useEventListener('contextmenu', (e: PointerEvent) => { e.preventDefault(); closeContextMenu(); });
 	useEventListener('keydown', handleGlobalKeydown);
 

@@ -42,7 +42,9 @@ export default function TableView({ size }: { size: Size }) {
 	const viewSize = Math.floor((size.height - 80) / 26) - 1;
 	const hRem = (size.height - 80) % 26;
 	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding) / 2;
+	const headerPadding = (hRem - viewSize * trPadding);
+	const padTableH = Math.floor(headerPadding / 3);
+	const padColumnH = headerPadding - padTableH;
 	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
@@ -150,12 +152,12 @@ export default function TableView({ size }: { size: Size }) {
 							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
-							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + headerPadding }}>
+							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
 								<>{prettyTable(table)}</></div></td>)}
 					</tr><tr>
 						{columns.map(({ id, name, description }) => <td title={`[${name}] ${description}`}
 							className='ColumnHeader' onClick={() => toggleSort(id)}>
-							<div style={{ height: 46 + headerPadding }}><span>{name}</span>
+							<div style={{ height: 46 + padColumnH }}><span>{name}</span>
 								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>

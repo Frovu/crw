@@ -131,8 +131,8 @@ export const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
 			value={nameInput} onChange={e => setNameInput(e.target.value)}/>}
 			{nameInput == null && <select title='Select events sample' style={{ color: 'var(--color-white)', flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
-				onChange={e => e.target.value !== '_create' && setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
-				<option value='_create' onClick={createSample}>-- Create sample --</option>
+				onChange={e => e.target.value === '_create' ? createSample() : setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
+				<option value='_create'>-- Create sample --</option>
 				<option value='_none'>-- All events --</option>
 				{samples.map(({ id, name }) => <option key={id} value={id}>{sample?.id === id ? sample.name : name}</option>)}
 			</select>}
