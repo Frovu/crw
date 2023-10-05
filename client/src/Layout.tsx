@@ -178,7 +178,7 @@ export default function AppLayout() {
 
 	useEventListener('resetSettings', resetLayouts);
 
-	return <div style={{ width: '100%', height: '100%' }} ref={el => setContainer(el!)}
+	return <div style={{ width: '100%', height: '100%' }} ref={el => {console.log(el);setContainer(el!)}}
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
 		<Node {...{ size, id: 'root' }}/>
 	</div>;

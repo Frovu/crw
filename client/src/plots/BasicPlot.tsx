@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, MutableRefObject } from 'react';
+import { useState, useEffect, useMemo, MutableRefObject, useRef } from 'react';
 import { useQuery } from 'react-query';
 import UplotReact from 'uplot-react';
 import { apiGet, clamp, useSize } from '../util';
@@ -153,8 +153,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 		queryFn
 	});
 
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	const size = useSize(container?.parentElement);
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	const size = useSize(containerRef.current?.parentElement);
 
 	const defaultPos: DefaultPosition = (u, { width }) => ({
 		x: u.bbox.left + u.bbox.width - width + 6, 
@@ -256,7 +256,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	if (!query.data?.[0].length)
 		return <div className='Center'>NO DATA</div>;
 
-	return (<div ref={node => setContainer(node)} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+	return (<div ref={containerRef} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
 		{plot}
 	</div>);
 

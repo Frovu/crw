@@ -141,7 +141,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const filters = useSampleState(state => state.filters);
 	const sample = useSampleState(state => state.current);
 	const isPicking = useSampleState(state => state.isPicking);
-
+	
 	const samplesQuery = useQuery('samples', async () => {
 		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
 		console.log('%cavailable samples:', 'color: #0f0', samples);

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext, showError } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
@@ -111,17 +111,11 @@ export function SampleView() {
 	const createSample = () => mutate('create', { onSuccess: (smpl: Sample) => {
 		setShow(true); setNameInput(smpl.name); clearFilters();
 		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? null });
-		
 	 } });
 
 	const unsavedChanges = sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
 	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && s.name === nameInput);
-
-	useEffect(() => {
-		if (!show && unsavedChanges)
-			setSample(samples.find(s => s.id === sample?.id) ?? null);
-	}, [unsavedChanges, setSample, samples, sample, show]);
 
 	const applied = sample && applySample(tableData, sample, columns);
 	const whitelisted = sample && sample.whitelist.filter(id => tableData.find(row => row[0] === id)).length;
@@ -149,7 +143,8 @@ export function SampleView() {
 				{samples.map(({ id, name }) => <option key={id} value={id}>{sample?.id === id ? sample.name : name}</option>)}
 			</select>}
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
-				onClick={() => setShow(!show)}>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
+				onClick={() => {setShow(!show); if (!show) setSample(samples.find(s => s.id === sample?.id) ?? null); setHoverAuthors(0);}}
+			>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
 			{!sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }} onClick={createSample}>Create sample</button>}
 			<button style={{ flex: '1 fit-content' }} onClick={() => addFilter()}>Add filter</button>
 		</div>
@@ -183,8 +178,8 @@ export function SampleView() {
 				onClick={() => setNameInput(nameInput ? null : sample.name)}>Rename</button>
 			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
 			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
-				maxWidth: '12em', color: unsavedChanges ? 'var(--color-active)' : 'unset' }}
-			onClick={() => mutate('update', { onSuccess: () => { setShow(false); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
+				maxWidth: '12em', ...(unsavedChanges && { color: 'var(--color-active)' }) }}
+			onClick={() => mutate('update', { onSuccess: (smpl) => { setShow(false); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
 		</div></>}
 		{filters.length > 0 && <div className='Filters' style={{ padding: '2px 0 2px 0' }}>
 			{filters.map(filter => <FilterCard key={filter.id} filter={filter}/>)}

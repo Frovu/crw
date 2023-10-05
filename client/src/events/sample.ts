@@ -63,6 +63,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 		if (sample == null) {
 			state.current = null;
 			state.isPicking = false;
+			state.showDetails = false;
 			state.filters = [];
 		} else {
 			state.current = { ...sample, filters: sample.filters?.map(
