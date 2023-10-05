@@ -1,7 +1,9 @@
-import { MouseEvent, createContext } from 'react';
+import React, { createContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
+import { TableMenuDetails } from './events/events';
+import { LayoutsMenuDetails } from './Layout';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -46,11 +48,16 @@ export const useAppSettings = create<AppSettings>()(
 export const showError = (err: null | string) => useAppSettings.setState(state =>
 	({ ...state, error: err?.toString() }));
 
+type menuDetails = {
+	layout: LayoutsMenuDetails,
+	events: LayoutsMenuDetails & TableMenuDetails,
+	app: undefined,
+};
 type ContextMenu = {
 	menu: null | {
 		x: number, y: number,
-		type: 'layout' | 'app' | 'events',
-		detail?: object
+		type: keyof menuDetails,
+		detail?: menuDetails[keyof menuDetails]
 	}
 };
 
@@ -58,11 +65,12 @@ export const useContextMenu = create<ContextMenu>()(set => ({
 	menu: null
 }));
 
-export const openContextMenu = (type: 'layout' | 'app' | 'events', detail?: object) => (e: MouseEvent) => {
-	e.preventDefault(); e.stopPropagation();
-	useContextMenu.setState(({ menu }) =>
-		({ menu: menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
-};
+export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: menuDetails[T]) =>
+	(e: React.MouseEvent | MouseEvent) => {
+		e.preventDefault(); e.stopPropagation();
+		useContextMenu.setState(({ menu }) =>
+			({ menu: menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
+	};
 export const closeContextMenu = () => useContextMenu.setState({ menu: null });
 
 export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);

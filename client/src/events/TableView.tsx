@@ -3,6 +3,7 @@ import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
 	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 import { pickEventForSampe } from './sample';
+import { openContextMenu } from '../app';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
@@ -32,7 +33,7 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 }
 
 const MAX_CHANGELOG_ROWS = 3;
-export default function TableView({ size }: { size: Size }) {
+export default function TableView({ nodeId, size }: { nodeId: string, size: Size }) {
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, averages, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, escapeCursor } = useViewState();
@@ -141,7 +142,7 @@ export default function TableView({ size }: { size: Size }) {
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
 	return ( 
-		<div style={{ position: 'absolute', bottom: 0, border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
+		<div style={{ position: 'absolute', border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
 			<div className='Table' ref={ref}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
@@ -163,12 +164,13 @@ export default function TableView({ size }: { size: Size }) {
 								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
-					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, i) => {
-						const idx = viewIndex + i;
+					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, ri) => {
+						const idx = viewIndex + ri;
 						const marker = markers?.[idx];
 						const rowChanges = wholeChangelog?.[row[0]];
 						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
-						return <tr key={row[0] as any} style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
+						return <tr style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}
+							key={row[0] as any}>
 							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 								onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
@@ -178,7 +180,9 @@ export default function TableView({ size }: { size: Size }) {
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
-									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)',  }}>
+									onContextMenu={openContextMenu('events', { nodeId, cell:
+										{ id: row[0], value: row[cidx+1], column } })}
+									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											{valueToString(row[cidx+1])}

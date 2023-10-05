@@ -2,10 +2,10 @@ import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, Size, useSize } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { ParamsSetter } from '../Layout';
-import { sampleEditingMarkers, useSampleState } from './sample';
+import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -19,8 +19,11 @@ import { SampleView } from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
-	const details: TableMenuDetails | null = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null);
+	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
+	const column = details?.cell?.column;
+	const value = details?.cell?.value;
 	const { set, ...settings } = useEventsSettings();
+	const { addFilter } = useSampleState(); 
 	const isPlot = plotPanelOptions.includes(params.type as any);
 	const cur = (isPlot && {
 		...defaultPlotParams,
@@ -35,10 +38,17 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			checked={cur[k] as boolean} onChange={e => setParams('plotParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
-		{params.type === 'MainTable' && <div className='Group'>
-			<CheckboxGlob text='Show column averages' k='showAverages'/>
-			<CheckboxGlob text='Show changes log' k='showChangelog'/>
-		</div>}
+		{params.type === 'MainTable' && <>
+			{column && <>
+				<button onClick={() => addFilter(column, value)}
+				>Filter {defaultFilterOp(column, value!)}{valueToString(value!)}</button>
+				<div className='separator'/>
+			</>}
+			<div className='Group'>
+				<CheckboxGlob text='Show column averages' k='showAverages'/>
+				<CheckboxGlob text='Show changes log' k='showChangelog'/>
+			</div>
+		</>}
 		{isPlot && <>
 			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
@@ -76,7 +86,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	</>;
 }
 
-export function LayoutContent({ size, params: state }: { size: Size, params: PanelParams }) {
+export function LayoutContent({ id, size, params: state }: { id: string, size: Size, params: PanelParams }) {
 	const settings = useEventsSettings();
 	const appState = useAppSettings();
 	const plotContext = useContext(PlotContext);
@@ -93,7 +103,7 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 	}, [plotContext, settings, state.plotParams, type, appState]);
 
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
-		{type === 'MainTable' && <MainTablePanel size={size}/>}
+		{type === 'MainTable' && <MainTablePanel id={id} size={size}/>}
 		{params && <>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
@@ -111,15 +121,16 @@ export function LayoutContent({ size, params: state }: { size: Size, params: Pan
 	</div>;
 }
 
-function MainTablePanel({ size }: { size: Size }) {
+function MainTablePanel({ id, size }: { id: string, size: Size }) {
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
-	const { data: shownData } = useContext(TableViewContext);
+	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
 	const { plotId, setPlotId, cursor, setCursor } = useViewState();
+	const { addFilter } = useSampleState();
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
 
-	useEffect(() => {;
+	useEffect(() => {
 		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
 		if (plotId == null || !shownData.find(r => r[0] === plotId))
 			setPlotId(() => sampleData.findLast(r => r[magn] as number > 2.5)?.[0] ?? null);
@@ -149,9 +160,15 @@ function MainTablePanel({ size }: { size: Size }) {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
+	useEventListener('action+addFilter', () => {
+		const column = cursor ? shownColumns[cursor.column] : undefined;
+		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;
+		addFilter(column, val);
+	});
+
 	return <>
 		<SampleView ref={ref}/>
-		<TableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
+		<TableView nodeId={id} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
 	</>;
 }
 
@@ -223,17 +240,6 @@ function EventsView() {
 			onsets, clouds
 		};
 	}, [plotId, data, plotOffsetDays, columns, sampleData]);
-
-	// useEventListener('action+addFilter', () => setFilters(fltrs => {
-	// 	if (!cursor)
-	// 		return [...fltrs, { filter: { column: 'fe_magnitude', operation: '>=', value: '3' }, id: Date.now() }];
-	// 	const column =  dataContext.columns[cursor?.column];
-	// 	const val = dataContext.data[cursor?.row]?.[cursor?.column+1];
-	// 	const operation = val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
-	// 	const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
-	// 	return [...fltrs, { filter: { column: column.id, operation, value }, id: Date.now() }];
-	// }));
-	// useEventListener('action+removeFilter', () => setFilters(fltrs => fltrs.slice(0, -1)));
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

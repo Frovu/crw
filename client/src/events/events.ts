@@ -219,7 +219,7 @@ export const useViewState = create<ViewState>()(
 
 export type TableMenuDetails = {
 	header?: ColumnDef,
-	cell?: { id: number, column: ColumnDef }
+	cell?: { id: number, column: ColumnDef, value: Value }
 };
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ColumnDef, DataRow, parseColumnValue } from './events';
+import { ColumnDef, DataRow, Value, parseColumnValue } from './events';
 import { immer } from 'zustand/middleware/immer';
 
 export const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
@@ -28,7 +28,7 @@ export type SampleState = {
 	set: (a: Partial<Sample>) => void,
 	setPicking: (a: boolean) => void,
 	setShow: (a: boolean) => void,
-	addFilter: (filter?: Filter) => void,
+	addFilter: (column?: ColumnDef, val?: Value) => void,
 	changeFilter: (filter: Filter) => void,
 	removeFilter: (id?: number) => void,
 	clearFilters: () => void,
@@ -36,6 +36,9 @@ export type SampleState = {
 };
 
 const defaultFilter = { column: 'fe_magnitude', operation: '>=', value: '3' } as const;
+
+export const defaultFilterOp = (column: ColumnDef, val: Value) =>
+	val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
 
 export const useSampleState = create<SampleState>()(immer(set => ({
 	showDetails: false,
@@ -45,10 +48,16 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	set: (arg) => set(state => { state.current && Object.assign(state.current, arg); }),
 	setPicking: (arg) => set(st => ({ ...st, isPicking: arg })),
 	setShow: (arg) => set(st => ({ ...st, isPicking: false, showDetails: arg, filters: arg ? [] : st.filters })),
-	addFilter: (filter) => set(state => {
+	addFilter: (column, val) => set(state => {
 		const target = (state.showDetails ? state.current : null) ?? state;
-		const fl = filter ?? state.filters.at(-1) ?? defaultFilter;
-		target.filters.push({ ...fl, id: Date.now() });
+		if (column) {
+			const operation = defaultFilterOp(column, val ?? null);
+			const value = (val instanceof Date ? val.toISOString().replace(/T.*/,'') : val?.toString()) ?? '';
+			target.filters.push({ column: column.id, operation, value, id: Date.now() });
+		} else {
+			const fl = state.filters.at(-1) ?? defaultFilter;
+			target.filters.push({ ...fl, id: Date.now() });
+		}
 	}),
 	changeFilter: (filter) => set(state => {
 		const target = (state.showDetails ? state.current : null) ?? state;

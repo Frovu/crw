@@ -6,7 +6,7 @@ import { persist } from 'zustand/middleware';
 import { clamp, useEventListener, useSize, Size } from './util';
 import { ContextMenuContent, LayoutContent } from './events/EventsApp';
 import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
-import { openContextMenu } from './app';
+import { openContextMenu, useContextMenu } from './app';
 
 type LayoutTreeNode = {
 	split: 'row' | 'column',
@@ -36,6 +36,8 @@ const defaultState = {
 	active: 'default',
 	list: defaultLayouts,
 };
+
+export type LayoutsMenuDetails = { nodeId: string };
 
 export const useLayoutsStore = create<LayoutsState>()(
 	persist(
@@ -106,11 +108,11 @@ function Item({ id, size }: { id: string, size: Size }) {
 	const { startDrag, dragOver, finishDrag } = useLayoutsStore();
 	const { items } = useLayout();
 	return <div style={{ ...size, position: 'relative' }}
-		onContextMenu={openContextMenu('layout', { id })}
+		onContextMenu={openContextMenu('layout', { nodeId: id })}
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		{items[id]?.type ? <LayoutContent {...{ size, params: items[id] }}/> : <div className='Center'><LayoutContextMenu id={id}/></div>}
+		{items[id]?.type ? <LayoutContent {...{ id, size, params: items[id] }}/> : <div className='Center'><LayoutContextMenu id={id}/></div>}
 	</div>;
 }
 
@@ -149,9 +151,10 @@ function Node({ id, size }: { id: string, size: Size }) {
 	</div>;
 }
 
-export function LayoutContextMenu({ id }: { id: string }) {
+export function LayoutContextMenu({ id: argId }: { id?: string }) {
 	const { items, tree } = useLayout();
-	if (!items[id]) return null;
+	const id = useContextMenu(state => argId ?? state.menu?.detail?.nodeId);
+	if (!id || !items[id]) return null;
 	const parent = Object.keys(tree).find((node) => tree[node]!.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');

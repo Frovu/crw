@@ -24,13 +24,14 @@ function ContextMenu() {
 	return !menu ? null : <div ref={setDiv} className='ContextMenu'
 		style={{ left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
 				 top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)) }}
-		onMouseDown={e => { if (!(e.target instanceof HTMLButtonElement)) e.stopPropagation(); }}>
+		onMouseDown={e => { e.stopPropagation(); }}
+		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
 		{menu.type === 'app' && <>
 			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
 			<button onClick={() => resetLayouts()}>Reset layouts</button>
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
-		{menu.type === 'layout' && <LayoutContextMenu {...menu.detail as any}/>}
+		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu/>}
 	</div>;
 }
 
