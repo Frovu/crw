@@ -39,7 +39,7 @@ export default function TableView({ size }: { size: Size }) {
 	const { showChangelog } = useEventsSettings();
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const rowsHeight = size.height - (averages ? 213 : 106);
+	const rowsHeight = size.height - (averages ? 213 : 106) - (showChangelog ? 54 : 0);
 	const viewSize = Math.floor(rowsHeight / 26);
 	const hRem = rowsHeight % 26;
 	const trPadding = hRem > viewSize ? 1 : 0;
@@ -49,18 +49,19 @@ export default function TableView({ size }: { size: Size }) {
 	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
+	const cursCol = cursor && columns[cursor?.column].id;
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
-		.sort((a, b) => [a, b].map(chg => Math.abs(cursor.column - columns.findIndex(c => c.id === chg.column))).reduce((da,db)=>db-da) ); // ???
-	const changesRows = Math.min(3, changelog?.length ?? 0);
+		.sort((a, b) => b.time - a.time)
+		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 
 	const updateViewIndex = (curs: Cursor) => {
 		const indent = showChangelog ? MAX_CHANGELOG_ROWS + 1 : 1;
 		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
 			(curs.row + indent >= viewIndex+viewSize ? curs.row - viewSize + indent + 1 : viewIndex);
-		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize + changesRows));
+		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
 	};
 
 	useEventListener('escape', escapeCursor);
@@ -162,7 +163,7 @@ export default function TableView({ size }: { size: Size }) {
 								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
-					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) => {
+					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, i) => {
 						const idx = viewIndex + i;
 						const marker = markers?.[idx];
 						const rowChanges = wholeChangelog?.[row[0]];
@@ -198,9 +199,9 @@ export default function TableView({ size }: { size: Size }) {
 					</tfoot>)}
 				</table>
 			</div>
-			{changesRows > 0 && <div id='changelog' style={{ fontSize: '14px', border: '1px var(--color-border) solid',
-				height: 28 * changesRows - 12 + 'px', margin: '0 2px 2px 2px', padding: '4px', lineHeight: '22px', overflowY: 'scroll' }}>
-				{changelog!.map(change => {
+			{showChangelog && <div style={{ position: 'relative', display: 'flex', flexDirection: 'column-reverse', fontSize: 14, border: '1px var(--color-border) solid',
+				height: 52, padding: 2, margin: 2, marginTop: 0, overflowY: 'scroll' }}>
+				{changelog?.length ? changelog.map(change => {
 					const column = columns.find(c => c.id === change.column)!;
 					const time = new Date(change.time * 1e3);
 					const val = (str: string | null) =>
@@ -209,7 +210,7 @@ export default function TableView({ size }: { size: Size }) {
 						<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
 						<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
 						: {val(change.old)} -&gt; <b>{val(change.new)}</b>
-					</div>);})}
+					</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 			</div>}
 			<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
 				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
