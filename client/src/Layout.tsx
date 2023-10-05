@@ -173,12 +173,12 @@ export function LayoutContextMenu({ id }: { id: string }) {
 
 export default function AppLayout() {
 	const startDrag = useLayoutsStore(st => st.startDrag);
-	const [container, setContainer] = useState<HTMLDivElement>();
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
 	useEventListener('resetSettings', resetLayouts);
 
-	return <div style={{ width: '100%', height: '100%' }} ref={el => {console.log(el);setContainer(el!)}}
+	return <div style={{ width: '100%', height: '100%' }} ref={setContainer}
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>
 		<Node {...{ size, id: 'root' }}/>
 	</div>;

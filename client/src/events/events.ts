@@ -163,19 +163,20 @@ export type ChangeLog = {
 };
 
 export type Value = Date | string | number | null;
+export type DataRow = [number, ...Array<Value>];
 export type ChangeValue = { id: number, column: ColumnDef, value: Value };
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
-export const MainTableContext = createContext<{ data: Value[][], columns: ColumnDef[],
+export const MainTableContext = createContext<{ data: DataRow[], columns: ColumnDef[],
 	firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 
-export const SampleContext = createContext<{ data: Value[][], current: Sample | null, samples: Sample[],
-	apply: (data: Value[][], sampleId: number) => Value[][] }>({} as any);
+export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[],
+	apply: (data: DataRow[], sampleId: number) => DataRow[] }>({} as any);
 
-export const TableViewContext = createContext<{ data: Value[][], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 

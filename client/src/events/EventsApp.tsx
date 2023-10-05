@@ -91,25 +91,25 @@ function MainTablePanel({ size }: { size: Size }) {
 	useEffect(() => {;
 		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
 		if (plotId == null || !shownData.find(r => r[0] === plotId))
-			setPlotId(() => sampleData.findLast(r => r[magn] as number > 2.5)?.[0] as number ?? null);
+			setPlotId(() => sampleData.findLast(r => r[magn] as number > 2.5)?.[0] ?? null);
 	}, [sampleData, columns, plotId, setPlotId, shownData]);
 
 	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
 		if (dir === 0) { // set cursor to plotted line
 			if (cursor)
-				return shownData[cursor.row][0] as number;
+				return shownData[cursor.row][0];
 			const found = shownData.findIndex(r => r[0] === allData[current!]?.[0]);
 			if (found >= 0) setCursor({ row: found, column: 0 });
 		}
 		if (current == null)
 			return null;
 		if (global)
-			return allData[clamp(0, allData.length - 1, allData.findIndex(r => r[0] === current) + dir)][0] as number;
+			return allData[clamp(0, allData.length - 1, allData.findIndex(r => r[0] === current) + dir)][0];
 		const found = shownData.findIndex(r => r[0] === allData[current][0]);
 		const curIdx = found >= 0 ? found : cursor?.row;
 		if (curIdx == null) return current;
 		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
-		return shownData[movedIdx][0] as number;
+		return shownData[movedIdx][0];
 	});
 
 	useEventListener('action+plot', plotMove(0));
@@ -138,7 +138,7 @@ function EventsView() {
 		const cols = columns.filter(c => showColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
-		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci]));
+		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci])) as typeof sampleData;
 		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
 		const idxs = [...renderedData.keys()], column = cols[sortIdx-1];
 		idxs.sort((a: number, b: number) => sort.direction * (['text','enum'].includes(column?.type) ?

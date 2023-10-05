@@ -1,7 +1,8 @@
-import React, { useState, useRef, useContext, useLayoutEffect, ChangeEvent } from 'react';
+import { useState, useRef, useContext, useLayoutEffect, ChangeEvent } from 'react';
 import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
 	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
+import { pickEventForSampe } from './sample';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
@@ -41,7 +42,7 @@ export default function TableView({ size }: { size: Size }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
-	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0] as number];
+	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
 		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
@@ -142,7 +143,7 @@ export default function TableView({ size }: { size: Size }) {
 					});}}>
 					<thead><tr>
 						{markers && <td rowSpan={2} title='f is filter, + is whitelist, - is blacklist'
-							className='ColumnHeader' style={{ width: '3ch' }} onClick={()=>toggleSort('_sample')}>
+							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={()=>toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
 							<td key={table} colSpan={cls.length}>{prettyTable(table)}</td>)}
@@ -155,11 +156,10 @@ export default function TableView({ size }: { size: Size }) {
 					<tbody> {data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) => {
 						const idx = viewIndex + i;
 						const marker = markers?.[idx];
-						const rowChanges = wholeChangelog?.[row[0] as number];
+						const rowChanges = wholeChangelog?.[row[0]];
 						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
 						return <tr key={row[0] as any} style={{ backgroundColor: plotId === row[0] ? 'var(--color-area)' : 'unset' }}>
-							{marker && <td onClick={(e) => dispatchCustomEvent('sampleEdit',
-								{ action: e.ctrlKey ? 'blacklist' : 'whitelist', id: row[0] })}>
+							{marker && <td onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
 									marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 							</td>}
@@ -168,7 +168,7 @@ export default function TableView({ size }: { size: Size }) {
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-									{curs?.editing ? <CellInput {...{ id: row[0] as number, column, value: valueToString(row[cidx+1]) }}/> :
+									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											{valueToString(row[cidx+1])}
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}

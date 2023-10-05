@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
+import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
@@ -70,7 +70,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		const { data: rawData, fields, changelog } = dataQuery.data;
 		const filtered = columns.filter(c => fields.includes(c.id));
 		const indexes = filtered.map(c => fields.indexOf(c.id));
-		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i]));
+		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i])) as DataRow[];
 		for (const [i, col] of Object.values(filtered).entries()) {
 			if (col.type === 'time') {
 				for (const row of data) {
@@ -98,7 +98,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const mainContext = useMemo(() => {
 		if (!rawMainContext) return null;
 		const { data: rawData, columns } = rawMainContext;
-		const data = [...rawData.map(r => [...r])];
+		const data = [...rawData.map(r => [...r])] as typeof rawData;
 		for (const { id, column, value } of changes) {
 			const row = data.find(r => r[0] === id);
 			const columnIdx = columns.findIndex(c => c.id === column.id);
@@ -141,7 +141,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const filters = useSampleState(state => state.filters);
 	const sample = useSampleState(state => state.current);
 	const isPicking = useSampleState(state => state.isPicking);
-	
+
 	const samplesQuery = useQuery('samples', async () => {
 		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
 		console.log('%cavailable samples:', 'color: #0f0', samples);
@@ -152,13 +152,13 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		const samples = samplesQuery.data;
 		if (!mainContext || !samples) return null;
 		const { columns, data } = mainContext;
-		const applied = isPicking ? data.map(row => [...row]) : applySample(data, sample, columns);
+		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns);
 		const filterFn = renderFilters(filters, columns);
 		const filtered = applied.filter(row => filterFn(row));
 		return {
 			data: filtered, 
 			current: sample,
-			apply: (dt: any[][], id: number) => applySample(dt, samples?.find(s => s.id === id) ?? null, columns),
+			apply: (dt: typeof data, id: number) => applySample(dt, samples?.find(s => s.id === id) ?? null, columns),
 			samples,
 		};
 	}, [filters, isPicking, mainContext, sample, samplesQuery.data]);

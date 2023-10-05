@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { AuthContext, showError } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
@@ -113,20 +113,26 @@ export function SampleView() {
 		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? null });
 	 } });
 
-	const unsavedChanges = sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
+	const unsavedChanges = show && sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
 	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && s.name === nameInput);
 
-	const applied = sample && applySample(tableData, sample, columns);
-	const whitelisted = sample && sample.whitelist.filter(id => tableData.find(row => row[0] === id)).length;
-	const blacklisted = sample && sample.blacklist.filter(id => tableData.find(row => row[0] === id)).length;
-	const sampleStats = sample && (<span style={{ minWidth: 'max-content' }}>
-		<span style={{ color: whitelisted ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}
-		>[+{whitelisted}{sample.whitelist.length ? '/' + sample.whitelist.length : ''}]</span>
-		<span style={{ color: blacklisted ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}
-		> [-{blacklisted}{sample.blacklist.length ? '/' + sample.blacklist.length : ''}]</span>
-		<span style={{ color: 'var(--color-text-dark)' }}> = [{applied!.length}]</span>
-	</span>);
+	const sampleStats = useMemo(() => {
+		if (sample == null) return null;
+		const { whitelist, blacklist } = sample;
+		const applied = applySample(tableData, sample, columns);
+		const whitelisted = whitelist.filter(id => tableData.find(row => row[0] === id)).length;
+		const blacklisted = blacklist.filter(id => tableData.find(row => row[0] === id)).length;
+		return <span style={{ minWidth: 'max-content' }}>
+			<span title='Whitelisted events: found/total' style={{ color: whitelisted ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}
+			>[+{whitelisted}{whitelist.length ? '/' + whitelist.length : ''}]</span>
+			<span title='Blacklisted events: found/total' style={{ color: blacklisted ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}
+			> [-{blacklisted}{blacklist.length ? '/' + blacklist.length : ''}]</span>
+			<span title='Total members in sample' style={{ color: 'var(--color-text-dark)' }}> = [{applied.length}]</span>
+		</span>;
+
+	}, [columns, sample, tableData]);
+
 	return (<div>
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>

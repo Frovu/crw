@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ColumnDef, parseColumnValue } from './events';
+import { ColumnDef, DataRow, parseColumnValue } from './events';
 import { immer } from 'zustand/middleware/immer';
 
 export const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
@@ -72,6 +72,10 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	}) 
 })));
 
+export function pickEventForSampe(action: 'whitelist' | 'blacklist', id: number) {
+
+}
+
 export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 	const fns = filters.map(fl => {
 		const columnIdx = columns.findIndex(c => c.id === fl.column);
@@ -96,19 +100,19 @@ export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 				case '<>': return (v: any) => v != null && v !== value;
 			}
 		})();
-		return fn && ((row: any[]) => fn(row[columnIdx]));
-	}).filter(fn => fn) as ((row: any[]) => boolean)[];
-	return (row: any[]) => !fns.some(fn => !fn(row));
+		return fn && ((row: DataRow) => fn(row[columnIdx]));
+	}).filter(fn => fn) as ((row: DataRow) => boolean)[];
+	return (row: DataRow) => !fns.some(fn => !fn(row));
 }
 
-export function applySample(data: any[][], sample: Sample | null, columns: ColumnDef[]) {
+export function applySample(data: DataRow[], sample: Sample | null, columns: ColumnDef[]): DataRow[] {
 	if (!sample) return data;
 	const filter = sample.filters?.length && renderFilters(sample.filters, columns);	
 	return data.filter(row => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
 		.filter(row => !sample.blacklist.includes(row[0]));
 }
 
-export function sampleEditingMarkers(data: any[][], sample: Sample, columns: ColumnDef[]) {
+export function sampleEditingMarkers(data: DataRow[], sample: Sample, columns: ColumnDef[]) {
 	const filterFn = sample.filters && renderFilters(sample.filters, columns);
 	return data.map(row => {
 		const fl = filterFn && filterFn(row) && 'f';

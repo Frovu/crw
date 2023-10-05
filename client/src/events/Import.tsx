@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { MainTableContext, equalValues, valueToString } from './events';
+import { MainTableContext, Value, equalValues, valueToString } from './events';
 import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
 
 const FIXES = [
@@ -24,7 +24,7 @@ export default function ImportMenu() {
 		const columns = allColumns.filter(c => colsIndex.includes(c.parseName!))
 			.map(c => ({ ...c , idx: colsIndex.indexOf(c.parseName!) }));
 		const lines = allLines.slice(headerIdx + 1).filter(l => l.length > 0);
-		const rows: typeof currentData = [...Array(lines.length)].map(r => Array(columns.length));
+		const rows = [...Array(lines.length)].map(r => Array(columns.length)) as Value[][];
 
 		for (const [ri, line] of lines.entries()) {
 			try {
@@ -98,7 +98,7 @@ export default function ImportMenu() {
 					|| (before != null || typeof after != 'number' || ![-999, -99, -99.9, 0, 1, -1].includes(after) ));
 
 				if (changes.length && notAllNull)
-					diff.changes.push([found[0] as number, time, changes]);
+					diff.changes.push([found[0], time, changes]);
 			} else {
 				added.push(row);
 				diff.added.push(time);
@@ -112,7 +112,7 @@ export default function ImportMenu() {
 		return { parsed: {
 			...diff,
 			add: added,
-			remove: actuallyLost.map(l => l![0] as number),
+			remove: actuallyLost.map(l => l![0]),
 			total: rows.length,
 			interval: interval as [Date, Date],
 			columns: columns.map(c => [ c.table, c.sqlName ] )
