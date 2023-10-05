@@ -1,11 +1,11 @@
-import { useContext, useMemo, useEffect, ChangeEvent, useRef } from 'react';
+import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, Size, useSize } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { ParamsSetter } from '../Layout';
 import { sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, EventsSettings } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -16,9 +16,10 @@ import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import { SampleView } from './Sample';
-import { useAppSettings } from '../app';
+import { useAppSettings, useContextMenu } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const details: TableMenuDetails | null = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null);
 	const { set, ...settings } = useEventsSettings();
 	const isPlot = plotPanelOptions.includes(params.type as any);
 	const cur = (isPlot && {
@@ -34,21 +35,25 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			checked={cur[k] as boolean} onChange={e => setParams('plotParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
+		{params.type === 'MainTable' && <div className='Group'>
+			<CheckboxGlob text='Show column averages' k='showAverages'/>
+			<CheckboxGlob text='Show changes log' k='showChangelog'/>
+		</div>}
 		{isPlot && <>
-			<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
 				<CheckboxGlob text='markers' k='showMarkers'/>
 				<CheckboxGlob text='legend' k='showLegend'/>
 			</div>
 			<div className='separator'/>
-			<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+			<div className='Row'>
 				<Checkbox text='time axis' k='showTimeAxis'/>
 				<Checkbox text='meta info' k='showMetaInfo'/>
 			</div>
 			<div className='separator'/>
-			<div style={{ display: 'flex', flexDirection: 'column', gap: 4, textAlign: 'right' }}>
+			<div className='Group'>
 				{params.type === 'Cosmic Rays' && <>
-					<div style={{ display: 'flex', gap: 8, justifyContent: 'right' }}>
+					<div className='Row'>
 						<Checkbox text='Show Axy' k='showAxy'/>
 						<Checkbox text='Az' k='showAz'/>
 						<Checkbox text='vector' k='showAxyVector'/>
@@ -173,7 +178,7 @@ function EventsView() {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
-		const averages = showAverages ? null : cols.map((col, i) => {
+		const averages = !showAverages ? null : cols.map((col, i) => {
 			if (col.type !== 'real') return null;
 			const sorted = renderedData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
 			if (!sorted.length) return null;

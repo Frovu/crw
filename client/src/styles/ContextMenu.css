@@ -12,9 +12,22 @@
 	display: block;
 }
 
+.ContextMenu .Group {
+	display: flex;
+	flex-direction: column;
+	text-align: right;
+	gap: 4px;
+}
+
+.ContextMenu .Row {
+	display: flex;
+	justify-content: right;
+	gap: 8px;
+}
+
 .ContextMenu > button, .ContextMenu > input {
 	border: none;
-	padding: 2px 0 2px 0;
+	padding: 1px 0 1px 0;
 }
 
 .ContextMenu label {

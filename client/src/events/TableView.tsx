@@ -39,8 +39,9 @@ export default function TableView({ size }: { size: Size }) {
 	const { showChangelog } = useEventsSettings();
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const viewSize = Math.floor((size.height - 80) / 26) - 1;
-	const hRem = (size.height - 80) % 26;
+	const rowsHeight = size.height - (averages ? 213 : 106);
+	const viewSize = Math.floor(rowsHeight / 26);
+	const hRem = rowsHeight % 26;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const padTableH = Math.floor(headerPadding / 3);
@@ -185,11 +186,12 @@ export default function TableView({ size }: { size: Size }) {
 							})}
 						</tr>;})} </tbody>
 					{averages && (<tfoot>
-						<tr><td colSpan={columns.length} style={{ height: '0' }}></td></tr>
-						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label}>
+						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
+						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
-								return <td key={columns[i].id} style={{ borderColor: 'var(--color-text-dark)', textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}>
+								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
+									textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}>
 									{isLabel ? label : avgs ? avgs[ari].toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 							})}
 						</tr>)}

@@ -152,22 +152,23 @@ function Node({ id, size }: { id: string, size: Size }) {
 export function LayoutContextMenu({ id }: { id: string }) {
 	const { items, tree } = useLayout();
 	if (!items[id]) return null;
-	const parentNode = Object.values(tree).find((node) => node?.children.includes(id));
-	const isFirst = parentNode?.children[0] === id;
-	const relDir = parentNode?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
+	const parent = Object.keys(tree).find((node) => tree[node]!.children.includes(id));
+	const isFirst = parent && tree[parent]?.children[0] === id;
+	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
+	const isFirstInRoot = isFirst && parent === 'root';
 	const type = items[id]?.type;
 	return <>
-		<select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
+		{!isFirstInRoot && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
 			onChange={e => setParams(id, 'type', e.target.value as any)}>
 			{type == null && <option value={'empty'}>Select panel</option>}
 			{allPanelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-		</select>
-		{type && <div className='separator'/>}
+		</select>}
+		{!isFirstInRoot && type && <div className='separator'/>}
 		{type && <ContextMenuContent {...{ params: items[id], setParams: (key, para) => setParams(id, key, para) }}/>}
 		<div className='separator'/>
 		{type && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
 		{type && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
-		{id !== 'root' && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
+		{id !== 'root' && !isFirstInRoot && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</>;
 }
 
