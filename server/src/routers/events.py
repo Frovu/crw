@@ -8,6 +8,7 @@ from events.generic_columns import recompute_generics, select_generics, add_gene
 from events import other_columns
 from events import samples
 from events import query
+from server import compress
 from routers.utils import route_shielded, require_role, msg
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -29,6 +30,7 @@ def _epoch_collision():
 
 @bp.route('/', methods=['GET'])
 @route_shielded
+@compress.compressed()
 def list_events():
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')

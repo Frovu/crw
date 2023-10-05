@@ -156,13 +156,13 @@ export default function TableView({ size }: { size: Size }) {
 							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
 								<>{prettyTable(table)}</></div></td>)}
 					</tr><tr>
-						{columns.map(({ id, name, description }) => <td title={`[${name}] ${description}`}
+						{columns.map(({ id, name, description }) => <td key={id} title={`[${name}] ${description}`}
 							className='ColumnHeader' onClick={() => toggleSort(id)}>
 							<div style={{ height: 46 + padColumnH }}><span>{name}</span>
 								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
-					<tbody> {data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) => {
+					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize - changesRows)).map((row, i) => {
 						const idx = viewIndex + i;
 						const marker = markers?.[idx];
 						const rowChanges = wholeChangelog?.[row[0]];
@@ -184,7 +184,7 @@ export default function TableView({ size }: { size: Size }) {
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
 								</td>;
 							})}
-						</tr>;})} </tbody>
+						</tr>;})}</tbody>
 					{averages && (<tfoot>
 						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>

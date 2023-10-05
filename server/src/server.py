@@ -37,8 +37,11 @@ logger.critical('STARTING SERVER')
 from flask import Flask, session
 from flask_session import Session
 from flask_bcrypt import Bcrypt
+from flask_compress import Compress
 
 app = Flask('crw')
+app.config["COMPRESS_REGISTER"] = False  # disable default compression of all eligible requests
+compress = Compress(app)
 if hasattr(app, 'json'):
 	app.json.sort_keys = False
 	app.json.indent = 0
