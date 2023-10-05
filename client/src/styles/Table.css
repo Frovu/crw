@@ -20,26 +20,26 @@
 }
 
 .ColumnHeader {
-	clip-path: polygon(0 0, 0 100%, 100% 100%, 100% 0);
 	position: relative;
 	cursor: pointer;
 	word-break: break-word;
 }
 
 .ColumnHeader > div {
+	clip-path: polygon(0 0, 0 100%, 100% 100%, 100% 0);
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	height: 46px;
 	padding: 0 2px;
 }
 
 .ColumnHeader > div > * {
+	overflow: clip;
 	max-height: 44px;
 }
 
 .SortShadow {
-	box-shadow: 0 0 20px 6px var(--color-active);
+	box-shadow: 0 0 24px 6px var(--color-active);
 	background-color: transparent;
 	position: absolute;
 	left: 0;

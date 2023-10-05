@@ -1,5 +1,5 @@
-import { useContext, useState, useMemo, useEffect, ChangeEvent } from 'react';
-import { useEventListener, clamp, Size } from '../util';
+import { useContext, useState, useMemo, useEffect, ChangeEvent, useRef } from 'react';
+import { useEventListener, clamp, Size, useSize } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { ParamsSetter } from '../Layout';
 import { sampleEditingMarkers, useSampleState } from './sample';
@@ -16,6 +16,7 @@ import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import { SampleView } from './Sample';
+import { useAppSettings } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { showGrid, showMarkers, showLegend, set } = useEventsSettings();
@@ -50,18 +51,19 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 
 export function LayoutContent({ size, params: state }: { size: Size, params: PanelParams }) {
 	const settings = useEventsSettings();
+	const appState = useAppSettings();
 	const plotContext = useContext(PlotContext);
 	const type = state.type;
 
 	const params = useMemo(() => {
-		return plotContext && plotPanelOptions.includes(type as any) && {
+		return appState && plotContext && plotPanelOptions.includes(type as any) && {
 			...defaultPlotParams,
 			...settings,
 			...plotContext!,
 			...state.plotParams,
 			stretch: true,
 		};
-	}, [plotContext, settings, state.plotParams, type]);
+	}, [plotContext, settings, state.plotParams, type, appState]);
 
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
 		{type === 'MainTable' && <MainTablePanel size={size}/>}
@@ -87,6 +89,8 @@ function MainTablePanel({ size }: { size: Size }) {
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData } = useContext(TableViewContext);
 	const { plotId, setPlotId, cursor, setCursor } = useViewState();
+	const ref = useRef<HTMLDivElement | null>(null);
+	useSize(ref.current);
 
 	useEffect(() => {;
 		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
@@ -118,10 +122,10 @@ function MainTablePanel({ size }: { size: Size }) {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
-	return <div style={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-		<SampleView/>
-		<div style={{ flex: 1 }}><TableView/></div>
-	</div>;
+	return <>
+		<SampleView ref={ref}/>
+		<TableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
+	</>;
 }
 
 function EventsView() {

@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from 'react';
+import { forwardRef, useContext, useMemo, useState } from 'react';
 import { AuthContext, showError } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
@@ -66,7 +66,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 	);
 }
 
-export function SampleView() {
+export const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
 	const { data: tableData, columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
@@ -121,7 +121,7 @@ export function SampleView() {
 
 	}, [columns, sample, tableData]);
 
-	return (<div>
+	return (<div ref={ref}>
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
 			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
@@ -130,7 +130,7 @@ export function SampleView() {
 				if (nameValid) set({ name: nameInput });
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
 			value={nameInput} onChange={e => setNameInput(e.target.value)}/>}
-			{nameInput == null && <select title='Select events sample' style={{ flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
+			{nameInput == null && <select title='Select events sample' style={{ color: 'var(--color-white)', flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
 				onChange={e => e.target.value !== '_create' && setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
 				<option value='_create' onClick={createSample}>-- Create sample --</option>
 				<option value='_none'>-- All events --</option>
@@ -179,4 +179,4 @@ export function SampleView() {
 			{filters.map(filter => <FilterCard key={filter.id} filter={filter}/>)}
 		</div>}
 	</div>);
-}
+});

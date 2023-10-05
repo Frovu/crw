@@ -1,5 +1,5 @@
 import { useState, useRef, useContext, useLayoutEffect, ChangeEvent } from 'react';
-import { clamp, dispatchCustomEvent, useEventListener, Size, useSize } from '../util';
+import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
 	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 import { pickEventForSampe } from './sample';
@@ -32,16 +32,18 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 }
 
 const MAX_CHANGELOG_ROWS = 3;
-export default function TableView() {
+export default function TableView({ size }: { size: Size }) {
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, averages, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, escapeCursor } = useViewState();
 	const { showChangelog } = useEventsSettings();
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const size = useSize(ref.current?.parentElement?.parentElement);
-	const viewSize = Math.floor((size.height - 80) / 26) - 1; // FIXME
-	const heightRem = (size.height - 80) % 26;
+	const viewSize = Math.floor((size.height - 80) / 26) - 1;
+	const hRem = (size.height - 80) % 26;
+	const trPadding = hRem > viewSize ? 1 : 0;
+	const headerPadding = (hRem - viewSize * trPadding) / 2;
+	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
@@ -148,12 +150,12 @@ export default function TableView() {
 							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
-							<td key={table} colSpan={cls.length}>
-								<div style={{ minHeight: 26 + heightRem }}>{prettyTable(table)}</div></td>)}
+							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + headerPadding }}>
+								<>{prettyTable(table)}</></div></td>)}
 					</tr><tr>
 						{columns.map(({ id, name, description }) => <td title={`[${name}] ${description}`}
 							className='ColumnHeader' onClick={() => toggleSort(id)}>
-							<div><span>{name}</span>
+							<div style={{ height: 46 + headerPadding }}><span>{name}</span>
 								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
@@ -162,7 +164,7 @@ export default function TableView() {
 						const marker = markers?.[idx];
 						const rowChanges = wholeChangelog?.[row[0]];
 						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
-						return <tr key={row[0] as any} style={{ backgroundColor: plotId === row[0] ? 'var(--color-area)' : 'unset' }}>
+						return <tr key={row[0] as any} style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
 							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 								onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
@@ -172,7 +174,7 @@ export default function TableView() {
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
-									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
+									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)',  }}>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											{valueToString(row[cidx+1])}
