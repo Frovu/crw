@@ -90,14 +90,15 @@ export function superScript(digit: number) {
 }
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
+	const size = getParam('fontSize');
 	return {
 		font: font(),
 		labelFont: font(),
 		stroke: color('text'),
-		labelSize: 20,
+		labelSize: 4 + size,
 		labelGap: 0,
 		space: 32,
-		size: 44,
+		size: size * 3,
 		gap: 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
 		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
@@ -115,6 +116,7 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 }
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
+	const gap = params?.showMetaInfo ? getParam('fontSize') - 9 : 4;
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / 76);
@@ -125,7 +127,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, splits) => splits.map((v, i) => {
-			if (v % 86400 !== 0)
+			if (!params?.showTimeAxis || v % 86400 !== 0)
 				return null;
 			const d = new Date(v * 1e3);
 			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -133,8 +135,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
-		gap: 6,
-		size: (params?.showTimeAxis ?? true) ? 32 : 4
+		gap, size: (params?.showTimeAxis ?? true) ? getParam('fontSize') + 10 + gap : 4
 	};
 }
 
@@ -202,10 +203,10 @@ export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuil
 	};
 }
 
-export function drawOnsets(params: BasicPlotParams, truncateY?: number) {
+export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => number) {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
-		if (!params.onsets?.length) return;
+		if (!params.showMetaInfo || !params.onsets?.length) return;
 		for (const onset of params.onsets) {
 			const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
@@ -218,7 +219,7 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: number) {
 			u.ctx.textAlign = 'right';
 			u.ctx.lineWidth = 2 * devicePixelRatio;
 			u.ctx.beginPath();
-			u.ctx.moveTo(x, truncateY ?? u.bbox.top);
+			u.ctx.moveTo(x, truncateY?.(u) ?? u.bbox.top);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 			params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
 				x + 4, u.bbox.top + u.bbox.height + 2);
@@ -228,10 +229,10 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: number) {
 	}, captureOverrides);
 }
 
-export function drawMagneticClouds(params: BasicPlotParams, truncateY?: number) {
+export function drawMagneticClouds(params: BasicPlotParams, truncateY?: (u: uPlot) => number) {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
-		if (!params.clouds?.length) return;
+		if (!params.showMetaInfo || !params.clouds?.length) return;
 		const patternCanvas = document.createElement('canvas');
 		const ctx = patternCanvas.getContext('2d')!;
 		const scale = devicePixelRatio / 1;
@@ -255,8 +256,8 @@ export function drawMagneticClouds(params: BasicPlotParams, truncateY?: number) 
 			u.ctx.save();
 			u.ctx.beginPath();
 			u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
-			const h = u.bbox.height, fromY = truncateY ?? u.bbox.top;
-			u.ctx.fillRect(startX, fromY, endX - startX, truncateY ? (h + u.bbox.top - truncateY) : h);
+			const h = u.bbox.height, fromY = truncateY?.(u) ?? u.bbox.top;
+			u.ctx.fillRect(startX, fromY, endX - startX, truncateY?.(u) ? (h + u.bbox.top - truncateY(u)) : h);
 			u.ctx.fill();
 			u.ctx.restore();
 		}

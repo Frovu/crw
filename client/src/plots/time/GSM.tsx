@@ -139,16 +139,16 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
 		}),
 		params,
-		options: {
+		options: () => ({
 			padding: [8, params.showAxy ? 0 : 60, params.showTimeAxis ? 0 : 8, 0],
 			hooks: {
-				drawAxes: params.showMetaInfo ? [
-					u => drawMagneticClouds(params, u.valToPos(0, 'A0', true))(u),
-					u => drawOnsets(params, u.valToPos(0, 'A0', true))(u),
-				] : [],
+				drawAxes: [
+					drawMagneticClouds(params, u => u.valToPos(0, 'A0', true)),
+					drawOnsets(params, u => u.valToPos(0, 'A0', true)),
+				],
 				ready: [ handleDrag ]
-			},
-		},
+			}
+		}),
 		axes: [{
 			label: 'A0',
 			fullLabel: `A0${params.useA0m ? 'm' : ''}${params.showAz ? ' & Az' : ''} var, %`,

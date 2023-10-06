@@ -15,13 +15,13 @@ export default function PlotSW({ params }: { params: SWParams }) {
 			return data?.concat([Array(data[0].length).fill(.5)]) ?? null;
 		},
 		params,
-		options: params.useTemperatureIndex ? {
+		options: () => (params.useTemperatureIndex ? {
 			bands: [{
 				series: [3,4],
 				fill: color('cyan', .7),
 				dir: 1
 			}]
-		} : {},
+		} : {}),
 		axes: [
 			{
 				label: 'Dp',
