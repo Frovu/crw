@@ -15,14 +15,15 @@ import PlotGeoMagn from '../plots/time/Geomagn';
 import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
-import { SampleView } from './Sample';
+import SampleView from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
-	const { toggleSort } = useViewState();
+	const { toggleSort, setPlotId } = useViewState();
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
+	const rowId = details?.cell?.id;
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
 	const isPlot = plotPanelOptions.includes(params.type as any);
@@ -40,6 +41,10 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 
 	return <>
 		{params.type === 'MainTable' && <>
+			{rowId != null && <>
+				<button onClick={() => setPlotId(() => rowId)}>Show on plots</button>
+				<div className='separator'/>
+			</>}
 			{column && <>
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
@@ -62,6 +67,9 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			<div className='Row'>
 				<Checkbox text='time axis' k='showTimeAxis'/>
 				<Checkbox text='meta info' k='showMetaInfo'/>
+			</div>
+			<div className='Row'>
+				<CheckboxGlob text='show unlisted events' k='plotUnlistedEvents'/>
 			</div>
 			<div className='separator'/>
 			<div className='Group'>
@@ -128,33 +136,39 @@ function MainTablePanel({ id, size }: { id: string, size: Size }) {
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
+	const { plotUnlistedEvents } = useEventsSettings();
 	const { plotId, setPlotId, cursor, setCursor } = useViewState();
 	const { addFilter } = useSampleState();
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
 
+	// always plot something
 	useEffect(() => {
 		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
-		if (plotId == null || !shownData.find(r => r[0] === plotId))
-			setPlotId(() => sampleData.findLast(r => r[magn] as number > 2.5)?.[0] ?? null);
-	}, [sampleData, columns, plotId, setPlotId, shownData]);
+		if (plotId != null && (plotUnlistedEvents || shownData.find(r => r[0] === plotId)))
+			return;
+		const sorted = shownData.slice(-10).sort((a: any, b: any) => a[magn] - b[magn]);
+		setPlotId(() => sorted.at(-1)?.[0] ?? null);
+	}, [sampleData, columns, plotId, setPlotId, shownData, plotUnlistedEvents]);
 
 	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
-		if (dir === 0) { // set cursor to plotted line
-			if (cursor)
-				return shownData[cursor.row][0];
-			const found = shownData.findIndex(r => r[0] === allData[current!]?.[0]);
-			if (found >= 0) setCursor({ row: found, column: 0 });
-		}
+		if (dir === 0) {
+			if (cursor) return shownData[cursor.row][0];
+			// set cursor to plotted line
+			const found = shownData.findIndex(r => r[0] === current);
+			if (found >= 0) queueMicrotask(() => setCursor({ row: found, column: 0 }));
+			return current; }
 		if (current == null)
 			return null;
-		if (global)
+		if (plotUnlistedEvents && global)
 			return allData[clamp(0, allData.length - 1, allData.findIndex(r => r[0] === current) + dir)][0];
-		const found = shownData.findIndex(r => r[0] === allData[current][0]);
-		const curIdx = found >= 0 ? found : cursor?.row;
-		if (curIdx == null) return current;
-		const movedIdx = clamp(0, shownData.length - 1, curIdx + dir);
-		return shownData[movedIdx][0];
+		const found = shownData.findIndex(r => r[0] === current);
+		if (found >= 0)
+			return shownData[clamp(0, shownData.length - 1, found + dir)][0];
+		const aIdx = allData.findIndex(r => r[0] === current);
+		const search = (r: typeof allData[number]) => shownData.find(sr => sr[0] === r[0]);
+		const closest = dir > 0 ? allData.slice(aIdx).find(search) : allData.slice(0, aIdx).findLast(search);
+		return closest?.[0] ?? null;
 	});
 
 	useEventListener('action+plot', plotMove(0));
@@ -176,7 +190,7 @@ function MainTablePanel({ id, size }: { id: string, size: Size }) {
 }
 
 function EventsView() {
-	const { showAverages, showColumns, plotOffsetDays } = useEventsSettings();
+	const { showAverages, showColumns, plotOffsetDays, plotUnlistedEvents } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
@@ -228,7 +242,7 @@ function EventsView() {
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffsetDays.map(days => new Date(hour + days * 864e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
-		const onsets = allNeighbors.filter(r => sampleData.find(sr => sr[0] === r[0])) // TODO: show only onsets from sample
+		const onsets = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset);
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
@@ -242,7 +256,7 @@ function EventsView() {
 			interval: interval as [Date, Date],
 			onsets, clouds
 		};
-	}, [plotId, data, plotOffsetDays, columns, sampleData]);
+	}, [plotId, data, plotOffsetDays, columns, plotUnlistedEvents, sampleData]);
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

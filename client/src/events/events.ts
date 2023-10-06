@@ -18,6 +18,7 @@ export type EventsSettings = {
 	showMarkers: boolean,
 	showLegend: boolean,
 	plotOffsetDays: number[],
+	plotUnlistedEvents: boolean,
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
 	reset: () => void
 };
@@ -28,6 +29,7 @@ const defaultSettings = {
 	showChangelog: false,
 	showAverages: true,
 	plotOffsetDays: [-1, 2],
+	plotUnlistedEvents: true,
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
@@ -208,7 +210,7 @@ export const useViewState = create<ViewState>()(
 		set => ({
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
-			setCursor: (cursor) => set(st => ({ ...st, cursor })),
+			setCursor: (cursor) => (console.log('set', cursor) as any) || set(st => ({ ...st, cursor })),
 			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
 				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
 			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),

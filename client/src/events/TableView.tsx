@@ -57,12 +57,19 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 
+	const updateViewIndex = (curs: Cursor) => {
+		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
+			(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
+		setViewIndex(clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx)); };
+
 	useEventListener('escape', escapeCursor);
 
 	useLayoutEffect(() => {
 		setCursor(null);
 		setViewIndex(clamp(0, data.length - viewSize, data.length));
 	}, [data.length, viewSize, sort, setCursor]);
+
+	useEffect(() => { cursor && updateViewIndex(cursor); }, [cursor]); // eslint-disable-line
 
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
@@ -83,10 +90,8 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 			return pickEventForSampe('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 
 		const set = (curs: Cursor) => {
-			const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-				(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
-			setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
 			setCursor(curs);
+			updateViewIndex(curs);
 			e.preventDefault(); };
 		
 		if (e.ctrlKey && e.code === 'Home')
@@ -117,8 +122,8 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 			return set({ row: cur, column });
 		}
 		set({
-			row: Math.min(Math.max(0, row + deltaRow), data.length - 1),
-			column: Math.min(Math.max(0, column + deltaCol), columns.length - 1)
+			row: clamp(0, data.length - 1, row + deltaRow),
+			column: clamp(0, columns.length - 1, column + deltaCol)
 		});		
 	});
 	

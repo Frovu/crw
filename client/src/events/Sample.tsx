@@ -66,7 +66,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 	);
 }
 
-export const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
+const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
 	const { data: tableData, columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
@@ -180,3 +180,6 @@ export const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		</div>}
 	</div>);
 });
+
+SampleView.displayName = 'SampleView';
+export default SampleView;
