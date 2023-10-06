@@ -281,7 +281,7 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			},
 			rightTwo: {
 				split: 'column',
-				ratio: .99,
+				ratio: .9,
 				children: ['right', 'empty']
 			},
 			right: {

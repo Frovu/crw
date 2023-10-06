@@ -73,3 +73,19 @@ div.separator {
 	color: var(--color-active);
 	text-decoration: underline;
 }
+
+button, select {
+	text-align: center;
+	border: 1px var(--color-border) solid;
+}
+
+input:not([type='checkbox']) {
+	background-color: var(--color-input-bg);
+	border: none;
+}
+
+label:has(input[type='checkbox']):hover {
+	cursor: pointer;
+	color: var(--color-active);
+	text-decoration: underline;
+}

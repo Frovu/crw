@@ -5,7 +5,7 @@ import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
-import { BasicPlotParams, Position, ScaleParams, TextTransform, color } from '../plots/plotUtil';
+import { BasicPlotParams, Position, ScaleParams, TextTransform, color, withOverrides, usePlotsOverrides } from '../plots/plotUtil';
 import { PlotContext } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -87,7 +87,7 @@ const defaultSettings = (): PlotExportSettings => ({
 
 type PlotEntryParams = {
 	size: Size,
-	options: uPlot.Options,
+	options: () => uPlot.Options,
 	data: (number | null)[][]
 };
 
@@ -103,23 +103,10 @@ export const usePlotExportSate = create<PlotExportState>()(immer(set => ({
 	plots: {}
 })));
 
-export function ExportableUplot({ options, data, onCreate }: { options: uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
-	const layout = useContext(LayoutContext);
-	layout && usePlotExportSate.setState(state => {
-		if (state.plots[layout.id])state.plots[layout.id].size = layout.size; });
-	return <UplotReact {...{ options, data: data as any, onCreate: u => {
-		if (layout?.id)
-			usePlotExportSate.setState(state => {
-				state.plots[layout.id] = { size: layout.size, options: castDraft(options), data }; });
-
-		onCreate?.(u);
-	} }}/>;
-}
-
 async function doRenderPlots(target?: HTMLDivElement) {
+	const { plots, width } = usePlotExportSate.getState();
 	const { active, list } = useLayoutsStore.getState();
 	const { tree, items } = list[active];
-	const { plots, width } = usePlotExportSate.getState();
 	const canvas = document.createElement('canvas');
 	canvas.width = width;
 	canvas.height = Object.values(plots).reduce((s, a) => s + width / a.size.width * a.size.height, 0);
@@ -129,7 +116,7 @@ async function doRenderPlots(target?: HTMLDivElement) {
 	let y = 0;
 	for (const [nodeId, { size, options, data }] of Object.entries(plots)) {
 		const opts = {
-			...options,
+			...withOverrides(options, true),
 			width,
 			height: width / size.width * size.height,
 		};
@@ -157,12 +144,19 @@ async function doExportPlots() {
 }
 
 export function ExportControls() {	
-	return <div>
+	const { fontSize, set } = usePlotsOverrides();
+	return <div style={{ padding: 4 }}>
 		<button onClick={() => doExportPlots()}>Click me pls</button>
+		<div>
+			<label>Font size:<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
+				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>px</label>
+			
+		</div>
 	</div>;
 }
 
 export function ExportPreview() {
+	usePlotsOverrides();
 	const { width } = usePlotExportSate();
 	const { size } = useContext(LayoutContext)!;
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -172,10 +166,24 @@ export function ExportPreview() {
 		doRenderPlots(container);
 
 	return <div style={{ padding: 2, height: '100%' }} onClick={() => setShow(!show)}>
-		<span style={{ padding: 2 }}>preview plots (may harm your computer) <input type='checkbox' checked={show}/></span>
+		<span style={{ padding: 2 }}>preview plots (may be slow) <input type='checkbox' checked={show}/></span>
 		<div ref={setContainer} style={{ display: !show ? 'none' : 'block',
 			transform: `scale(${(size.width - 4) / width})`, transformOrigin: 'top left' }}/>
 	</div>;
+}
+
+export function ExportableUplot({ options, data, onCreate }: { options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+	const layout = useContext(LayoutContext);
+	layout && usePlotExportSate.setState(state => {
+		if (state.plots[layout.id])state.plots[layout.id].size = layout.size; });
+
+	const plot = useMemo(() => <UplotReact {...{ options: options(), data: data as any, onCreate: u => {
+		if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
+			state.plots[layout.id] = { size: layout.size, options, data }; }));
+
+		onCreate?.(u);
+	} }}/>, [options, data, layout?.id, onCreate]); // eslint-disable-line
+	return plot;
 }
 
 export default function PlotExportView({ escape }: { escape: () => void }) {

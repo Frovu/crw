@@ -257,8 +257,8 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 						u.ctx.stroke();
 						u.ctx.restore();
 					},
-					u => (params.showMetaInfo) && drawMagneticClouds(u, params),
-					u => (params.showMetaInfo) && drawOnsets(u, params),
+					drawMagneticClouds(params),
+					drawOnsets(params),
 				],
 				ready: [
 					u => {

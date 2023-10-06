@@ -1,21 +1,21 @@
 import { useState, useEffect, useMemo, MutableRefObject, useRef } from 'react';
 import { useQuery } from 'react-query';
-import UplotReact from 'uplot-react';
 import { apiGet, clamp, useSize } from '../util';
-import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits,
+import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 
 function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
-	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => {
+	const captureOverrides = applyOverrides;
+	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
 		const series = u.series.filter(s => s.show! && s.legend)
 			.map(s => ({ ...s, legend: applyTextTransform(params.transformText)(s.legend!) }));
 		if (!series.length) return;
 
 		const px = (a: number) => a * devicePixelRatio;
-		u.ctx.font = font(16, true);
+		u.ctx.font = font(0, true);
 		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
@@ -55,11 +55,12 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 			y += lineHeight;
 		}
 		u.ctx.restore();
-	};
+	}, captureOverrides);
 }
 
 function drawCustomLabels(params: BasicPlotParams) {
-	return (u: uPlot) => {
+	const captureOverrides = applyOverrides;
+	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {
 			if (!axis.show || !axis.fullLabel) continue;
 			if (axis.side && axis.side % 2 === 0)
@@ -82,7 +83,7 @@ function drawCustomLabels(params: BasicPlotParams) {
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = (axis as any)._pos + (axis as any)._size * -flowDir;
 			u.ctx.save();
-			u.ctx.font = font(16, true);
+			u.ctx.font = font(0, true);
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
 			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
 			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
@@ -110,7 +111,7 @@ function drawCustomLabels(params: BasicPlotParams) {
 			}
 			u.ctx.restore();
 		}
-	};
+	}, captureOverrides);
 }
 
 export async function basicDataQuery(path: string, interval: [Date, Date], query: string[], params?: {}) {
@@ -174,7 +175,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	}, [params, uplot, size]);
 
 	const plot = useMemo(() => {
-		const options = {
+		const options = () => ({
 			...size,
 			pxAlign: true,
 			padding: [10, 0, params.showTimeAxis ? 0 : 8, 0],
@@ -229,24 +230,23 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				scale: ser.label,
 				...ser,
 			}))),
-			...userOptions
-		} as uPlot.Options;
-	
-		options.hooks = {
-			...options.hooks,
-			drawAxes: options.hooks?.drawAxes ?? (params.showMetaInfo ? [
-				u => drawMagneticClouds(u, params),
-			] : []),
-			draw: [
-				drawCustomLabels(params),
-				...(params.showMetaInfo && !options.hooks?.drawAxes ? [(u: uPlot) => drawOnsets(u, params)] : []),
-				...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
-				...(options.hooks?.draw ?? [])
-			],
-			ready: [
-				handleDragLegend
-			].concat(options.hooks?.ready ?? [] as any)
-		};
+			...userOptions,
+			hooks: {
+				...userOptions?.hooks,
+				drawAxes: userOptions?.hooks?.drawAxes ?? (params.showMetaInfo ? [
+					drawMagneticClouds(params),
+				] : []),
+				draw: [
+					drawCustomLabels(params),
+					...(params.showMetaInfo && !userOptions?.hooks?.drawAxes ? [drawOnsets(params)] : []),
+					...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
+					...(userOptions?.hooks?.draw ?? [])
+				],
+				ready: [
+					handleDragLegend
+				].concat(userOptions?.hooks?.ready ?? [] as any)
+			}
+		} as uPlot.Options);
 		return <ExportableUplot {...{ options, data: query.data as any, onCreate: setUplot }}/>;
 	}, [params, query.data]); // eslint-disable-line
 	

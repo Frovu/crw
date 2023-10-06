@@ -115,14 +115,3 @@
 	margin-left: 1em;
 	color: var(--color-text-dark)
 }
-
-input, button, select {
-	text-align: center;
-	border: 1px var(--color-border) solid;
-}
-
-label:hover {
-	cursor: pointer;
-	color: var(--color-active);
-	text-decoration: underline;
-}

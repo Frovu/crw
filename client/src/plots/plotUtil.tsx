@@ -4,6 +4,7 @@ import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../events/events';
 import UplotReact from 'uplot-react';
+import { create } from 'zustand';
 
 export type TextTransform = {
 	search: string,
@@ -32,6 +33,35 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
+type PlotsSate = {
+	fontSize: number,
+	fontFamily?: string,
+};
+
+const defaultPlotsState: PlotsSate = {
+	fontSize: 14,
+};
+
+export const usePlotsOverrides = create<PlotsSate & {
+	set: <T extends keyof PlotsSate>(k: T, val: PlotsSate[T]) => void
+}>()(set => ({
+	...defaultPlotsState,
+	set: (k, v) => set(state => ({ ...state, [k]: v }))
+}));
+
+export let applyOverrides = false;
+export const withOverrides = <T extends any>(foo: () => T, overrides: boolean): T => {
+	applyOverrides = overrides;
+	const res = foo();
+	applyOverrides = false;
+	return res;
+};
+
+const getParam = <T extends keyof PlotsSate>(k: T) => {
+	const state = usePlotsOverrides.getState();
+	return (applyOverrides ? state : defaultPlotsState)[k];
+};
+
 export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
 	return transforms?.reduce((txt, { search, replace }) => {
 		try {
@@ -49,8 +79,9 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
 }
 
-export function font(size=16, scale=false) {
+export function font(sz=0, scale=false) {
 	const fnt = window.getComputedStyle(document.body).font;
+	const size = getParam('fontSize') + sz;
 	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
 
@@ -60,8 +91,8 @@ export function superScript(digit: number) {
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
 	return {
-		font: font(16),
-		labelFont: font(16),
+		font: font(),
+		labelFont: font(),
 		stroke: color('text'),
 		labelSize: 20,
 		labelGap: 0,
@@ -171,68 +202,65 @@ export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuil
 	};
 }
 
-export function drawOnsets(u: uPlot, params: BasicPlotParams, truncateY?: number) {
-	if (!params.onsets?.length) return;
-	for (const onset of params.onsets) {
-		const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
-		if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
-			continue;
-		const useColor = onset.secondary ? color('text', .6) : color('white');
-		u.ctx.save();
-		u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
-		u.ctx.font = font(16, true).replace('400', '600');
-		u.ctx.textBaseline = 'top';
-		u.ctx.textAlign = 'right';
-		u.ctx.lineWidth = 2 * devicePixelRatio;
-		u.ctx.beginPath();
-		u.ctx.moveTo(x, truncateY ?? u.bbox.top);
-		u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
-		params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
-			x + 4, u.bbox.top + u.bbox.height + 2);
-		u.ctx.stroke();
-		u.ctx.restore();
-	}
+export function drawOnsets(params: BasicPlotParams, truncateY?: number) {
+	const captureOverrides = applyOverrides;
+	return (u: uPlot) => withOverrides(() => {
+		if (!params.onsets?.length) return;
+		for (const onset of params.onsets) {
+			const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
+			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
+				continue;
+			const useColor = onset.secondary ? color('text', .6) : color('white');
+			u.ctx.save();
+			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
+			u.ctx.font = font(0, true).replace('400', '600');
+			u.ctx.textBaseline = 'top';
+			u.ctx.textAlign = 'right';
+			u.ctx.lineWidth = 2 * devicePixelRatio;
+			u.ctx.beginPath();
+			u.ctx.moveTo(x, truncateY ?? u.bbox.top);
+			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
+			params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
+				x + 4, u.bbox.top + u.bbox.height + 2);
+			u.ctx.stroke();
+			u.ctx.restore();
+		}
+	}, captureOverrides);
 }
 
-export function drawMagneticClouds(u: uPlot, params: BasicPlotParams, truncateY?: number) {
-	if (!params.clouds?.length) return;
-	const patternCanvas = document.createElement('canvas');
-	const ctx = patternCanvas.getContext('2d')!;
-	const scale = devicePixelRatio / 1;
-	patternCanvas.height = patternCanvas.width = 16 * scale;
-	ctx.fillStyle = color('area2');
+export function drawMagneticClouds(params: BasicPlotParams, truncateY?: number) {
+	const captureOverrides = applyOverrides;
+	return (u: uPlot) => withOverrides(() => {
+		if (!params.clouds?.length) return;
+		const patternCanvas = document.createElement('canvas');
+		const ctx = patternCanvas.getContext('2d')!;
+		const scale = devicePixelRatio / 1;
+		patternCanvas.height = patternCanvas.width = 16 * scale;
+		ctx.fillStyle = color('area2');
 
-	// ctx.moveTo(10, 0);
-	// ctx.lineTo(0, 10);
-	// ctx.lineTo(0, 16);
-	// ctx.lineTo(16, 0);
-	// ctx.moveTo(10, 16);
-	// ctx.lineTo(16, 10);
-	// ctx.lineTo(16, 16);
-	// ctx.fill();
+		ctx.scale(scale, scale);
+		ctx.moveTo(0, 6);
+		ctx.lineTo(10, 16);
+		ctx.lineTo(16, 16);
+		ctx.lineTo(0, 0);
+		ctx.moveTo(16, 0);
+		ctx.lineTo(16, 6);
+		ctx.lineTo(10, 0);
+		ctx.fill();
 
-	ctx.scale(scale, scale);
-	ctx.moveTo(0, 6);
-	ctx.lineTo(10, 16);
-	ctx.lineTo(16, 16);
-	ctx.lineTo(0, 0);
-	ctx.moveTo(16, 0);
-	ctx.lineTo(16, 6);
-	ctx.lineTo(10, 0);
-	ctx.fill();
-
-	for (const cloud of params.clouds) {
-		const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
-		const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
-		if (endX <= startX) continue;
-		u.ctx.save();
-		u.ctx.beginPath();
-		u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
-		const h = u.bbox.height, fromY = truncateY ?? u.bbox.top;
-		u.ctx.fillRect(startX, fromY, endX - startX, truncateY ? (h + u.bbox.top - truncateY) : h);
-		u.ctx.fill();
-		u.ctx.restore();
-	}
+		for (const cloud of params.clouds) {
+			const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
+			const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
+			if (endX <= startX) continue;
+			u.ctx.save();
+			u.ctx.beginPath();
+			u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
+			const h = u.bbox.height, fromY = truncateY ?? u.bbox.top;
+			u.ctx.fillRect(startX, fromY, endX - startX, truncateY ? (h + u.bbox.top - truncateY) : h);
+			u.ctx.fill();
+			u.ctx.restore();
+		}
+	}, captureOverrides);
 }
 
 export type Size = { width: number, height: number };

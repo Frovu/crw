@@ -115,7 +115,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 		axes: [
 			{
 				size: 34,
-				font: font(12),
+				font: font(-4),
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
@@ -126,7 +126,7 @@ export default function MinuteView({ timestamp, station }: { timestamp: number, 
 				size: 40,
 				gap: 0,
 				values: (u, vals) => vals.map(v => v.toFixed(0)),
-				font: font(12),
+				font: font(-4),
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 			}
