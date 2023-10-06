@@ -5,6 +5,7 @@ import { apiGet, clamp, useSize } from '../util';
 import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font } from './plotUtil';
 import uPlot from 'uplot';
+import { ExportableUplot } from '../events/ExportPlot';
 
 function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
@@ -246,7 +247,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				handleDragLegend
 			].concat(options.hooks?.ready ?? [] as any)
 		};
-		return <UplotReact {...{ options, data: query.data as any, onCreate: setUplot }}/>;
+		return <ExportableUplot {...{ options, data: query.data as any, onCreate: setUplot }}/>;
 	}, [params, query.data]); // eslint-disable-line
 	
 	if (query.isLoading)

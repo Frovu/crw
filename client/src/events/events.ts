@@ -269,7 +269,7 @@ export const useViewState = create<ViewState>()(
 		set => ({
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
-			setCursor: (cursor) => (console.log('set', cursor) as any) || set(st => ({ ...st, cursor })),
+			setCursor: (cursor) => set(st => ({ ...st, cursor })),
 			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
 				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
 			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
