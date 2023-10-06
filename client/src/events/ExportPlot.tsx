@@ -106,10 +106,11 @@ export const usePlotExportSate = create<PlotExportState>()(immer(set => ({
 async function doRenderPlots(target?: HTMLDivElement) {
 	const { plots, width } = usePlotExportSate.getState();
 	const { active, list } = useLayoutsStore.getState();
+	const { scale } = usePlotsOverrides.getState();
 	const { tree, items } = list[active];
 	const canvas = document.createElement('canvas');
-	canvas.width = width;
-	canvas.height = Object.values(plots).reduce((s, a) => s + width / a.size.width * a.size.height, 0);
+	canvas.width = width * scale;
+	canvas.height = Object.values(plots).reduce((s, a) => s + width / a.size.width * a.size.height, 0) * scale;
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color('bg');
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -117,8 +118,8 @@ async function doRenderPlots(target?: HTMLDivElement) {
 	for (const [nodeId, { size, options, data }] of Object.entries(plots)) {
 		const opts = {
 			...withOverrides(options, true),
-			width,
-			height: width / size.width * size.height,
+			width: width * scale,
+			height: (width / size.width * size.height) * scale,
 		};
 		const upl: uPlot = await new Promise(resolve => new uPlot(opts, data as any, (u, init) => {
 			init();
@@ -144,12 +145,15 @@ async function doExportPlots() {
 }
 
 export function ExportControls() {	
-	const { fontSize, set } = usePlotsOverrides();
+	const { scale, fontSize, set } = usePlotsOverrides();
 	return <div style={{ padding: 4 }}>
 		<button onClick={() => doExportPlots()}>Click me pls</button>
 		<div>
 			<label>Font size:<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
 				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>px</label>
+			<br/>
+			<label>Scale:<input style={{ width: 42, margin: '0 4px' }} type='number' min='1' max='10'
+				value={scale} onChange={e => set('scale', e.target.valueAsNumber)}/>px</label>
 			
 		</div>
 	</div>;
@@ -158,6 +162,7 @@ export function ExportControls() {
 export function ExportPreview() {
 	usePlotsOverrides();
 	const { width } = usePlotExportSate();
+	const { scale } = usePlotsOverrides();
 	const { size } = useContext(LayoutContext)!;
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const [show, setShow] = useState(false);
@@ -166,9 +171,9 @@ export function ExportPreview() {
 		doRenderPlots(container);
 
 	return <div style={{ padding: 2, height: '100%' }} onClick={() => setShow(!show)}>
-		<span style={{ padding: 2 }}>preview plots (may be slow) <input type='checkbox' checked={show}/></span>
+		<span style={{ padding: 2 }}>preview plots (may be slow) <input type='checkbox' checked={show} readOnly/></span>
 		<div ref={setContainer} style={{ display: !show ? 'none' : 'block',
-			transform: `scale(${(size.width - 4) / width})`, transformOrigin: 'top left' }}/>
+			transform: `scale(${(size.width - 4) / width / scale})`, transformOrigin: 'top left' }}/>
 	</div>;
 }
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, MutableRefObject, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, clamp, useSize } from '../util';
 import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
-	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font } from './plotUtil';
+	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font, getFontSize, scaled } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 
@@ -14,7 +14,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 			.map(s => ({ ...s, legend: applyTextTransform(params.transformText)(s.legend!) }));
 		if (!series.length) return;
 
-		const px = (a: number) => a * devicePixelRatio;
+		const px = (a: number) => scaled(a * devicePixelRatio);
 		u.ctx.font = font(0, true);
 		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
@@ -35,7 +35,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 		u.ctx.strokeRect(x, y, width, height);
 		u.ctx.textAlign = 'left';
 		u.ctx.lineCap = 'butt';
-		y += lineHeight / 2 + 3;
+		y += lineHeight / 2 + px(3);
 		const draw = drawShape(u.ctx, px(6));
 		for (const { stroke, marker, legend } of series) {
 			u.ctx.lineWidth = px(2);
@@ -44,7 +44,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 			u.ctx.moveTo(x + px(8), y);
 			u.ctx.lineTo(x + px(32), y);
 			u.ctx.stroke();
-			u.ctx.lineWidth = marker === 'arrow' ? px(2) : 1;
+			u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
 			if (marker)
 				draw[marker](x + px(20), y);
 			if (marker !== 'arrow')
@@ -79,9 +79,13 @@ function drawCustomLabels(params: BasicPlotParams) {
 			const parts = !params.transformText ? rec() : rec().map(([text, stroke]) => {
 				return [applyTextTransform(params.transformText)(text), stroke] as [string, string];
 			});
+
+			const px = (a: number) => scaled(a * devicePixelRatio);
+			const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
+			const shiftX = Math.max(0, 2 - maxValLen) * getFontSize();
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
-			const baseX = (axis as any)._pos + (axis as any)._size * -flowDir;
+			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? getFontSize()) * flowDir;
 			u.ctx.save();
 			u.ctx.font = font(0, true);
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
@@ -91,9 +95,8 @@ function drawCustomLabels(params: BasicPlotParams) {
 				 : u.valToPos((top + bottom) / 2, axis.scale!, true))
 					+ flowDir * textWidth / 2;
 			
-			const px = (a: number) => a * devicePixelRatio;
-			const bottomX = px(u.height);
-			const posX = px(Math.round((baseX + axis.labelGap! * -flowDir)));
+			const bottomX = u.height * devicePixelRatio;
+			const posX = Math.round(baseX + axis.labelGap! * -flowDir) * devicePixelRatio;
 			const posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetY, true)
 				: clamp(px(2), bottomX - textWidth - px(4), targetY);
 
@@ -103,6 +106,8 @@ function drawCustomLabels(params: BasicPlotParams) {
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'left';
+			if (axis.scale === 'A0')
+				console.log(posX, getFontSize())
 			let x = 0;
 			for (const [text, stroke] of parts) {
 				u.ctx.fillStyle = stroke;

@@ -34,11 +34,13 @@ export type BasicPlotParams = {
 };
 
 type PlotsSate = {
+	scale: number,
 	fontSize: number,
 	fontFamily?: string,
 };
 
 const defaultPlotsState: PlotsSate = {
+	scale: 1,
 	fontSize: 14,
 };
 
@@ -57,10 +59,13 @@ export const withOverrides = <T extends any>(foo: () => T, overrides: boolean): 
 	return res;
 };
 
-const getParam = <T extends keyof PlotsSate>(k: T) => {
+export const getParam = <T extends keyof PlotsSate>(k: T) => {
 	const state = usePlotsOverrides.getState();
 	return (applyOverrides ? state : defaultPlotsState)[k];
 };
+
+export const scaled = (a: number) => a * getParam('scale');
+export const getFontSize = () => scaled(getParam('fontSize'));
 
 export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
 	return transforms?.reduce((txt, { search, replace }) => {
@@ -81,7 +86,7 @@ export function color(name: string, opacity=1) {
 
 export function font(sz=0, scale=false) {
 	const fnt = window.getComputedStyle(document.body).font;
-	const size = getParam('fontSize') + sz;
+	const size = getFontSize() + sz;
 	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
 }
 
@@ -90,24 +95,25 @@ export function superScript(digit: number) {
 }
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
-	const size = getParam('fontSize');
+	const size = getFontSize(), scl = getParam('scale');
 	return {
 		font: font(),
 		labelFont: font(),
 		stroke: color('text'),
-		labelSize: 4 + size,
+		labelSize: scl * 4 + size,
 		labelGap: 0,
-		space: 32,
-		size: size * 3,
-		gap: 2,
-		grid: { show: grid ?? true, stroke: color('grid'), width: 2 },
-		ticks: { stroke: color('grid'), width: 2, ...(filter && { filter }) },
+		space: size * 1.5,
+		size: (size * 3 / 5 * 3 + scl * 12),
+		gap: scl * 2,
+		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
+		ticks: { stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		...(filter && { filter })
 	};
 }
 
 export function seriesDefaults(name: string, colour: string, scale?: string) {
 	return {
+		width: scaled(1),
 		scale: scale ?? name,
 		label: name,
 		stroke: color(colour),
@@ -116,7 +122,7 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 }
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
-	const gap = params?.showMetaInfo ? getParam('fontSize') - 9 : 4;
+	const gap = params?.showMetaInfo ? getFontSize() - scaled(9) : scaled(4);
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / 76);
@@ -135,11 +141,11 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
-		gap, size: (params?.showTimeAxis ?? true) ? getParam('fontSize') + 10 + gap : 4
+		gap, size: (params?.showTimeAxis ?? true) ? getFontSize() + scaled(10) + gap : scaled(4)
 	};
 }
 
-export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=10*devicePixelRatio) {
+export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=scaled(10*devicePixelRatio)) {
 	const angle = Math.atan2(dy, dx);
 	ctx.lineTo(tox, toy);
 	ctx.lineTo(tox - hlen * Math.cos(angle - Math.PI / 6), toy - hlen * Math.sin(angle - Math.PI / 6));
@@ -183,8 +189,8 @@ export function drawShape(ctx: CanvasRenderingContext2D | Path2D, radius: number
 }
 
 export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuilder {
+	const size = scaled(sizePx * devicePixelRatio);
 	return (u, seriesIdx) => {
-		const size = sizePx * devicePixelRatio;
 		const p = new Path2D();
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
 			const radius = size / 2;
@@ -217,12 +223,12 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			u.ctx.font = font(0, true).replace('400', '600');
 			u.ctx.textBaseline = 'top';
 			u.ctx.textAlign = 'right';
-			u.ctx.lineWidth = 2 * devicePixelRatio;
+			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
 			u.ctx.moveTo(x, truncateY?.(u) ?? u.bbox.top);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 			params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
-				x + 4, u.bbox.top + u.bbox.height + 2);
+				x + scaled(4), u.bbox.top + u.bbox.height + scaled(2));
 			u.ctx.stroke();
 			u.ctx.restore();
 		}
@@ -235,7 +241,7 @@ export function drawMagneticClouds(params: BasicPlotParams, truncateY?: (u: uPlo
 		if (!params.showMetaInfo || !params.clouds?.length) return;
 		const patternCanvas = document.createElement('canvas');
 		const ctx = patternCanvas.getContext('2d')!;
-		const scale = devicePixelRatio / 1;
+		const scale = scaled(devicePixelRatio);
 		patternCanvas.height = patternCanvas.width = 16 * scale;
 		ctx.fillStyle = color('area2');
 
@@ -250,8 +256,8 @@ export function drawMagneticClouds(params: BasicPlotParams, truncateY?: (u: uPlo
 		ctx.fill();
 
 		for (const cloud of params.clouds) {
-			const startX = Math.max(u.bbox.left - 4, u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
-			const endX = Math.min(u.bbox.width + u.bbox.left + 4, u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
+			const startX = Math.max(u.bbox.left - scaled(4), u.valToPos(cloud.start.getTime() / 1e3, 'x', true));
+			const endX = Math.min(u.bbox.width + u.bbox.left + scaled(4), u.valToPos(cloud.end.getTime() / 1e3, 'x', true));
 			if (endX <= startX) continue;
 			u.ctx.save();
 			u.ctx.beginPath();
