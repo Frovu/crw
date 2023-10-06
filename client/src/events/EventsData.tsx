@@ -1,15 +1,11 @@
 import { ReactNode, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
+import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
 import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { ConfirmationPopup } from './TableMenu';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
-	const { showChangelog, reset } = useEventsSettings();
-
-	useEventListener('resetSettings', reset);
-
 	// ************************************************************************************
 	// 								  MAIN TABLE STRUCTURE
 	// ************************************************************************************
@@ -62,8 +58,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
 		keepPreviousData: true,
-		queryKey: ['tableData', showChangelog], 
-		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: showChangelog })
+		queryKey: ['tableData'], 
+		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true })
 	});
 	const rawMainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;

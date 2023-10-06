@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
 import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
+import './styles/App.css';
 import Help from './Help';
 import PlotGSM from './plots/time/GSM';
 import TemperatureApp from './data/muon/Temperature';
@@ -12,7 +13,7 @@ import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, showError, themeOptions, useAppSettings, useContextMenu } from './app';
-import { LayoutContextMenu, resetLayouts } from './Layout';
+import { LayoutContextMenu, LayoutNav, resetLayout } from './Layout';
 
 const theQueryClient = new QueryClient();
 
@@ -28,7 +29,7 @@ function ContextMenu() {
 		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
 		{menu.type === 'app' && <>
 			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
-			<button onClick={() => resetLayouts()}>Reset layouts</button>
+			<button onClick={() => resetLayout()}>Reset layout</button>
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
 		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu/>}
@@ -86,7 +87,6 @@ function App() {
 				showGrid: true, showLegend: true, showMarkers: true, showMetaInfo: true, showTimeAxis: true }}/>
 		</div>;
 
-	const borderDef = '1px var(--color-border) solid';
 	const showNav = !['ros', 'help'].includes(app);
 	return (<div className='bbox' style={{ overflow: 'clip' }}>
 		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
@@ -99,14 +99,17 @@ function App() {
 			{app === 'omni' && <OmniApp/>}
 		</div>
 		<ContextMenu/>
-		{showNav && <div style={{ height: 24, fontSize: 14, padding: 2, userSelect: 'none', display: 'flex', gap: 8, justifyContent: 'space-between',
-			 	color: 'var(--color-text-dark)', borderTop: borderDef }} onContextMenu={openContextMenu('app')}>
-			<select style={{ border: 'none', padding: 0, borderRight: borderDef }} value={app} onChange={e => { window.location.href = e.target.value; }}>
-				{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
-			</select>
+		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
+			<div>
+				<select value={app} onChange={e => { window.location.href = e.target.value; }}>
+					{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
+				</select>
+			</div>
+			{app === 'feid' && <LayoutNav/>}
 			{error && <div style={{ color: 'var(--color-red)', textAlign: 'left', flex: 1 }} onClick={() => showError(null)}>{error}</div>}
-			<div title='Application colors scheme' style={{ borderLeft: borderDef }}>
-				<select style={{ width: theme.length+4+'ch', border: 'none', padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+			<div style={{ flex: 1 }}/>
+			<div title='Application colors scheme'>
+				<select style={{ width: theme.length+4+'ch' }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
 					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
 				</select>
 			</div>

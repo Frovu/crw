@@ -45,3 +45,31 @@ div.separator {
 	margin: 4px 0 4px 0;
 	height: 1px;
 }
+
+.AppNav {
+	border-top: 1px var(--color-border) solid;
+	height: 24px;
+	display: flex;
+	gap: 8;
+	color: var(--color-text-dark);
+	font-size: 14px;
+	user-select: none;
+}
+
+:is(.AppNav > div) + :is(.AppNav > div) {
+	border-left: 1px var(--color-border) solid;
+}
+
+.AppNav > div {
+	padding: 2px;
+}
+
+.AppNav select {
+	border: none;
+	padding: 0;
+}
+
+.AppNav select:hover {
+	color: var(--color-active);
+	text-decoration: underline;
+}

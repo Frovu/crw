@@ -1,5 +1,4 @@
-import './styles/ContextMenu.css';
-import React, { useRef, useState } from 'react';
+import React, { createContext, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
@@ -24,6 +23,7 @@ type LayoutsState = {
 	dragTo: null | string,
 	active: string,
 	list: { [name: string]: Layout },
+	selectLayout: (la: string) => void,
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
@@ -43,27 +43,31 @@ export const useLayoutsStore = create<LayoutsState>()(
 	persist(
 		immer((set, get) => ({
 			...defaultState,
-			startDrag: (nodeId: string | null) => set(state =>
+			selectLayout: layout => set(state => { if (state.list[layout]) state.active = layout; }),
+			startDrag: nodeId => set(state =>
 				state.dragFrom === nodeId ? state : ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
-			dragOver: (nodeId: string) => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
-			finishDrag: (nodeId: string) => set(({ list, active, dragFrom, dragTo }) => {
+			dragOver: nodeId => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
+			finishDrag: nodeId => set(({ list, active, dragFrom, dragTo }) => {
 				if (!dragFrom || !dragTo) return;
 				const items = list[active].items;
 				[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
 			}),
-			updateRatio: (nodeId: string, ratio: number) =>
+			updateRatio: (nodeId, ratio) =>
 				set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; })
 		})),
-		{ 
+		{
 			name: 'eventsAppLayouts',
 			partialize: ({ active, list }) => ({ active, list })
 		}
 	)
 );
 
-export const resetLayouts = () => useLayoutsStore.setState(defaultState);
-
 export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
+export const LayoutContext = createContext<{ id: string, size: Size, params: PanelParams, setParams: ParamsSetter } | null>(null);
+
+export const resetLayout = () => useLayoutsStore.setState(({ list, active }) => {
+	if (defaultState.list[active]) list[active] = defaultState.list[active]; });
+
 const setParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
 	const { items } = state.list[state.active];
 	items[nodeId][k] = typeof items[nodeId][k] == 'object' ? Object.assign(items[nodeId][k] as any, para) : para;
@@ -112,8 +116,10 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		{items[id]?.type ? <LayoutContent {...{ id, size, params: items[id] }}/> :
-			<div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}><LayoutContextMenu id={id}/></div></div>}
+		{<LayoutContext.Provider value={{ id, size, params: items[id], setParams: (k, para) => setParams(id, k, para) }}>
+			<LayoutContent/></LayoutContext.Provider>}
+		{!items[id]?.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
+			<LayoutContextMenu id={id}/></div></div>}
 	</div>;
 }
 
@@ -176,12 +182,21 @@ export function LayoutContextMenu({ id: argId }: { id?: string }) {
 	</>;
 }
 
+export function LayoutNav() {
+	const { active, list, selectLayout } = useLayoutsStore();
+	return <div style={{ padding: '2px 0 2px 4px' }}>
+		layout:<select value={active} onChange={e => selectLayout(e.target.value)}>
+			{Object.keys(list).map(la => <option key={la} value={la}>{la}</option>)}
+		</select>
+	</div>;
+}
+
 export default function AppLayout() {
 	const startDrag = useLayoutsStore(st => st.startDrag);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
-	useEventListener('resetSettings', resetLayouts);
+	useEventListener('resetSettings', () => useLayoutsStore.setState(defaultState));
 
 	return <div style={{ width: '100%', height: '100%' }} ref={setContainer}
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>

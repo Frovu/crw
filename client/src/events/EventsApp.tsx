@@ -1,11 +1,11 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
-import { useEventListener, clamp, Size, useSize } from '../util';
+import { useEventListener, clamp, useSize } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { ParamsSetter } from '../Layout';
+import AppLayout, { LayoutContext, ParamsSetter } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams } from './events';
 import TableView from './TableView';
 import CorrelationPlot from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -38,6 +38,9 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	const Checkbox = ({ text, k }: { text: string, k: keyof CommonPlotParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => setParams('plotParams', { [k]: e.target.checked })}/></label>;
+	const CheckboxTable = ({ text, k }: { text: string, k: keyof TableParams }) =>
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
 		{params.type === 'MainTable' && <>
@@ -53,8 +56,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<div className='separator'/>
 			</>}
 			<div className='Group'>
-				<CheckboxGlob text='Show column averages' k='showAverages'/>
-				<CheckboxGlob text='Show changes log' k='showChangelog'/>
+				<CheckboxTable text='Show column averages' k='showAverages'/>
+				<CheckboxTable text='Show changes log' k='showChangelog'/>
 			</div>
 		</>}
 		{isPlot && <>
@@ -97,24 +100,24 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	</>;
 }
 
-export function LayoutContent({ id, size, params: state }: { id: string, size: Size, params: PanelParams }) {
+export function LayoutContent() {
+	const { params: { plotParams, type } } = useContext(LayoutContext)!; 
 	const settings = useEventsSettings();
 	const appState = useAppSettings();
 	const plotContext = useContext(PlotContext);
-	const type = state.type;
 
 	const params = useMemo(() => {
 		return appState && plotContext && plotPanelOptions.includes(type as any) && {
 			...defaultPlotParams,
 			...settings,
 			...plotContext!,
-			...state.plotParams,
+			...plotParams,
 			stretch: true,
 		};
-	}, [plotContext, settings, state.plotParams, type, appState]);
+	}, [appState, plotContext, type, settings, plotParams]);
 
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
-		{type === 'MainTable' && <MainTablePanel id={id} size={size}/>}
+		{type === 'MainTable' && <MainTablePanel/>}
 		{params && <>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}
@@ -132,7 +135,8 @@ export function LayoutContent({ id, size, params: state }: { id: string, size: S
 	</div>;
 }
 
-function MainTablePanel({ id, size }: { id: string, size: Size }) {
+function MainTablePanel() {
+	const { size } = useContext(LayoutContext)!;
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
@@ -185,12 +189,12 @@ function MainTablePanel({ id, size }: { id: string, size: Size }) {
 
 	return <>
 		<SampleView ref={ref}/>
-		<TableView nodeId={id} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
+		<TableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
 	</>;
 }
 
 function EventsView() {
-	const { showAverages, showColumns, plotOffsetDays, plotUnlistedEvents } = useEventsSettings();
+	const { showColumns, plotOffsetDays, plotUnlistedEvents } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
@@ -212,7 +216,7 @@ function EventsView() {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
-		const averages = !showAverages ? null : cols.map((col, i) => {
+		const averages = cols.map((col, i) => {
 			if (col.type !== 'real') return null;
 			const sorted = renderedData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
 			if (!sorted.length) return null;
@@ -232,7 +236,7 @@ function EventsView() {
 			markers: markers && idxs.map(i => markers[i]),
 			columns: cols
 		};
-	}, [columns, sampleData, editingSample, sample, sort, showAverages, showColumns]);
+	}, [columns, sampleData, editingSample, sample, sort, showColumns]);
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
@@ -268,6 +272,9 @@ function EventsView() {
 }
 
 export default function EventsApp() {
+	const { reset } = useEventsSettings();
+	useEventListener('resetSettings', reset);
+
 	return <EventsDataProvider>
 		<EventsView/>
 	</EventsDataProvider>;

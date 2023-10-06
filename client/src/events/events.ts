@@ -12,8 +12,6 @@ import { immer } from 'zustand/middleware/immer';
 
 export type EventsSettings = {
 	showColumns: string[],
-	showChangelog: boolean,
-	showAverages: boolean,
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean,
@@ -33,6 +31,11 @@ const defaultSettings = {
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
+};
+
+export type TableParams = {
+	showChangelog: boolean,
+	showAverages: boolean,
 };
 
 export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
@@ -95,14 +98,15 @@ export type ColumnDef = {
 
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
-export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable' ] as const;
+export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportControls' ] as const;
 
 export const isPanelDraggable = (panel: string) => plotPanelOptions.includes(panel as any);
 export const isPanelDuplicatable = (panel: string) => statPanelOptions.includes(panel as any);
 
 export type PanelParams = {
 	type?: typeof allPanelOptions[number],
-	plotParams?: Partial<CommonPlotParams>
+	tableParams?: TableParams,
+	plotParams?: Partial<CommonPlotParams>,
 };
 
 export const defaultLayouts: { [name: string]: Layout } = {
@@ -132,6 +136,61 @@ export const defaultLayouts: { [name: string]: Layout } = {
 		items: {
 			left: {
 				type: 'MainTable'
+			},
+			p1: {
+				type: 'IMF + Speed'
+			},
+			p2: {
+				type: 'SW Plasma',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			},
+			p3: {
+				type: 'Cosmic Rays'
+			},
+			p4: {
+				type: 'Geomagn',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			}
+		}
+	},
+	export: {
+		tree: {
+			root: {
+				split: 'row',
+				ratio: .4,
+				children: ['left', 'right']
+			},
+			left: {
+				split: 'column',
+				ratio: .4,
+				children: ['tbl', 'exp']
+			},
+			right: {
+				split: 'column',
+				ratio: .5,
+				children: ['top', 'bottom']
+			},
+			top: {
+				split: 'column',
+				ratio: .6,
+				children: ['p1', 'p2']
+			},
+			bottom: {
+				split: 'column',
+				ratio: .7,
+				children: ['p3', 'p4']
+			},
+		},
+		items: {
+			tbl: {
+				type: 'MainTable'
+			},
+			exp: {
+				type: 'ExportControls'
 			},
 			p1: {
 				type: 'IMF + Speed'
@@ -184,7 +243,7 @@ export const MainTableContext = createContext<{ data: DataRow[], columns: Column
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[],
 	apply: (data: DataRow[], sampleId: number) => DataRow[] }>({} as any);
 
-export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], averages: null | (null | number[])[], markers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], averages: (null | number[])[], markers: null | string[] }>({} as any);
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 

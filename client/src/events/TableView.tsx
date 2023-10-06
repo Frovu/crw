@@ -1,9 +1,10 @@
 import { useState, useRef, useContext, useLayoutEffect, ChangeEvent, useEffect } from 'react';
 import { clamp, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
-	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
+	MainTableContext, useViewState, Cursor, prettyTable } from './events';
 import { pickEventForSampe } from './sample';
 import { openContextMenu } from '../app';
+import { LayoutContext } from '../Layout';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
@@ -32,14 +33,16 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-export default function TableView({ nodeId, size }: { nodeId: string, size: Size }) {
+export default function TableView({ size }: { size: Size }) {
+	const { id: nodeId, params: { tableParams } } = useContext(LayoutContext)!;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, averages, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor } = useViewState();
-	const { showChangelog } = useEventsSettings();
+	const showChangelog = tableParams?.showChangelog && size.height > 300;
+	const showAverages = tableParams?.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const rowsHeight = size.height - (averages ? 213 : 106) - (showChangelog ? 54 : 0);
+	const rowsHeight = size.height - (showAverages ? 213 : 106) - (showChangelog ? 54 : 0);
 	const viewSize = Math.floor(rowsHeight / 26);
 	const hRem = rowsHeight % 26;
 	const trPadding = hRem > viewSize ? 1 : 0;
@@ -183,7 +186,7 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 								</td>;
 							})}
 						</tr>;})}</tbody>
-					{averages && (<tfoot>
+					{showAverages && (<tfoot>
 						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
 							{averages.map((avgs, i) => {
