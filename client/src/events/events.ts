@@ -98,120 +98,15 @@ export type ColumnDef = {
 
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
-export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportControls' ] as const;
+export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls' ] as const;
 
 export const isPanelDraggable = (panel: string) => plotPanelOptions.includes(panel as any);
 export const isPanelDuplicatable = (panel: string) => statPanelOptions.includes(panel as any);
 
 export type PanelParams = {
-	type?: typeof allPanelOptions[number],
+	type?: typeof allPanelOptions[number] | 'empty',
 	tableParams?: TableParams,
 	plotParams?: Partial<CommonPlotParams>,
-};
-
-export const defaultLayouts: { [name: string]: Layout } = {
-	default: {
-		tree: {
-			root: {
-				split: 'row',
-				ratio: .4,
-				children: ['left', 'right']
-			},
-			right: {
-				split: 'column',
-				ratio: .5,
-				children: ['top', 'bottom']
-			},
-			top: {
-				split: 'column',
-				ratio: .6,
-				children: ['p1', 'p2']
-			},
-			bottom: {
-				split: 'column',
-				ratio: .7,
-				children: ['p3', 'p4']
-			},
-		},
-		items: {
-			left: {
-				type: 'MainTable'
-			},
-			p1: {
-				type: 'IMF + Speed'
-			},
-			p2: {
-				type: 'SW Plasma',
-				plotParams: {
-					showTimeAxis: false,
-				}
-			},
-			p3: {
-				type: 'Cosmic Rays'
-			},
-			p4: {
-				type: 'Geomagn',
-				plotParams: {
-					showTimeAxis: false,
-				}
-			}
-		}
-	},
-	export: {
-		tree: {
-			root: {
-				split: 'row',
-				ratio: .4,
-				children: ['left', 'right']
-			},
-			left: {
-				split: 'column',
-				ratio: .4,
-				children: ['tbl', 'exp']
-			},
-			right: {
-				split: 'column',
-				ratio: .5,
-				children: ['top', 'bottom']
-			},
-			top: {
-				split: 'column',
-				ratio: .6,
-				children: ['p1', 'p2']
-			},
-			bottom: {
-				split: 'column',
-				ratio: .7,
-				children: ['p3', 'p4']
-			},
-		},
-		items: {
-			tbl: {
-				type: 'MainTable'
-			},
-			exp: {
-				type: 'ExportControls'
-			},
-			p1: {
-				type: 'IMF + Speed'
-			},
-			p2: {
-				type: 'SW Plasma',
-				plotParams: {
-					showTimeAxis: false,
-				}
-			},
-			p3: {
-				type: 'Cosmic Rays'
-			},
-			p4: {
-				type: 'Geomagn',
-				plotParams: {
-					showTimeAxis: false,
-				}
-			}
-		}
-	}
 };
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
@@ -318,3 +213,124 @@ export function isValidColumnValue(val: Value, column: ColumnDef) {
 			return val !== '';
 	}
 }
+
+export const defaultLayouts: { [name: string]: Layout } = {
+	default: {
+		tree: {
+			root: {
+				split: 'row',
+				ratio: .4,
+				children: ['left', 'right']
+			},
+			right: {
+				split: 'column',
+				ratio: .5,
+				children: ['top', 'bottom']
+			},
+			top: {
+				split: 'column',
+				ratio: .6,
+				children: ['p1', 'p2']
+			},
+			bottom: {
+				split: 'column',
+				ratio: .7,
+				children: ['p3', 'p4']
+			},
+		},
+		items: {
+			left: {
+				type: 'MainTable'
+			},
+			p1: {
+				type: 'IMF + Speed'
+			},
+			p2: {
+				type: 'SW Plasma',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			},
+			p3: {
+				type: 'Cosmic Rays'
+			},
+			p4: {
+				type: 'Geomagn',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			}
+		}
+	},
+	export: {
+		tree: {
+			root: {
+				split: 'row',
+				ratio: .2,
+				children: ['left', 'twoRight']
+			},
+			left: {
+				split: 'column',
+				ratio: .4,
+				children: ['tbl', 'exp']
+			},
+			twoRight: {
+				split: 'row',
+				ratio: .5,
+				children: ['preview', 'rightTwo']
+			},
+			rightTwo: {
+				split: 'column',
+				ratio: .99,
+				children: ['right', 'empty']
+			},
+			right: {
+				split: 'column',
+				ratio: .5,
+				children: ['top', 'bottom']
+			},
+			top: {
+				split: 'column',
+				ratio: .6,
+				children: ['p1', 'p2']
+			},
+			bottom: {
+				split: 'column',
+				ratio: .7,
+				children: ['p3', 'p4']
+			},
+		},
+		items: {
+			tbl: {
+				type: 'MainTable'
+			},
+			exp: {
+				type: 'ExportControls'
+			},
+			empty: {
+				type: 'empty',
+			},
+			preview: {
+				type: 'ExportPreview'
+			},
+			p1: {
+				type: 'IMF + Speed'
+			},
+			p2: {
+				type: 'SW Plasma',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			},
+			p3: {
+				type: 'Cosmic Rays'
+			},
+			p4: {
+				type: 'Geomagn',
+				plotParams: {
+					showTimeAxis: false,
+				}
+			}
+		}
+	}
+};

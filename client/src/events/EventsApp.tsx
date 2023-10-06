@@ -17,7 +17,7 @@ import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import SampleView from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
-import { ExportControls } from './ExportPlot';
+import { ExportControls, ExportPreview } from './ExportPlot';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
@@ -120,6 +120,7 @@ export function LayoutContent() {
 	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
 		{type === 'MainTable' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
+		{type === 'ExportPreview' && <ExportPreview/>}
 		{params && <>
 			{type === 'Histogram' && <HistogramPlot/>}
 			{type === 'Correlation' && <CorrelationPlot/>}

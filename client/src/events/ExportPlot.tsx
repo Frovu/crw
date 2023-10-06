@@ -92,12 +92,14 @@ type PlotEntryParams = {
 };
 
 type PlotExportState = {
+	width: number,
 	plots: {
 		[nodeId: string]: PlotEntryParams,
 	}
 };
 
 export const usePlotExportSate = create<PlotExportState>()(immer(set => ({
+	width: 800,
 	plots: {}
 })));
 
@@ -114,11 +116,10 @@ export function ExportableUplot({ options, data, onCreate }: { options: uPlot.Op
 	} }}/>;
 }
 
-async function doExportPlots() {
+async function doRenderPlots(target?: HTMLDivElement) {
 	const { active, list } = useLayoutsStore.getState();
 	const { tree, items } = list[active];
-	const { plots } = usePlotExportSate.getState();
-	const width = 800;
+	const { plots, width } = usePlotExportSate.getState();
 	const canvas = document.createElement('canvas');
 	canvas.width = width;
 	canvas.height = Object.values(plots).reduce((s, a) => s + width / a.size.width * a.size.height, 0);
@@ -126,7 +127,6 @@ async function doExportPlots() {
 	ctx.fillStyle = color('bg');
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	let y = 0;
-	console.log(plots)
 	for (const [nodeId, { size, options, data }] of Object.entries(plots)) {
 		const opts = {
 			...options,
@@ -138,10 +138,17 @@ async function doExportPlots() {
 			resolve(u);
 		}));
 
-		console.log(upl.ctx.canvas)
 		ctx.drawImage(upl.ctx.canvas, 0, y); // (can.offsetParent as HTMLDivElement)?.offsetTop ?? 0
+		upl.destroy();
 		y += Math.floor(opts.height);
 	}
+	if (target)
+		target.replaceChildren(canvas);
+	return canvas;
+}
+
+async function doExportPlots() {
+	const canvas = await doRenderPlots();
 
 	canvas.toBlob(blob => {
 		blob && window.open(URL.createObjectURL(blob));
@@ -152,6 +159,22 @@ async function doExportPlots() {
 export function ExportControls() {	
 	return <div>
 		<button onClick={() => doExportPlots()}>Click me pls</button>
+	</div>;
+}
+
+export function ExportPreview() {
+	const { width } = usePlotExportSate();
+	const { size } = useContext(LayoutContext)!;
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const [show, setShow] = useState(false);
+
+	if (show && container)
+		doRenderPlots(container);
+
+	return <div style={{ padding: 2, height: '100%' }} onClick={() => setShow(!show)}>
+		<span style={{ padding: 2 }}>preview plots (may harm your computer) <input type='checkbox' checked={show}/></span>
+		<div ref={setContainer} style={{ display: !show ? 'none' : 'block',
+			transform: `scale(${(size.width - 4) / width})`, transformOrigin: 'top left' }}/>
 	</div>;
 }
 
