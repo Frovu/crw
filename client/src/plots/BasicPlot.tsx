@@ -82,7 +82,7 @@ function drawCustomLabels(params: BasicPlotParams) {
 
 			const px = (a: number) => scaled(a * devicePixelRatio);
 			const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
-			const shiftX = Math.max(0, 2 - maxValLen) * getFontSize();
+			const shiftX = Math.max(0, 2 - maxValLen) * getFontSize() - px(1);
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? getFontSize()) * flowDir;
@@ -96,7 +96,7 @@ function drawCustomLabels(params: BasicPlotParams) {
 					+ flowDir * textWidth / 2;
 			
 			const bottomX = u.height * devicePixelRatio;
-			const posX = Math.round(baseX + axis.labelGap! * -flowDir) * devicePixelRatio;
+			const posX = Math.round(baseX + axis.labelGap! * -flowDir + shiftX * flowDir) * devicePixelRatio;
 			const posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetY, true)
 				: clamp(px(2), bottomX - textWidth - px(4), targetY);
 
@@ -106,8 +106,6 @@ function drawCustomLabels(params: BasicPlotParams) {
 			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'left';
-			if (axis.scale === 'A0')
-				console.log(posX, getFontSize())
 			let x = 0;
 			for (const [text, stroke] of parts) {
 				u.ctx.fillStyle = stroke;
@@ -147,6 +145,7 @@ export type CustomAxis = uPlot.Axis & {
 export type CustomSeries = uPlot.Series & {
 	legend?: string,
 	marker?: Shape,
+	myPpaths?: (scl: number) => uPlot.Series['paths']
 };
 export type CustomScale = uPlot.Scale & {
 	scaleValue?: { min: number, max: number },
@@ -185,7 +184,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			return {
 				...size,
 				pxAlign: true,
-				padding: [10, 0, params.showTimeAxis ? 0 : 8, 0],
+				padding: [scaled(10), 0, params.showTimeAxis ? 0 : 8, 0],
 				legend: { show: params.interactive },
 				cursor: {
 					show: params.interactive,
@@ -236,6 +235,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 					},
 					scale: ser.label,
 					...ser,
+					paths: ser.myPpaths?.(scaled(1)),
+					width: scaled(ser.width ?? 1)
 				}))),
 				...uopts,
 				hooks: {

@@ -149,6 +149,7 @@ export function ExportControls() {
 	return <div style={{ padding: 4 }}>
 		<button onClick={() => doExportPlots()}>Click me pls</button>
 		<div>
+			{devicePixelRatio !== 1 && <div style={{ color: color('red') }}>pixelRatio != 1, plots export will not work as expected, press Ctrl+0 if it helps</div>}
 			<label>Font size:<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
 				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>px</label>
 			<br/>

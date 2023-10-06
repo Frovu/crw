@@ -6,7 +6,7 @@ export type GeomagnParams = BasicPlotParams & {
 	useAp: boolean,
 };
 
-const myBars = (params: GeomagnParams) => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
+const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
 	const colors = [color('green'), color('yellow'), color('orange'), color('red')];
 	const lastColor = color('crimson');
 	const range = params.useAp ? [18, 39, 67, 179] : [36, 46, 56, 76];
@@ -71,7 +71,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				scale: 'Kp',
 				width: 0,
 				stroke: color('green'),
-				paths: myBars(params),
+				myPpaths: myBars(params),
 			},
 			{
 				show: params.useAp,
@@ -79,7 +79,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				scale: 'Kp',
 				width: 0,
 				stroke: color('yellow'),
-				paths: myBars(params),
+				myPpaths: myBars(params),
 			},
 			{
 				label: 'Dst',

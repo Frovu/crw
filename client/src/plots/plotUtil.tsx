@@ -103,10 +103,10 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		labelSize: scl * 4 + size,
 		labelGap: 0,
 		space: size * 1.5,
-		size: (size * 3 / 5 * 3 + scl * 12),
+		size: (size * 3 / 5 * 3 + scl * 10),
 		gap: scl * 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
-		ticks: { stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
+		ticks: { size: scl * 8, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		...(filter && { filter })
 	};
 }
