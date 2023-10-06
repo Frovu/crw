@@ -63,10 +63,10 @@
 }
 
 .TableControl {
-	border-color: var(--color-text-dark);
+	border-color: var(--color-border);
 	color: var(--color-text-dark);
 	position: relative;
-	padding: 0 0 0 0;
+	padding: 0;
 	height: 18px;
 	width: 18px;
 }

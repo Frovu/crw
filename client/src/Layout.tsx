@@ -112,7 +112,8 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag(id)}>
-		{items[id]?.type ? <LayoutContent {...{ id, size, params: items[id] }}/> : <div className='Center'><LayoutContextMenu id={id}/></div>}
+		{items[id]?.type ? <LayoutContent {...{ id, size, params: items[id] }}/> :
+			<div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}><LayoutContextMenu id={id}/></div></div>}
 	</div>;
 }
 

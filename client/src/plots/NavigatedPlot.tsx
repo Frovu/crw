@@ -120,7 +120,7 @@ export function NavigatedPlot({ data, options: opts, moveChosen, legendHeight, o
 		} else if (e.code === 'KeyZ' && selection) {
 			u.setScale('x', { min: u.data[0][selection.min], max: u.data[0][selection.max] });
 			set({ cursor: null, selection: null });
-		} else if (e.key === 'Enter') {
+		} else if (['NumpadEnter', 'Enter'].includes(e.code)) {
 			set({ chosen: focused });
 		} else if (e.key === 'Escape') {
 			set({ cursor: null, selection: null });

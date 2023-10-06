@@ -104,7 +104,7 @@ export default function TemperatureApp() {
 					{['lat', 'lon'].map(coord => <label title={`geographical ${coord === 'lat' ? 'latitude (-90 to 90)' : 'longitude (-180 to 180)'}`}>
 						{coord} = <input type='text' defaultValue={coords[coord as 'lat'|'lon']}
 							style={{ width: 56, textAlign: 'center', borderColor: color('border') }}
-							onKeyDown={e => e.target instanceof HTMLInputElement && ['Enter', 'Escape'].includes(e.code) && e.target.blur()}
+							onKeyDown={e => e.target instanceof HTMLInputElement && ['Enter', 'NumpadEnter', 'Escape'].includes(e.code) && e.target.blur()}
 							onBlur={e => setCoords(c => {
 								const val = parseFloat(e.target.value);
 								return isNaN(val) ? c : { ...c,

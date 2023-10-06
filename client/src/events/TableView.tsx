@@ -1,5 +1,5 @@
-import { useState, useRef, useContext, useLayoutEffect, ChangeEvent } from 'react';
-import { clamp, dispatchCustomEvent, useEventListener, Size } from '../util';
+import { useState, useRef, useContext, useLayoutEffect, ChangeEvent, useEffect } from 'react';
+import { clamp, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
 	MainTableContext, useViewState, useEventsSettings, Cursor, prettyTable } from './events';
 import { pickEventForSampe } from './sample';
@@ -32,11 +32,10 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-const MAX_CHANGELOG_ROWS = 3;
 export default function TableView({ nodeId, size }: { nodeId: string, size: Size }) {
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, averages, markers } = useContext(TableViewContext);
-	const { plotId, sort, cursor, toggleSort, setCursor, escapeCursor } = useViewState();
+	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor } = useViewState();
 	const { showChangelog } = useEventsSettings();
 
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -58,51 +57,37 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 
-	const updateViewIndex = (curs: Cursor) => {
-		const indent = showChangelog ? MAX_CHANGELOG_ROWS + 1 : 1;
-		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-			(curs.row + indent >= viewIndex+viewSize ? curs.row - viewSize + indent + 1 : viewIndex);
-		setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
-	};
-
 	useEventListener('escape', escapeCursor);
 
-	// TODO: less rerenders?
-
 	useLayoutEffect(() => {
-		setViewIndex(clamp(0, data.length - viewSize, cursor ? Math.ceil(cursor.row-viewSize/2) : data.length));
-	}, [data.length, viewSize, sort, cursor]);
+		setCursor(null);
+		setViewIndex(clamp(0, data.length - viewSize, data.length));
+	}, [data.length, viewSize, sort, setCursor]);
 
-	useLayoutEffect(() => {
-		if (!cursor) return;
-		updateViewIndex(cursor);
-		const cell = ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
-		if (!cell) return;
+	useEffect(() => {
+		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
+		if (!cursor || !cell) return;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
 		ref.current?.scrollTo({ left });
-		const log = ref.current?.parentElement?.querySelector('#changelog');
-		log?.scrollTo(0, log.scrollHeight);
-	}, [cursor, ref.current?.offsetWidth]); // eslint-disable-line
+	}, [cursor, ref.current?.offsetWidth]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
 			if (isInput) e.target.blur();
-			return setCursor({ ...cursor, editing: !cursor.editing });
-		}
+			return setEditing(!cursor?.editing); }
 		if (isInput) return;
 		if (cursor?.editing) return;
 
 		if (cursor && ['-', '+', '='].includes(e.key))
 			return pickEventForSampe('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
-		if (cursor && ['1', '2', '3', '4'].includes(e.key))
-			return dispatchCustomEvent('setColumn', { which: parseInt(e.key), column: columns[cursor?.column] });
 
-		const set = (curs: Exclude<Cursor, null>) => {
-			updateViewIndex(curs);
+		const set = (curs: Cursor) => {
+			const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
+				(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
+			setViewIndex(Math.min(Math.max(newIdx, 0), data.length <= viewSize ? 0 : data.length - viewSize));
 			setCursor(curs);
-			e.preventDefault();
-		};
+			e.preventDefault(); };
 		
 		if (e.ctrlKey && e.code === 'Home')
 			return set({ row: 0, column: cursor?.column ?? 0 });
@@ -121,7 +106,9 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 		}[e.code];
 		if (!delta) return;
 		const [deltaRow, deltaCol] = delta;
-		const { row, column } = cursor ?? { row: deltaRow <= 0 ? data.length : -1, column: 0 };
+		const { row, column } = cursor ?? {
+			row: deltaRow > 0 ? -1 : data.length,
+			column: deltaCol >= 0 ? -1 : columns.length };
 
 		if (e.ctrlKey && deltaRow !== 0) {
 			let cur = row + deltaRow;
@@ -142,8 +129,8 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
 	return ( 
-		<div style={{ position: 'absolute', border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
-			<div className='Table' ref={ref}>
+		<div style={{ border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
+			<div className='Table' style={{ position: 'relative' }} ref={ref}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
 						queueMicrotask(() => setCursor(null));
@@ -181,9 +168,9 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
-									onContextMenu={openContextMenu('events', { nodeId, cell:
-										{ id: row[0], value: row[cidx+1], column } })}
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
+									<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}
+										onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}/>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											{valueToString(row[cidx+1])}

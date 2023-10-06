@@ -21,8 +21,8 @@
 	--color-bg: rgb(0,0,0);
 	--color-input-bg: rgb(25, 25, 25);
 	--color-text: rgb(190,190,190);
-	--color-text-dark: rgb(76,76,76);
-	--color-border: rgb(88,88,88);
+	--color-text-dark: rgb(99,99,99);
+	--color-border: rgb(77,77,77);
 	--color-grid: rgb(33,33,33);
   	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);

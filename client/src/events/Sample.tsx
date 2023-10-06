@@ -125,7 +125,7 @@ export const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
 			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
-				...(!nameValid && { borderColor: 'var(--color-red)' }) }} onKeyDown={e => e.code === 'Enter' && (e.target as any)?.blur()}
+				...(!nameValid && { borderColor: 'var(--color-red)' }) }} onKeyDown={e => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
 			placeholder='Sample name' autoFocus onFocus={e => e.target.select()} onBlur={(e) => {
 				if (nameValid) set({ name: nameInput });
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}

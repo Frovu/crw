@@ -368,7 +368,7 @@ function MuonApp() {
 							<input type='text' style={{ width: 42, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
-								onKeyDown={e => ['Escape', 'Enter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
+								onKeyDown={e => ['Escape', 'Enter', 'NumpadEnter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
 								onBlur={e => !isNaN(parseFloat(e.target.value)) && parseFloat(e.target.value)/100 !== corrInfo?.coef[coef] &&
 									coefMut.mutate({ [coef]: parseFloat(e.target.value)/100, action: 'update' })}/>
 						</td>)}
