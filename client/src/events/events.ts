@@ -192,7 +192,7 @@ type ViewState = {
 	plotId: number | null,
 	setEditing: (val: boolean) => void,
 	setCursor: (cursor: ViewState['cursor']) => void,
-	toggleSort: (column: string) => void,
+	toggleSort: (column: string, dir?: Sort['direction']) => void,
 	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
 	escapeCursor: () => void,
 };
@@ -209,8 +209,8 @@ export const useViewState = create<ViewState>()(
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
 			setCursor: (cursor) => set(st => ({ ...st, cursor })),
-			toggleSort: (column) => set(st => ({ ...st, sort: { column,
-				direction: st.sort.column === column ? -1 * st.sort.direction : 1 } })),
+			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
+				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
 			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
 			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
 		})

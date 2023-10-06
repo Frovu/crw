@@ -20,7 +20,8 @@ import { useAppSettings, useContextMenu } from '../app';
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
-	const column = details?.cell?.column;
+	const { toggleSort } = useViewState();
+	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
@@ -40,8 +41,10 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	return <>
 		{params.type === 'MainTable' && <>
 			{column && <>
-				<button onClick={() => addFilter(column, value)}
-				>Filter {defaultFilterOp(column, value!)}{valueToString(value!)}</button>
+				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
+				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
+				{value && <button onClick={() => addFilter(column, value)}
+				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 				<div className='separator'/>
 			</>}
 			<div className='Group'>

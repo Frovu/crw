@@ -158,10 +158,11 @@ export default function TableView({ nodeId, size }: { nodeId: string, size: Size
 							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
 								<>{prettyTable(table)}</></div></td>)}
 					</tr><tr>
-						{columns.map(({ id, name, description }) => <td key={id} title={`[${name}] ${description}`}
-							className='ColumnHeader' onClick={() => toggleSort(id)}>
-							<div style={{ height: 46 + padColumnH }}><span>{name}</span>
-								{sort.column === id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
+						{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
+							className='ColumnHeader' onClick={() => toggleSort(col.id)}
+							onContextMenu={openContextMenu('events', { nodeId, header: col })}>
+							<div style={{ height: 46 + padColumnH }}><span>{col.name}</span>
+								{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
 					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, ri) => {
