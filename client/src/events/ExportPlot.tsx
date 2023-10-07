@@ -6,14 +6,13 @@ import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
 import { BasicPlotParams, Position, ScaleParams, TextTransform, color, withOverrides, usePlotsOverrides } from '../plots/plotUtil';
-import { PlotContext } from './events';
+import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, useLayoutsStore } from '../Layout';
-import { castDraft } from 'immer';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
@@ -92,43 +91,83 @@ type PlotEntryParams = {
 };
 
 type PlotExportState = {
-	width: number,
+	inches: number,
 	plots: {
 		[nodeId: string]: PlotEntryParams,
 	}
 };
 
 export const usePlotExportSate = create<PlotExportState>()(immer(set => ({
-	width: 800,
+	inches: 6,
 	plots: {}
 })));
 
-async function doRenderPlots(target?: HTMLDivElement) {
-	const { plots, width } = usePlotExportSate.getState();
+function computePlotsLayout() {
 	const { active, list } = useLayoutsStore.getState();
-	const { scale } = usePlotsOverrides.getState();
 	const { tree, items } = list[active];
+
+	const root = document.getElementById('layoutRoot')!;
+
+	const layout: { [k: string]: { x: number, y: number, w: number, h: number } } = {};
+	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
+		if (!tree[node]) {
+			if (plotPanelOptions.includes(items[node]?.type as any))
+				layout[node] = { x, y, w, h };
+			return;
+		}
+		const { split, ratio, children } = tree[node]!;
+		const splitX = split === 'row' ? w * ratio : 0;
+		const splitY = split === 'column' ? h * ratio : 0;
+		walk(x, y, splitX || w, splitY || h, children[0]);
+		walk(x + splitX, y + splitY, w - splitX, h - splitY, children[1]);
+	};
+	walk(0, 0, root?.offsetWidth, root?.offsetHeight);
+
+	const [minX, minY] = (['x', 'y'] as const).map(d =>
+		Math.min.apply(null, Object.values(layout).map(pos => pos[d])));
+	const [maxX, maxY] = (['x', 'y'] as const).map(d =>
+		Math.max.apply(null, Object.values(layout).map(pos => pos[d] + pos[d === 'x' ? 'w' : 'h'])));
+
+	for (const node in layout) {
+		layout[node].x -= minX;
+		layout[node].y -= minY;
+	}
+
+	return {
+		width: Math.ceil(maxX - minX),
+		height: Math.ceil(maxY - minY),
+		layout
+	};
+}
+
+async function doRenderPlots(target?: HTMLDivElement) {
+	const { width, height, layout } = computePlotsLayout();
+	const { scale } = usePlotsOverrides.getState();
+	const { plots } = usePlotExportSate.getState();
 	const canvas = document.createElement('canvas');
 	canvas.width = width * scale;
-	canvas.height = Object.values(plots).reduce((s, a) => s + width / a.size.width * a.size.height, 0) * scale;
+	canvas.height = height * scale;
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color('bg');
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	let y = 0;
-	for (const [nodeId, { size, options, data }] of Object.entries(plots)) {
+	for (const [nodeId, node] of Object.entries(layout)) {
+		const [x, y, w, h] = (['x', 'y', 'w', 'h'] as const).map(d => scale * node[d]);
+		if (!plots[nodeId]) continue;
+		const { options, data } = plots[nodeId];
 		const opts = {
 			...withOverrides(options, true),
-			width: width * scale,
-			height: (width / size.width * size.height) * scale,
+			width: Math.round(w),
+			height: Math.round(h),
 		};
 		const upl: uPlot = await new Promise(resolve => new uPlot(opts, data as any, (u, init) => {
 			init();
 			resolve(u);
 		}));
 
-		ctx.drawImage(upl.ctx.canvas, 0, y); // (can.offsetParent as HTMLDivElement)?.offsetTop ?? 0
+		ctx.drawImage(upl.ctx.canvas, Math.round(x), Math.round(y));
+		// ctx.strokeStyle = 'cyan';
+		// ctx.strokeRect(x, y, w, h);
 		upl.destroy();
-		y += Math.floor(opts.height);
 	}
 	if (target)
 		target.replaceChildren(canvas);
@@ -161,12 +200,13 @@ export function ExportControls() {
 }
 
 export function ExportPreview() {
-	usePlotsOverrides();
-	const { width } = usePlotExportSate();
+	usePlotExportSate();
 	const { scale } = usePlotsOverrides();
 	const { size } = useContext(LayoutContext)!;
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const [show, setShow] = useState(false);
+
+	const width = show ? computePlotsLayout().width : 1;
 
 	if (show && container)
 		doRenderPlots(container);
