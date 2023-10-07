@@ -43,12 +43,19 @@ const defaultPlotsState: PlotsOverrides = {
 	fontSize: 14
 };
 
+const poorCanvasCtx = document.createElement('canvas').getContext('2d')!;
 export let applyOverrides: Partial<PlotsOverrides> | null = null;
 export const withOverrides = <T extends any>(foo: () => T, overrides?: null | Partial<PlotsOverrides>): T => {
 	applyOverrides = overrides ?? null;
 	const res = foo();
 	applyOverrides = null;
 	return res;
+};
+
+export const measureZero = () => {
+	poorCanvasCtx.font = font();
+	const { width, actualBoundingBoxAscent, actualBoundingBoxDescent } = poorCanvasCtx.measureText('8');
+	return { width, height: actualBoundingBoxAscent + actualBoundingBoxDescent };
 };
 
 export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
@@ -75,12 +82,12 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
 }
 
-export function font(sz=0, scale=false, style=null) {
+export function font(sz=0, scale=false, style:string='') {
 	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');
 	const sclSize = scaled(getParam('fontSize') + sz);
 	const size = Math.round(scale ? sclSize * devicePixelRatio : sclSize);
 	const famOv = getParam('fontFamily');
-	return `${style ?? ''} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
+	return `${style} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
 }
 
 export function superScript(digit: number) {
@@ -88,16 +95,17 @@ export function superScript(digit: number) {
 }
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
-	const size = getFontSize(), scl = getParam('scale');
+	const scl = getParam('scale');
+	const { width, height } = measureZero();
 	return {
 		font: font(),
 		labelFont: font(),
 		stroke: color('text'),
-		labelSize: size * 1.25 + scl * 2,
+		labelSize: height * 1.5 + scl * 2,
 		labelGap: 0,
-		space: size * 2,
-		size: (size * 3 / 5 * 4.5),
-		gap: scl * 2,
+		space: height * 2.5,
+		size: (width * 3) + scl * 10,
+		gap: scl,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
 		ticks: { size: scl * 8, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		...(filter && { filter })
@@ -115,12 +123,12 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 }
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
-	const gap = params?.showMetaInfo ? getFontSize() - scaled(8) : scaled(4);
+	const { height, width } = measureZero();
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / space);
-			const width = Math.ceil((max - min) / num);
-			const split = ([ 4, 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
+			const w = Math.ceil((max - min) / num);
+			const split = ([ 4, 6, 12, 24 ].find(s => w <= s * 3600) || 48) * 3600;
 			const start = Math.ceil(min / split) * split;
 			const limit = Math.ceil((max - split/4 - start) / split);
 			return Array(limit).fill(1).map((a, i) => start + i * split);
@@ -134,9 +142,9 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
-		space: getFontSize() * 3 / 5 * 4,
+		space: width * 5,
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		gap, size: (params?.showTimeAxis ?? true) ? getFontSize() + scaled(10) + gap : 0
+		size: (params?.showTimeAxis ?? true) ? height  + scaled(10) + 2 : 0
 	};
 }
 
@@ -213,17 +221,20 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
 			const useColor = onset.secondary ? color('text', .6) : color('white');
+			const { height } = measureZero();
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
-			u.ctx.font = font(0, true).replace('400', '600');
+			u.ctx.font = font(0, true);
 			u.ctx.textBaseline = 'top';
 			u.ctx.textAlign = 'right';
 			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
-			u.ctx.moveTo(x, truncateY?.(u) ?? u.bbox.top);
+			const label = params.showTimeAxis;
+			const lineY = (truncateY?.(u) ?? u.bbox.top / 2) + (label ? height  : 0);
+			u.ctx.moveTo(x, lineY);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
-			params.showTimeAxis && u.ctx.fillText(onset.type || 'ons',
-				x + scaled(4), u.bbox.top + u.bbox.height + scaled(2));
+			label && u.ctx.fillText(onset.type || 'ons',
+				x + scaled(2), lineY - height - scaled(3));
 			u.ctx.stroke();
 			u.ctx.restore();
 		}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, MutableRefObject, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, clamp, useSize } from '../util';
 import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
-	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font, getFontSize, scaled } from './plotUtil';
+	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font, scaled, measureZero } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 
@@ -81,12 +81,13 @@ function drawCustomLabels(params: BasicPlotParams) {
 				return [applyTextTransform(params.transformText)(text), stroke] as [string, string];
 			});
 
+			const fontSize = measureZero();
 			const px = (a: number) => scaled(a * devicePixelRatio);
 			const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
-			const shiftX = Math.max(0, 2 - maxValLen) * getFontSize() - px(1);
+			const shiftX = Math.max(0, 2.5 - maxValLen) * fontSize.width;
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
-			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? getFontSize()) * flowDir;
+			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
 			u.ctx.save();
 			u.ctx.font = font(0, true);
 			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
@@ -187,7 +188,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 			return {
 				...size,
 				pxAlign: true,
-				padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
+				padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(6), 0],
 				legend: { show: params.interactive },
 				cursor: {
 					show: params.interactive,

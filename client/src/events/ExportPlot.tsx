@@ -5,7 +5,7 @@ import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
-import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, getFontSize, scaled, withOverrides } from '../plots/plotUtil';
+import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, withOverrides } from '../plots/plotUtil';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -181,8 +181,8 @@ async function doRenderPlots() {
 			resolve(u);
 		}));
 		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
-		// ctx.strokeStyle = 'cyan';
-		// ctx.strokeRect(x, y, w, h);
+		ctx.strokeStyle = 'cyan';
+		ctx.strokeRect(x, y, w, h);
 		upl.destroy();
 	}
 	return canvas;
