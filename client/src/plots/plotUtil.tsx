@@ -1,5 +1,5 @@
 import React, { MutableRefObject, useRef, useState } from 'react';
-import { useSize } from '../util';
+import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../events/events';
@@ -93,10 +93,10 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		font: font(),
 		labelFont: font(),
 		stroke: color('text'),
-		labelSize: scl * 4 + size,
+		labelSize: size * 1.25 + scl * 2,
 		labelGap: 0,
 		space: size * 2,
-		size: (size * 3 / 5 * 3 + scl * 10),
+		size: (size * 3 / 5 * 4.5),
 		gap: scl * 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
 		ticks: { size: scl * 8, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
@@ -140,7 +140,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen=scaled(10*devicePixelRatio)) {
+export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen: number) {
 	const angle = Math.atan2(dy, dx);
 	ctx.lineTo(tox, toy);
 	ctx.lineTo(tox - hlen * Math.cos(angle - Math.PI / 6), toy - hlen * Math.sin(angle - Math.PI / 6));
@@ -294,8 +294,8 @@ export function usePlotOverlayPosition(defaultPos: DefaultPosition)
 			const dy = (e.clientY - rect.top)  * devicePixelRatio - click.y;
 			const { width, height } = sizeRef.current;
 			posRef.current = {
-				x: Math.max(2, Math.min(saved.x + dx, u.width  * devicePixelRatio - width - 2)),
-				y: Math.max(2, Math.min(saved.y + dy, u.height * devicePixelRatio - height - 2))
+				x: clamp(2, u.width  * devicePixelRatio - width - 1, saved.x + dx),
+				y: clamp(2, u.height * devicePixelRatio - height - 1, saved.y + dy)
 			};
 			u.redraw();
 		});

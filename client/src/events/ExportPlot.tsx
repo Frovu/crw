@@ -12,7 +12,7 @@ import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { LayoutContext, useLayoutsStore } from '../Layout';
+import { LayoutContext, gapSize, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
@@ -124,14 +124,15 @@ function computePlotsLayout() {
 	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
 		if (!tree[node]) {
 			if (plotPanelOptions.includes(items[node]?.type as any))
-				layout[node] = { x, y, w, h };
+				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}
 		const { split, ratio, children } = tree[node]!;
-		const splitX = split === 'row' ? w * ratio : 0;
-		const splitY = split === 'column' ? h * ratio : 0;
+		const splitX = Math.floor(split === 'row' ? w * ratio - gapSize / 2 : 0);
+		const splitY = Math.floor(split === 'column' ? h * ratio - gapSize / 2 : 0);
+		const gapX = splitX && gapSize, gapY = splitY && gapSize; 
 		walk(x, y, splitX || w, splitY || h, children[0]);
-		walk(x + splitX, y + splitY, w - splitX, h - splitY, children[1]);
+		walk(x + splitX, y + splitY, w - splitX - gapX, h - splitY - gapY, children[1]);
 	};
 	walk(0, 0, root?.offsetWidth, root?.offsetHeight);
 

@@ -15,7 +15,7 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
-	const px = (a: number) => a * devicePixelRatio;
+	const px = (a: number) => a * scl * devicePixelRatio;
 
 	return (u, seriesIdx) => {
 		const { left, top, width: fullWidth, height: fullHeight } = u.bbox;
@@ -80,7 +80,7 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 			const [ax, ay, dx, dy] = points[i];
 			if (dx != null) {
 				if (params.showMarkers) {
-					drawArrow(u.ctx, dx, dy, ax, ay, 7 * devicePixelRatio);
+					drawArrow(u.ctx, dx, dy, ax, ay, 7 * scl * devicePixelRatio);
 				} else {
 					u.ctx.lineTo(ax, ay);
 				}
@@ -95,28 +95,29 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 		}
 
 		const transform = applyTextTransform(params.transformText);
-		const xArrowPercent = Math.floor(64 * devicePixelRatio / scalex);
-		const yArrowPercent = Math.floor(64 * devicePixelRatio / scaley);
+		const xArrowPercent = Math.floor(64 * devicePixelRatio * scl / scalex);
+		const yArrowPercent = Math.floor(64 * devicePixelRatio * scl / scaley);
 		const metric = u.ctx.measureText(transform(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`));
 		const lineH = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const lineW = metric.width;
 		const arrowRadius = px(6);
 
-		sizeRef.current = {
-			width:  Math.max(xArrowPercent * scalex, lineW + arrowRadius * 2) + px(2),
-			height: yArrowPercent * scaley + lineH + arrowRadius + px(2)
-		};
+		if (scl === 1)
+			sizeRef.current = {
+				width:  Math.max(xArrowPercent * scalex, lineW + arrowRadius * 2) + px(2),
+				height: yArrowPercent * scaley + lineH + arrowRadius + px(2)
+			};
 		const { x: lx, y: ly } = posRef.current ?? defaultPos(u, sizeRef.current);
-		x = lx + arrowRadius + px(2); y = ly + lineH + px(2);
+		x = lx * scl + arrowRadius + px(2); y = ly * scl + lineH + px(2);
 
 		u.ctx.beginPath();
 		u.ctx.strokeStyle = u.ctx.fillStyle = colorArrow;
 		u.ctx.lineWidth = px(2);
 		u.ctx.rect(x, y, px(8), px(8));
 		u.ctx.moveTo(x, y + px(12));
-		drawArrow(u.ctx, 0, yArrowPercent * scaley, x, y + yArrowPercent * scaley);
+		drawArrow(u.ctx, 0, yArrowPercent * scaley, x, y + yArrowPercent * scaley, scl * devicePixelRatio * 10);
 		u.ctx.moveTo(x + px(12), y);
-		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y);
+		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y, scl * devicePixelRatio * 10);
 
 		u.ctx.textAlign = 'left';
 		u.ctx.fillText(transform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
@@ -142,8 +143,8 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		options: () => ({
 			hooks: {
 				drawAxes: [
-					drawMagneticClouds(params, u => u.valToPos(0, 'A0', true)),
-					drawOnsets(params, u => u.valToPos(0, 'A0', true)),
+					drawMagneticClouds(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
+					drawOnsets(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
 				],
 				ready: [ handleDrag ]
 			}

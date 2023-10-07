@@ -7,6 +7,8 @@ import { ContextMenuContent, LayoutContent } from './events/EventsApp';
 import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
 import { openContextMenu, useContextMenu } from './app';
 
+export const gapSize = 2;
+
 type LayoutTreeNode = {
 	split: 'row' | 'column',
 	ratio: number, 
@@ -136,9 +138,9 @@ function Node({ id, size }: { id: string, size: Size }) {
 	const isRow = split === 'row';
 	const dim = isRow ? 'width' : 'height';
 	const propsA = { id: children![0],
-		size: { ...size, [dim]: size[dim] * ratio! - 1 } };
+		size: { ...size, [dim]: size[dim] * ratio! - gapSize / 2 } };
 	const propsB = { id: children![1],
-		size: { ...size, [dim]: size[dim] * (1 - ratio!) - 1 } };
+		size: { ...size, [dim]: size[dim] * (1 - ratio!) - gapSize / 2 } };
 
 	return <div style={{ ...size, position: 'relative',
 		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}

@@ -20,13 +20,14 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const width = px(48) + metric.width;
-		const height = series.length * lineHeight + 4;
-		size.current = { width, height };
+		const height = series.length * lineHeight + px(4);
+		if (!captureOverrides)
+			size.current = { width, height };
 
 		const pos = position.current ?? defaultPos(u, size.current);
 
-		const x = pos.x;
-		let y = pos.y;
+		const x = scaled(pos.x);
+		let y = scaled(pos.y);
 		u.ctx.save();
 		u.ctx.lineWidth = px(2);
 		u.ctx.strokeStyle = color('text-dark');
@@ -163,8 +164,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	const size = useSize(containerRef.current?.parentElement);
 
 	const defaultPos: DefaultPosition = (u, { width }) => ({
-		x: u.bbox.left + u.bbox.width - width + 6, 
-		y: u.bbox.top });
+		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
+		y: u.bbox.top / scaled(1) });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
 	const [ uplot, setUplot ] = useState<uPlot>();
