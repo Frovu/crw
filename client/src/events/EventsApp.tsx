@@ -19,6 +19,19 @@ import SampleView from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
 
+function PlotIntervalInput({ step: alterStep }: { step?: number }) {
+	const { plotOffset, set } = useEventsSettings();
+	const [left, right] = plotOffset;
+	const step = alterStep ?? 24;
+
+	return <div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title='Plot time interval, as hours offset from event onset'>
+		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-240' max='0' step={step} defaultValue={left}
+			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [e.target.valueAsNumber, right])}/>
+		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='240' step={step} defaultValue={right}
+			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [left, e.target.valueAsNumber])}/> h
+	</div>;
+}
+
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
@@ -62,6 +75,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			</div>
 		</>}
 		{isPlot && <>
+			<PlotIntervalInput/>
+			<div className='separator'/>
 			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
 				<CheckboxGlob text='markers' k='showMarkers'/>
@@ -197,7 +212,7 @@ function MainTablePanel() {
 }
 
 function EventsView() {
-	const { showColumns, plotOffsetDays, plotUnlistedEvents } = useEventsSettings();
+	const { showColumns, plotOffset, plotUnlistedEvents } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
@@ -247,7 +262,7 @@ function EventsView() {
 		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[idx][timeIdx] as Date;
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
-		const interval = plotOffsetDays.map(days => new Date(hour + days * 864e5));
+		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
 		const onsets = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
 			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset);
@@ -263,7 +278,7 @@ function EventsView() {
 			interval: interval as [Date, Date],
 			onsets, clouds
 		};
-	}, [plotId, data, plotOffsetDays, columns, plotUnlistedEvents, sampleData]);
+	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData]);
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

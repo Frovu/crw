@@ -82,7 +82,7 @@ function collisionOptions(grid: boolean, med: boolean, std: boolean, show: boole
 }
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const { plotOffsetDays, showGrid } = useEventsSettings();
+	const { plotOffset, showGrid } = useEventsSettings();
 	const { columns, series, data: tableData } = useContext(MainTableContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -110,7 +110,7 @@ export default function EpochCollision() {
 	const queryHandler = (sample: any[][] | null) => async () => {
 		if (!sample || !sample.length) return;
 		const colIdx = columns.findIndex(c => c.fullName === state.timeColumn)!;
-		const interval = plotOffsetDays.map(i => i * 24);
+		const interval = plotOffset;
 		const times = sample.map(row => row[colIdx]).filter(t => t).map(t => Math.floor(t.getTime() / 36e5) * 3600);
 		
 		type Res = { offset: number[], mean: number[], median: number[], std: number[] };
@@ -126,7 +126,7 @@ export default function EpochCollision() {
 		];
 	};
 
-	const qk = ['epoch', ...plotOffsetDays, state.series, state.timeColumn];
+	const qk = ['epoch', ...plotOffset, state.series, state.timeColumn];
 	const queries = useQueries([
 		{ queryKey: [...qk, samples[0]], queryFn: queryHandler(samples[0]), staleTime: Infinity },
 		{ queryKey: [...qk, samples[1]], queryFn: queryHandler(samples[1]), staleTime: Infinity },

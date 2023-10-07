@@ -213,7 +213,7 @@ export function ExportControls() {
 		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingTop: 4 }}>
 			<span><label>Font<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
 				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>pt</label>
-			<input type='text' style={{ marginLeft: 4, width: 120 }} placeholder='Roboto Mono'
+			<input type='text' style={{ marginLeft: 8, width: 120 }} placeholder='Roboto Mono'
 				value={fontFamily} onChange={e => set('fontFamily', e.target.value || undefined)}/></span>
 			<span><label>Size<input style={{ width: 56, marginLeft: 4 }} type='number' min='0' max='100' step={useCm ? .5 : .25}
 				value={Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25} onChange={e => setInches(e.target.valueAsNumber / (useCm ? 2.54 : 1))}/></label>
@@ -224,9 +224,10 @@ export function ExportControls() {
 					{[2,3,4,6,8,10].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
 				</select></label>
 			</span>
-			<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale}px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
 			
 		</div>
+		<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale} px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
+
 	</div>;
 }
 
@@ -262,7 +263,7 @@ export function ExportableUplot({ options, data, onCreate }: { options: () => uP
 		if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
 			state.plots[layout.id] = { options, data }; }));
 		onCreate?.(u);
-	} }}/>, [options, data, layout?.id, onCreate]); // eslint-disable-line
+	} }}/>, [options, data, layout?.id, onCreate]);
 	return plot;
 }
 

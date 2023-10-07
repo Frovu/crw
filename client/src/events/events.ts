@@ -15,7 +15,7 @@ export type EventsSettings = {
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean,
-	plotOffsetDays: number[],
+	plotOffset: number[],
 	plotUnlistedEvents: boolean,
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
 	reset: () => void
@@ -26,7 +26,7 @@ const defaultSettings = {
 		'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'],
 	showChangelog: false,
 	showAverages: true,
-	plotOffsetDays: [-1, 2],
+	plotOffset: [-24, 48],
 	plotUnlistedEvents: true,
 	showGrid: true,
 	showMarkers: true,
