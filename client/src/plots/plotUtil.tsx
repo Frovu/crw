@@ -4,7 +4,6 @@ import uPlot from 'uplot';
 
 import { MagneticCloud, Onset } from '../events/events';
 import UplotReact from 'uplot-react';
-import { create } from 'zustand';
 
 export type TextTransform = {
 	search: string,
@@ -76,10 +75,12 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
 }
 
-export function font(sz=0, scale=false) {
-	const fnt = window.getComputedStyle(document.body).font;
-	const size = getFontSize() + sz;
-	return fnt.replace(/\d+px/, (scale ? Math.round(size * devicePixelRatio) : size) + 'px');
+export function font(sz=0, scale=false, style=null) {
+	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');
+	const sclSize = scaled(getParam('fontSize') + sz);
+	const size = scale ? Math.round(sclSize * devicePixelRatio) : sclSize;
+	const famOv = getParam('fontFamily');
+	return `${style ?? ''} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
 }
 
 export function superScript(digit: number) {
@@ -94,7 +95,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		stroke: color('text'),
 		labelSize: scl * 4 + size,
 		labelGap: 0,
-		space: size * 1.5,
+		space: size * 2,
 		size: (size * 3 / 5 * 3 + scl * 10),
 		gap: scl * 2,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
@@ -114,10 +115,10 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 }
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
-	const gap = params?.showMetaInfo ? getFontSize() - scaled(9) : scaled(4);
+	const gap = params?.showMetaInfo ? getFontSize() - scaled(8) : scaled(4);
 	return {
 		splits: (u, ax, min, max, incr, space) => {
-			const num = Math.floor(u.width / 76);
+			const num = Math.floor(u.width / space);
 			const width = Math.ceil((max - min) / num);
 			const split = ([ 4, 6, 12, 24 ].find(s => width <= s * 3600) || 48) * 3600;
 			const start = Math.ceil(min / split) * split;
@@ -133,6 +134,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
+		space: getFontSize() * 3 / 5 * 4,
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
 		gap, size: (params?.showTimeAxis ?? true) ? getFontSize() + scaled(10) + gap : 0
 	};

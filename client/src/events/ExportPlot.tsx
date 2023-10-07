@@ -1,5 +1,5 @@
-import React, {  ChangeEvent, useContext, useMemo, useRef, useState } from 'react';
-import { Size, clamp, dispatchCustomEvent, useEventListener, usePersistedState } from '../util';
+import {  ChangeEvent, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { clamp, dispatchCustomEvent, useEventListener, usePersistedState } from '../util';
 import PlotSW, { SWParams } from '../plots/time/SW';
 import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
@@ -152,7 +152,7 @@ function computePlotsLayout() {
 	};
 }
 
-async function doRenderPlots(target?: HTMLDivElement) {
+async function doRenderPlots() {
 	const { width, height, layout } = computePlotsLayout();
 	const { plots, overrides } = usePlotExportSate.getState();
 	const { scale } = overrides;
@@ -175,39 +175,46 @@ async function doRenderPlots(target?: HTMLDivElement) {
 			init();
 			resolve(u);
 		}));
-
 		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
 		// ctx.strokeStyle = 'cyan';
 		// ctx.strokeRect(x, y, w, h);
 		upl.destroy();
 	}
-	if (target)
-		target.replaceChildren(canvas);
 	return canvas;
 }
 
-async function doExportPlots() {
+async function doExportPlots(download: boolean=false) {
 	const canvas = await doRenderPlots();
+
+	if (download) {
+		const a = document.createElement('a');
+		a.download = 'feid_compound_plot.png';
+		a.href = canvas.toDataURL()!;
+		return a.click();
+	}
 	canvas.toBlob(blob => {
 		blob && window.open(URL.createObjectURL(blob));
 	});
 }
 
 export function ExportControls() {
-	const { inches, overrides: { scale, fontSize }, setInches, set } = usePlotExportSate();
-	const { width } = computePlotsLayout();
+	const { inches, overrides: { scale, fontSize, fontFamily }, setInches, set } = usePlotExportSate();
+	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
+
 	return <div style={{ padding: 4, fontSize: 14 }}>
-		<div style={{ display: 'flex', gap: 4 }}>
+		<div style={{ display: 'flex', gap: 4, color: color('white') }}>
 			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Open png</button>
-			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Download</button>
+			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots(true)}>Download</button>
 		</div>
 		{devicePixelRatio !== 1 && <div style={{ fontSize: 12, color: color('red') }}>pixelRatio ({devicePixelRatio.toFixed(2)}) != 1,
 		export won't work as expected, press Ctrl+0 if it helps</div>}
-		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-			<label>Font size:<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
+		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingTop: 4 }}>
+			<span><label>Font<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
 				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>pt</label>
-			<span><label>Size <input style={{ width: 60 }} type='number' min='0' max='100' step={useCm ? .5 : .25}
+			<input type='text' style={{ marginLeft: 4, width: 120 }} placeholder='Roboto Mono'
+				value={fontFamily} onChange={e => set('fontFamily', e.target.value || undefined)}/></span>
+			<span><label>Size<input style={{ width: 56, marginLeft: 4 }} type='number' min='0' max='100' step={useCm ? .5 : .25}
 				value={Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25} onChange={e => setInches(e.target.valueAsNumber / (useCm ? 2.54 : 1))}/></label>
 			<label style={{ padding: '0 4px' }}>{useCm ? 'cm' : 'in'}
 				<input hidden type='checkbox' checked={useCm} onChange={(e) => setUseCm(e.target.checked)}/></label>,
@@ -216,28 +223,35 @@ export function ExportControls() {
 					{[2,3,4,6,8,10].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
 				</select></label>
 			</span>
-			<label>
-				</label>
+			<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale}px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
 			
 		</div>
 	</div>;
 }
 
 export function ExportPreview() {
-	const { overrides: { scale } } = usePlotExportSate();
-	const { size } = useContext(LayoutContext)!;
+	const expState = usePlotExportSate();
+	const { overrides: { scale } } = expState;
+	const context = useContext(LayoutContext)!;
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const [show, setShow] = useState(false);
+	const [renderTime, setTime] = useState<number | null>(null);
 
 	const width = show ? computePlotsLayout().width : 1;
-
-	if (show && container)
-		doRenderPlots(container);
+	useEffect(() => {
+		if (!show || !container) return;
+		const time = Date.now();
+		doRenderPlots().then(can => {
+			container?.replaceChildren(can);
+			setTime(Date.now() - time);
+		});
+	}, [container, context, show, expState]);
 
 	return <div style={{ padding: 2, height: '100%' }} onClick={() => setShow(!show)}>
 		<span style={{ padding: 2 }}>preview plots (may be slow) <input type='checkbox' checked={show} readOnly/></span>
+		{show && renderTime && <div style={{ position: 'absolute', fontSize: 14, color: color('text-dark'), bottom: 4, right: 4 }}>Rendered in {renderTime.toFixed()} ms</div>}
 		<div ref={setContainer} style={{ display: !show ? 'none' : 'block',
-			transform: `scale(${(size.width - 4) / width / scale})`, transformOrigin: 'top left' }}/>
+			transform: `scale(${(context.size.width - 4) / width / scale})`, transformOrigin: 'top left' }}/>
 	</div>;
 }
 

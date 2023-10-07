@@ -109,7 +109,7 @@ const useLayout = () => ({
 });
 
 function Item({ id, size }: { id: string, size: Size }) {
-	const { startDrag, dragOver, finishDrag } = useLayoutsStore();
+	const { startDrag, dragOver, finishDrag } = useLayoutsStore.getState();
 	const { items } = useLayout();
 	return <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
