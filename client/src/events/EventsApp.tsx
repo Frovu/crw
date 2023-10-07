@@ -19,7 +19,7 @@ import SampleView from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
 
-function PlotIntervalInput({ step: alterStep }: { step?: number }) {
+export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	const { plotOffset, set } = useEventsSettings();
 	const [left, right] = plotOffset;
 	const step = alterStep ?? 24;
@@ -88,7 +88,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<Checkbox text='meta info' k='showMetaInfo'/>
 			</div>
 			<div className='Row'>
-				<CheckboxGlob text='show unlisted events' k='plotUnlistedEvents'/>
+				<CheckboxGlob text='show unlisted' k='plotUnlistedEvents'/>
+				<CheckboxGlob text='show MCs' k='showMagneticClouds'/>
 			</div>
 			<div className='separator'/>
 			<div className='Group'>
@@ -100,7 +101,6 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					</div>
 					<Checkbox text='Use corrected A0m' k='useA0m'/>
 					<Checkbox text='Subtract trend' k='subtractTrend'/>
-					<Checkbox text='Use corrected A0m' k='useA0m'/>
 					<Checkbox text='Mask GLE' k='maskGLE'/>
 				</>}
 				{params.type === 'SW Plasma' && <>
@@ -128,6 +128,7 @@ export function LayoutContent() {
 			...settings,
 			...plotContext!,
 			...plotParams,
+			...(!settings.showMagneticClouds && { clouds: [] }),
 			stretch: true,
 		};
 	}, [appState, plotContext, type, settings, plotParams]);

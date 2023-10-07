@@ -5,7 +5,7 @@ import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
-import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, withOverrides } from '../plots/plotUtil';
+import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, getFontSize, scaled, withOverrides } from '../plots/plotUtil';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -14,6 +14,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
+import { PlotIntervalInput } from './EventsApp';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
@@ -155,8 +156,8 @@ function computePlotsLayout() {
 
 async function doRenderPlots() {
 	const { width, height, layout } = computePlotsLayout();
-	const { plots, overrides } = usePlotExportSate.getState();
-	const { scale } = overrides;
+	const { plots, inches, overrides } = usePlotExportSate.getState();
+	const { scale, fontSize } = overrides;
 	const canvas = document.createElement('canvas');
 	canvas.width = width * scale * devicePixelRatio;
 	canvas.height = height * scale * devicePixelRatio;
@@ -168,7 +169,10 @@ async function doRenderPlots() {
 		if (!plots[nodeId]) continue;
 		const { options, data } = plots[nodeId];
 		const opts = {
-			...withOverrides(options, overrides),
+			...withOverrides(options, {
+				...overrides,
+				fontSize: width / inches / 72 * fontSize
+			}),
 			width: Math.round(w),
 			height: Math.round(h),
 		};
@@ -203,6 +207,8 @@ export function ExportControls() {
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
 
+	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
+
 	return <div style={{ padding: 4, fontSize: 14 }}>
 		<div style={{ display: 'flex', gap: 4, color: color('white') }}>
 			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Open png</button>
@@ -211,9 +217,9 @@ export function ExportControls() {
 		{devicePixelRatio !== 1 && <div style={{ fontSize: 12, color: color('red') }}>pixelRatio ({devicePixelRatio.toFixed(2)}) != 1,
 		export won't work as expected, press Ctrl+0 if it helps</div>}
 		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingTop: 4 }}>
-			<span><label>Font<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
+			<span><label title={`Actual font size = ${fontPx}px = ${(fontPx / scale / width * inches * 72).toFixed(2)}pt`}>Font<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='24'
 				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>pt</label>
-			<input type='text' style={{ marginLeft: 8, width: 120 }} placeholder='Roboto Mono'
+			<input type='text' style={{ marginLeft: 8, width: 148 }} placeholder='Roboto Mono'
 				value={fontFamily} onChange={e => set('fontFamily', e.target.value || undefined)}/></span>
 			<span><label>Size<input style={{ width: 56, marginLeft: 4 }} type='number' min='0' max='100' step={useCm ? .5 : .25}
 				value={Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25} onChange={e => setInches(e.target.valueAsNumber / (useCm ? 2.54 : 1))}/></label>
@@ -221,13 +227,12 @@ export function ExportControls() {
 				<input hidden type='checkbox' checked={useCm} onChange={(e) => setUseCm(e.target.checked)}/></label>,
 			<label style={{ paddingLeft: 4 }} title='Approximate resolution when shrinked to specified size'>Res: 
 				<select style={{ marginLeft: 2, width: 86 }} value={scale} onChange={e => set('scale', e.target.value as any)}>
-					{[2,3,4,6,8,10].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
-				</select></label>
-			</span>
-			
+					{[2,3,4,6,8,10,16].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
+				</select></label></span>
 		</div>
 		<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale} px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
-
+		<div className='separator'></div>
+		<PlotIntervalInput step={1}/>
 	</div>;
 }
 

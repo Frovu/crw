@@ -40,11 +40,11 @@ export type PlotsOverrides = {
 
 const defaultPlotsState: PlotsOverrides = {
 	scale: 1,
-	fontSize: 14,
+	fontSize: 14
 };
 
-export let applyOverrides: PlotsOverrides | null = null;
-export const withOverrides = <T extends any>(foo: () => T, overrides?: null | PlotsOverrides): T => {
+export let applyOverrides: Partial<PlotsOverrides> | null = null;
+export const withOverrides = <T extends any>(foo: () => T, overrides?: null | Partial<PlotsOverrides>): T => {
 	applyOverrides = overrides ?? null;
 	const res = foo();
 	applyOverrides = null;
@@ -52,11 +52,11 @@ export const withOverrides = <T extends any>(foo: () => T, overrides?: null | Pl
 };
 
 export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
-	return (applyOverrides ?? defaultPlotsState)[k];
+	return applyOverrides?.[k] ?? defaultPlotsState[k];
 };
 
 export const scaled = (a: number) => a * getParam('scale');
-export const getFontSize = () => scaled(getParam('fontSize'));
+export const getFontSize = () => Math.round(scaled(getParam('fontSize')));
 
 export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
 	return transforms?.reduce((txt, { search, replace }) => {
@@ -78,7 +78,7 @@ export function color(name: string, opacity=1) {
 export function font(sz=0, scale=false, style=null) {
 	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');
 	const sclSize = scaled(getParam('fontSize') + sz);
-	const size = scale ? Math.round(sclSize * devicePixelRatio) : sclSize;
+	const size = Math.round(scale ? sclSize * devicePixelRatio : sclSize);
 	const famOv = getParam('fontFamily');
 	return `${style ?? ''} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
 }
