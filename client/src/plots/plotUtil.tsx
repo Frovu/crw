@@ -141,7 +141,8 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
-		gap, size: (params?.showTimeAxis ?? true) ? getFontSize() + scaled(10) + gap : scaled(4)
+		...(params?.showTimeAxis === false && { ticks: { show: false } }),
+		gap, size: (params?.showTimeAxis ?? true) ? getFontSize() + scaled(10) + gap : 0
 	};
 }
 

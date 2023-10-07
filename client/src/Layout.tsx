@@ -162,7 +162,7 @@ export function LayoutContextMenu({ id: argId }: { id?: string }) {
 	const { items, tree } = useLayout();
 	const id = useContextMenu(state => argId ?? state.menu?.detail?.nodeId);
 	if (!id || !items[id]) return null;
-	const parent = Object.keys(tree).find((node) => tree[node]!.children.includes(id));
+	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';

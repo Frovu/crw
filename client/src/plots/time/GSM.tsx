@@ -140,7 +140,6 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		}),
 		params,
 		options: () => ({
-			padding: [8, params.showAxy ? 0 : 60, params.showTimeAxis ? 0 : 8, 0],
 			hooks: {
 				drawAxes: [
 					drawMagneticClouds(params, u => u.valToPos(0, 'A0', true)),

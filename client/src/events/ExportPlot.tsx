@@ -165,8 +165,8 @@ async function doRenderPlots(target?: HTMLDivElement) {
 		}));
 
 		ctx.drawImage(upl.ctx.canvas, Math.round(x), Math.round(y));
-		// ctx.strokeStyle = 'cyan';
-		// ctx.strokeRect(x, y, w, h);
+		ctx.strokeStyle = 'cyan';
+		ctx.strokeRect(x, y, w, h);
 		upl.destroy();
 	}
 	if (target)

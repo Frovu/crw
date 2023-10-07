@@ -180,11 +180,13 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 
 	const plot = useMemo(() => {
 		const options = () => {
+			const axSize = axisDefaults(false).size as number + axisDefaults(false).labelSize!;
+			const padRight = axes.find(ax => ax.show === false && ax.side === 1) ? axSize : 0;
 			const uopts = userOptions?.();
 			return {
 				...size,
 				pxAlign: true,
-				padding: [scaled(10), 0, params.showTimeAxis ? 0 : 8, 0],
+				padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
 				legend: { show: params.interactive },
 				cursor: {
 					show: params.interactive,
