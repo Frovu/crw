@@ -33,35 +33,27 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
-type PlotsSate = {
+export type PlotsOverrides = {
 	scale: number,
 	fontSize: number,
 	fontFamily?: string,
 };
 
-const defaultPlotsState: PlotsSate = {
+const defaultPlotsState: PlotsOverrides = {
 	scale: 1,
 	fontSize: 14,
 };
 
-export const usePlotsOverrides = create<PlotsSate & {
-	set: <T extends keyof PlotsSate>(k: T, val: PlotsSate[T]) => void
-}>()(set => ({
-	...defaultPlotsState,
-	set: (k, v) => set(state => ({ ...state, [k]: v }))
-}));
-
-export let applyOverrides = false;
-export const withOverrides = <T extends any>(foo: () => T, overrides: boolean): T => {
-	applyOverrides = overrides;
+export let applyOverrides: PlotsOverrides | null = null;
+export const withOverrides = <T extends any>(foo: () => T, overrides?: null | PlotsOverrides): T => {
+	applyOverrides = overrides ?? null;
 	const res = foo();
-	applyOverrides = false;
+	applyOverrides = null;
 	return res;
 };
 
-export const getParam = <T extends keyof PlotsSate>(k: T) => {
-	const state = usePlotsOverrides.getState();
-	return (applyOverrides ? state : defaultPlotsState)[k];
+export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
+	return (applyOverrides ?? defaultPlotsState)[k];
 };
 
 export const scaled = (a: number) => a * getParam('scale');

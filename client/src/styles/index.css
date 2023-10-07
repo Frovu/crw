@@ -35,29 +35,8 @@ input, button, select {
 option {
 	color: var(--color-text);
 }
-button {
+input[type='checkbox'], select, button {
 	cursor: pointer;
-	border-style: outset;
-}
-select {
-	cursor: pointer;
-}
-
-input:focus-visible, button:focus-visible, select:focus-visible {
-	border: 1px var(--color-active) solid;
-}
-
-input[type='checkbox'] {
-	cursor: pointer;
-}
-
-button:hover:enabled, select:hover:enabled {
-	border-color: var(--color-active) !important;
-}
-
-input:disabled, button:disabled, select:disabled {
-	border: 1px var(--color-text-dark) solid;
-	color: var(--color-text-dark);
 }
 
 .PopupBackground {

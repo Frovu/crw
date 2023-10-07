@@ -5,7 +5,7 @@ import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
-import { BasicPlotParams, Position, ScaleParams, TextTransform, color, withOverrides, usePlotsOverrides } from '../plots/plotUtil';
+import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, withOverrides } from '../plots/plotUtil';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -13,6 +13,7 @@ import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, useLayoutsStore } from '../Layout';
+import { persist } from 'zustand/middleware';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
@@ -85,22 +86,33 @@ const defaultSettings = (): PlotExportSettings => ({
 });
 
 type PlotEntryParams = {
-	size: Size,
 	options: () => uPlot.Options,
 	data: (number | null)[][]
 };
 
 type PlotExportState = {
 	inches: number,
+	overrides: PlotsOverrides,
 	plots: {
 		[nodeId: string]: PlotEntryParams,
-	}
+	},
+	set: <T extends keyof PlotsOverrides>(k: T, v: PlotsOverrides[T]) => void,
+	setInches: (v: number) => void,
 };
 
-export const usePlotExportSate = create<PlotExportState>()(immer(set => ({
-	inches: 6,
-	plots: {}
-})));
+export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => ({
+	inches: 12 / 2.54,
+	overrides: {
+		scale: 2,
+		fontSize: 14
+	},
+	plots: {},
+	set: (k, v) => set(state => { state.overrides[k] = v; }),
+	setInches: (v) => set(state => { state.inches = v; })
+})), {
+	name: 'plotsExportState',
+	partialize: ({ overrides, inches }) => ({ overrides, inches })
+}));
 
 function computePlotsLayout() {
 	const { active, list } = useLayoutsStore.getState();
@@ -142,11 +154,11 @@ function computePlotsLayout() {
 
 async function doRenderPlots(target?: HTMLDivElement) {
 	const { width, height, layout } = computePlotsLayout();
-	const { scale } = usePlotsOverrides.getState();
-	const { plots } = usePlotExportSate.getState();
+	const { plots, overrides } = usePlotExportSate.getState();
+	const { scale } = overrides;
 	const canvas = document.createElement('canvas');
-	canvas.width = width * scale;
-	canvas.height = height * scale;
+	canvas.width = width * scale * devicePixelRatio;
+	canvas.height = height * scale * devicePixelRatio;
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color('bg');
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -155,7 +167,7 @@ async function doRenderPlots(target?: HTMLDivElement) {
 		if (!plots[nodeId]) continue;
 		const { options, data } = plots[nodeId];
 		const opts = {
-			...withOverrides(options, true),
+			...withOverrides(options, overrides),
 			width: Math.round(w),
 			height: Math.round(h),
 		};
@@ -164,9 +176,9 @@ async function doRenderPlots(target?: HTMLDivElement) {
 			resolve(u);
 		}));
 
-		ctx.drawImage(upl.ctx.canvas, Math.round(x), Math.round(y));
-		ctx.strokeStyle = 'cyan';
-		ctx.strokeRect(x, y, w, h);
+		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
+		// ctx.strokeStyle = 'cyan';
+		// ctx.strokeRect(x, y, w, h);
 		upl.destroy();
 	}
 	if (target)
@@ -176,32 +188,43 @@ async function doRenderPlots(target?: HTMLDivElement) {
 
 async function doExportPlots() {
 	const canvas = await doRenderPlots();
-
 	canvas.toBlob(blob => {
 		blob && window.open(URL.createObjectURL(blob));
 	});
-
 }
 
-export function ExportControls() {	
-	const { scale, fontSize, set } = usePlotsOverrides();
-	return <div style={{ padding: 4 }}>
-		<button onClick={() => doExportPlots()}>Click me pls</button>
-		<div>
-			{devicePixelRatio !== 1 && <div style={{ color: color('red') }}>pixelRatio != 1, plots export will not work as expected, press Ctrl+0 if it helps</div>}
+export function ExportControls() {
+	const { inches, overrides: { scale, fontSize }, setInches, set } = usePlotExportSate();
+	const { width } = computePlotsLayout();
+	const [useCm, setUseCm] = useState(true);
+	return <div style={{ padding: 4, fontSize: 14 }}>
+		<div style={{ display: 'flex', gap: 4 }}>
+			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Open png</button>
+			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Download</button>
+		</div>
+		{devicePixelRatio !== 1 && <div style={{ fontSize: 12, color: color('red') }}>pixelRatio ({devicePixelRatio.toFixed(2)}) != 1,
+		export won't work as expected, press Ctrl+0 if it helps</div>}
+		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
 			<label>Font size:<input style={{ width: 42, margin: '0 4px' }} type='number' min='6' max='42'
-				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>px</label>
-			<br/>
-			<label>Scale:<input style={{ width: 42, margin: '0 4px' }} type='number' min='1' max='10'
-				value={scale} onChange={e => set('scale', e.target.valueAsNumber)}/>px</label>
+				value={fontSize} onChange={e => set('fontSize', e.target.valueAsNumber)}/>pt</label>
+			<span><label>Size <input style={{ width: 60 }} type='number' min='0' max='100' step={useCm ? .5 : .25}
+				value={Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25} onChange={e => setInches(e.target.valueAsNumber / (useCm ? 2.54 : 1))}/></label>
+			<label style={{ padding: '0 4px' }}>{useCm ? 'cm' : 'in'}
+				<input hidden type='checkbox' checked={useCm} onChange={(e) => setUseCm(e.target.checked)}/></label>,
+			<label style={{ paddingLeft: 4 }} title='Approximate resolution when shrinked to specified size'>Res: 
+				<select style={{ marginLeft: 2, width: 86 }} value={scale} onChange={e => set('scale', e.target.value as any)}>
+					{[2,3,4,6,8,10].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
+				</select></label>
+			</span>
+			<label>
+				</label>
 			
 		</div>
 	</div>;
 }
 
 export function ExportPreview() {
-	usePlotExportSate();
-	const { scale } = usePlotsOverrides();
+	const { overrides: { scale } } = usePlotExportSate();
 	const { size } = useContext(LayoutContext)!;
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const [show, setShow] = useState(false);
@@ -220,13 +243,9 @@ export function ExportPreview() {
 
 export function ExportableUplot({ options, data, onCreate }: { options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
-	layout && usePlotExportSate.setState(state => {
-		if (state.plots[layout.id])state.plots[layout.id].size = layout.size; });
-
 	const plot = useMemo(() => <UplotReact {...{ options: options(), data: data as any, onCreate: u => {
 		if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
-			state.plots[layout.id] = { size: layout.size, options, data }; }));
-
+			state.plots[layout.id] = { options, data }; }));
 		onCreate?.(u);
 	} }}/>, [options, data, layout?.id, onCreate]); // eslint-disable-line
 	return plot;

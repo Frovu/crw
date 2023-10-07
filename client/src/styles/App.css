@@ -79,13 +79,31 @@ button, select {
 	border: 1px var(--color-border) solid;
 }
 
-input:not([type='checkbox']) {
+input:not([type='checkbox']), label > select {
+	text-align: center;
 	background-color: var(--color-input-bg);
-	border: none;
+	border: 1px transparent solid;
+}
+
+label > select {
+	border: 1px transparent solid;
 }
 
 label:has(input[type='checkbox']):hover {
 	cursor: pointer;
 	color: var(--color-active);
 	text-decoration: underline;
+}
+
+input:focus-visible, button:focus-visible, select:focus-visible {
+	border-color: var(--color-active);
+}
+
+input:disabled, button:disabled, select:disabled {
+	border-color: var(--color-text-dark);
+	color: var(--color-text-dark);
+}
+
+button:hover:enabled, select:hover:enabled {
+	border-color: var(--color-active) !important;
 }
