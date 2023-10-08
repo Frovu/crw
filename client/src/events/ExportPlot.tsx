@@ -99,6 +99,7 @@ type PlotExportState = {
 	plots: { [nodeId: string]: PlotEntryParams },
 	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void,
 	setTransform: (id: number, val: Partial<TranformEntry>) => void,
+	swapTransforms: (a: number, b: number) => void,
 	setInches: (v: number) => void,
 };
 
@@ -113,6 +114,12 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 	setTransform: (id, val) => set(({ overrides: { textTransform } }) => {
 		const found = textTransform?.find(t => t.id === id);
 		if (found) Object.assign(found, val); }),
+	swapTransforms: (idA, idB) => set(({ overrides }) => {
+		const foundA = overrides.textTransform?.find(t => t.id === idA);
+		const foundB = overrides.textTransform?.find(t => t.id === idB);
+		overrides.textTransform = overrides.textTransform?.map(t =>
+			(t.id === idA ? foundB : t.id === idB ? foundA : t) ?? t);
+	}),
 	setInches: (v) => set(state => { state.inches = v; })
 })), {
 	name: 'plotsExportState',
@@ -208,11 +215,13 @@ async function doExportPlots(download: boolean=false) {
 
 export function ExportControls() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
-		inches, setInches, set, setTransform } = usePlotExportSate();
+		inches, setInches, set, setTransform, swapTransforms } = usePlotExportSate();
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
+	const [dragging, setDragging] = useState<number | null>(null);
 
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
+	console.log(dragging)
 
 	return <div style={{ padding: 4, fontSize: 14 }}>
 		<div style={{ display: 'flex', gap: 4, color: color('white') }}>
@@ -239,14 +248,19 @@ export function ExportControls() {
 		<div className='separator'></div>
 		<PlotIntervalInput step={1}/>
 
-		<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4 }}>
+		<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4 }}
+			onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
 			{textTransform?.map(({ search, replace, id, enabled }) => <div key={id}
-				title='Drag by the central arrow to change replacement order'
-				style={{ color: !enabled ? color('text-dark') : 'unset', display: 'flex', gap: 4, flexFlow: 'row wrap', alignItems: 'center' }}>
-				<label style={{ minWidth: 'max-content' }}><input type='checkbox' checked={enabled} onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
+				style={{ color: !enabled ? color('text-dark') : 'unset', display: 'flex', gap: 4, flexFlow: 'row wrap', alignItems: 'center' }}
+				title='Drag to change replacement order' onMouseOver={e => {
+					if (dragging && dragging !== id) swapTransforms(dragging, id); }}
+				onMouseDown={e => !(e instanceof HTMLInputElement) && setDragging(id)}>
+				<label style={{ minWidth: 'max-content' }}><input type='checkbox' checked={enabled}
+					onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
 				<input disabled={!enabled} type='text' style={{ flex: 1, minWidth: '4em', maxWidth: '6em' }} placeholder='search'
 					value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
-				<div style={{ flex: '2 10em', gap: 4, alignItems: 'center', minWidth: 'min(10em, 50%)', maxWidth: '20em', display: 'flex' }}><span style={{ cursor: 'move' }}>-&gt;</span>
+				<div style={{ flex: '2 10em', gap: 4, alignItems: 'center',
+					minWidth: 'min(10em, 50%)', maxWidth: '20em', display: 'flex' }}><span style={{ cursor: 'grab' }}>-&gt;</span>
 					<input disabled={!enabled} type='text' style={{ flex: 1, minWidth: 0 }} placeholder='replace'
 						value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/>
 					<span style={{ marginLeft: -2, marginTop: -2 }} className='CloseButton' onClick={() =>
@@ -297,7 +311,6 @@ export function ExportableUplot({ options, data, onCreate }:
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
 		return <UplotReact {...{
 			options: opts, data: data as any, onCreate: u => {
-				console.log(u.height)
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
 					state.plots[layout.id] = { options, data };
 					for (const scl in u.scales) {
