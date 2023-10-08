@@ -16,7 +16,6 @@ import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
 
-
 import { TextTransform, ScaleParams, BasicPlotParams, CustomScale } from '../plots/BasicPlot';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
@@ -92,7 +91,7 @@ type PlotEntryParams = {
 	data: (number | null)[][]
 };
 
-type TranformEntry = TextTransform & { id: number };
+type TranformEntry = TextTransform & { id: number, enabled: boolean };
 type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] }
 type PlotExportState = {
 	inches: number,
@@ -100,6 +99,7 @@ type PlotExportState = {
 	scales: { [key: string]: ScaleParams },
 	plots: { [nodeId: string]: PlotEntryParams },
 	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void,
+	setTransform: (id: number, val: Partial<TranformEntry>) => void,
 	setInches: (v: number) => void,
 };
 
@@ -111,6 +111,9 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 	},
 	scales: {}, plots: {},
 	set: (k, v) => set(state => { state.overrides[k] = v; }),
+	setTransform: (id, val) => set(({ overrides: { textTransform } }) => {
+		const found = textTransform?.find(t => t.id === id);
+		if (found) Object.assign(found, val); }),
 	setInches: (v) => set(state => { state.inches = v; })
 })), {
 	name: 'plotsExportState',
@@ -205,7 +208,8 @@ async function doExportPlots(download: boolean=false) {
 }
 
 export function ExportControls() {
-	const { inches, overrides: { scale, fontSize, fontFamily }, setInches, set } = usePlotExportSate();
+	const {overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
+		inches, setInches, set, setTransform } = usePlotExportSate();
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
 
@@ -235,6 +239,30 @@ export function ExportControls() {
 		<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale} px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
 		<div className='separator'></div>
 		<PlotIntervalInput step={1}/>
+
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160, paddingTop: 4 }}>
+			{textTransform?.map(({ search, replace, id, enabled, style }) => <div key={id}
+				title='Drag by the central arrow to change replacement order'
+				style={{ paddingRight: 10 }}>
+				<label><input type='checkbox' checked={enabled} onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
+				<input type='text' style={{ width: 84, margin: '0 4px' }} placeholder='search'
+					value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
+				<div style={{ display: 'inline-block' }}><span style={{ cursor: 'move' }}>-&gt;</span>
+					<input type='text' style={{ width: 84, margin: '0 4px' }} placeholder='replace'
+						value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/></div>
+				<div style={{ display: 'inline-block' }}><label title='Make bold'>b<input type='checkbox' checked={style === 'bold'}
+					onChange={e => setTransform(id, { style: e.target.checked ? 'bold' : undefined })}/></label>
+				<label title='Make italic'>i<input type='checkbox' checked={style === 'italic'}
+					onChange={e => setTransform(id, { style: e.target.checked ? 'italic' : undefined })}/></label>
+				<span style={{ position: 'absolute', marginLeft: -2, marginTop: -4 }} className='CloseButton' onClick={() =>
+					set('textTransform', textTransform.filter(t => t.id !== id))}></span></div>
+			</div>)}
+			<div style={{ textAlign: 'right', marginTop: -6, paddingRight: 4 }}><button title='Replace text in labels via Regular Expressions which are applied to labels parts'
+				className='TextButton' style={{ color: color('skyblue') }}
+				onClick={() => set('textTransform', (textTransform ?? []).concat({
+					search: '', replace: '', enabled: true, id: Date.now()
+				}))}>+ <u>new replace</u></button></div>
+		</div>
 	</div>;
 }
 
@@ -488,23 +516,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 						<label title='Draw magnetic clouds' style={{ paddingLeft: 4, cursor: 'pointer' }}>
 							MC<input type='checkbox' checked={settings.showClouds} onChange={e => set('showClouds', e.target.checked)}/></label>
 						
-					</div>
-					<div style={{ margin: '8px 0 20px 4px' }}>
-						{settings.transformText.map(({ search, replace, id }) => <div style={{ marginBottom: 4 }} key={id}>
-							<label>RegExp
-								<input style={{ width: 100, margin: '0 6px' }} type='text' placeholder='search'
-									value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
-							-&gt;</label>
-							<input style={{ width: 100, margin: '0 4px' }} type='text' placeholder='replace'
-								value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/>
-							<span style={{ position: 'absolute', marginLeft: 2 }} className='CloseButton' onClick={() =>
-								set('transformText', settings.transformText.filter(t => t.id !== id))}>&times;</span>
-						</div>)}
-						<button title='Replace text in labels via RegExp which is applied to labels parts'
-							style={{ borderColor: 'transparent', color: color('skyblue'), position: 'absolute', right: 28 }}
-							onClick={() => set('transformText', settings.transformText.concat({
-								search: '', replace: '', id: Date.now()
-							}))}>+ <u>new replace</u></button>
 					</div>
 					<details style={{ margin: '8px 16px 0 -14px' }}>
 						<summary style={{ cursor: 'pointer' }}><b>Override scales</b></summary>

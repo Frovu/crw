@@ -109,7 +109,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 		}),
 		space: width * 5,
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		size: (params?.showTimeAxis ?? true) ? height  + scaled(10) + 2 : 0
+		size: (params?.showTimeAxis ?? true) ? height * 1.25 + scaled(9) : 0
 	};
 }
 

@@ -219,7 +219,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 			return {
 				...size,
 				pxAlign: true,
-				padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(6), 0],
+				padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
 				legend: { show: params.interactive },
 				cursor: {
 					show: params.interactive,

@@ -25,7 +25,7 @@
 	gap: 8px;
 }
 
-.ContextMenu button, .ContextMenu input {
+.ContextMenu button, .ContextMenu input, .TextButton {
 	border: none;
 	padding: 1px 0 1px 0;
 }
@@ -35,8 +35,8 @@
 	cursor: pointer;
 }
 
-.ContextMenu > button:hover, .ContextMenu label:hover {
-	color: var(--color-active);
+.ContextMenu > button:hover, .ContextMenu label:hover, .TextButton:hover {
+	color: var(--color-active) !important;
 	text-decoration: underline;
 }
 

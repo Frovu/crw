@@ -61,7 +61,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				minMax: [null, 0],
 				side: 1,
 				ticks: { show: false },
-				gap: 6,
+				gap: 0,
 			},
 		],
 		series: () => [

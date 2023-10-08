@@ -268,18 +268,18 @@ export const defaultLayouts: { [name: string]: Layout } = {
 		tree: {
 			root: {
 				split: 'row',
-				ratio: .2,
-				children: ['left', 'twoRight']
+				ratio: .5,
+				children: ['left', 'rightTwo']
 			},
 			left: {
+				split: 'row',
+				ratio: .5,
+				children: ['leftTwo', 'preview']
+			},
+			leftTwo: {
 				split: 'column',
 				ratio: .4,
 				children: ['tbl', 'exp']
-			},
-			twoRight: {
-				split: 'row',
-				ratio: .5,
-				children: ['preview', 'rightTwo']
 			},
 			rightTwo: {
 				split: 'column',
