@@ -12,7 +12,8 @@ import { PlotIntervalInput } from './EventsApp';
 
 type PlotEntryParams = {
 	options: () => uPlot.Options,
-	data: (number | null)[][]
+	data: (number | null)[][],
+	scales: { [key: string]: ScaleParams }
 };
 
 type TranformEntry = TextTransform & { id: number, enabled: boolean };
@@ -20,7 +21,6 @@ type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?:
 type PlotExportState = {
 	inches: number,
 	overrides: ActualOverrides,
-	scales: { [key: string]: ScaleParams },
 	plots: { [nodeId: string]: PlotEntryParams },
 	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void,
 	setTransform: (id: number, val: Partial<TranformEntry>) => void,
@@ -38,7 +38,7 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 		fontSize: 14,
 		scalesParams: {}
 	},
-	scales: {}, plots: {},
+	plots: {},
 	set: (k, v) => set(state => { state.overrides[k] = v; }),
 	setTransform: (id, val) => set(({ overrides: { textTransform } }) => {
 		const found = textTransform?.find(t => t.id === id);
@@ -82,6 +82,9 @@ function computePlotsLayout() {
 		walk(x + splitX, y + splitY, w - splitX - gapX, h - splitY - gapY, children[1]);
 	};
 	walk(0, 0, root?.offsetWidth, root?.offsetHeight);
+
+	if (!Object.values(layout).length)
+		return { width: 0, height: 0, layout };
 
 	const [minX, minY] = (['x', 'y'] as const).map(d =>
 		Math.min.apply(null, Object.values(layout).map(pos => pos[d])));
@@ -181,16 +184,17 @@ export function ExportableUplot({ options, data, onCreate }:
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
 	const controlsPresent = !!Object.values(items).find(i => i.type === 'ExportControls');
+
 	const plot = useMemo(() => {
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
 		return <UplotReact {...{
 			options: opts, data: data as any, onCreate: u => {
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
-					state.plots[layout.id] = { options, data };
+					state.plots[layout.id] = { options, data, scales: {} };
 					for (const scl in u.scales) {
 						const { positionValue, scaleValue }: CustomScale = u.scales[scl];
 						if (positionValue && scaleValue)
-							state.scales[scl] = { ...positionValue, ...scaleValue };
+							state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
 					}
 				}));
 				onCreate?.(u);
@@ -201,24 +205,21 @@ export function ExportableUplot({ options, data, onCreate }:
 
 export function ExportControls() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
-		inches, scales, setInches, set, setTransform, swapTransforms,
+		plots, inches, setInches, set, setTransform, swapTransforms,
 		addScale, setScale, removeScale } = usePlotExportSate();
 	const { width, height } = computePlotsLayout();
+	const { items } = useLayout();
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);
 
-	const effectiveScales = { ...scales, ...scalesParams };
-
+	const plotsScales = Object.keys(plots).filter(id =>
+		plotPanelOptions.includes(items[id].type as any)).map(id => plots[id].scales);
+	const scales: { [k: string]: ScaleParams } = Object.assign({}, ...plotsScales);
+	const effectiveScales = Object.entries(scales).map(([scl, params]) => ({ scl, ...(scalesParams?.[scl] ?? params) }));
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
-
-	const setOverride = (scl: string, param: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
-		if (param === 'active') {
-			if (e.target.checked)
-				return addScale(scl, effectiveScales[scl]);
-			return removeScale(scl); }
-		if (isNaN(e.target.valueAsNumber))
-			return;
-		setScale(scl, { [param]: e.target.valueAsNumber });
+	const setOverride = (scl: string, param: 'min'|'max'|'bottom'|'top') => (e: ChangeEvent<HTMLInputElement>) => {
+		const val = parseFloat(e.target.value);
+		if (!isNaN(val)) setScale(scl, { [param]: val });
 	};
 
 	return <div style={{ padding: 4, display: 'flex', flexDirection: 'column', fontSize: 14, maxHeight: '100%' }}>
@@ -250,23 +251,24 @@ export function ExportControls() {
 		</div>
 		<div style={{ overflowY: 'scroll', paddingBottom: 8 }}>
 			<span style={{ color: color('text-dark') }}>Override plots scales:</span>
-			{Object.entries(effectiveScales).sort((a,b) => a[0].localeCompare(b[0])).map(([scl, { min, max, bottom, top }]) => {
-				const active = !!scalesParams?.[scl];
-				return <div key={scl} style={{ cursor: 'pointer', color: !active ? color('text-dark') : 'unset', }}
-					onClick={e => !(e.target instanceof HTMLInputElement) && (active ? removeScale(scl) : addScale(scl, effectiveScales[scl]))}>
-					<span style={{ textDecoration: !active ? 'unset' : 'underline' }}>{scl}</span>
-					<input disabled={!active} title='Scale minimum' style={{ width: 54, marginTop: 2, marginLeft: 8 }} type='text'
-						value={(Math.round(min*100)/100).toString()} onChange={setOverride(scl, 'min')}/>/
-					<input disabled={!active} title='Scale maximum' style={{ width: 54, marginRight: 4 }} type='text'
-						value={(Math.round(max*100)/100).toString()} onChange={setOverride(scl, 'max')}/>
-					<div style={{ display: 'inline-block' }}>at
-						<input disabled={!active} title='Position from bottom (0-1)' style={{ width: 32, marginTop: 2, marginLeft: 4 }} type='text'
-							value={(Math.round(bottom*100)/100).toString().replace('0.', '.')}
-							onChange={setOverride(scl, 'bottom')}/>/
-						<input disabled={!active} title='Top position from bottom (1-0)' style={{ width: 32 }} type='text'
-							value={(Math.round(top*100)/100).toString().replace('0.', '.')}
-							onChange={setOverride(scl, 'top')}/></div>
-				</div>;})}
+			<div style={{ maxWidth: 'max-content', textAlign: 'right' }}>
+				{effectiveScales.sort((a,b) => a.scl.localeCompare(b.scl)).map(({ scl, min, max, bottom, top }) => {
+					const active = !!scalesParams?.[scl];
+					return <div key={scl} style={{ cursor: 'pointer', color: !active ? color('text-dark') : 'unset', }}
+						onClick={e => !(e.target instanceof HTMLInputElement) && (active ? removeScale(scl) : addScale(scl, scales[scl]))}>
+						<span style={{ textDecoration: !active ? 'unset' : 'underline' }}>{scl}</span>
+						<input disabled={!active} title='Scale minimum' style={{ width: 54, marginTop: 2, marginLeft: 8 }} type='text'
+							value={(Math.round(min*100)/100).toString()} onChange={setOverride(scl, 'min')}/>/
+						<input disabled={!active} title='Scale maximum' style={{ width: 54, marginRight: 4 }} type='text'
+							value={(Math.round(max*100)/100).toString()} onChange={setOverride(scl, 'max')}/>
+						<div style={{ display: 'inline-block' }}>at
+							<input disabled={!active} title='Position from bottom (0-1)' style={{ width: 32, marginTop: 2, marginLeft: 4 }} type='text'
+								value={(Math.round(bottom*100)/100).toString().replace('0.', '.')}
+								onChange={setOverride(scl, 'bottom')}/>/
+							<input disabled={!active} title='Top position from bottom (1-0)' style={{ width: 32 }} type='text'
+								value={(Math.round(top*100)/100).toString().replace('0.', '.')}
+								onChange={setOverride(scl, 'top')}/></div>
+					</div>;})}</div>
 			<div className='separator'/>
 			<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4, paddingRight: 8 }}
 				onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>

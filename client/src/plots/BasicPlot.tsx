@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
-	drawShape, font, scaled, measureDigit, getScaleOverride, getParam } from './plotUtil';
+	drawShape, font, scaled, measureDigit, getParam } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { Onset, MagneticCloud } from '../events/events';
@@ -162,7 +162,7 @@ function drawCustomLabels() {
 				const nodes = parseText(applyTextTransform(text));
 				return nodes.map(n => ({ ...n, stroke }));
 			});
-			
+
 			const fontSize = measureDigit();
 			const textWidth = measureStyled(u.ctx, parts);
 			const px = (a: number) => scaled(a * devicePixelRatio);
@@ -264,6 +264,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		const axes = getAxes(), series = getSeries();
 		const axSize = axisDefaults(false).size as number + axisDefaults(false).labelSize!;
 		const padRight = axes.find(ax => ax.show === false && ax.side === 1) ? axSize : 0;
+		const scaleOverrides = getParam('scalesParams');
 		const uopts = userOptions?.();
 		return {
 			...size(panelSize),
@@ -277,7 +278,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
 				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
-					const override = getScaleOverride(ax.label);
+					const override = scaleOverrides?.[ax.label];
 					const [fmin, fmax] = ax.minMax ?? [null, null];
 					const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - .0001;
 					const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + .0001;

@@ -37,7 +37,6 @@ export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
 	return applyOverrides?.[k] ?? defaultPlotsState[k];
 };
 
-export const getScaleOverride = (k: string) => getParam('scalesParams')?.[k];
 export const scaled = (a: number) => a * getParam('scale');
 export const getFontSize = () => Math.round(scaled(getParam('fontSize')));
 
