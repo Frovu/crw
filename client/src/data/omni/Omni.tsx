@@ -32,7 +32,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				size: 36,
 				filter: filterB,
 				ticks: { stroke: color('grid'), width: 2, filter: filterB },
-				font: font(-4),
+				font: font(),
 			}, {
 				...axisDefaults(true),
 				scale: 'V',
@@ -42,7 +42,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 				filter: filterV,
 				grid: {},
 				side: 1,
-				font: font(-4),
+				font: font(),
 			}
 		],
 		scales: {

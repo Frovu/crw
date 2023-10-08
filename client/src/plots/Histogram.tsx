@@ -89,7 +89,7 @@ export default function HistogramPlot() {
 					const margin = what === 'mean' ? 6 : -8;
 					u.ctx.save();
 					u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .6);
-					u.ctx.font = font(-2, true).replace('400', '600');
+					u.ctx.font = font(12, true);
 					u.ctx.textBaseline = 'top';
 					u.ctx.textAlign = 'left';
 					u.ctx.lineWidth = 3 * devicePixelRatio;

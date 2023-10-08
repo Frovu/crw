@@ -94,10 +94,9 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 			u.ctx.moveTo(ax, ay);
 		}
 
-		const transform = applyTextTransform(params.transformText);
 		const xArrowPercent = Math.floor(64 * devicePixelRatio * scl / scalex);
 		const yArrowPercent = Math.floor(64 * devicePixelRatio * scl / scaley);
-		const metric = u.ctx.measureText(transform(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`));
+		const metric = u.ctx.measureText(applyTextTransform(`Ay, ${Math.max(xArrowPercent, yArrowPercent)}%`));
 		const lineH = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
 		const lineW = metric.width;
 		const arrowRadius = px(6);
@@ -120,8 +119,8 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y, scl * devicePixelRatio * 10);
 
 		u.ctx.textAlign = 'left';
-		u.ctx.fillText(transform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
-		u.ctx.fillText(transform(`Ay, ${xArrowPercent}%`), x + Math.max(0, xArrowPercent * scalex - lineW,), y - lineH / 2 - arrowRadius + px(2));
+		u.ctx.fillText(applyTextTransform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
+		u.ctx.fillText(applyTextTransform(`Ay, ${xArrowPercent}%`), x + Math.max(0, xArrowPercent * scalex - lineW,), y - lineH / 2 - arrowRadius + px(2));
 		u.ctx.stroke();
 
 		u.ctx.restore();

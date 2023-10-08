@@ -26,10 +26,11 @@ export const withOverrides = <T extends any>(foo: () => T, overrides?: null | Pa
 	return res;
 };
 
-export const measureZero = () => {
+export const measureDigit = () => {
+	const height = getFontSize();
 	poorCanvasCtx.font = font();
-	const { width, actualBoundingBoxAscent, actualBoundingBoxDescent } = poorCanvasCtx.measureText('8');
-	return { width, height: actualBoundingBoxAscent + actualBoundingBoxDescent };
+	const { width } = poorCanvasCtx.measureText('8');
+	return { width, height };
 };
 
 export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
@@ -47,9 +48,9 @@ export function color(name: string, opacity=1) {
 	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
 }
 
-export function font(sz=0, scale=false, style:string='') {
+export function font(sz: number|null=null, scale: boolean=false, style: string='') {
 	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');
-	const sclSize = scaled(getParam('fontSize') + sz);
+	const sclSize = scaled(sz ?? getParam('fontSize'));
 	const size = Math.round(scale ? sclSize * devicePixelRatio : sclSize);
 	const famOv = getParam('fontFamily');
 	return `${style} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
@@ -61,7 +62,7 @@ export function superScript(digit: number) {
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
 	const scl = getParam('scale');
-	const { width, height } = measureZero();
+	const { width, height } = measureDigit();
 	return {
 		font: font(),
 		labelFont: font(),
@@ -88,7 +89,7 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 }
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
-	const { height, width } = measureZero();
+	const { height, width } = measureDigit();
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / space);
@@ -109,7 +110,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 		}),
 		space: width * 5,
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		size: (params?.showTimeAxis ?? true) ? height * 1.25 + scaled(9) + 2 : 0
+		size: (params?.showTimeAxis ?? true) ? height * 1.25 + scaled(9) : 0
 	};
 }
 
@@ -186,20 +187,20 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
 			const useColor = onset.secondary ? color('text', .6) : color('white');
-			const { height } = measureZero();
+			const { height } = measureDigit();
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
-			u.ctx.font = font(0, true);
+			u.ctx.font = font(null, true);
 			u.ctx.textBaseline = 'top';
 			u.ctx.textAlign = 'right';
 			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
 			const label = params.showTimeAxis;
-			const lineY = (truncateY?.(u) ?? u.bbox.top / 2) + (label ? height  : 0);
+			const lineY = (truncateY?.(u) ?? u.bbox.top / 2) + (label ? height : 0);
 			u.ctx.moveTo(x, lineY);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 			label && u.ctx.fillText(onset.type || 'ons',
-				x + scaled(2), lineY - height - scaled(3));
+				x + scaled(2), lineY - height - scaled(2));
 			u.ctx.stroke();
 			u.ctx.restore();
 		}

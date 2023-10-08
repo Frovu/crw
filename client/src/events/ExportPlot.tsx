@@ -6,7 +6,7 @@ import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
 import { PlotsOverrides, Position, color, withOverrides } from '../plots/plotUtil';
-import { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
+import { TextTransform, ScaleParams, CustomScale, parseText } from '../plots/BasicPlot';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -207,12 +207,14 @@ async function doExportPlots(download: boolean=false) {
 }
 
 export function ExportControls() {
-	const {overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
+	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
 		inches, setInches, set, setTransform } = usePlotExportSate();
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
 
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
+
+console.log(parseText('km*s<sup>a<i>s</i>d-3</sup> sw'))
 
 	return <div style={{ padding: 4, fontSize: 14 }}>
 		<div style={{ display: 'flex', gap: 4, color: color('white') }}>
@@ -240,7 +242,7 @@ export function ExportControls() {
 		<PlotIntervalInput step={1}/>
 
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160, paddingTop: 4 }}>
-			{textTransform?.map(({ search, replace, id, enabled, style }) => <div key={id}
+			{textTransform?.map(({ search, replace, id, enabled }) => <div key={id}
 				title='Drag by the central arrow to change replacement order'
 				style={{ paddingRight: 10 }}>
 				<label><input type='checkbox' checked={enabled} onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
@@ -249,10 +251,11 @@ export function ExportControls() {
 				<div style={{ display: 'inline-block' }}><span style={{ cursor: 'move' }}>-&gt;</span>
 					<input type='text' style={{ width: 84, margin: '0 4px' }} placeholder='replace'
 						value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/></div>
-				<div style={{ display: 'inline-block' }}><label title='Make bold'>b<input type='checkbox' checked={style === 'bold'}
+				<div style={{ display: 'inline-block' }}>
+					{/* <label title='Make bold'>b<input type='checkbox' checked={style === 'bold'}
 					onChange={e => setTransform(id, { style: e.target.checked ? 'bold' : undefined })}/></label>
 				<label title='Make italic'>i<input type='checkbox' checked={style === 'italic'}
-					onChange={e => setTransform(id, { style: e.target.checked ? 'italic' : undefined })}/></label>
+					onChange={e => setTransform(id, { style: e.target.checked ? 'italic' : undefined })}/></label> */}
 				<span style={{ position: 'absolute', marginLeft: -2, marginTop: -4 }} className='CloseButton' onClick={() =>
 					set('textTransform', textTransform.filter(t => t.id !== id))}></span></div>
 			</div>)}

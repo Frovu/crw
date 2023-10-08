@@ -311,7 +311,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					...axisDefaults(params.showGrid),
 					ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
 					scale: 'y',
-					label: applyTextTransform(params.transformText)('effective longitude, deg'),
+					label: applyTextTransform('effective longitude, deg'),
 					values: (u, vals) => vals.map(v => v.toFixed(0)),
 					space: 48,
 					gap: 2,

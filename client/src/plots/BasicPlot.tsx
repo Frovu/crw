@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
-	drawShape, font, scaled, measureZero, getScaleOverride } from './plotUtil';
+	drawShape, font, scaled, measureDigit, getScaleOverride, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { Onset, MagneticCloud } from '../events/events';
@@ -12,7 +12,6 @@ import { LayoutContext } from '../Layout';
 export type TextTransform = {
 	search: string,
 	replace: string,
-	style?: 'bold'|'italic'
 };
 export type ScaleParams = {
 	min: number, max: number, bottom: number, top: number
@@ -22,7 +21,6 @@ export type BasicPlotParams = {
 	onsets?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
-	transformText?: TextTransform[],
 	stretch?: boolean,
 	showTimeAxis: boolean,
 	showMetaInfo: boolean
@@ -31,26 +29,74 @@ export type BasicPlotParams = {
 	showLegend: boolean
 };
 
-export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
-	return transforms?.reduce((txt, { search, replace }) => {
-		try {
-			return txt.replace(new RegExp(search, 'g'), replace);
-		} catch(e) {
-			return txt;
-		}
+export const applyTextTransform = (text: string) => {
+	return getParam('textTransform')?.reduce((txt, { search, replace }) => {
+		try { return txt.replace(new RegExp(search, 'ug'), replace); }
+		catch(e) { return txt; }
 	}, text) ?? text;
+};
+
+const styleTags = { b: 'bold', i: 'italic', sup: 'super', sub: 'sub' } as const;
+type TextNode = {
+	text: string,
+	styles: (typeof styleTags[keyof typeof styleTags])[],
+};
+export const parseText = (txt: string) => {
+	const style = (a: keyof typeof styleTags) => (styleTags[a]);
+	const split = (t: string, spl: string) => t.split(new RegExp(`${spl}(.*)`)).concat('').slice(0, 2);
+	const rec = (node: TextNode): TextNode[] => {
+		const { text, styles } = node;
+		if (!text)
+			return [];
+		const tagName = text.match(`<(${Object.keys(styleTags).join('|')})>`)?.[1] as keyof typeof styleTags;
+		if (!tagName)
+			return [node];
+		const tag = `<${tagName}>`, closing = `</${tagName}>`;
+		const [before, after] = split(text, tag);
+		const [inside, outside] = split(after, closing);
+		return [
+			...rec({ text: before, styles }),
+			...rec({ text: inside, styles: styles.concat(style(tagName)) }),
+			...rec({ text: outside, styles }),
+		];
+		
+	};
+	return rec({ text: txt, styles: [] });
+};
+
+export const applyStyles = (ctx: CanvasRenderingContext2D, styles: TextNode['styles']) => {
+	const style = (styles.includes('italic') ? 'italic' : '') + (styles.includes('bold') ? ' bold' : '');
+	const fSize = getParam('fontSize');
+	const size = (styles.includes('super') || styles.includes('sub')) ? Math.ceil(fSize * 3 / 4) : null;
+	ctx.font = font(size, true, style);
+	if (styles.includes('sub'))
+		ctx.translate(0, scaled(fSize / 8));
+	if (styles.includes('super'))
+		ctx.translate(0, -scaled(fSize / 3));
+};
+
+export const measureStyled = (ctx: CanvasRenderingContext2D, parts: TextNode[]) => {
+	const textWidth = parts.reduce((a, { text, styles }) => {
+		ctx.save();
+		applyStyles(ctx, styles);
+		const ww = ctx.measureText(text).width + ctx.getTransform().e;
+		ctx.restore();
+		return a + ww;
+	}, 0);
+	return textWidth;
 };
 
 function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
 	const captureOverrides = applyOverrides;
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
+		if (!params.showLegend) return;
 		const series = u.series.filter(s => s.show! && s.legend)
-			.map(s => ({ ...s, legend: applyTextTransform(params.transformText)(s.legend!) }));
+			.map(s => ({ ...s, legend: applyTextTransform(s.legend!) }));
 		if (!series.length) return;
 
 		const px = (a: number) => scaled(a * devicePixelRatio);
-		u.ctx.font = font(0, true);
+		u.ctx.font = font(null, true);
 		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
 		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
 		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
@@ -94,7 +140,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 	}, captureOverrides);
 }
 
-function drawCustomLabels(params: BasicPlotParams) {
+function drawCustomLabels() {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {
@@ -112,11 +158,13 @@ function drawCustomLabels(params: BasicPlotParams) {
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
 
-			const parts = !params.transformText ? rec() : rec().map(([text, stroke]) => {
-				return [applyTextTransform(params.transformText)(text), stroke] as [string, string];
+			const parts = rec().flatMap(([text, stroke]) => {
+				const nodes = parseText(applyTextTransform(text));
+				return nodes.map(n => ({ ...n, stroke }));
 			});
 
-			const fontSize = measureZero();
+			const fontSize = measureDigit();
+			const textWidth = measureStyled(u.ctx, parts);
 			const px = (a: number) => scaled(a * devicePixelRatio);
 			const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
 			const shiftX = Math.max(0, 2.5 - maxValLen) * fontSize.width;
@@ -124,8 +172,6 @@ function drawCustomLabels(params: BasicPlotParams) {
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
 			u.ctx.save();
-			u.ctx.font = font(0, true);
-			const textWidth = u.ctx.measureText(parts.reduce((a, b) => a + b[0], '')).width;
 			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
 			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
 			const targetY = (axis.distr === 3 ? (u.bbox.top + u.bbox.height/2)
@@ -144,10 +190,13 @@ function drawCustomLabels(params: BasicPlotParams) {
 			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'left';
 			let x = 0;
-			for (const [text, stroke] of parts) {
+			for (const { text, stroke, styles } of parts) {
+				u.ctx.save();
+				applyStyles(u.ctx, styles);
 				u.ctx.fillStyle = stroke;
 				u.ctx.fillText(text, x, 0);
 				x += u.ctx.measureText(text).width;
+				u.ctx.restore();
 			}
 			u.ctx.restore();
 		}
@@ -189,6 +238,8 @@ export type CustomScale = uPlot.Scale & {
 	positionValue?: { bottom: number, top: number },
 };
 
+const size = (panel?: Size) => panel ? ({ width: panel.width - 2, height: panel.height - 2 }) : ({ width: 600, height: 400 });
+
 export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
 	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
@@ -197,7 +248,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		queryFn
 	});
 
-	const { size } = useContext(LayoutContext) ?? { size: { width: 200, height: 100 } };
+	const panelSize = useContext(LayoutContext)?.size;
 	const defaultPos: DefaultPosition = (u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
 		y: u.bbox.top / scaled(1) });
@@ -206,8 +257,8 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 	const [ uplot, setUplot ] = useState<uPlot>();
 	useEffect(() => {
 		if (!uplot) return;
-		uplot.setSize({ ...size });
-	}, [params, uplot, size]);
+		uplot.setSize({ ...size(panelSize) });
+	}, [params, uplot, panelSize]);
 
 	const options = useCallback(() => {
 		const axes = getAxes(), series = getSeries();
@@ -215,7 +266,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		const padRight = axes.find(ax => ax.show === false && ax.side === 1) ? axSize : 0;
 		const uopts = userOptions?.();
 		return {
-			...size,
+			...size(panelSize),
 			pxAlign: true,
 			padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
 			legend: { show: params.interactive },
@@ -278,9 +329,9 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 					drawMagneticClouds(params),
 				] : []),
 				draw: [
-					drawCustomLabels(params),
+					drawCustomLabels(),
 					...(params.showMetaInfo && !uopts?.hooks?.drawAxes ? [drawOnsets(params)] : []),
-					...(params.showLegend ? [drawCustomLegend(params, legendPos, legendSize, defaultPos)] : []),
+					drawCustomLegend(params, legendPos, legendSize, defaultPos),
 					...(uopts?.hooks?.draw ?? [])
 				],
 				ready: [

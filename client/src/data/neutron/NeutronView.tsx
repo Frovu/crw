@@ -69,7 +69,7 @@ function plotOptions(stations: string[], levels: number[]) {
 		},
 		axes: [
 			{
-				font: font(-2),
+				font: font(),
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 				ticks: { stroke: color('grid'), width: 2 },
@@ -79,7 +79,7 @@ function plotOptions(stations: string[], levels: number[]) {
 				values: u => stations.map(s => s === (u as any)._prime ? s.toUpperCase() : s.toLowerCase()).map(s => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
-				font: font(-4),
+				font: font(),
 				stroke: color('text'),
 				grid: { show: true, stroke: color('grid'), width: 2 },
 			}
