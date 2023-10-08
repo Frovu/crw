@@ -78,17 +78,6 @@
 	left: 4px;
 }
 
-.ColumnsSelector {
-	transform: none;
-	display: grid;
-	grid-auto-flow: column;
-	padding: 1.5em 1em 1.5em 2em;
-	gap: 6px;
-	text-align: left;
-	max-height: 90vh;
-	overflow: scroll;
-}
-
 .Filters {
 	justify-content: left;
 	display: flex;
@@ -103,6 +92,7 @@
 	min-width: min(100%, 26ch);
 	max-width: min(100%, 46ch);
 	justify-content: left;
+	align-items: center;
 	text-align: left;
 }
 

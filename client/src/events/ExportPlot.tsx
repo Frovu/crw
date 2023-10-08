@@ -214,8 +214,6 @@ export function ExportControls() {
 
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
 
-console.log(parseText('km*s<sup>a<i>s</i>d-3</sup> sw'))
-
 	return <div style={{ padding: 4, fontSize: 14 }}>
 		<div style={{ display: 'flex', gap: 4, color: color('white') }}>
 			<button style={{ flex: 1, minWidth: 'max-content' }} onClick={() => doExportPlots()}>Open png</button>
@@ -241,25 +239,20 @@ console.log(parseText('km*s<sup>a<i>s</i>d-3</sup> sw'))
 		<div className='separator'></div>
 		<PlotIntervalInput step={1}/>
 
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 160, paddingTop: 4 }}>
+		<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4 }}>
 			{textTransform?.map(({ search, replace, id, enabled }) => <div key={id}
 				title='Drag by the central arrow to change replacement order'
-				style={{ paddingRight: 10 }}>
-				<label><input type='checkbox' checked={enabled} onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
-				<input type='text' style={{ width: 84, margin: '0 4px' }} placeholder='search'
+				style={{ color: !enabled ? color('text-dark') : 'unset', display: 'flex', gap: 4, flexFlow: 'row wrap', alignItems: 'center' }}>
+				<label style={{ minWidth: 'max-content' }}><input type='checkbox' checked={enabled} onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
+				<input disabled={!enabled} type='text' style={{ flex: 1, minWidth: '4em', maxWidth: '6em' }} placeholder='search'
 					value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
-				<div style={{ display: 'inline-block' }}><span style={{ cursor: 'move' }}>-&gt;</span>
-					<input type='text' style={{ width: 84, margin: '0 4px' }} placeholder='replace'
-						value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/></div>
-				<div style={{ display: 'inline-block' }}>
-					{/* <label title='Make bold'>b<input type='checkbox' checked={style === 'bold'}
-					onChange={e => setTransform(id, { style: e.target.checked ? 'bold' : undefined })}/></label>
-				<label title='Make italic'>i<input type='checkbox' checked={style === 'italic'}
-					onChange={e => setTransform(id, { style: e.target.checked ? 'italic' : undefined })}/></label> */}
-				<span style={{ position: 'absolute', marginLeft: -2, marginTop: -4 }} className='CloseButton' onClick={() =>
-					set('textTransform', textTransform.filter(t => t.id !== id))}></span></div>
+				<div style={{ flex: '2 10em', gap: 4, alignItems: 'center', minWidth: 'min(10em, 50%)', maxWidth: '20em', display: 'flex' }}><span style={{ cursor: 'move' }}>-&gt;</span>
+					<input disabled={!enabled} type='text' style={{ flex: 1, minWidth: 0 }} placeholder='replace'
+						value={replace} onChange={e => setTransform(id, { replace: e.target.value })}/>
+					<span style={{ marginLeft: -2, marginTop: -2 }} className='CloseButton' onClick={() =>
+						set('textTransform', textTransform.filter(t => t.id !== id))}></span></div>
 			</div>)}
-			<div style={{ textAlign: 'right', marginTop: -6, paddingRight: 4 }}><button title='Replace text in labels via Regular Expressions which are applied to labels parts'
+			<div style={{ textAlign: 'right', marginTop: -4, paddingRight: 4 }}><button title='Replace text in labels via Regular Expressions which are applied to labels parts'
 				className='TextButton' style={{ color: color('skyblue') }}
 				onClick={() => set('textTransform', (textTransform ?? []).concat({
 					search: '', replace: '', enabled: true, id: Date.now()

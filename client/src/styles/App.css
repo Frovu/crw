@@ -85,6 +85,10 @@ input:not([type='checkbox']), label > select {
 	border: 1px transparent solid;
 }
 
+input:not([type='checkbox']):disabled, label > select:disabled {
+	opacity: .7;
+}
+
 label > select {
 	border: 1px transparent solid;
 }
@@ -100,7 +104,6 @@ input:focus-visible, button:focus-visible, select:focus-visible {
 }
 
 input:disabled, button:disabled, select:disabled {
-	border-color: var(--color-text-dark);
 	color: var(--color-text-dark);
 }
 
