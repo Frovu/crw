@@ -238,7 +238,7 @@ export type CustomScale = uPlot.Scale & {
 	positionValue?: { bottom: number, top: number },
 };
 
-const size = (panel?: Size) => panel ? ({ width: panel.width - 2, height: panel.height - 2 }) : ({ width: 600, height: 400 });
+const calcSize = (panel?: Size) => panel ? ({ width: panel.width - 2, height: panel.height - 2 }) : ({ width: 600, height: 400 });
 
 export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
@@ -257,8 +257,9 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 	const [ uplot, setUplot ] = useState<uPlot>();
 	useEffect(() => {
 		if (!uplot) return;
-		uplot.setSize({ ...size(panelSize) });
+		uplot.setSize({ ...calcSize(panelSize) });
 	}, [params, uplot, panelSize]);
+	const size = () => calcSize(panelSize);
 
 	const options = useCallback(() => {
 		const axes = getAxes(), series = getSeries();
@@ -267,7 +268,6 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		const scaleOverrides = getParam('scalesParams');
 		const uopts = userOptions?.();
 		return {
-			...size(panelSize),
 			pxAlign: true,
 			padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
 			legend: { show: params.interactive },
@@ -350,7 +350,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-		<ExportableUplot {...{ options, data: query.data, onCreate: setUplot }}/>
+		<ExportableUplot {...{ size, options, data: query.data, onCreate: setUplot }}/>
 	</div>);
 
 }

@@ -9,6 +9,7 @@ import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
+import { Size } from '../util';
 
 type PlotEntryParams = {
 	options: () => uPlot.Options,
@@ -178,8 +179,8 @@ export function ExportPreview() {
 	</div>;
 }
 
-export function ExportableUplot({ options, data, onCreate }:
-{ options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+export function ExportableUplot({ size, options, data, onCreate }:
+{ size: () => Size, options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
@@ -188,7 +189,7 @@ export function ExportableUplot({ options, data, onCreate }:
 	const plot = useMemo(() => {
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
 		return <UplotReact {...{
-			options: opts, data: data as any, onCreate: u => {
+			options: { ...size(), ...opts }, data: data as any, onCreate: u => {
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
 					state.plots[layout.id] = { options, data, scales: {} };
 					for (const scl in u.scales) {
