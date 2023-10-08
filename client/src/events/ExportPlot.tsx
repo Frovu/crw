@@ -6,6 +6,7 @@ import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
 import { PlotsOverrides, Position, color, withOverrides } from '../plots/plotUtil';
+import { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
@@ -15,8 +16,6 @@ import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
-
-import { TextTransform, ScaleParams, BasicPlotParams, CustomScale } from '../plots/BasicPlot';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
@@ -92,7 +91,7 @@ type PlotEntryParams = {
 };
 
 type TranformEntry = TextTransform & { id: number, enabled: boolean };
-type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] }
+type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] };
 type PlotExportState = {
 	inches: number,
 	overrides: ActualOverrides,
@@ -292,7 +291,8 @@ export function ExportPreview() {
 	</div>;
 }
 
-export function ExportableUplot({ options, data, onCreate }: { options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+export function ExportableUplot({ options, data, onCreate }:
+{ options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
@@ -301,6 +301,7 @@ export function ExportableUplot({ options, data, onCreate }: { options: () => uP
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
 		return <UplotReact {...{
 			options: opts, data: data as any, onCreate: u => {
+				console.log(u.height)
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
 					state.plots[layout.id] = { options, data };
 					for (const scl in u.scales) {
@@ -311,7 +312,7 @@ export function ExportableUplot({ options, data, onCreate }: { options: () => uP
 				}));
 				onCreate?.(u);
 			} }}/>;
-	}, [controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]);
+	}, [controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
 	return plot;
 }
 

@@ -138,9 +138,9 @@ function Node({ id, size }: { id: string, size: Size }) {
 	const isRow = split === 'row';
 	const dim = isRow ? 'width' : 'height';
 	const propsA = { id: children![0],
-		size: { ...size, [dim]: size[dim] * ratio! - gapSize / 2 } };
+		size: { ...size, [dim]: Math.round(size[dim] * ratio! - gapSize / 2) } };
 	const propsB = { id: children![1],
-		size: { ...size, [dim]: size[dim] * (1 - ratio!) - gapSize / 2 } };
+		size: { ...size, [dim]: Math.round(size[dim] * (1 - ratio!) - gapSize / 2) } };
 
 	return <div style={{ ...size, position: 'relative',
 		display: 'flex', flexDirection: split, justifyContent: 'space-between' }}

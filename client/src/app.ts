@@ -71,7 +71,7 @@ export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: m
 		useContextMenu.setState(({ menu }) =>
 			({ menu: menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
 	};
-export const closeContextMenu = () => useContextMenu.setState({ menu: null });
+export const closeContextMenu = () => useContextMenu.setState(state => state.menu ? { menu: null } : state);
 
 export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
 
