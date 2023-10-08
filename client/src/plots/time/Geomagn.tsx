@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
-import { BasicPlot, basicDataQuery } from '../BasicPlot';
-import { BasicPlotParams, color } from '../plotUtil';
+import { BasicPlot, BasicPlotParams, basicDataQuery } from '../BasicPlot';
+import { color } from '../plotUtil';
 
 export type GeomagnParams = BasicPlotParams & {
 	useAp: boolean,
@@ -44,7 +44,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 		queryKey: ['geomagn', params.interval],
 		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		params,
-		axes: [
+		axes: () => [
 			{
 				label: 'Kp',
 				fullLabel: (params.useAp ? 'Ap' : 'Kp') + ' index',
@@ -64,7 +64,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				gap: 6,
 			},
 		],
-		series: [
+		series: () => [
 			{
 				show: !params.useAp,
 				label: 'Kp',

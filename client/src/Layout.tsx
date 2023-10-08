@@ -101,7 +101,7 @@ const splitNode = (nodeId: string, split: 'row'|'column') => useLayoutsStore.set
 	delete items[nodeId];
 });
 
-const useLayout = () => ({
+export const useLayout = () => ({
 	...useLayoutsStore(({ dragFrom, dragTo, list, active }) => {
 		const st = list[active];
 		if (!dragFrom || !dragTo)

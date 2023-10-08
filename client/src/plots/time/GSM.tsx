@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
-import { CustomScale, BasicPlot, basicDataQuery, CustomSeries } from '../BasicPlot';
-import { BasicPlotParams, PosRef, SizeRef, DefaultPosition, color, drawArrow, applyTextTransform, usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
+import { BasicPlot, BasicPlotParams, applyTextTransform, basicDataQuery, CustomScale, CustomSeries } from '../BasicPlot';
+import { PosRef, SizeRef, DefaultPosition, color, drawArrow, usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -149,7 +149,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 				ready: [ handleDrag ]
 			}
 		}),
-		axes: [{
+		axes: () => [{
 			label: 'A0',
 			fullLabel: `A0${params.useA0m ? 'm' : ''}${params.showAz ? ' & Az' : ''} var, %`,
 			position: params.showAxyVector ? [params.showAxy ? 1/8 : 0, 3/5] : [params.showAxy ? 1/4 : 0, 1],
@@ -168,7 +168,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			label: 'vec',
 			position: [1/2, 1],
 		}],
-		series: [{
+		series: () => [{
 			show: params.showAxy,
 			label: 'Axy',
 			legend: 'Axy (GSM, 10GV) var, %',

@@ -1,41 +1,15 @@
 import React, { MutableRefObject, useRef, useState } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
-
-import { MagneticCloud, Onset } from '../events/events';
 import UplotReact from 'uplot-react';
-
-export type TextTransform = {
-	search: string,
-	replace: string
-};
-export type ScaleParams = {
-	min: number, max: number, bottom: number, top: number
-};
-export type OverrideScales = {
-	[scale: string]: { }
-};
-
-export type BasicPlotParams = {
-	interval: [Date, Date],
-	onsets?: Onset[],
-	clouds?: MagneticCloud[],
-	interactive?: boolean,
-	transformText?: TextTransform[],
-	overrideScales?: { [scale: string]: ScaleParams },
-	scalesCallback?: (scale: string, para: ScaleParams) => void
-	stretch?: boolean,
-	showTimeAxis: boolean,
-	showMetaInfo: boolean
-	showGrid: boolean,
-	showMarkers: boolean,
-	showLegend: boolean
-};
+import { BasicPlotParams, ScaleParams, TextTransform } from './BasicPlot';
 
 export type PlotsOverrides = {
 	scale: number,
 	fontSize: number,
 	fontFamily?: string,
+	scalesParams?: { [key: string]: ScaleParams },
+	textTransform?: TextTransform[]
 };
 
 const defaultPlotsState: PlotsOverrides = {
@@ -62,18 +36,9 @@ export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
 	return applyOverrides?.[k] ?? defaultPlotsState[k];
 };
 
+export const getScaleOverride = (k: string) => getParam('scalesParams')?.[k];
 export const scaled = (a: number) => a * getParam('scale');
 export const getFontSize = () => Math.round(scaled(getParam('fontSize')));
-
-export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
-	return transforms?.reduce((txt, { search, replace }) => {
-		try {
-			return txt.replace(new RegExp(search, 'g'), replace);
-		} catch(e) {
-			return txt;
-		}
-	}, text) ?? text;
-};
 
 export function color(name: string, opacity=1) {
 	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';

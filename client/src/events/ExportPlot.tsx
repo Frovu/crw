@@ -5,16 +5,19 @@ import PlotIMF, { IMFParams } from '../plots/time/IMF';
 import PlotGSM, { GSMParams } from '../plots/time/GSM';
 import PlotGeoMagn, { GeomagnParams } from '../plots/time/Geomagn';
 import PlotCircles, { CirclesParams } from '../plots/time/Circles';
-import { BasicPlotParams, PlotsOverrides, Position, ScaleParams, TextTransform, color, withOverrides } from '../plots/plotUtil';
+import { PlotsOverrides, Position, color, withOverrides } from '../plots/plotUtil';
 import { PlotContext, plotPanelOptions } from './events';
 import { themeOptions } from '../app';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { LayoutContext, gapSize, useLayoutsStore } from '../Layout';
+import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
+
+
+import { TextTransform, ScaleParams, BasicPlotParams, CustomScale } from '../plots/BasicPlot';
 
 const trivialPlots = ['Solar Wind', 'SW Plasma', 'Cosmic Rays', 'CR Anisotropy', 'Geomagn', 'Ring of Stations'] as const;
 
@@ -26,7 +29,6 @@ type PlotSettings = {
 	id: number
 };
 
-type TranformEntry = TextTransform & { id: number };
 type PlotExportSettings = {
 	plotParams: Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'showTimeAxis'|'showMetaInfo'|'transformText'>,
 	theme: typeof themeOptions[number],
@@ -53,7 +55,6 @@ const defaultSettings = (): PlotExportSettings => ({
 		useTemperatureIndex: true,
 		showPrecursorIndex: true,
 		showBeta: true,
-		overrideScales: {},
 	},
 	showClouds: true,
 	theme: 'Dark',
@@ -91,13 +92,14 @@ type PlotEntryParams = {
 	data: (number | null)[][]
 };
 
+type TranformEntry = TextTransform & { id: number };
+type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] }
 type PlotExportState = {
 	inches: number,
-	overrides: PlotsOverrides,
-	plots: {
-		[nodeId: string]: PlotEntryParams,
-	},
-	set: <T extends keyof PlotsOverrides>(k: T, v: PlotsOverrides[T]) => void,
+	overrides: ActualOverrides,
+	scales: { [key: string]: ScaleParams },
+	plots: { [nodeId: string]: PlotEntryParams },
+	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void,
 	setInches: (v: number) => void,
 };
 
@@ -107,7 +109,7 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 		scale: 2,
 		fontSize: 14
 	},
-	plots: {},
+	scales: {}, plots: {},
 	set: (k, v) => set(state => { state.overrides[k] = v; }),
 	setInches: (v) => set(state => { state.inches = v; })
 })), {
@@ -264,11 +266,24 @@ export function ExportPreview() {
 
 export function ExportableUplot({ options, data, onCreate }: { options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
-	const plot = useMemo(() => <UplotReact {...{ options: options(), data: data as any, onCreate: u => {
-		if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
-			state.plots[layout.id] = { options, data }; }));
-		onCreate?.(u);
-	} }}/>, [options, data, layout?.id, onCreate]);
+	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
+ 	const { items } = useLayout();
+	const controlsPresent = !!Object.values(items).find(i => i.type === 'ExportControls');
+	const plot = useMemo(() => {
+		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
+		return <UplotReact {...{
+			options: opts, data: data as any, onCreate: u => {
+				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
+					state.plots[layout.id] = { options, data };
+					for (const scl in u.scales) {
+						const { positionValue, scaleValue }: CustomScale = u.scales[scl];
+						if (positionValue && scaleValue)
+							state.scales[scl] = { ...positionValue, ...scaleValue };
+					}
+				}));
+				onCreate?.(u);
+			} }}/>;
+	}, [controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]);
 	return plot;
 }
 
@@ -355,8 +370,6 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			] as [Date, Date],
 			showTimeAxis: true,
 			showMetaInfo: true,
-			scalesCallback: ((scale, para) => ( console.log(scale, para) as any) ||
-				setScales(st => ({ ...st, [scale]: para }))) as BasicPlotParams['scalesCallback']
 		};
 
 		return settings.plots.map(({ id, height, type, showMeta, showTime }) => ({ id, height, type, params: {
@@ -365,7 +378,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 	}, [plotContext, settings, shiftLeft, shiftRight]);
 
 	const setOverride = (scale: string, what: 'min'|'max'|'bottom'|'top'|'active') => (e: ChangeEvent<HTMLInputElement>) => {
-		const scales = settings.plotParams.overrideScales ?? {};
+		const scales = {} as any;
 		if (what === 'active') {
 			const { [scale]: _, ...filtered } = scales;
 			const newOv = e.target.checked ? { ...filtered, [scale]: autoScales[scale] } : filtered;
@@ -379,9 +392,7 @@ export default function PlotExportView({ escape }: { escape: () => void }) {
 			}
 		}
 	};
-	const effectiveScales = { ...autoScales, ...settings.plotParams.overrideScales } as { [scale: string]: ScaleParams & { active?: boolean } };
-	for (const sc in settings.plotParams.overrideScales)
-		effectiveScales[sc].active = true;
+	const effectiveScales = { ...autoScales } as { [scale: string]: ScaleParams & { active?: boolean } };
 
 	function Checkbox({ text, k }: { text: string, k: keyof PlotExportSettings['plotParams'] }) {
 		return <label style={{ margin: '0 6px', cursor: 'pointer' }}>{text}<input style={{ marginLeft: 4 }} type='checkbox' checked={settings.plotParams[k] as boolean} onChange={e => setParam(k, e.target.checked)}/></label>;

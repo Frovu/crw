@@ -1,10 +1,44 @@
 import { useState, useEffect, useMemo, MutableRefObject, useRef } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, clamp, useSize } from '../util';
-import { BasicPlotParams, DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
-	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size, applyTextTransform, drawShape, font, scaled, measureZero } from './plotUtil';
+import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
+	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
+	drawShape, font, scaled, measureZero, getScaleOverride } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
+import { Onset, MagneticCloud } from '../events/events';
+
+export type TextTransform = {
+	search: string,
+	replace: string,
+	style?: 'bold'|'italic'
+};
+export type ScaleParams = {
+	min: number, max: number, bottom: number, top: number
+};
+export type BasicPlotParams = {
+	interval: [Date, Date],
+	onsets?: Onset[],
+	clouds?: MagneticCloud[],
+	interactive?: boolean,
+	transformText?: TextTransform[],
+	stretch?: boolean,
+	showTimeAxis: boolean,
+	showMetaInfo: boolean
+	showGrid: boolean,
+	showMarkers: boolean,
+	showLegend: boolean
+};
+
+export const applyTextTransform = (transforms?: TextTransform[]) => (text: string) => {
+	return transforms?.reduce((txt, { search, replace }) => {
+		try {
+			return txt.replace(new RegExp(search, 'g'), replace);
+		} catch(e) {
+			return txt;
+		}
+	}, text) ?? text;
+};
 
 function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
@@ -154,8 +188,9 @@ export type CustomScale = uPlot.Scale & {
 	positionValue?: { bottom: number, top: number },
 };
 
-export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, series, params }:
-{ queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams, options?: () => Partial<uPlot.Options>, axes: CustomAxis[], series: CustomSeries[] }) {
+export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params }:
+{ queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
+	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
 	const query = useQuery({
 		queryKey,
 		queryFn
@@ -173,15 +208,11 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 	useEffect(() => {
 		if (!uplot) return;
 		uplot.setSize({ ...size });
-		for (const scl in uplot.scales) {
-			const scale: CustomScale = uplot.scales[scl];
-			if (scale.positionValue)
-				params.scalesCallback?.(scl, { ...scale.scaleValue!, ...scale.positionValue! });
-		}
 	}, [params, uplot, size]);
 
 	const plot = useMemo(() => {
 		const options = () => {
+			const axes = getAxes(), series = getSeries();
 			const axSize = axisDefaults(false).size as number + axisDefaults(false).labelSize!;
 			const padRight = axes.find(ax => ax.show === false && ax.side === 1) ? axSize : 0;
 			const uopts = userOptions?.();
@@ -197,7 +228,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes, serie
 				scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 					distr: ax.distr ?? 1,
 					...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
-						const override = params.overrideScales?.[ax.label];
+						const override = getScaleOverride(ax.label);
 						const [fmin, fmax] = ax.minMax ?? [null, null];
 						const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - .0001;
 						const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + .0001;

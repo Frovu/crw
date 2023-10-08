@@ -1,5 +1,5 @@
-import { BasicPlot, basicDataQuery } from '../BasicPlot';
-import { BasicPlotParams, color, superScript } from '../plotUtil';
+import { BasicPlot, BasicPlotParams, basicDataQuery } from '../BasicPlot';
+import { color, superScript } from '../plotUtil';
 
 export type SWParams = BasicPlotParams & {
 	useTemperatureIndex: boolean,
@@ -22,7 +22,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 				dir: 1
 			}]
 		} : {}),
-		axes: [
+		axes: () => [
 			{
 				label: 'Dp',
 				fullLabel: 'Dp, N/cm³' + (params.showBeta ? ' & beta' : ''),
@@ -39,7 +39,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 				...(!params.useTemperatureIndex && { values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '') })
 			},
 		],
-		series: [
+		series: () => [
 			{
 				label: 'Dp',
 				legend: 'Proton density, N/cm^3',

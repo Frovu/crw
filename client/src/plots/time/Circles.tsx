@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
-import { applyTextTransform, axisDefaults, BasicPlotParams, clickDownloadPlot, color, customTimeSplits, drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
+import { axisDefaults, clickDownloadPlot, color, customTimeSplits,
+	drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
+import { BasicPlotParams, applyTextTransform } from '../BasicPlot';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
 import uPlot from 'uplot';

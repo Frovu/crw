@@ -1,5 +1,5 @@
-import { BasicPlot, basicDataQuery, CustomSeries } from '../BasicPlot';
-import { BasicPlotParams, color } from '../plotUtil';
+import { BasicPlot, BasicPlotParams, basicDataQuery, CustomSeries } from '../BasicPlot';
+import { color } from '../plotUtil';
 
 export type IMFParams = BasicPlotParams & {
 	showBz: boolean,
@@ -11,7 +11,7 @@ export default function PlotIMF({ params }: { params: IMFParams }) {
 		queryKey: ['IMF', params.interval],
 		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 		params,
-		axes: [
+		axes: () => [
 			{
 				label: 'Vsw',
 				position: [1/2, 1],
@@ -25,7 +25,7 @@ export default function PlotIMF({ params }: { params: IMFParams }) {
 				whole: true,
 			}
 		],
-		series: [
+		series: () => [
 			{
 				label: 'Vsw',
 				legend: 'Vsw, km/s',
