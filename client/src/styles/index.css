@@ -68,6 +68,7 @@ input[type='checkbox'], select, button {
 }
 
 .CloseButton {
+	position: relative;
 	display: inline-block;
 	width: 1em;
 	height: 1em;

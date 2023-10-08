@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
-	drawShape, font, scaled, measureDigit, getScaleOverride, getParam, getFontSize } from './plotUtil';
+	drawShape, font, scaled, measureDigit, getScaleOverride, getParam } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { Onset, MagneticCloud } from '../events/events';
@@ -162,7 +162,7 @@ function drawCustomLabels() {
 				const nodes = parseText(applyTextTransform(text));
 				return nodes.map(n => ({ ...n, stroke }));
 			});
-
+			
 			const fontSize = measureDigit();
 			const textWidth = measureStyled(u.ctx, parts);
 			const px = (a: number) => scaled(a * devicePixelRatio);
