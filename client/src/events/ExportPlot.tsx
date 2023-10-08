@@ -103,7 +103,7 @@ function computePlotsLayout() {
 async function doRenderPlots() {
 	const { width, height, layout } = computePlotsLayout();
 	const { plots, inches, overrides } = usePlotExportSate.getState();
-	const { scale, fontSize } = overrides;
+	const { scale, fontSize, textTransform } = overrides;
 	const canvas = document.createElement('canvas');
 	canvas.width = width * scale * devicePixelRatio;
 	canvas.height = height * scale * devicePixelRatio;
@@ -117,6 +117,7 @@ async function doRenderPlots() {
 		const opts = {
 			...withOverrides(options, {
 				...overrides,
+				textTransform: textTransform?.filter(tr => tr.enabled),
 				fontSize: width / inches / 72 * fontSize
 			}),
 			width: Math.round(w),
@@ -237,12 +238,12 @@ export function ExportControls() {
 					value={Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25} onChange={e => setInches(e.target.valueAsNumber / (useCm ? 2.54 : 1))}/></label>
 				<label style={{ padding: '0 4px' }}>{useCm ? 'cm' : 'in'}
 					<input hidden type='checkbox' checked={useCm} onChange={(e) => setUseCm(e.target.checked)}/></label>,
-				<label style={{ paddingLeft: 4 }} title='Approximate resolution when shrinked to specified size'>Res: 
-					<select style={{ marginLeft: 2, width: 86 }} value={scale} onChange={e => set('scale', parseInt(e.target.value))}>
-						{[2,3,4,6,8,10,16].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} dpi</option>)}
-					</select></label></span>
+				<label style={{ paddingLeft: 4 }} title='Approximate resolution when shrinked to specified size'>
+					<select style={{ marginLeft: 2, marginRight: 2, width: 86 }} value={scale} onChange={e => set('scale', parseInt(e.target.value))}>
+						{[2,3,4,6,8,10,16].map(scl => <option key={scl} value={scl}>{(width * scl / inches).toFixed()} ppi</option>)}
+					</select><span style={{ color: color('text-dark') }}>({scale}x)</span></label></span>
 			</div>
-			<div style={{ color: color('text-dark') }}>image: {width*scale} x {height*scale} px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
+			<div style={{ color: color('text-dark'), paddingTop: 2 }}>image: {width*scale} x {height*scale} px, ≈ {(width * height * .74 * (scale - 1.2) / 1024 / 1024).toFixed(2)} MB</div>
 			<div className='separator'></div>
 			<PlotIntervalInput step={1}/>
 			<div className='separator'></div>
@@ -266,9 +267,10 @@ export function ExportControls() {
 							value={(Math.round(top*100)/100).toString().replace('0.', '.')}
 							onChange={setOverride(scl, 'top')}/></div>
 				</div>;})}
+			<div className='separator'/>
 			<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4, paddingRight: 8 }}
 				onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
-				<div style={{ textAlign: 'right', marginTop: -4, paddingRight: 4 }}>
+				<div style={{ textAlign: 'right', marginTop: -8, paddingRight: 4 }}>
 					<span title='Some characters, if thou mightst need em' style={{ userSelect: 'text', letterSpacing: 2,
 						fontSize: 16, paddingRight: 8, color: color('text-dark') }}>−+∓×⋅·∙⋆°</span>
 					<button title='Replace text in labels via Regular Expressions which are applied to labels parts'
