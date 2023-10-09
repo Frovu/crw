@@ -66,9 +66,9 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		font: font(),
 		labelFont: font(),
 		stroke: color('text'),
-		labelSize: height * 1.5 + scl * 2,
+		labelSize: height + scl * 1 + 1, 
 		labelGap: 0,
-		space: height * 2.5,
+		space: height * 2,
 		size: (width * 3) + scl * 10,
 		gap: scl,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
@@ -109,7 +109,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 		}),
 		space: width * 5,
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		size: (params?.showTimeAxis ?? true) ? height * 1.25 + scaled(9) : 0
+		size: (params?.showTimeAxis ?? true) ? height + scaled(8) + 1 : 0
 	};
 }
 
@@ -190,16 +190,16 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 			u.ctx.font = font(null, true);
-			u.ctx.textBaseline = 'top';
+			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'right';
 			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
 			const label = params.showTimeAxis;
-			const lineY = (truncateY?.(u) ?? u.bbox.top / 2) + (label ? height : 0);
+			const minTop = 2 + (label ? height  : 0);
+			const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 			u.ctx.moveTo(x, lineY);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
-			label && u.ctx.fillText(onset.type || 'ons',
-				x + scaled(2), lineY - height - scaled(2));
+			label && u.ctx.fillText(onset.type || 'ons', x + scaled(2), lineY);
 			u.ctx.stroke();
 			u.ctx.restore();
 		}

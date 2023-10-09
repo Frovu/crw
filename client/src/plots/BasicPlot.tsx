@@ -3,7 +3,7 @@ import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
 	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
-	drawShape, font, scaled, measureDigit, getParam } from './plotUtil';
+	drawShape, font, scaled, measureDigit, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { Onset, MagneticCloud } from '../events/events';
@@ -269,7 +269,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		const uopts = userOptions?.();
 		return {
 			pxAlign: true,
-			padding: [scaled(10), padRight, params.showTimeAxis ? 0 : scaled(8), 0],
+			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), 0],
 			legend: { show: params.interactive },
 			cursor: {
 				show: params.interactive,

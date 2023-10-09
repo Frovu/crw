@@ -81,7 +81,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 		})),
 		{
 			name: 'eventsAppLayouts',
-			partialize: ({ list }) => ({ list })
+			partialize: ({ list, active }) => ({ list, active })
 		}
 	)
 );
