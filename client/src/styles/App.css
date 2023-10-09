@@ -1,4 +1,23 @@
 
+.ColumnsSelector {
+	top: 8px;
+	left: 8px;
+	max-height: calc(100vh - 16px);
+	max-width: 80vw;
+	writing-mode: vertical-lr;
+	display: flex;
+	flex-flow: row wrap;
+	gap: 2px;
+}
+
+.ColumnsSelector > * {
+	writing-mode: horizontal-tb;
+	text-align: left;
+	width: 12em;
+	min-height: 1.5em;
+
+}
+
 .ContextMenu {
 	z-index: 5;
 	width: max-content;

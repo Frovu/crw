@@ -11,7 +11,7 @@ import { SWParams } from '../plots/time/SW';
 import { immer } from 'zustand/middleware/immer';
 
 export type EventsSettings = {
-	showColumns: string[],
+	shownColumns: string[],
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean,
@@ -19,11 +19,12 @@ export type EventsSettings = {
 	plotOffset: number[],
 	plotUnlistedEvents: boolean,
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
+	setColumns: (fn: ((cols: string[]) => string[])) => void
 	reset: () => void
 };
 
 const defaultSettings = {
-	showColumns: ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before',
+	shownColumns: ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before',
 		'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'],
 	showChangelog: false,
 	showAverages: true,
@@ -34,6 +35,19 @@ const defaultSettings = {
 	showMarkers: true,
 	showLegend: false,
 };
+
+export const useEventsSettings = create<EventsSettings>()(
+	persist(
+		set => ({
+			...defaultSettings,
+			set: (key, val) => set(state => ({ ...state, [key]: val })),
+			setColumns: (fn) => set(state => ({ ...state, shownColumns: fn(state.shownColumns) })),
+			reset: () => set(defaultSettings)
+		}), {
+			name: 'eventsAppSettings'
+		}
+	)
+);
 
 export type TableParams = {
 	showChangelog: boolean,
@@ -60,18 +74,6 @@ export const defaultPlotParams: CommonPlotParams = {
 	useTemperatureIndex: false,
 	rsmExtended: false
 };
-
-export const useEventsSettings = create<EventsSettings>()(
-	persist(
-		set => ({
-			...defaultSettings,
-			set: (key, val) => set(state => ({ ...state, [key]: val })),
-			reset: () => set(defaultSettings)
-		}), {
-			name: 'eventsAppSettings'
-		}
-	)
-);
 
 export type ColumnDef = {
 	name: string,
@@ -140,7 +142,7 @@ export const MainTableContext = createContext<{ data: DataRow[], columns: Column
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[],
 	apply: (data: DataRow[], sampleId: number) => DataRow[] }>({} as any);
 
-export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], averages: (null | number[])[], markers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], markers: null | string[] }>({} as any);
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 

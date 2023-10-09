@@ -33,10 +33,10 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-export default function TableView({ size }: { size: Size }) {
+export default function TableView({ size, averages }: { size: Size, averages: (null | number[])[] }) {
 	const { id: nodeId, params: { tableParams } } = useContext(LayoutContext)!;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
-	const { data, columns, averages, markers } = useContext(TableViewContext);
+	const { data, columns, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor } = useViewState();
 	const showChangelog = tableParams?.showChangelog && size.height > 300;
 	const showAverages = tableParams?.showAverages && size.height > 300;

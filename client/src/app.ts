@@ -8,17 +8,13 @@ import { color } from './plots/plotUtil';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
-	'openGenericsSelector': 'G',
 	'addFilter': 'F',
-	'removeFilter': 'R',
 	'exportPlot': 'E',
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
 	'plotPrevShown': 'Comma%<',
 	'plotNextShown': 'Period%<',
-	'switchViewPlots': 'H',
-	'switchHistCorr': 'J',
 	'switchTheme': 'T',
 	'switchLayout': 'L',
 	'commitChanges': 'Ctrl+S',

@@ -1,5 +1,5 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
-import { useEventListener, clamp, useSize } from '../util';
+import { useEventListener, clamp, useSize, dispatchCustomEvent } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout, { LayoutContext, ParamsSetter } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
@@ -18,6 +18,7 @@ import PlotGSM from '../plots/time/GSM';
 import SampleView from './Sample';
 import { useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
+import ColumnsSelector from './Columns';
 
 export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	const { plotOffset, set } = useEventsSettings();
@@ -58,6 +59,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 
 	return <>
 		{params.type === 'MainTable' && <>
+			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
+			<div className='separator'/>
 			{rowId != null && <>
 				<button onClick={() => setPlotId(() => rowId)}>Plot this event</button>
 				<div className='separator'/>
@@ -155,7 +158,7 @@ export function LayoutContent() {
 }
 
 function MainTablePanel() {
-	const { size } = useContext(LayoutContext)!;
+	const { size, params: { tableParams } } = useContext(LayoutContext)!;
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
@@ -193,6 +196,20 @@ function MainTablePanel() {
 		const closest = dir > 0 ? allData.slice(aIdx).find(search) : allData.slice(0, aIdx).findLast(search);
 		return closest?.[0] ?? null;
 	});
+	
+	const averages = useMemo(() => !tableParams?.showAverages ? [] : shownColumns.map((col, i) => {
+		if (col.type !== 'real') return null;
+		const sorted = shownData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
+		if (!sorted.length) return null;
+		const mid = Math.floor(sorted.length / 2);
+		const median = sorted.length % 2 === 0 ? ((sorted[mid-1] + sorted[mid]) / 2) : sorted[mid];
+		const sum = sorted.reduce((a, b) => a + b, 0);
+		const n = sorted.length;
+		const mean = sum / n;
+		const std = Math.sqrt(sorted.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+		const sem = std / Math.sqrt(n);
+		return [median, mean, std, sem];
+	}), [shownColumns, shownData, tableParams?.showAverages]);
 
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1, true));
@@ -207,13 +224,14 @@ function MainTablePanel() {
 	});
 
 	return <>
+		<ColumnsSelector/>
 		<SampleView ref={ref}/>
-		<TableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
+		<TableView averages={averages} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
 	</>;
 }
 
 function EventsView() {
-	const { showColumns, plotOffset, plotUnlistedEvents } = useEventsSettings();
+	const { shownColumns, plotOffset, plotUnlistedEvents } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
@@ -222,7 +240,7 @@ function EventsView() {
 	
 	const dataContext = useMemo(() => {
 		console.time('compute table');
-		const cols = columns.filter(c => showColumns.includes(c.id));
+		const cols = columns.filter(c => shownColumns.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
 		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci])) as typeof sampleData;
@@ -235,27 +253,13 @@ function EventsView() {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5  } as any;
 			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
 		}
-		const averages = cols.map((col, i) => {
-			if (col.type !== 'real') return null;
-			const sorted = renderedData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
-			if (!sorted.length) return null;
-			const mid = Math.floor(sorted.length / 2);
-			const median = sorted.length % 2 === 0 ? ((sorted[mid-1] + sorted[mid]) / 2) : sorted[mid];
-			const sum = sorted.reduce((a, b) => a + b, 0);
-			const n = sorted.length;
-			const mean = sum / n;
-			const std = Math.sqrt(sorted.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
-			const sem = std / Math.sqrt(n);
-			return [median, mean, std, sem];
-		});
 		console.timeEnd('compute table');
 		return {
-			averages,
 			data: idxs.map(i => renderedData[i]),
 			markers: markers && idxs.map(i => markers[i]),
 			columns: cols
 		};
-	}, [columns, sampleData, editingSample, sample, sort, showColumns]);
+	}, [columns, sampleData, editingSample, sample, sort, shownColumns]);
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
