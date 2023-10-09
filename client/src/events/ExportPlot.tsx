@@ -139,20 +139,6 @@ async function doRenderPlots() {
 	return canvas;
 }
 
-async function doExportPlots(download: boolean=false) {
-	const canvas = await doRenderPlots();
-
-	if (download) {
-		const a = document.createElement('a');
-		a.download = 'feid_compound_plot.png';
-		a.href = canvas.toDataURL()!;
-		return a.click();
-	}
-	canvas.toBlob(blob => {
-		blob && window.open(URL.createObjectURL(blob));
-	});
-}
-
 export function ExportPreview() {
 	const expState = usePlotExportSate();
 	const { overrides: { scale } } = expState;
@@ -213,8 +199,18 @@ export function ExportControls() {
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);
 
+	async function doExportPlots(download: boolean=false) {
+		const canvas = await doRenderPlots();
+		if (!download)
+			return canvas.toBlob(blob => blob && window.open(URL.createObjectURL(blob)));
+		const a = document.createElement('a');
+		const w = Math.round(inches * (useCm ? 2.54 : 1) / .25) * .25;
+		a.download = `feid_figure_${w.toString().replace('.', 'p')}_${useCm ? 'cm' : 'in'}.png`;
+		a.href = canvas.toDataURL()!;
+		return a.click();
+	}
 	const plotsScales = Object.keys(plots).filter(id =>
-		plotPanelOptions.includes(items[id].type as any)).map(id => plots[id].scales);
+		plotPanelOptions.includes(items[id]?.type as any)).map(id => plots[id].scales);
 	const scales: { [k: string]: ScaleParams } = Object.assign({}, ...plotsScales);
 	const effectiveScales = Object.entries(scales).map(([scl, params]) => ({ scl, ...(scalesParams?.[scl] ?? params) }));
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
