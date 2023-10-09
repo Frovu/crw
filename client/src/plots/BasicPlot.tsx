@@ -304,7 +304,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 					const { min, max } = scale.scaleValue!;
 					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
 				})),
-				values: (u, vals) => vals.map(v => v?.toString()),
+				values: (u, vals) => vals.map(v => v?.toString().replace('-', '−')),
 				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
 				scale: ax.label,
 				...ax,

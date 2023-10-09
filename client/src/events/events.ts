@@ -242,7 +242,11 @@ export const defaultLayouts: { [name: string]: Layout } = {
 		},
 		items: {
 			left: {
-				type: 'MainTable'
+				type: 'MainTable',
+				tableParams: {
+					showAverages: true,
+					showChangelog: false,
+				}
 			},
 			p1: {
 				type: 'IMF + Speed'

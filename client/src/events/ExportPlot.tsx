@@ -173,7 +173,8 @@ export function ExportableUplot({ size, options, data, onCreate }:
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
 
 	const plot = useMemo(() => {
-		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
+		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, 
+			textTransform: textTransform?.filter(tr => tr.enabled) });
 		return <UplotReact {...{
 			options: { ...size(), ...opts }, data: data as any, onCreate: u => {
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
