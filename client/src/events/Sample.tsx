@@ -1,5 +1,5 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
-import { AuthContext, logError } from '../app';
+import { AuthContext, logError, logMessage } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
@@ -77,7 +77,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const [nameInput, setNameInput] = useState<string | null>(null);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
-		() => mutate('remove', { onSuccess: () => setSample(null) }));
+		() => mutate('remove', { onSuccess: () => { setSample(null); logMessage('Sample deleted ' + sample); } }));
 	
 	const newName = (i: number=0): string => {
 		const name = 'New Sample #' + i;
@@ -173,7 +173,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
 			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
 				maxWidth: '12em', ...(unsavedChanges && { color: 'var(--color-active)' }) }}
-			onClick={() => mutate('update', { onSuccess: (smpl) => { setShow(false); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
+			onClick={() => mutate('update', { onSuccess: () =>{ setShow(false);
+				logMessage('Sample edited: '+sample.name); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
 		</div></>}
 		{filters.length > 0 && <div className='Filters' style={{ padding: '2px 0 2px 0' }}>
 			{filters.map(filter => <FilterCard key={filter.id} filter={filter}/>)}

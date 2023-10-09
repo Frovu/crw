@@ -59,7 +59,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	return <>
 		{params.type === 'MainTable' && <>
 			{rowId != null && <>
-				<button onClick={() => setPlotId(() => rowId)}>Show on plots</button>
+				<button onClick={() => setPlotId(() => rowId)}>Plot this event</button>
 				<div className='separator'/>
 			</>}
 			{column && <>

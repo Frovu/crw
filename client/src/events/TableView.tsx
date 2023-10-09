@@ -137,7 +137,8 @@ export default function TableView({ size }: { size: Size }) {
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
 	return ( 
-		<div style={{ border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
+		<div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
+			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
 			<div className='Table' style={{ position: 'relative' }} ref={ref}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
