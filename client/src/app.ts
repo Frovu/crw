@@ -19,7 +19,7 @@ export const KEY_COMB = {
 	'switchViewPlots': 'H',
 	'switchHistCorr': 'J',
 	'switchTheme': 'T',
-	'refetch': 'L',
+	'switchLayout': 'L',
 	'commitChanges': 'Ctrl+S',
 	'discardChanges': 'Ctrl+X'
 } as { [action: string]: string };
