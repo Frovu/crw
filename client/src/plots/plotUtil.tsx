@@ -108,8 +108,9 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		space: width * 5,
+		gap: scaled(-1),
 		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		size: (params?.showTimeAxis ?? true) ? height + scaled(8) + 1 : 0
+		size: (params?.showTimeAxis ?? true) ? height + scaled(6) + 1 : 0
 	};
 }
 
@@ -233,8 +234,8 @@ export function drawMagneticClouds(params: BasicPlotParams, truncateY?: (u: uPlo
 			u.ctx.save();
 			u.ctx.beginPath();
 			u.ctx.fillStyle = u.ctx.createPattern(patternCanvas, 'repeat')!;
-			const h = u.bbox.height, fromY = truncateY?.(u) ?? u.bbox.top;
-			u.ctx.fillRect(startX, fromY, endX - startX, truncateY?.(u) ? (h + u.bbox.top - truncateY(u)) : h);
+			const h = u.bbox.top + u.bbox.height - 2, fromY = truncateY?.(u) ?? 2;
+			u.ctx.fillRect(startX, fromY, endX - startX, truncateY?.(u) ? (h - truncateY(u)) : h);
 			u.ctx.fill();
 			u.ctx.restore();
 		}

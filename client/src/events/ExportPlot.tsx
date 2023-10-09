@@ -78,9 +78,8 @@ function computePlotsLayout() {
 		const { split, ratio, children } = tree[node]!;
 		const splitX = Math.floor(split === 'row' ? w * ratio - gapSize / 2 : 0);
 		const splitY = Math.floor(split === 'column' ? h * ratio - gapSize / 2 : 0);
-		const gapX = splitX && gapSize, gapY = splitY && gapSize; 
 		walk(x, y, splitX || w, splitY || h, children[0]);
-		walk(x + splitX, y + splitY, w - splitX - gapX, h - splitY - gapY, children[1]);
+		walk(x + splitX, y + splitY, w - splitX , h - splitY , children[1]);
 	};
 	walk(0, 0, root?.offsetWidth, root?.offsetHeight);
 
@@ -132,8 +131,6 @@ async function doRenderPlots() {
 			resolve(u);
 		}));
 		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
-		ctx.strokeStyle = 'cyan';
-		ctx.strokeRect(x, y, w, h);
 		upl.destroy();
 	}
 	return canvas;
