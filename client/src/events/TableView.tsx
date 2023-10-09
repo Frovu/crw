@@ -166,7 +166,7 @@ export default function TableView({ size }: { size: Size }) {
 						const rowChanges = wholeChangelog?.[row[0]];
 						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
 						return <tr style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}
-							key={row[0] as any}>
+							key={row[0]}>
 							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 								onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :

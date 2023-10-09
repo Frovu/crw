@@ -17,7 +17,7 @@ type LayoutTreeNode = {
 
 export type Layout = {
 	tree: { [key: string]: LayoutTreeNode | null },
-	items: { [key: string]: PanelParams }
+	items: { [key: string]: PanelParams | undefined }
 };
 
 type LayoutsState = {
@@ -29,7 +29,7 @@ type LayoutsState = {
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
-	finishDrag: (nodeId: string) => void,
+	finishDrag: () => void,
 }; 
 
 const defaultState = {
@@ -49,7 +49,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 			startDrag: nodeId => set(state =>
 				state.dragFrom === nodeId ? state : ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
 			dragOver: nodeId => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
-			finishDrag: nodeId => set(({ list, active, dragFrom, dragTo }) => {
+			finishDrag: () => set(({ list, active, dragFrom, dragTo }) => {
 				if (!dragFrom || !dragTo) return;
 				const items = list[active].items;
 				[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
@@ -72,7 +72,7 @@ export const resetLayout = () => useLayoutsStore.setState(({ list, active }) => 
 
 const setParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
 	const { items } = state.list[state.active];
-	items[nodeId][k] = typeof items[nodeId][k] == 'object' ? Object.assign(items[nodeId][k] as any, para) : para;
+	items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
 });
 
 const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
@@ -80,24 +80,27 @@ const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
 	const parent = Object.keys(tree).find(node => tree[node]?.children.includes(nodeId));
 	if (!parent) return state;
 	const otherNodeId = tree[parent]!.children.filter(ch => ch !== nodeId)[0];
-	items[parent] = items[otherNodeId];
+	if (items[otherNodeId])
+		items[parent] = items[otherNodeId];
 	tree[parent] = tree[otherNodeId];
 	delete tree[otherNodeId];
 	delete items[nodeId];
 	delete items[otherNodeId];
 });
 
-const splitNode = (nodeId: string, split: 'row'|'column') => useLayoutsStore.setState(state => {
+const splitNode = (nodeId: string, split: 'row'|'column', inverse?: boolean) => useLayoutsStore.setState(state => {
 	const { tree, items } = state.list[state.active];
-	const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString()); // meh
+	const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString());
 
+	if (tree[nodeId])
+		tree[aId] = tree[nodeId];
 	tree[nodeId] = {
 		split,
 		ratio: .5,
-		children: [aId, bId]
-	};
-	items[aId] = items[nodeId];
-	items[bId] = isPanelDuplicatable(items[nodeId].type!) ? { ...items[nodeId] } : {};
+		children: inverse ? [bId, aId] : [aId, bId] };
+	if (items[nodeId])
+		items[aId] = items[nodeId];
+	items[bId] = isPanelDuplicatable(items[nodeId]?.type) ? { ...items[nodeId] } : {};
 	delete items[nodeId];
 });
 
@@ -115,10 +118,10 @@ function Item({ id, size }: { id: string, size: Size }) {
 	const { items } = useLayout();
 	return <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
-		onMouseDown={() => isPanelDraggable(items[id].type!) && startDrag(id)}
+		onMouseDown={() => isPanelDraggable(items[id]?.type) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
-		onMouseUp={() => finishDrag(id)}>
-		{<LayoutContext.Provider value={{ id, size, params: items[id], setParams: (k, para) => setParams(id, k, para) }}>
+		onMouseUp={() => finishDrag()}>
+		{items[id] && <LayoutContext.Provider value={{ id, size, params: items[id]!, setParams: (k, para) => setParams(id, k, para) }}>
 			<LayoutContent/></LayoutContext.Provider>}
 		{!items[id]?.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
 			<LayoutContextMenu id={id}/></div></div>}
@@ -155,6 +158,7 @@ function Node({ id, size }: { id: string, size: Size }) {
 		<div style={{ ...size, [dim]: 12, position: 'absolute', zIndex: 2, userSelect: 'none',
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 			cursor: isRow ? 'col-resize' : 'row-resize' }}
+		onContextMenu={openContextMenu('layout', { nodeId: id })}
 		onMouseDown={e => { drag.current = { ratio, click: isRow ? e.clientX : e.clientY }; }}/>
 		<Node {...propsB}/>
 	</div>;
@@ -163,24 +167,26 @@ function Node({ id, size }: { id: string, size: Size }) {
 export function LayoutContextMenu({ id: argId }: { id?: string }) {
 	const { items, tree } = useLayout();
 	const id = useContextMenu(state => argId ?? state.menu?.detail?.nodeId);
-	if (!id || !items[id]) return null;
+	if (!id) return null;
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';
 	const type = items[id]?.type;
 	return <>
-		{!isFirstInRoot && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
-			onChange={e => setParams(id, 'type', e.target.value as any)}>
+		{items[id] && !isFirstInRoot && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
+			onChange={e => setParams(id, 'type', e.target.value as typeof allPanelOptions[number])}>
 			{type == null && <option value={'empty'}>Select panel</option>}
 			{allPanelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
 		</select>}
 		{!isFirstInRoot && type && <div className='separator'/>}
-		{type && <ContextMenuContent {...{ params: items[id], setParams: (key, para) => setParams(id, key, para) }}/>}
-		<div className='separator'/>
-		{type && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
-		{type && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
-		{id !== 'root' && !isFirstInRoot && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
+		{type && <ContextMenuContent {...{ params: items[id]!, setParams: (key, para) => setParams(id, key, para) }}/>}
+		{items[id] && <div className='separator'/>}
+		{!items[id] && <button onClick={() => splitNode(id, 'row', true)}>Split left</button>}
+		{(!items[id] || type) && <button onClick={() => splitNode(id, 'row')}>Split right</button>}
+		{!items[id] && <button onClick={() => splitNode(id, 'column', true)}>Split top</button>}
+		{(!items[id] || type) && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
+		{items[id] && id !== 'root' && !isFirstInRoot && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</>;
 }
 

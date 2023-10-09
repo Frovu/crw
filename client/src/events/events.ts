@@ -102,8 +102,8 @@ export const statPanelOptions = [ 'Histogram', 'Correlation', 'Epoch collision' 
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'Empty' ] as const;
 
-export const isPanelDraggable = (panel: string) => panel !== 'MainTable';
-export const isPanelDuplicatable = (panel: string) => statPanelOptions.includes(panel as any);
+export const isPanelDraggable = (panel?: string) => panel !== 'MainTable';
+export const isPanelDuplicatable = (panel?: string) => statPanelOptions.includes(panel as any);
 
 export type PanelParams = {
 	type?: typeof allPanelOptions[number],

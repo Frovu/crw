@@ -170,7 +170,7 @@ export function ExportableUplot({ size, options, data, onCreate }:
 	const layout = useContext(LayoutContext);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
-	const controlsPresent = !!Object.values(items).find(i => i.type === 'ExportControls');
+	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
 
 	const plot = useMemo(() => {
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform });
