@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from 'react-query';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
@@ -12,13 +12,14 @@ import OmniApp from './data/omni/Omni';
 import { AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, showError, themeOptions, useAppSettings, useContextMenu } from './app';
-import { LayoutContextMenu, LayoutNav, resetLayout } from './Layout';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor } from './app';
+import { LayoutContextMenu, LayoutNav, useLayoutsStore } from './Layout';
+import { defaultLayouts } from './events/events';
 
 const theQueryClient = new QueryClient();
 
 function ContextMenu() {
-	const queryClient = useQueryClient();
+	const { active, resetLayout } = useLayoutsStore();
 	const { menu } = useContextMenu();
 	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
 	
@@ -28,16 +29,47 @@ function ContextMenu() {
 		onMouseDown={e => { e.stopPropagation(); }}
 		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
 		{menu.type === 'app' && <>
-			<button onClick={() => queryClient.refetchQueries()}>Refetch all</button>
-			<button onClick={() => resetLayout()}>Reset layout</button>
+			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
 		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu/>}
 	</div>;
 }
 
+function Logs() {
+	const { log } = useAppSettings();
+	const [hover, setHover] = useState(false);
+	const [expand, setExpand] = useState(false);
+	const [show, setShow] = useState(true);
+	const last = log.at(-1);
+
+	useEffect(() => {
+		setShow(true);
+		const interval = setInterval(() => setShow(false),
+			['error', 'success'].includes(last?.type as any) ? 20000 : 5000);
+		return () => clearInterval(interval);
+	}, [last]);
+
+	useEventListener('mousedown', () => setExpand(false));
+	useEventListener('contextmenu', () => setExpand(false));
+
+	return <div style={{ flex: 1, maxWidth: '20em', position: 'relative' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+		{!expand && hover && <button className='TextButton' style={{ width: '100%' }}
+			onClick={() => setExpand(s => !s)}>show logs</button>}
+		{!expand && !hover && last && show && <div style={{ paddingLeft: 4,
+			color: last.type === 'info' ? 'var(--color-text-dark)' : logColor[last.type],
+			textOverflow: '".."', overflow: 'hidden', whiteSpace: 'nowrap' }}>{last.text}</div>}
+		{expand && <div style={{ position: 'absolute', width: '100%', left: 0, bottom: 0, display: 'flex', flexDirection: 'column-reverse',
+			maxHeight: '20em', backgroundColor: 'var(--color-bg)', padding: 2, border: '1px var(--color-border) solid', overflow: 'auto' }}>
+			{[...log].reverse().map(({ time, text, type }) => <div key={time + text} style={{ color: logColor[type] }}>
+				<span style={{ fontSize: 12 }}>{time.toISOString().split('T')[1].split('.')[0]}:</span> {text}
+			</div>)}
+		</div>}
+	</div>;
+}
+
 function App() {
-	const { error, theme, setTheme } = useAppSettings();
+	const { theme, setTheme } = useAppSettings();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -54,8 +86,6 @@ function App() {
 			none: 'Swan & Crow'
 		}[app]!;
 	}, [app]);
-
-	// TODO: reset settings
 
 	useEventListener('action+switchTheme', () => 
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
@@ -106,8 +136,8 @@ function App() {
 				</select>
 			</div>
 			{app === 'feid' && <LayoutNav/>}
-			{error && <div style={{ color: 'var(--color-red)', textAlign: 'left', flex: 1 }} onClick={() => showError(null)}>{error}</div>}
 			<div style={{ flex: 1 }}/>
+			<Logs/>
 			<div title='Application colors scheme'>
 				<select style={{ width: theme.length+4+'ch' }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
 					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}

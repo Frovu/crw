@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 import { clamp, useEventListener, useSize, Size } from './util';
 import { ContextMenuContent, LayoutContent } from './events/EventsApp';
 import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
-import { openContextMenu, useContextMenu } from './app';
+import { logMessage, openContextMenu, useContextMenu } from './app';
 import { color } from './plots/plotUtil';
 
 export const gapSize = 2;
@@ -30,6 +30,7 @@ type LayoutsState = {
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
 	finishDrag: () => void,
+	resetLayout: () => void,
 	copyLayout: (la: string) => void,
 	deleteLayout: (la: string) => void,
 	selectLayout: (la: string) => void,
@@ -61,6 +62,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 				set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; }),
 			selectLayout: layout => set(state => { if (state.list[layout]) state.active = layout; }),
 			deleteLayout: layout => set(state => {
+				logMessage('layout removed: ' + layout);
 				delete state.list[layout];
 				if (state.active === layout)
 					state.active = 'default'; }),
@@ -77,7 +79,10 @@ export const useLayoutsStore = create<LayoutsState>()(
 				state.list[name] = state.list[layout];
 				delete state.list[layout];
 				if (state.active === layout)
-					state.active = name; })
+					state.active = name; }),
+			resetLayout: () => set(({ list, active }) => {
+				logMessage('layout reset: ' + active);
+				if (defaultState.list[active]) list[active] = defaultState.list[active]; }),
 		})),
 		{
 			name: 'eventsAppLayouts',
@@ -88,9 +93,6 @@ export const useLayoutsStore = create<LayoutsState>()(
 
 export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
 export const LayoutContext = createContext<{ id: string, size: Size, params: PanelParams, setParams: ParamsSetter } | null>(null);
-
-export const resetLayout = () => useLayoutsStore.setState(({ list, active }) => {
-	if (defaultState.list[active]) list[active] = defaultState.list[active]; });
 
 const setParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
 	const { items } = state.list[state.active];
@@ -128,9 +130,9 @@ const splitNode = (nodeId: string, split: 'row'|'column', inverse?: boolean) => 
 
 export const useLayout = () => ({
 	...useLayoutsStore(({ dragFrom, dragTo, list, active }) => {
-		const st = list[active];
+		const st = list[active] ?? list.default;
 		if (!dragFrom || !dragTo)
-			return st;
+			return st; 
 		return { ...st, items: { ...st.items, [dragFrom]: st.items[dragTo], [dragTo]: st.items[dragFrom] } };
 	})
 });

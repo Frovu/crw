@@ -288,13 +288,8 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			},
 			right: {
 				split: 'column',
-				ratio: .5,
+				ratio: .4,
 				children: ['top', 'bottom']
-			},
-			top: {
-				split: 'column',
-				ratio: .6,
-				children: ['p1', 'p2']
 			},
 			bottom: {
 				split: 'column',
@@ -315,11 +310,8 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			preview: {
 				type: 'ExportPreview'
 			},
-			p1: {
-				type: 'IMF + Speed'
-			},
-			p2: {
-				type: 'SW Plasma',
+			top: {
+				type: 'IMF + Speed',
 				plotParams: {
 					showTimeAxis: false,
 				}

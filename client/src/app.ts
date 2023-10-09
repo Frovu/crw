@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
 import { TableMenuDetails } from './events/events';
 import { LayoutsMenuDetails } from './Layout';
+import { color } from './plots/plotUtil';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -27,26 +28,33 @@ export const KEY_COMB = {
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
 type AppSettings = {
-	error: null | string,
+	log: LogMessage[],
 	theme: typeof themeOptions[number],
 	setTheme: (theme: AppSettings['theme']) => void,
-	// set: <T extends keyof Settings>(key: T, val: Settings[T]) => void
 };
 
+export const logColor = {
+	error: color('red'),
+	info: color('text'),
+	debug: color('text-dark'),
+	success: color('green'),
+};
+type LogMessage = { time: Date, text: string, type: keyof typeof logColor };
 export const useAppSettings = create<AppSettings>()(
 	persist((set) => ({
-		error: null,
+		log: [],
 		theme: themeOptions[0],
 		setTheme: (theme) => set(state => ({ ...state, theme }))
-		// set: (key, val) => set(state => ({ ...state, [key]: val }))
 	}), {
 		name: 'crwAppSettings',
 		partialize: ({ theme }) => ({ theme })
 	})
 );
 
-export const showError = (err: null | string) => useAppSettings.setState(state =>
-	({ ...state, error: err?.toString() }));
+export const logMessage = (text: string, type: LogMessage['type']='info' ) =>
+	useAppSettings.setState(state => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) }));
+export const logError = (txt?: any) => {txt && logMessage(txt.toString(), 'error');};
+export const logSuccess = (txt?: any) => {txt && logMessage(txt.toString(), 'error');};
 
 type menuDetails = {
 	layout: LayoutsMenuDetails,

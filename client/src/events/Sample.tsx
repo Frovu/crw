@@ -1,5 +1,5 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
-import { AuthContext, showError } from '../app';
+import { AuthContext, logError } from '../app';
 import { apiPost, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
@@ -83,7 +83,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const name = 'New Sample #' + i;
 		return samples.find(s => s.name === name) ? newName(i + 1) : name; };
 	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
-	const { mutate, isLoading } = useMutation(async (action: 'create' | 'remove' | 'update') => 
+	const { mutate, isLoading } = useMutation(async (action: 'create' | 'remove' | 'update') =>
 		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(`events/samples/${action}`, (() => {
 			switch (action) {
 				case 'create': return {
@@ -92,7 +92,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				case 'remove': return { id: sample?.id };
 				case 'update': return stripFilters ?? {};
 			}
-		})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: showError });
+		})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: logError });
 
 	useEventListener('escape', () => setNameInput(null));
 

@@ -4,6 +4,7 @@ import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { ConfirmationPopup } from './TableMenu';
+import { logMessage } from '../app';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
 	// ************************************************************************************
@@ -77,6 +78,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
+		logMessage('Events table loaded', 'debug');
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,
