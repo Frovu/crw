@@ -77,7 +77,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const [nameInput, setNameInput] = useState<string | null>(null);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
-		() => mutate('remove', { onSuccess: () => { setSample(null); logMessage('Sample deleted ' + sample); } }));
+		() => mutate('remove', { onSuccess: () => { setSample(null); logMessage('Sample deleted: ' + sample?.name); } }));
 	
 	const newName = (i: number=0): string => {
 		const name = 'New Sample #' + i;

@@ -62,7 +62,7 @@ function Logs() {
 		{expand && <div style={{ position: 'absolute', width: '100%', left: 0, bottom: 0, display: 'flex', flexDirection: 'column-reverse',
 			maxHeight: '20em', backgroundColor: 'var(--color-bg)', padding: 2, border: '1px var(--color-border) solid', overflow: 'auto' }}>
 			{[...log].reverse().map(({ time, text, type }) => <div key={time + text} style={{ color: logColor[type] }}>
-				<span style={{ fontSize: 12 }}>{time.toISOString().split('T')[1].split('.')[0]}:</span> {text}
+				<span style={{ fontSize: 12 }}>{time.toLocaleTimeString('en-gb')}:</span> {text}
 			</div>)}
 		</div>}
 	</div>;
