@@ -22,6 +22,30 @@
 	align-items: center;
 }
 
+.GenericsControls {
+	display: flex;
+	align-items: end !important;
+	flex-direction: column;
+	border-left: 1px var(--color-border) solid;
+	font-size: 14px;
+	min-width: min-content;
+	height: 400px;
+	gap: 4px;
+	margin-left: 4px;
+	padding-left: 1em;
+}
+
+.GenericsControls > * {
+	display: flex;
+	justify-content: right;
+	align-items: center;
+}
+
+.GenericsControls select {
+	width: 11em;
+	margin-left: 4px;
+}
+
 .ContextMenu {
 	z-index: 5;
 	width: max-content;
@@ -102,17 +126,17 @@ button, select {
 	border: 1px var(--color-border) solid;
 }
 
-input:not([type='checkbox']), label > select {
+input:not([type='checkbox']), label > select, select.Borderless {
 	text-align: center;
 	background-color: var(--color-input-bg);
 	border: 1px transparent solid;
 }
 
-input:not([type='checkbox']):disabled, label > select:disabled {
+input:not([type='checkbox']):disabled, label > select:disabled, label > select.Borderless:disabled {
 	opacity: .7;
 }
 
-label > select {
+label > select, select.Borderless {
 	border: 1px transparent solid;
 }
 

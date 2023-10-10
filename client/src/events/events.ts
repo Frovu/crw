@@ -9,6 +9,7 @@ import { GeomagnParams } from '../plots/time/Geomagn';
 import { IMFParams } from '../plots/time/IMF';
 import { SWParams } from '../plots/time/SW';
 import { immer } from 'zustand/middleware/immer';
+import { GenericColumn } from './Columns';
 
 export type EventsSettings = {
 	shownColumns: string[],
@@ -88,14 +89,7 @@ export type ColumnDef = {
 	sqlName: string, // not unique across tables
 	hidden?: boolean,
 	isComputed: boolean,
-	generic?: {
-		id: number,
-		entity: string,
-		type: string,
-		series: string,
-		poi: string,
-		shift: number
-	},
+	generic?: GenericColumn,
 	parseName: null | string,
 	parseValue: null | { [key: string|number]: string|number|null }
 };

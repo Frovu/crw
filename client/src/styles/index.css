@@ -12,6 +12,7 @@
 }
 
 * {
+	-ms-box-sizing: border-box;
 	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
 	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
 	box-sizing: border-box;         /* Opera/IE 8+ */
@@ -22,10 +23,6 @@ body {
 }
 
 input, button, select {
-	-ms-box-sizing:content-box;
-	-moz-box-sizing:content-box;
-	-webkit-box-sizing:content-box; 
-	box-sizing:content-box;
 	background-color: var(--color-bg);
 	font-family: inherit;
 	font-size: inherit;
