@@ -5,6 +5,7 @@ import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { AuthContext } from '../app';
 
 const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
@@ -39,7 +40,7 @@ type GenericParamsValue = {
 	operation: typeof G_VALUE_OP[number],
 	reference: ReferencePoint,
 	boundary: ReferencePoint,
-	series?: string
+	series?: string // if not time_offset
 };
 type GenericParams = GenericParamsClone | GenericParamsCombine | GenericParamsValue;
 type GenericParamsOptions = { operation: typeof G_ALL_OPS[number] } & Omit<GenericParamsClone, 'operation'>
@@ -70,7 +71,8 @@ const useGenericsState = create<GenericsState>()(persist(immer(set => ({
 	set: (k, val) => set((state) => {
 		let inp = state.inputState;
 		if (k === 'operation') {
-			const type = (op?: any) => op === 'clone_column' ? 'clone' : G_VALUE_OP.includes(op) ? 'value' : 'combine';
+			const type = (op?: any) => op === 'clone_column' ? 'clone'
+				: op?.startsWith('time_offset') ? 'time': G_VALUE_OP.includes(op) ? 'value' : 'combine';
 			const typeChanged = type(inp?.operation) !== type(val);
 			state.inputState = inp = { ...(!typeChanged && inp), [k]: val };
 			if (typeChanged && val === 'clone_column')
@@ -101,7 +103,7 @@ const useGenericsState = create<GenericsState>()(persist(immer(set => ({
 	setPointSeries: (k, val) => set(({ inputState: { [k]: point } }) => { if (point?.type === 'extremum') point.series = val; }),
 })), {
 	name: 'feidGenericColumns',
-	partialize: ({ nicknames, inputState }) => ({ nicknames, inputState })
+	partialize: ({ nicknames }) => ({ nicknames })
 }));
 
 const entShort = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
@@ -110,6 +112,7 @@ const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pret
 	(pretty ? (entShort(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity));
 
 export default function ColumnsSelector() {
+	const { role } = useContext(AuthContext);
 	const { shownColumns, setColumns } = useEventsSettings();
 	const { tables: allTables, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
@@ -119,8 +122,9 @@ export default function ColumnsSelector() {
 
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
-	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any);
+	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
 	const isTime = operation?.startsWith('time_offset');
+	const isValid = (isClone && inputState.column) || (isCombine && inputState.column && inputState.other_column) || (isValue && inputState.series);
 	const columnOpts = (!isClone && !isCombine) ? null : columns
 		.filter(c => !c.hidden).map(({ id, fullName }) => [id, fullName]);
 
@@ -131,7 +135,7 @@ export default function ColumnsSelector() {
 	
 	const Select = <T extends GenericParams>({ txt, k, opts, required }:
 	{ txt: string, k: T extends T ? keyof T : never, opts: string[][], required?: boolean }) =>
-		<div style={{ paddingRight: 11 }}>{txt}:<select className='Borderless' style={!opts.find(o => o[0] === (inputState as T)[k]) ? { color: color('text-dark') } : {}} 
+		<div>{txt}:<select className='Borderless' style={!opts.find(o => o[0] === (inputState as T)[k]) ? { color: color('text-dark') } : {}} 
 			value={(inputState as T)[k] as any || 'null'}
 			onChange={e => set(k, e.target.value === 'null' ? undefined : e.target.value as any)}>
 			{!required && <option value='null'>-- None --</option>}
@@ -142,7 +146,7 @@ export default function ColumnsSelector() {
 		const isEvent = st?.type === 'event';
 		const isDefault = isEvent && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
 			.some((p) => st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
-		return <div style={{ minWidth: 'max-content' }}>
+		return <>
 			<select style={{ color: isDefault ? color('text-dark') : 'unset',
 				width: isEvent ? '16ch' : '7.5ch' }} className='Borderless'
 			value={isEvent ? refToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
@@ -161,7 +165,7 @@ export default function ColumnsSelector() {
 				+<input style={{ margin: '0 2px', width: '6ch' }} type='number' min={-48} max={48} step={1}
 					value={st?.hours_offset??0} onChange={e => setPointHours(k, e.target.valueAsNumber)}/>h</label>
 			
-		</div>;
+		</>;
 	};
 	return !open ? null : <>
 		<div className='PopupBackground' onClick={() => setOpen(false)}/>
@@ -182,20 +186,21 @@ export default function ColumnsSelector() {
 						{generic && <div className='CloseButton' onClick={() => ({a:1111111111111})}/>}
 					</div>)}
 			</Fragment>)}
-			<div className='GenericsControls'>
-				<b>Create custom column</b>
+			{role && <div className='GenericsControls'>
+				<h4 style={{ margin: 0, padding: '4px 2em 8px 0' }}>Create custom column</h4>
 				<Select txt='Type' k='operation' opts={G_ALL_OPS.map(t => [t, t])}/>
 				{(isClone || isCombine) && <Select txt='Column' k='column' opts={columnOpts!}/>}
 				{isCombine && <Select txt='Column' k='other_column' opts={columnOpts!}/>}
 				{isClone && <label>Offset, events:
 					<input style={{ width: 48, margin: '0 4px' }} type='number' step={1} min={-2} max={2}
 						value={inputState.entity_offset} onChange={e => set('entity_offset', e.target.valueAsNumber)}/></label>}
-				{G_VALUE_OP.includes(operation as any) && <>
+				{isValue && <>
 					{!isTime && <Select txt='Series' k='series' opts={Object.entries(seriesOpts)}/>}
-					<div>From<RefInput k='reference'/></div>
-					<div>To<RefInput k='boundary'/></div>
+					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>
+					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
-			</div>
+				{isValid && <div style={{ padding: '8px 11px' }}><button style={{ width: '11em' }}>Compute</button></div>}
+			</div>}
 			<div className='CloseButton' style={{ position: 'absolute', top: 2, right: 4 }} onClick={() => setOpen(false)}/>
 		</div>
 	</>;

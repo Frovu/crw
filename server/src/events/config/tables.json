@@ -2,8 +2,13 @@
 	"forbush_effects": {
 		"_constraint": "UNIQUE(time)",
 		"time": {
-			"not_null":true,
+			"not_null": true,
 			"dtype": "time",
+			"description": "Event onset time",
+			"parse_name": "Time"
+		},
+		"duration": {
+			"dtype": "integer",
 			"description": "Event onset time",
 			"parse_name": "Time"
 		},
@@ -20,84 +25,10 @@
 				"9": null
 			}
 		},
-		"magnitude": {
-			"pretty_name": "magnitude",
-			"description": "Range between min and max CR density variation correcetd for Dst, corrected for trend, in window from ons-2h to next event or ons+72h",
-			"generic": {
-				"type": "range",
-				"series": "a10m"
-			}
-		},
-		"v_before": {
-			"pretty_name": "V before",
-			"generic": {
-				"type": "value",
-				"series": "v_sw",
-				"poi": "forbush_effects",
-				"shift": -1
-			}
-		},
-		"v_max": {
-			"generic": {
-				"type": "max",
-				"series": "v_sw"
-			}
-		},
-		"b_before": {
-			"pretty_name": "B before",
-			"generic": {
-				"type": "value",
-				"series": "imf",
-				"poi": "forbush_effects",
-				"shift": -1
-			}
-		},
-		"b_max": {
-			"generic": {
-				"type": "max",
-				"series": "imf"
-			}
-		},
-		"bz_min": {
-			"generic": {
-				"type": "min",
-				"series": "bz"
-			}
-		},
-		"kp_max": {
-			"generic": {
-				"type": "max",
-				"series": "kp"
-			}
-		},
 		"vmbm": {
 			"computed": true,
 			"pretty_name": "VmBm",
 			"description": "Vmax / 400 * Bmax / 5"
-		},
-		"ap_max": {
-			"generic": {
-				"type": "max",
-				"series": "ap"
-			}
-		},
-		"dst_min": {
-			"generic": {
-				"type": "min",
-				"series": "dst"
-			}
-		},
-		"axy_max": {
-			"generic": {
-				"type": "max",
-				"series": "axy"
-			}
-		},
-		"az_range": {
-			"generic": {
-				"type": "range",
-				"series": "az"
-			}
 		},
 		"old_magnitude": {
 			"pretty_name": "_magnitude",
@@ -112,6 +43,25 @@
 		"comment": {
 			"dtype": "text",
 			"description": "Additional information"
+		}
+	},
+	"magnetic_clouds": {
+		"fe_id": {
+			"references": "forbush_effects"
+		},
+		"time": {
+			"not_null": true,
+			"dtype": "time",
+			"parse_name": "MCStartTime"
+		},
+		"originator": {
+			"dtype": "text"
+		},
+		"duration": {
+			"parse_name": "MCDur"
+		},
+		"size": {
+			"parse_name": "RMC"
 		}
 	},
 	"solar_sources": {
@@ -196,25 +146,6 @@
 		"magnitude": {
 			"parse_name": "Xmagn",
 			"description": "Maximum X-ray power (W/m/m)"
-		}
-	},
-	"magnetic_clouds": {
-		"fe_id": {
-			"references": "forbush_effects"
-		},
-		"time": {
-			"not_null": true,
-			"dtype": "time",
-			"parse_name": "MCStartTime"
-		},
-		"originator": {
-			"dtype": "text"
-		},
-		"duration": {
-			"parse_name": "MCDur"
-		},
-		"size": {
-			"parse_name": "RMC"
 		}
 	}
 }

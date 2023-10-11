@@ -17,7 +17,7 @@ Tables order is important
 
 Column parameters: 
 - `name` specifies the column name visible by user (equal to column_name by default)
-- `type` time|integer|real|text|enum, real by default
+- `dtype` time|integer|real|text|enum, real by default
 - `enum` [] an array of possible enum values
 - `generic` generic column parameters
 - `computed` true if column computes automatically
