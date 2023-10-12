@@ -5,10 +5,10 @@ import numpy as np
 
 from database import log, pool
 from routers.utils import get_role
-from events.generic_core import SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE
+from events.table import table_columns
+from events.generic_core import G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
+	MAX_DURATION_H
 
-def short_entity_name(name):
-	return ''.join([a[0].upper() for a in name.split('_')])
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
 
@@ -91,18 +91,18 @@ class GenericColumn:
 		pass
 		self.name = f'g__{self.id}'
 
-		series, poi = self.series and self.type not in DERIVED_TYPES and SERIES[self.series][2], ''
+		series, poi = self.series and self.type not in DERIVED_TYPES and G_SERIES[self.series][2], ''
 		if 'abs' in self.type:
 			series = f'abs({series})'
 		if self.poi in ENTITY_POI:
 			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
 		elif self.poi and self.type not in DERIVED_TYPES:
 			typ, ser = parse_extremum_poi(self.poi)
-			ser = SERIES[ser][2]
+			ser = G_SERIES[ser][2]
 			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
 		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
 
-		ser_desc = series and self.type not in DERIVED_TYPES and f'{SERIES[self.series][0]}({self.series})'
+		ser_desc = series and self.type not in DERIVED_TYPES and f'{G_SERIES[self.series][0]}({self.series})'
 		poi_desc = poi if self.poi != self.entity else "event onset"
 		if self.type in ['avg_value', 'value']:
 			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
@@ -193,7 +193,7 @@ def create_generic(uid, json_params, nickname=None, description=None, entity='fo
 		raise ValueError('Nickname too long')
 	if uid and get_role() not in ('operator', 'admin') and len(generics) > 24:
 		raise ValueError('Limit reached, please delete some other columns first')
-	if entity not in ENTITY or not p.operation:
+	if entity not in G_ENTITY or not p.operation:
 		raise ValueError('Unknown entity')
 	if op in G_OP_CLONE:
 		if not find_col(p.column):
@@ -206,7 +206,7 @@ def create_generic(uid, json_params, nickname=None, description=None, entity='fo
 		if not find_col(p.other_column):
 			raise ValueError('Column B not found')
 	elif op in G_OP_VALUE:
-		if op not in G_OP_TIME and p.series not in SERIES:
+		if op not in G_OP_TIME and p.series not in G_SERIES:
 			raise ValueError('Unknown series: '+str(p.series))
 		if 'abs_' in op and p.series in ['a10', 'a10m']:
 			raise ValueError('Absolute variation is nonsense')
@@ -214,14 +214,14 @@ def create_generic(uid, json_params, nickname=None, description=None, entity='fo
 			if ref.type == 'extremum':
 				if ref.operation not in G_EXTREMUM:
 					raise ValueError('Unknown type of extremum: '+str(ref.operation))
-				if ref.series not in SERIES:
+				if ref.series not in G_SERIES:
 					raise ValueError('Unknown series: '+str(ref.series))
 			elif ref.type == 'event':
 				if abs(int(ref.entity_offset)) > 4:
 					raise ValueError('Bad events offset')
-				if ref.entity not in EVENT:
+				if ref.entity not in G_EVENT:
 					raise ValueError('Not a valid entity: '+str(ref.entity))
-				if ref.end is not None and ref.entity not in ENTITY:
+				if ref.end is not None and ref.entity not in G_ENTITY:
 					raise ValueError('Entity does not have duration to set end')
 			else:
 				raise ValueError('Unknown ref point type: '+str(ref.type))
@@ -248,13 +248,5 @@ def remove_generic(uid, gid):
 		generic = GenericColumn.from_row(row)
 		conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
-
-def recompute_generics(generics, columns=None):
-	if not isinstance(generics, list):
-		generics = [generics]
-	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(compute_generic, generics, columns) \
-			if columns else executor.map(compute_generic, generics)
-	return any(res)
 
 _init()

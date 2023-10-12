@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import os, json, re
 from math import floor, ceil
 from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
 import requests, pymysql
 
 from database import log, pool, upsert_many
@@ -14,6 +15,7 @@ SPACECRAFT_ID = {
 	'dscovr': 81
 }
 
+omni_mutex = Lock()
 omni_columns = None
 all_column_names = None
 dump_info = None
@@ -207,25 +209,26 @@ def select(interval: [int, int], query=None, epoch=True):
 
 def ensure_prepared(interval: [int, int], trust=False):
 	global dump_info
-	if not trust:
-		if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
-			return dump_info
-		cov_from, cov_to = dump_info.get('from'), dump_info.get('to', interval[1])
-		res_from = min(cov_from, interval[0]) if cov_from else interval[0]
-		ffrom, fto = cov_to if cov_from and cov_from <= interval[0] else interval[0], interval[1]
-		log.info(f'Omni: beginning bulk fetch {ffrom}:{fto}')
-		batch_size = 3600 * 24 * 1000
-		with ThreadPoolExecutor(max_workers=4) as executor:
-			for start in range(ffrom, fto+1, batch_size):
-				end = start + batch_size
-				interv = [start, end if end < fto else fto]
-				executor.submit(obtain, 'omniweb', interv)
-		log.info('Omni: bulk fetch finished')
-	else:
-		res_from, fto = interval
-		log.info(f'Omni: force setting coverarge to {res_from}:{fto}')
+	with omni_mutex:
+		if not trust:
+			if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
+				return dump_info
+			cov_from, cov_to = dump_info.get('from'), dump_info.get('to', interval[1])
+			res_from = min(cov_from, interval[0]) if cov_from else interval[0]
+			ffrom, fto = cov_to if cov_from and cov_from <= interval[0] else interval[0], interval[1]
+			log.info(f'Omni: beginning bulk fetch {ffrom}:{fto}')
+			batch_size = 3600 * 24 * 1000
+			with ThreadPoolExecutor(max_workers=4) as executor:
+				for start in range(ffrom, fto+1, batch_size):
+					end = start + batch_size
+					interv = [start, end if end < fto else fto]
+					executor.submit(obtain, 'omniweb', interv)
+			log.info('Omni: bulk fetch finished')
+		else:
+			res_from, fto = interval
+			log.info(f'Omni: force setting coverarge to {res_from}:{fto}')
 
-	with open(dump_info_path, 'w', encoding='utf-8') as file:
-		dump_info = { 'from': int(res_from), 'to': int(fto), 'at': int(datetime.now().timestamp()) }
-		json.dump(dump_info, file)
+		with open(dump_info_path, 'w', encoding='utf-8') as file:
+			dump_info = { 'from': int(res_from), 'to': int(fto), 'at': int(datetime.now().timestamp()) }
+			json.dump(dump_info, file)
 	return dump_info

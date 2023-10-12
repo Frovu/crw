@@ -1,3 +1,6 @@
+import traceback
+from time import time
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from database import log, pool
 import data.omni.core as omni
@@ -17,10 +20,10 @@ G_OP_CLONE = ['clone_column']
 G_OP_COMBINE = ['diff', 'abs_diff']
 G_DERIVED = G_OP_CLONE + G_OP_COMBINE
 
-EVENT = [t for t in table_columns if 'time' in table_columns[t]]
-ENTITY = [t for t in EVENT if 'duration' in table_columns[t]]
+G_EVENT = [t for t in table_columns if 'time' in table_columns[t]]
+G_ENTITY = [t for t in G_EVENT if 'duration' in table_columns[t]]
 
-SERIES = { # order matters (no it does not)
+G_SERIES = { # order matters (no it does not)
 	'v_sw': ['omni', 'sw_speed', 'V'],
 	'd_sw': ['omni', 'sw_density', 'D'],
 	't_sw': ['omni', 'sw_temperature', 'T'],
@@ -43,11 +46,11 @@ SERIES = { # order matters (no it does not)
 	'ay': ['gsm', 'ay', 'Ay'],
 	'az': ['gsm', 'az', 'Az'],
 }
-SERIES = {**SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in SERIES.items() }}
+G_SERIES = {**G_SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in G_SERIES.items() }}
 
 def _select(t_from, t_to, series):
 	interval = [int(i) for i in (t_from, t_to)]
-	source, name, _ = SERIES[series]
+	source, name, _ = G_SERIES[series]
 	if source == 'omni':
 		return omni.select(interval, [name])[0]
 	else:
@@ -82,11 +85,10 @@ def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8'
 		return res[:,0], res[:,1], duration, t_time, t_dur
 
 # all data is presumed to be continuos
-def compute_generic(generic, col_name=None):
+def _do_compute(generic, col_name=None):
 	try:
-		column = col_name or generic.name
 		t_start = time()
-		log.info(f'Computing {column}')
+		log.info(f'Computing {generic.name}')
 		if generic.type in ['diff', 'abs_diff']:
 			event_id, value_0, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.series)
 			_, value_1, _,_,_ = _select_recursive(generic.entity, generic.entity, generic.poi)
@@ -108,7 +110,7 @@ def compute_generic(generic, col_name=None):
 				actual_series = generic.series[3:] if generic.series.startswith('$d_') else generic.series
 				t_data = time()
 				data_series = np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH, actual_series), dtype='f8') # 400 ms
-				log.debug(f'Got {actual_series} for {column} in {round(time()-t_data, 2)}s')
+				log.debug(f'Got {actual_series} for {generic.name} in {round(time()-t_data, 2)}s')
 				data_time, data_value = data_series[:,0], data_series[:,1]
 			else: data_series = None
 			length = len(event_id)
@@ -258,18 +260,35 @@ def compute_generic(generic, col_name=None):
 			rounding = 1 if 'time_to' in generic.type or 'coverage' == generic.type else 2
 			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
 
-		# FIXME return COALESCE
-		update_q = f'UPDATE events.{generic.entity} SET {column} = %s WHERE {generic.entity}.id = %s'
-		with pool.connection() as conn:
-			apply_changes(data[:,1], data[:,0], generic.entity, column, conn)
-			conn.cursor().executemany(update_q, data.tolist())
-			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [generic.id])
-		log.info(f'Computed {column} in {round(time()-t_start,2)}s')
-		return True
+		log.info(f'Computed {generic.name} in {round(time()-t_start,2)}s')
+		return data
 	except:
-		log.error(f'Failed at {column}: {traceback.format_exc()}')
-		return False
+		log.error(f'Failed at {generic.name}: {traceback.format_exc()}')
+		return None
 
+def _compute_generic(g):
+	data = _do_compute(g)
+	if data is None:
+		return False
+	t0 = time()
+	update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
+	with pool.connection() as conn:
+		apply_changes(data[:,1], data[:,0], g.entity, g.name, conn)
+		conn.cursor().executemany(update_q, data.tolist())
+		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
+	print('update', round(time() - t0, 3))
+	return True
+
+def recompute_generics(generics):
+	if not isinstance(generics, list):
+		generics = [generics]
+	with pool.connection() as conn:
+		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
+		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
+	omni.ensure_prepared([first - MAX_DURATION_S, last + MAX_DURATION_S])
+	with ThreadPoolExecutor(max_workers=4) as executor:
+		res = executor.map(_compute_generic, generics)
+	return any(res)
 
 def apply_changes(d_ids, d_values, entity, column, conn):
 	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 
@@ -281,10 +300,3 @@ def apply_changes(d_ids, d_values, entity, column, conn):
 		_, a_idx, b_idx = np.intersect1d(ids, d_ids, return_indices=True)
 		d_values[b_idx] = parsed[a_idx]
 		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {entity}.{column}')
-
-def compute_default_generics():
-	with pool.connection() as conn:
-		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
-		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
-	omni.ensure_prepared([first - 24 * HOUR, last + 72 * HOUR])
-	recompute_generics(list(PRESET_GENERICS.values()), PRESET_GENERICS.keys())

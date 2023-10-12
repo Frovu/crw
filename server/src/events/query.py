@@ -1,9 +1,9 @@
 from dataclasses import asdict
 from datetime import datetime, timezone
 from database import pool, log
-from events.table import table_columns, all_columns, select_from_root, column_id, ENTITY_SHORT
+from events.table import table_columns, all_columns, select_from_root, column_id
 from events.generic_columns import select_generics
-from events.generic_core import SERIES, G_DERIVED
+from events.generic_core import G_SERIES, G_DERIVED
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -40,7 +40,7 @@ def render_table_info(uid):
 				'is_own': uid == g.owner
 			}
 		}
-	series = { ser: SERIES[ser][2] for ser in SERIES }
+	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }
 
 def select_events(uid=None, root='forbush_effects', changelog=False):
