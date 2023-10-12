@@ -49,6 +49,8 @@ all_columns = []
 table_columns = {}
 
 def column_id(col):
+	if col is None:
+		return col
 	return f'{ENTITY_SHORT[col.entity]}_{col.name}'
 def parse_column_id(s):
 	for ent, short in ENTITY_SHORT.items():

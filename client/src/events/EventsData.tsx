@@ -15,7 +15,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const structureQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
-		queryKey: ['mainTableStructure'],
+		queryKey: ['tableStructure'],
 		queryFn: async () => {
 			const { tables, series } = await apiGet<{
 				tables: { [name: string]: { [name: string]: ColumnDef } },

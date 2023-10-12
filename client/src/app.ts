@@ -50,7 +50,7 @@ export const useAppSettings = create<AppSettings>()(
 export const logMessage = (text: string, type: LogMessage['type']='info' ) => queueMicrotask(() =>
 	useAppSettings.setState(state => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })));
 export const logError = (txt?: any) => {txt && logMessage(txt.toString(), 'error');};
-export const logSuccess = (txt?: any) => {txt && logMessage(txt.toString(), 'error');};
+export const logSuccess = (txt?: any) => {txt && logMessage(txt.toString(), 'success');};
 
 type menuDetails = {
 	layout: LayoutsMenuDetails,

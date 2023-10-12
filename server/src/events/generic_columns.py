@@ -1,3 +1,4 @@
+import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, asdict
 from datetime import datetime
@@ -7,7 +8,7 @@ from database import log, pool
 from routers.utils import get_role
 from events.table import table_columns
 from events.generic_core import G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
-	MAX_DURATION_H
+	MAX_DURATION_H, recompute_generics
 
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
@@ -32,6 +33,18 @@ class GenericParams:
 	other_column: str = None
 	entity_offset: int = None
 
+	def as_dict(self):
+		data = asdict(self)
+		for i in asdict(self):
+			if data[i] is None:
+				del data[i]
+		for ref in ['reference', 'boundary']:
+			if data.get(ref):
+				for i in asdict(self)[ref]:
+					if data[ref][i] is None:
+						del data[ref][i]
+
+		return data
 	@classmethod
 	def from_dict(cls, data):
 		gen = cls(**data)
@@ -58,6 +71,13 @@ class GenericColumn:
 		gen.params = GenericParams.from_dict(gen.params)
 		return gen
 
+	def as_dict(self):
+		data = asdict(self)
+		for i in asdict(self):
+			if data[i] is None:
+				del data[i]
+		del data['owner']
+		return data
 	@property
 	def name(self):
 		return f'g__{self.id}'
@@ -166,10 +186,9 @@ def _init():
 			params json not null,
 			nickname text,
 			description text)''')
-		# generics = select_generics(select_all=True)
-		# for generic in generics:
-		# 	_create_column(conn, generic)
-		# TODO: cleanup 
+		generics = select_generics(select_all=True)
+		for generic in generics:
+			_create_column(conn, generic)
 
 def select_generics(user_id=None, select_all=False):
 	with pool.connection() as conn:
@@ -178,20 +197,26 @@ def select_generics(user_id=None, select_all=False):
 			[] if user_id is None else [user_id]).fetchall()
 	result = [GenericColumn.from_row(row) for row in rows]
 	return result
+_init()
 
-def create_generic(uid, json_params, nickname=None, description=None, entity='forbush_effects'):
-	p = GenericParams.from_dict(json_params)
+def upset_generic(uid, json_body):
+	gid, entity, nickname, description = [json_body.get(i) for i in ('gid', 'entity', 'nickname', 'description')]
+	p = GenericParams.from_dict(json_body['params'])
 	op = p.operation
 	generics = select_generics(uid)
 
 	find_col = lambda c: table_columns[entity].get(c) or \
 		next((g for g in generics if g.entity == entity and g.name == c), None)
 
-	if found := next((g for g in generics if g.params == p), None):
+	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
+		raise ValueError('Trying to edit generic that does not exist')
+	if gid and found.owner != uid and get_role() != 'admin':
+		raise ValueError('Forbidden')
+	if not gid and (found := next((g for g in generics if g.params == p), None)):
 		raise ValueError('Such column already exists: '+found.pretty_name)
 	if nickname is not None and len(nickname) > 32:
 		raise ValueError('Nickname too long')
-	if uid and get_role() not in ('operator', 'admin') and len(generics) > 24:
+	if not gid and uid and get_role() not in ('operator', 'admin') and len(generics) > 24:
 		raise ValueError('Limit reached, please delete some other columns first')
 	if entity not in G_ENTITY or not p.operation:
 		raise ValueError('Unknown entity')
@@ -231,13 +256,20 @@ def create_generic(uid, json_params, nickname=None, description=None, entity='fo
 		raise ValueError('Unknown operation')
 
 	with pool.connection() as conn:
-		row = conn.execute('INSERT INTO events.generic_column ' +\
-			'(entity, owner, params, nickname, descrption) VALUES (%s,%s,%s,%s,%s) RETURNING *',
-			[entity, uid, asdict(p), nickname, description]).fetchone()
-		generic = GenericColumn.from_row(row)
-		_create_column(conn, generic)
-		recompute_generics(generic)
-	log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+		if gid is None:
+			row = conn.execute('INSERT INTO events.generic_columns ' +\
+				'(entity, owner, params, nickname, description) VALUES (%s,%s,%s,%s,%s) RETURNING *',
+				[entity, uid, json.dumps(p.as_dict()), nickname, description]).fetchone()
+			generic = GenericColumn.from_row(row)
+			_create_column(conn, generic)
+			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+		else:
+			row = conn.execute('UPDATE events.generic_columns SET ' +\
+				'params=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
+				[json.dumps(p.as_dict()), nickname, description, gid]).fetchone()
+			generic = GenericColumn.from_row(row)
+			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+		# recompute_generics(generic)
 	return generic
 
 def remove_generic(uid, gid):
@@ -248,5 +280,3 @@ def remove_generic(uid, gid):
 		generic = GenericColumn.from_row(row)
 		conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
-
-_init()

@@ -70,7 +70,6 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 			for root_id, entity, column, special, author, made_at, old_val, new_val in changes:
 				if root_id not in rendered:
 					rendered[root_id] = {}
-				name = column if column.startswith('g__') else column_id(table_columns[entity][column])
 
 				if column in table_columns[entity]:
 					name = column_id(table_columns[entity][column])
@@ -87,6 +86,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 					'old': old_val,
 					'new': new_val
 				})
+		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
 		return rows, fields, rendered if changelog else None
 
 def submit_changes(uid, changes, root='forbush_effects'):

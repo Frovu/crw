@@ -1,7 +1,7 @@
 import { useState, useRef, useContext, useLayoutEffect, ChangeEvent, useEffect } from 'react';
 import { clamp, useEventListener, Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
-	MainTableContext, useViewState, Cursor, prettyTable } from './events';
+	MainTableContext, useViewState, Cursor, prettyTable, shortTable } from './events';
 import { pickEventForSampe } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext } from '../Layout';
@@ -152,7 +152,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
 						{[...tables].map(([table, cls]) =>
 							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
-								<>{prettyTable(table)}</></div></td>)}
+								<>{cls.length > 1 ? prettyTable(table) : shortTable(table)}</></div></td>)}
 					</tr><tr>
 						{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
 							className='ColumnHeader' onClick={() => toggleSort(col.id)}

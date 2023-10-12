@@ -1,11 +1,12 @@
 import { Fragment, useContext, useState } from 'react';
-import { useEventListener } from '../util';
-import { MainTableContext, prettyTable, useEventsSettings } from './events';
+import { apiPost, useEventListener } from '../util';
+import { MainTableContext, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { AuthContext } from '../app';
+import { AuthContext, logError, logSuccess } from '../app';
+import { useMutation, useQueryClient } from 'react-query';
 
 const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
@@ -48,37 +49,36 @@ type GenericParamsOptions = { operation: typeof G_ALL_OPS[number] } & Omit<Gener
 
 export type GenericColumn = {
 	id: number,
+	entity: string,
 	is_public: boolean,
-	is_own: boolean,
 	nickname: string | null,
 	description: string | null,
 	params: GenericParams,
 };
 
-type GenericsState = {
-	id: number | null,
-	inputState: Partial<GenericParamsOptions>,
-	nicknames: { [gid: string]: string },
+type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
+	params: Partial<GenericParamsOptions>,
 	setGeneric: (g: GenericColumn) => void,
-	set: <K extends keyof GenericParamsOptions>(k: K, val?: GenericParamsOptions[K]) => void,
+	set: <K extends keyof GenericState>(k: K, val: GenericState[K]) => void,
+	setParam: <K extends keyof GenericParamsOptions>(k: K, val?: GenericParamsOptions[K]) => void,
 	setPoint: (k: 'reference'|'boundary', val: string) => void,
 	setPointHours: (k: 'reference'|'boundary', val: number) => void,
 	setPointSeries: (k: 'reference'|'boundary', val: string) => void,
 };
 const defaultRefPoint = { type: 'event', entity: 'forbush_effects', hours_offset: 0, entity_offset: 0 } as const as RefPointEvent;
 
-const useGenericsState = create<GenericsState>()(persist(immer(set => ({
-	id: null,
-	inputState: {},
-	nicknames: {},
-	setGeneric: g => set(state => { state.id = g.id; state.inputState = g.params; }),
-	set: (k, val) => set((state) => {
-		let inp = state.inputState;
+const useGenericState = create<GenericState>()(immer(set => ({
+	entity: defaultRefPoint.entity,
+	params: {},
+	setGeneric: g => set(state => { state.id = g.id; state.params = g.params; }),
+	set: (k, val) => set(state => { state[k] = val; }),
+	setParam: (k, val) => set((state) => {
+		let inp = state.params;
 		if (k === 'operation') {
 			const type = (op?: any) => op === 'clone_column' ? 'clone'
 				: op?.startsWith('time_offset') ? 'time': G_VALUE_OP.includes(op) ? 'value' : 'combine';
 			const typeChanged = type(inp?.operation) !== type(val);
-			state.inputState = inp = { ...(!typeChanged && inp), [k]: val };
+			state.params = inp = { ...(!typeChanged && inp), [k]: val };
 			if (typeChanged && val === 'clone_column')
 				inp.entity_offset = 0;
 			if (typeChanged && G_VALUE_OP.includes(val as any)) {
@@ -89,46 +89,46 @@ const useGenericsState = create<GenericsState>()(persist(immer(set => ({
 			inp[k] = val;
 		}
 	}),
-	setPoint: (k, val) => set(({ inputState }) => {
+	setPoint: (k, val) => set(({ params }) => {
 		const type = EXTREMUM_OP.includes(val as any) ? 'extremum' : 'event';
-		const inp = inputState[k];
+		const inp = params[k];
 		const hours_offset = inp?.hours_offset ?? 0;
 		if (type === 'extremum') {
 			const series = inp?.type === 'extremum' ? inp.series : 'min';
-			inputState[k] = { type, operation: val as any, hours_offset, series } ;
+			params[k] = { type, operation: val as any, hours_offset, series } ;
 		} else {
 			const entity = val.split('+').at(-1)!;
 			const end = val.includes('end+');
 			const entity_offset = val.includes('prev+') ? -1 :  val.includes('next+') ? 1 : 0;
-			inputState[k] = { type, entity, entity_offset, hours_offset, end };
+			params[k] = { type, entity, entity_offset, hours_offset, end };
 		}
 	}),
-	setPointHours: (k, val) => set(({ inputState: { [k]: point } }) => { if (point) point.hours_offset = val; }),
-	setPointSeries: (k, val) => set(({ inputState: { [k]: point } }) => { if (point?.type === 'extremum') point.series = val; }),
-})), {
-	name: 'feidGenericColumns',
-	partialize: ({ nicknames }) => ({ nicknames })
-}));
+	setPointHours: (k, val) => set(({ params: { [k]: point } }) => { if (point) point.hours_offset = val; }),
+	setPointSeries: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'extremum') point.series = val; }),
+})));
 
-const entShort = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
 	(pretty?['Prev ', '', 'Next ']:['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +
-	(pretty ? (entShort(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity));
+	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity));
 
 export default function ColumnsSelector() {
+	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const { shownColumns, setColumns } = useEventsSettings();
 	const { tables: allTables, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
 	const [open, setOpen] = useState(false);
-	const { inputState, id: gid, setGeneric, set, setPoint, setPointHours, setPointSeries } = useGenericsState();
-	const { operation } = inputState;
+	const [report, setReport] = useState<{ error?: string, success?: string }>({});
+	const genericSate = useGenericState();
+	const { params, entity, id: gid, setGeneric, set, setParam,
+		setPoint, setPointHours, setPointSeries } = genericSate;
+	const { operation } = params;
 
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
 	const isTime = operation?.startsWith('time_offset');
-	const isValid = (isClone && inputState.column) || (isCombine && inputState.column && inputState.other_column) || (isValue && inputState.series);
+	const isValid = (isClone && params.column) || (isCombine && params.column && params.other_column) || (isValue && (params.series || isTime));
 	const columnOpts = (!isClone && !isCombine) ? null : columns
 		.filter(c => !c.hidden).map(({ id, fullName }) => [id, fullName]);
 
@@ -136,17 +136,30 @@ export default function ColumnsSelector() {
 	useEventListener('action+openColumnsSelector', () => setOpen(o => !o));
 	const check = (id: string, val: boolean) =>
 		setColumns(cols => val ? cols.concat(id) : cols.filter(c => c !== id));
+
+	const { mutate: mutateGeneric } = useMutation(() =>
+		apiPost<{ generic: GenericColumn, time: number }>('events/generics', {
+			...genericSate })
+	, { onSuccess: ({ generic, time }) => {
+		queryClient.invalidateQueries(['tableStructure', 'tableData']);
+		setGeneric(generic);
+		setReport({ success: `Done in ${time} s` });
+		logSuccess((gid?'Created':'Modified') + ' generic #' + generic.id);
+	}, onError: (err: any) => {
+		setReport({ error: err.toString() });
+		logError('generic: ' + err.toString());
+	} });
 	
-	const Select = <T extends GenericParams>({ txt, k, opts, required }:
-	{ txt: string, k: T extends T ? keyof T : never, opts: string[][], required?: boolean }) =>
-		<div>{txt}:<select className='Borderless' style={!opts.find(o => o[0] === (inputState as T)[k]) ? { color: color('text-dark') } : {}} 
-			value={(inputState as T)[k] as any || 'null'}
-			onChange={e => set(k, e.target.value === 'null' ? undefined : e.target.value as any)}>
-			{!required && <option value='null'>-- None --</option>}
+	const Select = <T extends GenericParams>({ txt, k, opts }:
+	{ txt: string, k: T extends T ? keyof T : never, opts: string[][] }) =>
+		<div>{txt}:<select className='Borderless' style={!opts.find(o => o[0] === (params as T)[k]) ? { color: color('text-dark') } : {}} 
+			value={(params as T)[k] as any || 'null'}
+			onChange={e => setParam(k, e.target.value === 'null' ? undefined : e.target.value as any)}>
+			<option value='null'>-- None --</option>
 			{opts.map(([val, pretty]) => <option key={val} value={val}>{pretty}</option>)}
 		</select></div>;
 	const RefInput = ({ k }: { k: 'boundary'|'reference' }) => {
-		const st = inputState[k];
+		const st = params[k];
 		const isEvent = st?.type === 'event';
 		const isDefault = isEvent && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
 			.some((p) => st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
@@ -168,7 +181,6 @@ export default function ColumnsSelector() {
 			<label title='Offset in hours' style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('text-dark') : 'inherit' }}>
 				+<input style={{ margin: '0 2px', width: '6ch' }} type='number' min={-48} max={48} step={1}
 					value={st?.hours_offset??0} onChange={e => setPointHours(k, e.target.valueAsNumber)}/>h</label>
-			
 		</>;
 	};
 	return !open ? null : <>
@@ -192,18 +204,25 @@ export default function ColumnsSelector() {
 			</Fragment>)}
 			{role && <div className='GenericsControls'>
 				<h4 style={{ margin: 0, padding: '4px 2em 8px 0' }}>Create custom column</h4>
+				<div style={entity === defaultRefPoint.entity ? { color: color('text-dark') } : {}}>Entity:
+					<select className='Borderless' value={entity} onChange={e => set('entity', e.target.value)}>
+						{withDuration.map(tbl => <option key={tbl} value={tbl}>{prettyTable(tbl)}</option>)}
+					</select></div>
 				<Select txt='Type' k='operation' opts={G_ALL_OPS.map(t => [t, t])}/>
 				{(isClone || isCombine) && <Select txt='Column' k='column' opts={columnOpts!}/>}
 				{isCombine && <Select txt='Column' k='other_column' opts={columnOpts!}/>}
 				{isClone && <label>Offset, events:
 					<input style={{ width: 48, margin: '0 4px' }} type='number' step={1} min={-2} max={2}
-						value={inputState.entity_offset} onChange={e => set('entity_offset', e.target.valueAsNumber)}/></label>}
+						value={params.entity_offset} onChange={e => setParam('entity_offset', e.target.valueAsNumber)}/></label>}
 				{isValue && <>
 					{!isTime && <Select txt='Series' k='series' opts={Object.entries(seriesOpts)}/>}
 					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>
 					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
-				{isValid && <div style={{ padding: '8px 11px' }}><button style={{ width: '11em' }}>Compute</button></div>}
+				{isValid && <div style={{ padding: '8px 0' }}><button style={{ width: '11em' }}
+					onClick={() => mutateGeneric()}>Compute</button></div>}
+				{report.error && <div style={{ color: color('red'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.error}</div>}
+				{report.success && <div style={{ color: color('green'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.success}</div>}
 			</div>}
 			<div className='CloseButton' style={{ position: 'absolute', top: 2, right: 4 }} onClick={() => setOpen(false)}/>
 		</div>

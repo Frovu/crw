@@ -177,6 +177,7 @@ export type TableMenuDetails = {
 };
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
+export const shortTable = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
 
 export function equalValues(a: Value, b: Value) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;
