@@ -1,7 +1,7 @@
 import traceback
 import numpy as np
 from database import pool, log
-from events.generic_columns import apply_changes
+from events.generic_core import apply_changes
 
 def _compute_vmbm(entity='forbush_effects', column='vmbm'):
 	with pool.connection() as conn:

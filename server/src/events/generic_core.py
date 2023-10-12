@@ -1,5 +1,85 @@
+import numpy as np
 from database import log, pool
-from events.generic_columns import apply_changes
+import data.omni.core as omni
+from cream import gsm
+from events.table import table_columns
+
+HOUR = 3600
+MAX_DURATION_H = 72
+MAX_DURATION_S = MAX_DURATION_H * HOUR
+
+# Read Columns.tsx for generic params reference
+
+G_EXTREMUM = ['min', 'max', 'abs_min', 'abs_max']
+G_OP_TIME = ['time_offset', 'time_offset_%']
+G_OP_VALUE = G_OP_TIME + G_EXTREMUM +['mean', 'median', 'range', 'coverage']
+G_OP_CLONE = ['clone_column']
+G_OP_COMBINE = ['diff', 'abs_diff']
+G_DERIVED = G_OP_CLONE + G_OP_COMBINE
+
+EVENT = [t for t in table_columns if 'time' in table_columns[t]]
+ENTITY = [t for t in EVENT if 'duration' in table_columns[t]]
+
+SERIES = { # order matters (no it does not)
+	'v_sw': ['omni', 'sw_speed', 'V'],
+	'd_sw': ['omni', 'sw_density', 'D'],
+	't_sw': ['omni', 'sw_temperature', 'T'],
+	't_idx': ['omni', 'temperature_idx', 'Tidx'],
+	'imf': ['omni', 'imf_scalar', 'B'],
+	'bx': ['omni', 'imf_x', 'Bx'],
+	'by': ['omni', 'imf_y', 'By'],
+	'bz': ['omni', 'imf_z', 'Bz'],
+	'by_gsm': ['omni', 'imf_y_gsm', 'By_gsm'],
+	'bz_gsm': ['omni', 'imf_z_gsm', 'Bz_gsm'],
+	'beta': ['omni', 'plasma_beta', 'beta'],
+	'dst': ['omni', 'dst_index', 'Dst'],
+	'kp': ['omni', 'kp_index', 'Kp'],
+	'ap': ['omni', 'ap_index', 'Ap'],
+	'a10m': ['gsm', 'a10m', 'A0m'],
+	'a10': ['gsm', 'a10', 'A0'],
+	'axy': ['gsm', 'axy', 'Axy'], 
+	'phi_axy': ['gsm', 'phi_axy', 'φ(Axy)'],
+	'ax': ['gsm', 'ax', 'Ax'],
+	'ay': ['gsm', 'ay', 'Ay'],
+	'az': ['gsm', 'az', 'Az'],
+}
+SERIES = {**SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in SERIES.items() }}
+
+def _select(t_from, t_to, series):
+	interval = [int(i) for i in (t_from, t_to)]
+	source, name, _ = SERIES[series]
+	if source == 'omni':
+		return omni.select(interval, [name])[0]
+	else:
+		return gsm.select(interval, [name])[0]
+
+def apply_shift(a, shift, stub=np.nan):
+	if shift == 0:
+		return a
+	res = np.full_like(a, stub)
+	if shift > 0:
+		res[:-shift] = a[shift:]
+	else:
+		res[-shift:] = a[:shift]
+	return res
+
+def _select_recursive(entity, target_entity=None, target_column=None, dtype='f8', root='forbush_effects'):
+	query = [ (entity, 'id'), (target_entity, target_column) if target_column else (entity, 'time') ]
+	if entity in ENTITY_WITH_DURATION:
+		query.append((entity, 'duration'))
+	if target_entity and not target_column:
+		query.append((target_entity, 'time'))
+	if target_entity and not target_column and entity in ENTITY_WITH_DURATION:
+		query.append((target_entity, 'duration'))
+	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)' if 'time' == c else f'{e}.{c}' for e, c in query])
+	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} ORDER BY {entity}.time'
+	with pool.connection() as conn:
+		curs = conn.execute(select_query)
+		res = np.array(curs.fetchall(), dtype=dtype)
+		duration = res[:,query.index((entity, 'duration'))] if (entity, 'duration') in query else None
+		t_time = res[:,query.index((target_entity, 'time'))] if (target_entity, 'time') in query else None
+		t_dur = res[:,query.index((target_entity, 'duration'))] if (target_entity, 'duration') in query else None
+		return res[:,0], res[:,1], duration, t_time, t_dur
 
 # all data is presumed to be continuos
 def compute_generic(generic, col_name=None):
@@ -201,14 +281,6 @@ def apply_changes(d_ids, d_values, entity, column, conn):
 		_, a_idx, b_idx = np.intersect1d(ids, d_ids, return_indices=True)
 		d_values[b_idx] = parsed[a_idx]
 		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {entity}.{column}')
-
-def recompute_generics(generics, columns=None):
-	if not isinstance(generics, list):
-		generics = [generics]
-	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(compute_generic, generics, columns) \
-			if columns else executor.map(compute_generic, generics)
-	return any(res)
 
 def compute_default_generics():
 	with pool.connection() as conn:

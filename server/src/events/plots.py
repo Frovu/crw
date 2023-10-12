@@ -1,7 +1,7 @@
 from datetime import timedelta
 import numpy as np
 from database import pool
-from events.generic_columns import SERIES
+from events.generic_core import SERIES
 from cream.gsm import normalize_variation
 
 def epoch_collision(times: list[int], interval: [int, int], series: str):

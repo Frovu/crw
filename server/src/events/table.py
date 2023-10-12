@@ -1,4 +1,4 @@
-import json, os, logging
+import json, os
 from datetime import datetime
 from dataclasses import dataclass
 import numpy as np
@@ -47,6 +47,14 @@ select_from_root = {}
 tables_refs = {}
 all_columns = []
 table_columns = {}
+
+def column_id(col):
+	return f'{ENTITY_SHORT[col.entity]}_{col.name}'
+def parse_column_id(s):
+	for ent, short in ENTITY_SHORT.items():
+		if s.startswith(short + '_'):
+			return ent, s.replace(short + '_', '')
+	return list(table_columns.keys())[0], s
 
 def _init():
 	dirname = os.path.dirname(__file__)

@@ -3,8 +3,8 @@ from time import time
 import numpy as np
 from flask import Blueprint, request, session
 from events.plots import epoch_collision
-from events.table import ENTITY_SHORT, import_fds
-from events.generic_columns import recompute_generics, select_generics, add_generic, remove_generic, compute_default_generics
+from events.table import import_fds
+from events.generic_columns import recompute_generics, select_generics, create_generic, remove_generic
 from events import other_columns
 from events import samples
 from events import query
@@ -56,13 +56,13 @@ def _submit_changes():
 	query.submit_changes(uid, changes)
 	return msg('OK')
 
-@bp.route('/generics/add', methods=['POST'])
+@bp.route('/generics/create', methods=['POST'])
 @route_shielded
 @require_role('operator')
-def _add_generic():
+def _create_generic():
 	uid = session.get('uid')
 	start = time()
-	generic = add_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
+	generic = create_generic(uid, *[request.json.get(a) for a in ['entity', 'series', 'type', 'poi', 'shift']])
 	gid = ENTITY_SHORT[generic.entity] + '_' + generic.name
 	return { 'id': gid, 'name': generic.pretty_name, 'time': round(time() - start, 1) }
 

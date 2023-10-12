@@ -1,10 +1,9 @@
+from dataclasses import asdict
 from datetime import datetime, timezone
 from database import pool, log
-from events.table import table_columns, all_columns, select_from_root, ENTITY_SHORT
-from events.generic_columns import select_generics, SERIES, DERIVED_TYPES
-
-def column_id(col):
-	return f'{ENTITY_SHORT[col.entity]}_{col.name}'
+from events.table import table_columns, all_columns, select_from_root, column_id, ENTITY_SHORT
+from events.generic_columns import select_generics
+from events.generic_core import SERIES, G_DERIVED
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -27,22 +26,20 @@ def render_table_info(uid):
 				info[table][name]['description'] = col.description
 	for g in generics:
 		info[g.entity][g.name] = {
-			'id': column_id(g),
+			'id': g.name,
 			'name': g.pretty_name,
-			'type': 'real',
-			'description': g.description,
+			'type': g.data_type,
+			'description': g.desc,
 			'isComputed': True,
 			'generic': {
 				'id': g.id,
-				'entity': g.entity,
-				'type': g.type,
-				'series': g.series,
-				'poi': g.poi,
-				'shift': g.shift
+				'nickname': g.nickname,
+				'description': g.description,
+				'params': asdict(g.params),
+				'is_public': g.is_public,
+				'is_own': uid == g.owner
 			}
 		}
-		if uid in g.users:
-			info[g.entity][g.name]['user_generic_id'] = g.id
 	series = { ser: SERIES[ser][2] for ser in SERIES }
 	return { 'tables': info, 'series': series }
 
@@ -103,7 +100,7 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			found_generic = generics and next((g for g in generics if g.entity == entity and g.name == column), False)
 			if not found_column and not found_generic:
 				raise ValueError(f'Column not found: {column}')
-			if found_generic and found_generic.type in DERIVED_TYPES:
+			if found_generic and found_generic.type in G_DERIVED:
 				raise ValueError('Can\'t edit derived generics')
 			dtype = found_column.dtype if found_column else found_generic.data_type
 			new_value = value

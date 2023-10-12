@@ -48,7 +48,11 @@ type GenericParamsOptions = { operation: typeof G_ALL_OPS[number] } & Omit<Gener
 
 export type GenericColumn = {
 	id: number,
-	params: GenericParams
+	is_public: boolean,
+	is_own: boolean,
+	nickname: string | null,
+	description: string | null,
+	params: GenericParams,
 };
 
 type GenericsState = {
