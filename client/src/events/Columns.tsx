@@ -66,9 +66,9 @@ type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 };
 const defaultRefPoint = { type: 'event', entity: 'forbush_effects', hours_offset: 0, entity_offset: 0 } as const as RefPointEvent;
 
+const defaultState = { entity: defaultRefPoint.entity, params: {} };
 const useGenericState = create<GenericState>()(immer(set => ({
-	entity: defaultRefPoint.entity,
-	params: {},
+	...defaultState,
 	setGeneric: g => set(state => { Object.assign(state, g); }),
 	set: (k, val) => set(state => { state[k] = val; }),
 	setParam: (k, val) => set((state) => {
@@ -133,7 +133,6 @@ export default function ColumnsSelector() {
 	const original = oriColumn && oriColumn.generic;
 	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
 	const smhChanged = original && (paramsChanged || desc !== original.description || nickname !== original.nickname);
-	console.log(paramsChanged, desc, nickname, original)
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
@@ -158,6 +157,19 @@ export default function ColumnsSelector() {
 		const col = columns.find(c => c.generic?.id === genericId);
 		setReport({ error: err.toString() });
 		logError(`compute g#${genericId}(${col?.fullName}): ` + err.toString());
+	} });
+
+	const { mutate: deleteGeneric } = useMutation((genericId: number) =>
+		apiPost<{ time: number }>('events/generics/remove', { id: genericId })
+	, { onSuccess: ({ time }, genericId) => {
+		if (genericId === gid)
+			useGenericState.setState({ ...defaultState });
+		const col = columns.find(c => c.generic?.id === genericId);
+		queryClient.invalidateQueries('tableStructure');
+		logSuccess(`Deleted column ${col?.fullName ?? genericId}`);
+	}, onError: (err: any, genericId) => {
+		const col = columns.find(c => c.generic?.id === genericId);
+		logError(`delete g#${genericId}(${col?.fullName}): ` + err.toString());
 	} });
 
 	const { mutate: mutateGeneric } = useMutation((createNew: boolean) =>
@@ -220,12 +232,12 @@ export default function ColumnsSelector() {
 					<div key={id} style={{ color: generic ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em' }}
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}
-							onMouseDown={e => { if (e.button === 2) return generic && setGeneric(generic);
+							onMouseDown={e => { if (e.button !== 0) return generic && setGeneric(generic);
 								const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
 						{generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
 							title='Edit or clone column (RMB)' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
-						{generic && <div className='CloseButton' onClick={() => ({a:1111111111111})}/>}
+						{generic && <div className='CloseButton' onClick={() => deleteGeneric(generic.id)}/>}
 					</div>)}
 			</Fragment>)}
 			{role && <div className='GenericsControls'>
@@ -256,8 +268,9 @@ export default function ColumnsSelector() {
 					onClick={() => computeGeneric(oriColumn.generic!.id)}>Compute {oriColumn.fullName}</button></div>}
 				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
 					onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
-				{(!original || paramsChanged) && isValid && <div style={{ paddingLeft: '5em' }}><button style={{ width: '14em' }}
-					onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
+				{(!original || (paramsChanged && nickname !== original.nickname)) && isValid &&
+					<div style={{ paddingLeft: '5em' }}><button style={{ width: '14em' }}
+						onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
 				{report.error && <div style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
 					onClick={()=>setReport({})}>{report.error}</div>}
 				{report.success && <div style={{ color: color('green'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}

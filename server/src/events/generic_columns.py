@@ -272,9 +272,12 @@ def upset_generic(uid, json_body):
 
 def remove_generic(uid, gid):
 	with pool.connection() as conn:
-		row = conn.execute('DELETE FROM events.generic_columns WHERE id = %s RETURNING *', [uid, gid]).fetchone()
+		row = conn.execute('SELECT * FROM events.generic_columns WHERE id = %s', [gid]).fetchone()
 		if not row:
-			return
+			return ValueError('Not found')
 		generic = GenericColumn.from_row(row)
+		if generic.owner != uid and get_role() != 'admin':
+			return ValueError('Forbidden')
+		conn.execute('DELETE FROM events.generic_columns WHERE id = %s', [gid])
 		conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
 	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
