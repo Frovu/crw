@@ -3,7 +3,6 @@ import { apiPost, useEventListener } from '../util';
 import { MainTableContext, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { AuthContext, logError, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
@@ -53,6 +52,7 @@ export type GenericColumn = {
 	is_public: boolean,
 	nickname: string | null,
 	description: string | null,
+	pretty_name?: string,
 	params: GenericParams,
 };
 
@@ -124,6 +124,8 @@ export default function ColumnsSelector() {
 		setPoint, setPointHours, setPointSeries } = genericSate;
 	const { operation } = params;
 
+	const original = gid != null && columns.find(c => c.generic?.id === gid)?.generic;
+	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
@@ -137,9 +139,9 @@ export default function ColumnsSelector() {
 	const check = (id: string, val: boolean) =>
 		setColumns(cols => val ? cols.concat(id) : cols.filter(c => c !== id));
 
-	const { mutate: mutateGeneric } = useMutation(() =>
+	const { mutate: mutateGeneric } = useMutation((createNew: boolean) =>
 		apiPost<{ generic: GenericColumn, time: number }>('events/generics', {
-			...genericSate })
+			...genericSate, gid: createNew ? undefined : gid })
 	, { onSuccess: ({ generic, time }) => {
 		queryClient.invalidateQueries(['tableStructure', 'tableData']);
 		setGeneric(generic);
@@ -169,9 +171,9 @@ export default function ColumnsSelector() {
 			value={isEvent ? refToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
 				<option value='null' disabled>-- None --</option>
 				{EXTREMUM_OP.map(ext => <option key={ext} value={ext}>{ext.startsWith('abs_') ? `|${ext.slice(4)}|` : ext}</option>)}
-				{tables.flatMap((entity, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(entity_offset => 
-					(i === 0 || withDuration.includes(entity) ? [false, true] : [undefined])
-						.map(end => [false, true].map(p => refToStr({ entity, entity_offset, end }, p)))))
+				{tables.flatMap((ent, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(entity_offset => 
+					(i === 0 || withDuration.includes(ent) ? [false, true] : [undefined])
+						.map(end => [false, true].map(p => refToStr({ entity: ent, entity_offset, end }, p)))))
 					.map(([str, pretty]) => <option key={str} value={str}>{pretty}</option>)}
 			</select>
 			{st?.type === 'extremum' && <select className='Borderless' style={{ width: '10ch' }}
@@ -197,8 +199,8 @@ export default function ColumnsSelector() {
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}
 							onMouseDown={() => { const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
-						{generic && <button style={{ fontSize: 18, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
-							title='Copy parameters' className='TextButton' onClick={() => setGeneric(generic)}>c</button>}
+						{generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
+							title='Edit or clone column' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
 						{generic && <div className='CloseButton' onClick={() => ({a:1111111111111})}/>}
 					</div>)}
 			</Fragment>)}
@@ -219,8 +221,10 @@ export default function ColumnsSelector() {
 					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>
 					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
-				{isValid && <div style={{ padding: '8px 0' }}><button style={{ width: '11em' }}
-					onClick={() => mutateGeneric()}>Compute</button></div>}
+				{original && <div style={{ paddingTop: 8, paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
+					onClick={() => mutateGeneric(false)}>Modify {original.pretty_name}</button></div>}
+				{(!original || paramsChanged) && isValid && <div style={{ paddingTop: original ? 0 : 8, paddingLeft: '5em' }}><button style={{ width: '14em' }}
+					onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
 				{report.error && <div style={{ color: color('red'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.error}</div>}
 				{report.success && <div style={{ color: color('green'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.success}</div>}
 			</div>}

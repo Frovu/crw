@@ -18,7 +18,7 @@ _init()
 def select(uid=None):
 	with pool.connection() as conn:
 		curs = conn.execute('SELECT id, name, array(select login from users where uid = ANY(authors) order by login) as authors, public, filters, whitelist, blacklist ' + 
-		'FROM events.samples WHERE public' + ('' if uid is None else ' OR %s = ANY(authors)') + 'ORDER BY name', [] if uid is None else [uid])
+		'FROM events.samples WHERE public ' + ('' if uid is None else ' OR %s = ANY(authors)') + 'ORDER BY name', [] if uid is None else [uid])
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		return [{ f: val for val, f in zip(row, fields) } for row in rows]
 

@@ -64,17 +64,17 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 	</>);
 }
 
-export function AuthButton() {
+export function AuthNav() {
 	const [ hovered, setHovered ] = useState(0);
 	const { login, role, promptLogin } = useContext(AuthContext);
 	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'tableStructure', 'tableData']);
 
 	return (
-		<div style={{ cursor: 'pointer', width: '12em', textAlign: 'center' }}>
+		<div style={{ cursor: 'pointer', padding: '2px 8px', minWidth: '9em', textAlign: 'center' }}>
 			<div style={{ color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 				onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}
 				onClick={e => {e.stopPropagation(); login ? mutate({}) : promptLogin('login');}}>
-				{login ? (hovered ? 'log out?' : `user: ${login}`) : (hovered ? 'log in?' : 'not logged in')}
+				{login ? (hovered ? 'log out?' : `${login}:${role}`) : (hovered ? 'log in?' : 'not logged in')}
 			</div>
 			{login && <div style={{ color: hovered === 2 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 				onMouseEnter={() => setHovered(2)} onMouseLeave={() => setHovered(0)}

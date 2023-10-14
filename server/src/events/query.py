@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from datetime import datetime, timezone
 from database import pool, log
 from events.table import table_columns, all_columns, select_from_root, column_id
@@ -35,7 +34,8 @@ def render_table_info(uid):
 				'id': g.id,
 				'nickname': g.nickname,
 				'description': g.description,
-				'params': asdict(g.params),
+				'params': g.params.as_dict(),
+				'pretty_name': g.pretty_name,
 				'is_public': g.is_public,
 				'is_own': uid == g.owner
 			}
@@ -51,7 +51,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 		value = f'EXTRACT(EPOCH FROM {col})::integer' if column.dtype == 'time' else col
 		columns.append(f'{value} as {column_id(column)}')
 	for gen in generics:
-		columns.append(f'{gen.entity}.{gen.name} as {column_id(gen)}')
+		columns.append(f'{gen.entity}.{gen.name} as {gen.name}')
 	select_query = f'SELECT {root}.id as id,\n{", ".join(columns)}\nFROM {select_from_root[root]} ORDER BY ' +\
 		f'{root}.time' if 'time' in table_columns[root] else f'{root}.id'
 	with pool.connection() as conn:
@@ -91,7 +91,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 
 def submit_changes(uid, changes, root='forbush_effects'):
 	with pool.connection() as conn:
-		for change in changes:
+		for change in changes: # TODO: use column id like fe_something
 			root_id, entity, column, value = [change.get(w) for w in ['id', 'entity', 'column', 'value']]
 			if entity not in table_columns:
 				raise ValueError(f'Unknown entity: {entity}')

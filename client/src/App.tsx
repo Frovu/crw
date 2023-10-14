@@ -9,7 +9,7 @@ import TemperatureApp from './data/muon/Temperature';
 import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
-import { AuthWrapper } from './Auth';
+import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor } from './app';
@@ -135,6 +135,7 @@ function App() {
 					{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
 				</select>
 			</div>
+			<AuthNav/>
 			{app === 'feid' && <LayoutNav/>}
 			<div style={{ flex: 1 }}/>
 			<Logs/>

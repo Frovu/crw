@@ -1,5 +1,6 @@
 
 .ColumnsSelector {
+	font-size: 15px;
 	max-height: min(calc(100vh - 16px), 760px);
 	max-width: calc(100vw - 16px);
 	overflow: auto;
@@ -24,13 +25,14 @@
 
 .GenericsControls {
 	display: flex;
-	align-items: start !important;
+	align-items: flex-start !important;
 	flex-direction: column;
 	border-left: 1px var(--color-border) solid;
 	font-size: 14px;
 	min-width: min-content;
 	gap: 4px;
 	margin-left: 4px;
+	padding: 1em 0;
 }
 
 .GenericsControls > * {
