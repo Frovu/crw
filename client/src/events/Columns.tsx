@@ -125,14 +125,15 @@ export default function ColumnsSelector() {
 
 	useEffect(() => {
 		if (!report.error && !report.success) return;
-		const timeout = setTimeout(() => setReport({}), 5000);
+		const timeout = setTimeout(() => setReport({}), 10_000);
 		return () => clearTimeout(timeout);
 	}, [report]);
 
 	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
 	const original = oriColumn && oriColumn.generic;
-	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
-	console.log(original && JSON.stringify(original.params) !== JSON.stringify(params), original?.params, params)
+	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
+	const smhChanged = original && (paramsChanged || desc !== original.description || nickname !== original.nickname);
+	console.log(paramsChanged, desc, nickname, original)
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
@@ -146,6 +147,19 @@ export default function ColumnsSelector() {
 	const check = (id: string, val: boolean) =>
 		setColumns(cols => val ? cols.concat(id) : cols.filter(c => c !== id));
 
+	const { mutate: computeGeneric } = useMutation((genericId: number) =>
+		apiPost<{ time: number }>('events/generics/compute', { id: genericId })
+	, { onSuccess: ({ time }, genericId) => {
+		const col = columns.find(c => c.generic?.id === genericId);
+		queryClient.invalidateQueries('tableData');
+		setReport({ success: `Done in ${time} s` });
+		logSuccess(`Computed ${col?.fullName ?? genericId} in ${time} s`);
+	}, onError: (err: any, genericId) => {
+		const col = columns.find(c => c.generic?.id === genericId);
+		setReport({ error: err.toString() });
+		logError(`compute g#${genericId}(${col?.fullName}): ` + err.toString());
+	} });
+
 	const { mutate: mutateGeneric } = useMutation((createNew: boolean) =>
 		apiPost<{ generic: GenericColumn, time: number }>('events/generics', {
 			...genericSate, gid: createNew ? undefined : gid })
@@ -153,7 +167,7 @@ export default function ColumnsSelector() {
 		queryClient.invalidateQueries('tableStructure');
 		queryClient.invalidateQueries('tableData');
 		setGeneric(generic);
-		setReport({ success: `Done in ${time} s` });
+		setReport({ success: 'Done!' });
 		logSuccess((gid?'Modified':'Created') + ' generic ' + (oriColumn?.fullName ?? generic.nickname ?? generic.id));
 	}, onError: (err: any) => {
 		setReport({ error: err.toString() });
@@ -194,8 +208,9 @@ export default function ColumnsSelector() {
 		</>;
 	};
 	return !open ? null : <>
-		<div className='PopupBackground' onClick={() => setOpen(false)}/>
-		<div className='Popup ColumnsSelector'>
+		<div className='PopupBackground' onClick={() => setOpen(false)}
+			onContextMenu={e => { setOpen(false); e.stopPropagation(); e.preventDefault(); }}/>
+		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}>
 			{tables.map(table => <Fragment key={table}>
 				<button className='TextButton' onClick={() => setColumns(cols => [
 					...cols.filter(c => columns.find(cc => cc.id === c)?.table !== table),
@@ -236,12 +251,17 @@ export default function ColumnsSelector() {
 					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>
 					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
-				{original && <div style={{ paddingTop: 8, paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
+				<div style={{ height: 2 }}/>
+				{(oriColumn && !paramsChanged) && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
+					onClick={() => computeGeneric(oriColumn.generic!.id)}>Compute {oriColumn.fullName}</button></div>}
+				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
 					onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
-				{(!original || paramsChanged) && isValid && <div style={{ paddingTop: original ? 0 : 8, paddingLeft: '5em' }}><button style={{ width: '14em' }}
+				{(!original || paramsChanged) && isValid && <div style={{ paddingLeft: '5em' }}><button style={{ width: '14em' }}
 					onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
-				{report.error && <div style={{ color: color('red'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.error}</div>}
-				{report.success && <div style={{ color: color('green'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.success}</div>}
+				{report.error && <div style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
+					onClick={()=>setReport({})}>{report.error}</div>}
+				{report.success && <div style={{ color: color('green'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
+					onClick={()=>setReport({})}>{report.success}</div>}
 			</div>}
 			<div className='CloseButton' style={{ position: 'absolute', top: 2, right: 4 }} onClick={() => setOpen(false)}/>
 		</div>

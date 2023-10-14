@@ -73,11 +73,8 @@ class GenericColumn:
 
 	def as_dict(self):
 		data = asdict(self)
-		for i in asdict(self):
-			if data[i] is None:
-				del data[i]
 		data['params'] = self.params.as_dict()
-		del data['owner']
+		del data['owner'] # FIXME
 		return data
 	@property
 	def name(self):

@@ -57,38 +57,6 @@ def _submit_changes():
 	query.submit_changes(uid, changes)
 	return msg('OK')
 
-@bp.route('/generics', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def _create_generic():
-	uid = session.get('uid')
-	start = time()
-	generic = upset_generic(uid, request.json)
-	return { 'generic': generic.as_dict(), 'time': round(time() - start, 2) }
-
-@bp.route('/generics/remove', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def _remove_generic():
-	uid = session.get('uid')
-	gid = int(request.json.get('id'))
-	remove_generic(uid, gid)
-	return msg('OK')
-
-@bp.route('/generics/compute', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def _compute_generic():
-	uid = session.get('uid')
-	gid = int(request.json.get('id'))
-	generic = next((g for g in select_generics(uid) if g.id == gid), None)
-	if not generic:
-		return msg('Generic not found' ), 404
-	start = time()
-	if not recompute_generics(generic):
-		return msg('Failed miserably'), 500
-	return msg(f'Computed in {round(time() - start, 1)} s')
-
 @bp.route('/samples', methods=['GET'])
 @route_shielded
 def get_samples():
@@ -132,6 +100,37 @@ def update_sample():
 	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
 	return msg('OK')
 
+@bp.route('/generics', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _create_generic():
+	uid = session.get('uid')
+	start = time()
+	generic = upset_generic(uid, request.json)
+	return { 'generic': generic.as_dict(), 'time': round(time() - start, 3) }
+
+@bp.route('/generics/remove', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _remove_generic():
+	uid = session.get('uid')
+	gid = int(request.json.get('id'))
+	remove_generic(uid, gid)
+	return msg('OK')
+
+@bp.route('/generics/compute', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _compute_generic():
+	uid = session.get('uid')
+	gid = int(request.json.get('id'))
+	generic = next((g for g in select_generics(uid) if g.id == gid), None)
+	if not generic:
+		return msg('Generic not found' ), 404
+	start = time()
+	if not recompute_generics(generic):
+		return msg('Failed miserably'), 500
+	return { 'time': round(time() - start, 3) }
 
 @bp.route('/recompute_generics', methods=['POST'])
 @route_shielded

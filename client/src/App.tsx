@@ -91,6 +91,7 @@ function App() {
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
 
+	useEventListener('escape', closeContextMenu);
 	useEventListener('mousedown', closeContextMenu);
 	useEventListener('contextmenu', (e: PointerEvent) => { e.preventDefault(); closeContextMenu(); });
 	useEventListener('keydown', handleGlobalKeydown);
