@@ -1,4 +1,4 @@
-import { Fragment, useContext, useState } from 'react';
+import { Fragment, useContext, useEffect, useState } from 'react';
 import { apiPost, useEventListener } from '../util';
 import { MainTableContext, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
@@ -52,7 +52,6 @@ export type GenericColumn = {
 	is_public: boolean,
 	nickname: string | null,
 	description: string | null,
-	pretty_name?: string,
 	params: GenericParams,
 };
 
@@ -70,7 +69,7 @@ const defaultRefPoint = { type: 'event', entity: 'forbush_effects', hours_offset
 const useGenericState = create<GenericState>()(immer(set => ({
 	entity: defaultRefPoint.entity,
 	params: {},
-	setGeneric: g => set(state => { state.id = g.id; state.params = g.params; }),
+	setGeneric: g => set(state => { Object.assign(state, g); }),
 	set: (k, val) => set(state => { state[k] = val; }),
 	setParam: (k, val) => set((state) => {
 		let inp = state.params;
@@ -120,12 +119,20 @@ export default function ColumnsSelector() {
 	const [open, setOpen] = useState(false);
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const genericSate = useGenericState();
-	const { params, entity, id: gid, setGeneric, set, setParam,
+	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, setParam,
 		setPoint, setPointHours, setPointSeries } = genericSate;
 	const { operation } = params;
 
-	const original = gid != null && columns.find(c => c.generic?.id === gid)?.generic;
+	useEffect(() => {
+		if (!report.error && !report.success) return;
+		const timeout = setTimeout(() => setReport({}), 5000);
+		return () => clearTimeout(timeout);
+	}, [report]);
+
+	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
+	const original = oriColumn && oriColumn.generic;
 	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
+	console.log(original && JSON.stringify(original.params) !== JSON.stringify(params), original?.params, params)
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
@@ -143,10 +150,11 @@ export default function ColumnsSelector() {
 		apiPost<{ generic: GenericColumn, time: number }>('events/generics', {
 			...genericSate, gid: createNew ? undefined : gid })
 	, { onSuccess: ({ generic, time }) => {
-		queryClient.invalidateQueries(['tableStructure', 'tableData']);
+		queryClient.invalidateQueries('tableStructure');
+		queryClient.invalidateQueries('tableData');
 		setGeneric(generic);
 		setReport({ success: `Done in ${time} s` });
-		logSuccess((gid?'Created':'Modified') + ' generic #' + generic.id);
+		logSuccess((gid?'Modified':'Created') + ' generic ' + (oriColumn?.fullName ?? generic.nickname ?? generic.id));
 	}, onError: (err: any) => {
 		setReport({ error: err.toString() });
 		logError('generic: ' + err.toString());
@@ -197,15 +205,22 @@ export default function ColumnsSelector() {
 					<div key={id} style={{ color: generic ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em' }}
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}
-							onMouseDown={() => { const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
+							onMouseDown={e => { if (e.button === 2) return generic && setGeneric(generic);
+								const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
 						{generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
-							title='Edit or clone column' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
+							title='Edit or clone column (RMB)' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
 						{generic && <div className='CloseButton' onClick={() => ({a:1111111111111})}/>}
 					</div>)}
 			</Fragment>)}
 			{role && <div className='GenericsControls'>
 				<h4 style={{ margin: 0, padding: '4px 2em 8px 0' }}>Create custom column</h4>
+				{(original || isValid) && <label title='Display name for the column (optional)'>Name:
+					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.fullName}
+						value={nickname ?? ''} onChange={e => set('nickname', e.target.value)}/></label>}
+				{(original || isValid) && <label title='Column description (optional)' style={{ paddingBottom: 4 }}>Desc:
+					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.description}
+						value={desc ?? ''} onChange={e => set('description', e.target.value)}/></label>}
 				<div style={entity === defaultRefPoint.entity ? { color: color('text-dark') } : {}}>Entity:
 					<select className='Borderless' value={entity} onChange={e => set('entity', e.target.value)}>
 						{withDuration.map(tbl => <option key={tbl} value={tbl}>{prettyTable(tbl)}</option>)}
@@ -222,7 +237,7 @@ export default function ColumnsSelector() {
 					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
 				{original && <div style={{ paddingTop: 8, paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
-					onClick={() => mutateGeneric(false)}>Modify {original.pretty_name}</button></div>}
+					onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
 				{(!original || paramsChanged) && isValid && <div style={{ paddingTop: original ? 0 : 8, paddingLeft: '5em' }}><button style={{ width: '14em' }}
 					onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
 				{report.error && <div style={{ color: color('red'), paddingLeft: 8 }} onClick={()=>setReport({})}>{report.error}</div>}

@@ -76,6 +76,7 @@ class GenericColumn:
 		for i in asdict(self):
 			if data[i] is None:
 				del data[i]
+		data['params'] = self.params.as_dict()
 		del data['owner']
 		return data
 	@property

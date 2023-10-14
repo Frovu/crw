@@ -35,7 +35,6 @@ def render_table_info(uid):
 				'nickname': g.nickname,
 				'description': g.description,
 				'params': g.params.as_dict(),
-				'pretty_name': g.pretty_name,
 				'is_public': g.is_public,
 				'is_own': uid == g.owner
 			}
