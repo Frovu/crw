@@ -107,7 +107,7 @@ def _create_generic():
 	uid = session.get('uid')
 	start = time()
 	generic = upset_generic(uid, request.json)
-	return { 'generic': generic.as_dict(), 'time': round(time() - start, 3) }
+	return { 'generic': generic.as_dict(uid), 'time': round(time() - start, 3) }
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded

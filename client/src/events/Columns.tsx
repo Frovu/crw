@@ -50,6 +50,7 @@ export type GenericColumn = {
 	id: number,
 	entity: string,
 	is_public: boolean,
+	is_own: boolean,
 	nickname: string | null,
 	description: string | null,
 	params: GenericParams,
@@ -158,6 +159,8 @@ export default function ColumnsSelector() {
 		setReport({ error: err.toString() });
 		logError(`compute g#${genericId}(${col?.fullName}): ` + err.toString());
 	} });
+	useEventListener('computeGeneric', (e: CustomEvent<{ id: number }>) =>
+		computeGeneric(e.detail.id));
 
 	const { mutate: deleteGeneric } = useMutation((genericId: number) =>
 		apiPost<{ time: number }>('events/generics/remove', { id: genericId })

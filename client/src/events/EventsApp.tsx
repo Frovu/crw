@@ -16,7 +16,7 @@ import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import SampleView from './Sample';
-import { useAppSettings, useContextMenu } from '../app';
+import { AuthContext, useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
 import ColumnsSelector from './Columns';
 
@@ -34,6 +34,7 @@ export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 }
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
 	const column = details?.cell?.column ?? details?.header;
@@ -66,6 +67,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<div className='separator'/>
 			</>}
 			{column && <>
+				{column.generic && (column.generic.is_own || role === 'admin') &&
+					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{value && <button onClick={() => addFilter(column, value)}

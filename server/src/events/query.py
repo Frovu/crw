@@ -30,7 +30,7 @@ def render_table_info(uid):
 			'type': g.data_type,
 			'description': g.desc,
 			'isComputed': True,
-			'generic': g.as_dict()
+			'generic': g.as_dict(uid)
 		}
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }

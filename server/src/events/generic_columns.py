@@ -1,8 +1,6 @@
 import json
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, asdict
 from datetime import datetime
-import numpy as np
 
 from database import log, pool
 from routers.utils import get_role
@@ -71,10 +69,11 @@ class GenericColumn:
 		gen.params = GenericParams.from_dict(gen.params)
 		return gen
 
-	def as_dict(self):
+	def as_dict(self, uid=None):
 		data = asdict(self)
 		data['params'] = self.params.as_dict()
-		del data['owner'] # FIXME
+		data['is_own'] = data['owner'] == uid
+		del data['owner']
 		return data
 	@property
 	def name(self):
