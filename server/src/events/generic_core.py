@@ -84,7 +84,7 @@ def _select_series(t_from, t_to, series):
 	else:
 		res = gsm.select(interval, [name])[0]
 	arr = np.array(res, dtype='f8')
-	if len(arr) != (t_to - t_from) // HOUR + 1:
+	if len(arr) != (arr[-1,0] - arr[0,0]) // HOUR + 1:
 		log.error('Data is not continous for %s', series)
 		raise BaseException('Data is not continous')
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
@@ -112,8 +112,10 @@ def get_slices(t_time, t_1, t_2):
 	t_r = np.maximum(t_1, t_2)
 	left = (t_l - t_time[0]) // HOUR
 	slice_len = (t_r - t_l) // HOUR + 1 # end inclusive
+	left[np.isnan(left)] = -1
 	slice_len[left < 0] = 0
-	return [np.s_[l:l+sl] for l, sl in zip(left, slice_len)]
+	slice_len[np.isnan(slice_len)] = 0
+	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
 def find_extremum(op, ser, window, cache={}, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
@@ -125,7 +127,7 @@ def find_extremum(op, ser, window, cache={}, return_value=False):
 	func = lambda d: np.nan if np.isnan(d).all() \
 		else (np.nanargmax(d) if is_max else np.nanargmin(d))
 	if ser in ['a10', 'a10m']: # TODO: Az?
-		result = np.empty(len(t_1), dtype='i8')
+		result = np.empty(len(t_1), dtype='f8')
 		for i in range(len(t_1)):
 			d_slice = value[slices[i]]
 			val = gsm.normalize_variation(d_slice, with_trend=True)
@@ -135,9 +137,9 @@ def find_extremum(op, ser, window, cache={}, return_value=False):
 				value[result[i]] = val[result[i] - slices[i].start]
 	else:
 		value = apply_delta(value, ser)
-		result = np.array([func(value[sl]) for sl in slices])
+		result = np.array([func(value[sl]) + sl.start for sl in slices])
 	if return_value:
-		result = np.array([(i if np.isnan(i) else value[i]) for i in result])
+		result = np.array([(i if np.isnan(i) else value[int(i)]) for i in result])
 	return result
 
 def apply_shift(a, shift, stub=np.nan):
@@ -167,7 +169,7 @@ def _do_compute(generic):
 			target_id, target_value = _select([entity, 'id'], parse_column_id(para.column))
 			return target_id, apply_shift(target_value, para.entity_offset, stub=None)
 
-		elif op in G_OP_COMBINE:
+		if op in G_OP_COMBINE:
 			lcol = parse_column_id(para.column)
 			rcol = parse_column_id(para.other_column)
 			target_id, lhv, rhv = _select([entity, 'id'], lcol, rcol)
@@ -224,7 +226,7 @@ def _do_compute(generic):
 		log.error(f'Failed at {generic.pretty_name}: {traceback.format_exc()}')
 		return None, None
 
-def _compute_generic(g):
+def compute_generic(g):
 	t_start = time()
 	log.info(f'Computing {g.pretty_name}')
 	target_id, result = _do_compute(g)
@@ -253,7 +255,7 @@ def recompute_generics(generics):
 		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
 	omni.ensure_prepared([first - MAX_DURATION_S, last + 2 * MAX_DURATION_S])
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		res = executor.map(_compute_generic, generics)
+		res = executor.map(compute_generic, generics)
 	return any(res)
 
 def apply_changes(d_ids, d_values, entity, column, conn):

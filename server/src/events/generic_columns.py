@@ -5,8 +5,9 @@ from datetime import datetime
 from database import log, pool
 from routers.utils import get_role
 from events.table import table_columns, parse_column_id
-from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
-	MAX_DURATION_H, recompute_generics
+from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
+	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
+	MAX_DURATION_H, compute_generic
 
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
@@ -258,7 +259,8 @@ def upset_generic(uid, json_body):
 				[json.dumps(p.as_dict()), nickname, description, gid]).fetchone()
 			generic = GenericColumn.from_row(row)
 			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
-		# recompute_generics(generic)
+	if not gid or found.params != p:
+		compute_generic(generic)
 	return generic
 
 def remove_generic(uid, gid):
