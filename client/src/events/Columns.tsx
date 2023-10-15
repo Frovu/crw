@@ -60,6 +60,7 @@ type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 	params: Partial<GenericParamsOptions>,
 	setGeneric: (g: GenericColumn) => void,
 	set: <K extends keyof GenericState>(k: K, val: GenericState[K]) => void,
+	reset: () => void,
 	setParam: <K extends keyof GenericParamsOptions>(k: K, val?: GenericParamsOptions[K]) => void,
 	setPoint: (k: 'reference'|'boundary', val: string) => void,
 	setPointHours: (k: 'reference'|'boundary', val: number) => void,
@@ -67,11 +68,20 @@ type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 };
 const defaultRefPoint = { type: 'event', entity: 'forbush_effects', hours_offset: 0, entity_offset: 0 } as const as RefPointEvent;
 
-const defaultState = { entity: defaultRefPoint.entity, params: {} };
+const defaultState = {
+	entity: defaultRefPoint.entity,
+	id: undefined,
+	is_public: undefined,
+	is_own: undefined,
+	nickname: undefined,
+	description: undefined,
+	params: {},
+};
 const useGenericState = create<GenericState>()(immer(set => ({
 	...defaultState,
 	setGeneric: g => set(state => { Object.assign(state, g); }),
 	set: (k, val) => set(state => { state[k] = val; }),
+	reset: () => set(defaultState),
 	setParam: (k, val) => set((state) => {
 		let inp = state.params;
 		if (k === 'operation') {
@@ -120,17 +130,17 @@ export default function ColumnsSelector() {
 	const [open, setOpen] = useState(false);
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const genericSate = useGenericState();
-	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, setParam,
-		setPoint, setPointHours, setPointSeries } = genericSate;
+	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, reset,
+		setParam, setPoint, setPointHours, setPointSeries } = genericSate;
 	const { operation } = params;
 
+	useEffect(() => setReport({}), [gid]);
+	useEffect(() => { if (open) reset(); setReport({}); }, [reset, open]);
 	useEffect(() => {
 		if (!report.error && !report.success) return;
 		const timeout = setTimeout(() => setReport({}), 10_000);
 		return () => clearTimeout(timeout);
 	}, [report]);
-
-	useEffect(() => setReport({}), [gid]);
 
 	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
 	const original = oriColumn && oriColumn.generic;
@@ -170,8 +180,7 @@ export default function ColumnsSelector() {
 	const { mutate: deleteGeneric } = useMutation((genericId: number) =>
 		apiPost<{ time: number }>('events/generics/remove', { id: genericId })
 	, { onSuccess: ({ time }, genericId) => {
-		if (genericId === gid)
-			useGenericState.setState({ ...defaultState });
+		if (genericId === gid) reset();
 		const col = columns.find(c => c.generic?.id === genericId);
 		queryClient.invalidateQueries('tableStructure');
 		logSuccess(`Deleted column ${col?.fullName ?? genericId}`);

@@ -100,7 +100,7 @@ def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
 		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
 		r_time = np.floor(e_start / HOUR) * HOUR
 		if ref.end:
-			r_time += r_time + e_dur * HOUR - HOUR
+			r_time = r_time + e_dur * HOUR - HOUR
 	elif ref.type == 'extremum':
 		r_time = find_extremum(ref.operation, ref.series, default_window(ref.entity), cache=cache)
 	else:
