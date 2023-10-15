@@ -5,21 +5,11 @@ from datetime import datetime
 from database import log, pool
 from routers.utils import get_role
 from events.table import table_columns
-from events.generic_core import G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
+from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, recompute_generics
 
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
-
-@dataclass
-class GenericRefPoint:
-	type: str # event | extremum
-	hours_offset: int
-	operation: str = None
-	series: str = None
-	entity_offset: int = None
-	entity: str = None
-	end: bool = None
 
 @dataclass
 class GenericParams:

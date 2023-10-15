@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import traceback
 from time import time
 from concurrent.futures import ThreadPoolExecutor
@@ -6,6 +7,16 @@ from database import log, pool
 import data.omni.core as omni
 from cream import gsm
 from events.table import table_columns, select_from_root, parse_column_id
+
+@dataclass
+class GenericRefPoint:
+	type: str # event | extremum
+	hours_offset: int
+	operation: str = None
+	series: str = None
+	entity_offset: int = None
+	entity: str = None
+	end: bool = None
 
 HOUR = 3600
 MAX_DURATION_H = 72
@@ -48,6 +59,12 @@ G_SERIES = { # order matters (no it does not)
 }
 G_SERIES = {**G_SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in G_SERIES.items() }}
 
+def default_window(ent): 
+	return [
+		GenericRefPoint('event', 0, entity=ent, entity_offset=0),
+		GenericRefPoint('event', 0, entity=ent, entity_offset=0, end=True),
+	]
+
 def _select(*query, root='forbush_effects'):
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)::integer'
 		if 'time' == c else f'{e}.{c}' for e, c in query])
@@ -58,14 +75,70 @@ def _select(*query, root='forbush_effects'):
 	return [res[:,i] for i in range(len(query))]
 
 def _select_series(t_from, t_to, series):
+	t_data = time()
 	actual_series = series[3:] if series.startswith('$d_') else series
-	interval = [int(i) + offs * MAX_DURATION_S for i, offs in ([t_from, -1], [t_to, 1])]
+	interval = [int(i) + offs * MAX_DURATION_S for i, offs in ([t_from, -2], [t_to, 2])]
 	source, name, _ = G_SERIES[actual_series]
 	if source == 'omni':
 		res = omni.select(interval, [name])[0]
 	else:
 		res = gsm.select(interval, [name])[0]
-	return np.array(res, dtype='f8')
+	arr = np.array(res, dtype='f8')
+	if len(arr) != (t_to - t_from) // HOUR + 1:
+		log.error('Data is not continous for %s', series)
+		raise BaseException('Data is not continous')
+	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
+	return arr[:,0], arr[:,1]
+
+def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
+	if ref.type == 'event':
+		has_dur = ref.entity in G_ENTITY
+		res = cache.get(ref.entity, \
+			_select([(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())]))
+		cache[entity] = res
+		e_start, e_dur = res if has_dur else (res, [])
+		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
+		r_time = np.floor(e_start / HOUR) * HOUR
+		if ref.end:
+			r_time += r_time + e_dur * HOUR - HOUR
+	elif ref.type == 'extremum':
+		r_time = find_extremum(ref.operation, ref.series, default_window(ref.entity), cache=cache)
+	else:
+		assert not 'reached'
+	return r_time + ref.hours_offset * HOUR
+					
+def get_slices(t_time, t_1, t_2):
+	t_l = np.minimum(t_1, t_2)
+	t_r = np.maximum(t_1, t_2)
+	left = (t_l - t_time[0]) // HOUR
+	slice_len = (t_r - t_l) // HOUR + 1 # end inclusive
+	slice_len[left < 0] = 0
+	return [np.s_[l:l+sl] for l, sl in zip(left, slice_len)]
+
+def find_extremum(op, ser, window, cache={}, return_value=False):
+	is_max, is_abs = 'max' in op, 'abs' in op
+	t_1, t_2 = [get_ref_time(r) for r in window]
+	d_time, value = cache.get(ser, _select_series(t_1[0], t_2[-1], ser))
+	cache[ser] = (d_time, value)
+	slices = get_slices(d_time, t_1, t_2)
+	value = np.abs(value) if is_abs else value
+	func = lambda d: np.nan if np.isnan(d).all() \
+		else (np.nanargmax(d) if is_max else np.nanargmin(d))
+	if ser in ['a10', 'a10m']: # TODO: Az?
+		result = np.empty(length, dtype='i8')
+		for i in range(length):
+			d_slice = value[slices[i]]
+			val = gsm.normalize_variation(d_slice, with_trend=True)
+			val = apply_delta(val, ser)
+			result[i] = func(val) + slices[i].start
+			if return_value: # this is hacky
+				value[result[i]] = val[result[i] - slices[i].start]
+	else:
+		value = apply_delta(value, ser)
+		result = np.array([func(value[sl]) for sl in slices])
+	if return_value:
+		result = np.array([(i if np.isnan(i) else value[i]) for i in result])
+	return result
 
 def apply_shift(a, shift, stub=np.nan):
 	if shift == 0:
@@ -85,16 +158,18 @@ def apply_delta(data, series):
 	delta[0] = np.nan
 	return delta
 
-# all data is presumed to be continuos
 def _do_compute(generic, col_name=None):
 	try:
-		entity, op = generic.entity, generic.operation
-		t_start = time()
-		log.info(f'Computing {generic.pretty_name}')\
+		entity, para = generic.entity, generic.params
+		op = para.operation
 
-		if op in G_OP_COMBINE:
-			lcol = parse_column_id(generic.column)
-			rcol = parse_column_id(generic.other_column)
+		if op in G_OP_CLONE:
+			target_id, target_value = _select([entity, 'id'], parse_column_id(para.column))
+			return target_id, apply_shift(target_value, para.entity_offset, stub=None)
+
+		elif op in G_OP_COMBINE:
+			lcol = parse_column_id(para.column)
+			rcol = parse_column_id(para.other_column)
 			target_id, lhv, rhv = _select([entity, 'id'], lcol, rcol)
 			if 'diff' in op:
 				result = lhv - rhv
@@ -102,179 +177,72 @@ def _do_compute(generic, col_name=None):
 				assert not 'reached'
 			if 'abs' in op:
 				result = np.abs(result)
+			return target_id, result
 
-		elif op in G_OP_CLONE:
-			target_id, target_value = _select([entity, 'id'], parse_column_id(generic.column))
-			result = apply_shift(target_value, generic.entity_offset, stub=None)
+		assert op in G_OP_VALUE
+		
+		target_id, event_start, event_duration = _select([(entity, a) for a in ('id', 'time', 'duration')])
+		cache = { [entity]: (event_start, event_duration) }
 
-		elif op in G_OP_VALUE:
-			target_id, event_start, event_duration = _select([(entity, a) for a in ('id', 'time', 'duration')])
-			fisrt_hour = np.floor(event_start / HOUR) * HOUR
-			last_hour  = fisrt_hour + event_duration * HOUR - HOUR
-
-			if generic.series:
-				t_data = time()
-				data_series = _select_series(event_start[0], event_start[-1] + event_duration[-1] * HOUR, generic.series) # 400 ms
-				data_time, data_value = data_series[:,0], data_series[:,1]
-				log.debug(f'Got {actual_series} for {generic.pretty_name} in {round(time()-t_data, 2)}s')
-			else:
-				data_series = None
-
-			def get_ref_time(ref: GenericRefPoint):
-				if ref.type == 'event':
-					# NOTE: possible optimization: same event's time may be queried twice here
-					e_start, e_dur = (event_start, event_duration) if entity == ref.entity \
-						else _select([ref.entity, 'time'], [ref.entity, 'duration'])
-					e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
-					r_time = np.floor(e_start / HOUR) * HOUR
-					if ref.end:
-						r_time += r_time + e_dur * HOUR - HOUR
-				elif ref.type == 'extremum':
-					r_time = find_extremum()
-				else:
-					assert not 'reached'
-				return r_time + ref.hours_offset * HOUR
-					
-			def get_slices(d_time, t_1, t_2): # inclusive, presumes hour alignment
-				slice_len = np.abs(t_2 - t_1) // HOUR # FIXME: data should be continous, r-right?
-				found = np.searchsorted(d_time, t_1, side='left')
-				mask = np.logical_and(~np.isnan(slice_len), t_1 >= d_time[0], t_1 <= d_time[-1])
-				left = np.where(slice_len < 0, found + slice_len, found)
-				slice_len[mask] = 0
-				return left, np.abs(slice_len).astype('i')
-
-			def find_extremum(typ, ser, slice_left, slice_len):
-				is_max, is_abs = 'max' in typ, 'abs' in typ
-				# NOTE: possible optimization: same parameter may be queried twice here
-				data = data_series if ser == g.series else \
-					_select_series(data_time[slice_left[0]], data_time[slice_left[-1]+slice_len[-1]], ser)
-				d_time, value = data[:,0], data[:,1]
-				res = np.full((length, 2), np.nan, dtype='f8')
-				value = np.abs(value) if is_abs else value
-				func = lambda d: np.nan if np.isnan(d).all() \
-					else (np.nanargmax(d) if is_max else np.nanargmin(d))
-				if ser in ['a10', 'a10m']:
-					for i in range(length):
-							window = value[left[i]:left[i]+slice_len[i]]
-							val = gsm.normalize_variation(window, with_trend=True)
-							val = apply_delta(val, ser)
-							idx = func(val)
-							if not np.isnan(idx)
-							result[i] = (d_time[left[i] + idx], val[idx])
-				else:
-					value = apply_delta(value, ser)
-					idx = np.array([func(value[left[i]:left[i]+slice_len[i]]) for i in range(length)])
-					nonempty = np.where(slice_len > 0)[0]
-					didx = left[nonempty] + idx[nonempty]
-					result[nonempty] = np.column_stack((d_time[didx], value[didx]))
-				return result
-
-			# compute poi time if poi present
-			if g.poi in ENTITY_POI:
-				poi_time = event_start if is_self_poi else target_time
-				if g.poi.startswith('end'):
-					poi_time += (event_duration if is_self_poi else target_duration) * HOUR
-				left, slice_len = None, None
-			elif g.poi:
-				typ, ser = parse_extremum_poi(g.poi)
-				data = data_series if ser == g.series else \
-					np.array(_select(event_start[0], event_start[-1] + MAX_EVENT_LENGTH,
-						ser[3:] if ser.startswith('$d_') else ser), dtype='f8')
-				left, slice_len = get_event_windows(data[:,0], ser)
-				poi_time = find_extremum(typ, ser, left, slice_len, data)[:,0]
-
-			# compute target windows if needed
-			if 'time_to' not in g.type and 'value' not in g.type:
-				if g.poi:
-					target_left, target_slen = get_poi_windows(data_time, poi_time)
-				else:
-					target_left, target_slen = get_event_windows(data_time, g.series)
-
-			if 'time_to' in g.type:
-				shift = g.shift
-				s_poi_time = apply_shift(poi_time, shift)
-				result = (s_poi_time - event_start) / HOUR
-				if '%' in g.type:
+		if op in G_OP_TIME:
+			if op.startswith('time_offset'):
+				t_1, t_2 = [get_ref_time(r) for r in (para.reference, para.boundary)]
+				result = (t_2 - t_1) / HOUR
+				if '%' in op:
 					result = result / event_duration * 100
-			elif g.type in EXTREMUM_TYPES:
-				result = find_extremum(g.type, g.series, target_left, target_slen)[:,1]
-			elif g.type in ['mean', 'median']:
-				result = np.full(length, np.nan, dtype='f8')
-				func = np.nanmean if g.type == 'mean' else np.nanmedian
-				for i in range(length):
-					if target_slen[i] < 1:
-						continue
-					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
-					result[i] = func(window)
-			elif g.type == 'range':
-				r_max = find_extremum('max', g.series, target_left, target_slen)[:,1]
-				r_min = find_extremum('min', g.series, target_left, target_slen)[:,1]
-				result = r_max - r_min
-			elif g.type == 'coverage':
-				result = np.full(length, np.nan, dtype='f8')
-				for i in range(length):
-					if target_slen[i] < 1:
-						continue
-					window = data_value[target_left[i]:target_left[i]+target_slen[i]]
-					result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
-			elif g.type in ['value', 'avg_value']:
-				result = np.full(length, np.nan, dtype='f8')
-				shift = g.shift
-				poi_hour = (np.floor(poi_time / HOUR) if shift <= 0 else np.ceil(poi_time / HOUR)) * HOUR
-				start_hour = poi_hour + shift*HOUR if shift <= 0 else poi_hour
-				window_len = max(1, abs(shift)) if 'avg' in g.type else 1
-				per_hour = np.full((length, window_len), np.nan, dtype='f8')
-				if g.series in ['a10', 'a10m']:
-					ev_left, slice_len = get_event_windows(data_time, g.series)
-					diff_lft = np.minimum(0, (start_hour - data_time[ev_left]) / HOUR).astype(np.int32)
-					diff_rgt = np.maximum(0, (start_hour - data_time[ev_left+slice_len]) / HOUR + window_len - 1).astype(np.int32)
-					left = ev_left + diff_lft
-					slice_len[slice_len > 0] += diff_rgt[slice_len > 0]
-					window_offset = ((data_time[ev_left] - start_hour) / HOUR).astype(np.int32)
-					for i in range(length):
-						sl = slice_len[i]
-						if not sl:
-							continue
-						window = data_value[left[i]:left[i]+sl]
-						idx = window_offset[i]
-						if len(window) < window_len + idx:
-							continue
-						values = gsm.normalize_variation(window, with_trend=True)
-						values = apply_delta(values, g.series)
-						per_hour[i,] = values[idx:idx+window_len]
-				else:
-					data_value = apply_delta(data_value, g.series)
-					for h in range(window_len):
-						_, a_idx, b_idx = np.intersect1d(start_hour + h*HOUR, data_time, return_indices=True)
-						per_hour[a_idx, h] = data_value[b_idx]
-				nan_threshold = np.floor(window_len / 2)
-				filter_nan = np.count_nonzero(np.isnan(per_hour), axis=1) <= nan_threshold
-				result[filter_nan] = np.nanmean(per_hour[filter_nan], axis=1)
 			else:
 				assert not 'reached'
 
-			if g.series == 'kp':
-				result[result is not None] /= 10
-			rounding = 1 if 'time_to' in g.type or 'coverage' == g.type else 2
-			data = np.column_stack((np.where(np.isnan(result), None, np.round(result, rounding)), event_id.astype('i8')))
+		elif op in G_EXTREMUM:
+			window = (para.reference, para.boundary)
+			res = find_extremum(op, para.series, window, cache, return_value=True)
+			return target_id, res
+
+		elif op in ['mean', 'median']:
+			result = np.full(length, np.nan, dtype='f8')
+			func = np.nanmean if g.type == 'mean' else np.nanmedian
+			for i in range(length):
+				if target_slen[i] < 1:
+					continue
+				window = data_value[target_left[i]:target_left[i]+target_slen[i]]
+				result[i] = func(window)
+
+		elif op in ['range']:
+			r_max = find_extremum('max', g.series, target_left, target_slen)[:,1]
+			r_min = find_extremum('min', g.series, target_left, target_slen)[:,1]
+			result = r_max - r_min
+
+		elif op in ['coverage']:
+			result = np.full(length, np.nan, dtype='f8')
+			for i in range(length):
+				if target_slen[i] < 1:
+					continue
+				window = data_value[target_left[i]:target_left[i]+target_slen[i]]
+				result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
+		
 		else:
 			assert not 'reached'
-
-		log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
-		return data
+		return target_id, result
 	except:
 		log.error(f'Failed at {g.name}: {traceback.format_exc()}')
 		return None
 
 def _compute_generic(g):
-	data = _do_compute(g)
+	t_start = time()
+	log.info(f'Computing {generic.pretty_name}')
+	target_id, result = _do_compute(g)
+	log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
+	target_id = target_id.astype('i8')
 	if data is None:
 		return False
+	if g.params.series == 'kp':
+		result[result] /= 10
+	result = np.where(~np.isfinite(result), None, np.round(result, 2))
 	t0 = time()
 	update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
 	with pool.connection() as conn:
-		apply_changes(data[:,1], data[:,0], g.entity, g.name, conn)
-		conn.cursor().executemany(update_q, data.tolist())
+		apply_changes(target_id, result, g.entity, g.name, conn)
+		conn.cursor().executemany(update_q, np.column_stack((target_id, result)).tolist())
 		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
 	print('update', round(time() - t0, 3))
 	return True
