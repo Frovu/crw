@@ -190,6 +190,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 					{showAverages && (<tfoot>
 						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
+							{markers && <td style={{ borderColor: 'transparent' }}/>}
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
 								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',

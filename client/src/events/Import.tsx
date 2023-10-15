@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from 'react';
 import { MainTableContext, Value, equalValues, valueToString } from './events';
-import { apiPost, dispatchCustomEvent, useMutationHandler } from '../util';
+import { apiPost, useEventListener, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -10,6 +10,10 @@ const FIXES = [
 export default function ImportMenu() {
 	const { columns: allColumns, data: currentData } = useContext(MainTableContext);
 	const [fileText, setFileText] = useState<string>();
+	const [open, setOpen] = useState(false);
+
+	useEventListener('escape', () => setOpen(false));
+	useEventListener('action+openImportMenu', () => setOpen(o => !o));
 
 	const parsed = useMemo(() => {
 		if (!fileText) return null;
@@ -124,7 +128,7 @@ export default function ImportMenu() {
 		apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) })
 	, ['tableData']);
 
-	return (<>
+	return (!open ? null : <>
 		<div className='PopupBackground'></div>
 		<div className='Popup' style={{ left: 4, padding: '16px 32px 8px 32px', border: '2px var(--color-border) solid' }} onClick={e => e.stopPropagation()}>
 			<h4 style={{ marginTop: 0 }}>Import FDs_fulltable</h4>
@@ -170,11 +174,12 @@ export default function ImportMenu() {
 						<div style={{ color: report?.success ? 'var(--color-green)' : 'var(--color-red)', display: 'inline-block', height: '2.5em', width: 260, padding: 2 }}>
 							{report?.error ?? report?.success ?? ''}</div>
 						<button style={{ width: 110, margin: 4, verticalAlign: 'top' }} disabled={isLoading} onClick={() => mutate(parsed.parsed, {
-							onSuccess: () => setTimeout(() => dispatchCustomEvent('escape'), 1000) as any
+							onSuccess: () => setTimeout(() => setOpen(false), 1000) as any
 						})}>{isLoading ? '...' : '! Upsert !'}</button>
 					</div>
 				</div>);
 			})()}
+			<div className='CloseButton' style={{ position: 'absolute', top: 2, right: 8 }} onClick={() => setOpen(false)}/>
 		</div>
 	</>);
 }

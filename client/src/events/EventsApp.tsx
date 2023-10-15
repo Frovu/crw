@@ -19,6 +19,7 @@ import SampleView from './Sample';
 import { AuthContext, useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
 import ColumnsSelector from './Columns';
+import ImportMenu from './Import';
 
 export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	const { plotOffset, set } = useEventsSettings();
@@ -73,6 +74,10 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{value && <button onClick={() => addFilter(column, value)}
 				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
+				<div className='separator'/>
+			</>}
+			{!column && role && <>
+				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
 				<div className='separator'/>
 			</>}
 			<div className='Group'>
@@ -227,6 +232,7 @@ function MainTablePanel() {
 	});
 
 	return <>
+		<ImportMenu/>
 		<ColumnsSelector/>
 		<SampleView ref={ref}/>
 		<TableView averages={averages} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
