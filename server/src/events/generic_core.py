@@ -95,7 +95,7 @@ def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
 		has_dur = ref.entity in G_ENTITY
 		res = cache.get(ref.entity, \
 			_select([(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())]))
-		cache[entity] = res
+		cache[ref.entity] = res
 		e_start, e_dur = res if has_dur else (res, [])
 		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
 		r_time = np.floor(e_start / HOUR) * HOUR
@@ -125,8 +125,8 @@ def find_extremum(op, ser, window, cache={}, return_value=False):
 	func = lambda d: np.nan if np.isnan(d).all() \
 		else (np.nanargmax(d) if is_max else np.nanargmin(d))
 	if ser in ['a10', 'a10m']: # TODO: Az?
-		result = np.empty(length, dtype='i8')
-		for i in range(length):
+		result = np.empty(len(t_1), dtype='i8')
+		for i in range(len(t_1)):
 			d_slice = value[slices[i]]
 			val = gsm.normalize_variation(d_slice, with_trend=True)
 			val = apply_delta(val, ser)
@@ -158,7 +158,7 @@ def apply_delta(data, series):
 	delta[0] = np.nan
 	return delta
 
-def _do_compute(generic, col_name=None):
+def _do_compute(generic):
 	try:
 		entity, para = generic.entity, generic.params
 		op = para.operation
@@ -182,7 +182,7 @@ def _do_compute(generic, col_name=None):
 		assert op in G_OP_VALUE
 		
 		target_id, event_start, event_duration = _select([(entity, a) for a in ('id', 'time', 'duration')])
-		cache = { [entity]: (event_start, event_duration) }
+		cache = { entity: (event_start, event_duration) }
 
 		if op in G_OP_TIME:
 			if op.startswith('time_offset'):
@@ -195,45 +195,42 @@ def _do_compute(generic, col_name=None):
 
 		elif op in G_EXTREMUM:
 			window = (para.reference, para.boundary)
-			res = find_extremum(op, para.series, window, cache, return_value=True)
-			return target_id, res
+			result = find_extremum(op, para.series, window, cache, return_value=True)
 
-		elif op in ['mean', 'median']:
-			result = np.full(length, np.nan, dtype='f8')
-			func = np.nanmean if g.type == 'mean' else np.nanmedian
-			for i in range(length):
-				if target_slen[i] < 1:
-					continue
-				window = data_value[target_left[i]:target_left[i]+target_slen[i]]
-				result[i] = func(window)
-
-		elif op in ['range']:
-			r_max = find_extremum('max', g.series, target_left, target_slen)[:,1]
-			r_min = find_extremum('min', g.series, target_left, target_slen)[:,1]
-			result = r_max - r_min
-
-		elif op in ['coverage']:
-			result = np.full(length, np.nan, dtype='f8')
-			for i in range(length):
-				if target_slen[i] < 1:
-					continue
-				window = data_value[target_left[i]:target_left[i]+target_slen[i]]
-				result[i] = np.count_nonzero(~np.isnan(window)) / target_slen[i] * 100
-		
 		else:
-			assert not 'reached'
+			t_1, t_2 = [get_ref_time(r) for r in (para.reference, para.boundary)]
+			d_time, d_value = cache.get(para.series, _select_series(t_1[0], t_2[-1], para.series))
+			cache[para.series] = (d_time, d_value)
+			slices = get_slices(d_time, t_1, t_2)
+
+			if op in ['mean', 'median']:
+				func = np.nanmean if op == 'mean' else np.nanmedian
+				result = np.array([(func(d_value[sl]) if sl.stop - sl.start > 0 else np.nan) for sl in slices])
+
+			elif op in ['range']:
+				window = (para.reference, para.boundary)
+				max_val = find_extremum('max', para.series, window, cache, return_value=True)
+				min_val = find_extremum('min', para.series, window, cache, return_value=True)
+				result = max_val - min_val
+
+			elif op in ['coverage']:
+				result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) \
+					/ ((sl.stop - sl.start) or 1) * 100 for sl in slices])
+			
+			else:
+				assert not 'reached'
 		return target_id, result
 	except:
-		log.error(f'Failed at {g.name}: {traceback.format_exc()}')
-		return None
+		log.error(f'Failed at {generic.pretty_name}: {traceback.format_exc()}')
+		return None, None
 
 def _compute_generic(g):
 	t_start = time()
-	log.info(f'Computing {generic.pretty_name}')
+	log.info(f'Computing {g.pretty_name}')
 	target_id, result = _do_compute(g)
 	log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
 	target_id = target_id.astype('i8')
-	if data is None:
+	if result is None:
 		return False
 	if g.params.series == 'kp':
 		result[result] /= 10
