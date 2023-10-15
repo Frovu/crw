@@ -16,9 +16,9 @@ def select(interval: [int, int], what=['A0m'], mask_gle=True, with_fields=False)
 	if len(what) < 1:
 		return ([], []) if with_fields else []
 	with pool.connection() as conn:
-		query = f'''SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(what)}
-			FROM gsm_result WHERE time >= to_timestamp(%s) AND time <= to_timestamp(%s)
-			{'AND NOT is_gle ' if mask_gle else ''}ORDER BY time'''
+		cols = [f'CASE WHEN is_gle THEN NULL ELSE {w} END' for w in what] if mask_gle else what
+		query = f'''SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(cols)}
+			FROM gsm_result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time'''
 		curs = conn.execute(query, interval)
 		return (curs.fetchall(), [desc.name for desc in curs.description]) if with_fields else curs.fetchall()
 

@@ -82,9 +82,9 @@ def _select_series(t_from, t_to, series):
 	if source == 'omni':
 		res = omni.select(interval, [name])[0]
 	else:
-		res = gsm.select(interval, [name])[0]
+		res = gsm.select(interval, [name])
 	arr = np.array(res, dtype='f8')
-	if len(arr) != (arr[-1,0] - arr[0,0]) // HOUR + 1:
+	if len(arr) - (arr[-1,0] - arr[0,0]) // HOUR > 1: # FIXME: data may shift by 1 hour ??
 		log.error('Data is not continous for %s', series)
 		raise BaseException('Data is not continous')
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
@@ -93,8 +93,8 @@ def _select_series(t_from, t_to, series):
 def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.entity in G_ENTITY
-		res = cache.get(ref.entity, \
-			_select(*[(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())]))
+		res = cache.get(ref.entity) or \
+			_select(*[(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())])
 		cache[ref.entity] = res
 		e_start, e_dur = res if has_dur else (res, [])
 		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
@@ -120,7 +120,7 @@ def get_slices(t_time, t_1, t_2):
 def find_extremum(op, ser, window, cache={}, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
 	t_1, t_2 = [get_ref_time(r) for r in window]
-	d_time, value = cache.get(ser, _select_series(t_1[0], t_2[-1], ser))
+	d_time, value = cache.get(ser) or _select_series(t_1[0], t_2[-1], ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
 	value = np.abs(value) if is_abs else value
@@ -129,12 +129,15 @@ def find_extremum(op, ser, window, cache={}, return_value=False):
 	if ser in ['a10', 'a10m']: # TODO: Az?
 		result = np.empty(len(t_1), dtype='f8')
 		for i in range(len(t_1)):
+			if (slices[i].start < 0):
+				result[i] = np.nan
+				continue
 			d_slice = value[slices[i]]
 			val = gsm.normalize_variation(d_slice, with_trend=True)
 			val = apply_delta(val, ser)
 			result[i] = func(val) + slices[i].start
 			if return_value: # this is hacky
-				value[result[i]] = val[result[i] - slices[i].start]
+				value[int(result[i])] = val[int(result[i]) - slices[i].start]
 	else:
 		value = apply_delta(value, ser)
 		result = np.array([func(value[sl]) + sl.start for sl in slices])
@@ -201,7 +204,7 @@ def _do_compute(generic):
 
 		else:
 			t_1, t_2 = [get_ref_time(r) for r in (para.reference, para.boundary)]
-			d_time, d_value = cache.get(para.series, _select_series(t_1[0], t_2[-1], para.series))
+			d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
 			cache[para.series] = (d_time, d_value)
 			slices = get_slices(d_time, t_1, t_2)
 
