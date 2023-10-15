@@ -4,7 +4,7 @@ import { MainTableContext, prettyTable, shortTable, useEventsSettings } from './
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { AuthContext, logError, logSuccess } from '../app';
+import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
 
 const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
@@ -130,6 +130,8 @@ export default function ColumnsSelector() {
 		return () => clearTimeout(timeout);
 	}, [report]);
 
+	useEffect(() => setReport({}), [gid]);
+
 	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
 	const original = oriColumn && oriColumn.generic;
 	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
@@ -149,7 +151,10 @@ export default function ColumnsSelector() {
 
 	const { mutate: computeGeneric } = useMutation((genericId: number) =>
 		apiPost<{ time: number }>('events/generics/compute', { id: genericId })
-	, { onSuccess: ({ time }, genericId) => {
+	, { onMutate: (genericId) => {
+		const col = columns.find(c => c.generic?.id === genericId);
+		logMessage('Computing '+(col?.fullName ?? genericId), 'debug');
+	}, onSuccess: ({ time }, genericId) => {
 		const col = columns.find(c => c.generic?.id === genericId);
 		queryClient.invalidateQueries('tableData');
 		setReport({ success: `Done in ${time} s` });
@@ -176,13 +181,15 @@ export default function ColumnsSelector() {
 	} });
 
 	const { mutate: mutateGeneric } = useMutation((createNew: boolean) =>
-		apiPost<{ generic: GenericColumn, time: number }>('events/generics', {
+		apiPost<{ generic: GenericColumn, name: string }>('events/generics', {
 			...genericSate, gid: createNew ? undefined : gid })
-	, { onSuccess: ({ generic, time }) => {
+	, { onSuccess: ({ generic, name }) => {
 		queryClient.invalidateQueries('tableStructure');
 		queryClient.invalidateQueries('tableData');
 		setGeneric(generic);
 		setReport({ success: 'Done!' });
+		if (!shownColumns.includes(name))
+			setColumns(cols => cols.concat(name));
 		logSuccess((gid?'Modified':'Created') + ' generic ' + (oriColumn?.fullName ?? generic.nickname ?? generic.id));
 	}, onError: (err: any) => {
 		setReport({ error: err.toString() });

@@ -4,7 +4,7 @@ from datetime import datetime
 
 from database import log, pool
 from routers.utils import get_role
-from events.table import table_columns
+from events.table import table_columns, parse_column_id
 from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, recompute_generics
 
@@ -192,8 +192,10 @@ def upset_generic(uid, json_body):
 	op = p.operation
 	generics = select_generics(uid)
 
-	find_col = lambda c: table_columns[entity].get(c) or \
-		next((g for g in generics if g.entity == entity and g.name == c), None)
+	def find_col(col):
+		ent, c = parse_column_id(col)
+		return table_columns[ent].get(c) or \
+			next((g for g in generics if g.entity == ent and g.name == c), None)
 
 	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
 		raise ValueError('Trying to edit generic that does not exist')

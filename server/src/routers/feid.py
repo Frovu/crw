@@ -107,7 +107,7 @@ def _create_generic():
 	uid = session.get('uid')
 	start = time()
 	generic = upset_generic(uid, request.json)
-	return { 'generic': generic.as_dict(uid), 'time': round(time() - start, 3) }
+	return { 'generic': generic.as_dict(uid), 'name': generic.name, 'time': round(time() - start, 3) }
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
@@ -130,7 +130,7 @@ def _compute_generic():
 	start = time()
 	if not recompute_generics(generic):
 		return msg('Failed miserably'), 500
-	return { 'time': round(time() - start, 3) }
+	return { 'time': round(time() - start, 2) }
 
 @bp.route('/recompute_generics', methods=['POST'])
 @route_shielded

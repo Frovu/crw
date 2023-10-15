@@ -10,7 +10,7 @@
 		"duration": {
 			"dtype": "integer",
 			"description": "Event onset time",
-			"parse_name": "Time"
+			"parse_name": "Te"
 		},
 		"onset_type": {
 			"pretty_name": "ons type",

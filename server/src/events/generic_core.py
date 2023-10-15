@@ -71,7 +71,7 @@ def _select(*query, root='forbush_effects'):
 	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} ORDER BY {root}.time'
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
-		res = np.array(curs.fetchall())
+		res = np.array(curs.fetchall(), dtype='f8')
 	return [res[:,i] for i in range(len(query))]
 
 def _select_series(t_from, t_to, series):
@@ -94,7 +94,7 @@ def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.entity in G_ENTITY
 		res = cache.get(ref.entity, \
-			_select([(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())]))
+			_select(*[(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())]))
 		cache[ref.entity] = res
 		e_start, e_dur = res if has_dur else (res, [])
 		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
@@ -181,7 +181,7 @@ def _do_compute(generic):
 
 		assert op in G_OP_VALUE
 		
-		target_id, event_start, event_duration = _select([(entity, a) for a in ('id', 'time', 'duration')])
+		target_id, event_start, event_duration = _select(*[(entity, a) for a in ('id', 'time', 'duration')])
 		cache = { entity: (event_start, event_duration) }
 
 		if op in G_OP_TIME:
@@ -228,10 +228,10 @@ def _compute_generic(g):
 	t_start = time()
 	log.info(f'Computing {g.pretty_name}')
 	target_id, result = _do_compute(g)
-	log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
-	target_id = target_id.astype('i8')
 	if result is None:
 		return False
+	log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
+	target_id = target_id.astype('i8')
 	if g.params.series == 'kp':
 		result[result] /= 10
 	result = np.where(~np.isfinite(result), None, np.round(result, 2))
@@ -239,7 +239,8 @@ def _compute_generic(g):
 	update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
 	with pool.connection() as conn:
 		apply_changes(target_id, result, g.entity, g.name, conn)
-		conn.cursor().executemany(update_q, np.column_stack((target_id, result)).tolist())
+		data = np.column_stack((result, target_id)).tolist()
+		conn.cursor().executemany(update_q, data)
 		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
 	print('update', round(time() - t0, 3))
 	return True

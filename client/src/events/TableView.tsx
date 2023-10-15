@@ -19,7 +19,7 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 		setInvalid(!isOk);
 	};
 
-	const inpStype = { width: '100%', borderWidth: 0, padding: 0,
+	const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: 'var(--color-bg)',
 		boxShadow: ' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)' ) };
 
 	return <>
