@@ -282,8 +282,8 @@ export function ExportControls() {
 					onMouseDown={e => !(e instanceof HTMLInputElement) && setDragging(id)}>
 					<label style={{ minWidth: 'max-content' }}><input type='checkbox' checked={!!enabled}
 						onChange={e => setTransform(id, { enabled: e.target.checked })}/>RegEx</label>
-					<input disabled={!enabled} type='text' style={{ flex: 1, minWidth: '4em', maxWidth: '6em' }} placeholder='search'
-						title='Dont forget to escape special characters with a \, like \('
+					<input disabled={!enabled} type='text' style={{ flex: 2, minWidth: '4em', maxWidth: '10em' }} placeholder='search'
+						title='Dont forget to escape special characters with a \, like \(. Start with whitespace to target legend only.'
 						value={search} onChange={e => setTransform(id, { search: e.target.value })}/>
 					<div style={{ flex: '2 10em', gap: 4, alignItems: 'center',
 						minWidth: 'min(10em, 50%)', maxWidth: '20em', display: 'flex' }}><span style={{ cursor: 'grab' }}>-&gt;</span>

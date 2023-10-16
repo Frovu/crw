@@ -150,14 +150,14 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		}),
 		axes: () => [{
 			label: 'A0',
-			fullLabel: `A0${params.useA0m ? 'm' : ''}${params.showAz ? ' & Az' : ''} var, %`,
+			fullLabel: `A0${params.useA0m ? 'm' : ''}${params.showAz ? ' & Az' : ''}, %`,
 			position: params.showAxyVector ? [params.showAxy ? 1/8 : 0, 3/5] : [params.showAxy ? 1/4 : 0, 1],
 			minMax: [-2, 1],
 			whole: true,
 		}, {
 			show: params.showAxy,
 			label: 'Axy',
-			fullLabel: 'Axy var, %',
+			fullLabel: 'Axy, %',
 			position: [0,  params.showAxyVector ? 1/9 : 1/5],
 			minMax: [0, null],
 			side: 1,
@@ -170,7 +170,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		series: () => [{
 			show: params.showAxy,
 			label: 'Axy',
-			legend: 'Axy (GSM, 10GV) var, %',
+			legend: 'Axy (GSM) var, %',
 			stroke: color('magenta', .75),
 			fill: color('magenta', .75),
 			width: 0,
@@ -179,7 +179,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			show: params.showAz,
 			label: 'Az',
 			scale: 'A0',
-			legend: 'Az  (GSM, 10GV) var, %',
+			legend: 'Az (GSM) var, %',
 			stroke: color('blue'),
 			fill: color('blue'),
 			width: 0,
@@ -199,7 +199,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			scale: 'A0',
 			show: what === (params.useA0m ? 'A0m' : 'A0'),
 			label: what,
-			legend: `${params.useA0m ? 'A0m' : 'A0'} (GSM, 10GV) var, %`,
+			legend: `${params.useA0m ? 'A0m' : 'A0'} (GSM) var, %`,
 			stroke: color('green'),
 			width: 2,
 			marker: 'diamond'

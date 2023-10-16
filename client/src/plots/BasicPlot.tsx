@@ -93,17 +93,15 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
 		if (!params.showLegend) return;
 		const series = u.series.filter(s => s.show! && s.legend)
-			.map(s => ({ ...s, legend: applyTextTransform(s.legend!) }));
+			.map(s => ({ ...s, legend: parseText(applyTextTransform(' '+s.legend!).trim()) }));
 		if (!series.length) return;
 
 		const px = (a: number) => scaled(a * devicePixelRatio);
-		u.ctx.font = font(null, true);
-		const maxLabelLen = Math.max.apply(null, series.map(({ legend }) => legend.length));
-		const metric = u.ctx.measureText('a'.repeat(maxLabelLen));
-		const lineHeight = metric.fontBoundingBoxAscent + metric.fontBoundingBoxDescent + 1;
-		const width = px(48) + metric.width;
+
+		const width = px(46) + Math.max.apply(null, series.map(({ legend }) => measureStyled(u.ctx, legend)));
+		const lineHeight = getFontSize() * 1.25;
 		const height = series.length * lineHeight + px(4);
-		if (!captureOverrides)
+		if (!captureOverrides?.scale)
 			size.current = { width, height };
 
 		const pos = position.current ?? defaultPos(u, size.current);
@@ -111,7 +109,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 		const x = scaled(pos.x);
 		let y = scaled(pos.y);
 		u.ctx.save();
-		u.ctx.lineWidth = px(2);
+		u.ctx.lineWidth = px(1);
 		u.ctx.strokeStyle = color('text-dark');
 		u.ctx.fillStyle = color('bg');
 		u.ctx.fillRect(x, y, width, height);
@@ -133,7 +131,14 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 			if (marker !== 'arrow')
 				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
-			u.ctx.fillText(legend, x + px(40), y);
+			let textX = x + px(40);
+			for (const { text, styles } of legend) {
+				u.ctx.save();
+				applyStyles(u.ctx, styles);
+				u.ctx.fillText(text, textX, y);
+				textX += u.ctx.measureText(text).width;
+				u.ctx.restore();
+			}
 			u.ctx.stroke();
 			y += lineHeight;
 		}
@@ -305,7 +310,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 					const { min, max } = scale.scaleValue!;
 					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
 				})),
-				values: (u, vals) => vals.map(v => v?.toString().replace('-', '−')),
+				values: (u, vals) => vals.map(v => v?.toString().replace('-', '−').replace('1000', '10³')),
 				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
 				scale: ax.label,
 				...ax,

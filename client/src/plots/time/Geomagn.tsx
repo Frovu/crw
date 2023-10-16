@@ -69,6 +69,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 				show: !params.useAp,
 				label: 'Kp',
 				scale: 'Kp',
+				legend: 'Kp index',
 				width: 0,
 				stroke: color('green'),
 				myPpaths: myBars(params),
@@ -83,6 +84,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 			},
 			{
 				label: 'Dst',
+				legend: 'Dst, nT',
 				stroke: color('skyblue'),
 				width: 2,
 				marker: 'circle'
