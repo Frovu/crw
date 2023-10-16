@@ -154,7 +154,7 @@ export function ExportPreview() {
 		});
 	}, [container, context, show, expState]);
 
-	return <div style={{ padding: 2, height: '100%' }} onClick={() => setShow(!show)}>
+	return <div style={{ padding: 2, height: '100%', overflow: 'auto' }} onClick={() => setShow(!show)}>
 		<span style={{ padding: 2 }}>preview plots (may be slow) <input type='checkbox' checked={show} readOnly/></span>
 		{show && renderTime && <div style={{ position: 'absolute', fontSize: 14, color: color('text-dark'), bottom: 4, right: 4 }}>Rendered in {renderTime.toFixed()} ms</div>}
 		<div ref={setContainer} style={{ display: !show ? 'none' : 'block',

@@ -174,7 +174,8 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			stroke: color('magenta', .75),
 			fill: color('magenta', .75),
 			width: 0,
-			myPpaths: scl => uPlot.paths.bars!({ size: [.45, 16 * scl, 1 * scl], align: 1 }),
+			bars: true,
+			myPaths: scl => uPlot.paths.bars!({ size: [.45, 16 * scl, 1 * scl], align: 1 }),
 		}, {
 			show: params.showAz,
 			label: 'Az',
@@ -183,7 +184,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			stroke: color('blue'),
 			fill: color('blue'),
 			width: 0,
-			myPpaths: scl => (u, sidx, i0, i1) => {
+			myPaths: scl => (u, sidx, i0, i1) => {
 				const a0 = u.data[sidx + (params.useA0m ? 1 : 2)] as (number | null)[];
 				return uPlot.paths.bars!({
 					size: [.17, 2 * scl, 1 * scl],
@@ -209,7 +210,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			label: 'vector',
 			legend: 'Axy vector',
 			stroke: color('magenta'),
-			myPpaths: scl => tracePaths(scl, pos, size, defaultPos, params),
+			myPaths: scl => tracePaths(scl, pos, size, defaultPos, params),
 			marker: 'arrow',
 			points: { show: false }
 		}]

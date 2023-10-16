@@ -68,7 +68,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		stroke: color('text'),
 		labelSize: height + scl * 1 + 1, 
 		labelGap: 0,
-		space: height * 2,
+		space: height * 1.75,
 		size: (width * 3) + scl * 10,
 		gap: scl,
 		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },

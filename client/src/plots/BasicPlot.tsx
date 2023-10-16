@@ -99,7 +99,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 		const px = (a: number) => scaled(a * devicePixelRatio);
 
 		const width = px(46) + Math.max.apply(null, series.map(({ legend }) => measureStyled(u.ctx, legend)));
-		const lineHeight = getFontSize() * 1.25;
+		const lineHeight = getFontSize() * 1.2;
 		const height = series.length * lineHeight + px(4);
 		if (!captureOverrides?.scale)
 			size.current = { width, height };
@@ -118,17 +118,20 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 		u.ctx.lineCap = 'butt';
 		y += lineHeight / 2 + px(3);
 		const draw = drawShape(u.ctx, px(6));
-		for (const { stroke, marker, legend } of series) {
+		for (const { stroke, marker, legend, bars } of series) {
 			u.ctx.lineWidth = px(2);
 			u.ctx.fillStyle = u.ctx.strokeStyle = (stroke as any)();
 			u.ctx.beginPath();
-			u.ctx.moveTo(x + px(8), y);
-			u.ctx.lineTo(x + px(32), y);
-			u.ctx.stroke();
+			if (!bars) {
+				u.ctx.moveTo(x + px(8), y);
+				u.ctx.lineTo(x + px(32), y);
+				u.ctx.stroke();
+			}
 			u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
-			if (marker)
-				draw[marker](x + px(20), y);
-			if (marker !== 'arrow')
+			const mrkr = bars ? 'square' : marker;
+			if (mrkr)
+				draw[mrkr](x + px(20), y);
+			if (mrkr !== 'arrow')
 				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
 			let textX = x + px(40);
@@ -172,8 +175,9 @@ function drawCustomLabels() {
 			const fontSize = measureDigit();
 			const textWidth = measureStyled(u.ctx, parts);
 			const px = (a: number) => scaled(a * devicePixelRatio);
-			const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
-			const shiftX = Math.max(0, 2.5 - maxValLen) * fontSize.width;
+			// const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
+			// const shiftX = Math.max(0, 2.5 - maxValLen) * fontSize.width;
+			const shiftX = 0;
 			
 			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
 			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
@@ -237,7 +241,8 @@ export type CustomAxis = uPlot.Axis & {
 export type CustomSeries = uPlot.Series & {
 	legend?: string,
 	marker?: Shape,
-	myPpaths?: (scl: number) => uPlot.Series['paths']
+	bars?: boolean,
+	myPaths?: (scl: number) => uPlot.Series['paths']
 };
 export type CustomScale = uPlot.Scale & {
 	scaleValue?: { min: number, max: number },
@@ -310,7 +315,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 					const { min, max } = scale.scaleValue!;
 					return splits.map((s, i) => (s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null);
 				})),
-				values: (u, vals) => vals.map(v => v?.toString().replace('-', '−').replace('1000', '10³')),
+				values: (u, vals) => vals.map(v => v?.toString().replace('-', '−')),
 				...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
 				scale: ax.label,
 				...ax,
@@ -326,7 +331,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 				},
 				scale: ser.label,
 				...ser,
-				paths: ser.myPpaths?.(scaled(1)),
+				paths: ser.myPaths?.(scaled(1)),
 				width: scaled(ser.width ?? 1)
 			}))),
 			...uopts,
