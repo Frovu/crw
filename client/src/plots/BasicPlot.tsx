@@ -23,7 +23,8 @@ export type BasicPlotParams = {
 	interactive?: boolean,
 	stretch?: boolean,
 	showTimeAxis: boolean,
-	showMetaInfo: boolean
+	showMetaLabels: boolean,
+	showMetaInfo: boolean,
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean

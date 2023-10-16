@@ -58,6 +58,7 @@ export type TableParams = {
 export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
 export const defaultPlotParams: CommonPlotParams = {
 	showMetaInfo: true,
+	showMetaLabels: true,
 	showTimeAxis: true,
 	showGrid: true,
 	showMarkers: true,

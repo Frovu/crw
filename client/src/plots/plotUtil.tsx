@@ -195,7 +195,7 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			u.ctx.textAlign = 'right';
 			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
-			const label = params.showTimeAxis;
+			const label = params.showMetaLabels;
 			const minTop = 2 + (label ? height  : 0);
 			const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 			u.ctx.moveTo(x, lineY);

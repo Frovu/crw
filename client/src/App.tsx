@@ -110,7 +110,7 @@ function App() {
 	if (app === 'test')
 		return <div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
 			<PlotGSM params={{
-				showAxy: true, showAxyVector: true,
+				showAxy: true, showAxyVector: true, showMetaLabels: true,
 				subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
 				interval: [new Date('2023-04-23 08:00'), new Date('2023-04-26T10:00:00')],
 				onsets: [ { time: new Date('2023-04-23T17:38:00Z'), type: 'SSC' } ],

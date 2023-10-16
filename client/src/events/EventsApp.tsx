@@ -96,7 +96,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			<div className='separator'/>
 			<div className='Row'>
 				<Checkbox text='time axis' k='showTimeAxis'/>
-				<Checkbox text='meta info' k='showMetaInfo'/>
+				<Checkbox text='meta' k='showMetaInfo'/>
+				<Checkbox text='label' k='showMetaLabels'/>
 			</div>
 			<div className='Row'>
 				<CheckboxGlob text='show unlisted' k='plotUnlistedEvents'/>
