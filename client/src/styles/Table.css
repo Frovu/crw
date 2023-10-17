@@ -1,5 +1,6 @@
 .Table {
 	overflow-x: scroll;
+	overflow-y: clip;
 	-ms-overflow-style: none;  /* IE and Edge */
 	scrollbar-width: none; /* Firefox */
 }

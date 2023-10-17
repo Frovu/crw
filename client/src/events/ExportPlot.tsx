@@ -1,7 +1,7 @@
 import {  ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
-import { plotPanelOptions } from './events';
+import { plotPanelOptions, useViewState } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -22,18 +22,24 @@ type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?:
 type PlotExportState = {
 	inches: number,
 	overrides: ActualOverrides,
+	perPlotScales: boolean,
+	savedScales: { [id: number]: { [key: string]: ScaleParams } },
 	plots: { [nodeId: string]: PlotEntryParams },
 	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void,
 	setTransform: (id: number, val: Partial<TranformEntry>) => void,
 	swapTransforms: (a: number, b: number) => void,
 	setInches: (v: number) => void,
-	addScale: (k: string, scl: ScaleParams) => void,
-	removeScale: (k: string) => void,
-	setScale: (k: string, scl: Partial<ScaleParams>) => void,
+	addScale: (id: number, k: string, scl: ScaleParams) => void,
+	removeScale: (id: number, k: string) => void,
+	setScale: (id: number, k: string, scl: Partial<ScaleParams>) => void,
+	setPerPlotMode: (id: number, v: boolean) => void,
+	restoreScales: (id: number) => void,
 };
 
 export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => ({
 	inches: 12 / 2.54,
+	perPlotScales: false,
+	savedScales: {},
 	overrides: {
 		scale: 2,
 		fontSize: 14,
@@ -51,12 +57,21 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 			(t.id === idA ? foundB : t.id === idB ? foundA : t) ?? t);
 	}),
 	setInches: (v) => set(state => { state.inches = v; }),
-	addScale: (k, scl) => set(({ overrides }) => {
-		overrides.scalesParams = { ...overrides.scalesParams, [k]: scl }; }),
-	removeScale: (k) => set(({ overrides }) => {
-		if (overrides.scalesParams?.[k]) delete overrides.scalesParams[k]; }),
-	setScale: (k, scl) => set(({ overrides }) => {
-		if (overrides.scalesParams?.[k]) Object.assign(overrides.scalesParams?.[k], scl); }),
+	addScale: (id, k, scl) => set(({ overrides, perPlotScales, savedScales }) => {
+		overrides.scalesParams = { ...overrides.scalesParams, [k]: scl };
+		if (perPlotScales) savedScales[id] = overrides.scalesParams ?? {}; }),
+	removeScale: (id, k) => set(({ overrides, perPlotScales, savedScales }) => {
+		if (overrides.scalesParams?.[k]) delete overrides.scalesParams[k];
+		if (perPlotScales) savedScales[id] = overrides.scalesParams ?? {}; }),
+	setScale: (id, k, scl) => set(({ overrides, perPlotScales, savedScales }) => {
+		if (overrides.scalesParams?.[k]) Object.assign(overrides.scalesParams?.[k], scl);
+		if (perPlotScales) savedScales[id] = overrides.scalesParams ?? {}; }),
+	setPerPlotMode: (id, val) => set(state => {
+		state.perPlotScales = val;
+		if (val && state.savedScales[id]) state.overrides.scalesParams = state.savedScales[id]; }),
+	restoreScales: (id) => set(state => {
+		if (state.perPlotScales)
+			state.overrides.scalesParams = state.savedScales[id] ?? {}; }),
 })), {
 	name: 'plotsExportState',
 	partialize: ({ overrides, inches }) => ({ overrides, inches })
@@ -190,12 +205,20 @@ export function ExportableUplot({ size, options, data, onCreate }:
 
 export function ExportControls() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
-		plots, inches, setInches, set, setTransform, swapTransforms,
-		addScale, setScale, removeScale } = usePlotExportSate();
+		plots, inches, perPlotScales, setInches, set, setTransform, swapTransforms,
+		addScale, setScale, removeScale, setPerPlotMode, restoreScales } = usePlotExportSate();
+	const plotId = useViewState(state => state.plotId);
 	const { width, height } = computePlotsLayout();
 	const { items } = useLayout();
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (plotId != null)
+			restoreScales(plotId);
+	}, [restoreScales, plotId]);
+
+	if (plotId == null) return <div>plotId is null</div>;
 
 	async function doExportPlots(download: boolean=false) {
 		const canvas = await doRenderPlots();
@@ -214,7 +237,7 @@ export function ExportControls() {
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
 	const setOverride = (scl: string, param: 'min'|'max'|'bottom'|'top') => (e: ChangeEvent<HTMLInputElement>) => {
 		const val = parseFloat(e.target.value);
-		if (!isNaN(val)) setScale(scl, { [param]: val });
+		if (!isNaN(val)) setScale(plotId, scl, { [param]: val });
 	};
 
 	return <div style={{ padding: 4, display: 'flex', flexDirection: 'column', fontSize: 14, maxHeight: '100%' }}>
@@ -245,12 +268,15 @@ export function ExportControls() {
 			<div className='separator'></div>
 		</div>
 		<div style={{ overflowY: 'scroll', paddingBottom: 8 }}>
-			<span style={{ color: color('text-dark') }}>Override plots scales:</span>
+			<span style={{ color: color('text-dark') }}>Override scales: 
+				<label style={{ display: 'inline-block', textDecoration: perPlotScales ? 'underline' : 'unset',
+					marginLeft: 8, color: perPlotScales ? color('text') : 'inherit' }}>per plot
+					<input type='checkbox' checked={perPlotScales} onChange={e => setPerPlotMode(plotId, e.target.checked)}/></label></span>
 			<div style={{ maxWidth: 'max-content', textAlign: 'right' }}>
 				{effectiveScales.sort((a,b) => a.scl.localeCompare(b.scl)).map(({ scl, min, max, bottom, top }) => {
 					const active = !!scalesParams?.[scl];
 					return <div key={scl} style={{ cursor: 'pointer', color: !active ? color('text-dark') : 'unset', }}
-						onClick={e => !(e.target instanceof HTMLInputElement) && (active ? removeScale(scl) : addScale(scl, scales[scl]))}>
+						onClick={e => !(e.target instanceof HTMLInputElement) && (active ? removeScale(plotId, scl) : addScale(plotId, scl, scales[scl]))}>
 						<span style={{ textDecoration: !active ? 'unset' : 'underline' }}>{scl}</span>
 						<input disabled={!active} title='Scale minimum' style={{ width: 54, marginTop: 2, marginLeft: 8 }} type='text'
 							value={(Math.round(min*100)/100).toString()} onChange={setOverride(scl, 'min')}/>/
