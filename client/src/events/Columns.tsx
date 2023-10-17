@@ -263,7 +263,7 @@ export default function ColumnsSelector() {
 				<h4 style={{ margin: 0, padding: '4px 2em 8px 0' }}>Create custom column</h4>
 				{(original || isValid) && <label title='Display name for the column (optional)'>Name:
 					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.fullName}
-						value={nickname ?? ''} onChange={e => set('nickname', e.target.value)}/></label>}
+						value={nickname ?? ''} onChange={e => set('nickname', e.target.value || null)}/></label>}
 				{(original || isValid) && <label title='Column description (optional)' style={{ paddingBottom: 4 }}>Desc:
 					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.description}
 						value={desc ?? ''} onChange={e => set('description', e.target.value)}/></label>}

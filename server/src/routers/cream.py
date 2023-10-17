@@ -40,7 +40,7 @@ def get_result():
 	mask_gle = request.args.get('mask_gle', 'true').lower() != 'false'
 	subtract_trend = request.args.get('subtract_trend', 'true').lower() != 'false'
 	res, fields = gsm.select([t_from, t_to], query, mask_gle, with_fields=True)
-	res = np.array(res)
+	res = np.array(res, dtype='f8')
 	for i, f in enumerate(fields):
 		if len(res) > 0 and f in ['a10', 'a10m']:
 			res[:,i] = np.round(gsm.normalize_variation(res[:,i], subtract_trend), 2)

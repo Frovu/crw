@@ -4,13 +4,25 @@ from datetime import datetime
 
 from database import log, pool
 from routers.utils import get_role
-from events.table import table_columns, parse_column_id
+from events.table import table_columns, parse_column_id, ENTITY_SHORT
 from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
-	MAX_DURATION_H, compute_generic
+	MAX_DURATION_H, compute_generic, default_window
 
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
+
+def find_column_info(generics, name):
+	try:
+		if not name.startswith('g__'):
+			entity, col = parse_column_id(name)
+			found = table_columns[entity][col]
+			return found.pretty_name, found.data_type
+		found = next((g for g in generics if g.name == name))
+		return found.pretty_name, found.data_type
+	except:
+		log.warning('Could not find generic target column: %s', name)
+		return '<DELETED>', 'real'
 
 @dataclass
 class GenericParams:
@@ -53,12 +65,13 @@ class GenericColumn:
 	params: GenericParams
 	nickname: str = None
 	description: str = None
+	pretty_name: str = None
+	desc: str = None
+	data_type: str = None
 
 	@classmethod
 	def from_row(cls, row):
-		gen = cls(*row)
-		gen.params = GenericParams.from_dict(gen.params)
-		return gen
+		return cls(*row)
 
 	def as_dict(self, uid=None):
 		data = asdict(self)
@@ -66,98 +79,73 @@ class GenericColumn:
 		data['is_own'] = data['owner'] == uid
 		del data['owner']
 		return data
+
 	@property
 	def name(self):
 		return f'g__{self.id}'
-	@property
-	def pretty_name(self):
-		if self.nickname is not None:
-			return self.nickname
-		return self.name # TODO: tododo
-	@property
-	def desc(self):
-		if self.description is not None:
-			return self.description
-		return 'TBD' # TODO: tododo
-	@property
-	def data_type(self):
-		return 'real' # FIXME: if clone
 
+	def __post_init__(self):
+		self.params = GenericParams.from_dict(self.params)
+		para, entity = self.params, self.entity
+		op = para.operation
 
-	@classmethod
-	def legacy_info_from_name(cls, name, entity):
-		try:
-			if not name.startswith('g__'):
-				found = table_columns[entity][name]
-				return found.get('name', name), found.get('type', 'real')
-			found = ALL_GENERICS[int(name[3:])]
-		except:
-			log.warning('Could not find generic target column: %s', name)
-			return '<DELETED>', 'real'
-		return found.pretty_name, found.data_type
-	def legacy(self):
-		pass
-		self.name = f'g__{self.id}'
+		self.data_type = 'real'
+		if self.description and self.nickname:
+			self.pretty_name = self.nickname
+			self.desc = self.description
+			if op not in G_OP_CLONE: # should set data_type
+				return
 
-		series, poi = self.series and self.type not in DERIVED_TYPES and G_SERIES[self.series][2], ''
-		if 'abs' in self.type:
-			series = f'abs({series})'
-		if self.poi in ENTITY_POI:
-			poi = ENTITY_SHORT[self.poi.replace('end_', '')].upper() + (' end' if 'end_' in self.poi else '')
-		elif self.poi and self.type not in DERIVED_TYPES:
-			typ, ser = parse_extremum_poi(self.poi)
-			ser = G_SERIES[ser][2]
-			poi = typ.split('_')[-1] + ' ' + (f'abs({ser})' if 'abs' in typ else ser)
-		poi_h = poi and poi + shift_indicator(self.shift) + ('h' if self.shift else '')
-
-		ser_desc = series and self.type not in DERIVED_TYPES and f'{G_SERIES[self.series][0]}({self.series})'
-		poi_desc = poi if self.poi != self.entity else "event onset"
-		if self.type in ['avg_value', 'value']:
-			self.pretty_name = f'{series} [{"ons" if self.poi == self.entity else poi}]'
-			if self.shift and self.shift != 0:
-				if abs(self.shift) == 1:
-					self.description = f'Value of {ser_desc} one hour {"before" if self.shift<0 else "after"} {poi_desc}'
-				else:
-					what = 'averaged over ' if 'avg' in self.type else ''
-					self.description = f'Value of {ser_desc} {what}{abs(self.shift)} hours {"before" if self.shift<0 else "after"} {poi_desc}'
-				self.pretty_name += '+' if self.shift > 0 else '-'
-				self.pretty_name += f'<{abs(self.shift)}h>' if 'avg' in self.type else f'{abs(self.shift)}h'
-			else:
-				self.description = f'Value of {ser_desc} at the hour of {poi_desc}'
-		elif 'time' in self.type:
-			shift = f"{shift_indicator(self.shift)}" if self.shift != 0 else ''
-			self.pretty_name = f"offset{'%' if '%' in self.type else ' '}[{poi}{shift}]"
-			self.description = f'Time offset between event onset and {poi_desc}, ' + ('%' if '%' in self.type else 'hours')
-		elif 'diff' in self.type:
-			pretty, gtype1 = GenericColumn.info_from_name(self.series, self.entity)
-			pretty2, gtype2 = GenericColumn.info_from_name(self.poi, self.entity)
-			if gtype1 not in ['real', 'integer'] or gtype2 not in ['real', 'integer']:
-				raise ValueError('Not a number type')
-			name = f'{pretty} - {pretty2}'
-			self.pretty_name = f'|{name}|' if 'abs' in self.type else f'({name})'
-			self.description = f'Column values {"absolute" if "abs" in self.type else " "}difference'
-		elif 'clone' == self.type:
-			pretty, dtype = GenericColumn.info_from_name(self.series, self.poi)
+		if op in G_OP_COMBINE:
+			assert 'diff' in op
+			gs = select_generics(self.owner) # FIXME
+			pretty1, _ = find_column_info(gs, para.column)
+			pretty2, _ = find_column_info(gs, para.other_column)
+			name = f'{pretty1} - {pretty2}'.replace(' ', '')
+			pretty_name = f'|{name}|' if 'abs' in op else f'({name})'
+			description = f'Column values {"absolute" if "abs" in op else " "}difference'
+		elif op in G_OP_CLONE:
+			gs = select_generics(self.owner) # FIXME
+			pretty, dtype = find_column_info(gs, para.column)
 			self.data_type = dtype
-			self.pretty_name = f"[{poi}{shift_indicator(self.shift)}] {pretty}"
-			self.description = f'Parameter cloned from associated {self.poi[:-1]} of other event'
-		else:
-			if 'coverage' == self.type:
-				self.pretty_name = f'coverage [{series}]' + (f' to {poi_h}' if poi else '')
-				self.description = f'Coverage percentage of {ser_desc}'
-			else:
-				self.pretty_name = f'{series} {self.type.split("_")[-1]}' + (f' [to {poi_h}]' if poi else '')
-				if 'range' == self.type:
-					self.description = f'Range of values of {ser_desc}'
+			pretty_name = f"[{ENTITY_SHORT[entity].upper()}{shift_indicator(para.entity_offset)}] {pretty}"
+			description = f'Parameter cloned from {entity} associated with other event'
+		elif op in G_OP_VALUE:
+			is_default = all([a == b for a, b in zip(default_window(entity), (para.reference, para.boundary))])
+			def point(ref):
+				if ref.type == 'event':
+					txt = ENTITY_SHORT[ref.entity].upper() + \
+						('_e' if ref.end else '') + shift_indicator(ref.entity_offset)
 				else:
-					name = self.type.split('_')[-1]
-					name = next((n for n in ['Maximum', 'Minimum', 'Mean', 'Median'] if name in n.lower()))
-					self.description = name + (' absolute' if 'abs' in self.type else '') + f' value of {ser_desc}'
-			event = ENTITY_SHORT[self.entity].upper()
-			if self.entity in ENTITY_WITH_DURATION:
-				self.description += ' inside ' + event
+					eop, ser = ref.operation, G_SERIES[ref.series][2]
+					txt = f"{eop.replace('abs_','')}({('|'+ser+'|') if 'abs' in eop else ser})" 
+				return txt + shift_indicator(ref.hours_offset) + ('h' if ref.hours_offset != 0 else '')
+			interv = (f" {{{point(para.reference)};{point(para.boundary)}}}" if not is_default else '')
+			if op in G_OP_TIME:
+				assert 'time_offset' in op
+				pretty_name = f"offset{'%' if '%' in op else ' '}"	+ interv			
+				description = 'Time offset in ' + \
+					('%% of duration' if '%' in op else 'hours')
 			else:
-				self.description += f' between {event} start and ' + (poi_h if poi else f'{event} end | next {event} | +{MAX_EVENT_LENGTH_H}h')
+				ser = G_SERIES[para.series][2]
+				if 'coverage' == op:
+					pretty_name = f'covers[{ser}]' + interv
+					description = f'Coverage percentage of {ser}'
+				else:
+					assert op in G_EXTREMUM or op in ['mean', 'median', 'range']
+					aop = op.split("_")[-1]
+					pretty_name = f'{("|"+ser+"|") if "abs" in op else ser} {aop}' + interv
+					if 'range' == op:
+						description = f'Difference between max and min values of {ser}'
+					else:
+						name = next((n for n in ['Maximum', 'Minimum', 'Mean', 'Median'] if aop in n.lower()))
+						description = name + (' absolute' if 'abs' in op else '') + f' value of {ser}'
+				description += f' between {point(para.reference)} and {point(para.boundary)}'
+		else:
+			assert not 'reached'
+		
+		self.pretty_name = self.nickname or pretty_name
+		self.desc = self.description or description
 
 def _create_column(conn, g: GenericColumn):
 	conn.execute(f'ALTER TABLE events.{g.entity} '+\
@@ -216,10 +204,12 @@ def upset_generic(uid, json_body):
 		if abs(int(p.entity_offset)) > 4:
 			raise ValueError('Bad events offset')
 	elif op in G_OP_COMBINE:
-		if not find_col(p.column):
+		if not (c1 := find_col(p.column)):
 			raise ValueError('Column A not found')
-		if not find_col(p.other_column):
+		if not (c2 := find_col(p.other_column)):
 			raise ValueError('Column B not found')
+		if c1.data_type not in ['real', 'integer'] or c2.data_type not in ['real', 'integer']:
+			raise ValueError('Only numerical columns are supported')
 	elif op in G_OP_VALUE:
 		if op not in G_OP_TIME and p.series not in G_SERIES:
 			raise ValueError('Unknown series: '+str(p.series))
