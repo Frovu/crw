@@ -1,7 +1,7 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, useSize, dispatchCustomEvent } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { LayoutContext, ParamsSetter } from '../Layout';
+import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
@@ -17,7 +17,7 @@ import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import SampleView from './Sample';
 import { AuthContext, useAppSettings, useContextMenu } from '../app';
-import { ExportControls, ExportPreview } from './ExportPlot';
+import { ExportControls, ExportPreview, renderOne } from './ExportPlot';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import { ContextMenu } from '../App';
@@ -37,7 +37,7 @@ export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { role } = useContext(AuthContext);
-	const details = (useContextMenu(state => state.menu?.type === 'events' && state.menu.detail) || null) as TableMenuDetails | null;
+	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
@@ -61,7 +61,12 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
-		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Correlation' && <>
+			<CorrelationContextMenu {...{ params, setParams }}/>
+			<div className='separator'/>
+			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in a new tab</button>}
+		</>}
+
 		{params.type === 'MainTable' && <>
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
 			<div className='separator'/>
@@ -126,6 +131,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<Checkbox text='Show Bz' k='showBz'/>
 				</>}
 			</div>
+			<div className='separator'/>
+			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in a new tab</button>}
 		</>}
 	</>;
 }

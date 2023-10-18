@@ -120,6 +120,33 @@ function computePlotsLayout() {
 	};
 }
 
+export function renderOne(nodeId: string) {
+	const { plots } = usePlotExportSate.getState();
+	const { layout } = computePlotsLayout();
+	if (!layout[nodeId] || !plots[nodeId]) return;
+	const { options, data } = plots[nodeId];
+	const { w, h } = layout[nodeId];
+	const scl = w < 600 ? 6 : 4;
+	const canvas = document.createElement('canvas');
+	canvas.width = w * scl * devicePixelRatio;
+	canvas.height = h * scl * devicePixelRatio;
+	const ctx = canvas.getContext('2d')!;
+	ctx.fillStyle = color('bg');
+	ctx.fillRect(0, 0, w * scl, h * scl);
+	const opts = {
+		...withOverrides(options, { scale: scl }),
+		width: Math.round(w * scl),
+		height: Math.round(h * scl), };
+	new uPlot(opts, data as any, (u, init) => {
+		init();
+		queueMicrotask(() => {
+			ctx.drawImage(u.ctx.canvas, 0, 0);
+			u.destroy();
+			canvas.toBlob(blob => blob && window.open(URL.createObjectURL(blob)));
+		});
+	 });
+}
+
 async function doRenderPlots() {
 	const { width, height, layout } = computePlotsLayout();
 	const { plots, inches, overrides } = usePlotExportSate.getState();
