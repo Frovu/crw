@@ -1,11 +1,12 @@
-import { ReactElement, useContext, useMemo, useState } from 'react';
-import UplotReact from 'uplot-react';
+import { useContext, useMemo, useState } from 'react';
 import regression from 'regression';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, clickDownloadPlot, color } from './plotUtil';
+import { axisDefaults, color, getFontSize, scaled } from './plotUtil';
 import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
 import { LayoutContext, ParamsSetter } from '../Layout';
+import { ExportableUplot } from '../events/ExportPlot';
+import uPlot from 'uplot';
 
 const colors = ['magenta', 'acid', 'cyan', 'green'];
 
@@ -65,7 +66,7 @@ export default function CorrelationPlot() {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
-	const memo = useMemo((): null | [ReactElement|null, (asize: { width: number, height: number }) => Parameters<typeof UplotReact>[0]] => {
+	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams, ...layoutParams };
 
 		if (!sampleData.length)
@@ -102,35 +103,35 @@ export default function CorrelationPlot() {
 		
 		const regrPoints = Array(128).fill(0).map((_, i) => minx + i * (maxx-minx)/128);
 		const regrPredicts = regrPoints.map(x => loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]);
-		const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
+		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
 		const title = regr ? <span><span style={{ color: color('text-dark') }}>α={intercept.toFixed(2)}; </span>
 			β={gradient.toFixed(3)} ± {err.toFixed(3)}; r={Math.sqrt(regr.r2).toFixed(2)}</span> : null;
-
-		return [title, (asize) => ({
-			options: {
-				...asize,
+		
+		return {
+			title,
+			options: () => ({
 				mode: 2,
-				padding: [8, 16, 6, 0],
+				padding: [8, 8, 0, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
 					{
 						...axisDefaults(showGrid),
 						label: colX.fullName,
-						labelSize: 22,
-						space: 50,
-						size: 34,
+						size: getFontSize() + scaled(12),
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
 						...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
-						values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
+						values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString()
+							.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
 					{
 						...axisDefaults(showGrid),
 						label: colY.fullName,
-						size: 18 + 10 * (maxWidthY),
+						size: getFontSize() * 3,
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
-						values: (u, vals) => vals.map(v => loglog ? v?.toString().replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
+						values: (u, vals) => vals.map(v => loglog ? v?.toString()
+							.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 					},
 				],
 				scales: {
@@ -143,30 +144,26 @@ export default function CorrelationPlot() {
 						distr: loglog ? 3 : 1,
 						...(!loglog && { range: [miny, maxy] })
 					}
-		
 				},
 				series: [
-					{},
-					{
+					{}, {
 						stroke: color(params.color),
-						paths: pointPaths(4)
-					},
-					{
+						paths: pointPaths(scaled(4))
+					}, {
 						stroke: color('white'),
-						paths: linePaths(2)
+						paths: linePaths(scaled(1.5))
 					}
 				]
-			},
+			} as Omit<uPlot.Options, 'width'|'height'>),
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
-		})];
+		};
 	}, [columns, layoutParams, sampleData, showGrid]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
-	const [titleText, plotOpts] = memo;
+	const { title, options, data } = memo;
+	const getSize = () => ({ ...size, height: size.height - (title ? 22 : 0) });
 	return (<div ref={setContainer}>
-		{titleText && <div style={{ textAlign: 'center' }}>{titleText}</div>}
-		<div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
-			<UplotReact {...plotOpts({ ...size, height: size.height - (titleText ? 16 : 0) })}/>
-		</div>
+		{title && <div style={{ textAlign: 'center' }}>{title}</div>}
+		<ExportableUplot {...{ size: getSize, options, data, onCreate: () => {} }}/>
 	</div>);
 }

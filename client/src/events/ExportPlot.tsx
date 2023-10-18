@@ -1,7 +1,7 @@
 import {  ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
-import { plotPanelOptions, useViewState } from './events';
+import { plotPanelOptions, statPanelOptions, useViewState } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -11,8 +11,9 @@ import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
 import { Size } from '../util';
 
+type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {
-	options: () => uPlot.Options,
+	options: () => uOptions,
 	data: (number | null)[][],
 	scales: { [key: string]: ScaleParams }
 };
@@ -86,7 +87,8 @@ function computePlotsLayout() {
 	const layout: { [k: string]: { x: number, y: number, w: number, h: number } } = {};
 	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
 		if (!tree[node]) {
-			if (plotPanelOptions.includes(items[node]?.type as any))
+			if (plotPanelOptions.includes(items[node]?.type as any)
+			 || statPanelOptions.includes(items[node]?.type as any))
 				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}
@@ -178,7 +180,7 @@ export function ExportPreview() {
 }
 
 export function ExportableUplot({ size, options, data, onCreate }:
-{ size: () => Size, options: () => uPlot.Options, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+{ size: () => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
