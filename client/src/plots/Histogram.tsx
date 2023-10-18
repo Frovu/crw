@@ -1,14 +1,29 @@
 import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { HistOptions } from '../events/Statistics';
 import { useSize } from '../util';
 import { axisDefaults, clickDownloadPlot, color, font } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 
 const colors = ['magenta', 'acid', 'cyan'];
+const yScaleOptions = ['count', 'log', '%'] as const;
 
-const options: HistOptions = {
+export type HistogramParams = {
+	binCount: number,
+	forceMin: number | null,
+	forceMax: number | null,
+	drawMean: boolean,
+	drawMedian: boolean,
+	yScale: typeof yScaleOptions[number],
+	sample0: string,
+	column0: string | null,
+	sample1: string,
+	column1: string | null,
+	sample2: string,
+	column2: string | null,
+};
+
+export const defaultHistOptions: HistogramParams = {
 	binCount: 16,
 	forceMin: null,
 	forceMax: null,
@@ -22,6 +37,7 @@ const options: HistOptions = {
 	drawMean: false,
 	drawMedian: false
 };
+
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
 	const { showGrid } = useEventsSettings();
@@ -29,11 +45,12 @@ export default function HistogramPlot() {
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
+	const options = defaultHistOptions
 
 	const hist = useMemo(() => {
-		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistOptions]));
+		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistogramParams]));
 		const allSamples = [0, 1, 2].map(i => {
-			const sampleId = options['sample'+i as keyof HistOptions];
+			const sampleId = options['sample'+i as keyof HistogramParams];
 			const colIdx = cols[i];
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
@@ -118,7 +135,7 @@ export default function HistogramPlot() {
 						size: 30,
 						space: 64,
 						labelSize: 20,
-						label: [0, 1, 2].map(i => options['column'+i as keyof HistOptions]).filter((c, i) => samplesBins[i])
+						label: [0, 1, 2].map(i => options['column'+i as keyof HistogramParams]).filter((c, i) => samplesBins[i])
 							.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
 						values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
 						...(enumMode && {

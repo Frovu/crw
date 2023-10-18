@@ -4,32 +4,74 @@ import regression from 'regression';
 import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, clickDownloadPlot, color } from './plotUtil';
-import { CorrParams } from '../events/Statistics';
-import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
+import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
+import { LayoutContext, ParamsSetter } from '../Layout';
+
+const colors = ['magenta', 'acid', 'cyan', 'green'];
+
+export type CorrelationParams = {
+	columnX: string,
+	columnY: string,
+	color: string,
+	loglog: boolean,
+	logx: boolean,
+};
+
+export const defaultCorrParams: CorrelationParams = {
+	columnX: 'fe_kp_max',
+	columnY: 'fe_bz_min',
+	color: 'magenta',
+	loglog: false,
+	logx: true,
+};
+
+export function CorrelationContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const { columns } = useContext(MainTableContext);
+	const cur = { ...defaultCorrParams, ...params.statParams };
+	const columnOpts = columns.filter(c => !c.hidden);
+
+	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
+		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4 }} value={cur[k] as string}
+			onChange={e => setParams('statParams', { [k]: e.target.value })}>
+			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
+		</select>;
+	const Checkbox = ({ text, k }: { text: string, k: keyof CorrelationParams }) =>
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
+	return <>
+		<div>
+			X:<ColumnSelect k='columnX'/>
+		</div> <div>
+			Y:<ColumnSelect k='columnY'/>
+		</div> <div className='separator'/> <div className='Row'>
+			color:<select className='Borderless' value={cur.color}
+				onChange={e => setParams('statParams', { color: e.target.value })}>
+				{colors.map(c => <option key={c} value={c}>{c}</option>)}
+			</select>
+		</div> <div className='Row'>
+			<Checkbox text='loglog' k='loglog'/>
+			<Checkbox text='logx' k='logx'/>
+			
+		</div>
+	</>;
+}
 
 export default function CorrelationPlot() {
 	const { showGrid } = useEventsSettings();
+	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { columns } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
-
-	
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 
 	const memo = useMemo((): null | [ReactElement|null, (asize: { width: number, height: number }) => Parameters<typeof UplotReact>[0]] => {
-		const params: CorrParams = {
-			columnX: 'fe_v_max',
-			columnY: 'fe_magnitude',
-			loglog: false,
-			logx: false,
-			color: 'green'
-		}
+		const params = { ...defaultCorrParams, ...layoutParams };
 
 		if (!sampleData.length)
 			return null;
 		const loglog = params.loglog;
-		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrParams]));
+		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrelationParams]));
 		if (colIdx.includes(-1))
 			return null;
 		const [colX, colY] = colIdx.map(c => columns[c]);
@@ -117,7 +159,7 @@ export default function CorrelationPlot() {
 			},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		})];
-	}, [columns, sampleData, showGrid]);
+	}, [columns, layoutParams, sampleData, showGrid]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const [titleText, plotOpts] = memo;

@@ -1,53 +1,8 @@
 import { Fragment, useContext } from 'react';
 import { MenuCheckbox, MenuInput, MenuSelect } from './TableMenu';
 
-const yScaleOptions = ['count', 'log', '%'] as const;
 
-export type HistOptions = {
-	binCount: number,
-	forceMin: number | null,
-	forceMax: number | null,
-	drawMean: boolean,
-	drawMedian: boolean,
-	yScale: typeof yScaleOptions[number],
-	sample0: string,
-	column0: string | null,
-	sample1: string,
-	column1: string | null,
-	sample2: string,
-	column2: string | null,
-};
 
-export const defaultHistOptions: HistOptions = {
-	binCount: 16,
-	forceMin: null,
-	forceMax: null,
-	yScale: 'count',
-	sample0: 'current',
-	sample1: 'current',
-	sample2: 'current',
-	column0: 'fe_v_max',
-	column1: null,
-	column2: null,
-	drawMean: false,
-	drawMedian: false
-};
-
-export type CorrParams = {
-	columnX: string,
-	columnY: string,
-	color: string,
-	loglog: boolean,
-	logx: boolean,
-};
-
-export const defaultCorrParams = {
-	columnX: 'fe_kp_max',
-	columnY: 'fe_bz_min',
-	color: 'magenta',
-	loglog: false,
-	logx: true,
-};
 
 // export function HistogramMenu() {
 // 	const { options: { hist }, setOpt } = useContext(SettingsContext);

@@ -18,7 +18,7 @@ import { defaultLayouts } from './events/events';
 
 const theQueryClient = new QueryClient();
 
-function ContextMenu() {
+export function ContextMenu() {
 	const { active, resetLayout } = useLayoutsStore();
 	const { menu } = useContextMenu();
 	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
@@ -129,7 +129,7 @@ function App() {
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
-		<ContextMenu/>
+		{app !== 'feid' && <ContextMenu/>}
 		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
 			<div>
 				<select value={app} onChange={e => { window.location.href = e.target.value; }}>

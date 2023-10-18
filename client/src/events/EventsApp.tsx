@@ -7,7 +7,7 @@ import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
 	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams } from './events';
 import TableView from './TableView';
-import CorrelationPlot from '../plots/Correlate';
+import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
 import HistogramPlot from '../plots/Histogram';
 import PlotCircles from '../plots/time/Circles';
@@ -20,6 +20,7 @@ import { AuthContext, useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview } from './ExportPlot';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
+import { ContextMenu } from '../App';
 
 export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	const { plotOffset, set } = useEventsSettings();
@@ -60,6 +61,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
 
 	return <>
+		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
 			<div className='separator'/>
@@ -149,9 +151,9 @@ export function LayoutContent() {
 		{type === 'MainTable' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
+		{type === 'Histogram' && <HistogramPlot/>}
+		{type === 'Correlation' && <CorrelationPlot/>}
 		{params && <>
-			{type === 'Histogram' && <HistogramPlot/>}
-			{type === 'Correlation' && <CorrelationPlot/>}
 			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
@@ -298,6 +300,7 @@ function EventsView() {
 	return (
 		<TableViewContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
+				<ContextMenu/>
 				<AppLayout/>
 			</PlotContext.Provider>
 		</TableViewContext.Provider>

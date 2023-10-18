@@ -10,6 +10,8 @@ import { IMFParams } from '../plots/time/IMF';
 import { SWParams } from '../plots/time/SW';
 import { immer } from 'zustand/middleware/immer';
 import { GenericColumn } from './Columns';
+import { CorrelationParams } from '../plots/Correlate';
+import { HistogramParams } from '../plots/Histogram';
 
 export type EventsSettings = {
 	shownColumns: string[],
@@ -106,6 +108,7 @@ export type PanelParams = {
 	type?: typeof allPanelOptions[number],
 	tableParams?: TableParams,
 	plotParams?: Partial<CommonPlotParams>,
+	statParams?: Partial<CorrelationParams & HistogramParams>,
 };
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };

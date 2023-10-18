@@ -140,7 +140,7 @@ class GenericColumn:
 					else:
 						name = next((n for n in ['Maximum', 'Minimum', 'Mean', 'Median'] if aop in n.lower()))
 						description = name + (' absolute' if 'abs' in op else '') + f' value of {ser}'
-				description += f' between {point(para.reference)} and {point(para.boundary)}'
+			description += f' between {point(para.reference)} and {point(para.boundary)}'
 		else:
 			assert not 'reached'
 		
