@@ -269,6 +269,43 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			}
 		}
 	},
+	stats: {
+		tree: {
+			root: {
+				split: 'column',
+				ratio: .5,
+				children: ['top', 'bottom']
+			},
+			bottom: {
+				split: 'row',
+				ratio: .95,
+				children: ['row', 'empty']
+			},
+			row: {
+				split: 'row',
+				ratio: .5,
+				children: ['p1', 'p2']
+			},
+		},
+		items: {
+			top: {
+				type: 'MainTable',
+				tableParams: {
+					showAverages: true,
+					showChangelog: false,
+				}
+			},
+			p1: {
+				type: 'Correlation'
+			},
+			p2: {
+				type: 'Histogram',
+			},
+			empty: {
+				type: 'Empty',
+			},
+		}
+	},
 	export: {
 		tree: {
 			root: {

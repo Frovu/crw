@@ -48,8 +48,8 @@ import { MenuCheckbox, MenuInput, MenuSelect } from './TableMenu';
 
 // 	return (<>
 // 		<h4>Correlation</h4>
-// 		<MenuSelect text='X' value={options.correlation.columnX} width='10em' options={selection} pretty={pretty} callback={set('columnX')}/>
-// 		<MenuSelect text='Y' value={options.correlation.columnY} width='10em' options={selection} pretty={pretty} callback={set('columnY')}/>
+// 		<MenuSelect text='X' value={options.correlation.column0} width='10em' options={selection} pretty={pretty} callback={set('column0')}/>
+// 		<MenuSelect text='Y' value={options.correlation.column1} width='10em' options={selection} pretty={pretty} callback={set('column1')}/>
 // 		<MenuSelect text='Color' value={options.correlation.color} width='8em' options={['cyan', 'magenta', 'green', 'acid']} callback={set('color')}/>
 // 		<div>
 // 			<MenuCheckbox text='log-log' value={options.correlation.loglog} callback={set('loglog')}/>

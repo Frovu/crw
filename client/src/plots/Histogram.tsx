@@ -2,7 +2,7 @@ import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { useSize } from '../util';
-import { axisDefaults, clickDownloadPlot, color, font } from './plotUtil';
+import { axisDefaults, color, font } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 
 const colors = ['magenta', 'acid', 'cyan'];
@@ -116,8 +116,7 @@ export default function HistogramPlot() {
 					u.ctx.stroke();
 					u.ctx.fillText(what, x + 5, u.bbox.top + margin);
 					u.ctx.restore();
-				}
-			}
+				} }
 		};
 		
 		return (asize: { width: number, height: number }) => ({
@@ -126,56 +125,45 @@ export default function HistogramPlot() {
 				padding: [10, 4, 0, 0],
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: {
-					draw: [ drawAverages ]
-				},
-				axes: [
-					{
-						...axisDefaults(showGrid),
-						size: 30,
-						space: 64,
-						labelSize: 20,
-						label: [0, 1, 2].map(i => options['column'+i as keyof HistogramParams]).filter((c, i) => samplesBins[i])
-							.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
-						values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
-						...(enumMode && {
-							values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
-						}),
-					},
-					{
-						...axisDefaults(showGrid),
-						values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
-						size: 56,
-						space: 48
-					},
-				],
+				hooks: { draw: [ drawAverages ] },
+				axes: [ {
+					...axisDefaults(showGrid),
+					size: 30,
+					space: 64,
+					labelSize: 20,
+					label: [0, 1, 2].map(i => options['column'+i as keyof HistogramParams]).filter((c, i) => samplesBins[i])
+						.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
+					values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
+					...(enumMode && {
+						values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
+					}),
+				}, {
+					...axisDefaults(showGrid),
+					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
+					size: 56,
+					space: 48
+				}, ],
 				scales: {
 					x: {
 						time: false,
 						range: () => [min-binSize/4, max + binSize/4 * (enumMode ? -1 : 1) ]
-					},
-					y: {
+					}, y: {
 						distr: options.yScale === 'log' ? 3 : 1
-					}
-		
-				},
+					} },
 				series: [
-					{},
-					...[{
+					{}, ...[{
 						stroke: color(colors[0]),
 						fill: color(colors[0], .8),
 						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.8, 64], align: 1 })
-					},
-					{
+					}, {
 						stroke: color(colors[1]),
 						fill: color(colors[1]),
 						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.4, 64], align: 1 })
-					},
-					{
+					}, {
 						stroke: color(colors[2]),
 						fill: color(colors[2]),
 						width: 0,
@@ -190,7 +178,7 @@ export default function HistogramPlot() {
 
 	const opts = hist?.(size);
 	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;
-	return (<div ref={setContainer} style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+	return (<div ref={setContainer} style={{ position: 'absolute' }}>
 		<UplotReact {...opts}/>
 	</div>);
 }

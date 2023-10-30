@@ -94,7 +94,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
 export const LayoutContext = createContext<{ id: string, size: Size, params: PanelParams, setParams: ParamsSetter } | null>(null);
 
-const setParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
+export const setNodeParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
 	const { items } = state.list[state.active];
 	items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
 });
@@ -146,7 +146,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={() => isPanelDraggable(items[id]?.type) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
-		{<LayoutContext.Provider value={{ id, size, params: items[id]!, setParams: (k, para) => setParams(id, k, para) }}>
+		{<LayoutContext.Provider value={{ id, size, params: items[id]!, setParams: (k, para) => setNodeParams(id, k, para) }}>
 			<LayoutContent/></LayoutContext.Provider>}
 		{!items[id]!.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
 			<LayoutContextMenu id={id}/></div></div>}
@@ -175,7 +175,7 @@ function Node({ id, size }: { id: string, size: Size }) {
 	onMouseMove={e => {
 		if (!drag.current) return;
 		const delta = (isRow ? e.clientX : e.clientY) - drag.current.click;
-		updateRatio(id, clamp(.1, .9, drag.current.ratio + delta / size[dim]));
+		updateRatio(id, clamp(.05, .95, drag.current.ratio + delta / size[dim]));
 	}}
 	onMouseUp={() => { drag.current = null; }}
 	onMouseLeave={() => { drag.current = null; }}>
@@ -200,12 +200,12 @@ export function LayoutContextMenu({ id: argId }: { id?: string }) {
 	const type = items[id]?.type;
 	return <>
 		{items[id] && !(items[id]!.type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
-			onChange={e => setParams(id, 'type', e.target.value as typeof allPanelOptions[number])}>
+			onChange={e => setNodeParams(id, 'type', e.target.value as typeof allPanelOptions[number])}>
 			{type == null && <option value={'empty'}>Select panel</option>}
 			{allPanelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
 		</select>}
 		{!isFirstInRoot && type && <div className='separator'/>}
-		{type && <ContextMenuContent {...{ params: items[id]!, setParams: (key, para) => setParams(id, key, para) }}/>}
+		{type && <ContextMenuContent {...{ params: items[id]!, setParams: (key, para) => setNodeParams(id, key, para) }}/>}
 		{items[id] && <div className='separator'/>}
 		{!items[id] && <button onClick={() => splitNode(id, 'row', true)}>Split left</button>}
 		{(!items[id] || type) && <button onClick={() => splitNode(id, 'row')}>Split right</button>}

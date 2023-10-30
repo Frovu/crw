@@ -1,11 +1,11 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, useSize, dispatchCustomEvent } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter } from '../Layout';
+import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodeParams, useLayout } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -39,6 +39,14 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
+	const layout = useLayout();
+	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
+	const setStatColumn = (col: string, i: number) => {
+		const key = (['column0', 'column1'] as const)[i];
+		for (const [id, item] of Object.entries(layout.items))
+			if (statPanelOptions.includes(item?.type as any))
+				setNodeParams(id, 'statParams', { [key]: col });
+	};
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;
@@ -66,7 +74,6 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			<div className='separator'/>
 			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 		</>}
-
 		{params.type === 'MainTable' && <>
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
 			<div className='separator'/>
@@ -79,6 +86,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
+				{statsPresent && <><button onClick={() => setStatColumn(column.id, 0)}>Use as X</button>
+					<button onClick={() => setStatColumn(column.id, 1)}>Use as Y</button></>}
 				{value && <button onClick={() => addFilter(column, value)}
 				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 				<div className='separator'/>

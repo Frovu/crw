@@ -11,16 +11,16 @@ import uPlot from 'uplot';
 const colors = ['magenta', 'acid', 'cyan', 'green'];
 
 export type CorrelationParams = {
-	columnX: string,
-	columnY: string,
+	column0: string,
+	column1: string,
 	color: string,
 	loglog: boolean,
 	logx: boolean,
 };
 
 export const defaultCorrParams: CorrelationParams = {
-	columnX: 'fe_kp_max',
-	columnY: 'fe_bz_min',
+	column0: 'fe_kp_max',
+	column1: 'fe_bz_min',
 	color: 'magenta',
 	loglog: false,
 	logx: true,
@@ -41,9 +41,9 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
 	return <>
 		<div>
-			X:<ColumnSelect k='columnX'/>
+			X:<ColumnSelect k='column0'/>
 		</div> <div>
-			Y:<ColumnSelect k='columnY'/>
+			Y:<ColumnSelect k='column1'/>
 		</div> <div className='separator'/> <div className='Row'>
 			color:<select className='Borderless' value={cur.color}
 				onChange={e => setParams('statParams', { color: e.target.value })}>
@@ -72,7 +72,7 @@ export default function CorrelationPlot() {
 		if (!sampleData.length)
 			return null;
 		const loglog = params.loglog;
-		const colIdx = ['columnX', 'columnY'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrelationParams]));
+		const colIdx = ['column0', 'column1'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrelationParams]));
 		if (colIdx.includes(-1))
 			return null;
 		const [colX, colY] = colIdx.map(c => columns[c]);
@@ -112,7 +112,7 @@ export default function CorrelationPlot() {
 			title,
 			options: () => ({
 				mode: 2,
-				padding: [8, 8, 0, 0].map(p => scaled(p)) as any,
+				padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				axes: [
