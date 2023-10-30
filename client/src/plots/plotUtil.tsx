@@ -292,32 +292,6 @@ export function usePlotOverlayPosition(defaultPos: DefaultPosition)
 	}];
 }
 
-export function clickDownloadPlot(e: React.MouseEvent | MouseEvent) {
-	if (!e.altKey && !e.ctrlKey)
-		return;
-	const src = (e.target as HTMLElement).closest('.uplot')?.querySelector('canvas');
-	if (!src)
-		return console.log('not found plot (click)');
-		
-	const canvas = document.createElement('canvas');
-	canvas.width = src.width;
-	canvas.height = src.height;
-	const ctx = canvas.getContext('2d')!;
-	ctx.fillStyle = color('bg');
-	ctx.fillRect(0, 0, src.width, src.height);
-	ctx.drawImage(src, 0, 0);
-
-	if (e.altKey) {
-		const a = document.createElement('a');
-		a.download = 'aid_plot.png';
-		a.href = canvas.toDataURL()!;
-		return a.click();
-	}
-	canvas.toBlob(blob => {
-		blob && window.open(URL.createObjectURL(blob));
-	});
-}
-
 export function ScatterPlot({ data, colour }: { data: [number[], number[]][], colour: string }) {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);

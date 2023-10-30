@@ -2,7 +2,7 @@ import { useState, useEffect, MutableRefObject, useCallback, useContext } from '
 import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
-	markersPaths, drawMagneticClouds, drawOnsets, color, clickDownloadPlot, Position, Shape, Size,
+	markersPaths, drawMagneticClouds, drawOnsets, color, Position, Shape, Size,
 	drawShape, font, scaled, measureDigit, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
@@ -360,7 +360,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 	if (!query.data?.[0].length)
 		return <div className='Center'>NO DATA</div>;
 
-	return (<div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+	return (<div style={{ position: 'absolute' }}>
 		<ExportableUplot {...{ size, options, data: query.data, onCreate: setUplot }}/>
 	</div>);
 

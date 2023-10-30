@@ -64,7 +64,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 		{params.type === 'Correlation' && <>
 			<CorrelationContextMenu {...{ params, setParams }}/>
 			<div className='separator'/>
-			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in a new tab</button>}
+			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 		</>}
 
 		{params.type === 'MainTable' && <>

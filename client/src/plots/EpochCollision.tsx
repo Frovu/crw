@@ -2,7 +2,6 @@ import { useContext, useMemo, useState } from 'react';
 import { apiPost, useSize } from '../util';
 import { axisDefaults, color } from './plotUtil';
 import UplotReact from 'uplot-react';
-import { clickDownloadPlot } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
@@ -169,7 +168,7 @@ export default function EpochCollision() {
 			<MenuSelect text=' B' width='9ch' withNull={true} value={state.sample1} options={sampleOptions} callback={set('sample1')}/>
 			{(state.sample1 || state.sample2) && <MenuSelect text=' C' width='9ch' withNull={true} value={state.sample2} options={sampleOptions} callback={set('sample2')}/>}
 		</div>
-		{!status && <div style={{ position: 'absolute' }} onClick={clickDownloadPlot}>
+		{!status && <div style={{ position: 'absolute' }}>
 			<UplotReact {...{ options, data }}/>
 		</div>}
 		{status}

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
-import { axisDefaults, clickDownloadPlot, color, customTimeSplits,
+import { axisDefaults, color, customTimeSplits,
 	drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
 import { BasicPlotParams, applyTextTransform } from '../BasicPlot';
 import { useQuery } from 'react-query';
@@ -289,8 +289,6 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 						u.over.addEventListener('mouseup', e => {
 							if (currentBase !== data.base) {
 								setBase(new Date(currentBase * 1e3));
-							} else if (e.altKey || e.ctrlKey) {
-								clickDownloadPlot(e);
 							} else if (interactive && (u.cursor.left ?? 0) > 0 && Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30) {
 								const detailsIdx = u.posToIdx(u.cursor.left!);
 								if (detailsIdx != null)
