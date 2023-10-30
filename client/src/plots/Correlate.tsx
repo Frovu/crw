@@ -28,8 +28,10 @@ export const defaultCorrParams: CorrelationParams = {
 
 export function CorrelationContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { columns } = useContext(MainTableContext);
+	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultCorrParams, ...params.statParams };
-	const columnOpts = columns.filter(c => !c.hidden);
+	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
+		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
 
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4 }} value={cur[k] as string}
@@ -164,6 +166,6 @@ export default function CorrelationPlot() {
 	const getSize = () => ({ ...size, height: size.height - (title ? 22 : 0) });
 	return (<div ref={setContainer}>
 		{title && <div style={{ textAlign: 'center' }}>{title}</div>}
-		<ExportableUplot {...{ size: getSize, options, data, onCreate: () => {} }}/>
+		<ExportableUplot {...{ size: getSize, options, data }}/>
 	</div>);
 }

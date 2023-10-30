@@ -1,9 +1,10 @@
 import { useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
-import UplotReact from 'uplot-react';
 import { useSize } from '../util';
 import { axisDefaults, color, font } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
+import { ExportableUplot } from '../events/ExportPlot';
+import { LayoutContext } from '../Layout';
 
 const colors = ['magenta', 'acid', 'cyan'];
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -40,14 +41,16 @@ export const defaultHistOptions: HistogramParams = {
 
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
+	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { showGrid } = useEventsSettings();
 	const { data: sampleData, apply: applySample } = useContext(SampleContext);
 
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
-	const options = defaultHistOptions
 
 	const hist = useMemo(() => {
+		const options = { ...defaultHistOptions, ...layoutParams };
+
 		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistogramParams]));
 		const allSamples = [0, 1, 2].map(i => {
 			const sampleId = options['sample'+i as keyof HistogramParams];
@@ -119,9 +122,8 @@ export default function HistogramPlot() {
 				} }
 		};
 		
-		return (asize: { width: number, height: number }) => ({
-			options: {
-				...asize,
+		return {
+			options: () => ({
 				padding: [10, 4, 0, 0],
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
@@ -171,14 +173,13 @@ export default function HistogramPlot() {
 						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
 				]
-			} as uPlot.Options,
+			}) as Omit<uPlot.Options, 'width'|'height'>,
 			data: [binsValues, ...transformed] as any
-		}) ;
-	}, [columns, sampleData, allData, applySample, showGrid]);
+		};
+	}, [layoutParams, columns, sampleData, allData, applySample, showGrid]);
 
-	const opts = hist?.(size);
-	if (!opts) return <div className='Center'>EMPTY SAMPLE</div>;
-	return (<div ref={setContainer} style={{ position: 'absolute' }}>
-		<UplotReact {...opts}/>
+	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
+	return (<div ref={setContainer}>
+		<ExportableUplot {...{ size: () => size, ...hist }}/>
 	</div>);
 }

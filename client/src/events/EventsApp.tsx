@@ -71,8 +71,6 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	return <>
 		{params.type === 'Correlation' && <>
 			<CorrelationContextMenu {...{ params, setParams }}/>
-			<div className='separator'/>
-			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 		</>}
 		{params.type === 'MainTable' && <>
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
@@ -140,8 +138,10 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<Checkbox text='Show Bz' k='showBz'/>
 				</>}
 			</div>
+		</>}
+		{(isPlot || statPanelOptions.includes(params.type as any)) && <>
 			<div className='separator'/>
-			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in a new tab</button>}
+			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 		</>}
 	</>;
 }
@@ -169,8 +169,8 @@ export function LayoutContent() {
 		{type === 'ExportPreview' && <ExportPreview/>}
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
+		{type === 'Epoch collision' && <EpochCollision/>}
 		{params && <>
-			{type === 'Epoch collision' && <EpochCollision/>}
 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
 			{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
