@@ -1,4 +1,4 @@
-import { useState, useEffect, MutableRefObject, useCallback, useContext } from 'react';
+import { MutableRefObject, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
 import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
@@ -7,7 +7,6 @@ import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { Onset, MagneticCloud } from '../events/events';
-import { LayoutContext } from '../Layout';
 
 export type TextTransform = {
 	search: string,
@@ -249,7 +248,7 @@ export type CustomScale = uPlot.Scale & {
 	positionValue?: { bottom: number, top: number },
 };
 
-const calcSize = (panel?: Size) => panel ? ({ width: panel.width - 2, height: panel.height - 2 }) : ({ width: 600, height: 400 });
+const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
 export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
@@ -259,18 +258,10 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		queryFn
 	});
 
-	const panelSize = useContext(LayoutContext)?.size;
 	const defaultPos: DefaultPosition = (u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
 		y: u.bbox.top / scaled(1) });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
-
-	const [ uplot, setUplot ] = useState<uPlot>();
-	useEffect(() => {
-		if (!uplot) return;
-		uplot.setSize({ ...calcSize(panelSize) });
-	}, [params, uplot, panelSize]);
-	const size = () => calcSize(panelSize);
 
 	const options = useCallback(() => {
 		const axes = getAxes(), series = getSeries();
@@ -361,7 +352,7 @@ export function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAx
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }}>
-		<ExportableUplot {...{ size, options, data: query.data, onCreate: setUplot }}/>
+		<ExportableUplot {...{ size: calcSize, options, data: query.data }}/>
 	</div>);
 
 }

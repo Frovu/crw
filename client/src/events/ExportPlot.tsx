@@ -207,17 +207,25 @@ export function ExportPreview() {
 }
 
 export function ExportableUplot({ size, options, data, onCreate }:
-{ size: () => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+{ size?: (sz: Size) => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
 
+	const [upl, setUpl] = useState<uPlot | null>(null);
+	const borderSize = layout?.size && { width: layout?.size.width - 2, height: layout?.size.height - 8 };
+	const sz = borderSize ? (size ? size(layout.size) : borderSize) : { width: 600, height: 400 };
+
+	useEffect(() => {
+		upl && upl.setSize(sz);
+	}, [upl, sz.height, sz.width]); // eslint-disable-line
+
 	const plot = useMemo(() => {
 		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, 
 			textTransform: textTransform?.filter(tr => tr.enabled) });
 		return <UplotReact {...{
-			options: { ...size(), ...opts }, data: data as any, onCreate: u => {
+			options: { ...sz, ...opts }, data: data as any, onCreate: u => {
 				if (layout?.id) queueMicrotask(() => usePlotExportSate.setState(state => {
 					state.plots[layout.id] = { options, data, scales: {} };
 					for (const scl in u.scales) {
@@ -226,6 +234,7 @@ export function ExportableUplot({ size, options, data, onCreate }:
 							state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
 					}
 				}));
+				setUpl(u);
 				onCreate?.(u);
 			} }}/>;
 	}, [controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line

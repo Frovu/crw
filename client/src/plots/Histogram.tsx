@@ -1,6 +1,5 @@
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { useSize } from '../util';
 import { axisDefaults, color, font } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
@@ -44,9 +43,6 @@ export default function HistogramPlot() {
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { showGrid } = useEventsSettings();
 	const { data: sampleData, apply: applySample } = useContext(SampleContext);
-
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	const size = useSize(container?.parentElement);
 
 	const hist = useMemo(() => {
 		const options = { ...defaultHistOptions, ...layoutParams };
@@ -179,7 +175,5 @@ export default function HistogramPlot() {
 	}, [layoutParams, columns, sampleData, allData, applySample, showGrid]);
 
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
-	return (<div ref={setContainer}>
-		<ExportableUplot {...{ size: () => size, ...hist }}/>
-	</div>);
+	return <ExportableUplot {...{ ...hist }}/>;
 }

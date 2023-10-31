@@ -1,6 +1,5 @@
-import { useContext, useMemo, useState } from 'react';
+import { useContext, useMemo } from 'react';
 import regression from 'regression';
-import { useSize } from '../util';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, scaled } from './plotUtil';
 import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
@@ -54,7 +53,6 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		</div> <div className='Row'>
 			<Checkbox text='loglog' k='loglog'/>
 			<Checkbox text='logx' k='logx'/>
-			
 		</div>
 	</>;
 }
@@ -64,9 +62,6 @@ export default function CorrelationPlot() {
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { columns } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
-
-	const [container, setContainer] = useState<HTMLDivElement | null>(null);
-	const size = useSize(container?.parentElement);
 
 	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams, ...layoutParams };
@@ -163,9 +158,8 @@ export default function CorrelationPlot() {
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { title, options, data } = memo;
-	const getSize = () => ({ ...size, height: size.height - (title ? 22 : 0) });
-	return (<div ref={setContainer}>
+	return (<>
 		{title && <div style={{ textAlign: 'center' }}>{title}</div>}
-		<ExportableUplot {...{ size: getSize, options, data }}/>
-	</div>);
+		<ExportableUplot {...{ size: (sz) => ({ ...sz, height: sz.height - (title ? 22 : 0) }), options, data }}/>
+	</>);
 }
