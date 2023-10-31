@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { axisDefaults, color, font } from './plotUtil';
+import { axisDefaults, color, font, getFontSize, measureDigit, scaled } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { LayoutContext } from '../Layout';
@@ -120,15 +120,15 @@ export default function HistogramPlot() {
 		
 		return {
 			options: () => ({
-				padding: [10, 4, 0, 0],
+				padding: [8, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				hooks: { draw: [ drawAverages ] },
 				axes: [ {
 					...axisDefaults(showGrid),
-					size: 30,
-					space: 64,
-					labelSize: 20,
+					size: scaled(10) + getFontSize(),
+					space: getFontSize() * 3,
+					labelSize: getFontSize(),
 					label: [0, 1, 2].map(i => options['column'+i as keyof HistogramParams]).filter((c, i) => samplesBins[i])
 						.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
 					values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
@@ -138,8 +138,8 @@ export default function HistogramPlot() {
 				}, {
 					...axisDefaults(showGrid),
 					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
-					size: 56,
-					space: 48
+					size: measureDigit().width * 4 + scaled(8),
+					space: getFontSize() * 3
 				}, ],
 				scales: {
 					x: {
@@ -154,19 +154,19 @@ export default function HistogramPlot() {
 						fill: color(colors[0], .8),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.8, 64], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.8, scaled(64)], align: 1 })
 					}, {
 						stroke: color(colors[1]),
 						fill: color(colors[1]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.4, 64], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.4, scaled(64)], align: 1 })
 					}, {
 						stroke: color(colors[2]),
 						fill: color(colors[2]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.2, 64], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.2, scaled(64)], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
 				]
 			}) as Omit<uPlot.Options, 'width'|'height'>,
