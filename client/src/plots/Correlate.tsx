@@ -115,6 +115,7 @@ export default function CorrelationPlot() {
 				axes: [
 					{
 						...axisDefaults(showGrid),
+						space: getFontSize() * 2.5,
 						label: colX.fullName,
 						size: getFontSize() + scaled(12),
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],

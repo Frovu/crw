@@ -214,8 +214,8 @@ export function ExportableUplot({ size, options, data, onCreate }:
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
-	const borderSize = layout?.size && { width: layout?.size.width - 2, height: layout?.size.height - 8 };
-	const sz = borderSize ? (size ? size(layout.size) : borderSize) : { width: 600, height: 400 };
+	const borderSize = layout?.size && { width: layout?.size.width - 2, height: layout?.size.height - 2 };
+	const sz = borderSize ? (size ? size(borderSize) : borderSize) : { width: 600, height: 400 };
 
 	useEffect(() => {
 		upl && upl.setSize(sz);
