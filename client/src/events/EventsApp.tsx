@@ -86,7 +86,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{statsPresent && <><button onClick={() => setStatColumn(column.id, 0)}>Use as X</button>
 					<button onClick={() => setStatColumn(column.id, 1)}>Use as Y</button></>}
-				{value && <button onClick={() => addFilter(column, value)}
+				{value != null && <button onClick={() => addFilter(column, value)}
 				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 				<div className='separator'/>
 			</>}
