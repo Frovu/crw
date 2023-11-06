@@ -12,14 +12,15 @@ from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
 def shift_indicator(shift):
 	return f"{'+' if shift > 0 else '-'}{abs(int(shift))}" if shift != 0 else ''
 
-def find_column_info(generics, name):
+def find_column_info(rows, name):
 	try:
 		if not name.startswith('g__'):
 			entity, col = parse_column_id(name)
 			found = table_columns[entity][col]
 			return found.pretty_name, found.data_type
-		found = next((g for g in generics if g.name == name))
-		return found.pretty_name, found.data_type
+		# found = next((g for g in generics if g.name == name))
+		gen = next((GenericColumn.from_row(row, rows) for row in rows if GenericColumn.from_row(row, rows).name == name))
+		return gen.pretty_name, gen.data_type
 	except:
 		log.warning('Could not find generic target column: %s', name)
 		return '<DELETED>', 'real'
@@ -70,21 +71,8 @@ class GenericColumn:
 	data_type: str = None
 
 	@classmethod
-	def from_row(cls, row):
-		return cls(*row)
-
-	def as_dict(self, uid=None):
-		data = asdict(self)
-		data['params'] = self.params.as_dict()
-		data['is_own'] = data['owner'] == uid
-		del data['owner']
-		return data
-
-	@property
-	def name(self):
-		return f'g__{self.id}'
-
-	def __post_init__(self):
+	def from_row(cls, row, gs=None):
+		self = cls(*row)
 		self.params = GenericParams.from_dict(self.params)
 		para, entity = self.params, self.entity
 		op = para.operation
@@ -96,16 +84,16 @@ class GenericColumn:
 			if op not in G_OP_CLONE: # should set data_type
 				return
 
+		if not gs:
+			return self
 		if op in G_OP_COMBINE:
 			assert 'diff' in op
-			gs = select_generics(self.owner) # FIXME
 			pretty1, _ = find_column_info(gs, para.column)
 			pretty2, _ = find_column_info(gs, para.other_column)
 			name = f'{pretty1} - {pretty2}'.replace(' ', '')
 			pretty_name = f'|{name}|' if 'abs' in op else f'({name})'
 			description = f'Column values {"absolute" if "abs" in op else " "}difference'
 		elif op in G_OP_CLONE:
-			gs = select_generics(self.owner) # FIXME
 			pretty, dtype = find_column_info(gs, para.column)
 			self.data_type = dtype
 			pretty_name = f"[{ENTITY_SHORT[entity].upper()}{shift_indicator(para.entity_offset)}] {pretty}"
@@ -146,6 +134,18 @@ class GenericColumn:
 		
 		self.pretty_name = self.nickname or pretty_name
 		self.desc = self.description or description
+		return self
+
+	def as_dict(self, uid=None):
+		data = asdict(self)
+		data['params'] = self.params.as_dict()
+		data['is_own'] = data['owner'] == uid
+		del data['owner']
+		return data
+
+	@property
+	def name(self):
+		return f'g__{self.id}'
 
 def _create_column(conn, g: GenericColumn):
 	conn.execute(f'ALTER TABLE events.{g.entity} '+\
@@ -171,12 +171,14 @@ def select_generics(user_id=None, select_all=False):
 		where = ' WHERE is_public' + ('' if user_id is None else ' OR %s = owner')
 		rows = conn.execute('SELECT * FROM events.generic_columns' + ('' if select_all else where),
 			[] if user_id is None else [user_id]).fetchall()
-	result = [GenericColumn.from_row(row) for row in rows]
+	# FIXME: whole initialization process feels weird
+	result = [GenericColumn.from_row(row, rows) for row in rows]
 	return result
 _init()
 
 def upset_generic(uid, json_body):
-	gid, entity, nickname, description = [json_body.get(i) for i in ('gid', 'entity', 'nickname', 'description')]
+	gid, entity, nickname, description, is_public = \
+		[json_body.get(i) for i in ('gid', 'entity', 'nickname', 'description', 'is_public')]
 	p = GenericParams.from_dict(json_body['params'])
 	op = p.operation
 	generics = select_generics(uid)
@@ -192,7 +194,7 @@ def upset_generic(uid, json_body):
 		raise ValueError('Forbidden')
 	if not gid and (found := next((g for g in generics if g.params == p), None)):
 		raise ValueError('Such column already exists: '+found.pretty_name)
-	if nickname is not None and len(nickname) > 32:
+	if nickname is not None and len(nickname) > 24:
 		raise ValueError('Nickname too long')
 	if not gid and uid and get_role() not in ('operator', 'admin') and len(generics) > 24:
 		raise ValueError('Limit reached, please delete some other columns first')
@@ -238,15 +240,15 @@ def upset_generic(uid, json_body):
 	with pool.connection() as conn:
 		if gid is None:
 			row = conn.execute('INSERT INTO events.generic_columns ' +\
-				'(entity, owner, params, nickname, description) VALUES (%s,%s,%s,%s,%s) RETURNING *',
-				[entity, uid, json.dumps(p.as_dict()), nickname, description]).fetchone()
+				'(entity, owner, is_public, params, nickname, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
+				[entity, uid, is_public, json.dumps(p.as_dict()), nickname, description]).fetchone()
 			generic = GenericColumn.from_row(row)
 			_create_column(conn, generic)
 			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 		else:
 			row = conn.execute('UPDATE events.generic_columns SET ' +\
-				'params=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
-				[json.dumps(p.as_dict()), nickname, description, gid]).fetchone()
+				'params=%s, is_public=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
+				[json.dumps(p.as_dict()), is_public, nickname, description, gid]).fetchone()
 			generic = GenericColumn.from_row(row)
 			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 	if not gid or found.params != p:

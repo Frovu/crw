@@ -145,7 +145,8 @@ export default function ColumnsSelector() {
 	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
 	const original = oriColumn && oriColumn.generic;
 	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
-	const smhChanged = original && (paramsChanged || desc !== original.description || nickname !== original.nickname);
+	const smhChanged = original && (paramsChanged ||
+		genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
 	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
 	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
@@ -249,7 +250,7 @@ export default function ColumnsSelector() {
 					<b><u>{prettyTable(table)}</u></b></button>
 				{columns.filter(c => !c.hidden && c.table === table).map(({ id, name, description, generic }) =>
 					<div key={id} style={{ color: generic ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
-						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em' }}
+						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em', wordBreak: 'break-all' }}
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}
 							onMouseDown={e => { if (e.button !== 0) return generic && setGeneric(generic);
 								const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
@@ -260,7 +261,8 @@ export default function ColumnsSelector() {
 					</div>)}
 			</Fragment>)}
 			{role && <div className='GenericsControls'>
-				<h4 style={{ margin: 0, padding: '4px 2em 8px 0' }}>Create custom column</h4>
+				<h4 style={{ margin: 0, padding: '4px 0 8px 0', cursor: 'pointer' }} title='Reset'
+					onMouseDown={() => reset()}>Manage custom columns:</h4>
 				{(original || isValid) && <label title='Display name for the column (optional)'>Name:
 					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.fullName}
 						value={nickname ?? ''} onChange={e => set('nickname', e.target.value || null)}/></label>}
@@ -282,7 +284,10 @@ export default function ColumnsSelector() {
 					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>
 					<div style={{ minWidth: 278 }}>To<RefInput k='boundary'/></div>
 				</>}
-				<div style={{ height: 2 }}/>
+				{(original || isValid) && <label
+					title='Should other users be able to see this column?'>public column
+					<input type='checkbox' checked={!!genericSate.is_public}
+						onChange={e => set('is_public', e.target.checked)}/></label>}
 				{(oriColumn && !paramsChanged) && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
 					onClick={() => computeGeneric(oriColumn.generic!.id)}>Compute {oriColumn.fullName}</button></div>}
 				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
