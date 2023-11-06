@@ -177,9 +177,9 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
+									onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-									<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}
-										onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}/>
+									<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}/>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											{valueToString(row[cidx+1])}
