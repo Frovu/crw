@@ -1,9 +1,8 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
-import { apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
+import { Confirmation, apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
-import { ConfirmationPopup } from './TableMenu';
 import { logMessage } from '../app';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
@@ -124,7 +123,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			}
 		};
 	}, [rawMainContext, changes]);
-
+	
 	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
 	useEventListener('action+discardChanges', () => setChanges([]));
 
@@ -176,9 +175,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	return (
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
-				{showCommit && <ConfirmationPopup style={{ width: 'unset' }} confirm={() => doCommit(null, {
+				{showCommit && <Confirmation callback={() => doCommit(null, {
 					onSuccess: () => { setShowCommit(false); setChanges([]); }
-				})} close={() => setShowCommit(false)} persistent={true}>
+				})} closeSelf={() => setShowCommit(false)}>
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 						{changes.map(({ id, column, value }) => {
@@ -189,12 +188,12 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 							return (<div key={id+column.id+value}>
 								<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
 								<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
-								<span className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
-									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}>&times;</span>
+								<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
+									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}/>
 							</div>);})}
 					</div>
 					<div style={{ height: '1em', color }}>{report?.error ?? report?.success}</div>
-				</ConfirmationPopup>}
+				</Confirmation>}
 				{children}
 			</SampleContext.Provider>
 		</MainTableContext.Provider>

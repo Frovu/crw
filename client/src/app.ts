@@ -89,6 +89,7 @@ export function handleGlobalKeydown(e: KeyboardEvent) {
 	const action = Object.keys(KEY_COMB).find(k => KEY_COMB[k].split('%')[0] === keycomb);
 	if (action) {
 		e.preventDefault();
+		e.stopPropagation();
 		dispatchCustomEvent('action+' + action);
 	}
 }

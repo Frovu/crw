@@ -21,10 +21,9 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 
 	const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: 'var(--color-bg)',
 		boxShadow: ' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)' ) };
-
 	return <>
 		{column.type === 'enum' && <select autoFocus style={inpStype!}
-			value={value} onChange={onChange} onBlur={escapeCursor}>
+			value={value} onChange={e => { onChange(e); escapeCursor(); }}>
 			<option value=''></option>
 			{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 		</select>}
@@ -38,6 +37,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor } = useViewState();
+	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = tableParams?.showChangelog && size.height > 300;
 	const showAverages = tableParams?.showAverages && size.height > 300;
 
@@ -179,9 +179,9 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
 									onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-									<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}/>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
+											<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}/>
 											{valueToString(row[cidx+1])}
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
 								</td>;
@@ -218,9 +218,16 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
 					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
-					{changes.length > 0 && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
-					&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
-					</span>}
+					{changes.length > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
+						onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
+						{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
+							&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
+						</span>}
+						{changesHovered && <>
+							<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyS', true)}>save</button>
+							<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyX', true)}>discard</button>
+						</>}
+					</div>}
 				</span>
 				<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
 					<button className='TableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>

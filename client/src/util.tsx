@@ -1,4 +1,4 @@
-import React, { MouseEvent, ReactElement, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import React, { MouseEvent, ReactElement, ReactNode, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
 export type Size = { width: number, height: number };
@@ -190,28 +190,35 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 	</div>] as [number[], ReactElement];
 }
 
-export function useConfirmation(text: string, callback: () => void) {
-	const [open, setOpen] = useState(false);
-	useEventListener('click', () => setOpen(false));
-	useEventListener('escape', () => setOpen(false));
+export function Confirmation({ children, callback, closeSelf }:
+{ children: ReactNode, closeSelf: () => void, callback: () => void }) {
+	useEventListener('click', () => closeSelf());
+	useEventListener('escape', () => closeSelf());
 	useEventListener('keydown', (e) => {
 		if (e.code === 'KeyY')
 			callback();
-		setOpen(false);
+		closeSelf();
 	});
+	return <>
+		<div className='PopupBackground'/>
+		<div className='Popup' style={{ left: '30vw', top: '20vh', maxWidth: '50vw' }} onClick={e => e.stopPropagation()}>
+			{children}
+			<div style={{ marginTop: '1em' }}>
+				<button style={{ width: '8em' }} onClick={() => {callback(); closeSelf();}}>Confirm (Y)</button>
+				<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => closeSelf()}>Cancel (N)</button>
+			</div>
+		</div>
+	</>;
+}
+
+export function useConfirmation(text: string, callback: () => void) {
+	const [open, setOpen] = useState(false);
 
 	return {
 		askConfirmation: (e?: MouseEvent) => { setOpen(true); e?.stopPropagation(); },
-		confirmation: !open ? null : <>
-			<div className='PopupBackground'/>
-			<div className='Popup' style={{ left: '30vw', top: '20vh', width: '24em' }} onClick={e => e.stopPropagation()}>
-				<h4>Confirm action</h4>
-				<p>{text ?? 'Beware of irreversible consequences'}</p>
-				<div style={{ marginTop: '1em' }}>
-					<button style={{ width: '8em' }} onClick={e => {callback(); setOpen(false);}}>Confirm (Y)</button>
-					<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => setOpen(false)}>Cancel (N)</button>
-				</div>
-			</div>
-		</>
+		confirmation: !open ? null : <Confirmation {...{ callback, closeSelf: () => setOpen(false) }}>
+			<h4>Confirm action</h4>
+			<p>{text ?? 'Beware of irreversible consequences'}</p>
+		</Confirmation>
 	};
 }

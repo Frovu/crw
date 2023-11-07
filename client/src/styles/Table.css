@@ -68,11 +68,11 @@
 	color: var(--color-text-dark);
 	position: relative;
 	padding: 0;
-	height: 18px;
-	width: 18px;
+	height: 19px;
+	width: 19px;
 }
 .TableControl * {
-	font-size: 16px;
+	font-size: 15px;
 	font-weight: bold;
 	position: absolute;
 	top: -2px;
