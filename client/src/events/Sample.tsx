@@ -121,7 +121,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 
 	}, [columns, sample, tableData]);
 
-	const publicIssue = sample?.public && sample.filters.map(({ column }) => columns.find(c => c.id === column))
+	const publicIssue = sample?.public && sample.filters?.map(({ column }) => columns.find(c => c.id === column))
 		.find(col => col?.generic && !col.generic.is_public);
 
 	return (<div ref={ref} style={{ maxWidth: '46em' }}>

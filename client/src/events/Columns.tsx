@@ -1,6 +1,6 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
-import { apiPost, useEventListener } from '../util';
-import { MainTableContext, prettyTable, shortTable, useEventsSettings } from './events';
+import { Confirmation, apiPost, useEventListener } from '../util';
+import { MainTableContext, SampleContext, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -125,6 +125,7 @@ export default function ColumnsSelector() {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const { shownColumns, setColumns } = useEventsSettings();
+	const { samples } = useContext(SampleContext);
 	const { tables: allTables, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
 	const [open, setOpen] = useState(false);
@@ -133,6 +134,10 @@ export default function ColumnsSelector() {
 	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, reset,
 		setParam, setPoint, setPointHours, setPointSeries } = genericSate;
 	const { operation } = params;
+
+	const [samplesDepend, setSamplesDepend] = useState<string[]>([]);
+	useEventListener('click', () => setSamplesDepend([]));
+	useEventListener('escape', () => setSamplesDepend([]));
 
 	useEffect(() => setReport({}), [gid]);
 	useEffect(() => { if (open) reset(); setReport({}); }, [reset, open]);
@@ -240,6 +245,11 @@ export default function ColumnsSelector() {
 		</>;
 	};
 	return !open ? null : <>
+		{samplesDepend.length > 0 && <Confirmation closeSelf={() => setSamplesDepend([])} callback={() => {}}>
+			<h4>Can't remove column</h4>
+			The following samples depend on it:
+			<pre>{samplesDepend.join('/n')}</pre>
+		</Confirmation>}
 		<div className='PopupBackground' onClick={() => setOpen(false)}
 			onContextMenu={e => { setOpen(false); e.stopPropagation(); e.preventDefault(); }}/>
 		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}>
@@ -257,7 +267,14 @@ export default function ColumnsSelector() {
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
 						{role && generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
 							title='Edit or clone column (RMB)' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
-						{generic?.is_own && <div className='CloseButton' onClick={() => deleteGeneric(generic.id)}/>}
+						{generic?.is_own && <div className='CloseButton' onClick={e => {
+							const dep = samples.filter(smpl => smpl.filters?.find(({ column }) => column === id));
+							e.stopPropagation();
+							if (dep.length > 0)
+								setSamplesDepend(dep.map(s => s.name));
+							else
+								deleteGeneric(generic.id);
+						}}/>}
 					</div>)}
 			</Fragment>)}
 			{role && <div className='GenericsControls'>
