@@ -77,7 +77,8 @@ export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: m
 	};
 export const closeContextMenu = () => useContextMenu.setState(state => state.menu ? { menu: null } : state);
 
-export const AuthContext = createContext<{ login?: string, role?: string, promptLogin: (a: any) => void }>({} as any);
+export const roleOptions = ['admin', 'operator'] as const;
+export const AuthContext = createContext<{ login?: string, role?: typeof roleOptions[number], promptLogin: (a: any) => void }>({} as any);
 
 export function handleGlobalKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape')

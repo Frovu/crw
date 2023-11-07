@@ -71,7 +71,7 @@ const defaultRefPoint = { type: 'event', entity: 'forbush_effects', hours_offset
 const defaultState = {
 	entity: defaultRefPoint.entity,
 	id: undefined,
-	is_public: undefined,
+	is_public: false,
 	is_own: undefined,
 	nickname: undefined,
 	description: undefined,
@@ -249,15 +249,15 @@ export default function ColumnsSelector() {
 					...(!columns.find(cc => cc.table === table && cols.includes(cc.id)) ? columns.filter(c => c.table === table).map(c => c.id) : [])])}>
 					<b><u>{prettyTable(table)}</u></b></button>
 				{columns.filter(c => !c.hidden && c.table === table).map(({ id, name, description, generic }) =>
-					<div key={id} style={{ color: generic ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
+					<div key={id} style={{ color: (generic && !generic?.is_public) ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em', wordBreak: 'break-all' }}
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}
-							onMouseDown={e => { if (e.button !== 0) return generic && setGeneric(generic);
+							onMouseDown={e => { if (e.button !== 0) return role && generic && setGeneric(generic);
 								const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
-						{generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
+						{role && generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
 							title='Edit or clone column (RMB)' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
-						{generic && <div className='CloseButton' onClick={() => deleteGeneric(generic.id)}/>}
+						{generic?.is_own && <div className='CloseButton' onClick={() => deleteGeneric(generic.id)}/>}
 					</div>)}
 			</Fragment>)}
 			{role && <div className='GenericsControls'>

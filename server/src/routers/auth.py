@@ -53,7 +53,7 @@ def do_upsert():
 		conn.execute(f'''INSERT INTO users(login, {",".join(fields)}) VALUES (%s, {",".join(["%s" for f in fields])})
 			ON CONFLICT(login) DO UPDATE SET ''' + ','.join([f'{f} = EXCLUDED.{f}' for f in fields]),
 			[login] + values)
-	log.info(f'AUTH: user upserted: {login}' + ('role -> ' + role if role else ''))
+	log.info(f'AUTH: user upserted: {login}' + (' -> ' + role if role else ''))
 	return msg('Modified' if exists else 'Created')
 
 @bp.route('/login', methods=['POST'])

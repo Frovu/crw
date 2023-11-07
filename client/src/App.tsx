@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import './styles/App.css';
@@ -12,7 +12,7 @@ import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor } from './app';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor, AuthContext } from './app';
 import { LayoutContextMenu, LayoutNav, useLayoutsStore } from './Layout';
 import { defaultLayouts } from './events/events';
 
@@ -20,6 +20,7 @@ const theQueryClient = new QueryClient();
 
 export function ContextMenu() {
 	const { active, resetLayout } = useLayoutsStore();
+	const { role, promptLogin } = useContext(AuthContext);
 	const { menu } = useContextMenu();
 	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
 	
@@ -29,6 +30,7 @@ export function ContextMenu() {
 		onMouseDown={e => { e.stopPropagation(); }}
 		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
 		{menu.type === 'app' && <>
+			{role === 'admin' && <button onClick={() => promptLogin('upsert')}>Upsert user</button>}
 			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}

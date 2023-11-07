@@ -81,7 +81,6 @@ export function AuthNav() {
 				onClick={e => {e.stopPropagation(); promptLogin('password');}}>
 				{hovered ? 'set password?' : `role: ${role}`}
 			</div>}
-
 		</div>
 	);
 }
