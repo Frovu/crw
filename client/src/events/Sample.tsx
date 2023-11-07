@@ -32,9 +32,9 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 	const isInvalid = isFilterInvalid(filter, column);
 
 	const set = (what: string) => (e: any) => {
-		if (!column) return;
+		if (!column && what !== 'column') return;
 		const fl = { ...filter, [what]: e.target.value.trim() };
-		if (column.enum && isSelectInput && !column.enum.includes(fl.value))
+		if (column?.enum && isSelectInput && !column.enum.includes(fl.value))
 			fl.value = column.enum[0];
 		setFilter(fl);
 		if (!isFilterInvalid(fl, column))
@@ -121,6 +121,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 
 	}, [columns, sample, tableData]);
 
+	const publicIssue = sample?.public && sample.filters.map(({ column }) => columns.find(c => c.id === column))
+		.find(col => col?.generic && !col.generic.is_public);
+
 	return (<div ref={ref} style={{ maxWidth: '46em' }}>
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
@@ -159,6 +162,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			<label className='MenuInput' style={{ minWidth: 'max-content' }}>
 				public<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type='checkbox'/></label>
 		</div>
+		{publicIssue && <div title='Other users will not be able to use this sample, please make all required columns public'
+			style={{ color: 'var(--color-red)' }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
 		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}>
 			<div style={{ width: 'max-content', paddingTop: 2, paddingRight: 4 }} onMouseEnter={() => setHoverAuthors(a => a < 1 ? 1 : a)}
 				onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
