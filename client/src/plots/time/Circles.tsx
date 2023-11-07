@@ -11,7 +11,6 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { MenuCheckbox } from '../../events/TableMenu';
 import { Onset } from '../../events/events';
 import { themeOptions } from '../../app';
 
@@ -621,6 +620,10 @@ export function CirclesParamsInput({ params, setParams }:
 	};
 	const showDate = (d: Date) => d.toISOString().replace('T', ' ').replace(/:\d\d\..+/, '');
 	
+	const Checkbox = ({ text, k }: { text: string, k: keyof CirclesParams }) =>
+		<label style={{ cursor: 'pointer', userSelect: 'none' }}>{text}
+			<input type='checkbox' style={{ marginLeft: 4 }} checked={!!params[k]}
+				onChange={e => callback(k)(e.target.checked)}/></label>;
 	return (
 		<div className='Settings'>
 			<div style={{ textAlign: 'left', paddingLeft: '4em' }}><b>Settings</b></div>
@@ -644,10 +647,10 @@ export function CirclesParamsInput({ params, setParams }:
 				{themeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
 			</select>
 			<div style={{ lineHeight: '2em' }}>
-				<MenuCheckbox text='Automatic filtering' value={!!params.autoFilter} callback={callback('autoFilter')}/>
-				<br/><MenuCheckbox text='Fix amplitude scale' value={!!params.fixAmplitudeScale} callback={callback('fixAmplitudeScale')}/>
-				<br/><MenuCheckbox text='Linear size scaling' value={!!params.linearSize} callback={callback('linearSize')}/>
-				<br/><MenuCheckbox text='Show second plot' value={!!params.rsmExtended} callback={callback('rsmExtended')}/>
+				<Checkbox text='Automatic filtering' k='autoFilter'/>
+				<br/><Checkbox text='Fix amplitude scale' k='fixAmplitudeScale'/>
+				<br/><Checkbox text='Linear size scaling' k='linearSize'/>
+				<br/><Checkbox text='Show second plot' k='rsmExtended'/>
 			</div>
 
 		</div>
@@ -704,13 +707,13 @@ export function PlotCirclesStandalone() {
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
 			<PlotCircles {...{ params, settingsOpen }}/>
-			<button className='Button' style={{ bottom: 0, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
+			<button className='Button' style={{ bottom: 0, lineHeight: 1, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}
 				onClick={() => setOpen(o => !o)}>S</button>
-			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48, width: '5em', borderRadius: 6 }}
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 46, width: '5em', borderRadius: 6 }}
 				type='number' min='-9' max='9' step='.05' value={params.variationShift?.toFixed(2) ?? ''} placeholder='shift'
 				onChange={e => setParams(para => ({ ...para, variationShift:
 					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
-			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 48 + 86, width: '5em', borderRadius: 6 }}
+			<input style={{ position: 'absolute', fontSize: 15, bottom: 0, left: 46 + 80, width: '5em', borderRadius: 6 }}
 				type='number' min='-99' max='99' step='1' value={params.sizeShift?.toFixed(0) ?? ''} placeholder='size'
 				onChange={e => setParams(para => ({ ...para, sizeShift:
 					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber }))}></input>
