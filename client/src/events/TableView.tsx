@@ -137,7 +137,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
 
 	return ( 
-		<div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
+		<div style={{ position: 'absolute', top: `calc(100% - ${size.height-1}px)`,
 			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
 			<div className='Table' style={{ position: 'relative' }} ref={ref}>
 				<table onWheel={e => {

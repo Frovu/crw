@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from 'react-query';
 const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
 const G_VALUE_OP = ['time_offset', 'time_offset_%', ...EXTREMUM_OP, 'mean', 'median', 'range', 'coverage'] as const;
-const G_ALL_OPS = [...G_VALUE_OP, ...G_COMBINE_OP, 'clone_column'];
+export const G_ALL_OPS = [...G_VALUE_OP, ...G_COMBINE_OP, 'clone_column'];
 
 type RefPointExtremum = {
 	type: 'extremum',
@@ -277,7 +277,7 @@ export default function ColumnsSelector() {
 						}}/>}
 					</div>)}
 			</Fragment>)}
-			{role && <div className='GenericsControls'>
+			{role && <div className='GenericsControls' onClick={e => e.stopPropagation()}>
 				<h4 style={{ margin: 0, padding: '4px 0 8px 0', cursor: 'pointer' }} title='Reset'
 					onMouseDown={() => reset()}>Manage custom columns:</h4>
 				{(original || isValid) && <label title='Display name for the column (optional)'>Name:
@@ -309,7 +309,7 @@ export default function ColumnsSelector() {
 					onClick={() => computeGeneric(oriColumn.generic!.id)}>Compute {oriColumn.fullName}</button></div>}
 				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
 					onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
-				{(!original || (paramsChanged && nickname !== original.nickname)) && isValid &&
+				{(!original || (paramsChanged && (nickname == null || nickname !== original.nickname))) && isValid &&
 					<div style={{ paddingLeft: '5em' }}><button style={{ width: '14em' }}
 						onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
 				{report.error && <div style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}

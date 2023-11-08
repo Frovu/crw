@@ -4,6 +4,7 @@ import { Confirmation, apiGet, apiPost, useEventListener, useMutationHandler } f
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { logMessage } from '../app';
+import { G_ALL_OPS } from './Columns';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
 	// ************************************************************************************
@@ -65,7 +66,15 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		if (!dataQuery.data || !structureQuery.data) return null;
 		const { columns, tables, series } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
-		const filtered = columns.filter(c => fields.includes(c.id));
+
+		const sorted = columns.sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0).sort((a, b) =>
+			G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any));
+		const magnIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'magnitude');
+		const insIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'ons type');
+		if (magnIdx > 0)
+			sorted.splice(insIdx + 1, 0, sorted.splice(magnIdx, 1)[0]);
+			
+		const filtered = sorted.filter(c => fields.includes(c.id));
 		const indexes = filtered.map(c => fields.indexOf(c.id));
 		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i])) as DataRow[];
 		for (const [i, col] of Object.values(filtered).entries()) {
