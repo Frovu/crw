@@ -30,6 +30,7 @@
 	border-left: 1px var(--color-border) solid;
 	font-size: 14px;
 	min-width: min-content;
+	min-height: 20em;
 	gap: 4px;
 	margin-left: 4px;
 	padding: 1em 0;

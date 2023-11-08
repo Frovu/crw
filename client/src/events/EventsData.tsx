@@ -67,8 +67,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		const { columns, tables, series } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
-		const sorted = columns.sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0).sort((a, b) =>
-			G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any));
+		const sorted = [columns[0]].concat(columns.slice(1).sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0)
+			.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any)))
+			.sort((a, b) => tables.indexOf(a.table) - tables.indexOf(b.table));
 		const magnIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'magnitude');
 		const insIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'ons type');
 		if (magnIdx > 0)
