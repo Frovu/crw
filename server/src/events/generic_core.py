@@ -231,6 +231,7 @@ def _do_compute(generic, for_rows=None):
 	return target_id, result
 
 def compute_generic(g, for_row=None):
+	print(g.pretty_name, flush=True)
 	try:
 		t_start = time()
 		log.debug(f'Computing {g.pretty_name}')
@@ -272,9 +273,10 @@ def recompute_generics(generics):
 	return any(res)
 
 def recompute_for_row(generics, rid):
-	print([g.pretty_name for g in generics])
 	with ThreadPoolExecutor(max_workers=4) as executor:
-		return any(executor.map(compute_generic, generics, [rid for _ in generics]))
+		func = lambda g: compute_generic(g, rid)
+		res = executor.map(func, generics)
+		return any(res)
 
 def apply_changes(d_ids, d_values, entity, column, conn):
 	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 

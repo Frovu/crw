@@ -56,7 +56,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 				query = f'''SELECT {root}.id as root_id, entity_name, column_name, special,
 				(select login from users where uid = author) as author, EXTRACT (EPOCH FROM changes_log.time)::integer, old_value, new_value
 					FROM events.changes_log LEFT JOIN {select_from_root[root]} ON {entity}.id = event_id AND entity_name = %s
-					WHERE column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s)'''
+					WHERE {root}.id is not null AND column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s)'''
 				res = conn.execute(query, (entity, [g.name for g in generics])).fetchall()
 				changes.extend(res)
 			for root_id, entity, column, special, author, made_at, old_val, new_val in changes:
