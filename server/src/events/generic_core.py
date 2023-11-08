@@ -92,7 +92,7 @@ def _select_series(t_from, t_to, series):
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
 	return arr[:,0], arr[:,1]
 
-def get_ref_time(for_rows, ref: GenericRefPoint, cache={}): # always (!) rounds down
+def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.entity in G_ENTITY
 		res = cache.get(ref.entity) or \
@@ -119,9 +119,9 @@ def get_slices(t_time, t_1, t_2):
 	slice_len[np.isnan(slice_len)] = 0
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
-def find_extremum(for_rows, op, ser, window, cache={}, return_value=False):
+def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
-	t_1, t_2 = [get_ref_time(for_rows, r) for r in window]
+	t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in window]
 	d_time, value = cache.get(ser) or _select_series(t_1[0], t_2[-1], ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
@@ -188,14 +188,11 @@ def _do_compute(generic, for_rows=None):
 	assert op in G_OP_VALUE
 	
 	target_id, event_start, event_duration = _select(for_rows, [(entity, a) for a in ('id', 'time', 'duration')])
-	# for t in event_start:
-	# 	from datetime import datetime
-	# 	print(datetime.utcfromtimestamp(t))
 	cache = { entity: (event_start, event_duration) }
 
 	if op in G_OP_TIME:
 		if op.startswith('time_offset'):
-			t_1, t_2 = [get_ref_time(for_rows, r) for r in (para.reference, para.boundary)]
+			t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
 			result = (t_2 - t_1) / HOUR
 			if '%' in op:
 				result = result / event_duration * 100
@@ -207,7 +204,7 @@ def _do_compute(generic, for_rows=None):
 		result = find_extremum(for_rows, op, para.series, window, cache, return_value=True)
 
 	else:
-		t_1, t_2 = [get_ref_time(for_rows, r) for r in (para.reference, para.boundary)]
+		t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
 		d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
 		cache[para.series] = (d_time, d_value)
 		slices = get_slices(d_time, t_1, t_2)
@@ -231,15 +228,15 @@ def _do_compute(generic, for_rows=None):
 	return target_id, result
 
 def compute_generic(g, for_row=None):
-	print(g.pretty_name, flush=True)
 	try:
 		t_start = time()
 		log.debug(f'Computing {g.pretty_name}')
 		if for_row is not None:
 			ids = _select(None, [(g.entity, 'id')])[0].astype(int)
 			idx = np.where(ids == for_row)[0][0]
-			margin = 3
+			margin = 0
 			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
+			print(for_row, idx, ids[idx-margin:idx+margin+1], target_id[margin:margin+1], result[margin:margin+1])
 			target_id, result = target_id[margin:margin+1], result[margin:margin+1]
 		else:
 			target_id, result = _do_compute(g)
@@ -273,6 +270,9 @@ def recompute_generics(generics):
 	return any(res)
 
 def recompute_for_row(generics, rid):
+
+	generics = [g for g in generics if g.nickname == 'magnitude']
+
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		func = lambda g: compute_generic(g, rid)
 		res = executor.map(func, generics)
