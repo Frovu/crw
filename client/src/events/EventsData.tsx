@@ -3,7 +3,7 @@ import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleCon
 import { Confirmation, apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
 import { useQuery } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
-import { logMessage } from '../app';
+import { logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
@@ -186,7 +186,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
 				{rawMainContext && showCommit && <Confirmation callback={() => doCommit(null, {
-					onSuccess: () => { setShowCommit(false); setChanges([]); }
+					onError: e => { logError('Failed submiting: '+e?.toString()); },
+					onSuccess: () => { logSuccess('Changes commited!'); setShowCommit(false); setChanges([]); }
 				})} closeSelf={() => setShowCommit(false)}>
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>

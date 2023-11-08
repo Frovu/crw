@@ -92,7 +92,7 @@ def submit_changes(uid, changes, root='forbush_effects'):
 			found_generic = generics and next((g for g in generics if g.entity == entity and g.name == column), False)
 			if not found_column and not found_generic:
 				raise ValueError(f'Column not found: {column}')
-			if found_generic and found_generic.type in G_DERIVED:
+			if found_generic and found_generic.params.operation in G_DERIVED:
 				raise ValueError('Can\'t edit derived generics')
 			dtype = found_column.dtype if found_column else found_generic.data_type
 			new_value = value

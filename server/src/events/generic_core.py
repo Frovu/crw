@@ -65,12 +65,14 @@ def default_window(ent):
 		GenericRefPoint('event', 0, entity=ent, entity_offset=0, end=True),
 	]
 
-def _select(*query, root='forbush_effects'):
+def _select(for_rows, query, root='forbush_effects'):
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)::integer'
 		if 'time' == c else f'{e}.{c}' for e, c in query])
-	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} ORDER BY {root}.time'
+	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} '
+	if for_rows is not None:
+		select_query += f'WHERE {query[0][0]}.id = ANY(%s) '
 	with pool.connection() as conn:
-		curs = conn.execute(select_query)
+		curs = conn.execute(select_query + f'ORDER BY {root}.time', [] if for_rows is None else [for_rows])
 		res = np.array(curs.fetchall(), dtype='f8')
 	return [res[:,i] for i in range(len(query))]
 
@@ -90,11 +92,11 @@ def _select_series(t_from, t_to, series):
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
 	return arr[:,0], arr[:,1]
 
-def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
+def get_ref_time(for_rows, ref: GenericRefPoint, cache={}): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.entity in G_ENTITY
 		res = cache.get(ref.entity) or \
-			_select(*[(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())])
+			_select(for_rows, [(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())])
 		cache[ref.entity] = res
 		e_start, e_dur = res if has_dur else (res, [])
 		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
@@ -102,7 +104,7 @@ def get_ref_time(ref: GenericRefPoint, cache={}): # always (!) rounds down
 		if ref.end:
 			r_time = r_time + e_dur * HOUR - HOUR
 	elif ref.type == 'extremum':
-		r_time = find_extremum(ref.operation, ref.series, default_window(ref.entity), cache=cache)
+		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(ref.entity), cache=cache)
 	else:
 		assert not 'reached'
 	return r_time + ref.hours_offset * HOUR
@@ -117,9 +119,9 @@ def get_slices(t_time, t_1, t_2):
 	slice_len[np.isnan(slice_len)] = 0
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
-def find_extremum(op, ser, window, cache={}, return_value=False):
+def find_extremum(for_rows, op, ser, window, cache={}, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
-	t_1, t_2 = [get_ref_time(r) for r in window]
+	t_1, t_2 = [get_ref_time(for_rows, r) for r in window]
 	d_time, value = cache.get(ser) or _select_series(t_1[0], t_2[-1], ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
@@ -163,92 +165,100 @@ def apply_delta(data, series):
 	delta[0] = np.nan
 	return delta
 
-def _do_compute(generic):
-	try:
-		entity, para = generic.entity, generic.params
-		op = para.operation
+def _do_compute(generic, for_rows=None):
+	entity, para = generic.entity, generic.params
+	op = para.operation
 
-		if op in G_OP_CLONE:
-			target_id, target_value = _select([entity, 'id'], parse_column_id(para.column))
-			return target_id, apply_shift(target_value, para.entity_offset, stub=None)
+	if op in G_OP_CLONE:
+		target_id, target_value = _select(for_rows, [[entity, 'id'], parse_column_id(para.column)])
+		return target_id, apply_shift(target_value, para.entity_offset, stub=None)
 
-		if op in G_OP_COMBINE:
-			lcol = parse_column_id(para.column)
-			rcol = parse_column_id(para.other_column)
-			target_id, lhv, rhv = _select([entity, 'id'], lcol, rcol)
-			if 'diff' in op:
-				result = lhv - rhv
-			else:
-				assert not 'reached'
-			if 'abs' in op:
-				result = np.abs(result)
-			return target_id, result
-
-		assert op in G_OP_VALUE
-		
-		target_id, event_start, event_duration = _select(*[(entity, a) for a in ('id', 'time', 'duration')])
-		cache = { entity: (event_start, event_duration) }
-
-		if op in G_OP_TIME:
-			if op.startswith('time_offset'):
-				t_1, t_2 = [get_ref_time(r) for r in (para.reference, para.boundary)]
-				result = (t_2 - t_1) / HOUR
-				if '%' in op:
-					result = result / event_duration * 100
-			else:
-				assert not 'reached'
-
-		elif op in G_EXTREMUM:
-			window = (para.reference, para.boundary)
-			result = find_extremum(op, para.series, window, cache, return_value=True)
-
+	if op in G_OP_COMBINE:
+		lcol = parse_column_id(para.column)
+		rcol = parse_column_id(para.other_column)
+		target_id, lhv, rhv = _select(for_rows, [[entity, 'id'], lcol, rcol])
+		if 'diff' in op:
+			result = lhv - rhv
 		else:
-			t_1, t_2 = [get_ref_time(r) for r in (para.reference, para.boundary)]
-			d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
-			cache[para.series] = (d_time, d_value)
-			slices = get_slices(d_time, t_1, t_2)
-
-			if op in ['mean', 'median']:
-				func = np.nanmean if op == 'mean' else np.nanmedian
-				result = np.array([(func(d_value[sl]) if sl.stop - sl.start > 0 else np.nan) for sl in slices])
-
-			elif op in ['range']:
-				window = (para.reference, para.boundary)
-				max_val = find_extremum('max', para.series, window, cache, return_value=True)
-				min_val = find_extremum('min', para.series, window, cache, return_value=True)
-				result = max_val - min_val
-
-			elif op in ['coverage']:
-				result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) \
-					/ ((sl.stop - sl.start) or 1) * 100 for sl in slices])
-			
-			else:
-				assert not 'reached'
+			assert not 'reached'
+		if 'abs' in op:
+			result = np.abs(result)
 		return target_id, result
-	except:
-		log.error(f'Failed at {generic.pretty_name}: {traceback.format_exc()}')
-		return None, None
 
-def compute_generic(g):
-	t_start = time()
-	log.info(f'Computing {g.pretty_name}')
-	target_id, result = _do_compute(g)
-	if result is None:
+	assert op in G_OP_VALUE
+	
+	target_id, event_start, event_duration = _select(for_rows, [(entity, a) for a in ('id', 'time', 'duration')])
+	# for t in event_start:
+	# 	from datetime import datetime
+	# 	print(datetime.utcfromtimestamp(t))
+	cache = { entity: (event_start, event_duration) }
+
+	if op in G_OP_TIME:
+		if op.startswith('time_offset'):
+			t_1, t_2 = [get_ref_time(for_rows, r) for r in (para.reference, para.boundary)]
+			result = (t_2 - t_1) / HOUR
+			if '%' in op:
+				result = result / event_duration * 100
+		else:
+			assert not 'reached'
+
+	elif op in G_EXTREMUM:
+		window = (para.reference, para.boundary)
+		result = find_extremum(for_rows, op, para.series, window, cache, return_value=True)
+
+	else:
+		t_1, t_2 = [get_ref_time(for_rows, r) for r in (para.reference, para.boundary)]
+		d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
+		cache[para.series] = (d_time, d_value)
+		slices = get_slices(d_time, t_1, t_2)
+
+		if op in ['mean', 'median']:
+			func = np.nanmean if op == 'mean' else np.nanmedian
+			result = np.array([(func(d_value[sl]) if sl.stop - sl.start > 0 else np.nan) for sl in slices])
+
+		elif op in ['range']:
+			window = (para.reference, para.boundary)
+			max_val = find_extremum(for_rows, 'max', para.series, window, cache, return_value=True)
+			min_val = find_extremum(for_rows, 'min', para.series, window, cache, return_value=True)
+			result = max_val - min_val
+
+		elif op in ['coverage']:
+			result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) \
+				/ ((sl.stop - sl.start) or 1) * 100 for sl in slices])
+		
+		else:
+			assert not 'reached'
+	return target_id, result
+
+def compute_generic(g, for_row=None):
+	try:
+		t_start = time()
+		log.debug(f'Computing {g.pretty_name}')
+		if for_row is not None:
+			ids = _select(None, [(g.entity, 'id')])[0].astype(int)
+			idx = np.where(ids == for_row)[0][0]
+			margin = 3
+			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
+			target_id, result = target_id[margin:margin+1], result[margin:margin+1]
+		else:
+			target_id, result = _do_compute(g)
+		if result is None:
+			return False
+		log.info(f'Computed {g.pretty_name} in {round(time()-t_start,2)}s')
+		target_id = target_id.astype('i8')
+		if g.params.series == 'kp':
+			result[result] /= 10
+		result = np.where(~np.isfinite(result), None, np.round(result, 2))
+		update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
+		with pool.connection() as conn:
+			apply_changes(target_id, result, g.entity, g.name, conn)
+			data = np.column_stack((result, target_id)).tolist()
+			conn.cursor().executemany(update_q, data)
+			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
+		return True
+	except:
+		log.error(f'Failed at generic {g.pretty_name}: {traceback.format_exc()}')
 		return False
-	log.info(f'Computed {g.name} in {round(time()-t_start,2)}s')
-	target_id = target_id.astype('i8')
-	if g.params.series == 'kp':
-		result[result] /= 10
-	result = np.where(~np.isfinite(result), None, np.round(result, 2))
-	t0 = time()
-	update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
-	with pool.connection() as conn:
-		apply_changes(target_id, result, g.entity, g.name, conn)
-		data = np.column_stack((result, target_id)).tolist()
-		conn.cursor().executemany(update_q, data)
-		conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
-	print('update', round(time() - t0, 3))
-	return True
 
 def recompute_generics(generics):
 	if not isinstance(generics, list):
@@ -260,6 +270,11 @@ def recompute_generics(generics):
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		res = executor.map(compute_generic, generics)
 	return any(res)
+
+def recompute_for_row(generics, rid):
+	print([g.pretty_name for g in generics])
+	with ThreadPoolExecutor(max_workers=4) as executor:
+		return any(executor.map(compute_generic, generics, [rid for _ in generics]))
 
 def apply_changes(d_ids, d_values, entity, column, conn):
 	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 

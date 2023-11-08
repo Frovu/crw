@@ -5,7 +5,7 @@ from flask import Blueprint, request, session
 from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import select_generics, upset_generic, remove_generic
-from events.generic_core import recompute_generics
+from events.generic_core import recompute_generics, recompute_for_row
 from events import other_columns
 from events import samples
 from events import query
@@ -124,21 +124,24 @@ def _remove_generic():
 def _compute_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
+	start = time()
 	generic = next((g for g in select_generics(uid) if g.id == gid), None)
 	if not generic:
 		return msg('Generic not found' ), 404
-	start = time()
 	if not recompute_generics(generic):
 		return msg('Failed miserably'), 500
 	return { 'time': round(time() - start, 2) }
 
-@bp.route('/recompute_generics', methods=['POST'])
+@bp.route('/generics/compute_row', methods=['POST'])
 @route_shielded
-@require_role('admin')
-def _recompute_generics():
+@require_role('operator')
+def _compute_row_generic():
+	rid = int(request.json.get('id'))
 	start = time()
-	compute_default_generics()
-	return msg(f'Done ({round(time() - start, 1)} s)')
+	generics = select_generics(select_all=True)
+	if not recompute_for_row(generics, rid):
+		return msg('Failed miserably'), 500
+	return { 'time': round(time() - start, 2) }
 
 @bp.route('/recompute_other', methods=['POST'])
 @route_shielded

@@ -19,3 +19,5 @@ def compute_all():
 		_compute_vmbm()
 	except:
 		log.error('Failed to compute other columns: %s', traceback.format_exc())
+
+# TODO: recompute row

@@ -80,8 +80,9 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<div className='separator'/>
 			</>}
 			{column && <>
+				{role && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Re-compute row</button>}
 				{column.generic && (column.generic.is_own || role === 'admin') &&
-					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute</button>}
+					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute column</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{statsPresent && <><button onClick={() => setStatColumn(column.id, 0)}>Use as X</button>
@@ -244,6 +245,9 @@ function MainTablePanel() {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
+	useEventListener('action+computeRow', () => {
+		if (cursor) dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] });
+	});
 	useEventListener('action+addFilter', () => {
 		const column = cursor ? shownColumns[cursor.column] : undefined;
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;

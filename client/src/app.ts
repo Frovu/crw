@@ -9,6 +9,7 @@ import { color } from './plots/plotUtil';
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
 	'addFilter': 'F',
+	'computeRow': 'K',
 	'exportPlot': 'E',
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',

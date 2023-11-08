@@ -165,6 +165,16 @@ export default function ColumnsSelector() {
 	const check = (id: string, val: boolean) =>
 		setColumns(cols => val ? cols.concat(id) : cols.filter(c => c !== id));
 
+	const { mutate: computeRow } = useMutation((rowId: number) =>
+		apiPost<{ time: number }>('events/generics/compute_row', { id: rowId })
+	, { onSuccess: ({ time }, rowId) => {
+		queryClient.invalidateQueries('tableData');
+		logSuccess(`Computed row #${rowId} in ${time} s`);
+	}, onError: (err: any, rowId) => {
+		setReport({ error: err.toString() });
+		logError(`compute row #${rowId}: ` + err.toString());
+	} });
+
 	const { mutate: computeGeneric } = useMutation((genericId: number) =>
 		apiPost<{ time: number }>('events/generics/compute', { id: genericId })
 	, { onMutate: (genericId) => {
@@ -180,6 +190,9 @@ export default function ColumnsSelector() {
 		setReport({ error: err.toString() });
 		logError(`compute g#${genericId}(${col?.fullName}): ` + err.toString());
 	} });
+
+	useEventListener('computeRow', (e: CustomEvent<{ id: number }>) =>
+		computeRow(e.detail.id));
 	useEventListener('computeGeneric', (e: CustomEvent<{ id: number }>) =>
 		computeGeneric(e.detail.id));
 
