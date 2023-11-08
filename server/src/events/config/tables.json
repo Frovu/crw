@@ -9,7 +9,7 @@
 		},
 		"duration": {
 			"dtype": "integer",
-			"description": "Event onset time",
+			"description": "Effective event duration, hours",
 			"parse_name": "Te"
 		},
 		"onset_type": {
@@ -25,20 +25,44 @@
 				"9": null
 			}
 		},
-		"vmbm": {
-			"computed": true,
-			"pretty_name": "VmBm",
-			"description": "Vmax / 400 * Bmax / 5"
+		"s_type": {
+			"pretty_name": "src type",
+			"dtype": "real",
+			"description": "Solar source index (it's complicated)",
+			"parse_name": "SType"
+		},
+		"s_description": {
+			"pretty_name": "src info",
+			"dtype": "text",
+			"description": "Solar source description",
+			"parse_name": "Source"
+		},
+		"s_confidence": {
+			"pretty_name": "src conf",
+			"dtype": "enum",
+			"enum": ["low", "okay", "high"],
+			"description": "Solar source confidence",
+			"parse_name": "Qs",
+			"parse_value": {
+				"3": "low",
+				"4": "okay",
+				"5": "high"
+			}
 		},
 		"old_magnitude": {
 			"pretty_name": "_magnitude",
-			"description": "FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
+			"description": "(AB) FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index",
 			"parse_name": "MagnM"
 		},
 		"gamma": {
 			"pretty_name": "gamma",
-			"description": "rigidity spectrum exponent during the hour of minimum CR density",
+			"description": "(AB) rigidity spectrum exponent during the hour of minimum CR density",
 			"parse_name": "GammaM"
+		},
+		"vmbm": {
+			"computed": true,
+			"pretty_name": "VmBm",
+			"description": "Vmax / 400 * Bmax / 5"
 		},
 		"comment": {
 			"dtype": "text",
@@ -64,38 +88,9 @@
 			"parse_name": "RMC"
 		}
 	},
-	"solar_sources": {
+	"coronal_mass_ejections": {
 		"fe_id": {
 			"references": "forbush_effects"
-		},
-		"time": {
-			"dtype": "time",
-			"parse_name": "STime"
-		},
-		"type": {
-			"dtype": "real",
-			"description": "It's complicated",
-			"parse_name": "SType"
-		},
-		"description": {
-			"pretty_name": "info",
-			"dtype": "text",
-			"parse_name": "Source"
-		},
-		"confidence": {
-			"dtype": "enum",
-			"enum": ["low", "okay", "high"],
-			"parse_name": "Qs",
-			"parse_value": {
-				"3": "low",
-				"4": "okay",
-				"5": "high"
-			}
-		}
-	},
-	"coronal_mass_ejections": {
-		"ss_id": {
-			"references": "solar_sources"
 		},
 		"time": {
 			"dtype": "time",
@@ -127,16 +122,21 @@
 		}
 	},
 	"coronal_holes": {
-		"ss_id": {
-			"references": "solar_sources"
+		"fe_id": {
+			"references": "forbush_effects"
 		},
 		"polarity": {
 			"parse_name": "SPol"
 		}
 	},
 	"solar_flares": {
-		"ss_id": {
-			"references": "solar_sources"
+		"fe_id": {
+			"references": "forbush_effects"
+		},
+		"time": {
+			"dtype": "time",
+			"parse_name": "STime",
+			"description": "STime"
 		},
 		"description": {
 			"pretty_name": "info",

@@ -175,14 +175,14 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	return (
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
-				{showCommit && <Confirmation callback={() => doCommit(null, {
+				{rawMainContext && showCommit && <Confirmation callback={() => doCommit(null, {
 					onSuccess: () => { setShowCommit(false); setChanges([]); }
 				})} closeSelf={() => setShowCommit(false)}>
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 						{changes.map(({ id, column, value }) => {
-							const row = mainContext.data.find(r => r[0] === id);
-							const colIdx = mainContext.columns.findIndex(c => c.id === column.id);
+							const row = rawMainContext.data.find(r => r[0] === id);
+							const colIdx = rawMainContext.columns.findIndex(c => c.id === column.id);
 							const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 							const val1 = value == null ? 'null' : valueToString(value);
 							return (<div key={id+column.id+value}>
