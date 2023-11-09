@@ -16,7 +16,7 @@ def render_table_info(uid):
 				'parseValue': col.parse_value,
 				'nullable': not col.not_null,
 				'name': col.pretty_name or name,
-				'type': col.dtype,
+				'type': col.data_type,
 				'isComputed': col.computed
 			}
 			if col.enum:
@@ -40,7 +40,7 @@ def select_events(uid=None, root='forbush_effects', changelog=False):
 	columns = []
 	for column in all_columns:
 		col = f'{column.entity}.{column.name}'
-		value = f'EXTRACT(EPOCH FROM {col})::integer' if column.dtype == 'time' else col
+		value = f'EXTRACT(EPOCH FROM {col})::integer' if column.data_type == 'time' else col
 		columns.append(f'{value} as {column_id(column)}')
 	for gen in generics:
 		columns.append(f'{gen.entity}.{gen.name} as {gen.name}')
@@ -94,7 +94,7 @@ def submit_changes(uid, changes, root='forbush_effects'):
 				raise ValueError(f'Column not found: {column}')
 			if found_generic and found_generic.params.operation in G_DERIVED:
 				raise ValueError('Can\'t edit derived generics')
-			dtype = found_column.dtype if found_column else found_generic.data_type
+			dtype = found_column.data_type if found_column else found_generic.data_type
 			new_value = value
 			if value is not None:
 				if dtype == 'time':

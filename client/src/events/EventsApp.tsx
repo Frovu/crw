@@ -97,7 +97,6 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<button onClick={() => setStatColumn(column, 1)}>Use as Y</button></>}
 				{value != null && <button onClick={() => addFilter(column, value)}
 				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
-				<div className='separator'/>
 			</>}
 			{!column && role && <>
 				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>

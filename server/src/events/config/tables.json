@@ -3,18 +3,18 @@
 		"_constraint": "UNIQUE(time)",
 		"time": {
 			"not_null": true,
-			"dtype": "time",
+			"data_type": "time",
 			"description": "Event onset time",
 			"parse_name": "Time"
 		},
 		"duration": {
-			"dtype": "integer",
+			"data_type": "integer",
 			"description": "Effective event duration, hours",
 			"parse_name": "Te"
 		},
 		"onset_type": {
 			"pretty_name": "ons type",
-			"dtype": "enum",
+			"data_type": "enum",
 			"enum": ["SSC", "iSW", "SI"],
 			"description": "Onset time origin: SSC; SI - Sudden impulse, ground data; iSW - satellite data",
 			"parse_name": "OType",
@@ -27,19 +27,19 @@
 		},
 		"s_type": {
 			"pretty_name": "src type",
-			"dtype": "real",
+			"data_type": "real",
 			"description": "Solar source index (it's complicated)",
 			"parse_name": "SType"
 		},
 		"s_description": {
 			"pretty_name": "src info",
-			"dtype": "text",
+			"data_type": "text",
 			"description": "Solar source description",
 			"parse_name": "Source"
 		},
 		"s_confidence": {
 			"pretty_name": "src conf",
-			"dtype": "enum",
+			"data_type": "enum",
 			"enum": ["low", "okay", "high"],
 			"description": "Solar source confidence",
 			"parse_name": "Qs",
@@ -65,7 +65,7 @@
 			"description": "Vmax / 400 * Bmax / 5"
 		},
 		"comment": {
-			"dtype": "text",
+			"data_type": "text",
 			"description": "Additional information"
 		}
 	},
@@ -75,11 +75,11 @@
 		},
 		"time": {
 			"not_null": true,
-			"dtype": "time",
+			"data_type": "time",
 			"parse_name": "MCStartTime"
 		},
 		"originator": {
-			"dtype": "text"
+			"data_type": "text"
 		},
 		"duration": {
 			"parse_name": "MCDur"
@@ -93,7 +93,7 @@
 			"references": "forbush_effects"
 		},
 		"time": {
-			"dtype": "time",
+			"data_type": "time",
 			"parse_name": "CMETime"
 		},
 		"v_start": {
@@ -134,13 +134,13 @@
 			"references": "forbush_effects"
 		},
 		"time": {
-			"dtype": "time",
+			"data_type": "time",
 			"parse_name": "STime",
 			"description": "STime"
 		},
 		"description": {
 			"pretty_name": "info",
-			"dtype": "text",
+			"data_type": "text",
 			"parse_name": "Fdata"
 		},
 		"magnitude": {

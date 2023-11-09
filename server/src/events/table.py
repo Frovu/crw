@@ -12,7 +12,7 @@ class ColumnDef:
 	not_null: bool=False
 	generic: dict=None       # generic column description
 	pretty_name: str=None     # name visible by user
-	dtype: str='real' # time|integer|real|text|enum
+	data_type: str='real' # time|integer|real|text|enum
 	enum: list=None
 	references: str=None
 	description: str=None
@@ -25,7 +25,7 @@ class ColumnDef:
 		return f'enum_{self.entity}_{self.name}'
 
 	def __post_init__(self):
-		dtype = self.dtype
+		dtype = self.data_type
 		if dtype == 'time':
 			dtype = 'timestamp with time zone'
 		if dtype == 'enum':
@@ -175,7 +175,7 @@ def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_chan
 								curs.execute(f'UPDATE events.{entity} SET {ref} = %s ' + \
 									'WHERE id = %s', [ids[node][i], target_id])
 
-					if table_columns[entity][col_name].dtype == 'time':
+					if table_columns[entity][col_name].data_type == 'time':
 						new_val = datetime.strptime(new_val, '%Y-%m-%dT%H:%M:%S.%fZ')
 					curs.execute(f'UPDATE events.{entity} SET {col_name} = %s WHERE id = {target_id}', [new_val])
 					if old_val is not None:

@@ -35,7 +35,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
 				return {
 					...desc, table, width, sqlName,
-					name: desc.name.length > 20 ? desc.name.slice(0, 20)+'..' : desc.name,
+					name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
 					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
 					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
 				} as ColumnDef;

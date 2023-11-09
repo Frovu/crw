@@ -17,7 +17,7 @@ def find_column_info(rows, name):
 		if not name.startswith('g__'):
 			entity, col = parse_column_id(name)
 			found = table_columns[entity][col]
-			return found.pretty_name, found.data_type
+			return found.pretty_name or col, found.data_type
 		# found = next((g for g in generics if g.name == name))
 		gen = next((GenericColumn.from_row(row, rows) for row in rows if GenericColumn.from_row(row, rows).name == name))
 		return gen.pretty_name, gen.data_type

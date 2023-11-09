@@ -145,7 +145,7 @@ def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 		value = apply_delta(value, ser)
 		result = np.array([func(value[sl]) + sl.start for sl in slices])
 		if return_value: 
-			result = np.where(np.isnan(result), np.nan, value[result])
+			result = np.array([np.nan if np.isnan(i) else value[int(i)] for i in result])
 	return result
 
 def apply_shift(a, shift, stub=np.nan):
