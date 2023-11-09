@@ -11,11 +11,11 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	const { makeChange } = useContext(MainTableContext);
 	const { escapeCursor } = useViewState(); 
 
-	const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>) => {
+	const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
 		const str = e.target.value.trim();
 		const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
 		const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
-		const isOk = isValid && makeChange({ id, column, value: val });
+		const isOk = isValid && (!save || makeChange({ id, column, value: val }));
 		setInvalid(!isOk);
 	};
 
@@ -23,12 +23,13 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 		boxShadow: ' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)' ) };
 	return <>
 		{column.type === 'enum' && <select autoFocus style={inpStype!}
-			value={value} onChange={e => { onChange(e); escapeCursor(); }}>
+			value={value} onChange={e => { onChange(e, true); escapeCursor(); }}>
 			<option value=''></option>
 			{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
 		</select>}
 		{column.type !== 'enum' &&  <input type='text' autoFocus style={inpStype!}
-			defaultValue={value} onChange={onChange} onBlur={escapeCursor}/>}
+			defaultValue={value} onChange={onChange}
+			onBlur={e => { e.target.value !== value && onChange(e, true); escapeCursor(); }}/>}
 	</>;
 }
 

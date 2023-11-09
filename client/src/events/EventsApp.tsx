@@ -1,11 +1,11 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, useSize, dispatchCustomEvent } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodeParams, useLayout } from '../Layout';
+import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodeParams, useLayout, useLayoutsStore } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -35,18 +35,20 @@ export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	</div>;
 }
 
+const setStatColumn = (col: ColumnDef, i: number) => {
+	const { list, active } = useLayoutsStore.getState();
+	const key = (['column0', 'column1'] as const)[i];
+	for (const [id, item] of Object.entries(list[active].items))
+		if (statPanelOptions.includes(item?.type as any))
+			setNodeParams(id, 'statParams', { [key]: col.id });
+};
+
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
 	const layout = useLayout();
 	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
-	const setStatColumn = (col: string, i: number) => {
-		const key = (['column0', 'column1'] as const)[i];
-		for (const [id, item] of Object.entries(layout.items))
-			if (statPanelOptions.includes(item?.type as any))
-				setNodeParams(id, 'statParams', { [key]: col });
-	};
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;
@@ -85,8 +87,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute column</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
-				{statsPresent && <><button onClick={() => setStatColumn(column.id, 0)}>Use as X</button>
-					<button onClick={() => setStatColumn(column.id, 1)}>Use as Y</button></>}
+				{statsPresent && <><button onClick={() => setStatColumn(column, 0)}>Use as X</button>
+					<button onClick={() => setStatColumn(column, 1)}>Use as Y</button></>}
 				{value != null && <button onClick={() => addFilter(column, value)}
 				>Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 				<div className='separator'/>
@@ -245,9 +247,12 @@ function MainTablePanel() {
 	useEventListener('action+plotPrevShown', plotMove(-1));
 	useEventListener('action+plotNextShown', plotMove(+1));
 
-	useEventListener('action+computeRow', () => {
-		if (cursor) dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] });
-	});
+	useEventListener('action+setX', () =>
+		cursor && setStatColumn(shownColumns[cursor.column], 0));
+	useEventListener('action+setY', () =>
+		cursor && setStatColumn(shownColumns[cursor.column], 1));
+	useEventListener('action+computeRow', () =>
+		cursor && dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] }));
 	useEventListener('action+addFilter', () => {
 		const column = cursor ? shownColumns[cursor.column] : undefined;
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;

@@ -237,7 +237,6 @@ def compute_generic(g, for_row=None):
 			idx = np.where(ids == for_row)[0][0]
 			margin = 0
 			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
-			print(for_row, idx, ids[idx-margin:idx+margin+1], target_id[margin:margin+1], result[margin:margin+1])
 			target_id, result = target_id[margin:margin+1], result[margin:margin+1]
 		else:
 			target_id, result = _do_compute(g)
@@ -271,27 +270,6 @@ def recompute_generics(generics):
 	return any(res)
 
 def recompute_for_row(generics, rid):
-
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-###
-	generics = [g for g in generics if g.nickname == 'magnitude']
-
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		func = lambda g: compute_generic(g, rid)
 		res = executor.map(func, generics)

@@ -126,7 +126,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				const colIdx = columns.findIndex(c => c.id === column.id);
 				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
 				if (!entityExists) return false;
-				
+
 				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
 					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
 				return true;
