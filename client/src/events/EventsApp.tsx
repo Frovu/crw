@@ -5,7 +5,7 @@ import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodePara
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef, copyAverages } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -52,6 +52,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;
+	const averages = details?.averages;
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
 	const isPlot = plotPanelOptions.includes(params.type as any);
@@ -75,6 +76,11 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			<CorrelationContextMenu {...{ params, setParams }}/>
 		</>}
 		{params.type === 'MainTable' && <>
+			{averages && <>
+				<button onClick={() => copyAverages(averages, false)}>Copy {averages?.label}</button>
+				<button onClick={() => copyAverages(averages, true)}>Copy all averages</button>
+				<div className='separator'/>
+			</>}
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
 			<div className='separator'/>
 			{rowId != null && <>
@@ -95,12 +101,11 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			</>}
 			{!column && role && <>
 				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
-				<div className='separator'/>
 			</>}
-			<div className='Group'>
+			{!column && <><div className='separator'/><div className='Group'>
 				<CheckboxTable text='Show column averages' k='showAverages'/>
 				<CheckboxTable text='Show changes log' k='showChangelog'/>
-			</div>
+			</div></>}
 		</>}
 		{isPlot && <>
 			<PlotIntervalInput/>

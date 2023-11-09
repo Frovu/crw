@@ -177,8 +177,16 @@ export const useViewState = create<ViewState>()(
 
 export type TableMenuDetails = {
 	header?: ColumnDef,
+	averages?: { averages: (number[] | null)[], label: string, row: number } ,
 	cell?: { id: number, column: ColumnDef, value: Value }
 };
+
+export function copyAverages({ averages, row }: Required<TableMenuDetails>['averages'], copyAll: boolean) {
+	const filtered = averages.filter(r => r);
+	const rows = filtered[0]!.map((_, ri) => filtered.map(col => col![ri].toFixed(2)).join(','));
+	const text = copyAll ? rows.join('\r\n') : rows[row];
+	navigator.clipboard.writeText(text);
+}
 
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 export const shortTable = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
