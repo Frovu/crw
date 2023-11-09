@@ -137,14 +137,15 @@ def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 			d_slice = value[slices[i]]
 			val = gsm.normalize_variation(d_slice, with_trend=True)
 			val = apply_delta(val, ser)
-			result[i] = func(val) + slices[i].start
-			if return_value: # this is hacky
-				value[int(result[i])] = val[int(result[i]) - slices[i].start]
+			extr_i = func(val)
+			result[i] = extr_i + slices[i].start
+			if return_value and not np.isnan(extr_i):
+				result[i] = val[extr_i]
 	else:
 		value = apply_delta(value, ser)
 		result = np.array([func(value[sl]) + sl.start for sl in slices])
-	if return_value:
-		result = np.array([(i if np.isnan(i) else value[int(i)]) for i in result])
+		if return_value: 
+			result = np.where(np.isnan(result), np.nan, value[result])
 	return result
 
 def apply_shift(a, shift, stub=np.nan):
@@ -271,6 +272,24 @@ def recompute_generics(generics):
 
 def recompute_for_row(generics, rid):
 
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
+###
 	generics = [g for g in generics if g.nickname == 'magnitude']
 
 	with ThreadPoolExecutor(max_workers=4) as executor:

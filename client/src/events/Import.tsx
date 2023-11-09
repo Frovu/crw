@@ -33,7 +33,7 @@ export default function ImportMenu() {
 		for (const [ri, line] of lines.entries()) {
 			try {
 				const split = line.trim().split(/\s+/);
-				if (split.length !== colsIndex.length)
+				if (split.length < colsIndex.length)
 					return { error: `column count does not match (${split.length} != ${colsIndex.length}): ${line}` };
 				for (const [ci, { name, idx, type, parseValue }] of columns.entries()) {
 					const str = split[idx];
