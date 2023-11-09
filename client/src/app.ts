@@ -10,6 +10,8 @@ export const KEY_COMB = {
 	'openColumnsSelector': 'C',
 	'addFilter': 'F',
 	'computeRow': 'K',
+	'setX': '1',
+	'setY': '2',
 	'exportPlot': 'E',
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',

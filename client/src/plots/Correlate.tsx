@@ -160,7 +160,7 @@ export default function CorrelationPlot() {
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { title, options, data } = memo;
 	return (<>
-		{title && <div style={{ textAlign: 'center' }}>{title}</div>}
+		{title && <div style={{ textAlign: 'center', userSelect: 'text' }}>{title}</div>}
 		<ExportableUplot {...{ size: (sz) => ({ ...sz, height: sz.height - (title ? 22 : 0) }), options, data }}/>
 	</>);
 }

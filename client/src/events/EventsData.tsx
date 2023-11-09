@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
-import { Confirmation, apiGet, apiPost, useEventListener, useMutationHandler } from '../util';
-import { useQuery } from 'react-query';
+import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
@@ -137,11 +137,15 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
 	useEventListener('action+discardChanges', () => setChanges([]));
 
-	const { mutate: doCommit, report, color } = useMutationHandler(() =>
-		apiPost('events/changes', {
-			changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
-		})
-	, ['tableData']);
+	const queryClient = useQueryClient();
+	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
+		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
+	}), {
+		onError: e => { logError('Failed submiting: '+e?.toString()); },
+		onSuccess: () => {
+			queryClient.invalidateQueries('tableData');
+			logSuccess('Changes commited!'); setShowCommit(false); setChanges([]); }
+	});
 
 	// ************************************************************************************
 	// 										SAMPLE
@@ -185,10 +189,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	return (
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
-				{rawMainContext && showCommit && <Confirmation callback={() => doCommit(null, {
-					onError: e => { logError('Failed submiting: '+e?.toString()); },
-					onSuccess: () => { logSuccess('Changes commited!'); setShowCommit(false); setChanges([]); }
-				})} closeSelf={() => setShowCommit(false)}>
+				{rawMainContext && showCommit && <Confirmation
+					callback={() => doCommit()} closeSelf={() => setShowCommit(false)}>
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 						{changes.map(({ id, column, value }) => {
@@ -203,7 +205,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}/>
 							</div>);})}
 					</div>
-					<div style={{ height: '1em', color }}>{report?.error ?? report?.success}</div>
 				</Confirmation>}
 				{children}
 			</SampleContext.Provider>
