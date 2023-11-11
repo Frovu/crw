@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
@@ -87,6 +87,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
+		logMessage('Events table loaded', 'debug');
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,
@@ -97,8 +98,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			series
 		} as const;
 	}, [dataQuery.data, structureQuery.data]);
-
-	useEffect(() => logMessage('Events table loaded', 'debug'), [dataQuery.data]);
 
 	// ************************************************************************************
 	// 						 	  MAIN TABLE DATA WITH CHANGES

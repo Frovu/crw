@@ -1,12 +1,13 @@
-import traceback
 import numpy as np
 from database import pool, log
+from events.table import parse_column_id
 from events.generic_columns import select_generics
 from events.generic_core import apply_changes, recompute_for_row, recompute_generics
 
 DEFAULT_DURATION = 72
 
 def _compute_duration(for_row=None, entity='forbush_effects'):
+	assert entity == 'forbush_effects'
 	with pool.connection() as conn:
 		q = f'SELECT id, duration, EXTRACT(EPOCH FROM time)::integer FROM events.{entity} '
 		if for_row is not None:
@@ -24,10 +25,11 @@ def _compute_duration(for_row=None, entity='forbush_effects'):
 		log.info('Computed %s duration', entity)
 
 def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm'):
+	assert entity == 'forbush_effects'
 	vm, bm = [next((g for g in generics if g.entity == entity and g.pretty_name == name)
 		, None) for name in ('V max', 'B max')]
 	if not vm or not bm:
-		return
+		raise BaseException('Vm or Bm not found')
 	with pool.connection() as conn:
 		q = f'SELECT id, {vm.name}, {bm.name} FROM events.{entity}'
 		curs = conn.execute(q) if for_row is None else conn.execute(q + ' WHERE id = %s', [for_row])
@@ -40,29 +42,24 @@ def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm
 		conn.cursor().executemany(query, data.tolist())
 
 def compute_all(for_row=None):
-	try:
-		generics = select_generics(select_all=True)
-		_compute_duration(for_row)
-		if for_row is None:
-			recompute_generics(generics)
-		else:
-			recompute_for_row(generics, for_row)
-		_compute_vmbm(generics, for_row)
-	except:
-		log.error('Failed to re-compute table: %s', traceback.format_exc())
+	generics = select_generics(select_all=True)
+	_compute_duration(for_row)
+	if for_row is None:
+		recompute_generics(generics)
+	else:
+		recompute_for_row(generics, for_row)
+	_compute_vmbm(generics, for_row)
 
-def compute_column(name):
-	try:
-		generics = select_generics(select_all=True)
-		if name == 'vmbm':
-			_compute_vmbm(generics)
-		elif name == 'duration':
-			_compute_duration()
-		else:
-			found = next((g for g in generics if g.name == name), None)
-			if not found:
-				raise ValueError('Column not found')
-			return recompute_generics(generics)
-		return True
-	except:
-		log.error('Failed to re-compute %s: %s', name, traceback.format_exc())
+def compute_column(cid):
+	entity, name = parse_column_id(cid)
+	generics = select_generics(select_all=True)
+	if name == 'vmbm':
+		_compute_vmbm(generics, entity=entity)
+	elif name == 'duration':
+		_compute_duration(entity=entity)
+	else:
+		found = next((g for g in generics if g.name == name), None)
+		if not found:
+			raise ValueError('Column not found')
+		return recompute_generics(generics)
+	return True

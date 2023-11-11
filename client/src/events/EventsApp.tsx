@@ -90,8 +90,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			</>}
 			{column && <>
 				{role && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Re-compute row</button>}
-				{column.generic && (column.generic.is_own || role === 'admin') &&
-					<button onClick={() => dispatchCustomEvent('computeGeneric', { id: column.generic!.id })}>Re-compute column</button>}
+				{column.isComputed && role &&
+					<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Re-compute column</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{statsPresent && <><button onClick={() => setStatColumn(column, 0)}>Use as X</button>

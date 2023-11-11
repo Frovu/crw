@@ -121,7 +121,7 @@ def _remove_generic():
 @route_shielded
 @require_role('operator')
 def _compute_generic():
-	name = request.json.get('name')
+	name = request.json.get('id')
 	start = time()
 	if not compute_column(name):
 		return msg('Failed miserably'), 500

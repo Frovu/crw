@@ -10,6 +10,7 @@ import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
 import { Size } from '../util';
+import { useAppSettings } from '../app';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {
@@ -209,6 +210,7 @@ export function ExportPreview() {
 export function ExportableUplot({ size, options, data, onCreate }:
 { size?: (sz: Size) => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
+	const theme = useAppSettings(st => st.theme);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
@@ -237,7 +239,7 @@ export function ExportableUplot({ size, options, data, onCreate }:
 				setUpl(u);
 				onCreate?.(u);
 			} }}/>;
-	}, [controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
+	}, [theme, controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
 	return plot;
 }
 
