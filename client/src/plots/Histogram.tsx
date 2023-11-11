@@ -138,7 +138,7 @@ export default function HistogramPlot() {
 				}, {
 					...axisDefaults(showGrid),
 					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
-					size: measureDigit().width * 4 + scaled(8),
+					size: measureDigit().width * 4 + scaled(12),
 					space: getFontSize() * 3
 				}, ],
 				scales: {

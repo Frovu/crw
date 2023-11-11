@@ -8,6 +8,7 @@
 			"parse_name": "Time"
 		},
 		"duration": {
+			"computed": true,
 			"data_type": "integer",
 			"description": "Effective event duration, hours",
 			"parse_name": "Te"

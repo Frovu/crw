@@ -4,9 +4,8 @@ import numpy as np
 from flask import Blueprint, request, session
 from events.plots import epoch_collision
 from events.table import import_fds
-from events.generic_columns import select_generics, upset_generic, remove_generic
-from events.generic_core import recompute_generics, recompute_for_row
-from events import other_columns
+from events.generic_columns import upset_generic, remove_generic
+from events.other_columns import compute_all, compute_column
 from events import samples
 from events import query
 from server import compress
@@ -118,38 +117,34 @@ def _remove_generic():
 	remove_generic(uid, gid)
 	return msg('OK')
 
-@bp.route('/generics/compute', methods=['POST'])
+@bp.route('/compute', methods=['POST'])
 @route_shielded
 @require_role('operator')
 def _compute_generic():
-	uid = session.get('uid')
-	gid = int(request.json.get('id'))
+	name = request.json.get('name')
 	start = time()
-	generic = next((g for g in select_generics(uid) if g.id == gid), None)
-	if not generic:
-		return msg('Generic not found' ), 404
-	if not recompute_generics(generic):
+	if not compute_column(name):
 		return msg('Failed miserably'), 500
 	return { 'time': round(time() - start, 2) }
 
-@bp.route('/generics/compute_row', methods=['POST'])
+@bp.route('/compute_row', methods=['POST'])
 @route_shielded
 @require_role('operator')
 def _compute_row_generic():
 	rid = int(request.json.get('id'))
 	start = time()
-	generics = select_generics(select_all=True)
-	if not recompute_for_row(generics, rid):
+	if not compute_all(rid):
 		return msg('Failed miserably'), 500
 	return { 'time': round(time() - start, 2) }
 
-@bp.route('/recompute_other', methods=['POST'])
+@bp.route('/compute_all', methods=['POST'])
 @route_shielded
-@require_role('admin')
-def _recompute_other():
+@require_role('operator')
+def _compute_everything():
 	start = time()
-	other_columns.compute_all()
-	return msg(f'Done ({round(time() - start, 1)} s)')
+	if not compute_all():
+		return msg('Failed miserably'), 500
+	return { 'time': round(time() - start, 2) }
 
 @bp.route('/importTable', methods=['POST'])
 @route_shielded
