@@ -165,8 +165,12 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, ri) => {
 						const idx = viewIndex + ri;
 						const marker = markers?.[idx];
-						const rowChanges = wholeChangelog?.[row[0]];
-						const isCompModified = rowChanges && columns.map(c => c.isComputed && rowChanges[c.id]?.length && rowChanges[c.id][rowChanges[c.id].length - 1].new !== 'auto');
+						const isCompModified = columns.map(c => {
+							if (!c.isComputed) return false;
+							const chgs = wholeChangelog?.[row[0]]?.[c.id]?.sort((a, b) => b.time - a.time);
+							if (!chgs?.length) return false;
+							return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
+						});
 						return <tr style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}
 							key={row[0]}>
 							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
@@ -215,6 +219,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
 						<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
 						: {val(change.old)} -&gt; <b>{val(change.new)}</b>
+						{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
 					</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 			</div>}
 			<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>

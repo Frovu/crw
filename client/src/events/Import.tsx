@@ -16,7 +16,7 @@ export default function ImportMenu() {
 	useEventListener('action+openImportMenu', () => setOpen(o => !o));
 
 	const parsed = useMemo(() => {
-		if (!fileText) return null;
+		if (!fileText || !open) return null;
 		console.time('parseFDs');
 
 		const text = FIXES.reduce((txt, [re, ch]) => txt.replace(re, ch), fileText);
@@ -88,6 +88,8 @@ export default function ImportMenu() {
 				for (const [ci, { id, sqlName, table }] of columns.entries()) {
 					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
+					if (sqlName === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
+						continue;
 					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
 						continue;
 					changes.push({
@@ -122,7 +124,7 @@ export default function ImportMenu() {
 			columns: columns.map(c => [ c.table, c.sqlName ] )
 		} };
 
-	}, [allColumns, currentData, fileText]);
+	}, [allColumns, currentData, fileText, open]);
 
 	const { report, mutate, isLoading } = useMutationHandler(({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
 		apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) })

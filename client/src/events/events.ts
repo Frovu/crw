@@ -120,7 +120,8 @@ export type ChangeLog = {
 				time: number,
 				author: string,
 				old: string,
-				new: string
+				new: string,
+				special: 'import' | null
 			}
 		]
 	}
