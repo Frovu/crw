@@ -12,16 +12,18 @@ def _compute_duration(for_row=None, entity='forbush_effects'):
 		q = f'SELECT id, duration, EXTRACT(EPOCH FROM time)::integer FROM events.{entity} '
 		if for_row is not None:
 			q += f'WHERE time >= (SELECT time FROM events.{entity} WHERE id = %s) ORDER BY TIME LIMIT 2'
-			rows = conn.execute(q).fetchall()
+			rows = conn.execute(q, [for_row]).fetchall()
 		else:
 			rows = conn.execute(q + ' ORDER BY time').fetchall()
 		data = np.array(rows)
 		eid, src_dur, hours = data[:,0], data[:,1], data[:,2] // 3600
-		t_after = hours[1:] - hours[:1]
+		t_after = np.empty_like(hours)
+		t_after[:-1] = hours[1:] - hours[:-1]
+		t_after[-1] = 9999
 		src_dur[src_dur < 1] = DEFAULT_DURATION
 		duration = np.minimum(src_dur, t_after)
 		query = f'UPDATE events.{entity} SET duration = %s WHERE id = %s'
-		conn.cursor().executemany(query, np.column_stack((eid, duration)).tolist())
+		conn.cursor().executemany(query, np.column_stack((duration, eid)).tolist())
 		log.info('Computed %s duration', entity)
 
 def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm'):
@@ -45,10 +47,11 @@ def compute_all(for_row=None):
 	generics = select_generics(select_all=True)
 	_compute_duration(for_row)
 	if for_row is None:
-		recompute_generics(generics)
+		res = recompute_generics(generics)
 	else:
-		recompute_for_row(generics, for_row)
+		res = recompute_for_row(generics, for_row)
 	_compute_vmbm(generics, for_row)
+	return res
 
 def compute_column(cid):
 	entity, name = parse_column_id(cid)

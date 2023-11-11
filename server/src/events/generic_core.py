@@ -190,7 +190,6 @@ def _do_compute(generic, for_rows=None):
 			assert not 'reached'
 		if 'abs' in op:
 			result = np.abs(result)
-		print(result)
 		return target_id, result
 
 	assert op in G_OP_VALUE
