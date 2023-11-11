@@ -86,6 +86,8 @@ def _select_series(t_from, t_to, series):
 	else:
 		res = gsm.select(interval, [name])
 	arr = np.array(res, dtype='f8')
+	if len(arr) < 1:
+		return arr, arr
 	if len(arr) - (arr[-1,0] - arr[0,0]) // HOUR > 1: # FIXME: data may shift by 1 hour ??
 		log.error('Data is not continous for %s', series)
 		raise BaseException('Data is not continous')
@@ -110,6 +112,8 @@ def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds dow
 	return r_time + ref.hours_offset * HOUR
 					
 def get_slices(t_time, t_1, t_2):
+	if len(t_time) < 1:
+		return []
 	t_l = np.minimum(t_1, t_2)
 	t_r = np.maximum(t_1, t_2)
 	left = (t_l - t_time[0]) // HOUR
@@ -129,20 +133,22 @@ def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 	func = lambda d: np.nan if np.isnan(d).all() \
 		else (np.nanargmax(d) if is_max else np.nanargmin(d))
 	if ser in ['a10', 'a10m']: # TODO: Az?
-		result = np.empty(len(t_1), dtype='f8')
-		for i in range(len(t_1)):
-			if (slices[i].start < 0):
+		result = np.full(len(t_1), np.nan)
+		for i, slic in enumerate(slices):
+			if (slic.start < 0):
 				result[i] = np.nan
 				continue
-			d_slice = value[slices[i]]
+			d_slice = value[slic]
 			val = gsm.normalize_variation(d_slice, with_trend=True)
 			val = apply_delta(val, ser)
 			extr_i = func(val)
-			result[i] = extr_i + slices[i].start
+			result[i] = extr_i + slic.start
 			if return_value and not np.isnan(extr_i):
 				result[i] = val[extr_i]
 	else:
-		value = apply_delta(value, ser)
+		if len(slices) < 1:
+			return np.full(len(t_1), np.nan)
+		value = apply_delta(value, ser) 
 		result = np.array([func(value[sl]) + sl.start for sl in slices])
 		if return_value: 
 			result = np.array([np.nan if np.isnan(i) else value[int(i)] for i in result])
@@ -184,6 +190,7 @@ def _do_compute(generic, for_rows=None):
 			assert not 'reached'
 		if 'abs' in op:
 			result = np.abs(result)
+		print(result)
 		return target_id, result
 
 	assert op in G_OP_VALUE
@@ -210,6 +217,9 @@ def _do_compute(generic, for_rows=None):
 		cache[para.series] = (d_time, d_value)
 		slices = get_slices(d_time, t_1, t_2)
 
+		if len(slices) < 1:
+			return target_id, np.full_like(t_1, np.nan)
+
 		if op in ['mean', 'median']:
 			func = np.nanmean if op == 'mean' else np.nanmedian
 			result = np.array([(func(d_value[sl]) if sl.stop - sl.start > 0 else np.nan) for sl in slices])
@@ -235,7 +245,7 @@ def compute_generic(g, for_row=None):
 		if for_row is not None:
 			ids = _select(None, [(g.entity, 'id')])[0].astype(int)
 			idx = np.where(ids == for_row)[0][0]
-			margin = 0
+			margin = 3
 			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
 			target_id, result = target_id[margin:margin+1], result[margin:margin+1]
 		else:

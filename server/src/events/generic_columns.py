@@ -92,7 +92,7 @@ class GenericColumn:
 			pretty2, _ = find_column_info(gs, para.other_column)
 			name = f'{pretty1} - {pretty2}'.replace(' ', '')
 			pretty_name = f'|{name}|' if 'abs' in op else f'({name})'
-			description = f'Column values {"absolute" if "abs" in op else " "}difference'
+			description = f'Column values {"absolute " if "abs" in op else ""}difference: ' + pretty_name
 		elif op in G_OP_CLONE:
 			pretty, dtype = find_column_info(gs, para.column)
 			self.data_type = dtype

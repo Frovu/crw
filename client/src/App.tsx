@@ -55,7 +55,7 @@ function Logs() {
 	useEventListener('mousedown', () => setExpand(false));
 	useEventListener('contextmenu', () => setExpand(false));
 
-	return <div style={{ flex: 1, maxWidth: '20em', position: 'relative' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+	return <div style={{ flex: 1, maxWidth: '25em', position: 'relative' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
 		{!expand && hover && <button className='TextButton' style={{ width: '100%' }}
 			onClick={() => setExpand(s => !s)}>show logs</button>}
 		{!expand && !hover && last && show && <div style={{ paddingLeft: 4,
