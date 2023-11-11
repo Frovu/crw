@@ -77,8 +77,9 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 		</>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
-				<button onClick={() => copyAverages(averages, false)}>Copy {averages?.label}</button>
-				<button onClick={() => copyAverages(averages, true)}>Copy all averages</button>
+				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
+				<button onClick={() => copyAverages(averages, 'col')}>Copy column averages</button>
+				<button onClick={() => copyAverages(averages, 'all')}>Copy all averages</button>
 				<div className='separator'/>
 			</>}
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
@@ -232,7 +233,7 @@ function MainTablePanel() {
 	});
 	
 	const averages = useMemo(() => !tableParams?.showAverages ? [] : shownColumns.map((col, i) => {
-		if (col.type !== 'real') return null;
+		if (!['integer', 'real'].includes(col.type)) return null;
 		const sorted = shownData.map(row => row[i + 1]).filter(v => v != null).sort() as number[];
 		if (!sorted.length) return null;
 		const mid = Math.floor(sorted.length / 2);

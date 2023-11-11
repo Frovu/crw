@@ -197,7 +197,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
 									textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
 								onContextMenu={openContextMenu('events', { nodeId, averages: {
-									averages, label, row: ari } })}>
+									averages, label, row: ari, column: i } })}>
 									{isLabel ? label : avgs ? avgs[ari].toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 							})}
 						</tr>)}

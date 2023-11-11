@@ -177,14 +177,16 @@ export const useViewState = create<ViewState>()(
 
 export type TableMenuDetails = {
 	header?: ColumnDef,
-	averages?: { averages: (number[] | null)[], label: string, row: number } ,
+	averages?: { averages: (number[] | null)[], label: string, row: number, column: number } ,
 	cell?: { id: number, column: ColumnDef, value: Value }
 };
 
-export function copyAverages({ averages, row }: Required<TableMenuDetails>['averages'], copyAll: boolean) {
+export function copyAverages({ averages, row, column }: Required<TableMenuDetails>['averages'], what: 'all' | 'row' | 'col') {
+	if (what === 'col')
+		return navigator.clipboard.writeText(averages[column]?.map(c => c.toFixed(2)).join(',') ?? '');
 	const filtered = averages.filter(r => r);
 	const rows = filtered[0]!.map((_, ri) => filtered.map(col => col![ri].toFixed(2)).join(','));
-	const text = copyAll ? rows.join('\r\n') : rows[row];
+	const text = what === 'all' ? rows.join('\r\n') : rows[row];
 	navigator.clipboard.writeText(text);
 }
 
