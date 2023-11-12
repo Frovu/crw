@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
+import { apiGet, clamp, useEventListener, useSize, ValidatedInput } from '../../util';
 import { linePaths, pointPaths } from '../plotPaths';
 import { axisDefaults, color, customTimeSplits,
-	drawMagneticClouds, drawOnsets, drawShape, markersPaths } from '../plotUtil';
+	drawMagneticClouds, drawOnsets, drawShape, markersPaths, scaled } from '../plotUtil';
 import { BasicPlotParams, applyTextTransform } from '../BasicPlot';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
@@ -13,6 +13,7 @@ import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
 import { Onset } from '../../events/events';
 import { themeOptions } from '../../app';
+import { ExportableUplot } from '../../events/ExportPlot';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,
@@ -55,9 +56,10 @@ type CirclesMomentResponse = {
 };
 
 export function circlePaths(callback: any, minMaxMagn: number, params: CirclesParams) {
+	const strokeWidth = clamp(1.5, 8, scaled(devicePixelRatio) / 1.5);
+	const minSize = scaled(1.5);
 	return (u: uPlot, seriesIdx: number) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, datapeY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
-			const strokeWidth = Math.max(1.5, devicePixelRatio);
 			const deg360 = 2 * Math.PI;
 			const d = u.data[seriesIdx] as any as number[][];
 
@@ -86,7 +88,7 @@ export function circlePaths(callback: any, minMaxMagn: number, params: CirclesPa
 				const sz = params.linearSize ?
 					(v / maxMagn * maxSize) :
 					maxSize * (10 - Math.pow((v + 38.7) / 50, -9)) / 10;
-				const size = Math.max(1.5, sz) * devicePixelRatio;
+				const size = Math.max(minSize, sz) * devicePixelRatio;
 
 				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 					const cx = valToPosX(xVal, scaleX, xDim, xOff);
@@ -156,12 +158,11 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 
 	useEffect(() => setMoment(null), [params.interval]);
 
-	const plotSize = useCallback((i: 0 | 1) =>
-		({ ...size, height: size.height * (twoPlots ? i > 0 ? .3 : .7 : 1) - (interactive ? LEGEND_H : 0) }), [interactive, twoPlots, size]);
+	const plotSize = useCallback((i: 0 | 1) => (sz: typeof size, unknown?: boolean) =>
+		({ ...(unknown ? size : sz), height: (unknown ? size : sz).height * (twoPlots ? i > 0 ? .3 : .7 : 1) - (interactive ? LEGEND_H : 0) }), [interactive, twoPlots, size]);
 
 	useLayoutEffect(() => {
-		if (uplot) uplot.setSize(plotSize(0));
-		if (uplot2) uplot2.setSize(plotSize(1));
+		if (uplot2) uplot2.setSize(plotSize(1)(size));
 	}, [uplot, uplot2, size, plotSize]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
@@ -197,9 +198,9 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 			height: u.over.offsetHeight
 		});
 
-		const options: uPlot.Options = {
-			padding: [8, params.interactive ? 12 : padRight, 0, 0],
-			...plotSize(0),
+		const options: () => uPlot.Options = () => ({
+			padding: [scaled(8), params.interactive ? scaled(12) : padRight, 0, 0],
+			...plotSize(0)(size),
 			mode: 2,
 			legend: { show: interactive },
 			cursor: {
@@ -253,8 +254,8 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 						u.ctx.save();
 						u.ctx.beginPath();
 						u.ctx.strokeStyle = color('green');
-						u.ctx.lineWidth = 2;
-						drawShape(u.ctx, 6 * devicePixelRatio)['triangleUp'](x, y + 14 * devicePixelRatio);
+						u.ctx.lineWidth = scaled(2);
+						drawShape(u.ctx, scaled(6) * devicePixelRatio)['triangleUp'](x, y + scaled(14) * devicePixelRatio);
 						u.ctx.stroke();
 						u.ctx.restore();
 					},
@@ -310,9 +311,9 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					scale: 'y',
 					label: applyTextTransform('effective longitude, deg'),
 					values: (u, vals) => vals.map(v => v.toFixed(0)),
-					space: 48,
-					gap: 2,
-					incrs: [ 15, 30, 45, 60, 90, 180, 360 ]
+					space: scaled(32),
+					gap: scaled(2),
+					incrs: [ 30, 45, 60, 90, 180, 360 ]
 				},
 				{
 					scale: 'idx',
@@ -356,18 +357,18 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 					stroke: color('gold'),
 					facets: [ { scale: 'x', auto: true }, { scale: 'idx', auto: true } ],
 					value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
-					paths: linePaths(1.75)
+					paths: linePaths(scaled(1.75))
 				} as uPlot.Series] : [])
 			]
-		};
+		});
 		return <>
-			<UplotReact {...{ options, data: plotData as any, onCreate: setUplot }}/>
+			<ExportableUplot {...{ size: plotSize(0), options, data: plotData as any, onCreate: setUplot }}/>
 			{twoPlots && <UplotReact {...{ options: {
 				tzDate: ts => uPlot.tzDate(new Date(ts * 1e3), 'UTC'),
 				cursor: { show: interactive, drag: { setScale: false } },
 				legend: { show: interactive },
 				padding: [8, 12, 0, 0],
-				...plotSize(1),
+				...plotSize(1)(size),
 				scales: {
 					a0: {
 						range: (u, min, max) => [min-.5, max+.5]

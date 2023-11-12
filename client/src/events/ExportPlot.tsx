@@ -208,7 +208,7 @@ export function ExportPreview() {
 }
 
 export function ExportableUplot({ size, options, data, onCreate }:
-{ size?: (sz: Size) => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
+{ size?: (sz: Size, unknown: boolean) => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
 	const theme = useAppSettings(st => st.theme);
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
@@ -216,8 +216,8 @@ export function ExportableUplot({ size, options, data, onCreate }:
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
-	const borderSize = layout?.size && { width: layout?.size.width - 2, height: layout?.size.height - 2 };
-	const sz = borderSize ? (size ? size(borderSize) : borderSize) : { width: 600, height: 400 };
+	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };
+	const sz = size ? size(borderSize, !layout?.size) : borderSize;
 
 	useEffect(() => {
 		upl && upl.setSize(sz);
