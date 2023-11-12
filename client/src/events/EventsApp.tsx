@@ -9,7 +9,7 @@ import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
-import HistogramPlot from '../plots/Histogram';
+import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import PlotCircles from '../plots/time/Circles';
 import PlotGeoMagn from '../plots/time/Geomagn';
 import PlotIMF from '../plots/time/IMF';
@@ -72,9 +72,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
 			
 	return <>
-		{params.type === 'Correlation' && <>
-			<CorrelationContextMenu {...{ params, setParams }}/>
-		</>}
+		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
@@ -146,10 +145,10 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 					<Checkbox text='Show Bz' k='showBz'/>
 				</>}
 				{params.type === 'Ring of Stations' && <>
-					<label>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em' }}
+					<div>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em', padding: 0 }}
 						defaultValue={cur.exclude?.join(',') ?? ''}
 						onChange={e => JSON.stringify(e.target.value.split(/\s*,\s*/g).filter(s => s.length>3)) !== JSON.stringify(cur.exclude)
-							&& setParams('plotParams', { exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></label>
+							&& setParams('plotParams', { exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></div>
 					<div className='Row'>
 						<Checkbox text='Filter' k='autoFilter'/>
 						<Checkbox text='Linear size' k='linearSize'/>

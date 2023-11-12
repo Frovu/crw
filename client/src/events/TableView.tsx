@@ -53,7 +53,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
-	const cursCol = cursor && columns[cursor?.column].id;
+	const cursCol = cursor && columns[cursor?.column]?.id;
 	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
 	const changelog = changelogEntry && Object.entries(changelogEntry)
 		.filter(([col]) => columns.find(c => c.id === col))
@@ -71,7 +71,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	useLayoutEffect(() => {
 		setCursor(null);
 		setViewIndex(clamp(0, data.length - viewSize, data.length));
-	}, [data.length, viewSize, sort, setCursor]);
+	}, [data.length, columns.length, viewSize, sort, setCursor]);
 
 	useEffect(() => { cursor && updateViewIndex(cursor); }, [cursor]); // eslint-disable-line
 

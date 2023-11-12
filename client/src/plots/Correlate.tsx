@@ -33,7 +33,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
 
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
-		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4 }} value={cur[k] as string}
+		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }} value={cur[k] as string}
 			onChange={e => setParams('statParams', { [k]: e.target.value })}>
 			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 		</select>;
@@ -46,7 +46,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		</div> <div>
 			Y:<ColumnSelect k='column1'/>
 		</div> <div className='separator'/> <div className='Row'>
-			color:<select className='Borderless' value={cur.color}
+			color:<select className='Borderless' style={{ padding: '0 6px' }} value={cur.color}
 				onChange={e => setParams('statParams', { color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>

@@ -1,9 +1,9 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings } from '../events/events';
+import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
-import { LayoutContext } from '../Layout';
+import { LayoutContext, ParamsSetter } from '../Layout';
 
 const colors = ['magenta', 'acid', 'cyan'];
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -37,6 +37,49 @@ export const defaultHistOptions: HistogramParams = {
 	drawMean: false,
 	drawMedian: false
 };
+
+export function HistogramContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const { columns } = useContext(MainTableContext);
+	const { shownColumns } = useEventsSettings();
+	const cur = { ...defaultHistOptions, ...params.statParams };
+	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
+		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
+
+	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
+		setParams('statParams', { [k]: val });
+	const ColumnSelect = ({ k }: { k: keyof HistogramParams }) =>
+		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4 }} value={cur[k] as string}
+			onChange={e => set(k, e.target.value)}>
+			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
+		</select>;
+	const Checkbox = ({ text, k }: { text: string, k: keyof HistogramParams }) =>
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+
+	return <div className='Group'>
+		<div className='Row'>
+			<div>Y scale:<select className='Borderless' style={{ width: '5em', marginLeft: 4, padding: 0 }}
+				value={cur.yScale} onChange={e => set('yScale', e.target.value as any)}>
+				{yScaleOptions.map(o => <option key={o} value={o}>{o}</option>)}
+			</select></div>
+			<div style={{ paddingLeft: 4 }}>Bin count:<input type='number' min='2' max='9999'
+				style={{ width: '4em', margin: '0 4px', padding: 0 }}
+				value={cur.binCount} onChange={e => set('binCount', e.target.valueAsNumber)}/></div>
+		</div>
+		<div style={{ textAlign: 'right' }}>
+			<span title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
+				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Force limits:</span>
+			<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
+				value={cur.forceMin ?? ''} onChange={e => set('forceMin', e.target.value ? parseFloat(e.target.value) : null)}/>
+			&lt;= X &lt;<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
+				value={cur.forceMax ?? ''} onChange={e => set('forceMax', e.target.value ? parseFloat(e.target.value) : null)}/>
+		</div>
+		<div className='Row'>
+			<Checkbox text='Draw mean' k='drawMean'/>
+			<Checkbox text='Draw median' k='drawMedian'/>
+		</div>
+	</div>;
+}
 
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
@@ -96,24 +139,28 @@ export default function HistogramPlot() {
 		const transformed = samplesBins.filter(b => b).map((bins, i) => options.yScale === '%' ? bins!.map(b => b / samples[i].length) : bins);
 		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
 
-		const drawAverages = (u: uPlot) => {
+		const drawAverages = (scale: number, fnt: string) => (u: uPlot) => {
 			for (const what in averages) {
 				if (!averages[what]) continue;
 				for (const [i, value] of averages[what].entries()) {
 					if (value == null) continue;
 					const x = u.valToPos(value, 'x', true);
-					const margin = what === 'mean' ? 6 : -8;
+					const margin = scale * (what === 'mean' ? -8 : 2);
+					const text = what === 'mean' ? 'm' : 'd';
 					u.ctx.save();
-					u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .6);
-					u.ctx.font = font(12, true);
+					u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
+					u.ctx.font = fnt;
 					u.ctx.textBaseline = 'top';
 					u.ctx.textAlign = 'left';
-					u.ctx.lineWidth = 3 * devicePixelRatio;
+					u.ctx.lineWidth = scale * 2 * devicePixelRatio;
 					u.ctx.beginPath();
-					u.ctx.moveTo(x, u.bbox.top + margin + 2);
+					u.ctx.moveTo(x, u.bbox.top + margin + scale * 11);
 					u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 					u.ctx.stroke();
-					u.ctx.fillText(what, x + 5, u.bbox.top + margin);
+					u.ctx.lineWidth = scale * 1 * devicePixelRatio;
+					u.ctx.strokeStyle = color('text');
+					u.ctx.stroke();
+					u.ctx.fillText(text, x - scale * 3, u.bbox.top + margin);
 					u.ctx.restore();
 				} }
 		};
@@ -123,7 +170,7 @@ export default function HistogramPlot() {
 				padding: [8, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: { draw: [ drawAverages ] },
+				hooks: { draw: [ drawAverages(scaled(1), font(12, true)) ] },
 				axes: [ {
 					...axisDefaults(showGrid),
 					size: scaled(10) + getFontSize(),
@@ -137,7 +184,7 @@ export default function HistogramPlot() {
 					}),
 				}, {
 					...axisDefaults(showGrid),
-					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + ' %' : v.toFixed())),
+					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + '%' : v.toFixed())),
 					size: measureDigit().width * 4 + scaled(12),
 					space: getFontSize() * 3
 				}, ],
