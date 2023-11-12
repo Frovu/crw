@@ -4,9 +4,12 @@ import { axisDefaults, color, font, getFontSize, measureDigit, scaled } from './
 import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { LayoutContext, ParamsSetter } from '../Layout';
+import { applySample } from '../events/sample';
 
-const colors = ['magenta', 'acid', 'cyan'];
+const colors = ['magenta', 'acid', 'cyan'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
+const columnKeys = ['column0', 'column1', 'column2'] as const;
+const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 
 export type HistogramParams = {
 	binCount: number,
@@ -31,7 +34,7 @@ export const defaultHistOptions: HistogramParams = {
 	sample0: 'current',
 	sample1: 'current',
 	sample2: 'current',
-	column0: 'fe_v_max',
+	column0: null,
 	column1: null,
 	column2: null,
 	drawMean: false,
@@ -40,25 +43,38 @@ export const defaultHistOptions: HistogramParams = {
 
 export function HistogramContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { columns } = useContext(MainTableContext);
+	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultHistOptions, ...params.statParams };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
-		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
+		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
 		setParams('statParams', { [k]: val });
-	const ColumnSelect = ({ k }: { k: keyof HistogramParams }) =>
-		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4 }} value={cur[k] as string}
-			onChange={e => set(k, e.target.value)}>
-			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
-		</select>;
 	const Checkbox = ({ text, k }: { text: string, k: keyof HistogramParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 
 	return <div className='Group'>
+		{([0, 1, 2] as const).map(i => <div key={i} className='Row'>
+			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer' }}
+				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], 'current');}}>#{i}</span>
+			<div><select className='Borderless' style={{ width: '10em',
+				color: cur[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
+			value={cur[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value)}>
+				<option value='__none'>&lt;none&gt;</option>
+				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
+			</select>:
+			<select className='Borderless' style={{ width: '7em', marginLeft: 1,
+				color: cur[sampleKeys[i]] === 'current' ? color('text-dark') : 'unset' }}
+			value={cur[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
+				<option value='none'>&lt;none&gt;</option>
+				<option value='current'>&lt;current&gt;</option>
+				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
+			</select></div>
+		</div>)}
 		<div className='Row'>
-			<div>Y scale:<select className='Borderless' style={{ width: '5em', marginLeft: 4, padding: 0 }}
+			<div>Y:<select className='Borderless' style={{ width: '5em', marginLeft: 4, padding: 0 }}
 				value={cur.yScale} onChange={e => set('yScale', e.target.value as any)}>
 				{yScaleOptions.map(o => <option key={o} value={o}>{o}</option>)}
 			</select></div>
@@ -67,8 +83,8 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 				value={cur.binCount} onChange={e => set('binCount', e.target.valueAsNumber)}/></div>
 		</div>
 		<div style={{ textAlign: 'right' }}>
-			<span title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Force limits:</span>
+			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
+				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Limits:</span>
 			<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
 				value={cur.forceMin ?? ''} onChange={e => set('forceMin', e.target.value ? parseFloat(e.target.value) : null)}/>
 			&lt;= X &lt;<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
@@ -76,7 +92,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 		</div>
 		<div className='Row'>
 			<Checkbox text='Draw mean' k='drawMean'/>
-			<Checkbox text='Draw median' k='drawMedian'/>
+			<Checkbox text=' median' k='drawMedian'/>
 		</div>
 	</div>;
 }
@@ -85,20 +101,19 @@ export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { showGrid } = useEventsSettings();
-	const { data: sampleData, apply: applySample } = useContext(SampleContext);
+	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
 
 	const hist = useMemo(() => {
 		const options = { ...defaultHistOptions, ...layoutParams };
 
 		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistogramParams]));
 		const allSamples = [0, 1, 2].map(i => {
-			const sampleId = options['sample'+i as keyof HistogramParams];
+			const sampleId = options['sample'+i as 'sample0'|'sample1'|'sample2'];
 			const colIdx = cols[i];
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
-			
 			const data = sampleId === 'current' ? sampleData : sampleId === 'none' ? allData :
-				applySample(allData, sampleId as number);
+				applySample(allData, samplesList.find(s => s.id.toString() === sampleId) ?? null, columns);
 			return data.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex(s => s.length);
@@ -154,7 +169,7 @@ export default function HistogramPlot() {
 					u.ctx.textAlign = 'left';
 					u.ctx.lineWidth = scale * 2 * devicePixelRatio;
 					u.ctx.beginPath();
-					u.ctx.moveTo(x, u.bbox.top + margin + scale * 11);
+					u.ctx.moveTo(x, u.bbox.top + margin + scale * 14);
 					u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 					u.ctx.stroke();
 					u.ctx.lineWidth = scale * 1 * devicePixelRatio;
@@ -170,7 +185,7 @@ export default function HistogramPlot() {
 				padding: [8, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: { draw: [ drawAverages(scaled(1), font(12, true)) ] },
+				hooks: { draw: [ drawAverages(scaled(1), font(14, true)) ] },
 				axes: [ {
 					...axisDefaults(showGrid),
 					size: scaled(10) + getFontSize(),
@@ -219,7 +234,7 @@ export default function HistogramPlot() {
 			}) as Omit<uPlot.Options, 'width'|'height'>,
 			data: [binsValues, ...transformed] as any
 		};
-	}, [layoutParams, columns, sampleData, allData, applySample, showGrid]);
+	}, [layoutParams, columns, sampleData, allData, samplesList, showGrid]);
 
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;

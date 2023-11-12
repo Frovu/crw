@@ -139,8 +139,7 @@ export const MainTableContext = createContext<{ data: DataRow[], columns: Column
 	firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 
-export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[],
-	apply: (data: DataRow[], sampleId: number) => DataRow[] }>({} as any);
+export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[]	}>({} as any);
 
 export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], markers: null | string[] }>({} as any);
 
