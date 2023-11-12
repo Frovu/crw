@@ -40,7 +40,8 @@ const setStatColumn = (col: ColumnDef, i: number) => {
 	const key = (['column0', 'column1'] as const)[i];
 	for (const [id, item] of Object.entries(list[active].items))
 		if (statPanelOptions.includes(item?.type as any))
-			setNodeParams(id, 'statParams', { [key]: col.id });
+			setNodeParams(id, 'statParams', { [key]:
+		item?.type === 'Histogram' && item?.statParams?.[key] === col.id ? null : col.id });
 };
 
 export function ContextMenuContent({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {

@@ -56,7 +56,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 
 	return <div className='Group'>
-		{([0, 1, 2] as const).map(i => <div key={i} className='Row'>
+		{([0, 1, 2] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
 			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer' }}
 				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], 'current');}}>#{i}</span>
 			<div><select className='Borderless' style={{ width: '10em',
@@ -151,7 +151,7 @@ export default function HistogramPlot() {
 			return bins;
 		});
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
-		const transformed = samplesBins.filter(b => b).map((bins, i) => options.yScale === '%' ? bins!.map(b => b / samples[i].length) : bins);
+		const transformed = samplesBins.map((bins, i) => options.yScale === '%' ? bins?.map(b => b / samples[i].length) : bins).filter(b => b);
 		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
 
 		const drawAverages = (scale: number, fnt: string) => (u: uPlot) => {
