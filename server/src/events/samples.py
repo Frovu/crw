@@ -17,7 +17,8 @@ _init()
 
 def select(uid=None):
 	with pool.connection() as conn:
-		curs = conn.execute('SELECT id, name, array(select login from users where uid = ANY(authors) order by login) as authors, public, filters, whitelist, blacklist ' + 
+		curs = conn.execute('SELECT id, name, array(select login from users where uid = ANY(authors) order by login) as authors, ' +\
+		'public, filters, whitelist, blacklist, created, last_modified as modified ' + 
 		'FROM events.samples WHERE public ' + ('' if uid is None else ' OR %s = ANY(authors)') + 'ORDER BY name', [] if uid is None else [uid])
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		return [{ f: val for val, f in zip(row, fields) } for row in rows]
@@ -50,5 +51,6 @@ def update_sample(uid, sid, name, authors, public, filters_json, whitelist=[], b
 		for aname, uid in found_authors:
 			if not uid:
 				raise ValueError('User not found: '+aname)
-		conn.execute('UPDATE events.samples SET name=%s, authors=%s, public=%s, filters=%s, whitelist=%s, blacklist=%s WHERE id=%s',
+		conn.execute('UPDATE events.samples SET name=%s, authors=%s, public=%s, filters=%s, whitelist=%s, blacklist=%s, ' +\
+			'last_modified = CURRENT_TIMESTAMP WHERE id=%s',
 			[name, list(author_ids), public, filters_json, whitelist, blacklist, sid])

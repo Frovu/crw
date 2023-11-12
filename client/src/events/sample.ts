@@ -18,6 +18,8 @@ export type Sample = {
 	blacklist: number[]
 	authors: string[],
 	public: boolean,
+	created: Date,
+	modified: Date
 };
 
 export type SampleState = {

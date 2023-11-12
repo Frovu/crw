@@ -1,6 +1,6 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
 import { AuthContext, logError, logMessage } from '../app';
-import { apiPost, useConfirmation, useEventListener } from '../util';
+import { apiPost, prettyDate, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
@@ -164,7 +164,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		</div>
 		{publicIssue && <div title='Other users will not be able to use this sample, please make all required columns public'
 			style={{ color: 'var(--color-red)' }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
-		<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}>
+		<div title={`Created at: ${prettyDate(sample.created)}\nModified at: ${prettyDate(sample.modified)}`}
+			style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}>
 			<div style={{ width: 'max-content', paddingTop: 2, paddingRight: 4 }} onMouseEnter={() => setHoverAuthors(a => a < 1 ? 1 : a)}
 				onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
 				{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}

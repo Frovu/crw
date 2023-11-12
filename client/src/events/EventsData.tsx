@@ -1,12 +1,13 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useContext, useMemo, useState } from 'react';
 import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
-import { logError, logMessage, logSuccess } from '../app';
+import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
+	const { login } = useContext(AuthContext);
 	// ************************************************************************************
 	// 								  MAIN TABLE STRUCTURE
 	// ************************************************************************************
@@ -156,8 +157,14 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const samplesQuery = useQuery('samples', async () => {
 		const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
-		console.log('%cavailable samples:', 'color: #0f0', samples);
-		return samples;
+		for (const smpl of samples)
+			for (const k of ['created', 'modified'] as const)
+				smpl[k] = smpl[k] && new Date(smpl[k]);
+		const isOwn = (s: Sample) => s.authors.includes(login as any) ? 0 : 1;
+		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
+			.sort((a, b) => isOwn(a) - isOwn(b));
+		console.log('%cavailable samples:', 'color: #0f0', sorted);
+		return sorted;
 	});
 
 	const sampleContext = useMemo(() => {
@@ -170,7 +177,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		return {
 			data: filtered, 
 			current: sample,
-			apply: (dt: typeof data, id: number) => applySample(dt, samples?.find(s => s.id === id) ?? null, columns),
 			samples,
 		};
 	}, [filters, isPicking, mainContext, sample, samplesQuery.data]);
