@@ -71,6 +71,7 @@ export const defaultPlotParams: CommonPlotParams = {
 	showAxy: true,
 	showAxyVector: false,
 	showBeta: true,
+	showPrecursorIndex: false,
 	maskGLE: true,
 	useAp: false,
 	showBz: true,

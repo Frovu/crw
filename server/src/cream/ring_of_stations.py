@@ -106,7 +106,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	if window > 12 or window < 1:
 		window = 3
 
-	stations_q = database.get_stations(group_partial=True) # FIXME
+	stations_q = [s for s in database.get_stations(group_partial=True) if s.id.upper() not in exclude] # FIXME
 	req_stations, directions = zip(*[(s.id, s.drift_longitude) for s in stations_q])
 
 	neutron_data, stations = database.fetch((t_from, t_to), stations_q)

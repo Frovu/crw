@@ -70,7 +70,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	const CheckboxTable = ({ text, k }: { text: string, k: keyof TableParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
-
+			
 	return <>
 		{params.type === 'Correlation' && <>
 			<CorrelationContextMenu {...{ params, setParams }}/>
@@ -144,6 +144,28 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				{params.type === 'IMF + Speed' && <>
 					<Checkbox text='Show Bx, By' k='showBxBy'/>
 					<Checkbox text='Show Bz' k='showBz'/>
+				</>}
+				{params.type === 'Ring of Stations' && <>
+					<label>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em' }}
+						defaultValue={cur.exclude?.join(',') ?? ''}
+						onChange={e => JSON.stringify(e.target.value.split(/\s*,\s*/g).filter(s => s.length>3)) !== JSON.stringify(cur.exclude)
+							&& setParams('plotParams', { exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></label>
+					<div className='Row'>
+						<Checkbox text='Filter' k='autoFilter'/>
+						<Checkbox text='Linear size' k='linearSize'/>
+					</div> <div className='Row'>
+						<Checkbox text='Extended plot' k='rsmExtended'/>
+						<Checkbox text='pIndex' k='showPrecursorIndex'/>
+					</div> <div className='Row'>
+						<input style={{ width: '6em' }}
+							type='number' min='-99' max='99' step='.05' value={cur.variationShift?.toFixed(2) ?? ''} placeholder='shift'
+							onChange={e => setParams('plotParams', { variationShift:
+								(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
+						<input style={{ width: '6em' }}
+							type='number' min='-200' max='200' step='2' value={cur.sizeShift?.toFixed(0) ?? ''} placeholder='size'
+							onChange={e => setParams('plotParams', { sizeShift:
+								(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
+					</div>
 				</>}
 			</div>
 		</>}
