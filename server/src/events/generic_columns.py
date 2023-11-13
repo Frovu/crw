@@ -162,7 +162,8 @@ def _init():
 			params json not null,
 			nickname text,
 			description text)''')
-		generics = select_generics(select_all=True)
+	generics = select_generics(select_all=True)
+	with pool.connection() as conn:
 		for generic in generics:
 			_create_column(conn, generic)
 
