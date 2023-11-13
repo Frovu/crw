@@ -132,19 +132,13 @@ def _compute_generic():
 @require_role('operator')
 def _compute_row_generic():
 	rid = int(request.json.get('id'))
-	start = time()
-	if not compute_all(rid):
-		return msg('Failed miserably'), 500
-	return { 'time': round(time() - start, 2) }
+	return compute_all(rid)
 
 @bp.route('/compute_all', methods=['POST'])
 @route_shielded
 @require_role('operator')
 def _compute_everything():
-	start = time()
-	if not compute_all():
-		return msg('Failed miserably'), 500
-	return { 'time': round(time() - start, 2) }
+	return compute_all()
 
 @bp.route('/importTable', methods=['POST'])
 @route_shielded

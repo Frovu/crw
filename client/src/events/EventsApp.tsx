@@ -89,9 +89,9 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<div className='separator'/>
 			</>}
 			{column && <>
-				{role && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Re-compute row</button>}
+				{role && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>}
 				{column.isComputed && role &&
-					<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Re-compute column</button>}
+					<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 				<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 				{statsPresent && <><button onClick={() => setStatColumn(column, 0)}>Use as X</button>
@@ -101,6 +101,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 			</>}
 			{!column && role && <>
 				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
+				<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>
 			</>}
 			{!column && <><div className='separator'/><div className='Group'>
 				<CheckboxTable text='Show column averages' k='showAverages'/>

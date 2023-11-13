@@ -3,7 +3,7 @@ import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleCon
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
-import { AuthContext, logError, logMessage, logSuccess } from '../app';
+import { AuthContext, logError, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
@@ -88,7 +88,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
-		logMessage('Events table loaded', 'debug');
+		// logMessage('Events table loaded', 'debug');
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,

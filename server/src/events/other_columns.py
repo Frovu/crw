@@ -1,3 +1,5 @@
+from time import time
+from threading import Thread, Lock
 import numpy as np
 from database import pool, log
 from events.table import parse_column_id
@@ -5,6 +7,9 @@ from events.generic_columns import select_generics
 from events.generic_core import apply_changes, recompute_for_row, recompute_generics
 
 DEFAULT_DURATION = 72
+
+compute_lock = Lock()
+compute_cache = {}
 
 def _compute_duration(for_row=None, entity='forbush_effects'):
 	assert entity == 'forbush_effects'
@@ -42,16 +47,37 @@ def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm
 		apply_changes(data[:,1], data[:,0], entity, column, conn)
 		query = f'UPDATE events.{entity} SET {column} = %s WHERE {entity}.id = %s'
 		conn.cursor().executemany(query, data.tolist())
+		log.info('Computed %s VmBm', entity)
 
-def compute_all(for_row=None):
+def _compute_all(for_row):
 	generics = select_generics(select_all=True)
 	_compute_duration(for_row)
 	if for_row is None:
-		res = recompute_generics(generics)
+		recompute_generics(generics)
 	else:
-		res = recompute_for_row(generics, for_row)
+		recompute_for_row(generics, for_row)
 	_compute_vmbm(generics, for_row)
-	return res
+	compute_cache[for_row] = (compute_cache.get(for_row, [time()])[0], time())
+
+def compute_all(for_row=None):
+	with compute_lock:
+		if for_row in compute_cache:
+			start, finish = compute_cache[for_row]
+			if finish:
+				del compute_cache[for_row]
+				return { 'time': round(finish - start, 1), 'done': True }
+			else:
+				return { 'time': round(time() - start, 1), 'done': False }
+		else:
+			compute_cache[for_row] = (time(), None)
+	t = Thread(target=_compute_all, args=[for_row])
+	t.start()
+	t.join(timeout=3)
+	elapsed = time() - compute_cache[for_row][0]
+	done = elapsed < 3
+	if done:
+		del compute_cache[for_row]
+	return { 'time': round(elapsed, 2), 'done': done }
 
 def compute_column(cid):
 	entity, name = parse_column_id(cid)
@@ -64,5 +90,5 @@ def compute_column(cid):
 		found = next((g for g in generics if g.name == name), None)
 		if not found:
 			raise ValueError('Column not found')
-		return recompute_generics(generics)
+		return recompute_generics(found)
 	return True

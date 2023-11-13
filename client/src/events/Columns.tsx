@@ -165,9 +165,29 @@ export default function ColumnsSelector() {
 	const check = (id: string, val: boolean) =>
 		setColumns(cols => val ? cols.concat(id) : cols.filter(c => c !== id));
 
+	const { mutate: computeAll,  } = useMutation(() =>
+		apiPost<{ time: number, done: boolean }>('events/compute_all')
+	, { onMutate: () => {
+		logMessage('Computing everything...', 'debug');
+	}, onSuccess: ({ time, done }) => {
+		if (!done) {
+			setTimeout(() => computeAll(), 1000);
+			return; }
+		queryClient.invalidateQueries('tableData');
+		logSuccess(`Computed everything in ${time} s`);
+	}, onError: (err: any) => {
+		setReport({ error: err.toString() });
+		logError('compute all: ' + err.toString());
+	} });
+
 	const { mutate: computeRow } = useMutation((rowId: number) =>
-		apiPost<{ time: number }>('events/compute_row', { id: rowId })
-	, { onSuccess: ({ time }, rowId) => {
+		apiPost<{ time: number, done: boolean }>('events/compute_row', { id: rowId })
+	, { onMutate: (rowId) => {
+		logMessage('Computing row #'+rowId.toString(), 'debug');
+	}, onSuccess: ({ time, done }, rowId) => {
+		if (!done) {
+			setTimeout(() => computeRow(rowId), 1000);
+			return; }
 		queryClient.invalidateQueries('tableData');
 		logSuccess(`Computed row #${rowId} in ${time} s`);
 	}, onError: (err: any, rowId) => {
@@ -190,6 +210,7 @@ export default function ColumnsSelector() {
 
 	useEventListener('computeRow', (e: CustomEvent<{ id: number }>) =>
 		computeRow(e.detail.id));
+	useEventListener('computeAll', () => computeAll());
 	useEventListener('computeColumn', (e: CustomEvent<{ column: ColumnDef }>) =>
 		computeColumn(e.detail.column));
 
