@@ -8,7 +8,7 @@ import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef, copyAverages, findColumn } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
-import EpochCollision from '../plots/EpochCollision';
+import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollision';
 import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import PlotCircles from '../plots/time/Circles';
 import PlotGeoMagn from '../plots/time/Geomagn';
@@ -75,6 +75,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	return <>
 		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Epoch collision' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>

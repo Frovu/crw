@@ -12,6 +12,7 @@ import { immer } from 'zustand/middleware/immer';
 import { GenericColumn } from './Columns';
 import { CorrelationParams } from '../plots/Correlate';
 import { HistogramParams } from '../plots/Histogram';
+import { CollisionOptions } from '../plots/EpochCollision';
 
 export type EventsSettings = {
 	shownColumns: string[],
@@ -109,7 +110,7 @@ export type PanelParams = {
 	type?: typeof allPanelOptions[number],
 	tableParams?: TableParams,
 	plotParams?: Partial<CommonPlotParams>,
-	statParams?: Partial<CorrelationParams & HistogramParams>,
+	statParams?: Partial<CorrelationParams & HistogramParams & CollisionOptions>,
 };
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };

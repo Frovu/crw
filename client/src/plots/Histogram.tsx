@@ -31,9 +31,9 @@ export const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = col
 	forceMin: null,
 	forceMax: null,
 	yScale: 'count',
-	sample0: 'current',
-	sample1: 'current',
-	sample2: 'current',
+	sample0: '<current>',
+	sample1: '<current>',
+	sample2: '<current>',
 	column0: findColumn(columns, 'duration')?.id ?? null,
 	column1: null,
 	column2: null,
@@ -58,18 +58,18 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 	return <div className='Group'>
 		{([0, 1, 2] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
 			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer' }}
-				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], 'current');}}>#{i}</span>
-			<div><select className='Borderless' style={{ width: '10em',
+				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], '<current>');}}>#{i}</span>
+			<div><select title='Column' className='Borderless' style={{ width: '10em',
 				color: cur[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
-			value={cur[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value)}>
+			value={cur[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}>
 				<option value='__none'>&lt;none&gt;</option>
 				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 			</select>:
-			<select className='Borderless' style={{ width: '7em', marginLeft: 1,
-				color: cur[sampleKeys[i]] === 'current' ? color('text-dark') : 'unset' }}
+			<select title='Sample (none = all events)' className='Borderless' style={{ width: '7em', marginLeft: 1,
+				color: cur[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
 			value={cur[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
-				<option value='none'>&lt;none&gt;</option>
-				<option value='current'>&lt;current&gt;</option>
+				<option value='<none>'>&lt;none&gt;</option>
+				<option value='<current>'>&lt;current&gt;</option>
 				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
 			</select></div>
 		</div>)}
@@ -112,7 +112,7 @@ export default function HistogramPlot() {
 			const colIdx = cols[i];
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
-			const data = sampleId === 'current' ? sampleData : sampleId === 'none' ? allData :
+			const data = sampleId === '<current>' ? sampleData : sampleId === '<none>' ? allData :
 				applySample(allData, samplesList.find(s => s.id.toString() === sampleId) ?? null, columns);
 			return data.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
 		});
