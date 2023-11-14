@@ -228,12 +228,12 @@ function MainTablePanel() {
 
 	// always plot something
 	useEffect(() => {
-		const magn = columns.findIndex(c => c.entity === 'forbush_effects' && c.name === 'magnitude');
+		const magn = shownColumns.findIndex(c => c.fullName === 'magnitude') + 1; // +1 for id col
 		if (plotId != null && (plotUnlistedEvents || shownData.find(r => r[0] === plotId)))
 			return;
 		const sorted = shownData.slice(-10).sort((a: any, b: any) => a[magn] - b[magn]);
 		setPlotId(() => sorted.at(-1)?.[0] ?? null);
-	}, [sampleData, columns, plotId, setPlotId, shownData, plotUnlistedEvents]);
+	}, [sampleData, plotId, setPlotId, shownData, shownColumns, plotUnlistedEvents]);
 
 	const plotMove = (dir: -1 | 0 | 1, global?: boolean) => () => setPlotId(current => {
 		if (dir === 0) {
@@ -282,7 +282,10 @@ function MainTablePanel() {
 	useEventListener('action+computeRow', () =>
 		cursor && dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] }));
 	useEventListener('action+addFilter', () => {
-		const column = cursor ? shownColumns[cursor.column] : undefined;
+		const column = cursor ? shownColumns[cursor.column] :
+			(shownColumns.find(c => c.fullName === 'magnitude')
+			?? shownColumns.find(c => c.type === 'real')
+			?? columns.find(c => c.type === 'real')!);
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;
 		addFilter(column, val);
 	});

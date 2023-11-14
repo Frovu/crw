@@ -1,6 +1,6 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
 import { AuthContext, logError, logMessage } from '../app';
-import { apiPost, prettyDate, useConfirmation, useEventListener } from '../util';
+import { apiPost, dispatchCustomEvent, prettyDate, useConfirmation, useEventListener } from '../util';
 import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
@@ -72,7 +72,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show,
-		set, setSample, setPicking, setShow, clearFilters, addFilter } = useSampleState();
+		set, setSample, setPicking, setShow, clearFilters } = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [nameInput, setNameInput] = useState<string | null>(null);
 
@@ -144,7 +144,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				onClick={() => {setShow(!show); if (!show) setSample(samples.find(s => s.id === sample?.id) ?? null); setHoverAuthors(0);}}
 			>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
 			{!sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }} onClick={createSample}>Create sample</button>}
-			<button style={{ flex: '1 fit-content' }} onClick={() => addFilter()}>Add filter</button>
+			<button style={{ flex: '1 fit-content' }} onClick={() => dispatchCustomEvent('action+addFilter')}>Add filter</button>
 		</div>
 		
 		{show && sample?.filters && <div className='Filters'>
