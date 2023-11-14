@@ -135,7 +135,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 		() => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 
 	const tables = new Map<any, ColumnDef[]>();
-	columns.forEach(col => tables.has(col.table) ? tables.get(col.table)?.push(col) : tables.set(col.table, [col]));
+	columns.forEach(col => tables.has(col.entity) ? tables.get(col.entity)?.push(col) : tables.set(col.entity, [col]));
 
 	return ( 
 		<div style={{ position: 'absolute', top: `calc(100% - ${size.height-1}px)`,

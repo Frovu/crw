@@ -152,8 +152,8 @@ export default function ColumnsSelector() {
 	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
 	const smhChanged = original && (paramsChanged ||
 		genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
-	const tables = allTables.filter(t => columns.find(c => c.table === t && c.name === 'time'));
-	const withDuration = tables.filter(t => columns.find(c => c.table === t && c.name === 'duration'));
+	const tables = allTables.filter(t => columns.find(c => c.entity === t && c.name === 'time'));
+	const withDuration = tables.filter(t => columns.find(c => c.entity === t && c.name === 'duration'));
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
 	const isTime = operation?.startsWith('time_offset');
 	const isValid = (isClone && params.column) || (isCombine && params.column && params.other_column) || (isValue && (params.series || isTime));
@@ -286,10 +286,10 @@ export default function ColumnsSelector() {
 		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}>
 			{tables.map(table => <Fragment key={table}>
 				<button className='TextButton' onClick={() => setColumns(cols => [
-					...cols.filter(c => columns.find(cc => cc.id === c)?.table !== table),
-					...(!columns.find(cc => cc.table === table && cols.includes(cc.id)) ? columns.filter(c => c.table === table).map(c => c.id) : [])])}>
+					...cols.filter(c => columns.find(cc => cc.id === c)?.entity !== table),
+					...(!columns.find(cc => cc.entity === table && cols.includes(cc.id)) ? columns.filter(c => c.entity === table).map(c => c.id) : [])])}>
 					<b><u>{prettyTable(table)}</u></b></button>
-				{columns.filter(c => !c.hidden && c.table === table).map(({ id, name, description, generic }) =>
+				{columns.filter(c => !c.hidden && c.entity === table).map(({ id, name, description, generic }) =>
 					<div key={id} style={{ color: (generic && !generic?.is_public) ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em', wordBreak: 'break-all' }}
 							onMouseEnter={e => e.buttons === 1 && check(id, action)}

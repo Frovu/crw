@@ -35,7 +35,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
 				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
 				return {
-					...desc, table, width, sqlName,
+					...desc, width, sqlName,
+					entity: table,
 					name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
 					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
 					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
@@ -44,7 +45,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			console.log('%cavailable columns:', 'color: #0f0' , columns);
 			return {
 				tables: Object.keys(tables),
-				columns: [ { id: 'id', hidden: true, table: firstTable } as ColumnDef, ...columns],
+				columns: [ { id: 'id', hidden: true, entity: firstTable } as ColumnDef, ...columns],
 				series: series
 			};
 		}
@@ -70,9 +71,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 		const sorted = [columns[0]].concat(columns.slice(1).sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0)
 			.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any)))
-			.sort((a, b) => tables.indexOf(a.table) - tables.indexOf(b.table));
-		const magnIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'magnitude');
-		const insIdx = sorted.findIndex(col => col.table === 'forbush_effects' && col.name === 'ons type');
+			.sort((a, b) => tables.indexOf(a.entity) - tables.indexOf(b.entity));
+		const magnIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'magnitude');
+		const insIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'ons type');
 		if (magnIdx > 0)
 			sorted.splice(insIdx + 1, 0, sorted.splice(magnIdx, 1)[0]);
 			
@@ -124,7 +125,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				const row = rawData.find(r => r[0] === id);
 				// FIXME: create entity if not exists
 				const colIdx = columns.findIndex(c => c.id === column.id);
-				const entityExists = row && columns.some((c, i) => c.table === column.table && row[i] != null);
+				const entityExists = row && columns.some((c, i) => c.entity === column.entity && row[i] != null);
 				if (!entityExists) return false;
 
 				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
@@ -139,7 +140,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
-		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.table, column: column.sqlName }))
+		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.entity, column: column.sqlName }))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {

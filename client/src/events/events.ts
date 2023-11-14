@@ -87,7 +87,7 @@ export type ColumnDef = {
 	description?: string,
 	enum?: string[],
 	nullable: boolean,
-	table: string,
+	entity: string,
 	width: number,
 	id: string,
 	sqlName: string, // not unique across tables

@@ -50,12 +50,12 @@ import { KEY_COMB } from "../app";
 // 			{tables.map(table => <Fragment key={table}>
 // 				<b key={table} style={{ marginRight: '8px', maxWidth: '16ch', gridRow: table.length > 16 ? 'span 2' : 'unset' }}>
 // 					<MenuCheckbox text={prettyTable(table)} hide={true}
-// 						value={!!enabledColumns.find(id => id !== 'time' && columns.find(cc => cc.id === id)?.table === table)}
+// 						value={!!enabledColumns.find(id => id !== 'time' && columns.find(cc => cc.id === id)?.entity === table)}
 // 						callback={chck => set('enabledColumns', (cols) => [
-// 							...cols.filter(c => chck || c === 'time' || columns.find(cc => cc.id === c)?.table !== table),
-// 							...(chck ? columns.filter(c => c.table === table).map(c => c.id) : [])])}/>
+// 							...cols.filter(c => chck || c === 'time' || columns.find(cc => cc.id === c)?.entity !== table),
+// 							...(chck ? columns.filter(c => c.entity === table).map(c => c.id) : [])])}/>
 // 				</b>
-// 				{columns.filter(c => c.table === table).map(col =>
+// 				{columns.filter(c => c.entity === table).map(col =>
 // 					<MenuCheckbox key={col.id} text={col.name} title={col.description}
 // 						value={enabledColumns.includes(col.id)} left={true}
 // 						callback={checked => set('enabledColumns', (cols) => [...cols.filter(c => c !== col.id), ...(checked ? [col.id] : [])])}/>)}

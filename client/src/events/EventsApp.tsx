@@ -228,7 +228,7 @@ function MainTablePanel() {
 
 	// always plot something
 	useEffect(() => {
-		const magn = columns.findIndex(c => c.id === 'fe_magnitude');
+		const magn = columns.findIndex(c => c.entity === 'forbush_effects' && c.name === 'magnitude');
 		if (plotId != null && (plotUnlistedEvents || shownData.find(r => r[0] === plotId)))
 			return;
 		const sorted = shownData.slice(-10).sort((a: any, b: any) => a[magn] - b[magn]);

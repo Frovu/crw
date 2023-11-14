@@ -85,7 +85,7 @@ export default function ImportMenu() {
 				++diff.found;
 				lost[foundIdx] = null;
 				const changes: typeof diff.changes[number][2] = [];
-				for (const [ci, { id, sqlName, table }] of columns.entries()) {
+				for (const [ci, { id, sqlName, entity }] of columns.entries()) {
 					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
 					if (sqlName === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
@@ -93,7 +93,7 @@ export default function ImportMenu() {
 					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
 						continue;
 					changes.push({
-						entity: table,
+						entity,
 						column: sqlName,
 						before: oldVal,
 						after: newVal,
@@ -101,7 +101,7 @@ export default function ImportMenu() {
 				}
 
 				const notAllNull = changes.find(({ entity, before, after }) => entity === 'forbush_effects'
-					|| (before != null || typeof after != 'number' || ![-999, -99, -99.9, 0, 1, -1].includes(after) ));
+					|| (before != null || typeof after != 'number') || ![-999, -99, -99.9, 0, 1, -1].includes(after));
 
 				if (changes.length && notAllNull)
 					diff.changes.push([found[0], time, changes]);
@@ -121,7 +121,7 @@ export default function ImportMenu() {
 			remove: actuallyLost.map(l => l![0]),
 			total: rows.length,
 			interval: interval as [Date, Date],
-			columns: columns.map(c => [ c.table, c.sqlName ] )
+			columns: columns.map(c => [ c.entity, c.sqlName ] )
 		} };
 
 	}, [allColumns, currentData, fileText, open]);

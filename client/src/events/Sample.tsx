@@ -46,7 +46,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 			<select disabled={disabled} style={{ flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
 				value={columnId} onChange={set('column')}>
 				{columns.filter(col => !col.hidden).map(col =>
-					<option value={col.id} key={col.table+col.name}>{col.fullName}</option>)}
+					<option value={col.id} key={col.entity+col.name}>{col.fullName}</option>)}
 				{!column && <option value={columnId} key={columnId}>{columnId}</option>}
 			</select>
 			<select disabled={disabled} style={{ flex: '2', textAlign: 'center', maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
