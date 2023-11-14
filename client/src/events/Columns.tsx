@@ -139,11 +139,11 @@ export default function ColumnsSelector() {
 	useEventListener('click', () => setSamplesDepend([]));
 	useEventListener('escape', () => setSamplesDepend([]));
 
-	useEffect(() => setReport({}), [gid]);
+	useEffect(() => { if (gid == null) setReport({}); }, [gid]);
 	useEffect(() => { if (open) reset(); setReport({}); }, [reset, open]);
 	useEffect(() => {
 		if (!report.error && !report.success) return;
-		const timeout = setTimeout(() => setReport({}), 10_000);
+		const timeout = setTimeout(() => setReport({}), 5_000);
 		return () => clearTimeout(timeout);
 	}, [report]);
 
@@ -195,14 +195,14 @@ export default function ColumnsSelector() {
 		logError(`compute row #${rowId}: ` + err.toString());
 	} });
 
-	const { mutate: computeColumn } = useMutation((column: ColumnDef) =>
+	const { mutate: computeColumn, isLoading: loadingCompute } = useMutation((column: ColumnDef) =>
 		apiPost<{ time: number }>('events/compute', { id: column.id })
 	, { onMutate: (column) => {
 		logMessage('Computing ' + column.fullName, 'debug');
 	}, onSuccess: ({ time }, column) => {
-		queryClient.invalidateQueries('tableData');
 		setReport({ success: `Done in ${time} s` });
 		logSuccess(`Computed ${column.fullName} in ${time} s`);
+		queryClient.invalidateQueries('tableData');
 	}, onError: (err: any, column) => {
 		setReport({ error: err.toString() });
 		logError(`compute ${column.fullName}: ` + err.toString());
@@ -214,7 +214,7 @@ export default function ColumnsSelector() {
 	useEventListener('computeColumn', (e: CustomEvent<{ column: ColumnDef }>) =>
 		computeColumn(e.detail.column));
 
-	const { mutate: deleteGeneric } = useMutation((genericId: number) =>
+	const { mutate: deleteGeneric, isLoading: loadingDelete } = useMutation((genericId: number) =>
 		apiPost<{ time: number }>('events/generics/remove', { id: genericId })
 	, { onSuccess: ({ time }, genericId) => {
 		if (genericId === gid) reset();
@@ -226,14 +226,14 @@ export default function ColumnsSelector() {
 		logError(`delete g#${genericId}(${col?.fullName}): ` + err.toString());
 	} });
 
-	const { mutate: mutateGeneric } = useMutation((createNew: boolean) =>
+	const { mutate: mutateGeneric, isLoading: loadingMutate } = useMutation((createNew: boolean) =>
 		apiPost<{ generic: GenericColumn, name: string, time: number }>('events/generics', {
 			...genericSate, gid: createNew ? undefined : gid })
 	, { onSuccess: ({ generic, name, time }) => {
 		queryClient.invalidateQueries('tableStructure');
 		queryClient.invalidateQueries('tableData');
 		setGeneric(generic);
-		setReport({ success: 'Done!' });
+		setReport({ success: `Done in ${time} s` });
 		if (!shownColumns.includes(name))
 			setColumns(cols => cols.concat(name));
 		logSuccess(`${gid?'Modified':'Created'} generic ${oriColumn?.fullName ?? generic.nickname ?? generic.id} in ${time} s`);
@@ -241,6 +241,7 @@ export default function ColumnsSelector() {
 		setReport({ error: err.toString() });
 		logError('generic: ' + err.toString());
 	} });
+	const isLoading = loadingCompute || loadingDelete || loadingMutate;
 	
 	const Select = <T extends GenericParams>({ txt, k, opts }:
 	{ txt: string, k: T extends T ? keyof T : never, opts: string[][] }) =>
@@ -336,13 +337,16 @@ export default function ColumnsSelector() {
 					title='Should other users be able to see this column?'>public column
 					<input type='checkbox' checked={!!genericSate.is_public}
 						onChange={e => set('is_public', e.target.checked)}/></label>}
-				{(oriColumn && !paramsChanged) && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
-					onClick={() => computeColumn(oriColumn)}>Compute {oriColumn.fullName}</button></div>}
-				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}><button style={{ width: '14em' }}
-					onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
+				{(oriColumn && !paramsChanged) && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}>
+					<button style={{ width: '14em' }} disabled={isLoading}
+						onClick={() => computeColumn(oriColumn)}>Compute {oriColumn.fullName}</button></div>}
+				{smhChanged && <div style={{ paddingLeft: '5em', wordBreak: 'break-word' }}>
+					<button style={{ width: '14em' }} disabled={isLoading}
+						onClick={() => mutateGeneric(false)}>Modify {oriColumn.fullName}</button></div>}
 				{(!original || (paramsChanged && (nickname == null || nickname !== original.nickname))) && isValid &&
-					<div style={{ paddingLeft: '5em' }}><button style={{ width: '14em' }}
-						onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
+					<div style={{ paddingLeft: '5em' }}>
+						<button style={{ width: '14em' }} disabled={isLoading}
+							onClick={() => mutateGeneric(true)}>Create {original ? 'new' : ''} column</button></div>}
 				{report.error && <div style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
 					onClick={()=>setReport({})}>{report.error}</div>}
 				{report.success && <div style={{ color: color('green'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
