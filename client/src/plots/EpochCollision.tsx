@@ -13,7 +13,7 @@ const seriesKeys = ['series0', 'series1', 'series2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 
 const defaultOptions = {
-	timeColumn: 'time',
+	timeColumn: 'fe_time',
 	series0: 'a10m',
 	series1: null as null | string,
 	series2: null as null | string,
@@ -78,7 +78,6 @@ export default function EpochCollision() {
 	const { columns, data: allData } = useContext(MainTableContext);
 
 	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
-
 	const series = [cur.series0, cur.series1, cur.series2];
 	const samples = useMemo(() => [sample0, sample1, sample2].map((name) => {
 		if (!name) return null;
