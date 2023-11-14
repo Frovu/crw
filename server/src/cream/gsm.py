@@ -26,9 +26,10 @@ def normalize_variation(data, with_trend=False, to_avg=False):
 	if with_trend:
 		xs = np.arange(data.shape[0])
 		mask = np.isfinite(data)
-		trend = np.polyfit(xs[mask], data[mask], 1)
-		if trend[0] > 0:
-			ys = np.poly1d(trend)(xs)
-			data = data - ys + ys[0]
+		if np.count_nonzero(mask) > 1:
+			trend = np.polyfit(xs[mask], data[mask], 1)
+			if trend[0] > 0:
+				ys = np.poly1d(trend)(xs)
+				data = data - ys + ys[0]
 	d_max = np.nanmean(data) if to_avg else np.nanmax(data)
 	return (data - d_max) / (1 + d_max / 100)

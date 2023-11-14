@@ -243,14 +243,14 @@ def upset_generic(uid, json_body):
 			row = conn.execute('INSERT INTO events.generic_columns ' +\
 				'(entity, owner, is_public, params, nickname, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
 				[entity, uid, is_public, json.dumps(p.as_dict()), nickname, description]).fetchone()
-			generic = GenericColumn.from_row(row)
+			generic = GenericColumn.from_row(row, generics)
 			_create_column(conn, generic)
 			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 		else:
 			row = conn.execute('UPDATE events.generic_columns SET ' +\
 				'params=%s, is_public=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
 				[json.dumps(p.as_dict()), is_public, nickname, description, gid]).fetchone()
-			generic = GenericColumn.from_row(row)
+			generic = GenericColumn.from_row(row, generics)
 			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 	if not gid or found.params != p:
 		compute_generic(generic)

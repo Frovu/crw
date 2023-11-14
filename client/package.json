@@ -2,7 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "/w",
   "dependencies": {
     "@types/node": "^18.15.11",
     "@types/react": "^18.0.34",
