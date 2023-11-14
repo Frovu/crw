@@ -2,7 +2,7 @@ import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, scaled } from './plotUtil';
-import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
+import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
@@ -10,28 +10,27 @@ import uPlot from 'uplot';
 const colors = ['magenta', 'acid', 'cyan', 'green'];
 
 export type CorrelationParams = {
-	column0: string,
-	column1: string,
+	column0: string | null,
+	column1: string | null,
 	color: string,
 	loglog: boolean,
 	logx: boolean,
 };
 
-export const defaultCorrParams: CorrelationParams = {
-	column0: 'fe_kp_max',
-	column1: 'fe_bz_min',
+export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = columns => ({
+	column0: findColumn(columns, 'VmBm')?.id ?? null,
+	column1: findColumn(columns, 'magnitude')?.id ?? null,
 	color: 'magenta',
 	loglog: false,
 	logx: true,
-};
+});
 
 export function CorrelationContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { columns } = useContext(MainTableContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultCorrParams, ...params.statParams };
+	const cur = { ...defaultCorrParams(columns), ...params.statParams };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
 		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
-
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }} value={cur[k] as string}
 			onChange={e => setParams('statParams', { [k]: e.target.value })}>
@@ -64,7 +63,7 @@ export default function CorrelationPlot() {
 	const { data: sampleData } = useContext(SampleContext);
 
 	const memo = useMemo(() => {
-		const params = { ...defaultCorrParams, ...layoutParams };
+		const params = { ...defaultCorrParams(columns), ...layoutParams };
 
 		if (!sampleData.length)
 			return null;

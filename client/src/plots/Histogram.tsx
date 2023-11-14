@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled } from './plotUtil';
-import { MainTableContext, PanelParams, SampleContext, useEventsSettings } from '../events/events';
+import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { applySample } from '../events/sample';
@@ -26,7 +26,7 @@ export type HistogramParams = {
 	column2: string | null,
 };
 
-export const defaultHistOptions: HistogramParams = {
+export const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns => ({
 	binCount: 16,
 	forceMin: null,
 	forceMax: null,
@@ -34,18 +34,18 @@ export const defaultHistOptions: HistogramParams = {
 	sample0: 'current',
 	sample1: 'current',
 	sample2: 'current',
-	column0: null,
+	column0: findColumn(columns, 'duration')?.id ?? null,
 	column1: null,
 	column2: null,
-	drawMean: false,
+	drawMean: true,
 	drawMedian: false
-};
+});
 
 export function HistogramContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultHistOptions, ...params.statParams };
+	const cur = { ...defaultHistOptions(columns), ...params.statParams };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
 		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
 
@@ -104,7 +104,7 @@ export default function HistogramPlot() {
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
 
 	const hist = useMemo(() => {
-		const options = { ...defaultHistOptions, ...layoutParams };
+		const options = { ...defaultHistOptions(columns), ...layoutParams };
 
 		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistogramParams]));
 		const allSamples = [0, 1, 2].map(i => {

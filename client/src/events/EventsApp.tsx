@@ -5,7 +5,7 @@ import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodePara
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
 import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef, copyAverages } from './events';
+	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef, copyAverages, findColumn } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision from '../plots/EpochCollision';
@@ -283,7 +283,7 @@ function MainTablePanel() {
 		cursor && dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] }));
 	useEventListener('action+addFilter', () => {
 		const column = cursor ? shownColumns[cursor.column] :
-			(shownColumns.find(c => c.fullName === 'magnitude')
+			(findColumn(shownColumns, 'magnitude')
 			?? shownColumns.find(c => c.type === 'real')
 			?? columns.find(c => c.type === 'real')!);
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;

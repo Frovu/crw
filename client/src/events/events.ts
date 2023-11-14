@@ -191,6 +191,8 @@ export function copyAverages({ averages, row, column }: Required<TableMenuDetail
 	navigator.clipboard.writeText(text);
 }
 
+export const findColumn = (columns: ColumnDef[], name: string) => columns.find(c => c.fullName === name) ?? null;
+
 export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
 export const shortTable = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
 

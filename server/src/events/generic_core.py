@@ -254,7 +254,7 @@ def compute_generic(g, for_row=None):
 		log.info(f'Computed {g.pretty_name} in {round(time()-t_start,2)}s')
 		target_id = target_id.astype('i8')
 		if g.params.series == 'kp':
-			result[result] /= 10
+			result /= 10
 		result = np.where(~np.isfinite(result), None, np.round(result, 2))
 		update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
 		with pool.connection() as conn:
