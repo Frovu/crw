@@ -94,7 +94,7 @@ def _select_series(t_from, t_to, series):
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
 	return arr[:,0], arr[:,1]
 
-def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds down
+def get_ref_time(for_rows, ref: GenericRefPoint, entity, cache): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.entity in G_ENTITY
 		res = cache.get(ref.entity) or \
@@ -106,7 +106,7 @@ def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds dow
 		if ref.end:
 			r_time = r_time + e_dur * HOUR - HOUR
 	elif ref.type == 'extremum':
-		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(ref.entity), cache=cache)
+		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(entity), entity, cache=cache)
 	else:
 		assert not 'reached'
 	return r_time + ref.hours_offset * HOUR
@@ -123,9 +123,9 @@ def get_slices(t_time, t_1, t_2):
 	slice_len[np.isnan(slice_len)] = 0
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
-def find_extremum(for_rows, op, ser, window, cache, return_value=False):
+def find_extremum(for_rows, op, ser, window, entity, cache, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
-	t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in window]
+	t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in window]
 	d_time, value = cache.get(ser) or _select_series(t_1[0], t_2[-1], ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
@@ -152,6 +152,8 @@ def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 		result = np.array([func(value[sl]) + sl.start for sl in slices])
 		if return_value: 
 			result = np.array([np.nan if np.isnan(i) else value[int(i)] for i in result])
+	if not return_value:
+		result = np.array([np.nan if np.isnan(i) else d_time[int(i)] for i in result])
 	return result
 
 def apply_shift(a, shift, stub=np.nan):
@@ -199,7 +201,8 @@ def _do_compute(generic, for_rows=None):
 
 	if op in G_OP_TIME:
 		if op.startswith('time_offset'):
-			t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
+			t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
+			print(t_1[-2:], t_2[-2:])
 			result = (t_2 - t_1) / HOUR
 			if '%' in op:
 				result = result / event_duration * 100
@@ -208,10 +211,10 @@ def _do_compute(generic, for_rows=None):
 
 	elif op in G_EXTREMUM:
 		window = (para.reference, para.boundary)
-		result = find_extremum(for_rows, op, para.series, window, cache, return_value=True)
+		result = find_extremum(for_rows, op, para.series, window, entity, cache, return_value=True)
 
 	else:
-		t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
+		t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
 		d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
 		cache[para.series] = (d_time, d_value)
 		slices = get_slices(d_time, t_1, t_2)
@@ -225,8 +228,8 @@ def _do_compute(generic, for_rows=None):
 
 		elif op in ['range']:
 			window = (para.reference, para.boundary)
-			max_val = find_extremum(for_rows, 'max', para.series, window, cache, return_value=True)
-			min_val = find_extremum(for_rows, 'min', para.series, window, cache, return_value=True)
+			max_val = find_extremum(for_rows, 'max', para.series, window, entity, cache, return_value=True)
+			min_val = find_extremum(for_rows, 'min', para.series, window, entity, cache, return_value=True)
 			result = max_val - min_val
 
 		elif op in ['coverage']:

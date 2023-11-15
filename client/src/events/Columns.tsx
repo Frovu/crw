@@ -104,7 +104,7 @@ const useGenericState = create<GenericState>()(immer(set => ({
 		const inp = params[k];
 		const hours_offset = inp?.hours_offset ?? 0;
 		if (type === 'extremum') {
-			const series = inp?.type === 'extremum' ? inp.series : 'min';
+			const series = inp?.type === 'extremum' ? inp.series : 'v_sw';
 			params[k] = { type, operation: val as any, hours_offset, series } ;
 		} else {
 			const entity = val.split('+').at(-1)!;
