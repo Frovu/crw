@@ -1,5 +1,5 @@
 import { ReactNode, useContext, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, valueToString } from './events';
+import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
@@ -55,6 +55,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// 								  MAIN TABLE DATA
 	// ************************************************************************************
 
+	const columnOrder = useEventsSettings(st => st.columnOrder);
 	const [showCommit, setShowCommit] = useState(false);
 	const [changes, setChanges] = useState<ChangeValue[]>([]);
 	const dataQuery = useQuery({
@@ -69,15 +70,24 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		const { columns, tables, series } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
-		const sorted = [columns[0]].concat(columns.slice(1).sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0)
-			.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any)))
-			.sort((a, b) => tables.indexOf(a.entity) - tables.indexOf(b.entity));
-		const magnIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'magnitude');
-		const insIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'ons type');
-		if (magnIdx > 0)
-			sorted.splice(insIdx + 1, 0, sorted.splice(magnIdx, 1)[0]);
-			
-		const filtered = sorted.filter(c => fields.includes(c.id));
+		const cols = columns.slice(1);
+		const filtered = [columns[0]].concat((() => {
+			if (columnOrder == null) {
+				const sorted = cols.sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0)
+					.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any));
+				const magnIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'magnitude');
+				const insIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'ons type');
+				if (magnIdx > 0)
+					sorted.splice(insIdx + 1, 0, sorted.splice(magnIdx, 1)[0]);
+				return sorted;
+			} else {  // place new columns at the end
+				const index = (id: string) => { const idx = columnOrder.indexOf(id); return idx < 0 ? 9999 : idx; };
+				return cols.sort((a, b) => index(a.id) - index(b.id));
+			}
+		})())
+			.sort((a, b) => tables.indexOf(a.entity) - tables.indexOf(b.entity))
+			.filter(c => fields.includes(c.id));
+
 		const indexes = filtered.map(c => fields.indexOf(c.id));
 		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i])) as DataRow[];
 		for (const [i, col] of Object.values(filtered).entries()) {
@@ -99,7 +109,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			tables: Array.from(tables),
 			series
 		} as const;
-	}, [dataQuery.data, structureQuery.data]);
+	}, [columnOrder, dataQuery.data, structureQuery.data]);
 
 	// ************************************************************************************
 	// 						 	  MAIN TABLE DATA WITH CHANGES

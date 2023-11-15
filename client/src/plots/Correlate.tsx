@@ -29,7 +29,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 	const { columns } = useContext(MainTableContext);
 	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultCorrParams(columns), ...params.statParams };
-	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
+	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }} value={cur[k] as string}

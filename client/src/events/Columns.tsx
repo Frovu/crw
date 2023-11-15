@@ -1,6 +1,6 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { Confirmation, apiPost, useEventListener } from '../util';
-import { ColumnDef, MainTableContext, SampleContext, prettyTable, shortTable, useEventsSettings } from './events';
+import { ColumnDef, MainTableContext, SampleContext, findColumn, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
@@ -124,16 +124,28 @@ const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pret
 export default function ColumnsSelector() {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
-	const { shownColumns, setColumns } = useEventsSettings();
+	const { shownColumns, setColumnOrder, setColumns } = useEventsSettings();
 	const { samples } = useContext(SampleContext);
 	const { tables: allTables, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
+	const [dragging, setDragging] = useState<null | { y: number, id: string, pos: number }>(null);
 	const [open, setOpen] = useState(false);
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const genericSate = useGenericState();
 	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, reset,
 		setParam, setPoint, setPointHours, setPointSeries } = genericSate;
 	const { operation } = params;
+
+	useEffect(() => {
+		if (shownColumns) return;
+		setColumns(() => ['time', 'duration', 'magnitude', 'src info', 'V max', 'B max', 'Bz min', 'Dst min', 'Kp max']
+			.map(name => findColumn(columns, name)?.id).filter((c): c is string => c as any));
+	}, [setColumns, columns, shownColumns]);
+
+	const newOrder = columns.map(c => c.id);
+	if (dragging)
+		newOrder.splice(dragging.pos, 0, newOrder.splice(newOrder.indexOf(dragging.id), 1)[0]);
+	const sortedColumns = columns.slice().sort((a, b) => newOrder.indexOf(a.id) - newOrder.indexOf(b.id));
 
 	const [samplesDepend, setSamplesDepend] = useState<string[]>([]);
 	useEventListener('click', () => setSamplesDepend([]));
@@ -234,7 +246,7 @@ export default function ColumnsSelector() {
 		queryClient.invalidateQueries('tableData');
 		setGeneric(generic);
 		setReport({ success: `Done in ${time} s` });
-		if (!shownColumns.includes(name))
+		if (!shownColumns?.includes(name))
 			setColumns(cols => cols.concat(name));
 		logSuccess(`${gid?'Modified':'Created'} generic ${oriColumn?.fullName ?? generic.nickname ?? generic.id} in ${time} s`);
 	}, onError: (err: any) => {
@@ -284,19 +296,36 @@ export default function ColumnsSelector() {
 		</Confirmation>}
 		<div className='PopupBackground' onClick={() => setOpen(false)}
 			onContextMenu={e => { setOpen(false); e.stopPropagation(); e.preventDefault(); }}/>
-		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}>
-			{tables.map(table => <Fragment key={table}>
+		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}
+			onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
+			{allTables.map(table => <Fragment key={table}>
 				<button className='TextButton' onClick={() => setColumns(cols => [
 					...cols.filter(c => columns.find(cc => cc.id === c)?.entity !== table),
 					...(!columns.find(cc => cc.entity === table && cols.includes(cc.id)) ? columns.filter(c => c.entity === table).map(c => c.id) : [])])}>
 					<b><u>{prettyTable(table)}</u></b></button>
-				{columns.filter(c => !c.hidden && c.entity === table).map(({ id, name, description, generic }) =>
+				{sortedColumns.filter(c => !c.hidden && c.entity === table).map(({ id, name, description, generic }) =>
 					<div key={id} style={{ color: (generic && !generic?.is_public) ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em', wordBreak: 'break-all' }}
-							onMouseEnter={e => e.buttons === 1 && check(id, action)}
-							onMouseDown={e => { if (e.button !== 0) return role && generic && setGeneric(generic);
-								const chk = !shownColumns.includes(id); setAction(chk); check(id, chk); }}>
-							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns.includes(id)} readOnly/>{name}</button>
+							onMouseEnter={e => {
+								if ((e.shiftKey || e.ctrlKey) && e.buttons === 1)
+									return check(id, action);
+								setDragging(dr => dr && ({ ...dr, pos: newOrder.indexOf(id) }));
+							}}
+							onMouseDown={e => {
+								if (e.button !== 0)
+									return role && generic && setGeneric(generic);
+								if (!e.shiftKey && !e.ctrlKey)
+									return setDragging({ y: e.clientY, id, pos: newOrder.indexOf(id) });
+								const chk = !shownColumns?.includes(id);
+								setAction(chk); check(id, chk); }}
+							onMouseUp={e => {
+								e.stopPropagation();
+								if (!dragging || Math.abs(e.clientY - dragging.y) < 4)
+									check(id, !shownColumns?.includes(id));
+								else
+									setColumnOrder(newOrder);
+								setDragging(null);}}>
+							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns?.includes(id)} readOnly/>{name}</button>
 						{role && generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
 							title='Edit or clone column (RMB)' className='TextButton' onClick={() => setGeneric(generic)}>e</button>}
 						{generic?.is_own && <div className='CloseButton' onClick={e => {

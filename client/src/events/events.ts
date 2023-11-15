@@ -14,22 +14,7 @@ import { CorrelationParams } from '../plots/Correlate';
 import { HistogramParams } from '../plots/Histogram';
 import { CollisionOptions } from '../plots/EpochCollision';
 
-export type EventsSettings = {
-	shownColumns: string[],
-	showGrid: boolean,
-	showMarkers: boolean,
-	showLegend: boolean,
-	showMagneticClouds: boolean,
-	plotOffset: number[],
-	plotUnlistedEvents: boolean,
-	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
-	setColumns: (fn: ((cols: string[]) => string[])) => void
-	reset: () => void
-};
-
 const defaultSettings = {
-	shownColumns: ['fe_time', 'fe_onset_type', 'fe_magnitude', 'fe_v_max', 'fe_v_before',
-		'fe_bz_min', 'fe_kp_max', 'fe_axy_max', 'ss_type', 'ss_description', 'ss_confidence'],
 	showChangelog: false,
 	showAverages: true,
 	showMagneticClouds: true,
@@ -38,6 +23,14 @@ const defaultSettings = {
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
+	shownColumns: undefined as undefined | string[],
+	columnOrder: undefined as undefined | string[], 
+};
+export type EventsSettings = typeof defaultSettings & {
+	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void,
+	setColumns: (fn: ((cols: string[]) => string[])) => void,
+	setColumnOrder: (order: string[]) => void,
+	reset: () => void,
 };
 
 export const useEventsSettings = create<EventsSettings>()(
@@ -45,7 +38,8 @@ export const useEventsSettings = create<EventsSettings>()(
 		set => ({
 			...defaultSettings,
 			set: (key, val) => set(state => ({ ...state, [key]: val })),
-			setColumns: (fn) => set(state => ({ ...state, shownColumns: fn(state.shownColumns) })),
+			setColumns: (fn) => set(state => ({ ...state, shownColumns: fn(state.shownColumns!) })),
+			setColumnOrder: (val) => set(state => ({ ...state, columnOrder: val })),
 			reset: () => set(defaultSettings)
 		}), {
 			name: 'eventsAppSettings'

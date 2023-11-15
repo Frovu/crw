@@ -46,7 +46,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultHistOptions(columns), ...params.statParams };
-	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns.includes(c.id))
+	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>

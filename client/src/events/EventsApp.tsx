@@ -309,7 +309,7 @@ function EventsView() {
 	
 	const dataContext = useMemo(() => {
 		console.time('compute table');
-		const cols = columns.filter(c => shownColumns.includes(c.id));
+		const cols = columns.filter(c => shownColumns?.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
 		const sortIdx = 1 + cols.findIndex(c => c.id === (sort.column === '_sample' ? 'time' : sort.column ));
 		const renderedData = sampleData.map(row => enabledIdxs.map(ci => row[ci])) as typeof sampleData;
