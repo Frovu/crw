@@ -182,7 +182,7 @@ export default function HistogramPlot() {
 		
 		return {
 			options: () => ({
-				padding: [8, 8, 2, 0].map(p => scaled(p)) as any,
+				padding: [12, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				hooks: { draw: [ drawAverages(scaled(1), font(14, true)) ] },

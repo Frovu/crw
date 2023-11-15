@@ -1,10 +1,64 @@
 import { ReactNode, useContext, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext, Value, equalValues, useEventsSettings, valueToString } from './events';
+import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext,
+	TableViewContext, Value, equalValues, useEventsSettings, valueToString } from './events';
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
+
+export function ExportMenu() {
+	const { tables } = useContext(MainTableContext);
+	const { data: shownData, columns } = useContext(TableViewContext);
+	
+	const renderText = (format: 'json'|'csv'|'txt') => {
+		const data = shownData.map(row => row.slice(1));
+		const cols = columns.map(({ fullName, type, description, enum: aenum }, i) => ({
+			name: fullName, type, description, enum: aenum
+		}));
+		if (format === 'json') {
+			return JSON.stringify({ columns: cols, data }, null, 2);
+		} else if (format === 'txt') {
+			let text = 'Note: plaintext export option has limitations and one should consider using JSON instead' +
+				'\r\nAll whitespace in values is replaced by _, missing values are marked as N/A\r\n';
+			text += columns.map(col => col.fullName.replace(/\s/g, '_').padStart(col.width, ' '.repeat(col.width))).join(' ') + '\r\n';
+			for (const row of data) {
+				for (const [i, col] of columns.entries()) {
+					const v = row[i];
+					const val = v instanceof Date ? v?.toISOString().replace(/\..+/,'Z') : v;
+					text += (val == null ? 'N/A' : val).toString().replace(/\s/g, '_')
+						.padStart(col.width + (i === 0 ? 0 : 4), ' '.repeat(col.width)) + ' ';
+				}
+				text += '\r\n';
+			};
+			return text;
+		} else if (format === 'csv') {
+			const head = columns.map(col => col.fullName).join(',');
+			return [head].concat(data.map(row => row.map(v => valueToString(v)).join(','))).join('\r\n');
+		}
+		return '';
+	};
+
+	const doExport = (format: 'json'|'csv'|'txt', copy?: boolean) => () => {
+		if (copy)
+			return navigator.clipboard.writeText(renderText(format));
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(new Blob([renderText(format)]));
+		a.download = `${tables[0]}.${format}`;
+		a.click();
+	};
+
+	return <div style={{ maxWidth: 240, padding: '2px 8px' }}>
+		<button className='TextButton' onClick={doExport('json')}>Download json</button>
+		<button className='TextButton' onClick={doExport('txt')}>Download txt</button>
+		<button className='TextButton' onClick={doExport('csv')}>Download csv</button>
+		<button className='TextButton' onClick={doExport('csv', true)}>Copy csv to clipboard</button>
+		<div className='separator' style={{ margin: '6px 0' }}></div>
+		<div style={{ color: 'var(--color-text-dark)', fontSize: 12 }}>
+			Note that table is exported as it is currently visible:
+			respecting selected sample, filters and enabled columns</div>
+	</div>;
+}
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
 	const { login } = useContext(AuthContext);

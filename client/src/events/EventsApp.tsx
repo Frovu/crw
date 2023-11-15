@@ -16,7 +16,7 @@ import PlotIMF from '../plots/time/IMF';
 import PlotSW from '../plots/time/SW';
 import PlotGSM from '../plots/time/GSM';
 import SampleView from './Sample';
-import { AuthContext, useAppSettings, useContextMenu } from '../app';
+import { AuthContext, openContextMenu, useAppSettings, useContextMenu } from '../app';
 import { ExportControls, ExportPreview, renderOne } from './ExportPlot';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
@@ -100,6 +100,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				{value !== undefined && <button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}
 				>Filter {column.fullName} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 			</>}
+			{!column && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
 			{!column && role && <>
 				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
 				<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>

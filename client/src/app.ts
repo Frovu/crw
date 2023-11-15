@@ -58,6 +58,7 @@ export const logSuccess = (txt?: any) => {txt && logMessage(txt.toString(), 'suc
 type menuDetails = {
 	layout: LayoutsMenuDetails,
 	events: LayoutsMenuDetails & TableMenuDetails,
+	tableExport: undefined,
 	app: undefined,
 };
 type ContextMenu = {
@@ -72,11 +73,11 @@ export const useContextMenu = create<ContextMenu>()(set => ({
 	menu: null
 }));
 
-export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: menuDetails[T]) =>
+export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: menuDetails[T], force?: boolean) =>
 	(e: React.MouseEvent | MouseEvent) => {
 		e.preventDefault(); e.stopPropagation();
 		useContextMenu.setState(({ menu }) =>
-			({ menu: menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
+			({ menu: !force && menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
 	};
 export const closeContextMenu = () => useContextMenu.setState(state => state.menu ? { menu: null } : state);
 

@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 import { clamp, useEventListener, useSize, Size } from './util';
 import { ContextMenuContent, LayoutContent } from './events/EventsApp';
 import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
-import { logMessage, openContextMenu, useContextMenu } from './app';
+import { logMessage, openContextMenu } from './app';
 import { color } from './plots/plotUtil';
 
 export const gapSize = 2;
@@ -189,9 +189,9 @@ function Node({ id, size }: { id: string, size: Size }) {
 	</div>;
 }
 
-export function LayoutContextMenu({ id: argId }: { id?: string }) {
+export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?: LayoutsMenuDetails }) {
 	const { items, tree } = useLayout();
-	const id = useContextMenu(state => argId ?? state.menu?.detail?.nodeId);
+	const id = argId ?? detail?.nodeId;
 	if (!id) return null;
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;

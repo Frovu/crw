@@ -13,8 +13,9 @@ import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor, AuthContext } from './app';
-import { LayoutContextMenu, LayoutNav, useLayoutsStore } from './Layout';
+import { LayoutContextMenu, LayoutNav, LayoutsMenuDetails, useLayoutsStore } from './Layout';
 import { defaultLayouts } from './events/events';
+import { ExportMenu } from './events/EventsData';
 
 const theQueryClient = new QueryClient();
 
@@ -34,7 +35,8 @@ export function ContextMenu() {
 			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
-		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu/>}
+		{'tableExport' === menu.type && <ExportMenu/>}
+		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu detail={menu.detail as LayoutsMenuDetails}/>}
 	</div>;
 }
 
