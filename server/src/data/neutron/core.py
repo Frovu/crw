@@ -102,10 +102,10 @@ def _obtain_similar(interval, stations, source):
 	with pool.connection() as conn:
 		for i, station in enumerate(stations):
 			upsert_many(f'nm.{station}_1h', ['time', 'corrected'],
-				np.column_stack((data[:,0], data[:,1+i])), write_nulls=True) # FIXME: should we really write_nulls?
+				np.column_stack((data[:,0], data[:,1+i])).tolist(), write_nulls=True) # FIXME: should we really write_nulls?
 			if src_res == 60:
 				upsert_many(f'nm.{station}_1min', ['time', 'corrected'],
-					np.column_stack((src_data[:,0], src_data[:,1+i])))
+					np.column_stack((src_data[:,0], src_data[:,1+i])).tolist())
 			else:
 				assert src_res == HOUR
 			update_result_table(conn, station, res_dt_interval)
