@@ -162,6 +162,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 		({ ...(unknown ? size : sz), height: (unknown ? size : sz).height * (twoPlots ? i > 0 ? .3 : .7 : 1) - (interactive ? LEGEND_H : 0) }), [interactive, twoPlots, size]);
 
 	useLayoutEffect(() => {
+		if (uplot) uplot.setSize(plotSize(0)(size));
 		if (uplot2) uplot2.setSize(plotSize(1)(size));
 	}, [uplot, uplot2, size, plotSize]);
 
