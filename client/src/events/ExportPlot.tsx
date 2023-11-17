@@ -123,6 +123,8 @@ function computePlotsLayout() {
 
 export function renderOne(nodeId: string) {
 	const { plots } = usePlotExportSate.getState();
+	const { active, list } = useLayoutsStore.getState();
+	const { overrides: { scalesParams, textTransform } } = usePlotExportSate.getState();
 	const { layout } = computePlotsLayout();
 	if (!layout[nodeId] || !plots[nodeId]) return;
 	const { options, data } = plots[nodeId];
@@ -134,8 +136,11 @@ export function renderOne(nodeId: string) {
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color('bg');
 	ctx.fillRect(0, 0, w * scl, h * scl);
+	const controlsPresent = !!Object.values(list[active]?.items).find(i => i?.type === 'ExportControls');
 	const opts = {
-		...withOverrides(options, { scale: scl }),
+		...withOverrides(options, { scale: scl,
+			...(controlsPresent && { scalesParams, textTransform: textTransform?.filter(tr => tr.enabled) })
+		}),
 		width: Math.round(w * scl),
 		height: Math.round(h * scl), };
 	new uPlot(opts, data as any, (u, init) => {
@@ -249,7 +254,6 @@ export function ExportControls() {
 		addScale, setScale, removeScale, setPerPlotMode, restoreScales } = usePlotExportSate();
 	const plotId = useViewState(state => state.plotId);
 	const { width, height } = computePlotsLayout();
-	const { items } = useLayout();
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);
 
@@ -271,9 +275,10 @@ export function ExportControls() {
 		return a.click();
 	}
 	const plotsScales = Object.keys(plots).filter(id =>
-		plotPanelOptions.includes(items[id]?.type as any)).map(id => plots[id].scales);
+		Object.keys(plots[id].scales).length > 0).map(id => plots[id].scales);
 	const scales: { [k: string]: ScaleParams } = Object.assign({}, ...plotsScales);
 	const effectiveScales = Object.entries(scales).map(([scl, params]) => ({ scl, ...(scalesParams?.[scl] ?? params) }));
+	
 	const fontPx = Math.round(width / inches / 72 * fontSize * scale);
 	const setOverride = (scl: string, param: 'min'|'max'|'bottom'|'top') => (e: ChangeEvent<HTMLInputElement>) => {
 		const val = parseFloat(e.target.value);

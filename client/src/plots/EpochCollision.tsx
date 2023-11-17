@@ -1,13 +1,13 @@
 import { useContext, useMemo } from 'react';
 import { apiPost } from '../util';
-import { axisDefaults, color, measureDigit, scaled } from './plotUtil';
+import { axisDefaults, color, getParam, measureDigit, scaled } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
 import { MainTableContext, PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
-import { CustomAxis, drawCustomLabels } from './BasicPlot';
+import { CustomAxis, CustomScale, drawCustomLabels } from './BasicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -127,10 +127,11 @@ export default function EpochCollision() {
 				...(queries[2].data?.slice(1, -1) || [])
 			] as any,
 			options: () => {
+				const scaleOverrides = getParam('scalesParams');
 				const filtered = queries.map((q, i) => q.data ? i : null).filter(q => q != null) as number[];
 				const axScale = (idx: number) => {
 					const ser = series[idx] && seriesDict[series[idx]!];
-					return ser?.startsWith('B') ? 'B' : ser?.startsWith('A0') ? 'A0' : ser;
+					return 'e_' + (ser?.startsWith('B') ? 'B' : ser?.startsWith('A0') ? 'A0' : ser);
 				};
 				const ch = measureDigit().width, scale = scaled(1);
 				return {
@@ -155,7 +156,26 @@ export default function EpochCollision() {
 						fullLabel: filtered.filter(id => axScale(id) === axScale(idx)).map(id => seriesDict[series[id]!]).join(', '),
 						label: '',
 					})) as CustomAxis[] ],
-					scales: { x: { time: false } },
+					scales: {
+						x: { time: false },
+						...Object.fromEntries(filtered.map((idx, i) => [axScale(idx), {
+							range: (u, dmin, dmax) => {
+								const override = scaleOverrides?.[axScale(idx)!];
+								const min = override?.min ?? dmin - .0001;
+								const max = override?.max ?? dmax + .0001;
+								const [ bottom, top ] = override ? [override.bottom, override.top] : [0, 1];
+								const scl: CustomScale = u.scales[axScale(idx)!];
+								scl.scaleValue = { min, max };
+								scl.positionValue = { bottom, top };
+								const h = max - min;
+								const resultingH = h / (top - bottom);
+								const margin = h / 10;
+								return [
+									min - resultingH * bottom    - (!override && (bottom === 0) ? margin : 0),
+									max + resultingH * (1 - top) + (!override && (top === 1) ? margin : 0)
+								]; },
+						} as CustomScale]))
+					},
 					series: [
 						{ }, ...filtered.map((idx, i) => [ {
 							show: cur.showEpochMedian,
@@ -201,7 +221,8 @@ export default function EpochCollision() {
 		<ExportableUplot {...{ options, data }}/>
 		<div style={{ position: 'absolute', color: color('text-dark'), top: 0, right: 3, fontSize: 12, }}>
 			{queries.map((q, i) => q.data &&
-				<span key={sampleKeys[i]} style={{ color: color(colors[i]) }}>{q.data.at(-1)?.length}</span>).reduce((a, b) => [a, '/', b] as any)}
+				<span key={sampleKeys[i]} style={{ color: color(colors[i]) }}>{q.data.at(-1)?.length}</span>)
+				.filter(a => a).reduce((a, b) => [a, '/', b] as any)}
 		</div>
 	</>;
 }
