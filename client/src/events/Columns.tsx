@@ -320,10 +320,12 @@ export default function ColumnsSelector() {
 								setAction(chk); check(id, chk); }}
 							onMouseUp={e => {
 								e.stopPropagation();
-								if (e.buttons === 1 && (!dragging || Math.abs(e.clientY - dragging.y) < 4))
-									check(id, !shownColumns?.includes(id));
-								else
+								if (!dragging || Math.abs(e.clientY - dragging.y) < 4) {
+									if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
+										check(id, !shownColumns?.includes(id));
+								} else {
 									setColumnOrder(newOrder);
+								}
 								setDragging(null);}}>
 							<input type='checkbox' style={{ marginRight: 8 }} checked={!!shownColumns?.includes(id)} readOnly/>{name}</button>
 						{role && generic && <button style={{ fontSize: 16, height: 16, lineHeight: '16px', margin: '0 2px 4px 2px' }}
