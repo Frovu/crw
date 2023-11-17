@@ -86,7 +86,7 @@ export const measureStyled = (ctx: CanvasRenderingContext2D, parts: TextNode[]) 
 	return textWidth;
 };
 
-function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
+export function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
 	const captureOverrides = applyOverrides;
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
@@ -148,7 +148,7 @@ function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Po
 	}, captureOverrides);
 }
 
-function drawCustomLabels() {
+export function drawCustomLabels() {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {

@@ -7,6 +7,7 @@ import { applySample } from '../events/sample';
 import { MainTableContext, PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
+import { CustomAxis, drawCustomLabels } from './BasicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -22,6 +23,7 @@ const defaultOptions = {
 	sample2: '<current>',
 	showEpochMedian: false,
 	showEpochStd: true,
+	epochOneScale: false,
 };
 
 export type CollisionOptions = typeof defaultOptions;
@@ -75,7 +77,7 @@ export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { plotOffset, showGrid } = useEventsSettings();
-	const { columns, data: allData } = useContext(MainTableContext);
+	const { columns, data: allData, series: seriesDict } = useContext(MainTableContext);
 
 	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
 	const series = [cur.series0, cur.series1, cur.series2];
@@ -124,56 +126,57 @@ export default function EpochCollision() {
 				...(queries[2].data?.slice(1) || [])
 			] as any,
 			options: () => {
+				const filtered = queries.map((q, i) => q.data ? i : null).filter(q => q != null) as number[];
+				const axScale = (idx: number) => series[idx] && seriesDict[series[idx]!];
+				
 				const ch = measureDigit().width, scale = scaled(1);
 				return {
 					cursor: { show: false },
 					padding: [scaled(10), scaled(4), 0, 0],
+					hooks: {
+						draw: [ drawCustomLabels() ]
+					},
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: scaled(26),
 						space: ch * 4 + scaled(4),
 						values: (u, vals) => vals.map(v => v + 'h')
-					}, {
-						...axisDefaults(showGrid),
+					}, ...filtered.map((idx, i) => ({
+						...axisDefaults(i === 0),
+						side: i === 0 ? 3 : 1,
+						show: i === 2 ? false : true,
 						space: scaled(32),
 						size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
-						scale: 'y'
-					}, ],
+						values: (u, vals) => vals.map(v => v.toString()), 
+						scale: axScale(idx),
+						fullLabel: seriesDict[series[idx]!], // add names if one ax
+						label: '',
+					})) as CustomAxis[] ],
 					scales: { x: { time: false } },
 					series: [
-						{
-							label: 't',
-							value: (u, val) => val != null ? val + (Math.abs(val) < 10 ? ' ' : '') + 'h' : '--'
-						}, ...['A', 'B', 'C'].map((letter, i) => !queries[i].data ? [] : [ {
+						{ }, ...filtered.map((idx, i) => [ {
 							show: cur.showEpochMedian,
-							scale: 'y',
-							label: `med ${letter}`,
-							stroke: color(colors[i], .7),
+							scale: axScale(idx),
+							stroke: color(colors[idx], .7),
 							width: scaled(2),
-							value: (u, val) => val?.toFixed(2),
 							points: { show: false }
 						}, {
-							scale: 'y',
-							label: `mean ${letter}`,
-							stroke: color(colors[i]),
+							scale: axScale(idx),
+							stroke: color(colors[idx]),
 							width: scaled(3),
 							value: (u, val) => val?.toFixed(2),
 							points: { show: false }
 						}, {
 							show: cur.showEpochStd,
-							scale: 'y',
-							label: `${letter}+e`,
-							stroke: color(colors[i]),
+							scale: axScale(idx),
+							stroke: color(colors[idx]),
 							width: scaled(.9),
-							value: (u, val) => val?.toFixed(2),
 							points: { show: false }
 						}, {
 							show: cur.showEpochStd,
-							scale: 'y',
-							label: `${letter}-e`,
-							stroke: color(colors[i]),
+							scale: axScale(idx),
+							stroke: color(colors[idx]),
 							width: scaled(.9),
-							value: (u, val) => val?.toFixed(2),
 							points: { show: false }
 						},
 						] as uPlot.Series[]).flat()
@@ -183,7 +186,7 @@ export default function EpochCollision() {
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [cur.showEpochMedian, cur.showEpochStd, queries[0].data, queries[1].data, queries[2].data, samples, showGrid]);
-
+	
 	if (queries.some(q => q.isError))
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (queries.some(q => !q.data && q.isLoading))

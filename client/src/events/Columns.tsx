@@ -320,7 +320,7 @@ export default function ColumnsSelector() {
 								setAction(chk); check(id, chk); }}
 							onMouseUp={e => {
 								e.stopPropagation();
-								if (!dragging || Math.abs(e.clientY - dragging.y) < 4)
+								if (e.buttons === 1 && (!dragging || Math.abs(e.clientY - dragging.y) < 4))
 									check(id, !shownColumns?.includes(id));
 								else
 									setColumnOrder(newOrder);
