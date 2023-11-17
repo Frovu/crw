@@ -314,8 +314,9 @@ export function ExportControls() {
 		</div>
 		<div style={{ overflowY: 'scroll', paddingBottom: 8 }}>
 			<span style={{ color: color('text-dark') }}>Override scales: 
-				<label style={{ display: 'inline-block', textDecoration: perPlotScales ? 'underline' : 'unset',
-					marginLeft: 8, color: perPlotScales ? color('text') : 'inherit' }}>per event
+				<label title='Adjust scales for each event individually'
+					style={{ display: 'inline-block', textDecoration: perPlotScales ? 'underline' : 'unset',
+						marginLeft: 8, color: perPlotScales ? color('magenta') : 'inherit' }}>per event
 					<input type='checkbox' checked={perPlotScales} onChange={e => setPerPlotMode(plotId, e.target.checked)}/></label></span>
 			<div style={{ maxWidth: 'max-content', textAlign: 'right' }}>
 				{effectiveScales.sort((a,b) => a.scl.localeCompare(b.scl)).map(({ scl, min, max, bottom, top }) => {
