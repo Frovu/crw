@@ -156,13 +156,15 @@ export function drawCustomLabels() {
 			if (axis.side && axis.side % 2 === 0)
 				return console.error('only implemented left or right axis');
 
+			const marked: {[k: string]: true} = {};
 			const rec = (txt: string=axis.fullLabel!): string[][] => {
 				if (!txt) return [];
-				const si = u.series.findIndex(s => txt.includes(s.label!));
-				const series = si >= 0 && u.series[si];
+				const re = (label: string) => new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
+				const series = u.series.find(ser => !marked[ser.label!] && txt.match(re(ser.label!)));
 				if (!series) return [[txt, color('text')]];
-				const split = txt.split(series.label!);
-				const stroke = typeof series.stroke === 'function' ? series.stroke(u, si) : series.stroke;
+				marked[series.label!] = true;
+				const split = txt.slice().split(re(series.label!));
+				const stroke = typeof series.stroke === 'function' ? series.stroke(u, 0) : series.stroke; // FIXME: seriesIdx
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
 

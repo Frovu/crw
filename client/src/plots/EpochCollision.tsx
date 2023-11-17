@@ -104,7 +104,8 @@ export default function EpochCollision() {
 			median,
 			mean,
 			std.map((s, i, all) => mean[i] + s / Math.sqrt(all.length)),
-			std.map((s, i, all) => mean[i] - s / Math.sqrt(all.length))
+			std.map((s, i, all) => mean[i] - s / Math.sqrt(all.length)),
+			times
 		];
 	};
 
@@ -121,14 +122,16 @@ export default function EpochCollision() {
 		return {
 			data: [
 				time,
-				...(queries[0].data?.slice(1) || []),
-				...(queries[1].data?.slice(1) || []),
-				...(queries[2].data?.slice(1) || [])
+				...(queries[0].data?.slice(1, -1) || []),
+				...(queries[1].data?.slice(1, -1) || []),
+				...(queries[2].data?.slice(1, -1) || [])
 			] as any,
 			options: () => {
 				const filtered = queries.map((q, i) => q.data ? i : null).filter(q => q != null) as number[];
-				const axScale = (idx: number) => series[idx] && seriesDict[series[idx]!];
-				
+				const axScale = (idx: number) => {
+					const ser = series[idx] && seriesDict[series[idx]!];
+					return ser?.startsWith('B') ? 'B' : ser?.startsWith('A0') ? 'A0' : ser;
+				};
 				const ch = measureDigit().width, scale = scaled(1);
 				return {
 					cursor: { show: false },
@@ -144,12 +147,12 @@ export default function EpochCollision() {
 					}, ...filtered.map((idx, i) => ({
 						...axisDefaults(i === 0),
 						side: i === 0 ? 3 : 1,
-						show: i === 2 ? false : true,
+						show: i !== filtered.findIndex(id => axScale(id) === axScale(idx)) || i === 2 ? false : true,
 						space: scaled(32),
 						size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
 						values: (u, vals) => vals.map(v => v.toString()), 
 						scale: axScale(idx),
-						fullLabel: seriesDict[series[idx]!], // add names if one ax
+						fullLabel: filtered.filter(id => axScale(id) === axScale(idx)).map(id => seriesDict[series[id]!]).join(', '),
 						label: '',
 					})) as CustomAxis[] ],
 					scales: { x: { time: false } },
@@ -161,6 +164,7 @@ export default function EpochCollision() {
 							width: scaled(2),
 							points: { show: false }
 						}, {
+							label: seriesDict[series[idx]!],
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
 							width: scaled(3),
@@ -193,5 +197,11 @@ export default function EpochCollision() {
 		return <div className='Center'>LOADING...</div>;
 	if (!queries.some(q => q.data))
 		return <div className='Center'>EMPTY SAMPLE</div>;
-	return <ExportableUplot {...{ options, data }}/>;
+	return <>
+		<ExportableUplot {...{ options, data }}/>
+		<div style={{ position: 'absolute', color: color('text-dark'), top: 0, right: 3, fontSize: 12, }}>
+			{queries.map((q, i) => q.data &&
+				<span key={sampleKeys[i]} style={{ color: color(colors[i]) }}>{q.data.at(-1)?.length}</span>).reduce((a, b) => [a, '/', b] as any)}
+		</div>
+	</>;
 }
