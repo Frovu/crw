@@ -76,8 +76,10 @@ def _select(for_rows, query, root='forbush_effects'):
 		res = np.array(curs.fetchall(), dtype='f8')
 	return [res[:,i] for i in range(len(query))]
 
-def _select_series(t_from, t_to, series):
+def _select_series(t_1, t_2, series):
 	t_data = time()
+	t_from = next((t for t in t_1 if not np.isnan(t)))
+	t_to = next((t for t in t_2[::-1] if not np.isnan(t)))
 	actual_series = series[3:] if series.startswith('$d_') else series
 	interval = [int(i) + offs * MAX_DURATION_S for i, offs in ([t_from, -2], [t_to, 2])]
 	source, name, _ = G_SERIES[actual_series]
@@ -126,7 +128,7 @@ def get_slices(t_time, t_1, t_2):
 def find_extremum(for_rows, op, ser, window, entity, cache, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
 	t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in window]
-	d_time, value = cache.get(ser) or _select_series(t_1[0], t_2[-1], ser)
+	d_time, value = cache.get(ser) or _select_series(t_1, t_2, ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
 	value = np.abs(value) if is_abs else value
@@ -215,7 +217,7 @@ def _do_compute(generic, for_rows=None):
 
 	else:
 		t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
-		d_time, d_value = cache.get(para.series) or _select_series(t_1[0], t_2[-1], para.series)
+		d_time, d_value = cache.get(para.series) or _select_series(t_1, t_2, para.series)
 		cache[para.series] = (d_time, d_value)
 		slices = get_slices(d_time, t_1, t_2)
 
