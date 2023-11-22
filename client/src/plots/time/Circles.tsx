@@ -677,6 +677,7 @@ export function PlotCirclesStandalone() {
 			stretch: false,
 			interactive: true,
 			autoFilter: true,
+			showTimeAxis: true,
 			...(referred || {
 				interval: [
 					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),

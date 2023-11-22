@@ -106,7 +106,7 @@ export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 				return (v: any) => v != null;
 			if (operation === 'regexp') {
 				const regexp = new RegExp(fl.value);
-				return (v: any) => regexp.test(v?.toString());
+				return (v: any) => regexp.test(v?.toString() ?? 'null');
 			}
 			if (!fl.value) return null;
 			const value = parseColumnValue(fl.value, column);
