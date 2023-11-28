@@ -8,6 +8,7 @@ import { MainTableContext, PanelParams, SampleContext, shortTable, useEventsSett
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import { CustomAxis, CustomScale, drawCustomLabels, drawCustomLegend } from './BasicPlot';
+import { PlotIntervalInput } from '../events/EventsApp';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -64,7 +65,10 @@ export function EpochCollisionContextMenu({ params, setParams }: { params: Panel
 			{timeOptions.map(({ id, entity }) =>
 				<option key={id} value={id}>{shortTable(entity)} time</option>)}
 		</select> </div>
-		<div className='Row'>
+		<div className='Row' style={{ marginTop: 2 }}>
+			<PlotIntervalInput/>
+		</div>
+		<div className='Row' style={{ marginTop: -2 }}>
 			<label>Plot median<input type='checkbox' style={{ paddingLeft: 4 }}
 				checked={cur.showEpochMedian} onChange={e => set('showEpochMedian', e.target.checked)}/></label>
 			<label>std error<input type='checkbox' style={{ paddingLeft: 4 }}
@@ -222,7 +226,7 @@ export default function EpochCollision() {
 			}
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [cur.showEpochMedian, cur.showEpochStd, queries[0].data, queries[1].data, queries[2].data, samples, showGrid]);
+	}, [cur.showEpochMedian, cur.showEpochStd, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
 	
 	if (queries.some(q => q.isError))
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;

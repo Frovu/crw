@@ -111,7 +111,6 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<CheckboxTable text='Show changes log' k='showChangelog'/>
 			</div></>}
 		</>}
-		{isEventPlot && <PlotIntervalInput/>}
 		{isPlot && <>
 			<div className='separator'/>
 			<div className='Row'>

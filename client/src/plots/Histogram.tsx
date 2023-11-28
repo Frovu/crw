@@ -187,7 +187,6 @@ export default function HistogramPlot() {
 		};
 
 		const colNames = [0, 1, 2].map(i => options['column'+i as keyof HistogramParams])
-			.filter((c, i) => samplesBins[i])
 			.map(c => columns.find(cc => cc.id === c)?.fullName);
 		const sampleNames = [0, 1, 2].map(i => options['sample'+i as 'sample0'|'sample1'|'sample2'])
 			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
@@ -210,7 +209,7 @@ export default function HistogramPlot() {
 					size: scaled(10) + getFontSize(),
 					space: getFontSize() * 3,
 					labelSize: getFontSize(),
-					fullLabel: colNames.join(', '),
+					fullLabel: colNames.filter(a => a && a.length > 0).join(', '),
 					label: '',
 					values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
 					...(enumMode && {
