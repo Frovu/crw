@@ -93,7 +93,7 @@ export type ColumnDef = {
 	parseValue: null | { [key: string|number]: string|number|null }
 };
 
-export const statPanelOptions = [ 'Histogram', 'Correlation', 'Epoch collision' ] as const;
+export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'Empty' ] as const;
 

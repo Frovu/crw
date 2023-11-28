@@ -56,7 +56,8 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	const averages = details?.averages;
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
-	const isPlot = plotPanelOptions.includes(params.type as any);
+	const isEventPlot = plotPanelOptions.includes(params.type as any);
+	const isPlot = isEventPlot || statPanelOptions.includes(params.type as any);
 	const cur = (isPlot && {
 		...defaultPlotParams,
 		...params?.plotParams
@@ -75,7 +76,7 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 	return <>
 		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Epoch collision' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
@@ -110,14 +111,16 @@ export function ContextMenuContent({ params, setParams }: { params: PanelParams,
 				<CheckboxTable text='Show changes log' k='showChangelog'/>
 			</div></>}
 		</>}
+		{isEventPlot && <PlotIntervalInput/>}
 		{isPlot && <>
-			<PlotIntervalInput/>
 			<div className='separator'/>
 			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
-				<CheckboxGlob text='markers' k='showMarkers'/>
+				{isEventPlot && <CheckboxGlob text='markers' k='showMarkers'/>}
 				<CheckboxGlob text='legend' k='showLegend'/>
 			</div>
+		</>}
+		{isEventPlot && <>
 			<div className='separator'/>
 			<div className='Row'>
 				<Checkbox text='time axis' k='showTimeAxis'/>
@@ -202,7 +205,7 @@ export function LayoutContent() {
 		{type === 'ExportPreview' && <ExportPreview/>}
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
-		{type === 'Epoch collision' && <EpochCollision/>}
+		{type === 'Superposed epochs' && <EpochCollision/>}
 		{params && <>
 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}

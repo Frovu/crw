@@ -86,7 +86,7 @@ export const measureStyled = (ctx: CanvasRenderingContext2D, parts: TextNode[]) 
 	return textWidth;
 };
 
-export function drawCustomLegend(params: BasicPlotParams, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
+export function drawCustomLegend(params: { showLegend: boolean }, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
 	defaultPos: (u: uPlot, csize: Size) => Position) {
 	const captureOverrides = applyOverrides;
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
@@ -95,9 +95,12 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 			.map(s => ({ ...s, legend: parseText(applyTextTransform(' '+s.legend!).trim()) }));
 		if (!series.length) return;
 
+		const allBars = series.every(s => s.bars);
+
 		const px = (a: number) => scaled(a * devicePixelRatio);
 
-		const width = px(46) + Math.max.apply(null, series.map(({ legend }) => measureStyled(u.ctx, legend)));
+		const makrerWidth = allBars ? 12 : 24;
+		const width = px(makrerWidth + 16) + Math.max.apply(null, series.map(({ legend }) => measureStyled(u.ctx, legend)));
 		const lineHeight = getFontSize() * 1.2;
 		const height = series.length * lineHeight + px(4);
 		if (!captureOverrides?.scale)
@@ -122,18 +125,18 @@ export function drawCustomLegend(params: BasicPlotParams, position: MutableRefOb
 			u.ctx.fillStyle = u.ctx.strokeStyle = (stroke as any)();
 			u.ctx.beginPath();
 			if (!bars) {
-				u.ctx.moveTo(x + px(8), y);
-				u.ctx.lineTo(x + px(32), y);
+				u.ctx.moveTo(x + px(6), y);
+				u.ctx.lineTo(x + px(6 + makrerWidth), y);
 				u.ctx.stroke();
 			}
 			u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
 			const mrkr = bars ? 'square' : marker;
 			if (mrkr)
-				draw[mrkr](x + px(20), y);
+				draw[mrkr](x + px(6 + makrerWidth / 2), y);
 			if (mrkr !== 'arrow')
 				u.ctx.fill();
 			u.ctx.fillStyle = color('text');
-			let textX = x + px(40);
+			let textX = x + px(makrerWidth + 12);
 			for (const { text, styles } of legend) {
 				u.ctx.save();
 				applyStyles(u.ctx, styles);

@@ -1,11 +1,11 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { axisDefaults, color, font, getFontSize, measureDigit, scaled } from './plotUtil';
+import { DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
 import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { applySample } from '../events/sample';
-import { drawCustomLabels } from './BasicPlot';
+import { drawCustomLabels, drawCustomLegend } from './BasicPlot';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -101,8 +101,13 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
-	const { showGrid } = useEventsSettings();
+	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
+
+	const defaultPos: DefaultPosition = (u, { width }) => ({
+		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
+		y: 3 });
+	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
 	const hist = useMemo(() => {
 		const options = { ...defaultHistOptions(columns), ...layoutParams };
@@ -184,13 +189,22 @@ export default function HistogramPlot() {
 		const colNames = [0, 1, 2].map(i => options['column'+i as keyof HistogramParams])
 			.filter((c, i) => samplesBins[i])
 			.map(c => columns.find(cc => cc.id === c)?.fullName);
+		const sampleNames = [0, 1, 2].map(i => options['sample'+i as 'sample0'|'sample1'|'sample2'])
+			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
+				(' of ' + samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN'));
 
 		return {
 			options: () => ({
 				padding: [12, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: { draw: [ drawAverages(scaled(1), font(14, true)), drawCustomLabels() ] },
+				hooks: { draw: [
+					drawAverages(scaled(1), font(14, true)),
+					drawCustomLabels(),
+					drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
+				], ready: [
+					handleDragLegend
+				] },
 				axes: [ {
 					...axisDefaults(showGrid),
 					size: scaled(10) + getFontSize(),
@@ -217,21 +231,27 @@ export default function HistogramPlot() {
 					} },
 				series: [
 					{}, ...[{
+						bars: true,
 						label: colNames[0],
+						legend: `${colNames[0]}${sampleNames[0]}`,
 						stroke: color(colors[0]),
 						fill: color(colors[0], .8),
 						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.8, scaled(64)], align: 1 })
 					}, {
+						bars: true,
 						label: colNames[1],
+						legend: `${colNames[1]}${sampleNames[1]}`,
 						stroke: color(colors[1]),
 						fill: color(colors[1]),
 						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.5, scaled(64)], align: 1 })
 					}, {
+						bars: true,
 						label: colNames[2],
+						legend: `${colNames[2]}${sampleNames[2]}`,
 						stroke: color(colors[2]),
 						fill: color(colors[2]),
 						width: 0,
@@ -242,7 +262,7 @@ export default function HistogramPlot() {
 			}) as Omit<uPlot.Options, 'width'|'height'>,
 			data: [binsValues, ...transformed] as any
 		};
-	}, [layoutParams, columns, sampleData, allData, samplesList, showGrid]);
+	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid]);
 
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;

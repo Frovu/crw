@@ -1,13 +1,13 @@
 import { useContext, useMemo } from 'react';
 import { apiPost } from '../util';
-import { axisDefaults, color, getParam, measureDigit, scaled } from './plotUtil';
+import { DefaultPosition, axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
 import { MainTableContext, PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
-import { CustomAxis, CustomScale, drawCustomLabels } from './BasicPlot';
+import { CustomAxis, CustomScale, drawCustomLabels, drawCustomLegend } from './BasicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -76,7 +76,7 @@ export function EpochCollisionContextMenu({ params, setParams }: { params: Panel
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
-	const { plotOffset, showGrid } = useEventsSettings();
+	const { plotOffset, showGrid, showLegend } = useEventsSettings();
 	const { columns, data: allData, series: seriesDict } = useContext(MainTableContext);
 
 	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
@@ -88,6 +88,11 @@ export default function EpochCollision() {
 		const found = samplesList.find(s => s.id.toString() === name);
 		return found ? applySample(allData, found, columns) : null;
 	}), [sample0, sample1, sample2, currentData, allData, samplesList, columns]);
+
+	const defaultPos: DefaultPosition = (u, { width }) => ({
+		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1), 
+		y: u.bbox.top / scaled(1) + 8 });
+	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
 	const queryHandler =  async (qi: number) => {
 		const sample = samples[qi];
@@ -119,6 +124,9 @@ export default function EpochCollision() {
 	const { data, options } = useMemo(() => {
 		// FIXME: offset (x) is assumed to be the same on all queries
 		const time = queries.find(q => q.data)?.data?.[0];
+		const sampleNames = [sample0, sample1, sample2]
+			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
+				(' of ' + samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN'));
 		return {
 			data: [
 				time,
@@ -138,7 +146,11 @@ export default function EpochCollision() {
 					cursor: { show: false },
 					padding: [scaled(10), scaled(4), 0, 0],
 					hooks: {
-						draw: [ drawCustomLabels() ]
+						draw: [
+							drawCustomLabels(), 
+							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
+						],
+						ready: [ handleDragLegend ]
 					},
 					axes: [ {
 						...axisDefaults(showGrid),
@@ -184,6 +196,7 @@ export default function EpochCollision() {
 							width: scaled(2),
 							points: { show: false }
 						}, {
+							legend: seriesDict[series[idx]!] + sampleNames[idx],
 							label: seriesDict[series[idx]!],
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
