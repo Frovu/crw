@@ -5,8 +5,9 @@ import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, us
 import { ExportableUplot } from '../events/ExportPlot';
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { applySample } from '../events/sample';
+import { drawCustomLabels } from './BasicPlot';
 
-const colors = ['magenta', 'acid', 'cyan'] as const;
+const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
 const columnKeys = ['column0', 'column1', 'column2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
@@ -179,20 +180,24 @@ export default function HistogramPlot() {
 					u.ctx.restore();
 				} }
 		};
-		
+
+		const colNames = [0, 1, 2].map(i => options['column'+i as keyof HistogramParams])
+			.filter((c, i) => samplesBins[i])
+			.map(c => columns.find(cc => cc.id === c)?.fullName);
+
 		return {
 			options: () => ({
 				padding: [12, 8, 2, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: { draw: [ drawAverages(scaled(1), font(14, true)) ] },
+				hooks: { draw: [ drawAverages(scaled(1), font(14, true)), drawCustomLabels() ] },
 				axes: [ {
 					...axisDefaults(showGrid),
 					size: scaled(10) + getFontSize(),
 					space: getFontSize() * 3,
 					labelSize: getFontSize(),
-					label: [0, 1, 2].map(i => options['column'+i as keyof HistogramParams]).filter((c, i) => samplesBins[i])
-						.map(c => columns.find(cc => cc.id === c)?.fullName).join(', '),
+					fullLabel: colNames.join(', '),
+					label: '',
 					values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
 					...(enumMode && {
 						values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
@@ -212,23 +217,26 @@ export default function HistogramPlot() {
 					} },
 				series: [
 					{}, ...[{
+						label: colNames[0],
 						stroke: color(colors[0]),
 						fill: color(colors[0], .8),
 						width: 0,
 						points: { show: false },
 						paths: uPlot.paths.bars!({ size: [.8, scaled(64)], align: 1 })
 					}, {
+						label: colNames[1],
 						stroke: color(colors[1]),
 						fill: color(colors[1]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.4, scaled(64)], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.5, scaled(64)], align: 1 })
 					}, {
+						label: colNames[2],
 						stroke: color(colors[2]),
 						fill: color(colors[2]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.2, scaled(64)], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.25, scaled(64)], align: 1 })
 					}].filter((ser, i) => samplesBins[i])
 				]
 			}) as Omit<uPlot.Options, 'width'|'height'>,

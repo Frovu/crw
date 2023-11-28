@@ -6,8 +6,9 @@ import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, us
 import { LayoutContext, ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
+import { applyTextTransform } from './BasicPlot';
 
-const colors = ['magenta', 'acid', 'cyan', 'green'];
+const colors = ['magenta', 'gold', 'cyan', 'green'];
 
 export type CorrelationParams = {
 	column0: string | null,
@@ -20,7 +21,7 @@ export type CorrelationParams = {
 export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = columns => ({
 	column0: findColumn(columns, 'VmBm')?.id ?? null,
 	column1: findColumn(columns, 'magnitude')?.id ?? null,
-	color: 'magenta',
+	color: 'green',
 	loglog: false,
 	logx: true,
 });
@@ -115,7 +116,7 @@ export default function CorrelationPlot() {
 					{
 						...axisDefaults(showGrid),
 						space: getFontSize() * 2.5,
-						label: colX.fullName,
+						label: applyTextTransform(colX.fullName),
 						size: getFontSize() + scaled(12),
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
 						...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
@@ -124,7 +125,7 @@ export default function CorrelationPlot() {
 					},
 					{
 						...axisDefaults(showGrid),
-						label: colY.fullName,
+						label: applyTextTransform(colY.fullName),
 						size: getFontSize() * 3,
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 						values: (u, vals) => vals.map(v => loglog ? v?.toString()

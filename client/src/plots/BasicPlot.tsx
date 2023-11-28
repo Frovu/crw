@@ -153,8 +153,8 @@ export function drawCustomLabels() {
 	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {
 			if (!axis.show || !axis.fullLabel) continue;
-			if (axis.side && axis.side % 2 === 0)
-				return console.error('only implemented left or right axis');
+
+			const isHorizontal = axis.side && axis.side % 2 === 0;
 
 			const marked: {[k: string]: true} = {};
 			const rec = (txt: string=axis.fullLabel!): string[][] => {
@@ -176,28 +176,33 @@ export function drawCustomLabels() {
 			const fontSize = measureDigit();
 			const textWidth = measureStyled(u.ctx, parts);
 			const px = (a: number) => scaled(a * devicePixelRatio);
-			// const maxValLen = axis._values ? Math.max.apply(null, axis._values.map(v => v?.length ?? 0)) : 0;
-			// const shiftX = Math.max(0, 2.5 - maxValLen) * fontSize.width;
-			const shiftX = 0;
 			
-			const flowDir = axis.side === 0 || axis.side === 3 ? 1 : -1;
-			const baseX = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
-			u.ctx.save();
-			const bottom = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
-			const top = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
-			const targetY = (axis.distr === 3 ? (u.bbox.top + u.bbox.height/2)
-				 : u.valToPos((top + bottom) / 2, axis.scale!, true))
+			const flowDir = isHorizontal || axis.side === 3 ? 1 : -1;
+			const baseTop = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
+			const first = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
+			const last = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
+			const targetLeft = (axis.distr === 3 ? (u.bbox.top + u.bbox.height/2)
+				 : u.valToPos((last + first) / 2, axis.scale!, true))
 					+ flowDir * textWidth / 2;
 			
-			const bottomX = u.height * devicePixelRatio;
-			const posX = Math.round(baseX + axis.labelGap! * -flowDir + shiftX * flowDir) * devicePixelRatio;
-			const posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetY, true)
-				: clamp(px(2), bottomX - textWidth - px(4), targetY);
+			let posX, posY;
+			if (isHorizontal) {
+				posX = clamp(px(2), u.width - textWidth - px(4), targetLeft - textWidth);
+				posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height;
+			} else {
+				const bottomX = u.height * devicePixelRatio;
+				posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
+				posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetLeft, true)
+					: clamp(px(2), bottomX - textWidth - px(4), targetLeft);
+				if (isNaN(posY))
+					continue;
 
-			if (isNaN(posY))
-				continue;
+			}
+			
+			u.ctx.save();
 			u.ctx.translate(posX, posY);
-			u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
+			if (!isHorizontal)
+				u.ctx.rotate((axis.side === 3 ? -Math.PI : Math.PI) / 2);
 			u.ctx.textBaseline = 'bottom';
 			u.ctx.textAlign = 'left';
 			let x = 0;
