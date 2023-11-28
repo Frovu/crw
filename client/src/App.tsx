@@ -31,6 +31,7 @@ export function ContextMenu() {
 		onMouseDown={e => { e.stopPropagation(); }}
 		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
 		{menu.type === 'app' && <>
+			{role && <button onClick={() => promptLogin('password')}>Change password</button>}
 			{role === 'admin' && <button onClick={() => promptLogin('upsert')}>Upsert user</button>}
 			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
