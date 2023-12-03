@@ -155,11 +155,12 @@ function App() {
 }
 
 export default function AppWrapper() {
-	return (
+	const { renderColors } = useAppSettings();
+	return <div style={{ ...renderColors(), color: 'var(--color-text)', background: 'var(--color-bg)' }}>
 		<QueryClientProvider client={theQueryClient}>
 			<AuthWrapper>
 				<App/>
 			</AuthWrapper>
 		</QueryClientProvider>
-	);
+	</div>;
 }

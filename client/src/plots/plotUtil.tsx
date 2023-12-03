@@ -3,6 +3,9 @@ import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { BasicPlotParams, ScaleParams, TextTransform } from './BasicPlot';
+import * as APP from '../app';
+
+export const color = APP.color;
 
 export type PlotsOverrides = {
 	scale: number,
@@ -39,13 +42,6 @@ export const getParam = <T extends keyof PlotsOverrides>(k: T) => {
 
 export const scaled = (a: number) => a * getParam('scale');
 export const getFontSize = () => Math.round(scaled(getParam('fontSize')));
-
-export function color(name: string, opacity=1) {
-	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name) || 'red';
-	const parts = col.includes('rgb') ? col.match(/[\d.]+/g)! :
-		(col.startsWith('#') ? [1,2,3].map(d => parseInt(col.length===7 ? col.slice(1+(d-1)*2, 1+d*2) : col.slice(d, 1+d), 16) * (col.length===7 ? 1 : 17 )) : null);
-	return parts ? `rgba(${parts.slice(0,3).join(',')},${parts.length > 3 && opacity === 1 ? parts[3] : opacity})` : col;
-}
 
 export function font(sz: number|null=null, scale: boolean=false, style: string='') {
 	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');

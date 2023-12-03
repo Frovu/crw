@@ -215,7 +215,7 @@ export function ExportPreview() {
 export function ExportableUplot({ size, options, data, onCreate }:
 { size?: (sz: Size, unknown: boolean) => Size, options: () => uOptions, data: (number | null)[][], onCreate?: (u: uPlot) => void }) {
 	const layout = useContext(LayoutContext);
-	const theme = useAppSettings(st => st.theme);
+	const { theme, colors } = useAppSettings();
 	const { scalesParams, textTransform } = usePlotExportSate(st => st.overrides);
  	const { items } = useLayout();
 	const controlsPresent = !!Object.values(items).find(i => i?.type === 'ExportControls');
@@ -244,7 +244,7 @@ export function ExportableUplot({ size, options, data, onCreate }:
 				setUpl(u);
 				onCreate?.(u);
 			} }}/>;
-	}, [theme, controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
+	}, [theme, colors, controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
 	return plot;
 }
 

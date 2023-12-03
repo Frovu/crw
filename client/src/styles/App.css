@@ -168,6 +168,10 @@ button:hover:enabled, select:hover:enabled {
 	border-radius: 0 !important;
 }
 
+.w-color-sketch > :first-child {
+	padding-top: 4px !important;
+}
+
 .w-color-interactive {
 	border-radius: 0 !important;
 	--sketch-alpha-box-shadow: var(--color-grid) 0px 0px 0px 1px inset !important;

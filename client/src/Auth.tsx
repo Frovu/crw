@@ -86,7 +86,6 @@ export function AuthNav() {
 }
 
 export function AuthWrapper({ children }: { children: ReactNode }) {
-
 	const [authPrompt, setAuthPrompt] = useState<null | 'password' | 'login' | 'upsert'>(null);
 	const query = useQuery(['auth'], () => apiGet('auth/login'));
 	if (query.error)
