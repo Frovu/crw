@@ -21,6 +21,7 @@ import { ExportControls, ExportPreview, renderOne } from './ExportPlot';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import { ContextMenu } from '../App';
+import { ColorsSettings } from '../Colors';
 
 export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
 	const { plotOffset, set } = useEventsSettings();
@@ -202,6 +203,7 @@ export function LayoutContent() {
 		{type === 'MainTable' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
+		{type === 'ColorSettings' && <ColorsSettings/>}
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
