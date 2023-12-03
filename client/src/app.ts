@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
 import { TableMenuDetails } from './events/events';
 import { LayoutsMenuDetails } from './Layout';
-import { RgbaColor, rgbaToHexa } from '@uiw/react-color';
+import { RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/react-color';
 import { immer } from 'zustand/middleware/immer';
 
 export const KEY_COMB = {
@@ -73,9 +73,15 @@ export function color(name: typeof colorKeys[number], alpha?: number) {
 
 export function getDefaultColor(name: string): RgbaColor {
 	const col = window.getComputedStyle(document.body).getPropertyValue('--color-'+name);
-	console.assert(col && col.includes('rgb'));
-	const [r, g, b, a] = col.match(/[\d.]+/g)!.map(p => parseFloat(p));
-	return { r, g, b, a: isNaN(a) ? 1 : a };
+	if (!col) {
+		console.error('color not found: ' + name);
+		return { r: 255, g: 0, b: 0, a: 1 };
+	}
+	if (col.includes('rgb')) {
+		const [r, g, b, a] = col.match(/[\d.]+/g)!.map(p => parseFloat(p));
+		return { r, g, b, a: isNaN(a) ? 1 : a };
+	}
+	return hexToRgba(col);
 }
 
 export const logMessage = (text: string, type: LogMessage['type']='info' ) => queueMicrotask(() =>
