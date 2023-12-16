@@ -8,10 +8,10 @@ from netCDF4 import Dataset, num2date, date2index
 import numpy as np
 
 log = logging.getLogger('crdt')
-last_downloaded = [datetime(2000, 1, 1)]
+last_downloaded = [datetime(2024, 1, 1)]
 download_progress = {}
 
-PATH = '../tmp/ncep'
+PATH = os.path.join(os.path.dirname(__file__), '../../../tmp/ncep')
 HOUR = 3600
 MODEL_PERIOD = 6 * HOUR
 MODEL_EPOCH = datetime(1948, 1, 1)

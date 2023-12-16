@@ -19,7 +19,7 @@ def _select(t_from, t_to, experiment, channel_name):
 			NULLIF(COALESCE(revised, original), \'NaN\'), pressure, t_mass_average, a10, ax, ay, az
 			FROM muon.counts_data c JOIN muon.conditions_data m
 			ON m.experiment = %s AND c.channel = %s AND c.time = m.time
-			JOIN gsm_result g ON g.time = c.time
+			LEFT OUTER JOIN gsm_result g ON g.time = c.time
 			WHERE to_timestamp(%s) <= c.time AND c.time <= to_timestamp(%s)
 			ORDER BY c.time''', [exp_id, ch_id, t_from, t_to]).fetchall()
 	if len(res) < 1:
@@ -111,7 +111,6 @@ def select_with_corrected(t_from, t_to, experiment, channel_name, query):
 
 	diff_tm, diff_pres = (info['mean'][i] - data[i] for i in ['t_mass_average', 'pressure'])
 	data['corrected'] = data['revised'] * (1 - coef['p'] * diff_pres) * (1 - coef['tm'] * diff_tm)
-	
 	if 'time' not in query:
 		query = ['time'] + query
 	fields = [f for f in query if f in data]

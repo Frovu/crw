@@ -365,7 +365,7 @@ function MuonApp() {
 					<tr title='Actually used for corrections (saved)' style={{ boxShadow: '0 -1px 0 var(--color-border)' }}>
 						<td>used</td>
 						{(['p', 'tm'] as const).map((coef, i) => <td style={{ padding: '4px 1px 0 1px' }}>
-							<input type='text' style={{ width: 42, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
+							<input type='text' style={{ width: 48, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 								value={input[coef]}
 								onChange={e => setInputState(st => ({ ...st, [coef]: e.target.value }))}
 								onKeyDown={e => ['Escape', 'Enter', 'NumpadEnter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
@@ -388,7 +388,7 @@ function MuonApp() {
 					{correlationPlot}
 				</div>
 				<div style={{ textAlign: 'right', paddingRight: 8, paddingTop: 4 }}>
-					<div style={{ display: 'inline-block', padding: 8, width: 236, border: '1px solid', borderColor: color('red', .6) }}>
+					<div style={{ display: 'inline-block', padding: 8, border: '1px solid', borderColor: color('red', .6) }}>
 						<div style={{ color: color('text'), verticalAlign: 'top', fontSize: 14 }}>
 							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
 								<span style={{ color: color('text') }}>[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h] </span>{prettyDate(fetchFrom)}<br/>
