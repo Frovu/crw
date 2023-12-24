@@ -3,9 +3,9 @@ import uPlot from 'uplot';
 import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
 import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
-import { LayoutContext, type ParamsSetter } from '../Layout';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend } from './BasicPlot';
+import { drawCustomLabels, drawCustomLegend } from './basicPlot';
+import { LayoutContext, type ParamsSetter } from '../layout';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -27,7 +27,7 @@ export type HistogramParams = {
 	column2: string | null,
 };
 
-export const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns => ({
+const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns => ({
 	binCount: 16,
 	forceMin: null,
 	forceMax: null,

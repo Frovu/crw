@@ -3,10 +3,10 @@ import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, scaled } from './plotUtil';
 import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings } from '../events/events';
-import { LayoutContext, type ParamsSetter } from '../Layout';
+import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform } from './BasicPlot';
+import { applyTextTransform } from './basicPlot';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 

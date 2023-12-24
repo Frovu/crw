@@ -1,6 +1,7 @@
 import uPlot from 'uplot';
-import { type CustomScale, type CustomSeries, type BasicPlotParams, BasicPlot, 
-	applyTextTransform, basicDataQuery } from '../BasicPlot';
+import BasicPlot from '../BasicPlot';
+import { type CustomScale, type CustomSeries, type BasicPlotParams,
+	applyTextTransform, basicDataQuery } from '../basicPlot';
 import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow,
 	usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
 

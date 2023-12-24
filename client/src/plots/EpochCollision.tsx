@@ -5,10 +5,9 @@ import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
 import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
-import { LayoutContext, type ParamsSetter } from '../Layout';
-import { ExportableUplot } from '../events/ExportPlot';
-import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend } from './BasicPlot';
-import { PlotIntervalInput } from '../events/EventsApp';
+import { LayoutContext, type ParamsSetter } from '../layout';
+import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
+import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend } from './basicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;

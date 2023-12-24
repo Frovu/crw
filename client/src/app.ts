@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
 import type { TableMenuDetails } from './events/events';
-import type { LayoutsMenuDetails } from './Layout';
+import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/react-color';
 import { immer } from 'zustand/middleware/immer';
 

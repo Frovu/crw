@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from 'react-query';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import './styles/App.css';
@@ -11,35 +11,12 @@ import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
-import { dispatchCustomEvent, useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor, AuthContext } from './app';
-import { LayoutContextMenu, LayoutNav, type LayoutsMenuDetails, useLayoutsStore } from './Layout';
-import { defaultLayouts } from './events/events';
-import { ExportMenu } from './events/EventsData';
+import { useEventListener } from './util';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor } from './app';
+import { LayoutNav } from './Layout';
+import ContextMenu from './ContextMenu';
 
 const theQueryClient = new QueryClient();
-
-export function ContextMenu() {
-	const { active, resetLayout } = useLayoutsStore();
-	const { role, promptLogin } = useContext(AuthContext);
-	const { menu } = useContextMenu();
-	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
-	
-	return !menu ? null : <div ref={setDiv} className='ContextMenu'
-		style={{ left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
-				 top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)) }}
-		onMouseDown={e => { e.stopPropagation(); }}
-		onClick={e => (e.target instanceof HTMLButtonElement) && closeContextMenu()}>
-		{menu.type === 'app' && <>
-			{role && <button onClick={() => promptLogin('password')}>Change password</button>}
-			{role === 'admin' && <button onClick={() => promptLogin('upsert')}>Upsert user</button>}
-			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
-			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
-		</>}
-		{'tableExport' === menu.type && <ExportMenu/>}
-		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu detail={menu.detail as LayoutsMenuDetails}/>}
-	</div>;
-}
 
 function Logs() {
 	const { log } = useAppSettings();

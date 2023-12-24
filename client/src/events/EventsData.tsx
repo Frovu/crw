@@ -5,7 +5,7 @@ import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logSuccess } from '../app';
-import { G_ALL_OPS } from './Columns';
+import { G_ALL_OPS } from './columns';
 
 export function ExportMenu() {
 	const { tables } = useContext(MainTableContext);

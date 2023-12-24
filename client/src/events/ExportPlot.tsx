@@ -1,14 +1,13 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
-import type { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
-import { plotPanelOptions, statPanelOptions, useViewState } from './events';
+import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
+import { plotPanelOptions, statPanelOptions, useEventsSettings, useViewState } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
+import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
 import { persist } from 'zustand/middleware';
-import { PlotIntervalInput } from './EventsApp';
 import type { Size } from '../util';
 import { useAppSettings } from '../app';
 
@@ -367,5 +366,18 @@ export function ExportControls() {
 				</div>)}
 			</div>
 		</div>
+	</div>;
+}
+
+export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
+	const { plotOffset, set } = useEventsSettings();
+	const [left, right] = plotOffset;
+	const step = alterStep ?? 24;
+
+	return <div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title='Plot time interval, as hours offset from event onset'>
+		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-240' max='0' step={step} defaultValue={left}
+			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [e.target.valueAsNumber, right])}/>
+		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='240' step={step} defaultValue={right}
+			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [left, e.target.valueAsNumber])}/> h
 	</div>;
 }

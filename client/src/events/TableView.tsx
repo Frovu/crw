@@ -4,7 +4,7 @@ import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
 	MainTableContext, useViewState, type Cursor, prettyTable, shortTable } from './events';
 import { pickEventForSampe } from './sample';
 import { openContextMenu } from '../app';
-import { LayoutContext } from '../Layout';
+import { LayoutContext } from '../layout';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
