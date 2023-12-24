@@ -3,26 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "homepage": "/w",
+  "type": "module",
   "dependencies": {
     "@types/node": "^18.15.11",
     "@types/react": "^18.0.34",
     "@types/react-dom": "^18.0.11",
     "@uiw/react-color": "^2.0.3",
+    "@vitejs/plugin-react": "^4.2.1",
     "immer": "^10.0.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",
-    "react-scripts": "5.0.1",
     "regression": "^2.0.1",
     "typescript": "^5.0.4",
     "uplot": "^1.6.24",
-    "uplot-react": "^1.1.4"
+    "uplot-react": "^1.1.4",
+    "vite": "^5.0.10"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "vite --port 3000",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "eslintConfig": {
     "extends": [
@@ -112,6 +113,7 @@
   },
   "devDependencies": {
     "@types/regression": "^2.0.2",
+    "eslint-config-react-app": "^7.0.1",
     "zustand": "^4.4.1"
   }
 }
