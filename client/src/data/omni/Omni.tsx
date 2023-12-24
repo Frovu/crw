@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { useMonthInput } from '../../util';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../../util';
 import uPlot from 'uplot';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type SetStateAction } from 'react';
 import LoadFile from './LoadFile';
 import { useNavigationState, NavigationContext, NavigatedPlot } from '../../plots/NavigatedPlot';
-import { axisDefaults, color, font, seriesDefaults } from '../../plots/plotUtil';
+import { axisDefaults, color, customTimeSplits, font, seriesDefaults } from '../../plots/plotUtil';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { MonthInput } from '../../Utility';
 
 const PARAM_GROUP = ['all', 'SW', 'IMF', 'Geomag'] as const;
 const spacecraft: any = {
@@ -18,14 +20,38 @@ const spacecraft: any = {
 	60: 'GeoT'
 };
 
+const now = new Date();
+const defaultState = {
+	interval: [0, 1].map(add => Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + add) / 1e3) as [number, number],
+	group: 'all' as typeof PARAM_GROUP[number],
+	overwrite: false,
+};
+
+type OmniState = typeof defaultState & {
+	set: <K extends keyof typeof defaultState>(k: K, a: SetStateAction<typeof defaultState[K]>) => void
+};
+
+const useOmniState = create<OmniState>()(persist(set => ({
+	...defaultState,
+	set: (key, val) => set(state => {
+		const value = typeof val === 'function' ? val(state[key]) : val;
+		return { ...state, [key]: value };
+	})
+}), {
+	name: 'crwOmniSettings',
+	partialize: ({ group, interval }) => ({ group, interval }) 
+}));
+
 function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 	const filterV =  (u: uPlot, splits: number[]) => splits.map(sp => sp > 200 ? sp : null);
 	const filterB = (u: uPlot, splits: number[]) => [ null, null, ...splits.slice(2, -2), null, null, null ];
+	
 	return {
 		padding: [12, 12, 0, 8],
 		axes: [
 			{
 				...axisDefaults(true),
+				...customTimeSplits(),
 			}, {
 				...axisDefaults(true),
 				scale: 'imf',
@@ -130,9 +156,7 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 
 export default function OmniApp() {
 	const queryClient = useQueryClient();
-	const [interval, monthInput] = useMonthInput(new Date(Date.now() - 864e5 * 60));
-	const [group, setGroup] = useState<typeof PARAM_GROUP[number]>('all');
-	const [overwrite, setOverwrite] = useState(false);
+	const { interval, overwrite, group, set } = useOmniState();
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const navigation = useNavigationState();
 
@@ -195,51 +219,53 @@ export default function OmniApp() {
 	useEffect(() => {
 		const what = navigation.state.chosen?.label;
 		if (what)
-			setGroup(['V','T','Tidx','D'].includes(what) ? 'SW' : ['|B|','Bx','By','Bz'].includes(what) ? 'IMF' : 'all');
-	}, [navigation.state.chosen]);
+			set('group', ['V','T','Tidx','D'].includes(what) ? 'SW' : ['|B|','Bx','By','Bz'].includes(what) ? 'IMF' : 'all');
+	}, [navigation.state.chosen, set]);
 
-	return (<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
+	return (<div style={{ display: 'grid', height: 'calc(100%)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
 		<NavigationContext.Provider value={navigation}>
 			<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 				<div style={{ textAlign: 'center', marginRight: 16 }}>
-					[ {monthInput} ]
+					<MonthInput {...{ interval, callback: int => set('interval', int) }}/>
 				</div>
 				<div style={{ padding: '8px 16px', lineHeight: '2em' }}>
-					<div onWheel={(e) => setGroup(g => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])}>
+					<div onWheel={(e) => set('group', g => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])}>
 						Parameter group: <select style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple', Geomag: 'peach' }[group]) }}
-							value={group} onChange={(e) => setGroup(e.target.value as any)}>
+							value={group} onChange={(e) => set('group', e.target.value as any)}>
 							{PARAM_GROUP.map(pa => <option key={pa} value={pa}>{pa}</option>)}
 						</select>
 					</div>
-					<div onWheel={(e) => setOverwrite(ow => !ow)}>
+					<div onWheel={(e) => set('overwrite', ow => !ow)}>
 						<label> Overwrite present data:
-							<input type='checkbox' checked={overwrite} onChange={e => setOverwrite(e.target.checked)} hidden={true}/>
+							<input type='checkbox' checked={overwrite} onChange={e => set('overwrite', e.target.checked)} hidden={true}/>
 							<span style={{ color: color(overwrite ? 'magenta' : 'cyan') }}> {overwrite ? 'true' : 'false'}</span>
 						</label></div>
-					{fetchTo && fetchFrom && <>
-						<div style={{ color: color('cyan'), margin: 4, verticalAlign: 'top' }}>
-							[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
-							<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-								{prettyDate(fetchFrom)}<br/>
-								&nbsp;&nbsp;to {prettyDate(fetchTo)}
-							</div>
-						</div>
-						<div style={{ margin: '4px 0 8px 16px', lineHeight: '36px' }}>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
-							<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
-						</div>
-					</>}
-					<div style={{ margin: '16px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
-						<div style={{ color: color('red') }}>{report.error}</div>
-						<div style={{ color: color('green') }}>{report.success}</div>
-					</div>
-					<div style={{ margin: 16 }}><LoadFile path='omni/upload'/></div>
-					
-					<CovregareView/>
 				</div>
+				{fetchTo && fetchFrom && <div style={{ paddingLeft: 16 }}>
+					<div style={{ color: color('cyan'), verticalAlign: 'top' }}>
+						[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
+						<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+							{prettyDate(fetchFrom)}<br/>
+							&nbsp;&nbsp;to {prettyDate(fetchTo)}
+						</div>
+					</div>
+					<div style={{ display: 'flex', paddingTop: 8, flexDirection: 'column', gap: 6 }}>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('omniweb')}>Fetch OMNI&nbsp;&nbsp;</button>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
+						<div style={{ paddingTop: 8 }}>
+							<LoadFile path='omni/upload'/>
+						</div>
+					</div>
+				</div>}
+				<div style={{ flexGrow: 1 }}/>
+				<div style={{ margin: '8px 0 0 4px', lineHeight: 1.5, cursor: 'pointer' }} onClick={() => setReport({})}>
+					<div style={{ color: color('red') }}>{report.error}</div>
+					<div style={{ color: color('green') }}>{report.success}</div>
+				</div>
+				<CovregareView/>
 			</div>
 			<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
 				{(()=>{
@@ -282,14 +308,14 @@ function CovregareView() {
 
 	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : newTo ?? new Date(0));
 	return !query.data ? null :  (
-		<div style={{ cursor: 'pointer', lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark'), position: 'fixed', bottom: 16 }}
+		<div style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark') }}
 			onClick={() => setEditing(e => !e)}>
-			<span style={{ textDecoration: editing ? 'underline' : 'unset' }}>COVERAGE INFO</span><br/>
+			<span style={{ textDecoration: editing ? 'underline' : 'unset', lineHeight: 2 }}>COVERAGE INFO</span><br/>
 			{editing && <button style={{ padding: '0 8px', margin: '4px 8px' }} disabled={!newTo || isNaN(newTo.getTime())}
 				onClick={e => { e.stopPropagation(); mutation.mutate(); }}>COMMIT</button>}
-			<span style={{ color: color('text-dark') }}>{editing && newTo && prettyDate(newTo)}</span><br/>
+			{editing && <><span style={{ color: color('text-dark') }}>{newTo && prettyDate(newTo)}</span><br/></>}
 			&nbsp;&nbsp;&nbsp;{prettyDate(query.data.from).split(' ')[0]}<br/>
-			to <input type='text' style={{ marginLeft: -5, padding: '0 4px', width: '10ch', ...(!editing && { borderColor: 'transparent' }) }}
+			to<input type='text' style={{ marginLeft: 5, padding: '0 4px', width: '11ch', ...(!editing && { borderColor: 'transparent' }) }}
 				onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()} defaultValue={to.split(' ')[0]} disabled={!editing}
 				onChange={e => setNewTo(new Date(e.target.value.split(' ')[0]))}/><br/>
 			at {prettyDate(query.data.at)}<br/>

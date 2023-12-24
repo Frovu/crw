@@ -1,10 +1,11 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
-import { Confirmation, apiPost, useEventListener } from '../util';
+import { apiPost, useEventListener } from '../util';
 import { type ColumnDef, MainTableContext, SampleContext, findColumn, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
 import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState, type ReferencePoint, type GenericColumn, type GenericParams, defaultRefPoint, type RefPointEvent } from './columns';
+import { Confirmation } from '../Utility';
 
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
 	(pretty?['Prev ', '', 'Next ']:['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +

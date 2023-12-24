@@ -85,17 +85,18 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
 	const { height, width } = measureDigit();
+	const show = !params || params?.showTimeAxis;
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / space);
 			const w = Math.ceil((max - min) / num);
-			const split = ([ 4, 6, 12, 24 ].find(s => w <= s * 3600) || 48) * 3600;
+			const split = ([ 4, 6, 12, 24, 48, 96, 120, 144, 240, 360, 720 ].find(s => w <= s * 3600) || 1440) * 3600;
 			const start = Math.ceil(min / split) * split;
 			const limit = Math.ceil((max - split/4 - start) / split);
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, splits) => splits.map((v, i) => {
-			if (!params?.showTimeAxis || v % 86400 !== 0)
+			if (!show || v % 86400 !== 0)
 				return null;
 			const d = new Date(v * 1e3);
 			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -103,10 +104,10 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
-		space: width * 5,
+		space: width * 5.5,
 		gap: scaled(-1),
-		...(params?.showTimeAxis === false && { ticks: { show: false } }),
-		size: (params?.showTimeAxis ?? true) ? height + scaled(6) + 1 : 0
+		...(!show && { ticks: { show: false } }),
+		size: show ? height + scaled(6) + 1 : 0
 	};
 }
 

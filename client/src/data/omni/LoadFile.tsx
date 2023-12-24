@@ -64,8 +64,8 @@ export default function LoadFile({ path }: { path: string }) {
 	return (<>
 		<button style={{ padding: '2px 16px' }} onClick={() => setOpen(true)}>Load a file</button>
 		{open && <>
-			<div className='popupBackground'></div>
-			<div className='popup' style={{ transform: 'unset', left: 8, top: 8, padding: '0 2em' }}>
+			<div className='PopupBackground'></div>
+			<div className='Popup' style={{ transform: 'unset', left: 8, top: 8, padding: '0 2em' }}>
 				<h4>Load data from a file</h4>
 				<div>
 					Variable: <select style={{ width: '11.5ch', marginRight: '24px' }}
@@ -85,6 +85,7 @@ export default function LoadFile({ path }: { path: string }) {
 					<UplotReact {...{
 						data: data as any,
 						options: {
+							padding: [8, 12, 8, 12],
 							height: 260,
 							width: 640,
 							cursor: {
@@ -97,6 +98,7 @@ export default function LoadFile({ path }: { path: string }) {
 							},
 							axes:[ {
 								...axisDefaults(true),
+								space: 42,
 							}, {
 								...axisDefaults(true),
 								values: (u, values) => values.map(v => v.toString())
@@ -114,8 +116,7 @@ export default function LoadFile({ path }: { path: string }) {
 				{data && data[0].length > 0 && <button style={{ marginTop: 16, padding: '2px 16px' }}
 					onClick={() => mutation.mutate()}>Upload {targetVar} to server (overwrite)</button> }
 				<div style={{ color: color('red'), height: '1em', marginBottom: 16 }}>{report}</div>
-				<span onClick={() => setOpen(false)}
-					style={{ position: 'absolute', top: 4, right: 5 }} className='closeButton'>&times;</span>
+				<span onClick={() => setOpen(false)} style={{ position: 'absolute', top: 6, right: 12 }} className='CloseButton'></span>
 			</div>
 		</>}
 	</>);

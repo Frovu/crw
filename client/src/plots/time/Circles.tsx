@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { apiGet, useEventListener, useSize, ValidatedInput } from '../../util';
+import { apiGet, useEventListener, useSize } from '../../util';
 import { circlePaths, linePaths, pointPaths } from '../plotPaths';
 import { axisDefaults, color, customTimeSplits,
 	drawMagneticClouds, drawOnsets, drawShape, markersPaths, scaled } from '../plotUtil';
@@ -14,6 +14,7 @@ import '../../styles/Circles.css';
 import { type Onset } from '../../events/events';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/ExportPlot';
+import { ValidatedInput } from '../../Utility';
 
 export type CirclesParams = BasicPlotParams & {
 	theme?: string,

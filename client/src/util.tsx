@@ -1,5 +1,7 @@
-import React, { MouseEvent, ReactElement, ReactNode, Reducer, SetStateAction, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import React, { type SetStateAction,
+	useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement, type Reducer, type MouseEvent } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
+import { Confirmation } from './Utility';
 
 export type Size = { width: number, height: number };
 
@@ -125,43 +127,6 @@ export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn:
 	};
 }
 
-function parseInput(type: 'text' | 'time' | 'number', val: string): any {
-	switch (type) {
-		case 'text': return val;
-		case 'time': return val && new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
-		case 'number': return parseFloat(val);
-	}
-}
-
-export function ValidatedInput({ type, value, callback, placeholder, allowEmpty }:
-{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean }) {
-	const [valid, setValid] = useState(true);
-	const [input, setInput] = useState(value);
-	const ref = useRef<HTMLInputElement>(null);
-
-	useEffect(() => setInput(value), [value]);
-
-	useEventListener('keydown', (e) => {
-		if (e.code === 'Escape')
-			ref.current?.blur();
-		if (['NumpadEnter', 'Enter'].includes(e.code))
-			valid && callback(input && parseInput(type, input));
-	}, ref);
-
-	const onChange = (e: any) => {
-		setInput(e.target.value);
-		if (!e.target.value && allowEmpty)
-			return setValid(true);
-		const val = parseInput(type, e.target.value);
-		if (type !== 'text' && isNaN(val))
-			return setValid(false);
-		setValid(true);
-	};
-
-	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
-		ref={ref} onChange={onChange} onBlur={() => valid && callback(input && parseInput(type, input))}></input>;
-}
-
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?: number) {
 	type R = Reducer<{ year: number, month: number, count: number, interval: number[]}, { action: 'month'|'year'|'count', value: number }>;
@@ -188,27 +153,6 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>] as [number[], ReactElement];
-}
-
-export function Confirmation({ children, callback, closeSelf }:
-{ children: ReactNode, closeSelf: () => void, callback: () => void }) {
-	useEventListener('click', () => closeSelf());
-	useEventListener('escape', () => closeSelf());
-	useEventListener('keydown', (e) => {
-		if (e.code === 'KeyY')
-			callback();
-		closeSelf();
-	});
-	return <>
-		<div className='PopupBackground'/>
-		<div className='Popup' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: '50vw' }} onClick={e => e.stopPropagation()}>
-			{children}
-			<div style={{ marginTop: '1em' }}>
-				<button style={{ width: '8em' }} onClick={() => {callback(); closeSelf();}}>Confirm (Y)</button>
-				<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => closeSelf()}>Cancel (N)</button>
-			</div>
-		</div>
-	</>;
 }
 
 export function useConfirmation(text: string, callback: () => void) {
