@@ -13,7 +13,7 @@ import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { dispatchCustomEvent, useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, useContextMenu, logColor, AuthContext } from './app';
-import { LayoutContextMenu, LayoutNav, LayoutsMenuDetails, useLayoutsStore } from './Layout';
+import { LayoutContextMenu, LayoutNav, type LayoutsMenuDetails, useLayoutsStore } from './Layout';
 import { defaultLayouts } from './events/events';
 import { ExportMenu } from './events/EventsData';
 

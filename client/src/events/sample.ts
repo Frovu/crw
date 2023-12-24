@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ColumnDef, DataRow, Value, parseColumnValue } from './events';
+import { type ColumnDef, type DataRow, type Value, parseColumnValue } from './events';
 import { immer } from 'zustand/middleware/immer';
 
 export const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;

@@ -1,8 +1,8 @@
-import React, { MutableRefObject, useRef, useState } from 'react';
+import React, { type MutableRefObject, useRef, useState } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { BasicPlotParams, ScaleParams, TextTransform } from './BasicPlot';
+import type { BasicPlotParams, ScaleParams, TextTransform } from './BasicPlot';
 import * as APP from '../app';
 
 export const color = APP.color;

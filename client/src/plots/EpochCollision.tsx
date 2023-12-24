@@ -1,13 +1,13 @@
 import { useContext, useMemo } from 'react';
 import { apiPost } from '../util';
-import { DefaultPosition, axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
+import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlayPosition, type DefaultPosition } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
-import { MainTableContext, PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
-import { LayoutContext, ParamsSetter } from '../Layout';
+import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
+import { LayoutContext, type ParamsSetter } from '../Layout';
 import { ExportableUplot } from '../events/ExportPlot';
-import { CustomAxis, CustomScale, drawCustomLabels, drawCustomLegend } from './BasicPlot';
+import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend } from './BasicPlot';
 import { PlotIntervalInput } from '../events/EventsApp';
 
 const colors = ['green', 'purple', 'magenta'];
@@ -130,7 +130,7 @@ export default function EpochCollision() {
 		const time = queries.find(q => q.data)?.data?.[0];
 		const sampleNames = [sample0, sample1, sample2]
 			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
-				(' of ' + samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN'));
+				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 		return {
 			data: [
 				time,

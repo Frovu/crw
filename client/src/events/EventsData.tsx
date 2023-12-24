@@ -1,9 +1,9 @@
-import { ReactNode, useContext, useMemo, useState } from 'react';
-import { ChangeLog, ChangeValue, ColumnDef, DataRow, MainTableContext, SampleContext,
-	TableViewContext, Value, equalValues, useEventsSettings, valueToString } from './events';
+import { type ReactNode, useContext, useMemo, useState } from 'react';
+import type { ChangeLog, ChangeValue, ColumnDef, DataRow, Value } from './events';
+import { MainTableContext, SampleContext, TableViewContext, equalValues, useEventsSettings, valueToString } from './events';
 import { Confirmation, apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { Sample, applySample, renderFilters, useSampleState } from './sample';
+import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logSuccess } from '../app';
 import { G_ALL_OPS } from './Columns';
 

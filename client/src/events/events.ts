@@ -1,18 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Filter, Sample } from './sample';
-import { Layout } from '../Layout';
-import { createContext } from 'react';
-import { CirclesParams } from '../plots/time/Circles';
-import { GSMParams } from '../plots/time/GSM';
-import { GeomagnParams } from '../plots/time/Geomagn';
-import { IMFParams } from '../plots/time/IMF';
-import { SWParams } from '../plots/time/SW';
 import { immer } from 'zustand/middleware/immer';
-import { GenericColumn } from './Columns';
-import { CorrelationParams } from '../plots/Correlate';
-import { HistogramParams } from '../plots/Histogram';
-import { CollisionOptions } from '../plots/EpochCollision';
+import { createContext } from 'react';
+import type { Filter, Sample } from './sample';
+import type { Layout } from '../Layout';
+import type { CirclesParams } from '../plots/time/Circles';
+import type { GSMParams } from '../plots/time/GSM';
+import type { GeomagnParams } from '../plots/time/Geomagn';
+import type { IMFParams } from '../plots/time/IMF';
+import type { SWParams } from '../plots/time/SW';
+import type { GenericColumn } from './Columns';
+import type { CorrelationParams } from '../plots/Correlate';
+import type { HistogramParams } from '../plots/Histogram';
+import type { CollisionOptions } from '../plots/EpochCollision';
 
 const defaultSettings = {
 	showChangelog: false,

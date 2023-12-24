@@ -1,4 +1,4 @@
-import { createContext, SetStateAction, useState, useContext, useCallback, useEffect, useMemo } from 'react';
+import { createContext, type SetStateAction, useState, useContext, useCallback, useEffect, useMemo } from 'react';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { useSize, useEventListener } from '../util';

@@ -13,7 +13,7 @@ export const clamp = (min: number, max: number, val: number, minFirst: boolean=f
 	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
 
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
-	const res = await fetch(process.env.REACT_APP_API + 'api/' + url, {
+	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
 		method: 'POST', credentials: 'include',
 		headers: { 'Content-Type': 'application/json' },
 		body: body && JSON.stringify(body)
@@ -24,7 +24,7 @@ export async function apiPost<T = { message?: string }>(url: string, body?: { [k
 	return json;
 }
 export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
-	let uri = process.env.REACT_APP_API + 'api/' + url;
+	let uri = import.meta.env.VITE_API + 'api/' + url;
 	if (query)
 		uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });

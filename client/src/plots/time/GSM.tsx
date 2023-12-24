@@ -1,6 +1,8 @@
 import uPlot from 'uplot';
-import { BasicPlot, BasicPlotParams, applyTextTransform, basicDataQuery, CustomScale, CustomSeries } from '../BasicPlot';
-import { PosRef, SizeRef, DefaultPosition, color, drawArrow, usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
+import { type CustomScale, type CustomSeries, type BasicPlotParams, BasicPlot, 
+	applyTextTransform, basicDataQuery } from '../BasicPlot';
+import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow,
+	usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,

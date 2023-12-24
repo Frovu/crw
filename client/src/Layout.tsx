@@ -2,9 +2,9 @@ import React, { createContext, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { persist } from 'zustand/middleware';
-import { clamp, useEventListener, useSize, Size } from './util';
+import { clamp, useEventListener, useSize, type Size } from './util';
 import { ContextMenuContent, LayoutContent } from './events/EventsApp';
-import { PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
+import { type PanelParams, defaultLayouts, isPanelDraggable, isPanelDuplicatable, allPanelOptions } from './events/events';
 import { logMessage, openContextMenu } from './app';
 import { color } from './plots/plotUtil';
 

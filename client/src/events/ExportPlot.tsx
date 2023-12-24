@@ -1,6 +1,6 @@
-import {  ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
-import { PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
-import { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
+import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
+import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
+import type { TextTransform, ScaleParams, CustomScale } from '../plots/BasicPlot';
 import { plotPanelOptions, statPanelOptions, useViewState } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
@@ -9,7 +9,7 @@ import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../Layout';
 import { persist } from 'zustand/middleware';
 import { PlotIntervalInput } from './EventsApp';
-import { Size } from '../util';
+import type { Size } from '../util';
 import { useAppSettings } from '../app';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;

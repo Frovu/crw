@@ -1,7 +1,7 @@
-import { useState, useRef, useContext, useLayoutEffect, ChangeEvent, useEffect } from 'react';
-import { clamp, useEventListener, Size } from '../util';
-import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, ColumnDef,
-	MainTableContext, useViewState, Cursor, prettyTable, shortTable } from './events';
+import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect } from 'react';
+import { clamp, useEventListener, type Size } from '../util';
+import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
+	MainTableContext, useViewState, type Cursor, prettyTable, shortTable } from './events';
 import { pickEventForSampe } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext } from '../Layout';

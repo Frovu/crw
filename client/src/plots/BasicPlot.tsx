@@ -1,12 +1,12 @@
-import { MutableRefObject, useCallback } from 'react';
+import { type MutableRefObject, useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet, clamp } from '../util';
-import { DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
-	markersPaths, drawMagneticClouds, drawOnsets, color, Position, Shape, Size,
+import { type DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, applyOverrides, withOverrides,
+	markersPaths, drawMagneticClouds, drawOnsets, color, type Position, type Shape, type Size,
 	drawShape, font, scaled, measureDigit, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
-import { Onset, MagneticCloud } from '../events/events';
+import type { Onset, MagneticCloud } from '../events/events';
 
 export type TextTransform = {
 	search: string,

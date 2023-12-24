@@ -1,8 +1,8 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
 import { AuthContext, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useConfirmation, useEventListener } from '../util';
-import { ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
-import { Filter, useSampleState, Sample, applySample, FILTER_OPS } from './sample';
+import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
+import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {

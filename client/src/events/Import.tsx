@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { MainTableContext, Value, equalValues, valueToString } from './events';
+import { type Value, MainTableContext, equalValues, valueToString } from './events';
 import { apiPost, useEventListener, useMutationHandler } from '../util';
 
 const FIXES = [

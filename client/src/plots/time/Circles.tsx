@@ -3,7 +3,7 @@ import { apiGet, clamp, useEventListener, useSize, ValidatedInput } from '../../
 import { linePaths, pointPaths } from '../plotPaths';
 import { axisDefaults, color, customTimeSplits,
 	drawMagneticClouds, drawOnsets, drawShape, markersPaths, scaled } from '../plotUtil';
-import { BasicPlotParams, applyTextTransform } from '../BasicPlot';
+import { type BasicPlotParams, applyTextTransform } from '../BasicPlot';
 import { useQuery } from 'react-query';
 import { Quadtree } from '../quadtree';
 import uPlot from 'uplot';
@@ -11,7 +11,7 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { Onset } from '../../events/events';
+import { type Onset } from '../../events/events';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/ExportPlot';
 

@@ -1,10 +1,10 @@
-import React, { CSSProperties, createContext } from 'react';
+import React, { type CSSProperties, createContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
-import { TableMenuDetails } from './events/events';
-import { LayoutsMenuDetails } from './Layout';
-import { RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/react-color';
+import type { TableMenuDetails } from './events/events';
+import type { LayoutsMenuDetails } from './Layout';
+import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/react-color';
 import { immer } from 'zustand/middleware/immer';
 
 export const KEY_COMB = {

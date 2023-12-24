@@ -1,9 +1,9 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
-import { ColumnDef, MainTableContext, PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
+import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
+import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
-import { LayoutContext, ParamsSetter } from '../Layout';
+import { LayoutContext, type ParamsSetter } from '../Layout';
 import { applySample } from '../events/sample';
 import { drawCustomLabels, drawCustomLegend } from './BasicPlot';
 
@@ -190,7 +190,7 @@ export default function HistogramPlot() {
 			.map(c => columns.find(cc => cc.id === c)?.fullName);
 		const sampleNames = [0, 1, 2].map(i => options['sample'+i as 'sample0'|'sample1'|'sample2'])
 			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
-				(' of ' + samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN'));
+				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 
 		return {
 			options: () => ({

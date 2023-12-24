@@ -1,4 +1,4 @@
-import { BasicPlot, BasicPlotParams, basicDataQuery, CustomSeries } from '../BasicPlot';
+import { BasicPlot, type BasicPlotParams, basicDataQuery, type CustomSeries } from '../BasicPlot';
 import { color } from '../plotUtil';
 
 export type IMFParams = BasicPlotParams & {

@@ -1,11 +1,12 @@
 import { useContext, useMemo, useEffect, useRef } from 'react';
 import { useEventListener, clamp, useSize, dispatchCustomEvent } from '../util';
 import EventsDataProvider from './EventsData';
-import AppLayout, { LayoutContext, LayoutsMenuDetails, ParamsSetter, setNodeParams, useLayout, useLayoutsStore } from '../Layout';
+import AppLayout, { LayoutContext, type LayoutsMenuDetails, type ParamsSetter, setNodeParams, useLayout, useLayoutsStore } from '../Layout';
 import { defaultFilterOp, sampleEditingMarkers, useSampleState } from './sample';
-import { MagneticCloud, MainTableContext, Onset, PanelParams, PlotContext,
+import { type MagneticCloud, MainTableContext, type Onset, type PanelParams, PlotContext,
 	defaultPlotParams, SampleContext, TableViewContext, useEventsSettings,
-	useViewState, plotPanelOptions, CommonPlotParams, TableMenuDetails, valueToString, TableParams, statPanelOptions, ColumnDef, copyAverages, findColumn } from './events';
+	useViewState, plotPanelOptions, type CommonPlotParams, type TableMenuDetails, valueToString,
+	type TableParams, statPanelOptions, type ColumnDef, copyAverages, findColumn } from './events';
 import TableView from './TableView';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollision';

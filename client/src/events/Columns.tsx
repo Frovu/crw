@@ -1,6 +1,6 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { Confirmation, apiPost, useEventListener } from '../util';
-import { ColumnDef, MainTableContext, SampleContext, findColumn, prettyTable, shortTable, useEventsSettings } from './events';
+import { type ColumnDef, MainTableContext, SampleContext, findColumn, prettyTable, shortTable, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';

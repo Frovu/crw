@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { BasicPlot, BasicPlotParams, basicDataQuery } from '../BasicPlot';
+import { BasicPlot, type BasicPlotParams, basicDataQuery } from '../BasicPlot';
 import { color } from '../plotUtil';
 
 export type GeomagnParams = BasicPlotParams & {

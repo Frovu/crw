@@ -1,4 +1,4 @@
-import { BasicPlot, BasicPlotParams, basicDataQuery } from '../BasicPlot';
+import { BasicPlot, type BasicPlotParams, basicDataQuery } from '../BasicPlot';
 import { color, superScript } from '../plotUtil';
 
 export type SWParams = BasicPlotParams & {
