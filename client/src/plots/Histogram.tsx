@@ -6,6 +6,7 @@ import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
 import { drawCustomLabels, drawCustomLegend } from './basicPlot';
 import { LayoutContext, type ParamsSetter } from '../layout';
+import { NumberInput } from '../Utility';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -47,7 +48,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultHistOptions(columns), ...params.statParams };
-	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
+	const columnOpts = columns.filter(c => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
@@ -86,10 +87,10 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Limits:</span>
-			<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={cur.forceMin ?? ''} onChange={e => set('forceMin', e.target.value ? parseFloat(e.target.value) : null)}/>
-			&lt;= X &lt;<input type='text' style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={cur.forceMax ?? ''} onChange={e => set('forceMax', e.target.value ? parseFloat(e.target.value) : null)}/>
+			<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
+				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
+			&lt;= X &lt;<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
+				value={cur.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
 		</div>
 		<div className='Row'>
 			<Checkbox text='Draw mean' k='drawMean'/>
@@ -158,7 +159,7 @@ export default function HistogramPlot() {
 		});
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
 		const transformed = samplesBins.map((bins, i) => options.yScale === '%' ? bins?.map(b => b / samples[i].length) : bins).filter(b => b);
-		const binsValues = transformed[0]?.map((v,i) => min + i*binSize) || [];
+		const binsValues = transformed[0]?.map((v, i) => min + (i + .5) * binSize) || [];
 
 		const drawAverages = (scale: number, fnt: string) => (u: uPlot) => {
 			for (const what in averages) {
@@ -194,7 +195,7 @@ export default function HistogramPlot() {
 
 		return {
 			options: () => ({
-				padding: [12, 8, 2, 0].map(p => scaled(p)) as any,
+				padding: [12, 14, 0, 0].map(p => scaled(p)) as any,
 				legend: { show: false },
 				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 				hooks: { draw: [
@@ -211,20 +212,20 @@ export default function HistogramPlot() {
 					labelSize: getFontSize(),
 					fullLabel: colNames.filter(a => a && a.length > 0).join(', '),
 					label: '',
-					values: (u, vals) => vals.map(v => v % 1 === 0 ? ('   ' + v.toFixed()) : ''),
+					values: (u, vals) => vals.map(v => v),
 					...(enumMode && {
 						values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
 					}),
 				}, {
 					...axisDefaults(showGrid),
-					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) + '%' : v.toFixed())),
+					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) : v.toFixed())),
 					size: measureDigit().width * 4 + scaled(12),
 					space: getFontSize() * 3
 				}, ],
 				scales: {
 					x: {
 						time: false,
-						range: () => [min-binSize/4, max + binSize/4 * (enumMode ? -1 : 1) ]
+						range: () => [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
 					}, y: {
 						distr: options.yScale === 'log' ? 3 : 1
 					} },
@@ -237,7 +238,7 @@ export default function HistogramPlot() {
 						fill: color(colors[0], .8),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.8, scaled(64)], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.8, scaled(64)] })
 					}, {
 						bars: true,
 						label: colNames[1],
@@ -246,7 +247,7 @@ export default function HistogramPlot() {
 						fill: color(colors[1]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.5, scaled(64)], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.5, scaled(64)] })
 					}, {
 						bars: true,
 						label: colNames[2],
@@ -255,7 +256,7 @@ export default function HistogramPlot() {
 						fill: color(colors[2]),
 						width: 0,
 						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.25, scaled(64)], align: 1 })
+						paths: uPlot.paths.bars!({ size: [.25, scaled(64)] })
 					}].filter((ser, i) => samplesBins[i])
 				]
 			}) as Omit<uPlot.Options, 'width'|'height'>,
@@ -263,6 +264,7 @@ export default function HistogramPlot() {
 		};
 	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid]);
 
+	console.log(hist?.data)
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;
 }

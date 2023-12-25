@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, type MouseEvent } from 'react';
 import { useEventListener } from './util';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
@@ -7,6 +7,33 @@ function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 		case 'time': return val && new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
 		case 'number': return parseFloat(val);
 	}
+}
+
+export function NumberInput({ value, onChange, min, max, step, allowNull, style }:
+{ value: number | null, onChange: (a: number | null) => void, min?: number, max?: number, step?: number, allowNull?: boolean, style?: CSSProperties }) {
+	const [valid, setValid] = useState(true);
+	const [text, setText] = useState(value?.toString() ?? '');
+
+	useEffect(() => setText(value?.toString() ?? ''), [value]);
+
+	const change = (e: ChangeEvent<HTMLInputElement>) => {
+		const txt = e.target.value.trim();
+		const val = txt === '' ? null : parseFloat(txt);
+		setText(txt);
+		if (val == null && !allowNull)
+			return setValid(false);
+		if (val != null && !txt.match(/^(-?[0-9]+)?(\.[0-9]+)?$/))
+			return setValid(false);
+		if (val != null && (isNaN(val)
+			|| (min != null && val < min)
+			|| (max != null && val > max)))
+			return setValid(false);
+		setValid(true);
+		onChange(val);
+	};
+
+	return <input type='text' style={{ ...style, ...(!valid && { borderColor: 'var(--color-red)' }) }}
+		value={text} onChange={change}/>;
 }
 
 export function ValidatedInput({ type, value, callback, placeholder, allowEmpty }:
@@ -90,4 +117,16 @@ export function MonthInput({ interval, callback, monthLimit }:
 			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>;
+}
+
+export function useConfirmation(text: string, callback: () => void) {
+	const [open, setOpen] = useState(false);
+
+	return {
+		askConfirmation: (e?: MouseEvent) => { setOpen(true); e?.stopPropagation(); },
+		confirmation: !open ? null : <Confirmation {...{ callback, closeSelf: () => setOpen(false) }}>
+			<h4>Confirm action</h4>
+			<p>{text ?? 'Beware of irreversible consequences'}</p>
+		</Confirmation>
+	};
 }

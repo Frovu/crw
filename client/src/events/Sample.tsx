@@ -1,9 +1,10 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
 import { AuthContext, logError, logMessage } from '../app';
-import { apiPost, dispatchCustomEvent, prettyDate, useConfirmation, useEventListener } from '../util';
+import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
 import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
+import { useConfirmation } from '../Utility';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	if (!column)

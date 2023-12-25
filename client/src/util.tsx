@@ -1,7 +1,6 @@
 import React, { type SetStateAction,
-	useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement, type Reducer, type MouseEvent } from 'react';
+	useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement, type Reducer } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
-import { Confirmation } from './Utility';
 
 export type Size = { width: number, height: number };
 
@@ -153,16 +152,4 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>] as [number[], ReactElement];
-}
-
-export function useConfirmation(text: string, callback: () => void) {
-	const [open, setOpen] = useState(false);
-
-	return {
-		askConfirmation: (e?: MouseEvent) => { setOpen(true); e?.stopPropagation(); },
-		confirmation: !open ? null : <Confirmation {...{ callback, closeSelf: () => setOpen(false) }}>
-			<h4>Confirm action</h4>
-			<p>{text ?? 'Beware of irreversible consequences'}</p>
-		</Confirmation>
-	};
 }
