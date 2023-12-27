@@ -159,7 +159,7 @@ export default function HistogramPlot() {
 		});
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
 		const transformed = samplesBins.map((bins, i) => options.yScale === '%' ? bins?.map(b => b / samples[i].length) : bins).filter(b => b);
-		const binsValues = transformed[0]?.map((v, i) => min + (i + .5) * binSize) || [];
+		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : .5)) * binSize) || [];
 
 		const drawAverages = (scale: number, fnt: string) => (u: uPlot) => {
 			for (const what in averages) {
@@ -194,77 +194,81 @@ export default function HistogramPlot() {
 				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 
 		return {
-			options: () => ({
-				padding: [12, 14, 0, 0].map(p => scaled(p)) as any,
-				legend: { show: false },
-				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				hooks: { draw: [
-					drawAverages(scaled(1), font(14, true)),
-					drawCustomLabels(),
-					drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
-				], ready: [
-					handleDragLegend
-				] },
-				axes: [ {
-					...axisDefaults(showGrid),
-					size: scaled(10) + getFontSize(),
-					space: getFontSize() * 3,
-					labelSize: getFontSize(),
-					fullLabel: colNames.filter(a => a && a.length > 0).join(', '),
-					label: '',
-					values: (u, vals) => vals.map(v => v),
-					...(enumMode && {
-						values: (u, vals) => vals.map(v => '     ' + ((v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : ''))
-					}),
-				}, {
-					...axisDefaults(showGrid),
-					values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) : v.toFixed())),
-					size: measureDigit().width * 4 + scaled(12),
-					space: getFontSize() * 3
-				}, ],
-				scales: {
-					x: {
-						time: false,
-						range: () => [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
-					}, y: {
-						distr: options.yScale === 'log' ? 3 : 1
-					} },
-				series: [
-					{}, ...[{
-						bars: true,
-						label: colNames[0],
-						legend: `${colNames[0]}${sampleNames[0]}`,
-						stroke: color(colors[0]),
-						fill: color(colors[0], .8),
-						width: 0,
-						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.8, scaled(64)] })
+			options: () => {
+				const scale = scaled(1);
+				const ch = measureDigit().width;
+				return {
+					padding: [12, 12 + (max > 999 ? 6 : 0), 0, 0].map(p => scaled(p)) as any,
+					legend: { show: false },
+					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
+					hooks: { draw: [
+						drawAverages(scaled(1), font(14, true)),
+						drawCustomLabels(),
+						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
+					], ready: [
+						handleDragLegend
+					] },
+					axes: [ {
+						...axisDefaults(showGrid),
+						size: scaled(12) + getFontSize(),
+						space: getFontSize() * 3,
+						labelSize: getFontSize(),
+						fullLabel: colNames.filter(a => a && a.length > 0).join(', '),
+						label: '',
+						values: (u, vals) => vals.map(v => v),
+						...(enumMode && {
+							values: (u, vals) => vals.map(v => (v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : '')
+						}),
 					}, {
-						bars: true,
-						label: colNames[1],
-						legend: `${colNames[1]}${sampleNames[1]}`,
-						stroke: color(colors[1]),
-						fill: color(colors[1]),
-						width: 0,
-						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.5, scaled(64)] })
-					}, {
-						bars: true,
-						label: colNames[2],
-						legend: `${colNames[2]}${sampleNames[2]}`,
-						stroke: color(colors[2]),
-						fill: color(colors[2]),
-						width: 0,
-						points: { show: false },
-						paths: uPlot.paths.bars!({ size: [.25, scaled(64)] })
-					}].filter((ser, i) => samplesBins[i])
-				]
-			}) as Omit<uPlot.Options, 'width'|'height'>,
+						...axisDefaults(showGrid),
+						values: (u, vals) => vals.map(v => v && (options.yScale === '%' ? (v*100).toFixed(0) : v.toFixed())),
+						size: (u, values) => scale * 12 + ch *
+						(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
+						space: getFontSize() * 3
+					}, ],
+					scales: {
+						x: {
+							time: false,
+							range: () => [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
+						}, y: {
+							distr: options.yScale === 'log' ? 3 : 1
+						} },
+					series: [
+						{}, ...[{
+							bars: true,
+							label: colNames[0],
+							legend: `${colNames[0]}${sampleNames[0]}`,
+							stroke: color(colors[0]),
+							fill: color(colors[0], .8),
+							width: 0,
+							points: { show: false },
+							paths: uPlot.paths.bars!({ size: [.8, scaled(64)] })
+						}, {
+							bars: true,
+							label: colNames[1],
+							legend: `${colNames[1]}${sampleNames[1]}`,
+							stroke: color(colors[1]),
+							fill: color(colors[1]),
+							width: 0,
+							points: { show: false },
+							paths: uPlot.paths.bars!({ size: [.5, scaled(64)] })
+						}, {
+							bars: true,
+							label: colNames[2],
+							legend: `${colNames[2]}${sampleNames[2]}`,
+							stroke: color(colors[2]),
+							fill: color(colors[2]),
+							width: 0,
+							points: { show: false },
+							paths: uPlot.paths.bars!({ size: [.25, scaled(64)] })
+						}].filter((ser, i) => samplesBins[i])
+					]
+				} as Omit<uPlot.Options, 'width'|'height'>; },
 			data: [binsValues, ...transformed] as any
 		};
 	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid]);
 
-	console.log(hist?.data)
+	console.log(hist?.data);
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;
 }

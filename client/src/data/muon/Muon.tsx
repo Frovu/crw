@@ -376,7 +376,7 @@ function MuonApp() {
 					</tr>
 				</table>}
 				{plotData && <div style={{ paddingTop: 4, fontSize: 14 }}>
-					<button style={{ width: 42, marginRight: 8 }} onClick={() => coefMut.mutate({ action: 'reset' })}>reset</button>
+					<button style={{ width: 52, marginRight: 8 }} onClick={() => coefMut.mutate({ action: 'reset' })}>reset</button>
 					{corrInfo == null && <>coefficients are not set</>}
 					{corrInfo && <span style={{ color: color('text-dark'), fontSize: 12 }}>
 						set /{corrInfo.length && `[${Math.floor(corrInfo.length / 24)} d] `}

@@ -188,7 +188,7 @@ export function drawCustomLabels() {
 			let posX, posY;
 			if (isHorizontal) {
 				posX = clamp(px(2), u.width - textWidth - px(4), targetLeft - textWidth);
-				posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height;
+				posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height - 2;
 			} else {
 				const bottomX = u.height * devicePixelRatio;
 				posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
