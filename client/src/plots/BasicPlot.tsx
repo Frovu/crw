@@ -91,7 +91,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 					drawMagneticClouds(params),
 				] : []),
 				draw: [
-					drawCustomLabels(),
+					drawCustomLabels(params),
 					...(params.showMetaInfo && !uopts?.hooks?.drawAxes ? [drawOnsets(params)] : []),
 					drawCustomLegend(params, legendPos, legendSize, defaultPos),
 					...(uopts?.hooks?.draw ?? [])

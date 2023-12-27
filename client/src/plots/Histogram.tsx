@@ -203,7 +203,7 @@ export default function HistogramPlot() {
 					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 					hooks: { draw: [
 						drawAverages(scaled(1), font(14, true)),
-						drawCustomLabels(),
+						drawCustomLabels({ showLegend }),
 						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
 					], ready: [
 						handleDragLegend

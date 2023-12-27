@@ -150,7 +150,7 @@ export default function EpochCollision() {
 					padding: [scaled(10), scaled(4), 0, 0],
 					hooks: {
 						draw: [
-							drawCustomLabels(), 
+							drawCustomLabels({ showLegend }), 
 							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
 						],
 						ready: [ handleDragLegend ]

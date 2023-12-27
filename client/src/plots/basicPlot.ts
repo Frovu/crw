@@ -148,7 +148,7 @@ export function drawCustomLegend(params: { showLegend: boolean }, position: Muta
 	}, captureOverrides);
 }
 
-export function drawCustomLabels() {
+export function drawCustomLabels({ showLegend }: { showLegend: boolean }) {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {
@@ -168,10 +168,13 @@ export function drawCustomLabels() {
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
 
-			const parts = rec().flatMap(([text, stroke]) => {
-				const nodes = parseText(applyTextTransform(text));
-				return nodes.map(n => ({ ...n, stroke }));
-			});
+			const parts = showLegend
+				? parseText(applyTextTransform(axis.fullLabel!))
+					.map(n => ({ ...n, stroke: color('text') }))
+				: rec().flatMap(([text, stroke]) => {
+					const nodes = parseText(applyTextTransform(text));
+					return nodes.map(n => ({ ...n, stroke }));
+				});
 
 			const fontSize = measureDigit();
 			const textWidth = measureStyled(u.ctx, parts);
