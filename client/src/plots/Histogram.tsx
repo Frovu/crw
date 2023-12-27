@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
-import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
+import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings, type Value } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
 import { drawCustomLabels, drawCustomLegend } from './basicPlot';
@@ -20,6 +20,7 @@ export type HistogramParams = {
 	drawMean: boolean,
 	drawMedian: boolean,
 	showYLabel: boolean,
+	showResiduals: boolean,
 	yScale: typeof yScaleOptions[number],
 	sample0: string,
 	column0: string | null,
@@ -35,6 +36,7 @@ const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns =>
 	forceMax: null,
 	yScale: 'count',
 	showYLabel: false,
+	showResiduals: true,
 	sample0: '<current>',
 	sample1: '<current>',
 	sample2: '<current>',
@@ -100,9 +102,97 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 			<Checkbox text=' median' k='drawMedian'/>
 		</div>
 		<div className='Row'>
+			<Checkbox text='Show residual counts' k='showResiduals'/>
 		</div>
 	</div>;
 }
+
+function drawResiduals(options: HistogramParams, samples: number[][], min: number, max: number) {
+	const left  = samples.map(smp => smp.filter(v => v <  min).length);
+	const right = samples.map(smp => smp.filter(v => v >= max).length);
+
+	const scale = scaled(1);
+	const ch = measureDigit().width;
+	const lh = getFontSize();
+	const px = (a: number) => scale * a;
+
+	return (u: uPlot) => {
+		if (!options.showResiduals)
+			return;
+		for (const [which, values] of [['left', left], ['right', right]] as const) {
+			if (!values.find(v => v > 0))
+				continue;
+			const vals = options.yScale === '%' ?
+				values.map((v, i) => Math.round(v / samples[i].length * 1000) / 10) : values;
+
+			const height = px(5) + values.filter(v => v > 0).length * lh;
+			const width = px(6) + Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch;
+
+			const x0 = u.bbox.left + (which === 'right' ? u.bbox.width - width : 0);
+			const y0 = u.bbox.top + u.height / 2 - height;
+
+			u.ctx.save();
+			u.ctx.lineWidth = px(1);
+			u.ctx.strokeStyle = color('text-dark');
+			u.ctx.fillStyle = color('bg');
+			u.ctx.fillRect(x0, y0, width, height);
+			u.ctx.strokeRect(x0, y0, width, height);
+			u.ctx.textAlign = 'left';
+			u.ctx.lineCap = 'butt';
+			u.ctx.textBaseline = 'top';
+
+			const x = x0 + px(2);
+			let y = y0 + px(3);
+			for (const [i, val] of values.entries()) {
+				if (val <= 0)
+					continue;
+
+				u.ctx.fillStyle = color(colors[i]);
+				u.ctx.fillText('+' + val.toString(), x, y);
+				y += lh;
+			}
+			u.ctx.restore();
+		}
+	};
+}
+
+function drawAverages(options: HistogramParams, samples: Value[][]) {
+	const scale = scaled(1);
+	const fnt = font(14, true);
+	const averages = {
+		mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
+		median: options.drawMedian && samples.map(smpl => {
+			const s = smpl.sort() as any, mid = Math.floor(smpl.length / 2);
+			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
+		})
+	} as {[key: string]: (number | null)[]};
+
+	return (u: uPlot) => {
+		for (const what in averages) {
+			if (!averages[what]) continue;
+			for (const [i, value] of averages[what].entries()) {
+				if (value == null) continue;
+				const x = u.valToPos(value, 'x', true);
+				const margin = scale * (what === 'mean' ? -8 : 2);
+				const text = what === 'mean' ? 'm' : 'd';
+				u.ctx.save();
+				u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
+				u.ctx.font = fnt;
+				u.ctx.textBaseline = 'top';
+				u.ctx.textAlign = 'left';
+				u.ctx.lineWidth = scale * 2 * devicePixelRatio;
+				u.ctx.beginPath();
+				u.ctx.moveTo(x, u.bbox.top + margin + scale * 14);
+				u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
+				u.ctx.stroke();
+				u.ctx.lineWidth = scale * 1 * devicePixelRatio;
+				u.ctx.strokeStyle = color('text');
+				u.ctx.stroke();
+				u.ctx.fillText(text, x - scale * 3, u.bbox.top + margin);
+				u.ctx.restore();
+			} }
+	};
+} 
 
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
@@ -134,17 +224,10 @@ export default function HistogramPlot() {
 		const column = columns[cols[firstIdx]];
 		const enumMode = !!column.enum;
 		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v as any) + 1))] : allSamples;
-		const averages = {
-			mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
-			median: options.drawMedian && samples.map(smpl => {
-				const s = smpl.sort() as any, mid = Math.floor(smpl.length / 2);
-				return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
-			})
-		} as {[key: string]: (number | null)[]};
 
 		const everything = samples.flat() as number[];
 		const min = options.forceMin ?? Math.min.apply(null, everything);
-		let max = options.forceMax ?? Math.max.apply(null, everything);
+		let max = options.forceMax ?? Math.max.apply(null, everything) + 1;
 		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : options.binCount;
 		if (options.forceMax == null) {
 			const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
@@ -167,32 +250,6 @@ export default function HistogramPlot() {
 		const transformed = samplesBins.map((bins, i) => yScale === '%' ? bins?.map(b => b / samples[i].length)! : bins!).filter(b => b);
 		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : .5)) * binSize) || [];
 
-		const drawAverages = (scale: number, fnt: string) => (u: uPlot) => {
-			for (const what in averages) {
-				if (!averages[what]) continue;
-				for (const [i, value] of averages[what].entries()) {
-					if (value == null) continue;
-					const x = u.valToPos(value, 'x', true);
-					const margin = scale * (what === 'mean' ? -8 : 2);
-					const text = what === 'mean' ? 'm' : 'd';
-					u.ctx.save();
-					u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
-					u.ctx.font = fnt;
-					u.ctx.textBaseline = 'top';
-					u.ctx.textAlign = 'left';
-					u.ctx.lineWidth = scale * 2 * devicePixelRatio;
-					u.ctx.beginPath();
-					u.ctx.moveTo(x, u.bbox.top + margin + scale * 14);
-					u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
-					u.ctx.stroke();
-					u.ctx.lineWidth = scale * 1 * devicePixelRatio;
-					u.ctx.strokeStyle = color('text');
-					u.ctx.stroke();
-					u.ctx.fillText(text, x - scale * 3, u.bbox.top + margin);
-					u.ctx.restore();
-				} }
-		};
-
 		const colNames = [0, 1, 2].map(i => options['column'+i as keyof HistogramParams])
 			.map(c => columns.find(cc => cc.id === c)?.fullName);
 		const sampleNames = [0, 1, 2].map(i => options['sample'+i as 'sample0'|'sample1'|'sample2'])
@@ -201,7 +258,7 @@ export default function HistogramPlot() {
 
 		// try to prevent short bars from disappearing
 		const highest = Math.max.apply(null, transformed.flat());
-		const elevated = transformed.map(smp => smp.map(c => Math.max(c, highest / 300)));
+		const elevated = transformed.map(smp => smp.map(c => c === 0 ? 0 : Math.max(c, highest / 256)));
 
 		const yLabel = yScale === 'log' ? 'log( events count )'
 					 : yScale === '%' ? 'events fraction, %' : 'events count';
@@ -214,8 +271,9 @@ export default function HistogramPlot() {
 					legend: { show: false },
 					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
 					hooks: { draw: [
-						drawAverages(scaled(1), font(14, true)),
+						drawAverages(options, samples),
 						drawCustomLabels({ showLegend }),
+						enumMode ? () => {} : drawResiduals(options, samples as any, min, max),
 						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
 					], ready: [
 						handleDragLegend
@@ -246,7 +304,7 @@ export default function HistogramPlot() {
 					scales: {
 						x: {
 							time: false,
-							range: () => [min, max] // [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
+							range: () => !enumMode ? [min, max] : [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
 						}, y: {
 							distr: yScale === 'log' ? 3 : 1
 						} },
@@ -285,7 +343,6 @@ export default function HistogramPlot() {
 		};
 	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid]);
 
-	console.log(hist?.data)
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;
 }
