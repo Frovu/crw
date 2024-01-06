@@ -1,4 +1,4 @@
-import { ReactElement, Reducer, SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { type ReactElement, type Reducer, type SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { ManyStationsView } from './NeutronView';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';

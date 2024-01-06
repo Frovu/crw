@@ -5,7 +5,7 @@ import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollision';
 import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
-import { ExportControls, ExportPreview, renderOne } from './ExportPlot';
+import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
 import { type PanelParams, type TableMenuDetails, useViewState, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, MainTableContext, PlotContext,
@@ -211,6 +211,8 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 				<CheckboxTable text='Show changes log' k='showChangelog'/>
 			</div></>}
 		</>}
+		{isEventPlot && 
+			<PlotIntervalInput/>}
 		{isPlot && <>
 			<div className='separator'/>
 			<div className='Row'>

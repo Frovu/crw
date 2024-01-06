@@ -204,7 +204,6 @@ def _do_compute(generic, for_rows=None):
 	if op in G_OP_TIME:
 		if op.startswith('time_offset'):
 			t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
-			print(t_1[-2:], t_2[-2:])
 			result = (t_2 - t_1) / HOUR
 			if '%' in op:
 				result = result / event_duration * 100
