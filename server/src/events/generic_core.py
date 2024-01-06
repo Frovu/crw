@@ -67,7 +67,7 @@ def default_window(ent):
 
 def _select(for_rows, query, root='forbush_effects'):
 	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)::integer'
-		if 'time' == c else f'{e}.{c}' for e, c in query])
+		if 'time' == c else (f'{e}.{c}' if e is not None else c) for e, c in query])
 	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} '
 	if for_rows is not None:
 		select_query += f'WHERE {query[0][0]}.id = ANY(%s) '

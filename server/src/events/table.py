@@ -53,6 +53,8 @@ def column_id(col):
 		return col
 	return f'{ENTITY_SHORT[col.entity]}_{col.name}'
 def parse_column_id(s):
+	if s.startswith('g__'):
+		return None, s
 	for ent, short in ENTITY_SHORT.items():
 		if s.startswith(short + '_'):
 			return ent, s.replace(short + '_', '')

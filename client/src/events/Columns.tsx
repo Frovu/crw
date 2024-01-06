@@ -156,8 +156,8 @@ export default function ColumnsSelector() {
 	const RefInput = ({ k }: { k: 'boundary'|'reference' }) => {
 		const st = params[k];
 		const isEvent = st?.type === 'event';
-		const isDefault = isEvent && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
-			.some((p) => st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
+		const isDefault = isEvent && st.entity === entity && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
+			.some((p) => p !== 'entity' && st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
 		return <>
 			<select style={{ color: isDefault ? color('text-dark') : 'unset',
 				width: isEvent ? '16ch' : '7.5ch' }} className='Borderless'

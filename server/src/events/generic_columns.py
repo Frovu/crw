@@ -17,13 +17,14 @@ def find_column_info(rows, name):
 		if not name.startswith('g__'):
 			entity, col = parse_column_id(name)
 			found = table_columns[entity][col]
-			return found.pretty_name or col, found.data_type
+			return found.pretty_name or col, found.data_type, entity
 		# found = next((g for g in generics if g.name == name))
-		gen = next((GenericColumn.from_row(row, rows) for row in rows if GenericColumn.from_row(row, rows).name == name))
-		return gen.pretty_name, gen.data_type
+
+		gen = next((GenericColumn.from_row(row, rows) for row in rows if str(row[0]) == name.replace('g__', '')))
+		return gen.pretty_name, gen.data_type, gen.entity
 	except:
 		log.warning('Could not find generic target column: %s', name)
-		return '<DELETED>', 'real'
+		return '<DELETED>', 'real', 'forbush_effects'
 
 @dataclass
 class GenericParams:
@@ -88,16 +89,17 @@ class GenericColumn:
 			return self
 		if op in G_OP_COMBINE:
 			assert 'diff' in op
-			pretty1, _ = find_column_info(gs, para.column)
-			pretty2, _ = find_column_info(gs, para.other_column)
+			pretty1, _, _ = find_column_info(gs, para.column)
+			pretty2, _, _ = find_column_info(gs, para.other_column)
 			name = f'{pretty1} - {pretty2}'.replace(' ', '')
 			pretty_name = f'|{name}|' if 'abs' in op else f'({name})'
 			description = f'Column values {"absolute " if "abs" in op else ""}difference: ' + pretty_name
 		elif op in G_OP_CLONE:
-			pretty, dtype = find_column_info(gs, para.column)
+			pretty, dtype, ent = find_column_info(gs, para.column)
 			self.data_type = dtype
-			pretty_name = f"[{ENTITY_SHORT[entity].upper()}{shift_indicator(para.entity_offset)}] {pretty}"
-			description = f'Parameter cloned from {entity} associated with other event'
+			pretty_name = f"[{ENTITY_SHORT[entity].upper()}{shift_indicator(para.entity_offset)}" if para.entity_offset != 0 else '['
+			pretty_name += (f',{ENTITY_SHORT[ent].upper()}' if ent != entity else '') + f'] {pretty}'
+			description = f'Parameter cloned from {ent[:-1]} associated with {"other" if para.entity_offset != 0 else "this"} event'
 		elif op in G_OP_VALUE:
 			is_default = all([a == b for a, b in zip(default_window(entity), (para.reference, para.boundary))])
 			def point(ref):
@@ -111,7 +113,7 @@ class GenericColumn:
 			interv = (f" {{{point(para.reference)};{point(para.boundary)}}}" if not is_default else '')
 			if op in G_OP_TIME:
 				assert 'time_offset' in op
-				pretty_name = f"offset{'%' if '%' in op else ' '}"	+ interv			
+				pretty_name = f"offset{'%' if '%' in op else ''}" + interv			
 				description = 'Time offset in ' + \
 					('%% of duration' if '%' in op else 'hours')
 			else:
@@ -185,15 +187,16 @@ def upset_generic(uid, json_body):
 	generics = select_generics(uid)
 
 	def find_col(col):
+		if col.startswith('g__'):
+			return next((g for g in generics if g.name == col), None)
 		ent, c = parse_column_id(col)
-		return table_columns[ent].get(c) or \
-			next((g for g in generics if g.entity == ent and g.name == c), None)
+		return table_columns[ent].get(c)
 
 	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
 		raise ValueError('Trying to edit generic that does not exist')
 	if gid and found.owner != uid and get_role() != 'admin':
 		raise ValueError('Forbidden')
-	if not gid and (found := next((g for g in generics if g.params == p), None)):
+	if not gid and (found := next((g for g in generics if g.entity == entity and g.params == p), None)):
 		raise ValueError('Such column already exists: '+found.pretty_name)
 	if nickname is not None and len(nickname) > 24:
 		raise ValueError('Nickname too long')

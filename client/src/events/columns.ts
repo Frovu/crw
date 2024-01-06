@@ -90,10 +90,10 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 			if (typeChanged && val === 'clone_column')
 				inp.entity_offset = 0;
 			if (typeChanged && G_VALUE_OP.includes(val as any)) {
-				inp.reference = { ...defaultRefPoint };
+				inp.reference = { ...defaultRefPoint, entity: state.entity ?? defaultRefPoint.entity };
 				inp.boundary = { ...inp.reference, end: true };
 			}
-		} else  {
+		} else {
 			inp[k] = val;
 		}
 	}),

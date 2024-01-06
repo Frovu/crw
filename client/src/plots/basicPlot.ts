@@ -167,7 +167,6 @@ export function drawCustomLabels({ showLegend }: { showLegend: boolean }) {
 				const stroke = typeof series.stroke === 'function' ? series.stroke(u, 0) : series.stroke; // FIXME: seriesIdx
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
-			console.log(showLegend)
 			const parts = showLegend
 				? parseText(applyTextTransform(axis.fullLabel!))
 					.map(n => ({ ...n, stroke: color('text') }))
