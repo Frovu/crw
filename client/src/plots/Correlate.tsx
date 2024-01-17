@@ -14,6 +14,7 @@ export type CorrelationParams = {
 	column0: string | null,
 	column1: string | null,
 	color: string,
+	showRegression: boolean,
 	loglog: boolean,
 	logx: boolean,
 };
@@ -22,6 +23,7 @@ export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = co
 	column0: findColumn(columns, 'VmBm')?.id ?? null,
 	column1: findColumn(columns, 'magnitude')?.id ?? null,
 	color: 'green',
+	showRegression: true,
 	loglog: false,
 	logx: true,
 });
@@ -50,6 +52,8 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 				onChange={e => setParams('statParams', { color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>
+		</div> <div className='Row'>
+			<Checkbox text='plot regression' k='showRegression'/>
 		</div> <div className='Row'>
 			<Checkbox text='loglog' k='loglog'/>
 			<Checkbox text='logx' k='logx'/>
@@ -148,6 +152,7 @@ export default function CorrelationPlot() {
 						stroke: color(params.color),
 						paths: pointPaths(scaled(4))
 					}, {
+						show: params.showRegression,
 						stroke: color('white'),
 						paths: linePaths(scaled(1.5))
 					}

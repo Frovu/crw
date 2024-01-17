@@ -174,7 +174,7 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 				if (value == null) continue;
 				const x = u.valToPos(value, 'x', true);
 				const margin = scale * (what === 'mean' ? -8 : 2);
-				const text = what === 'mean' ? 'm' : 'd';
+				const text = what === 'mean' ? 'a' : 'm';
 				u.ctx.save();
 				u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
 				u.ctx.font = fnt;
