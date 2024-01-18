@@ -13,6 +13,7 @@ import type { GenericColumn } from './columns';
 import type { CorrelationParams } from '../plots/Correlate';
 import type { HistogramParams } from '../plots/Histogram';
 import type { CollisionOptions } from '../plots/EpochCollision';
+import type { HistoryOptions } from '../plots/EventsHistory';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -104,7 +105,7 @@ export type PanelParams = {
 	type?: typeof allPanelOptions[number],
 	tableParams?: TableParams,
 	plotParams?: Partial<CommonPlotParams>,
-	statParams?: Partial<CorrelationParams & HistogramParams & CollisionOptions>,
+	statParams?: Partial<CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>,
 };
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
