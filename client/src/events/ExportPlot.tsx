@@ -340,7 +340,7 @@ export function ExportControls() {
 				onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
 				<div style={{ textAlign: 'right', marginTop: -8, paddingRight: 4 }}>
 					<span title='Some characters, if thou mightst need em' style={{ userSelect: 'text', letterSpacing: 2,
-						fontSize: 16, paddingRight: 8, color: color('text-dark') }}>−+∓×⋅·∙⋆°</span>
+						fontSize: 16, paddingRight: 8, color: color('text-dark') }}>−+±×⋅·∙⋆°</span>
 					<button title='Replace text in labels via Regular Expressions which are applied to labels parts'
 						className='TextButton' style={{ color: color('skyblue') }}
 						onClick={() => set('textTransform', [{

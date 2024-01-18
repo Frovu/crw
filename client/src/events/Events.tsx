@@ -21,6 +21,7 @@ import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import SampleView from './Sample';
 import TableView from './TableView';
+import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory';
 
 export function LayoutContent() {
 	const { params: { plotParams, type } } = useContext(LayoutContext)!; 
@@ -47,6 +48,7 @@ export function LayoutContent() {
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
+		{type === 'Events history' && <EventsHistory/>}
 		{params && <>
 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
@@ -177,6 +179,7 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
