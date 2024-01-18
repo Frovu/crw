@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings, type ColumnDef, type PanelParams, MainTableContext, SampleContext } from '../events/events';
-import type { ParamsSetter } from '../layout';
+import { LayoutContext, type ParamsSetter } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, measureDigit, scaled } from './plotUtil';
 import { color } from '../app';
@@ -14,20 +14,35 @@ type HistorySeries = {
 };
 
 const defaultOptions = {
-
+	window: '1 year' as keyof typeof windowOptions
 };
 
+export type HistoryOptions = typeof defaultOptions;
+
 export function EventsHistoryContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
-	return null;
+	const cur = { ...defaultOptions, ...params.statParams } as HistoryOptions;
+	const set = <T extends keyof HistoryOptions>(k: T, val: HistoryOptions[T]) =>
+		setParams('statParams', { [k]: val });
+	
+	return <div className='Group'>
+		<div>
+			<span>Window:<select className='Borderless' style={{ marginLeft: 5 }}
+				value={cur.window} onChange={e => set('window', e.target.value as any)}>
+				{Object.keys(windowOptions).map(k => <option key={k} value={k}>{k}</option>)}
+			</select></span>
+		</div>
+	</div>;
 }
 
 export default function EventsHistory() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showLegend } = useEventsSettings();
+	const layoutParams = useContext(LayoutContext)?.params.statParams;
+	const { ...params } =  { ...defaultOptions, ...layoutParams } as HistoryOptions;
 	const { columns, data: allData } = useContext(MainTableContext);
 
 	const { data, options } = useMemo(() => {
-		const window = 12
+		const window = windowOptions[params.window];
 		const timeColIdx = columns.findIndex(c => c.name === 'time');
 		const firstEvent = allData[0][timeColIdx] as Date;
 		const lastEvent = allData.at(-1)![timeColIdx] as Date;
@@ -55,11 +70,12 @@ export default function EventsHistory() {
 				const ch = measureDigit().width;
 				return {
 					cursor: { show: false },
-					padding: [scaled(10), scaled(4), 0, 0],
+					padding: [scaled(10), scaled(6), 0, 0],
 					axes: [{
 						...axisDefaults(showGrid),
 						values: (u, vals) => vals.map(v => new Date(v * 1e3).getUTCFullYear()),
-						space: 5 * ch
+						space: 5 * ch,
+						size: measureDigit().height + scaled(12),
 					}, {
 						...axisDefaults(showGrid)
 					}],
@@ -74,7 +90,7 @@ export default function EventsHistory() {
 				} as Omit<uPlot.Options, 'width'|'height'>;
 			}
 		};
-	}, [allData, columns, showGrid]);
+	}, [allData, columns, params.window, showGrid]);
 
 	return <ExportableUplot {...{ options, data }}/>;
 }
