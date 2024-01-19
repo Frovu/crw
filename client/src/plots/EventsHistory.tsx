@@ -2,20 +2,26 @@ import { useContext, useMemo } from 'react';
 import { useEventsSettings, type ColumnDef, type PanelParams, MainTableContext, SampleContext } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import type uPlot from 'uplot';
-import { axisDefaults, measureDigit, scaled } from './plotUtil';
+import { axisDefaults, markersPaths, measureDigit, scaled } from './plotUtil';
 import { color } from '../app';
 import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
+import { applySample } from '../events/sample';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '2 months': 2, '1 month': 1 } as const;
 
-type HistorySeries = {
+const seriesColors = ['green', 'purple', 'magenta', 'acid', 'cyan'] as const;
+const seriesMarkers = ['diamond', 'circle', 'square', 'triangleUp', 'triangleDown'] as const;
+
+type StatSeries = {
 	sample: '<none>' | '<current>' | string,
-	column: '<count>' | ColumnDef,
+	column: null | '<count>' | string,
 };
 
 const defaultOptions = {
 	window: '1 year' as keyof typeof windowOptions,
+	historySeries: [0, 1, 2, 3, 4].map(i =>
+		({ sample: '<current>', column: i === 0 ? '<count>' : null })) as StatSeries[],
 	forceLeft: null as null | number,
 	forceRight: null as null | number,
 };
@@ -23,11 +29,41 @@ const defaultOptions = {
 export type HistoryOptions = typeof defaultOptions;
 
 export function EventsHistoryContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const { columns } = useContext(MainTableContext);
+	const { samples } = useContext(SampleContext);
+	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultOptions, ...params.statParams } as HistoryOptions;
+	const { historySeries: series } = cur;
 	const set = <T extends keyof HistoryOptions>(k: T, val: HistoryOptions[T]) =>
 		setParams('statParams', { [k]: val });
+	const setSample = (i: number, val: StatSeries['sample']) =>
+		set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
+	const setColumn = (i: number, val: StatSeries['column']) =>
+		set('historySeries', series.toSpliced(i, 1, { ...series[i], column: val }));
+	
+	const columnOpts = columns.filter(c =>
+		(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
+			|| series.some(p => p.column === c.id));
 	
 	return <div className='Group'>
+		{([0, 1, 2, 3, 4] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
+			<span title='Reset' style={{ color: color(seriesColors[i]), cursor: 'pointer' }}
+				onClick={() => {setColumn(i, null); setSample(i, '<current>');}}>#{i}</span>
+			<div><select title='Column' className='Borderless' style={{ width: '10em',
+				color: series[i].column == null ? color('text-dark') : 'unset' }}
+			value={series[i].column ?? '__none'} onChange={e => setColumn(i, e.target.value === '__none' ? null : e.target.value)}>
+				<option value='__none'>&lt;none&gt;</option>
+				<option value='<count>'>&lt;count&gt;</option>
+				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
+			</select>:
+			<select title='Sample (none = all events)' className='Borderless' style={{ width: '7em', marginLeft: 1,
+				color: series[i].sample === '<current>' ? color('text-dark') : 'unset' }}
+			value={series[i].sample} onChange={e => setSample(i, e.target.value)}>
+				<option value='<none>'>&lt;none&gt;</option>
+				<option value='<current>'>&lt;current&gt;</option>
+				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
+			</select></div>
+		</div>)}
 		<div>
 			<span>Window:<select className='Borderless' style={{ margin: '0 4px' }}
 				value={cur.window} onChange={e => set('window', e.target.value as any)}>
@@ -50,10 +86,11 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 
 export default function EventsHistory() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const { showGrid, showLegend } = useEventsSettings();
+	const { showGrid, showMarkers, showLegend } = useEventsSettings();
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
-	const { ...params } =  { ...defaultOptions, ...layoutParams } as HistoryOptions;
 	const { columns, data: allData } = useContext(MainTableContext);
+
+	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;
 
 	const { data, options } = useMemo(() => {
 		const window = windowOptions[params.window];
@@ -64,23 +101,32 @@ export default function EventsHistory() {
 			(firstEvent.getUTCFullYear() - 1970) * 12 + firstEvent.getUTCMonth()) / window) * window;
 		
 		const time = [];
-		const values = [];
-		for (let i=0;; ++i) {
-			const start = Date.UTC(1970, firstMonth + i * window, 1);
-			const end = Date.UTC(1970, firstMonth + i * window + window, 1);
+		const values = params.historySeries.map(s => [] as number[]);
+		const samples = params.historySeries.map(({ sample }) =>
+			sample === '<none>' ? allData : sample === '<current>' ? currentData :
+ 				applySample(allData, samplesList.find(s => s.id.toString() === sample) ?? null, columns));
+		
+		for (let bin=0;; ++bin) {
+			const start = Date.UTC(1970, firstMonth + bin * window, 1);
+			const end = Date.UTC(1970, firstMonth + bin * window + window, 1);
 
 			if (start >= lastEvent.getTime())
 				break;
-
-			const batch = allData.filter(row => start <= (row[timeColIdx] as Date).getTime() &&
-				(row[timeColIdx] as Date).getTime() < end);
 			time.push((start + end) / 2 / 1e3);
-			values.push(batch.length);
+
+			for (const [i, { column }] of params.historySeries.entries()) {
+				if (column == null)
+					continue;
+				const batch = samples[i].filter(row => start <= (row[timeColIdx] as Date).getTime() &&
+					(row[timeColIdx] as Date).getTime() < end);
+
+				values[i].push(batch.length);
+			}
 		}
 
-		console.log(time.map(a => new Date(a * 1e3)))
+
 		return {
-			data: [time, values],
+			data: [time, ...values],
 			options: () => {
 				const ch = measureDigit().width;
 				return {
@@ -93,19 +139,26 @@ export default function EventsHistory() {
 						space: 5 * ch,
 						size: measureDigit().height + scaled(12),
 					}, {
-						...axisDefaults(showGrid)
+						...axisDefaults(showGrid),
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50]
 					}],
 					series: [
-						{}, {
-							stroke: color('green'),
-							points: { show: false },
-							width: scaled(2)
-						}
-					]
+						{}, seriesColors.map((col, i) => ({
+							
+							stroke: color(col),
+							points: {
+								show: showMarkers,
+								stroke: color(col),
+								fill: color(col),
+								width: 0,
+								paths: markersPaths(seriesMarkers[i], 8)
+							},
+						}))
+					].flat()
 				} as Omit<uPlot.Options, 'width'|'height'>;
 			}
 		};
-	}, [allData, columns, params, showGrid]);
+	}, [params, columns, allData, currentData, samplesList, showGrid, showMarkers]);
 
 	return <ExportableUplot {...{ options, data }}/>;
 }

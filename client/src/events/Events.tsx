@@ -220,7 +220,8 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 			<div className='separator'/>
 			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
-				{isEventPlot && <CheckboxGlob text='markers' k='showMarkers'/>}
+				{(isEventPlot || params.type === 'Events history')
+					&& <CheckboxGlob text='markers' k='showMarkers'/>}
 				<CheckboxGlob text='legend' k='showLegend'/>
 			</div>
 		</>}
