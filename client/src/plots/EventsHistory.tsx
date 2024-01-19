@@ -25,7 +25,8 @@ const defaultOptions = {
 		({ sample: '<current>', column: i === 0 ? '<count>' : null })) as StatSeries[],
 	forceLeft: null as null | number,
 	forceRight: null as null | number,
-	showYLabel: false,
+	showYLabel: true,
+	historyOneAxis: false,
 };
 
 export type HistoryOptions = typeof defaultOptions;
@@ -77,7 +78,6 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 				{Object.keys(windowOptions).map(k => <option key={k} value={k}>{k}</option>)}
 			</select></div>
 		</div>
-
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => setParams('statParams', { forceLeft: null, forceRight: null })}>Limit years:</span>
@@ -87,6 +87,9 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 			;<NumberInput style={{ width: '4em', margin: '0 4px 0 2px', padding: 0 }}
 				min={1950} max={new Date().getUTCFullYear()}
 				value={cur.forceRight} onChange={val => set('forceRight', val)} allowNull={true}/>
+		</div>
+		<div className='Row'>
+			<Checkbox text='Merge vertical axes' k='historyOneAxis'/>
 		</div>
 	</div>;
 }
@@ -118,7 +121,7 @@ export default function EventsHistory() {
 			sample === '<none>' ? allData : sample === '<current>' ? currentData :
  				applySample(allData, samplesList.find(s => s.id.toString() === sample) ?? null, columns));
 		
-		for (let bin=0; bin < 999; ++bin) {
+		for (let bin=0; bin < 9999; ++bin) {
 			const start = Date.UTC(1970, firstMonth + bin * window, 1);
 			const end = Date.UTC(1970, firstMonth + bin * window + window, 1);
 
@@ -132,22 +135,28 @@ export default function EventsHistory() {
 				const batch = samples[i].filter(row => start <= (row[timeColIdx] as Date).getTime() &&
 					(row[timeColIdx] as Date).getTime() < end);
 
-				values[i].push(batch.length);
+				const colIdx = columns.findIndex(col => col.id === column);
+				const val = column === '<count>' ? batch.length
+					: batch.reduce((acc, row) => acc + (row[colIdx] as number), 0) / batch.length;
+
+				values[i].push(val);
 			}
 		}
 
 		return {
 			data: [time, ...values],
 			options: () => {
-				const ch = measureDigit().width;
+				const ch = measureDigit().width, scale = scaled(1);
 				const columnNames = params.historySeries.map(({ column }) => column === '<count>' ?
 					'count' : columns.find(cc => cc.id === column)?.fullName);
+				const scaleNames = params.historyOneAxis ? [columnNames[0]]
+					: Array.from(new Set(columnNames.filter(c => c)).values());
 				const sampleNames = params.historySeries.map(({ sample: id }) =>
 					'<current>' === id ? '' : '<none>' === id ? ' (all)' :
 						(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 				return {
 					cursor: { show: false },
-					padding: [scaled(12), scaled(16), 0, 0],
+					padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 2), 0, 0],
 					hooks: {
 						draw: [
 							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
@@ -158,14 +167,22 @@ export default function EventsHistory() {
 						...axisDefaults(showGrid),
 						space: 5 * ch,
 						size: measureDigit().height + scaled(12),
-					}, {
-						...axisDefaults(showGrid),
+					}, ...scaleNames.map((scl, i) => ({
+						...axisDefaults(showGrid && i < 1),
+						scale: scl,
+						show: i < 2,
+						side: i === 0 ? 3 : 1,
+						space: scaled(32),
+						size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
+						values: (u, vals) => vals.map(v => v.toString()), 
+						label: scl === 'count' ? 'events count' : scl,
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50]
-					}],
+					} as uPlot.Axis))],
 					series: [
-						{}, seriesColors.map((col, i) => ({
+						{}, ...seriesColors.map((col, i) => ({
 							show: columnNames[i],
 							legend: `${columnNames[i]}${sampleNames[i]}`,
+							scale: params.historyOneAxis ? columnNames[0] : columnNames[i],
 							stroke: color(col),
 							width: scaled(1),
 							marker: seriesMarkers[i],
@@ -177,11 +194,12 @@ export default function EventsHistory() {
 								paths: markersPaths(seriesMarkers[i], 8)
 							},
 						}))
-					].flat()
+					]
 				} as Omit<uPlot.Options, 'width'|'height'>;
 			}
 		};
-	}, [params, columns, allData, currentData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid, showMarkers]);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params, columns, allData, currentData, samplesList, showLegend, legendPos, legendSize, showGrid, showMarkers]);
 
 	return <ExportableUplot {...{ options, data }}/>;
 }
