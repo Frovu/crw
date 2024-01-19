@@ -295,10 +295,10 @@ export default function HistogramPlot() {
 						values: (u, vals) => vals.map(v => v && (yScale === '%' ?
 							(v*100).toFixed(0) + (options.showYLabel ? '' : '%') : v.toFixed())),
 						gap: scaled(2),
-						label: options.showYLabel ? yLabel : '',
+						label: options.showYLabel ? yLabel : undefined,
 						labelSize: getFontSize() + scaled(3),
 						size: (u, values) => scale * 12 + ch *
-						(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
+							(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
 						space: getFontSize() * 3
 					}, ],
 					scales: {

@@ -157,10 +157,9 @@ export default function EpochCollision() {
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: scaled(26),
-						space: ch * 4 + scaled(4),
-						values: (u, vals) => vals.map(v => v + 'h')
+						space: ch * 4 + scaled(8),
 					}, ...filtered.map((idx, i) => ({
-						...axisDefaults(i === 0),
+						...axisDefaults(showGrid && i === 0),
 						side: i === 0 ? 3 : 1,
 						show: i !== filtered.findIndex(id => axScale(id) === axScale(idx)) || i === 2 ? false : true,
 						space: scaled(32),
