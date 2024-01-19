@@ -42,23 +42,23 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 	const Checkbox = ({ text, k }: { text: string, k: keyof CorrelationParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
-	return <>
-		<div>
+	return <div className='Group'>
+		<div className='Row'>
 			X:<ColumnSelect k='column0'/>
-		</div> <div>
+		</div> <div className='Row'>
 			Y:<ColumnSelect k='column1'/>
-		</div> <div className='separator'/> <div className='Row'>
+		</div> <div className='Row'>
 			color:<select className='Borderless' style={{ padding: '0 6px' }} value={cur.color}
 				onChange={e => setParams('statParams', { color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>
-		</div> <div className='Row'>
+		</div><div className='Row'>
 			<Checkbox text='plot regression' k='showRegression'/>
 		</div> <div className='Row'>
 			<Checkbox text='loglog' k='loglog'/>
 			<Checkbox text='logx' k='logx'/>
 		</div>
-	</>;
+	</div>;
 }
 
 export default function CorrelationPlot() {
