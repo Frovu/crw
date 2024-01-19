@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, getFontSize, scaled } from './plotUtil';
+import { axisDefaults, color, getFontSize, measureDigit, scaled } from './plotUtil';
 import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
@@ -111,53 +111,56 @@ export default function CorrelationPlot() {
 		
 		return {
 			title,
-			options: () => ({
-				mode: 2,
-				padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
-				legend: { show: false },
-				cursor: { show: false, drag: { x: false, y: false, setScale: false } },
-				axes: [
-					{
-						...axisDefaults(showGrid),
-						space: getFontSize() * 2.5,
-						label: applyTextTransform(colX.fullName),
-						size: getFontSize() + scaled(12),
-						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
-						...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
-						values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString()
-							.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
+			options: () => {
+				const ch = measureDigit().width, scale = scaled(1);
+				return {
+					mode: 2,
+					padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
+					legend: { show: false },
+					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
+					axes: [
+						{
+							...axisDefaults(showGrid),
+							space: getFontSize() * 2.5,
+							label: applyTextTransform(colX.fullName),
+							size: getFontSize() + scaled(12),
+							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
+							...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
+							values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString()
+								.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
+						},
+						{
+							...axisDefaults(showGrid),
+							label: applyTextTransform(colY.fullName),
+							size: (u, values) => scale * 12 + ch *
+								(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
+							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
+							values: (u, vals) => vals.map(v => loglog ? v?.toString()
+								.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
+						},
+					],
+					scales: {
+						x: {
+							time: false,
+							distr: params.logx && loglog ? 3 : 1,
+							...(params.logx && maxx - minx < 1000 && { range: [minx, maxx] })
+						},
+						y: { 
+							distr: loglog ? 3 : 1,
+							...(!loglog && { range: [miny, maxy] })
+						}
 					},
-					{
-						...axisDefaults(showGrid),
-						label: applyTextTransform(colY.fullName),
-						size: getFontSize() * 3,
-						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
-						values: (u, vals) => vals.map(v => loglog ? v?.toString()
-							.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
-					},
-				],
-				scales: {
-					x: {
-						time: false,
-						distr: params.logx && loglog ? 3 : 1,
-						...(params.logx && maxx - minx < 1000 && { range: [minx, maxx] })
-					},
-					y: { 
-						distr: loglog ? 3 : 1,
-						...(!loglog && { range: [miny, maxy] })
-					}
-				},
-				series: [
-					{}, {
-						stroke: color(params.color),
-						paths: pointPaths(scaled(4))
-					}, {
-						show: params.showRegression,
-						stroke: color('white'),
-						paths: linePaths(scaled(1.5))
-					}
-				]
-			} as Omit<uPlot.Options, 'width'|'height'>),
+					series: [
+						{}, {
+							stroke: color(params.color),
+							paths: pointPaths(scaled(4))
+						}, {
+							show: params.showRegression,
+							stroke: color('white'),
+							paths: linePaths(scaled(1.5))
+						}
+					]
+				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
 	}, [columns, layoutParams, sampleData, showGrid]);
