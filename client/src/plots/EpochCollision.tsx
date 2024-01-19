@@ -23,7 +23,6 @@ const defaultOptions = {
 	sample2: '<current>',
 	showEpochMedian: false,
 	showEpochStd: true,
-	epochOneScale: false,
 };
 
 export type CollisionOptions = typeof defaultOptions;
