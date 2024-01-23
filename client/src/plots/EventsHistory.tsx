@@ -7,7 +7,7 @@ import { color } from '../app';
 import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
-import { drawCustomLegend } from './basicPlot';
+import { drawCustomLabels, drawCustomLegend } from './basicPlot';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
 
@@ -159,6 +159,7 @@ export default function EventsHistory() {
 					padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 2), 0, 0],
 					hooks: {
 						draw: [
+							drawCustomLabels({ showLegend }),
 							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
 						],
 						ready: [ handleDragLegend ]
@@ -175,7 +176,8 @@ export default function EventsHistory() {
 						space: scaled(32),
 						size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
 						values: (u, vals) => vals.map(v => v.toString()), 
-						label: scl === 'count' ? 'events count' : scl,
+						fullLabel: scl === 'count' ? 'events count' : scl,
+						label: '',
 						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50]
 					} as uPlot.Axis))],
 					series: [

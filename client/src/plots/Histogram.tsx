@@ -4,7 +4,7 @@ import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDi
 import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings, type Value } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend } from './basicPlot';
+import { drawCustomLabels, drawCustomLegend, type CustomAxis } from './basicPlot';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { NumberInput } from '../Utility';
 
@@ -162,7 +162,7 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 	const averages = {
 		mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
 		median: options.drawMedian && samples.map(smpl => {
-			const s = smpl.sort() as any, mid = Math.floor(smpl.length / 2);
+			const s = smpl.sort((a: any, b: any) => a - b) as any, mid = Math.floor(smpl.length / 2);
 			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
 		})
 	} as {[key: string]: (number | null)[]};
@@ -295,12 +295,13 @@ export default function HistogramPlot() {
 						values: (u, vals) => vals.map(v => v && (yScale === '%' ?
 							(v*100).toFixed(0) + (options.showYLabel ? '' : '%') : v.toFixed())),
 						gap: scaled(2),
-						label: options.showYLabel ? yLabel : undefined,
+						fullLabel: options.showYLabel ? yLabel : '',
+						label: options.showYLabel ? '' : undefined,
 						labelSize: getFontSize() + scaled(3),
 						size: (u, values) => scale * 12 + ch *
 							(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
 						space: getFontSize() * 3
-					}, ],
+					} as CustomAxis, ],
 					scales: {
 						x: {
 							time: false,
