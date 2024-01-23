@@ -25,7 +25,7 @@ const defaultOptions = {
 		({ sample: '<current>', column: i === 0 ? '<count>' : null })) as StatSeries[],
 	forceLeft: null as null | number,
 	forceRight: null as null | number,
-	showYLabel: true,
+	showXLabel: false,
 	historyOneAxis: false,
 };
 
@@ -72,7 +72,7 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 			</select></div>
 		</div>)}
 		<div className='Row'>
-			<Checkbox text='Y label' k='showYLabel'/>
+			<Checkbox text='X label' k='showXLabel'/>
 			<div>Window:<select className='Borderless' style={{ margin: '0 4px' }}
 				value={cur.window} onChange={e => set('window', e.target.value as any)}>
 				{Object.keys(windowOptions).map(k => <option key={k} value={k}>{k}</option>)}
@@ -168,6 +168,8 @@ export default function EventsHistory() {
 						...axisDefaults(showGrid),
 						space: 5 * ch,
 						size: measureDigit().height + scaled(12),
+						label: params.showXLabel ? '' : undefined,
+						fullLabel: params.showXLabel ? 'years' : '',
 					}, ...scaleNames.map((scl, i) => ({
 						...axisDefaults(showGrid && i < 1),
 						scale: scl,

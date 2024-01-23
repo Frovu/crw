@@ -23,6 +23,7 @@ const defaultOptions = {
 	sample2: '<current>',
 	showEpochMedian: false,
 	showEpochStd: true,
+	showXLabel: false,
 };
 
 export type CollisionOptions = typeof defaultOptions;
@@ -71,6 +72,10 @@ export function EpochCollisionContextMenu({ params, setParams }: { params: Panel
 				checked={cur.showEpochMedian} onChange={e => set('showEpochMedian', e.target.checked)}/></label>
 			<label>std error<input type='checkbox' style={{ paddingLeft: 4 }}
 				checked={cur.showEpochStd} onChange={e => set('showEpochStd', e.target.checked)}/></label>	
+		</div>
+		<div>
+			<label>Show X label<input type='checkbox' style={{ paddingLeft: 4 }}
+				checked={cur.showXLabel} onChange={e => set('showXLabel', e.target.checked)}/></label>	
 		</div>
 	</div>;
 }
@@ -157,7 +162,9 @@ export default function EpochCollision() {
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: measureDigit().height + scaled(12),
-						space: ch * 4 + scaled(4)
+						space: ch * 4 + scaled(4),
+						label: cur.showXLabel ? '' : undefined,
+						fullLabel: cur.showXLabel ? 'time from onset, h' : '',
 					}, ...filtered.map((idx, i) => ({
 						...axisDefaults(showGrid && i === 0),
 						side: i === 0 ? 3 : 1,
@@ -223,7 +230,7 @@ export default function EpochCollision() {
 			}
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [cur.showEpochMedian, cur.showEpochStd, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
+	}, [cur.showEpochMedian, cur.showEpochStd, cur.showXLabel, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
 	
 	if (queries.some(q => q.isError))
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
