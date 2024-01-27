@@ -101,7 +101,7 @@ export default function EpochCollision() {
 		y: u.bbox.top / scaled(1) + 8 });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
-	const queryHandler =  async (qi: number) => {
+	const queryHandler = async (qi: number) => {
 		const sample = samples[qi];
 		const colIdx = columns.findIndex(c => c.id === timeColumn);
 		if (!sample || series[qi] == null || !sample.length || colIdx < 0) return;
@@ -131,12 +131,13 @@ export default function EpochCollision() {
 	const { data, options } = useMemo(() => {
 		// FIXME: offset (x) is assumed to be the same on all queries
 		const time = queries.find(q => q.data)?.data?.[0];
+		const timeShifted = time?.map(t => t + (time[1] - time[0]) / 2);
 		const sampleNames = [sample0, sample1, sample2]
 			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
 				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 		return {
 			data: [
-				time,
+				timeShifted,
 				...(queries[0].data?.slice(1, -1) || []),
 				...(queries[1].data?.slice(1, -1) || []),
 				...(queries[2].data?.slice(1, -1) || [])

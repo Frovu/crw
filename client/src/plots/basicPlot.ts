@@ -232,6 +232,12 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	const fieldsIdxs = query.map(f => body.fields.indexOf(f));
 	const ordered = fieldsIdxs.map(i => body.rows.map(row => row[i]));
 	console.log(path, '=>', ordered, query);
+	const timeIdx = query.indexOf('time');
+	const period = timeIdx >= 0
+		&& ordered[timeIdx].length > 1
+		&& ordered[timeIdx][1]! - ordered[timeIdx][0]!;
+	if (period)
+		ordered.splice(timeIdx, 1, ordered[timeIdx].map(t => t == null ? null : t + period / 2));
 	return ordered;
 }
 
