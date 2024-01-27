@@ -156,7 +156,7 @@ export default function EventsHistory() {
 						(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 				return {
 					cursor: { show: false },
-					padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 2), 0, 0],
+					padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
 					hooks: {
 						draw: [
 							drawCustomLabels({ showLegend }),
