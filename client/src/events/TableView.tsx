@@ -44,8 +44,9 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 
 	const ref = useRef<HTMLDivElement | null>(null);
 	const rowsHeight = size.height - (showAverages ? 213 : 106) - (showChangelog ? 54 : 0);
-	const viewSize = Math.floor(rowsHeight / 26);
-	const hRem = rowsHeight % 26;
+	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
+	const viewSize = Math.floor(rowsHeight / rowH);
+	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const padTableH = Math.floor(headerPadding / 3);

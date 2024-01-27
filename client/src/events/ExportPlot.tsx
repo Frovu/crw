@@ -134,7 +134,7 @@ export function renderOne(nodeId: string) {
 	canvas.height = h * scl * devicePixelRatio;
 	const ctx = canvas.getContext('2d')!;
 	ctx.fillStyle = color('bg');
-	ctx.fillRect(0, 0, w * scl, h * scl);
+	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	const controlsPresent = !!Object.values(list[active]?.items).find(i => i?.type === 'ExportControls');
 	const opts = {
 		...withOverrides(options, { scale: scl,
@@ -243,7 +243,7 @@ export function ExportableUplot({ size, options, data, onCreate }:
 				setUpl(u);
 				onCreate?.(u);
 			} }}/>;
-	}, [theme, colors, controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
+	}, [theme, devicePixelRatio, colors, controlsPresent, options, scalesParams, textTransform, data, layout?.id, onCreate]); // eslint-disable-line
 	return plot;
 }
 

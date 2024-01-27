@@ -125,8 +125,8 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 			const vals = options.yScale === '%' ?
 				values.map((v, i) => Math.round(v / samples[i].length * 1000) / 10) : values;
 
-			const height = px(5 + values.filter(v => v > 0).length * lh);
-			const width = px(6 + Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch);
+			const height = px(5) + values.filter(v => v > 0).length * lh * devicePixelRatio;
+			const width = px(6) + (Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch) * devicePixelRatio;
 
 			const x0 = u.bbox.left + (which === 'right' ? u.bbox.width - width : 0);
 			const y0 = u.bbox.top + u.height * 1 / 3 - height;

@@ -98,7 +98,7 @@ export function drawCustomLegend(params: { showLegend: boolean }, position: Muta
 
 		const makrerWidth = allBars ? 12 : 24;
 		const width = px(makrerWidth + 16) + Math.max.apply(null, series.map(({ legend }) => measureStyled(u.ctx, legend)));
-		const lineHeight = getFontSize() * 1.2;
+		const lineHeight = getFontSize() * devicePixelRatio + px(2);
 		const height = series.length * lineHeight + px(4);
 		if (!captureOverrides?.scale)
 			size.current = { width, height };
@@ -181,16 +181,16 @@ export function drawCustomLabels({ showLegend }: { showLegend: boolean }) {
 			
 			const flowDir = isHorizontal || axis.side === 3 ? 1 : -1;
 			const baseTop = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
-			const first = axis._splits?.[axis._values?.findIndex(v => !!v)!]!;
-			const last = axis._splits?.[axis._values?.findLastIndex(v => !!v)!]!;
-			const targetLeft = (axis.distr === 3 ? (u.bbox.top + u.bbox.height/2)
+			const first = axis._splits?.[axis._values?.findIndex(v => !!v || (v as any) === 0)!]!;
+			const last = axis._splits?.[axis._values?.findLastIndex(v => !!v || (v as any) === 0)!]!;
+			const targetLeft = (axis.distr === 3 ? (u.bbox.top + u.bbox.height / 2)
 				 : u.valToPos((last + first) / 2, axis.scale!, true))
 					+ flowDir * textWidth / 2;
 			
 			let posX, posY;
 			if (isHorizontal) {
-				posX = clamp(px(2), u.width - textWidth - px(4), targetLeft - textWidth);
-				posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height - 2;
+				posX = clamp(px(2), u.width * devicePixelRatio - textWidth - px(4), targetLeft - textWidth);
+				posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height * devicePixelRatio - px(2);
 			} else {
 				const bottomX = u.height * devicePixelRatio;
 				posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
