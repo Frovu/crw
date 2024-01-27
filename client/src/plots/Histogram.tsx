@@ -114,7 +114,7 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 	const scale = scaled(1);
 	const ch = measureDigit().width;
 	const lh = getFontSize();
-	const px = (a: number) => scale * a;
+	const px = (a: number) => scale * a * devicePixelRatio;
 
 	return (u: uPlot) => {
 		if (!options.showResiduals)
@@ -125,11 +125,11 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 			const vals = options.yScale === '%' ?
 				values.map((v, i) => Math.round(v / samples[i].length * 1000) / 10) : values;
 
-			const height = px(5) + values.filter(v => v > 0).length * lh;
-			const width = px(6) + Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch;
+			const height = px(5 + values.filter(v => v > 0).length * lh);
+			const width = px(6 + Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch);
 
 			const x0 = u.bbox.left + (which === 'right' ? u.bbox.width - width : 0);
-			const y0 = u.bbox.top + u.height / 2 - height;
+			const y0 = u.bbox.top + u.height * 1 / 3 - height;
 
 			u.ctx.save();
 			u.ctx.lineWidth = px(1);
@@ -159,6 +159,7 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 function drawAverages(options: HistogramParams, samples: Value[][]) {
 	const scale = scaled(1);
 	const fnt = font(14, true);
+	const px = (a: number) => scale * a * devicePixelRatio;
 	const averages = {
 		mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
 		median: options.drawMedian && samples.map(smpl => {
@@ -173,19 +174,19 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 			for (const [i, value] of averages[what].entries()) {
 				if (value == null) continue;
 				const x = u.valToPos(value, 'x', true);
-				const margin = scale * (what === 'mean' ? -8 : 2);
+				const margin = px(what === 'mean' ? -10 : 1);
 				const text = what === 'mean' ? 'a' : 'm';
 				u.ctx.save();
 				u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
 				u.ctx.font = fnt;
 				u.ctx.textBaseline = 'top';
 				u.ctx.textAlign = 'left';
-				u.ctx.lineWidth = scale * 2 * devicePixelRatio;
+				u.ctx.lineWidth = px(2);
 				u.ctx.beginPath();
-				u.ctx.moveTo(x, u.bbox.top + margin + scale * 14);
+				u.ctx.moveTo(x, u.bbox.top + margin + px(14));
 				u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
 				u.ctx.stroke();
-				u.ctx.lineWidth = scale * 1 * devicePixelRatio;
+				u.ctx.lineWidth = px(1);
 				u.ctx.strokeStyle = color('text');
 				u.ctx.stroke();
 				u.ctx.fillText(text, x - scale * 3, u.bbox.top + margin);
