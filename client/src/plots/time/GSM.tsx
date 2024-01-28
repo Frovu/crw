@@ -62,7 +62,7 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 		const nMaxLines = 12;
 		const lineStep = [6, 8, 12, 24].find(s => s > length / nMaxLines) ?? 48;
 		const H = 3600;
-		const rem = lineStep - (u.data[0][0] / H) % lineStep;
+		const rem = lineStep - Math.floor(u.data[0][0] / H) % lineStep;
 		for (let i = rem; i < length; i += lineStep) {
 			const a0x = u.valToPos(u.data[0][i]!, 'x', true);
 			const val = u.data[params.useA0m ? 3 : 4][i];
