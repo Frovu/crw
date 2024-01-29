@@ -122,8 +122,17 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 
 		if (e.ctrlKey && deltaRow !== 0) {
 			let cur = row + deltaRow;
-			while (data[cur][column] === null && cur > 0 && cur < data.length - 1)
-				cur += deltaRow;
+			if (columns[column].fullName === 'time') {
+				const curYear = (data[cur][column + 1] as Date).getUTCFullYear();
+
+				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear
+						&& cur > 0 && cur < data.length - 1)
+					cur += deltaRow;
+			} else {
+				while (data[cur][column + 1] === null
+						&& cur > 0 && cur < data.length - 1)
+					cur += deltaRow;
+			}
 			return set({ row: cur, column });
 		}
 		set({
