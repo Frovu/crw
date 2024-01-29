@@ -4,7 +4,7 @@ import { MainTableContext, SampleContext, TableViewContext, equalValues, useEven
 import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
-import { AuthContext, logError, logSuccess } from '../app';
+import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS } from './columns';
 import { Confirmation } from '../Utility';
 
@@ -154,7 +154,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
-		// logMessage('Events table loaded', 'debug');
+		logMessage('Events table loaded', 'debug');
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,

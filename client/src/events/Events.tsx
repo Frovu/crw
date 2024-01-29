@@ -22,6 +22,7 @@ import ImportMenu from './Import';
 import SampleView from './Sample';
 import TableView from './TableView';
 import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory';
+import { useQueryClient } from 'react-query';
 
 export function LayoutContent() {
 	const { params: { plotParams, type } } = useContext(LayoutContext)!; 
@@ -147,6 +148,7 @@ function MainTablePanel() {
 }
 
 export function EventsContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
@@ -204,6 +206,7 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 				{value !== undefined && <button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}
 				>Filter {column.fullName} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 			</>}
+			{!column && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
 			{!column && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
 			{!column && role && <>
 				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
