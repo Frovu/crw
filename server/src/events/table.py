@@ -177,7 +177,7 @@ def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_chan
 								curs.execute(f'UPDATE events.{entity} SET {ref} = %s ' + \
 									'WHERE id = %s', [ids[node][i], target_id])
 
-					if table_columns[entity][col_name].data_type == 'time':
+					if table_columns[entity][col_name].data_type == 'time' and new_val is not None:
 						new_val = datetime.strptime(new_val, '%Y-%m-%dT%H:%M:%S.%fZ')
 					curs.execute(f'UPDATE events.{entity} SET {col_name} = %s WHERE id = {target_id}', [new_val])
 					if old_val is not None:

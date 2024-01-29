@@ -4,7 +4,7 @@ import { apiPost, useEventListener, useMutationHandler } from '../util';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
-	[/_*None_*/g, 'None']
+	[/_*None_*/g, 'None'],
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
@@ -90,7 +90,8 @@ export default function ImportMenu() {
 					const newVal = row[ci];
 					if (sqlName === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
 						continue;
-					if (equalValues(oldVal, newVal) || (oldVal == null && newVal === 0))
+					if (equalValues(oldVal, newVal) ||
+						(oldVal == null && [-999, -99, -99.9, 0, -1].includes(newVal as number)))
 						continue;
 					changes.push({
 						entity,

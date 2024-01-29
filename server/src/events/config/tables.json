@@ -80,7 +80,8 @@
 			"parse_name": "MCStartTime"
 		},
 		"originator": {
-			"data_type": "text"
+			"data_type": "integer",
+			"parse_name": "MC"
 		},
 		"duration": {
 			"parse_name": "MCDur"
