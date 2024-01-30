@@ -88,6 +88,10 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 		series: [
 			{ value: '{YYYY}-{MM}-{DD} {HH}:{mm}', stroke: color('text') },
 			{
+				...seriesDefaults('swY', 'white'),
+				show: false
+			},
+			{
 				...seriesDefaults('🛰sw', 'white'),
 				value: (u, val) => val ? (spacecraft[val] ?? val?.toString()) : '--',
 				show: false
@@ -137,17 +141,18 @@ function plotOptions(): Omit<uPlot.Options, 'height'|'width'> {
 			ready: [
 				(u) => {
 					if (!u.root.children[1]) return;
-					const values = Array.from(u.root.children[1].children).map(tr => tr.children[1]) as HTMLTableCellElement[];
+					const values = Array.from((u.root as any).children[1].firstChild!.children).map((tr: any) => tr.children[1]);
 					values.forEach(td => {
 						td.parentElement!.style.marginRight = '8px';
 						(td.parentElement!.firstChild as HTMLElement).style.padding = '0';
 						td.style.padding = '4px';
 					});
 					if (values[0]) values[0].style.width = '17ch';
-					if (values[1]) values[1].style.width = '5ch';
-					if (values[2]) values[2].style.width = '5ch';
-					if (values[3]) values[3].style.width = '7ch';
-					values.slice(4).forEach(td => { td.style.width = '5ch'; });
+					if (values[1]) values[1].style.width = '3ch';
+					if (values[1]) values[2].style.width = '5ch';
+					if (values[2]) values[3].style.width = '5ch';
+					if (values[3]) values[4].style.width = '7ch';
+					values.slice(5).forEach(td => { td.style.width = '5ch'; });
 				}
 			]
 		}
@@ -163,7 +168,7 @@ export default function OmniApp() {
 	const query = useQuery(['omni', interval], () => apiGet<{ fields: string[], rows: number[][] }>('omni', {
 		from: interval[0],
 		to:   interval[1],
-		query: 'spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index'
+		query: 'sw_type_present,spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index'
 	}));
 
 	const data = useMemo(() => {
@@ -254,6 +259,7 @@ export default function OmniApp() {
 						<button style={{ width: 196 }} onClick={() => mutation.mutate('ace')}>Fetch ACE&nbsp;&nbsp;&nbsp;</button>
 						<button style={{ width: 196 }} onClick={() => mutation.mutate('dscovr')}>&nbsp;Fetch DSCOVR&nbsp;</button>
 						<button style={{ width: 196 }} onClick={() => mutation.mutate('geomag')}>&nbsp;Fetch Geomag&nbsp;</button>
+						<button style={{ width: 196 }} onClick={() => mutation.mutate('yermolaev')}>&nbsp;&nbsp;Fetch SW types</button>
 						<button style={{ width: 196 }} onClick={() => mutation.mutate('remove')}>&nbsp;REMOVE POINTS</button>
 						<div style={{ paddingTop: 8 }}>
 							<LoadFile path='omni/upload'/>

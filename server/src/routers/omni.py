@@ -12,7 +12,7 @@ def get_result():
 	t_to = int(request.args.get('to', 86400))
 	query = request.args.get('query')
 	res, fields = database.select([t_from, t_to], query.split(',') if query else None)
-	return { 'fields': fields, 'rows': res }
+	return { 'fields': fields, 'rows': res.tolist() }
 
 @bp.route('/ensure', methods=['POST'])
 @require_role('operator')

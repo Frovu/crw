@@ -1,4 +1,5 @@
 import requests
+import numpy as np
 from database import log
 from datetime import datetime, timedelta, timezone
 
@@ -17,9 +18,19 @@ SW_TYPE_DERIVED_SERIES = [
 	'sw_is_rare'
 ]
 
-def derive_from_sw_type(data, series):
-	pass
+def derive_from_sw_type(data, columns, query):
+	sw_type = data[:,columns.index('sw_type')]
+	data_colunms = [data[:,0]]
+	for q in query:
+		if q in SW_TYPE_DERIVED_SERIES:
+			if q == 'sw_type_present':
+				res = np.array([1 if d is not None else 0 for d in sw_type])
 
+			data_colunms.append(res)
+		else:
+			data_colunms.append(data[:,columns.index(q)])
+
+	return np.column_stack(data_colunms), ['time'] + query
 
 def obtain_yermolaev_types(year: int):
 	if year < 1976:

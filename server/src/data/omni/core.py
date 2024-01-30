@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 import os, json, re
+import numpy as np
 from math import floor, ceil
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
@@ -7,7 +8,7 @@ import requests, pymysql
 
 from database import log, pool, upsert_many
 from data.omni.derived import compute_derived
-from data.omni.sw_types import obtain_yermolaev_types
+from data.omni.sw_types import obtain_yermolaev_types, derive_from_sw_type, SW_TYPE_DERIVED_SERIES
 
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
@@ -52,7 +53,8 @@ def _init():
 					continue
 				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
 				omni_columns.append(OmniColumn(column, crs_name, owid - 1, spl[2], 'int' in typedef.lower()))
-	all_column_names = [c.name for c in omni_columns] + [col for col, desc in columns.items() if desc[1] is None and col != 'time']
+	all_column_names = [c.name for c in omni_columns] \
+		+ [col for col, desc in columns.items() if desc[1] is None and col != 'time']
 	try:
 		with open(dump_info_path, encoding='utf-8') as file:
 			dump_info = json.load(file)
@@ -163,11 +165,15 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 		floor(interval[0] / PERIOD) * PERIOD,
 		 ceil(interval[1] / PERIOD) * PERIOD ]
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
-	if source in ['geomag', 'yermolaev']:
-		group = source
+	if source in 'geomag':
+		group = 'geomag'
+	if source in 'yermolaev':
+		group = 'sw_type'
+
 	log.debug(f'Omni: querying *{group} from {source} {dt_interval[0]} to {dt_interval[1]}')
 
-	query = _cols(group, source)
+	query = _cols(group, source) if group != 'sw_type' else []
+	col_names = [c.name for c in query] if group != 'sw_type' else ['sw_type']
 	if source == 'omniweb':
 		res = _obtain_omniweb(query, dt_interval)
 	elif source == 'yermolaev':
@@ -179,7 +185,8 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 		log.warning('Omni: got no data')
 		return 0
 
-	data, fields = compute_derived(res, [c.name for c in query])
+
+	data, fields = compute_derived(res, col_names)
 
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
@@ -211,11 +218,16 @@ def insert(var, data):
 	upsert_many('omni', ['time', var], data)
 
 def select(interval: [int, int], query=None, epoch=True):
+	all_series = all_column_names + SW_TYPE_DERIVED_SERIES
 	columns = [c for c in query if c in all_column_names] if query else all_column_names
+	any_sw_type_dervied = query and next((q for q in query if q in SW_TYPE_DERIVED_SERIES), None)
+	if any_sw_type_dervied and 'sw_type' not in columns:
+		columns.append('sw_type')
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
 			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
-		return curs.fetchall(), [desc[0] for desc in curs.description]
+		data, fields = np.array(curs.fetchall(), dtype='object'), [desc[0] for desc in curs.description]
+	return derive_from_sw_type(data, fields, [c for c in query if c in all_series]) if any_sw_type_dervied else (data, fields)
 
 def ensure_prepared(interval: [int, int], trust=False):
 	global dump_info
