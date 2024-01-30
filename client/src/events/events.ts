@@ -72,7 +72,7 @@ export const defaultPlotParams: CommonPlotParams = {
 	useAp: false,
 	showBz: true,
 	showBxBy: false,
-	useTemperatureIndex: false,
+	useTemperatureIndex: true,
 	rsmExtended: false
 };
 
@@ -95,7 +95,7 @@ export type ColumnDef = {
 };
 
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
-export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'Geomagn', 'Ring of Stations' ] as const;
+export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'Empty' ] as const;
 
 export const isPanelDraggable = (panel?: string) => panel !== 'MainTable';

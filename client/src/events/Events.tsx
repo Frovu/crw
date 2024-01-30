@@ -23,6 +23,7 @@ import SampleView from './Sample';
 import TableView from './TableView';
 import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory';
 import { useQueryClient } from 'react-query';
+import PlotSWTypes from '../plots/time/SWTypes';
 
 export function LayoutContent() {
 	const { params: { plotParams, type } } = useContext(LayoutContext)!; 
@@ -53,6 +54,7 @@ export function LayoutContent() {
 		{params && <>
 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
+			{type === 'SW Types' && <PlotSWTypes {...{ params }}/>}
 			{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
 			{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
 			{type === 'Ring of Stations' && <>
