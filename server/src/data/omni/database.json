@@ -1,6 +1,7 @@
 {
 	"time": ["TIMESTAMPTZ PRIMARY KEY", null],
 	"temperature_idx": ["REAL", null],
+	"sw_type": ["TEXT", null],
 	"spacecraft_id_imf": ["SMALLINT", 5],
 	"spacecraft_id_sw": ["SMALLINT", 6],
 	"count_imf": ["SMALLINT", 7],

@@ -7,6 +7,7 @@ import requests, pymysql
 
 from database import log, pool, upsert_many
 from data.omni.derived import compute_derived
+from data.omni.sw_types import obtain_yermolaev_types
 
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
@@ -132,7 +133,13 @@ def _obtain_izmiran(source, columns, interval):
 	finally:
 		conn.close()
 
+def _obtain_yermolaev(interv):
+	batches = [obtain_yermolaev_types(y) for y in range(interv[0].year, interv[1].year + 1)]
+	return [d for dt in batches for d in dt]
+
 def _cols(group, source='omniweb', do_remove=False):
+	if 'yermolaev' in [source, group]:
+		return []
 	if 'geomag' in [source, group]:
 		return [c for c in omni_columns if c.name in ['kp_index', 'ap_index', 'dst_index']]
 
@@ -156,12 +163,15 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 		floor(interval[0] / PERIOD) * PERIOD,
 		 ceil(interval[1] / PERIOD) * PERIOD ]
 	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
-	if source == 'geomag': group = 'geomag'
+	if source in ['geomag', 'yermolaev']:
+		group = source
 	log.debug(f'Omni: querying *{group} from {source} {dt_interval[0]} to {dt_interval[1]}')
 
 	query = _cols(group, source)
 	if source == 'omniweb':
 		res = _obtain_omniweb(query, dt_interval)
+	elif source == 'yermolaev':
+		res = _obtain_yermolaev(dt_interval)
 	else:
 		res = _obtain_izmiran(source, query, dt_interval)
 
