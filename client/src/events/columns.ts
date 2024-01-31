@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import type { SW_TYPES } from '../plots/time/SWTypes';
 
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 export const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
@@ -12,6 +13,12 @@ export type RefPointExtremum = {
 	operation: typeof EXTREMUM_OP[number],
 	series: string,
 };
+export type RefPointSWStruct = {
+	type: 'sw_structure',
+	hours_offset: number,
+	structure: typeof SW_TYPES[number],
+	end?: boolean
+};
 export type RefPointEvent = {
 	type: 'event',
 	hours_offset: number,
@@ -19,7 +26,8 @@ export type RefPointEvent = {
 	entity: string,
 	end?: boolean,
 };
-export type ReferencePoint = RefPointExtremum | RefPointEvent;
+export type ReferencePoint = RefPointExtremum | RefPointSWStruct | RefPointEvent;
+
 export type GenericParamsClone = {
 	operation: 'clone_column',
 	column: string,
@@ -59,6 +67,7 @@ export type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 	setPoint: (k: 'reference'|'boundary', val: string) => void,
 	setPointHours: (k: 'reference'|'boundary', val: number) => void,
 	setPointSeries: (k: 'reference'|'boundary', val: string) => void,
+	setPointStruct: (k: 'reference'|'boundary', val: string) => void,
 };
 
 export const defaultRefPoint = {
@@ -98,13 +107,18 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 		}
 	}),
 	setPoint: (k, val) => set(({ params }) => {
-		const type = EXTREMUM_OP.includes(val as any) ? 'extremum' : 'event';
+		const type = EXTREMUM_OP.includes(val as any) ? 'extremum'
+			: val.endsWith('sws') ? 'sw_structure' : 'event';
 		const inp = params[k];
 		const hours_offset = inp?.hours_offset ?? 0;
 		if (type === 'extremum') {
 			const series = inp?.type === 'extremum' ? inp.series : 'v_sw';
 			params[k] = { type, operation: val as any, hours_offset, series } ;
-		} else {
+		} else if (type === 'sw_structure') {
+			const structure = inp?.type === 'sw_structure' ? inp.structure : 'SH';
+			const end = val.includes('end+');
+			params[k] = { type, hours_offset, structure, end };
+		} else if (type === 'event') {
 			const entity = val.split('+').at(-1)!;
 			const end = val.includes('end+');
 			const entity_offset = val.includes('prev+') ? -1 :  val.includes('next+') ? 1 : 0;
@@ -113,4 +127,5 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 	}),
 	setPointHours: (k, val) => set(({ params: { [k]: point } }) => { if (point) point.hours_offset = val; }),
 	setPointSeries: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'extremum') point.series = val; }),
+	setPointStruct: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'sw_structure') point.structure = val as any; }),
 })));

@@ -6,9 +6,12 @@ import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
 import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState, type ReferencePoint, type GenericColumn, type GenericParams, defaultRefPoint, type RefPointEvent } from './columns';
 import { Confirmation } from '../Utility';
+import { SW_TYPES } from '../plots/time/SWTypes';
 
+const swRefToStr = (ref: Partial<Extract<ReferencePoint, { type: 'sw_structure' }>>, pretty?: boolean) =>
+	pretty ? ('SWS ' + (ref.end ? 'End' : 'Start')) : ((ref.end ? 'end+' : '') + 'sws');
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
-	(pretty?['Prev ', '', 'Next ']:['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +
+	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +
 	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity));
 
 export default function ColumnsSelector() {
@@ -23,7 +26,7 @@ export default function ColumnsSelector() {
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const genericSate = useGenericState();
 	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, reset,
-		setParam, setPoint, setPointHours, setPointSeries } = genericSate;
+		setParam, setPoint, setPointHours, setPointSeries, setPointStruct } = genericSate;
 	const { operation } = params;
 
 	useEffect(() => {
@@ -156,22 +159,29 @@ export default function ColumnsSelector() {
 	const RefInput = ({ k }: { k: 'boundary'|'reference' }) => {
 		const st = params[k];
 		const isEvent = st?.type === 'event';
+		const isSWS = st?.type === 'sw_structure';
 		const isDefault = isEvent && st.entity === entity && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
 			.some((p) => p !== 'entity' && st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
 		return <>
 			<select style={{ color: isDefault ? color('text-dark') : 'unset',
-				width: isEvent ? '16ch' : '7.5ch' }} className='Borderless'
-			value={isEvent ? refToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
+				width: isEvent ? '16ch' : isSWS ? '10ch' : '7.5ch' }} className='Borderless'
+			value={isEvent ? refToStr(st) : isSWS ? swRefToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
 				<option value='null' disabled>-- None --</option>
 				{EXTREMUM_OP.map(ext => <option key={ext} value={ext}>{ext.startsWith('abs_') ? `|${ext.slice(4)}|` : ext}</option>)}
 				{tables.flatMap((ent, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(entity_offset => 
 					(i === 0 || withDuration.includes(ent) ? [false, true] : [undefined])
 						.map(end => [false, true].map(p => refToStr({ entity: ent, entity_offset, end }, p)))))
 					.map(([str, pretty]) => <option key={str} value={str}>{pretty}</option>)}
+				{[false, true].map(end =>
+					<option key={swRefToStr({ end })} value={swRefToStr({ end })}>{swRefToStr({ end }, true)}</option>)}
 			</select>
 			{st?.type === 'extremum' && <select className='Borderless' style={{ width: '10ch' }}
 				value={st.series} onChange={e => setPointSeries(k, e.target.value)}>
 				{Object.entries(seriesOpts).map(([ser, pretty]) => <option key={ser} value={ser}>{pretty}</option>)}
+			</select>}
+			{st?.type === 'sw_structure' && <select className='Borderless' style={{ width: '7.5ch' }}
+				value={st.structure} onChange={e => setPointStruct(k, e.target.value)}>
+				{SW_TYPES.map(typ => <option key={typ} value={typ}>{typ}</option>)}
 			</select>}
 			<label title='Offset in hours' style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('text-dark') : 'inherit' }}>
 				+<input style={{ margin: '0 2px', width: '6ch' }} type='number' min={-48} max={48} step={1}

@@ -5,7 +5,7 @@ import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
 
-const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'];
+export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 
 const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach', 'purple'];
 
@@ -17,14 +17,14 @@ function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height
 	const { showGrid, showTimeAxis } = params;
 	const axDef = axisDefaults(showGrid);
 	return {
-		padding: [scaled(6), 0, showTimeAxis ? 0 : scaled(8), 0],
+		padding: [scaled(4), 0, showTimeAxis ? 0 : scaled(2), 0],
 		legend: { show: false },
 		cursor: { show: false },
 		hooks: {
 			drawAxes: [ drawMagneticClouds(params) ],
 			draw: [ drawOnsets(params) ]
 		},
-		scales: { y: { range: [ 0, SW_TYPES.length - .8 ] } },
+		scales: { y: { range: [ -.2, SW_TYPES.length - .8 ] } },
 		axes: [{
 			...axDef,
 			...customTimeSplits(params)
