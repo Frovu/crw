@@ -255,7 +255,11 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 				</>}
 				{params.type === 'SW Plasma' && <>
 					<Checkbox text='Show T index' k='useTemperatureIndex'/>
-					<Checkbox text='Show beta' k='showBeta'/>
+					<div className='Row'>
+						<Checkbox text='Show beta' k='showBeta'/>
+						<Checkbox text='density' k='showDensity'/>
+
+					</div>
 				</>}
 				{params.type === 'IMF + Speed' && <>
 					<Checkbox text='Show Bx, By' k='showBxBy'/>
