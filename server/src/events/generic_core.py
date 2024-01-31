@@ -10,9 +10,10 @@ from events.table import table_columns, select_from_root, parse_column_id
 
 @dataclass
 class GenericRefPoint:
-	type: str # event | extremum
+	type: str # event | extremum | sw_structure
 	hours_offset: int
 	operation: str = None
+	structure: str = None
 	series: str = None
 	entity_offset: int = None
 	entity: str = None
@@ -22,7 +23,7 @@ HOUR = 3600
 MAX_DURATION_H = 72
 MAX_DURATION_S = MAX_DURATION_H * HOUR
 
-# Read Columns.tsx for g params reference
+# Read columns.ts for g params reference
 
 G_EXTREMUM = ['min', 'max', 'abs_min', 'abs_max']
 G_OP_TIME = ['time_offset', 'time_offset_%']
@@ -82,12 +83,15 @@ def _select_series(t_1, t_2, series):
 	t_to = next((t for t in t_2[::-1] if not np.isnan(t)))
 	actual_series = series[3:] if series.startswith('$d_') else series
 	interval = [int(i) + offs * MAX_DURATION_S for i, offs in ([t_from, -2], [t_to, 2])]
-	source, name, _ = G_SERIES[actual_series]
+	if series == 'sw_type':
+		source, name = 'omni', series
+	else:
+		source, name, _ = G_SERIES[actual_series]
 	if source == 'omni':
 		res = omni.select(interval, [name])[0]
 	else:
 		res = gsm.select(interval, [name])
-	arr = np.array(res, dtype='f8')
+	arr = np.array(res, dtype='object' if series == 'sw_type' else 'f8')
 	if len(arr) < 1:
 		return arr, arr
 	if len(arr) - (arr[-1,0] - arr[0,0]) // HOUR > 1: # FIXME: data may shift by 1 hour ??
@@ -109,6 +113,8 @@ def get_ref_time(for_rows, ref: GenericRefPoint, entity, cache): # always (!) ro
 			r_time = r_time + e_dur * HOUR - HOUR
 	elif ref.type == 'extremum':
 		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(entity), entity, cache=cache)
+	elif ref.type == 'sw_structure':
+		r_time = find_sw_structure(for_rows, ref.structure, ref.end, default_window(entity), entity, cache=cache)
 	else:
 		assert not 'reached'
 	return r_time + ref.hours_offset * HOUR
@@ -124,6 +130,22 @@ def get_slices(t_time, t_1, t_2):
 	slice_len[left < 0] = 0
 	slice_len[np.isnan(slice_len)] = 0
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
+
+def find_sw_structure(for_rows, structure, is_end, window, entity, cache):
+	t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in window]
+	d_time, value = cache.get('sw_type') or _select_series(t_1, t_2, 'sw_type')
+	cache['sw_type'] = (d_time, value)
+	slices = get_slices(d_time, t_1, t_2)
+	present = np.char.find(value.astype('str'), structure) != -1
+
+	result = np.full(len(t_1), np.nan)
+	for i, sl in enumerate(slices):
+		nz = np.nonzero(present[sl])[0]
+		if len(nz) > 0:
+			idx = nz[-1] if is_end else nz[0]
+			result[i] = d_time[sl.start + idx]
+		
+	return result
 
 def find_extremum(for_rows, op, ser, window, entity, cache, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op

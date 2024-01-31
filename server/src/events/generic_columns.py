@@ -4,6 +4,7 @@ from datetime import datetime
 
 from database import log, pool
 from routers.utils import get_role
+from data.omni.sw_types import PRETTY_SW_TYPES
 from events.table import table_columns, parse_column_id, ENTITY_SHORT
 from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
@@ -106,9 +107,13 @@ class GenericColumn:
 				if ref.type == 'event':
 					txt = ENTITY_SHORT[ref.entity].upper() + \
 						('_e' if ref.end else '') + shift_indicator(ref.entity_offset)
-				else:
+				elif ref.type == 'extremum':
 					eop, ser = ref.operation, G_SERIES[ref.series][2]
-					txt = f"{eop.replace('abs_','')}({('|'+ser+'|') if 'abs' in eop else ser})" 
+					txt = f"{eop.replace('abs_','')}({('|'+ser+'|') if 'abs' in eop else ser})"
+				elif ref.type == 'sw_structure':
+					txt = '#' + ref.structure + ('_e' if ref.end else '')
+				else: 
+					assert not 'reached'
 				return txt + shift_indicator(ref.hours_offset) + ('h' if ref.hours_offset != 0 else '')
 			interv = (f" {{{point(para.reference)};{point(para.boundary)}}}" if not is_default else '')
 			if op in G_OP_TIME:
@@ -227,6 +232,9 @@ def upset_generic(uid, json_body):
 					raise ValueError('Unknown type of extremum: '+str(ref.operation))
 				if ref.series not in G_SERIES:
 					raise ValueError('Unknown series: '+str(ref.series))
+			elif ref.type == 'sw_structure':
+				if ref.structure not in PRETTY_SW_TYPES:
+					raise ValueError('Unknown SW structure: '+str(ref.structure))
 			elif ref.type == 'event':
 				if abs(int(ref.entity_offset)) > 4:
 					raise ValueError('Bad events offset')

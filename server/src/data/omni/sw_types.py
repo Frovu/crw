@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 SW_TYPES = ['HCS', 'HCS?', None, None, None, None, 'CIR', 'CIR?', 'EJE', 'EJE?',
 	'MC', 'MC?', 'SH', 'SH?', 'IS', 'IS?', 'ISa', 'ISa?', 'RARE', 'RARE?']
+PRETTY_SW_TYPES = [t for t in SW_TYPES if t is not None and '?' not in t]
 
 SW_TYPE_DERIVED_SERIES = [
 	'sw_type_present',
