@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import './styles/App.css';
-import Help from './Help';
+import Info from './Info';
 import PlotGSM from './plots/time/GSM';
 import TemperatureApp from './data/muon/Temperature';
 import Neutron from './data/neutron/Neutron';
@@ -51,7 +51,7 @@ function Logs() {
 }
 
 function App() {
-	const { theme, setTheme } = useAppSettings();
+	const { theme, infoOpen, openInfo, closeInfo, setTheme } = useAppSettings();
 	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
@@ -73,6 +73,7 @@ function App() {
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
 	document.documentElement.setAttribute('main-theme', theme);
 
+	useEventListener('action+openInfo', () => infoOpen ? closeInfo() : openInfo());
 	useEventListener('escape', closeContextMenu);
 	useEventListener('mousedown', closeContextMenu);
 	useEventListener('contextmenu', (e: PointerEvent) => { e.preventDefault(); closeContextMenu(); });
@@ -105,13 +106,13 @@ function App() {
 		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
 			{app === 'ros' && <PlotCirclesStandalone/>}
 			{app === 'feid' && <EventsApp/>}
-			{app === 'help' && <Help/>}
 			{app === 'meteo' && <TemperatureApp/>}
 			{app === 'neutron' && <Neutron/>}
 			{app === 'muon' && <MuonApp/>}
 			{app === 'omni' && <OmniApp/>}
 		</div>
 		{app !== 'feid' && <ContextMenu/>}
+		{infoOpen && <Info/>}
 		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
 			<div>
 				<select value={app} onChange={e => { window.location.href = e.target.value; }}>
@@ -120,12 +121,17 @@ function App() {
 			</div>
 			<AuthNav/>
 			{app === 'feid' && <LayoutNav/>}
-			<div style={{ flex: 1 }}/>
-			<Logs/>
-			<div title='Application colors scheme'>
-				<select style={{ width: theme.length+4+'ch' }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+			<div title='Application colors scheme' style={{ paddingLeft: 8 }}>
+				theme:<select style={{ width: theme.length+4+'ch' }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
 					{themeOptions.map(th => <option key={th} value={th}>{th}</option>)}
 				</select>
+			</div>
+			<div style={{ flex: 1 }}/>
+			<Logs/>
+			<div>
+				<button className='TextButton' style={{ color: 'var(--color-text)', padding: '0px 16px' }}
+					onClick={() => openInfo()}>
+					Info & Manual</button>
 			</div>
 		</div>}
 	</div>);
