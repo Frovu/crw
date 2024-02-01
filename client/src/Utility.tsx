@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, type MouseEvent } from 'react';
 import { useEventListener } from './util';
+import { ErrorBoundary } from 'react-error-boundary';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
@@ -7,6 +8,17 @@ function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 		case 'time': return val && new Date(val.includes(' ') ? val.replace(' ', 'T')+'Z' : val);
 		case 'number': return parseFloat(val);
 	}
+}
+
+export function CatchErrors({ children }: { children: ReactNode }) {
+	return <ErrorBoundary  fallbackRender={({ error, resetErrorBoundary }) =>
+		<div style={{ width: '100%', height: '100%' }} onMouseOver={() => resetErrorBoundary()}>
+			<div className='Center' style={{ color: 'var(--color-red)' }}>
+				ERROR: {error.message}
+			</div>
+		</div>}>
+		{children}
+	</ErrorBoundary>;
 }
 
 export function NumberInput({ value, onChange, min, max, step, allowNull, style }:

@@ -5,6 +5,7 @@ import { openContextMenu } from './app';
 import { color } from './plots/plotUtil';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams, gapSize, type LayoutsMenuDetails, splitNode, resetLayout } from './layout';
 import { EventsContextMenu, LayoutContent } from './events/Events';
+import { CatchErrors } from './Utility';
 
 function Item({ id, size }: { id: string, size: Size }) {
 	const { startDrag, dragOver, finishDrag } = useLayoutsStore.getState();
@@ -16,9 +17,15 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
 		{<LayoutContext.Provider value={{ id, size, params: items[id]!, setParams: (k, para) => setNodeParams(id, k, para) }}>
-			<LayoutContent/></LayoutContext.Provider>}
+			<CatchErrors>
+				<LayoutContent/>
+			</CatchErrors>
+		</LayoutContext.Provider>}
 		{!items[id]!.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
-			<LayoutContextMenu id={id}/></div></div>}
+			<CatchErrors>
+				<LayoutContextMenu id={id}/>
+			</CatchErrors>
+		</div></div>}
 	</div>;
 }
 

@@ -34,7 +34,7 @@ function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height
 			side,
 			size: axDef.size as any + axDef.labelSize,
 			splits: Array.from(Array(SW_TYPES.length).keys()),
-			values: SW_TYPES.toReversed()
+			values: SW_TYPES.slice().reverse()
 		}))],
 		series: [{ }].concat(SW_TYPES.flatMap((type, i) => ['high', 'medium'].map(reli => ({
 			stroke: color(COLORS[i]),
