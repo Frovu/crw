@@ -71,7 +71,7 @@ def _select(for_rows, query, root='forbush_effects'):
 		if 'time' == c else (f'{e}.{c}' if e is not None else c) for e, c in query])
 	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} '
 	if for_rows is not None:
-		select_query += f'WHERE {query[0][0]}.id = ANY(%s) '
+		select_query += f'WHERE {root}.id = ANY(%s) '
 	with pool.connection() as conn:
 		curs = conn.execute(select_query + f'ORDER BY {root}.time', [] if for_rows is None else [for_rows])
 		res = np.array(curs.fetchall(), dtype='f8')
@@ -266,18 +266,19 @@ def _do_compute(generic, for_rows=None):
 def compute_generic(g, for_row=None):
 	try:
 		t_start = time()
-		log.debug(f'Computing {g.pretty_name}')
 		if for_row is not None:
-			ids = _select(None, [(g.entity, 'id')])[0].astype(int)
+			ids = _select(None, [('forbush_effects', 'id')])[0].astype(int)
 			idx = np.where(ids == for_row)[0][0]
 			margin = 3
 			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
-			target_id, result = target_id[margin:margin+1], result[margin:margin+1]
+			target_id, result = target_id[margin-1:margin+2], result[margin-1:margin+2]
 		else:
+			log.debug(f'Computing {g.pretty_name}')
 			target_id, result = _do_compute(g)
 		if result is None:
 			return False
-		log.info(f'Computed {g.pretty_name} in {round(time()-t_start,2)}s')
+		if for_row is None:
+			log.info(f'Computed {g.pretty_name} in {round(time()-t_start,2)}s')
 		target_id = target_id.astype('i8')
 		if g.params.series == 'kp':
 			result /= 10
@@ -287,7 +288,8 @@ def compute_generic(g, for_row=None):
 			apply_changes(target_id, result, g.entity, g.name, conn)
 			data = np.column_stack((result, target_id)).tolist()
 			conn.cursor().executemany(update_q, data)
-			conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
+			if for_row is None:
+				conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
 		return True
 	except:
 		log.error(f'Failed at generic {g.pretty_name}: {traceback.format_exc()}')

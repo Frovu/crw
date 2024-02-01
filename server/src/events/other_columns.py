@@ -4,7 +4,7 @@ import numpy as np
 from database import pool, log
 from events.table import parse_column_id
 from events.generic_columns import select_generics
-from events.generic_core import apply_changes, recompute_for_row, recompute_generics
+from events.generic_core import apply_changes, recompute_for_row, recompute_generics, G_DERIVED
 
 DEFAULT_DURATION = 72
 
@@ -55,7 +55,8 @@ def _compute_all(for_row):
 	if for_row is None:
 		recompute_generics(generics)
 	else:
-		recompute_for_row(generics, for_row)
+		recompute_for_row([g for g in generics if g.params.operation not in G_DERIVED], for_row)
+		recompute_for_row([g for g in generics if g.params.operation 	 in G_DERIVED], for_row)
 	_compute_vmbm(generics, for_row)
 	compute_cache[for_row] = (compute_cache.get(for_row, [time()])[0], time())
 
