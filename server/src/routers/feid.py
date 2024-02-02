@@ -64,7 +64,7 @@ def get_samples():
 
 @bp.route('/samples/create', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def add_sample():
 	uid = session.get('uid')
 	name = request.json.get('name')
@@ -75,7 +75,7 @@ def add_sample():
 
 @bp.route('/samples/remove', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def remove_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
@@ -84,7 +84,7 @@ def remove_sample():
 
 @bp.route('/samples/update', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def update_sample():
 	uid = session.get('uid')
 	sid = int(request.json.get('id'))
@@ -101,7 +101,7 @@ def update_sample():
 
 @bp.route('/generics', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def _create_generic():
 	uid = session.get('uid')
 	start = time()
@@ -110,7 +110,7 @@ def _create_generic():
 
 @bp.route('/generics/remove', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def _remove_generic():
 	uid = session.get('uid')
 	gid = int(request.json.get('id'))
@@ -119,7 +119,7 @@ def _remove_generic():
 
 @bp.route('/compute', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def _compute_generic():
 	name = request.json.get('id')
 	start = time()
@@ -129,7 +129,7 @@ def _compute_generic():
 
 @bp.route('/compute_row', methods=['POST'])
 @route_shielded
-@require_role('operator')
+@require_role('user')
 def _compute_row_generic():
 	rid = int(request.json.get('id'))
 	return compute_all(rid)
@@ -142,7 +142,7 @@ def _compute_everything():
 
 @bp.route('/importTable', methods=['POST'])
 @route_shielded
-@require_role('admin')
+@require_role('operator')
 def _import_table():
 	uid = session.get('uid')
 	body = request.json

@@ -1,21 +1,24 @@
 import { useContext, useState, useEffect, type ReactNode } from 'react';
-import { AuthContext } from './app';
+import { AuthContext, logSuccess } from './app';
 import { useMutationHandler, apiPost, apiGet, useEventListener } from './util';
 import { useQuery } from 'react-query';
 
 export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type: 'login' | 'password' | 'upsert'}) {
 	const { login: currentLogin } = useContext(AuthContext);
 	const [error, setError] = useState<string | null>(null);
+	const [createMode, setCreateMode] = useState(false);
 	const [login, setLogin] = useState('');
 	const [role, setRole] = useState('');
 	const [password, setPassword] = useState('');
 	const [newPassword, setnewPassword] = useState('');
 	const [newPassword2, setnewPassword2] = useState('');
-	const { mutate, isSuccess, color, report, setReport } = useMutationHandler(() => apiPost(`auth/${type}`,
+	const { mutate, isSuccess, color, report, setReport } = useMutationHandler(() => apiPost(`auth/${createMode ? 'register' : type}`,
 		upsertMode ? { login, password, role } :
 			passMode ? { password, newPassword } :
 				{ login, password }),
 	['auth', 'samples', 'tableStructure', 'tableData']);
+
+	useEffect(() => setCreateMode(false), []);
 
 	useEffect(() => {
 		const timeout = setTimeout(() => setError(null), 3000);
@@ -24,15 +27,16 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 
 	const passMode = type === 'password';
 	const upsertMode = type === 'upsert';
-	if (isSuccess && !upsertMode) closePrompt();
+	if (isSuccess && !upsertMode)
+		closePrompt();
 
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
-		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 2.5em 2em' }}>
-			<b>{upsertMode ? 'Upsert user' : !passMode ? 'CRW Login' : 'Change password'}</b>
+		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 0 2em' }}>
+			<b>{upsertMode ? 'Upsert user' : !passMode ? createMode ? 'CRW Register' : 'CRW Login' : 'Change password'}</b>
 			<div style={{ textAlign: 'right' }}>
 				<p>
-					User:&nbsp;
+					Username:&nbsp;
 					<input type='text' {...(passMode && { disabled: true, value: currentLogin })} style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
 				</p>
 				{upsertMode && <p>
@@ -47,19 +51,27 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 					New password:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword(e.target.value)}/>
 				</p>}
-				{passMode && <p>
+				{(passMode || createMode) && <p title='Repeat password'>
 					Confirm:&nbsp;
 					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword2(e.target.value)}/>
 				</p>}
 			</div>
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-				<span style={{ color, width: '12em', textAlign: 'center' }}>{report?.error ?? report?.success}</span>
-				<button style={{ width: '5em', height: '1.5em' }} onClick={() => {
+			{type === 'login' && !createMode && <p style={{ textAlign: 'right' }}>
+				<button className='TextButton' onClick={() => setCreateMode(true)}>
+					Create account
+				</button></p>}
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+				<span style={{ color, width: '12em', textAlign: 'center', minHeight: '3em' }}>{report?.error ?? report?.success}</span>
+				<button style={{ width: '6em', height: '1.5em' }} onClick={() => {
 					if (passMode && (!newPassword || newPassword !== newPassword2))
 						return setReport({ error: 'Passwords do not match' });
-					mutate({});
-				}}>{passMode ? 'Change' : upsertMode ? 'Upsert' : 'Login' }</button>
+					if (createMode && (!password || password !== newPassword2))
+						return setReport({ error: 'Passwords do not match' });
+					mutate({}, { onSuccess: () => logSuccess(passMode ? 'Password changed' :
+						(createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login) });
+				}}>{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login' }</button>
 			</div>
+
 		</div>
 	</>);
 }
@@ -73,7 +85,9 @@ export function AuthNav() {
 		<div style={{ cursor: 'pointer', padding: '2px 8px', minWidth: '9em', textAlign: 'center' }}>
 			<div style={{ color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 				onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}
-				onClick={e => {e.stopPropagation(); login ? mutate({}) : promptLogin('login');}}>
+				onClick={e => {e.stopPropagation(); login ? mutate({}, {
+					onSuccess: () => logSuccess('Logged out')
+				}) : promptLogin('login');}}>
 				{login ? (hovered ? 'log out?' : `${login}:${role}`) : (hovered ? 'log in?' : 'not logged in')}
 			</div>
 			{login && <div style={{ color: hovered === 2 ? 'var(--color-active)' : 'var(--color-text-dark)' }}

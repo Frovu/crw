@@ -118,7 +118,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		staleTime: Infinity,
 		keepPreviousData: true,
 		queryKey: ['tableData'], 
-		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true })
+		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true }),
+		onSuccess: () => logMessage('Events table loaded', 'debug')
 	});
 	const rawMainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
@@ -154,7 +155,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
-		logMessage('Events table loaded', 'debug');
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,

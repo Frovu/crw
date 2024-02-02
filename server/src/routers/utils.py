@@ -2,6 +2,8 @@ import traceback
 from flask import session
 from database import pool, log
 
+ROLES = ['admin', 'operator', 'user']
+
 def msg(string):
 	return { 'message': string }
 
@@ -30,9 +32,9 @@ def route_shielded(func):
 def require_role(r_role: str):
 	def decorator(func):
 		def wrapper():
-			if (role := get_role()) is None: 
+			if (role := get_role()) is None:
 				return { 'message': 'Unauthorized' }, 401
-			if role not in (r_role, 'admin'):
+			if role not in ROLES or ROLES.index(role) > ROLES.index(r_role):
 				return { 'message': 'Forbidden' }, 403
 			return func()
 		wrapper.__name__ = func.__name__

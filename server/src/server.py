@@ -41,7 +41,8 @@ from flask_compress import Compress
 
 app = Flask('crw')
 app.config["COMPRESS_REGISTER"] = False  # disable default compression of all eligible requests
-compress = Compress(app)
+compress = Compress()
+compress.init_app(app)
 if hasattr(app, 'json'):
 	app.json.sort_keys = False
 	app.json.indent = 0

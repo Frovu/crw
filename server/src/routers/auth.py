@@ -1,12 +1,10 @@
 import os
 from flask import Blueprint, request, session
-from routers.utils import route_shielded, require_role, get_role, msg
+from routers.utils import route_shielded, require_role, get_role, msg, ROLES
 from database import pool, log
 from server import bcrypt
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
-
-ROLES = ['admin', 'operator']
 
 def init():
 	with pool.connection() as conn:
@@ -55,6 +53,26 @@ def do_upsert():
 			[login] + values)
 	log.info(f'AUTH: user upserted: {login}' + (' -> ' + role if role else ''))
 	return msg('Modified' if exists else 'Created')
+
+@bp.route('/register', methods=['POST'])
+def do_register():
+	login = request.json.get('login')
+	passw = request.json.get('password')
+	if passw and len(passw) < 6:
+		return msg('Password too short'), 400
+	if not login:
+		return msg('Bad request'), 400
+	with pool.connection() as conn:
+		exists = conn.execute('SELECT login FROM users WHERE login = %s', [login]).fetchone()
+		if exists:
+			return msg('User already exists'), 401
+		pwd = bcrypt.generate_password_hash(passw, rounds=10).decode()
+		query = 'INSERT INTO users(login, role, password) VALUES (%s, %s, %s) RETURNING uid'
+		uid = conn.execute(query, [login, 'user', pwd]).fetchone()[0]
+	session['uid'] = uid
+	session['uname'] = login
+	log.info('AUTH: new user created: %s', login)
+	return msg('Created')
 
 @bp.route('/login', methods=['POST'])
 def do_login():
