@@ -23,7 +23,7 @@ function Logs() {
 	const [hover, setHover] = useState(false);
 	const [expand, setExpand] = useState(false);
 	const [show, setShow] = useState(true);
-	const last = log.at(-1);
+	const last = log.findLast(l => l.type !== 'debug');
 
 	useEffect(() => {
 		setShow(true);

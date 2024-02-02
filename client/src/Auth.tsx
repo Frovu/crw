@@ -80,21 +80,17 @@ export function AuthNav() {
 	const [ hovered, setHovered ] = useState(0);
 	const { login, role, promptLogin } = useContext(AuthContext);
 	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'tableStructure', 'tableData']);
-
+	
 	return (
-		<div style={{ cursor: 'pointer', padding: '2px 8px', minWidth: '9em', textAlign: 'center' }}>
-			<div style={{ color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
+		<div style={{ cursor: 'pointer', padding: '2px 8px', textAlign: 'center',
+			minWidth: '9em', width: 3 + (login?.length ?? 4) + (role?.length ?? 5) + 'ch'  }}>
+			<div style={{ whiteSpace: 'nowrap', color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
 				onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}
 				onClick={e => {e.stopPropagation(); login ? mutate({}, {
 					onSuccess: () => logSuccess('Logged out')
 				}) : promptLogin('login');}}>
 				{login ? (hovered ? 'log out?' : `${login}:${role}`) : (hovered ? 'log in?' : 'not logged in')}
 			</div>
-			{login && <div style={{ color: hovered === 2 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
-				onMouseEnter={() => setHovered(2)} onMouseLeave={() => setHovered(0)}
-				onClick={e => {e.stopPropagation(); promptLogin('password');}}>
-				{hovered ? 'set password?' : `role: ${role}`}
-			</div>}
 		</div>
 	);
 }

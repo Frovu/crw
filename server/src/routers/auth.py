@@ -62,6 +62,8 @@ def do_register():
 		return msg('Password too short'), 400
 	if not login:
 		return msg('Bad request'), 400
+	if len(login) > 16:
+		return msg('Username too long'), 400
 	with pool.connection() as conn:
 		exists = conn.execute('SELECT login FROM users WHERE login = %s', [login]).fetchone()
 		if exists:
