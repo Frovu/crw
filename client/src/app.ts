@@ -13,7 +13,6 @@ export const KEY_COMB = {
 	'computeRow': 'K',
 	'setX': '1',
 	'setY': '2',
-	'exportPlot': 'E',
 	'plot': 'P',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
@@ -34,7 +33,7 @@ export const colorKeys = ['magenta', 'magenta2', 'cyan', 'cyan2', 'skyblue', 'bl
 	'peach', 'white', 'acid', 'gold', 'green', 'yellow', 'orange', 'red', 'crimson',
 	'bg', 'input-bg', 'text', 'text-dark', 'border', 'grid', 'active', 'area', 'area2'];
 
-export const infoPages = ['manual', 'shortcuts', 'credit'] as const;
+export const infoPages = ['manual', 'advanced', 'shortcuts', 'credit'] as const;
 
 type AppSettings = {
 	log: LogMessage[],
