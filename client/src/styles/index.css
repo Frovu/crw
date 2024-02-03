@@ -102,3 +102,16 @@ input[type='checkbox'], select, button {
 .u-select {
 	cursor: grab;
 }
+
+.u-tooltip {
+	font-family: var(--font);
+	font-size: 14px;
+	position: absolute;
+	background: var(--color-bg);
+	display: none;
+	border: 1px solid var(--color-border);
+	padding: 2px 6px;
+	pointer-events: none;
+	z-index: 100;
+	white-space: pre;
+}

@@ -5,7 +5,7 @@ import { type DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeS
 	scaled, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
-import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale, drawCustomLabels, drawCustomLegend } from './basicPlot';
+import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
@@ -32,9 +32,13 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			pxAlign: true,
 			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), 0],
 			legend: { show: params.interactive },
+			focus: { alpha: 1 },
 			cursor: {
-				show: params.interactive,
-				drag: { x: false, y: false, setScale: false }
+				// show: params.interactive,
+				focus: { prox: 1e10 },
+				drag: { x: false, y: false, setScale: false },
+				points: {
+					width: 2, size: 8, stroke: color('white'), fill: 'transparent' }
 			},
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
@@ -99,7 +103,8 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				ready: [
 					handleDragLegend
 				].concat(uopts?.hooks?.ready ?? [] as any)
-			}
+			},
+			plugins: [ tooltipPlugin(params) ]
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
 	

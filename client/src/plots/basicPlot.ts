@@ -1,6 +1,6 @@
 import type { MutableRefObject } from 'react';
 import type { Onset, MagneticCloud } from '../events/events';
-import { type Size, clamp, apiGet } from '../util';
+import { type Size, clamp, apiGet, prettyDate } from '../util';
 import { getParam, font, scaled, type Shape, type Position,
 	applyOverrides, withOverrides, getFontSize, drawShape, measureDigit, color } from './plotUtil';
 import type uPlot from 'uplot';
@@ -23,7 +23,29 @@ export type BasicPlotParams = {
 	showMetaInfo: boolean,
 	showGrid: boolean,
 	showMarkers: boolean,
-	showLegend: boolean
+	showLegend: boolean,
+};
+
+export type CustomAxis = uPlot.Axis & {
+	label: string,
+	fullLabel?: string,
+	position?: [number, number],
+	minMax?: [number|null, number|null],
+	showGrid?: boolean,
+	whole?: boolean,
+	distr?: number,
+	_values?: (string | undefined)[]
+	_splits?: number[]
+};
+export type CustomSeries = uPlot.Series & {
+	legend?: string,
+	marker?: Shape,
+	bars?: boolean,
+	myPaths?: (scl: number) => uPlot.Series['paths']
+};
+export type CustomScale = uPlot.Scale & {
+	scaleValue?: { min: number, max: number },
+	positionValue?: { bottom: number, top: number },
 };
 
 export const applyTextTransform = (text: string) => {
@@ -241,24 +263,61 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	return ordered;
 }
 
-export type CustomAxis = uPlot.Axis & {
-	label: string,
-	fullLabel?: string,
-	position?: [number, number],
-	minMax?: [number|null, number|null],
-	showGrid?: boolean,
-	whole?: boolean,
-	distr?: number,
-	_values?: (string | undefined)[]
-	_splits?: number[]
-};
-export type CustomSeries = uPlot.Series & {
-	legend?: string,
-	marker?: Shape,
-	bars?: boolean,
-	myPaths?: (scl: number) => uPlot.Series['paths']
-};
-export type CustomScale = uPlot.Scale & {
-	scaleValue?: { min: number, max: number },
-	positionValue?: { bottom: number, top: number },
-};
+export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
+	const shiftX = 4;
+	const shiftY = 4;
+	let tooltipLeftOffset = 0;
+	let tooltipTopOffset = 0;
+	let seriesIdx: number | null = 0;
+	let dataIdx: number | null = 0;
+
+	function setTooltip(u: uPlot) {
+		const show = seriesIdx != null && dataIdx != null && dataIdx > 0;
+
+		tooltip.style.display = show ? 'block' : 'none';
+		u.over.style.cursor = show ? 'crosshair' : 'unset';
+
+		if (!show) return;
+
+		const series = u.series[seriesIdx!];
+		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;
+		const val = u.data[seriesIdx!][dataIdx!] as number;
+		const tst = u.data[0][dataIdx!];
+		const top = u.valToPos(val, series.scale ?? 'y');
+		const lft = u.valToPos(tst, 'x');
+		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
+
+		tooltip.style.top  = (tooltipTopOffset  + top + shiftY) + 'px';
+		tooltip.style.left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1)) + 'px';
+		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
+		tooltip.innerHTML = `${prettyDate(tst)}, <span style="color: ${stroke};">${series.label}</span> = ${val.toString()}`;
+	}
+
+	const tooltip = document.createElement('div');
+	tooltip.className = 'u-tooltip';
+
+	return {
+		hooks: {
+			ready: [ u => {
+				tooltipLeftOffset = parseFloat(u.over.style.left);
+				tooltipTopOffset  = parseFloat(u.over.style.top);
+				u.root.querySelector('.u-wrap')!.appendChild(tooltip);
+			} ],
+			setCursor: [ u => {
+				if (dataIdx !== u.cursor.idx) {
+					dataIdx = u.cursor.idx ?? null;
+
+					setTooltip(u);
+				}
+			} ],
+			setSeries: [ (u, sidx) => {
+				if (seriesIdx !== sidx) {
+					seriesIdx = sidx;
+
+					setTooltip(u);
+				}
+			} ]
+		}
+	};
+
+}
