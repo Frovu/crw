@@ -278,7 +278,7 @@ export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
 		u.over.style.cursor = show ? 'crosshair' : 'unset';
 		const series = u.series[seriesIdx!];
 
-		if (!show || series.label === 'Value')
+		if (!show || ['Value', 'vector'].includes(series.label!))
 			return;
 
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;

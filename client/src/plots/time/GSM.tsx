@@ -155,7 +155,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 					drawMagneticClouds(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
 					drawOnsets(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
 				],
-				ready: [ handleDrag ]
+				ready: [ handleDrag ],
 			}
 		}),
 		axes: () => [{

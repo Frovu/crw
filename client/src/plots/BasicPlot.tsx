@@ -39,9 +39,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				drag: { x: false, y: false, setScale: false },
 				points: {
 					width: 2, size: 8,
-					stroke: (u, sidx) => u.series[sidx].label === 'Value' ? 'transparent' : color('white'),
+					stroke: (u, sidx) => ['Value', 'vector'].includes(u.series[sidx].label!)  ? 'transparent' : color('white'),
 					fill: 'transparent'
-				}
+				},
+				...(uopts?.cursor?.dataIdx && { dataIdx: uopts.cursor.dataIdx })
 			},
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
