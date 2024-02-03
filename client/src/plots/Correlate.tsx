@@ -2,12 +2,13 @@ import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled } from './plotUtil';
-import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings } from '../events/events';
+import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
 import { applyTextTransform, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
+import { prettyDate } from '../util';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
@@ -110,6 +111,10 @@ export default function CorrelationPlot() {
 		const title = regr ? <span><span style={{ color: color('text-dark') }}>α={intercept.toFixed(2)}; </span>
 			β={gradient.toFixed(3)} ± {err.toFixed(3)}; r={Math.sqrt(regr.r2).toFixed(2)}</span> : null;
 
+		const timeIdx = columns.findIndex(c => c.fullName === 'time');
+		const findRow = (i: number) => sampleData.find(row =>
+			equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
+
 		let hoveredRect: any;
 		let qt: Quadtree;
 		return {
@@ -122,7 +127,10 @@ export default function CorrelationPlot() {
 					legend: { show: false },
 					cursor: {
 						show: true, drag: { x: false, y: false, setScale: false },
-						points: { width: 2, size: 6, stroke: color('red'), fill: 'transparent' },
+						points: {
+							width: 2, size: 6,
+							stroke: (u, sidx) => sidx === 1 ? color('red') : 'transparent', fill: 'transparent'
+						},
 						dataIdx: (u, sidx) => {
 							const cx = u.cursor.left! * devicePixelRatio;
 							const cy = u.cursor.top! * devicePixelRatio;
@@ -134,9 +142,12 @@ export default function CorrelationPlot() {
 						}
 					},
 					plugins: [ tooltipPlugin({
-						onclick: console.log,
+						onclick: (u, didx) => console.log(findRow(didx)),
 						didx: () => hoveredRect?.didx,
-						html: () => `${hoveredRect.didx}`,
+						html: (u, sidx, didx) => {
+							const row = findRow(didx);
+							return row ? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}` : '??';
+						},
 					}) ],
 					hooks: {
 						drawClear: [ u => { 
