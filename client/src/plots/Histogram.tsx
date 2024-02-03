@@ -4,7 +4,7 @@ import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDi
 import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings, type Value } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend, type CustomAxis } from './basicPlot';
+import { drawCustomLabels, drawCustomLegend, type CustomAxis, tooltipPlugin } from './basicPlot';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { NumberInput } from '../Utility';
 
@@ -270,7 +270,8 @@ export default function HistogramPlot() {
 				return {
 					padding: [12, 14 + (max > 999 ? 4 : 0), 0, 0].map(p => scaled(p)) as any,
 					legend: { show: false },
-					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
+					focus: { alpha: .5 },
+					cursor: { focus: { prox: 64 }, drag: { x: false, y: false, setScale: false }, points: { show: false } },
 					hooks: { draw: [
 						drawAverages(options, samples),
 						drawCustomLabels({ showLegend }),
@@ -279,6 +280,12 @@ export default function HistogramPlot() {
 					], ready: [
 						handleDragLegend
 					] },
+					plugins: [ tooltipPlugin({
+						html: (u, sidx, i) => 
+							`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round(binSize / 2 * 100) / 100};`
+							+ `<span style="color: ${color(colors[sidx-1])}"> `
+							+ (Math.round(u.data[sidx][i]! * 100) / (yScale === '%' ? 1 : 100)).toString() + (yScale === '%' ? ' %' : ' events') + '</span>'
+					}) ],
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: scaled(12) + getFontSize(),

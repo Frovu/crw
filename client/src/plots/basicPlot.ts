@@ -263,7 +263,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	return ordered;
 }
 
-export function tooltipPlugin(): uPlot.Plugin {
+export function tooltipPlugin({ html }: { html?: (u: uPlot, sIdx: number, dIdx: number) => string }={}): uPlot.Plugin {
 	const shiftX = 4;
 	const shiftY = 4;
 	let tooltipLeftOffset = 0;
@@ -272,7 +272,7 @@ export function tooltipPlugin(): uPlot.Plugin {
 	let dataIdx: number | null = 0;
 
 	function setTooltip(u: uPlot) {
-		const show = seriesIdx != null && dataIdx != null && dataIdx > 0;
+		const show = seriesIdx != null && dataIdx != null;
 
 		tooltip.style.display = show ? 'block' : 'none';
 		u.over.style.cursor = show ? 'crosshair' : 'unset';
@@ -284,17 +284,19 @@ export function tooltipPlugin(): uPlot.Plugin {
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;
 		const val = u.data[seriesIdx!][dataIdx!] as number;
 		const value = typeof series.value == 'function'
-			? series.value(u, val, seriesIdx!, dataIdx) : val;
+			? series.value(u, val, seriesIdx!, dataIdx) : Math.round(val / 100) * 100;
 		const tst = u.data[0][dataIdx!];
 		const top = u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(tst, 'x');
 		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
 
+		const left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1));
 		tooltip.style.top  = (tooltipTopOffset  + top + shiftY) + 'px';
-		tooltip.style.left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1)) + 'px';
+		tooltip.style.left = (flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(tst) : tst.toString();
-		tooltip.innerHTML = `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
+		tooltip.innerHTML = html ? html(u, seriesIdx!, dataIdx!)
+			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
 	}
 
 	const tooltip = document.createElement('div');
