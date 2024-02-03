@@ -6,7 +6,8 @@ import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, find
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform } from './basicPlot';
+import { applyTextTransform, tooltipPlugin } from './basicPlot';
+import { Quadtree } from './quadtree';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
@@ -108,7 +109,9 @@ export default function CorrelationPlot() {
 
 		const title = regr ? <span><span style={{ color: color('text-dark') }}>α={intercept.toFixed(2)}; </span>
 			β={gradient.toFixed(3)} ± {err.toFixed(3)}; r={Math.sqrt(regr.r2).toFixed(2)}</span> : null;
-		
+
+		let hoveredRect: any;
+		let qt: Quadtree;
 		return {
 			title,
 			options: () => {
@@ -117,7 +120,30 @@ export default function CorrelationPlot() {
 					mode: 2,
 					padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
 					legend: { show: false },
-					cursor: { show: false, drag: { x: false, y: false, setScale: false } },
+					cursor: {
+						show: true, drag: { x: false, y: false, setScale: false },
+						points: { width: 2, size: 6, stroke: color('red'), fill: 'transparent' },
+						dataIdx: (u, sidx) => {
+							const cx = u.cursor.left! * devicePixelRatio;
+							const cy = u.cursor.top! * devicePixelRatio;
+							hoveredRect = null;
+							qt.hover(cx, cy, (o: any) => {
+								hoveredRect = o;
+							});
+							return hoveredRect?.didx ?? -1;
+						}
+					},
+					plugins: [ tooltipPlugin({
+						onclick: console.log,
+						didx: () => hoveredRect?.didx,
+						html: () => `${hoveredRect.didx}`,
+					}) ],
+					hooks: {
+						drawClear: [ u => { 
+							qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
+							qt.clear();
+						}]
+					},
 					axes: [
 						{
 							...axisDefaults(showGrid),
@@ -151,10 +177,13 @@ export default function CorrelationPlot() {
 						}
 					},
 					series: [
-						{}, {
+						{ facets: [ { scale: 'x', auto: true } ] }, {
+							facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
+							label: 'scatter',
 							stroke: color(params.color),
-							paths: pointPaths(scaled(4))
+							paths: pointPaths(scaled(4), (r: any) => qt.add(r))
 						}, {
+							facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 							show: params.showRegression,
 							stroke: color('white'),
 							paths: linePaths(scaled(1.5))

@@ -263,38 +263,44 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	return ordered;
 }
 
-export function tooltipPlugin({ html }: { html?: (u: uPlot, sIdx: number, dIdx: number) => string }={}): uPlot.Plugin {
+export function tooltipPlugin({ html, didx: userDidx, onclick }: {
+	didx?: () => number,
+	onclick?: (u: uPlot, dIdx: number) => void,
+	html?: (u: uPlot, sIdx: number, dIdx: number) => string
+} = { }): uPlot.Plugin {
 	const shiftX = 4;
 	const shiftY = 4;
 	let tooltipLeftOffset = 0;
 	let tooltipTopOffset = 0;
-	let seriesIdx: number | null = 0;
-	let dataIdx: number | null = 0;
+	let seriesIdx: number | null = 1;
+	let dataIdx: number | null = 1;
 
 	function setTooltip(u: uPlot) {
 		const show = seriesIdx != null && dataIdx != null;
 
 		tooltip.style.display = show ? 'block' : 'none';
-		u.over.style.cursor = show ? 'crosshair' : 'unset';
+		u.over.style.cursor = onclick ? 'pointer' : 'crosshair';
 		const series = u.series[seriesIdx!];
 
 		if (!show || ['Value', 'vector'].includes(series.label!))
 			return;
 
+		const isScatter = (u as any).mode === 2;
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;
-		const val = u.data[seriesIdx!][dataIdx!] as number;
+		const val = isScatter ? (u.data as any)[seriesIdx!][1][dataIdx!] : u.data[seriesIdx!][dataIdx!] as number;
 		const value = typeof series.value == 'function'
 			? series.value(u, val, seriesIdx!, dataIdx) : Math.round(val / 100) * 100;
-		const tst = u.data[0][dataIdx!];
+		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
+		
 		const top = u.valToPos(val, series.scale ?? 'y');
-		const lft = u.valToPos(tst, 'x');
+		const lft = u.valToPos(xval, 'x');
 		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
 
 		const left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1));
 		tooltip.style.top  = (tooltipTopOffset  + top + shiftY) + 'px';
 		tooltip.style.left = (flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
-		const xlbl = u.scales.x.time ? prettyDate(tst) : tst.toString();
+		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
 		tooltip.innerHTML = html ? html(u, seriesIdx!, dataIdx!)
 			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
 	}
@@ -308,18 +314,35 @@ export function tooltipPlugin({ html }: { html?: (u: uPlot, sIdx: number, dIdx: 
 				tooltipLeftOffset = parseFloat(u.over.style.left);
 				tooltipTopOffset  = parseFloat(u.over.style.top);
 				u.root.querySelector('.u-wrap')!.appendChild(tooltip);
+
+				if (onclick) {
+					let clientX: number;
+					let clientY: number;
+	
+					u.over.addEventListener('mousedown', e => {
+						clientX = e.clientX;
+						clientY = e.clientY;
+					});
+	
+					u.over.addEventListener('mouseup', e => {
+						// clicked in-place
+						if (e.clientX === clientX && e.clientY === clientY) {
+							if (dataIdx != null)
+								onclick(u, dataIdx);
+						}
+					});
+				}
 			} ],
 			setCursor: [ u => {
-				if (dataIdx !== u.cursor.idx) {
-					dataIdx = u.cursor.idx ?? null;
-
+				const idx = userDidx ? userDidx() : u.cursor.idx ?? null;
+				if (dataIdx !== idx) {
+					dataIdx = idx;
 					setTooltip(u);
 				}
 			} ],
 			setSeries: [ (u, sidx) => {
 				if (seriesIdx !== sidx) {
 					seriesIdx = sidx;
-
 					setTooltip(u);
 				}
 			} ]

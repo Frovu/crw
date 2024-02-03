@@ -283,7 +283,7 @@ export default function HistogramPlot() {
 					plugins: [ tooltipPlugin({
 						html: (u, sidx, i) => 
 							`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round(binSize / 2 * 100) / 100};`
-							+ `<span style="color: ${color(colors[sidx-1])}"> `
+							+ `<span style="color: ${(u.series[sidx].stroke as any)()}"> `
 							+ (Math.round(u.data[sidx][i]! * 100) / (yScale === '%' ? 1 : 100)).toString() + (yScale === '%' ? ' %' : ' events') + '</span>'
 					}) ],
 					axes: [ {

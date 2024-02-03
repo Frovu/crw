@@ -2,7 +2,7 @@ import uPlot from 'uplot';
 import { scaled } from './plotUtil';
 import { clamp } from '../util';
 
-export function circlePaths(callback, minMaxMagn, params) {
+export function circlePaths(rectCallback, minMaxMagn, params) {
 	const strokeWidth = clamp(1.5, 8, scaled(devicePixelRatio) / 1.5);
 	const minSize = scaled(1.5);
 	return (u, seriesIdx) => {
@@ -45,7 +45,7 @@ export function circlePaths(callback, minMaxMagn, params) {
 					u.ctx.arc(cx, cy, size/2, 0, deg360);
 					u.ctx.fill();
 					u.ctx.stroke();
-					callback && callback({
+					rectCallback && rectCallback({
 						x: cx - size/2 - strokeWidth/2 - u.bbox.left,
 						y: cy - size/2 - strokeWidth/2 - u.bbox.top,
 						w: size + strokeWidth,
@@ -88,7 +88,7 @@ export function linePaths(width = 1) {
 	};
 }
 
-export function pointPaths(sizePx) {
+export function pointPaths(sizePx, rectCallback) {
 	return (u, seriesIdx) => {
 		const size = sizePx * devicePixelRatio;
 		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
@@ -102,6 +102,14 @@ export function pointPaths(sizePx) {
 				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
 					const cx = valToPosX(xVal, scaleX, xDim, xOff);
 					const cy = valToPosY(yVal, scaleY, yDim, yOff);
+					rectCallback && rectCallback({
+						x: cx - size / 2 - 2 - u.bbox.left,
+						y: cy - size / 2 - 2 - u.bbox.top,
+						w: size + 4,
+						h: size + 4,
+						sidx: seriesIdx,
+						didx: i
+					});
 					p.moveTo(cx + size/2, cy);
 					arc(p, cx, cy, size/2, 0, deg360);
 				}
