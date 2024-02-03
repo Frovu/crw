@@ -1,6 +1,6 @@
 import uPlot from 'uplot';
 import BasicPlot from '../BasicPlot';
-import { type CustomScale, type CustomSeries, type BasicPlotParams,
+import { type CustomScale, type BasicPlotParams,
 	applyTextTransform, basicDataQuery } from '../basicPlot';
 import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow,
 	usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
@@ -65,7 +65,7 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 		const rem = lineStep - Math.floor(u.data[0][0] / H) % lineStep;
 		for (let i = rem; i < length; i += lineStep) {
 			const a0x = u.valToPos(u.data[0][i]!, 'x', true);
-			const val = u.data[params.useA0m ? 3 : 4][i];
+			const val = u.data[3][i];
 			if (val == null)
 				continue;
 			const a0y = u.valToPos(val, 'A0', true);
@@ -88,7 +88,8 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 					u.ctx.lineTo(ax, ay);
 				}
 				const tstmp = u.data[0][i] * 1000;
-				const inMc = params.clouds?.find(({ start, end }) => tstmp > start.getTime() && tstmp <= end.getTime());
+				const inMc = params.clouds?.find(({ start, end }) =>
+					tstmp > start.getTime() && tstmp <= end.getTime());
 				u.ctx.strokeStyle = inMc ? colorArrowMc : colorArrow;
 				u.ctx.stroke();
 
@@ -134,13 +135,19 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 export default function PlotGSM({ params }: { params: GSMParams }) {
 	const defaultPos = () => ({ x: 8, y: 8 });
 	const [pos, size, handleDrag] = usePlotOverlayPosition(defaultPos);
+	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
 
 	return (<BasicPlot {...{
-		queryKey: ['GSMani', params.interval, params.maskGLE, params.subtractTrend],
-		queryFn: () => basicDataQuery('cream/gsm', params.interval, ['time', 'axy', 'az', 'a10m', 'a10', 'ax', 'ay'], {
-			mask_gle: params.maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
-			subtract_trend: params.subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
-		}),
+		queryKey: ['GSMani', interval, maskGLE, subtractTrend, useA0m],
+		queryFn: async () => {
+			const data = await basicDataQuery('cream/gsm', interval, ['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'], {
+				mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
+				subtract_trend: subtractTrend ? 'true' : 'false' // eslint-disable-line camelcase
+			});
+			if (data)
+				data[2] = data[2].map((d, i) => data[3][i]! + d!);
+			return data;
+		},
 		params,
 		options: () => ({
 			hooks: {
@@ -153,15 +160,15 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		}),
 		axes: () => [{
 			label: 'A0',
-			fullLabel: `A0${params.useA0m ? 'm' : ''}${params.showAz ? ' & Az' : ''}, %`,
-			position: params.showAxyVector ? [params.showAxy ? 1/8 : 0, 3/5] : [params.showAxy ? 1/4 : 0, 1],
+			fullLabel: `A0${useA0m ? 'm' : ''}${showAz ? ' & Az' : ''}, %`,
+			position: showAxyVector ? [showAxy ? 1/8 : 0, 3/5] : [showAxy ? 1/4 : 0, 1],
 			minMax: [-2, 1],
 			whole: true,
 		}, {
-			show: params.showAxy,
+			show: showAxy,
 			label: 'Axy',
 			fullLabel: 'Axy, %',
-			position: [0,  params.showAxyVector ? 1/9 : 1/5],
+			position: [0,  showAxyVector ? 1/9 : 1/5],
 			minMax: [0, null],
 			side: 1,
 			showGrid: false,
@@ -171,7 +178,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			position: [1/2, 1],
 		}],
 		series: () => [{
-			show: params.showAxy,
+			show: showAxy,
 			label: 'Axy',
 			legend: 'Axy (GSM) var, %',
 			stroke: color('magenta', .75),
@@ -180,36 +187,34 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			bars: true,
 			myPaths: scl => uPlot.paths.bars!({ size: [.45, 16 * scl, 1 * scl], align: 1 }),
 		}, {
-			show: params.showAz,
+			show: showAz,
 			label: 'Az',
 			scale: 'A0',
 			legend: 'Az (GSM) var, %',
 			stroke: color('blue'),
 			fill: color('blue'),
 			width: 0,
+			value: (u, val, sidx, i) => (i != null && (val - u.data[3][i]!)?.toFixed(2)) || '--',
 			myPaths: scl => (u, sidx, i0, i1) => {
-				const a0 = u.data[sidx + (params.useA0m ? 1 : 2)] as (number | null)[];
+				const a0 = u.data[3] as (number | null)[];
 				return uPlot.paths.bars!({
 					size: [.17, 2 * scl, 1 * scl],
 					align: 1,
 					disp: {
 						y0: { unit: 1, values: () => a0 },
-						y1: { unit: 1, values: () => a0.map((v, i) => v == null ? null : (v + (u.data[sidx][i] ?? 0))) }
+						y1: { unit: 1, values: () => u.data[sidx] as any }
 					}
 				})(u, sidx, i0, i1);
 			}
-		},
-		...['A0m', 'A0'].map(what => ({
+		}, {
 			scale: 'A0',
-			show: what === (params.useA0m ? 'A0m' : 'A0'),
-			label: what,
-			legend: `${params.useA0m ? 'A0m' : 'A0'} (GSM) var, %`,
+			label: useA0m ? 'A0m' : 'A0',
+			legend: `${useA0m ? 'A0m' : 'A0'} (GSM) var, %`,
 			stroke: color('green'),
 			width: 2,
 			marker: 'diamond'
-		} as CustomSeries)),
-		{
-			show: params.showAxyVector,
+		}, {
+			show: showAxyVector,
 			label: 'vector',
 			legend: 'Axy vector',
 			stroke: color('magenta'),

@@ -35,10 +35,13 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			focus: { alpha: 1 },
 			cursor: {
 				// show: params.interactive,
-				focus: { prox: 1e10 },
+				focus: { prox: 32 },
 				drag: { x: false, y: false, setScale: false },
 				points: {
-					width: 2, size: 8, stroke: color('white'), fill: 'transparent' }
+					width: 2, size: 8,
+					stroke: (u, sidx) => u.series[sidx].label === 'Value' ? 'transparent' : color('white'),
+					fill: 'transparent'
+				}
 			},
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,

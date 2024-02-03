@@ -276,12 +276,15 @@ export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
 
 		tooltip.style.display = show ? 'block' : 'none';
 		u.over.style.cursor = show ? 'crosshair' : 'unset';
-
-		if (!show) return;
-
 		const series = u.series[seriesIdx!];
+
+		if (!show || series.label === 'Value')
+			return;
+
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;
 		const val = u.data[seriesIdx!][dataIdx!] as number;
+		const value = typeof series.value == 'function'
+			? series.value(u, val, seriesIdx!, dataIdx) : val;
 		const tst = u.data[0][dataIdx!];
 		const top = u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(tst, 'x');
@@ -290,7 +293,7 @@ export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
 		tooltip.style.top  = (tooltipTopOffset  + top + shiftY) + 'px';
 		tooltip.style.left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
-		tooltip.innerHTML = `${prettyDate(tst)}, <span style="color: ${stroke};">${series.label}</span> = ${val.toString()}`;
+		tooltip.innerHTML = `${prettyDate(tst)}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
 	}
 
 	const tooltip = document.createElement('div');
