@@ -9,12 +9,17 @@ import uPlot from 'uplot';
 import { applyTextTransform, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
+import { NumberInput } from '../Utility';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
 export type CorrelationParams = {
 	column0: string | null,
 	column1: string | null,
+	forceMin: number | null,
+	forceMax: number | null,
+	forceMinY: number | null,
+	forceMaxY: number | null,
 	color: string,
 	showRegression: boolean,
 	loglog: boolean,
@@ -24,6 +29,10 @@ export type CorrelationParams = {
 export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = columns => ({
 	column0: findColumn(columns, 'VmBm')?.id ?? null,
 	column1: findColumn(columns, 'magnitude')?.id ?? null,
+	forceMin: null,
+	forceMax: null,
+	forceMinY: null,
+	forceMaxY: null,
 	color: 'green',
 	showRegression: true,
 	loglog: false,
@@ -36,6 +45,9 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 	const cur = { ...defaultCorrParams(columns), ...params.statParams };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
+	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) =>
+		setParams('statParams', { [k]: val });
+
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }} value={cur[k] as string}
 			onChange={e => setParams('statParams', { [k]: e.target.value })}>
@@ -44,19 +56,38 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 	const Checkbox = ({ text, k }: { text: string, k: keyof CorrelationParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
+
 	return <div className='Group'>
 		<div className='Row'>
 			X:<ColumnSelect k='column0'/>
 		</div> <div className='Row'>
 			Y:<ColumnSelect k='column1'/>
-		</div> <div className='Row'>
+		</div>
+		<div style={{ textAlign: 'right' }}>
+			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
+				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Limit X:</span>
+			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
+				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
+			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
+				value={cur.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
+		</div>
+		<div style={{ textAlign: 'right' }}>
+			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
+				onClick={() => setParams('statParams', { forceMinY: null, forceMaxY: null })}>Limit Y:</span>
+			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
+				value={cur.forceMinY} onChange={val => set('forceMinY', val)} allowNull={true}/>
+			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
+				value={cur.forceMaxY} onChange={val => set('forceMaxY', val)} allowNull={true}/>
+		</div>
+		<div className='Row'>
 			color:<select className='Borderless' style={{ padding: '0 6px' }} value={cur.color}
 				onChange={e => setParams('statParams', { color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>
-		</div><div className='Row'>
-			<Checkbox text='plot regression' k='showRegression'/>
+		</div>
+		<div className='Row'>
 		</div> <div className='Row'>
+			<Checkbox text='regression' k='showRegression'/>
 			<Checkbox text='loglog' k='loglog'/>
 			<Checkbox text='logx' k='logx'/>
 		</div>
@@ -73,10 +104,10 @@ export default function CorrelationPlot() {
 
 	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams(columns), ...layoutParams };
+		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY } = params;
 
 		if (!sampleData.length)
 			return null;
-		const loglog = params.loglog;
 		const colIdx = ['column0', 'column1'].map(c => columns.findIndex(cc => cc.id === params[c as keyof CorrelationParams]));
 		if (colIdx.includes(-1))
 			return null;
@@ -169,8 +200,8 @@ export default function CorrelationPlot() {
 							label: applyTextTransform(colX.fullName),
 							size: getFontSize() + scaled(12),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
-							...(params.logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
-							values: (u, vals) => vals.map(v => loglog && params.logx ? v?.toString()
+							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
+							values: (u, vals) => vals.map(v => loglog && logx ? v?.toString()
 								.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
 						},
 						{
@@ -186,12 +217,12 @@ export default function CorrelationPlot() {
 					scales: {
 						x: {
 							time: false,
-							distr: params.logx && loglog ? 3 : 1,
-							...(params.logx && maxx - minx < 1000 && { range: [minx, maxx] })
+							distr: logx && loglog ? 3 : 1,
+							range: [forceMin ?? minx, forceMax ?? maxx],
 						},
 						y: { 
 							distr: loglog ? 3 : 1,
-							...(!loglog && { range: [miny, maxy] })
+							range: [forceMinY ?? miny, forceMaxY ?? maxy],
 						}
 					},
 					series: [
@@ -202,7 +233,7 @@ export default function CorrelationPlot() {
 							paths: pointPaths(scaled(4), (r: any) => qt.add(r))
 						}, {
 							facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
-							show: params.showRegression,
+							show: showRegression,
 							stroke: color('white'),
 							paths: linePaths(scaled(1.5))
 						}
