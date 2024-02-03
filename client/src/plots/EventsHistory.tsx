@@ -7,7 +7,7 @@ import { color } from '../app';
 import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend } from './basicPlot';
+import { drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
 
@@ -107,14 +107,15 @@ export default function EventsHistory() {
 		y: 3 });
 	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
-	const { data, options } = useMemo(() => {
+	const data = useMemo(() => {
+		console.time('Events History data');
 		const window = windowOptions[params.window];
 		const timeColIdx = columns.findIndex(c => c.name === 'time');
 		const firstEvent = allData[0][timeColIdx] as Date;
 		const lastEvent = params.forceRight ? new Date(Date.UTC(params.forceRight, 0, 1)) : allData.at(-1)![timeColIdx] as Date;
 		const firstMonth = params.forceLeft ? (params.forceLeft - 1970) * 12 : Math.floor((
 			(firstEvent.getUTCFullYear() - 1970) * 12 + firstEvent.getUTCMonth()) / window) * window;
-		
+
 		const time = [];
 		const values = params.historySeries.map(s => [] as number[]);
 		const samples = params.historySeries.map(({ sample }) =>
@@ -142,68 +143,74 @@ export default function EventsHistory() {
 				values[i].push(val);
 			}
 		}
+		console.timeEnd('Events History data');
 
-		return {
-			data: [time, ...values],
-			options: () => {
-				const ch = measureDigit().width, scale = scaled(1);
-				const columnNames = params.historySeries.map(({ column }) => column === '<count>' ?
-					'count' : columns.find(cc => cc.id === column)?.fullName);
-				const scaleNames = params.historyOneAxis ? [columnNames[0]]
-					: Array.from(new Set(columnNames.filter(c => c)).values());
-				const sampleNames = params.historySeries.map(({ sample: id }) =>
-					'<current>' === id ? '' : '<none>' === id ? ' (all)' :
-						(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
-				return {
-					cursor: { show: false },
-					padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
-					hooks: {
-						draw: [
-							drawCustomLabels({ showLegend }),
-							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
-						],
-						ready: [ handleDragLegend ]
-					},
-					axes: [{
-						...axisDefaults(showGrid),
-						space: 5 * ch,
-						size: measureDigit().height + scaled(12),
-						label: params.showXLabel ? '' : undefined,
-						fullLabel: params.showXLabel ? 'years' : '',
-					}, ...scaleNames.map((scl, i) => ({
-						...axisDefaults(showGrid && i < 1),
-						scale: scl,
-						show: i < 2,
-						side: i === 0 ? 3 : 1,
-						space: scaled(32),
-						size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
-						values: (u, vals) => vals.map(v => v.toString()), 
-						fullLabel: scl === 'count' ? 'events count' : scl,
-						label: '',
-						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50]
-					} as uPlot.Axis))],
-					series: [
-						{}, ...seriesColors.map((col, i) => ({
-							show: columnNames[i],
-							legend: `${columnNames[i]}${sampleNames[i]}`,
-							scale: params.historyOneAxis ? columnNames[0] : columnNames[i],
+		return [time, ...values];
+
+	}, [allData, columns, currentData, params.forceLeft, params.forceRight, params.historySeries, params.window, samplesList]);
+
+	const options = useMemo(() => {
+		return () => {
+			const ch = measureDigit().width, scale = scaled(1);
+			const columnNames = params.historySeries.map(({ column }) => column === '<count>' ?
+				'count' : columns.find(cc => cc.id === column)?.fullName);
+			const scaleNames = params.historyOneAxis ? [columnNames[0]]
+				: Array.from(new Set(columnNames.filter(c => c)).values());
+			const sampleNames = params.historySeries.map(({ sample: id }) =>
+				'<current>' === id ? '' : '<none>' === id ? ' (all)' :
+					(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
+			return {
+				padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
+				focus: { alpha: 1 },
+				cursor: { focus: { prox: 32 }, drag: { x: false, y: false, setScale: false } },
+				hooks: {
+					draw: [
+						drawCustomLabels({ showLegend }),
+						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
+					],
+					ready: [ handleDragLegend ]
+				},
+				plugins: [ tooltipPlugin() ],
+				axes: [{
+					...axisDefaults(showGrid),
+					space: 5 * ch,
+					size: measureDigit().height + scaled(12),
+					label: params.showXLabel ? '' : undefined,
+					fullLabel: params.showXLabel ? 'years' : '',
+				}, ...scaleNames.map((scl, i) => ({
+					...axisDefaults(showGrid && i < 1),
+					scale: scl,
+					show: i < 2,
+					side: i === 0 ? 3 : 1,
+					space: scaled(32),
+					size: (u, vals) => ch * Math.max.apply(null, vals?.map(v => v.length)) + scale * 12,
+					values: (u, vals) => vals.map(v => v.toString()), 
+					fullLabel: scl === 'count' ? 'events count' : scl,
+					label: '',
+					incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50]
+				} as uPlot.Axis))],
+				series: [
+					{}, ...seriesColors.map((col, i) => ({
+						show: columnNames[i],
+						label: `${columnNames[i]}${sampleNames[i]}`,
+						legend: `${columnNames[i]}${sampleNames[i]}`,
+						scale: params.historyOneAxis ? columnNames[0] : columnNames[i],
+						stroke: color(col),
+						width: scaled(1),
+						marker: seriesMarkers[i],
+						points: {
+							show: showMarkers,
 							stroke: color(col),
-							width: scaled(1),
-							marker: seriesMarkers[i],
-							points: {
-								show: showMarkers,
-								stroke: color(col),
-								fill: color(col),
-								width: 0,
-								paths: markersPaths(seriesMarkers[i], 8)
-							},
-						}))
-					]
-				} as Omit<uPlot.Options, 'width'|'height'>;
-			}
+							fill: color(col),
+							width: 0,
+							paths: markersPaths(seriesMarkers[i], 8)
+						},
+					}))
+				]
+			} as Omit<uPlot.Options, 'width'|'height'>;
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params, columns, allData, currentData, samplesList, showLegend, legendPos, legendSize, showGrid, showMarkers]);
+	}, [params, showLegend, legendPos, legendSize, showGrid, columns, samplesList, showMarkers]);
 
 	return <ExportableUplot {...{ options, data }}/>;
 }

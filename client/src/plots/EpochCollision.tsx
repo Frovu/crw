@@ -153,7 +153,7 @@ export default function EpochCollision() {
 				return {
 					padding: [scaled(10), scaled(4), 0, 0],
 					focus: { alpha: 1 },
-					cursor: { focus: { prox: 24 }, drag: { setScale: false } },
+					cursor: { focus: { prox: 24 }, drag: { x: false, y: false, setScale: false } },
 					hooks: {
 						draw: [
 							drawCustomLabels({ showLegend }), 
