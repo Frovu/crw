@@ -1,5 +1,5 @@
 import { useQuery } from 'react-query';
-import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
+import { type BasicPlotParams, basicDataQuery, tooltipPlugin } from '../basicPlot';
 import { axisDefaults, color, customTimeSplits, drawMagneticClouds, drawOnsets, font, scaled } from '../plotUtil';
 import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
@@ -19,11 +19,13 @@ function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height
 	return {
 		padding: [scaled(4), 0, showTimeAxis ? 0 : scaled(2), 0],
 		legend: { show: false },
-		cursor: { show: false },
+		focus: { alpha: .5 },
+		cursor: { drag: { setScale: false }, focus: { prox: 32 } },
 		hooks: {
 			drawAxes: [ drawMagneticClouds(params) ],
 			draw: [ drawOnsets(params) ]
 		},
+		plugins: [ tooltipPlugin() ],
 		scales: { y: { range: [ -.2, SW_TYPES.length - .8 ] } },
 		axes: [{
 			...axDef,
@@ -39,6 +41,7 @@ function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height
 		series: [{ }].concat(SW_TYPES.flatMap((type, i) => ['high', 'medium'].map(reli => ({
 			stroke: color(COLORS[i]),
 			width: scaled(5),
+			label: type,
 			points: {
 				show: true,
 				width: scaled(.5),

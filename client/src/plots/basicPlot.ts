@@ -263,7 +263,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	return ordered;
 }
 
-export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
+export function tooltipPlugin(): uPlot.Plugin {
 	const shiftX = 4;
 	const shiftY = 4;
 	let tooltipLeftOffset = 0;
@@ -293,7 +293,8 @@ export function tooltipPlugin(params: BasicPlotParams): uPlot.Plugin {
 		tooltip.style.top  = (tooltipTopOffset  + top + shiftY) + 'px';
 		tooltip.style.left = (tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
-		tooltip.innerHTML = `${prettyDate(tst)}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
+		const xlbl = u.scales.x.time ? prettyDate(tst) : tst.toString();
+		tooltip.innerHTML = `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
 	}
 
 	const tooltip = document.createElement('div');

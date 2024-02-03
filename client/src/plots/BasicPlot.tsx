@@ -32,10 +32,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			pxAlign: true,
 			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), 0],
 			legend: { show: params.interactive },
-			focus: { alpha: 1 },
+			focus: { alpha: .6 },
 			cursor: {
 				// show: params.interactive,
-				focus: { prox: 32 },
+				focus: { prox: 24 },
 				drag: { x: false, y: false, setScale: false },
 				points: {
 					width: 2, size: 8,
@@ -108,7 +108,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 					handleDragLegend
 				].concat(uopts?.hooks?.ready ?? [] as any)
 			},
-			plugins: [ tooltipPlugin(params) ]
+			plugins: [ tooltipPlugin() ]
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
 	

@@ -7,7 +7,7 @@ import { applySample } from '../events/sample';
 import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
-import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend } from './basicPlot';
+import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -151,8 +151,9 @@ export default function EpochCollision() {
 				};
 				const ch = measureDigit().width, scale = scaled(1);
 				return {
-					cursor: { show: false },
 					padding: [scaled(10), scaled(4), 0, 0],
+					focus: { alpha: 1 },
+					cursor: { focus: { prox: 24 }, drag: { setScale: false } },
 					hooks: {
 						draw: [
 							drawCustomLabels({ showLegend }), 
@@ -160,6 +161,7 @@ export default function EpochCollision() {
 						],
 						ready: [ handleDragLegend ]
 					},
+					plugins: [ tooltipPlugin() ],
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: measureDigit().height + scaled(12),
@@ -201,6 +203,7 @@ export default function EpochCollision() {
 						{ }, ...filtered.map((idx, i) => [ {
 							show: cur.showEpochMedian,
 							scale: axScale(idx),
+							label: 'median ' + seriesDict[series[idx]!],
 							stroke: color(colors[idx], .7),
 							width: scaled(2),
 							points: { show: false }
@@ -214,12 +217,14 @@ export default function EpochCollision() {
 							points: { show: false }
 						}, {
 							show: cur.showEpochStd,
+							label: seriesDict[series[idx]!] + ' + std',
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
 							width: scaled(.9),
 							points: { show: false }
 						}, {
 							show: cur.showEpochStd,
+							label: seriesDict[series[idx]!] + ' - std',
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
 							width: scaled(.9),
