@@ -97,7 +97,8 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 		return renderPlotData(query.data, params.variationShift);
 	}, [query.data, params.variationShift]);
 
-	useEffect(() => setMoment(null), [params.interval]);
+	const [ iis, iie ] = params.interval.map(d => d.getTime());
+	useEffect(() => setMoment(null), [iis, iie]);
 
 	const plotSize = useCallback((i: 0 | 1) => (sz: typeof size, unknown?: boolean) =>
 		({ ...(unknown ? size : sz), height: (unknown ? size : sz).height * (twoPlots ? i > 0 ? .3 : .7 : 1) - (interactive ? LEGEND_H : 0) }), [interactive, twoPlots, size]);
@@ -607,26 +608,27 @@ export function PlotCirclesStandalone() {
 		const stored = window.localStorage.getItem('plotRefParams');
 		setTimeout(() => window.localStorage.removeItem('plotRefParams'));
 		const referred = stored && JSON.parse(stored);
+		const filtered: Partial<BasicPlotParams> = {};
 		if (referred)
-			referred.interval = referred.interval.map((d: any) => new Date(d));
+			filtered.interval = referred.interval.map((d: any) => new Date(d));
 		if (referred?.onsets)
-			referred.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
+			filtered.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
 		if (referred?.clouds)
-			referred.clouds = referred.clouds.map((c: any) => ({ start: new Date(c.start), end: new Date(c.end) }));
+			filtered.clouds = referred.clouds.map((c: any) => ({ start: new Date(c.start), end: new Date(c.end) }));
 		return {
 			rsmExtended: false,
 			stretch: false,
 			interactive: true,
 			autoFilter: true,
 			showTimeAxis: true,
-			...(referred || {
+			...(referred ? filtered : {
 				interval: [
 					new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
 					new Date(Math.floor(Date.now() / 36e5) * 36e5) ],
 				realtime: true,
 				window: 3,
 			})
-		};
+		} as CirclesParams;
 	});
 
 	if (params.theme)
