@@ -2,7 +2,7 @@ import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled } from './plotUtil';
-import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString } from '../events/events';
+import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString, useViewState, TableViewContext } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
@@ -65,6 +65,8 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 
 export default function CorrelationPlot() {
 	const { showGrid } = useEventsSettings();
+	const { setCursor, setPlotId } = useViewState();
+	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { columns } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
@@ -142,8 +144,13 @@ export default function CorrelationPlot() {
 						}
 					},
 					plugins: [ tooltipPlugin({
-						onclick: (u, didx) => console.log(findRow(didx)),
 						didx: () => hoveredRect?.didx,
+						onclick: (u, didx) => {
+							const row = findRow(didx);
+							if (!row) return;
+							setCursor({ row: shownData.findIndex(r => r[0] === row[0]), column: 0 });
+							setPlotId(() => row[0]);
+						},
 						html: (u, sidx, didx) => {
 							const row = findRow(didx);
 							return row ? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}` : '??';
@@ -203,7 +210,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, sampleData, showGrid]);
+	}, [columns, layoutParams, sampleData, setCursor, setPlotId, showGrid, shownData]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { title, options, data } = memo;
