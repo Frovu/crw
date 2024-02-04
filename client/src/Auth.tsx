@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect, type ReactNode } from 'react';
+import { useContext, useState, useEffect, type ReactNode, type KeyboardEvent } from 'react';
 import { AuthContext, logSuccess } from './app';
 import { useMutationHandler, apiPost, apiGet, useEventListener } from './util';
 import { useQuery } from 'react-query';
@@ -30,6 +30,16 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 	if (isSuccess && !upsertMode)
 		closePrompt();
 
+	const submit = () => {
+		if (passMode && (!newPassword || newPassword !== newPassword2))
+			return setReport({ error: 'Passwords do not match' });
+		if (createMode && (!password || password !== newPassword2))
+			return setReport({ error: 'Passwords do not match' });
+		mutate({}, { onSuccess: () => logSuccess(passMode ? 'Password changed' :
+			(createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login) });
+	};
+	const ifEnter = (e: KeyboardEvent) => { e.code === 'Enter' && submit(); };
+
 	return (<>
 		<div className='PopupBackground' onClick={closePrompt}/>
 		<div className='Popup' style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 0 2em' }}>
@@ -37,23 +47,28 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 			<div style={{ textAlign: 'right' }}>
 				<p>
 					Username:&nbsp;
-					<input type='text' {...(passMode && { disabled: true, value: currentLogin })} style={{ width: '11em' }} onChange={e => setLogin(e.target.value)}/>
+					<input type='text' {...(passMode && { disabled: true, value: currentLogin })} style={{ width: '11em' }}
+						onChange={e => setLogin(e.target.value)} onKeyDown={ifEnter}/>
 				</p>
 				{upsertMode && <p>
 					Role:&nbsp;
-					<input type='text' style={{ width: '11em' }} onChange={e => setRole(e.target.value)}/>
+					<input type='text' style={{ width: '11em' }}
+						onChange={e => setRole(e.target.value)}/>
 				</p>}
 				<p>
 					Password:&nbsp;
-					<input type='password' style={{ width: '11em' }} onChange={e => setPassword(e.target.value)}/>
+					<input type='password' style={{ width: '11em' }}
+						onChange={e => setPassword(e.target.value)} onKeyDown={ifEnter}/>
 				</p>
 				{passMode && <p>
 					New password:&nbsp;
-					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword(e.target.value)}/>
+					<input type='password' style={{ width: '11em' }}
+						onChange={e => setnewPassword(e.target.value)} onKeyDown={ifEnter}/>
 				</p>}
 				{(passMode || createMode) && <p title='Repeat password'>
 					Confirm:&nbsp;
-					<input type='password' style={{ width: '11em' }} onChange={e => setnewPassword2(e.target.value)}/>
+					<input type='password' style={{ width: '11em' }}
+						onChange={e => setnewPassword2(e.target.value)} onKeyDown={ifEnter}/>
 				</p>}
 			</div>
 			{type === 'login' && !createMode && <p style={{ textAlign: 'right' }}>
@@ -62,14 +77,8 @@ export function AuthPrompt({ closePrompt, type }: {closePrompt: () => void, type
 				</button></p>}
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
 				<span style={{ color, width: '12em', textAlign: 'center', minHeight: '3em' }}>{report?.error ?? report?.success}</span>
-				<button style={{ width: '6em', height: '1.5em' }} onClick={() => {
-					if (passMode && (!newPassword || newPassword !== newPassword2))
-						return setReport({ error: 'Passwords do not match' });
-					if (createMode && (!password || password !== newPassword2))
-						return setReport({ error: 'Passwords do not match' });
-					mutate({}, { onSuccess: () => logSuccess(passMode ? 'Password changed' :
-						(createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login) });
-				}}>{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login' }</button>
+				<button style={{ width: '6em', height: '1.5em' }} onClick={submit}>
+					{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login' }</button>
 			</div>
 
 		</div>

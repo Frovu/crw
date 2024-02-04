@@ -63,7 +63,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 
 	return <div className='Group'>
 		{([0, 1, 2] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
-			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer' }}
+			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
 				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], '<current>');}}>#{i}</span>
 			<div><select title='Column' className='Borderless' style={{ width: '10em',
 				color: cur[columnKeys[i]] == null ? color('text-dark') : 'unset' }}

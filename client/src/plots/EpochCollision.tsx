@@ -39,7 +39,7 @@ export function EpochCollisionContextMenu({ params, setParams }: { params: Panel
 	
 	return <div className='Group'>
 		{(['A', 'B', 'C']).map((letter, i) => <div key={letter} className='Row' style={{ paddingRight: 4 }}>
-			<div><span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer' }}
+			<div><span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
 				onClick={() => {set(seriesKeys[i], null); set(sampleKeys[i], '<current>');}}>{letter}:</span>
 			<select title='Data series' className='Borderless' style={{ width: '7em', marginLeft: 2,
 				color: cur[seriesKeys[i]] == null ? color('text-dark') : 'unset' }}
