@@ -191,3 +191,51 @@ button:hover:enabled, select:hover:enabled {
 .w-color-swatch > * {
 	border-radius: 0 !important;
 }
+
+.Select {
+	text-align: center;
+	cursor: pointer;
+	user-select: none;
+	position: relative;
+	padding: 1px 24px 1px 8px;
+	border: 1px var(--color-border) solid;
+
+}
+
+.Select::after {
+	font-family: Arial, Helvetica, sans-serif;
+	top: -1px;
+	line-height: 16px;
+	right: 3px;
+	position: absolute;
+	font-size: 24px;
+	content: "⌄";
+}
+
+.Select:hover {
+	border-color: var(--color-active);
+}
+
+.SelectDropdown {
+	padding: 2px 0 4px 0;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	position: absolute;
+	left: -1px;
+	top: calc(100% + 1px);
+	width: calc(100% + 2px);
+	z-index: 4;
+	background-color: var(--color-bg);
+	border: 1px var(--color-border) solid;
+	border-top: 0;
+}
+
+.SelectOption {
+	padding: 1px 4px 1px 8px;
+}
+
+.SelectOption:hover {
+	padding: 1px 4px 1px 12px;
+	background-color: var(--color-area);
+}

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, type MouseEvent } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, type MouseEvent, createContext, useContext } from 'react';
 import { useEventListener } from './util';
 import { ErrorBoundary } from 'react-error-boundary';
+import { color } from './app';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
@@ -141,4 +142,46 @@ export function useConfirmation(text: string, callback: () => void) {
 			<p>{text ?? 'Beware of irreversible consequences'}</p>
 		</Confirmation>
 	};
+}
+
+type SelectContextType = { value: string, onChange: (a: string) => void };
+const SelectContext = createContext<SelectContextType | null>(null);
+
+export function Select({ value, onChange, title, content, children, style }:
+SelectContextType & { title?: string, style?: CSSProperties, children: ReactNode, content: ReactNode }) {
+
+	const [isOpen, setOpen] = useState(false);
+	const selRef = useRef<HTMLDivElement>(null);
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	const close = (e: any) => {
+		if (!selRef.current?.contains(e.target) && !dropdownRef.current?.contains(e.target))
+			setOpen(false);
+	};
+	useEventListener('escape', () => setOpen(false));
+	useEventListener('mousedown', close);
+	useEventListener('keydown', close);
+	useEventListener('contextmenu', close);
+
+	return <SelectContext.Provider value={{ value, onChange }}>
+		<div ref={selRef} className='Select' style={{ ...(isOpen && { borderColor: color('active') }), ...style }}
+			onClick={() => setOpen(o => !o)}>
+			{content}
+			{isOpen && <div ref={dropdownRef} className='SelectDropdown' title={title} >
+				{children}
+			</div>}
+		</div>
+	</SelectContext.Provider>;
+}
+
+export function Option({ value, children, style }: { value: string, children: ReactNode, style?: CSSProperties }) {
+	const context = useContext(SelectContext);
+	const onChange = context?.onChange;
+	const selected = value === context?.value;
+
+	return <div className='SelectOption'
+		style={{ ...style, ...(selected && { color: color('active') }) }}
+		onClick={() => onChange?.(value)}>
+		{children}
+	</div>;
 }

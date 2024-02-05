@@ -1,10 +1,10 @@
 import { forwardRef, useContext, useMemo, useState } from 'react';
-import { AuthContext, logError, logMessage } from '../app';
+import { AuthContext, color, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
 import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
-import { useConfirmation } from '../Utility';
+import { Option, Select, useConfirmation } from '../Utility';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	if (!column)
@@ -44,20 +44,20 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 	
 	return (
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select disabled={disabled} style={{ flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : 'var(--color-red)' }} 
+			<select disabled={disabled} style={{ flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : color('red') }} 
 				value={columnId} onChange={set('column')}>
 				{columns.filter(col => !col.hidden).map(col =>
 					<option value={col.id} key={col.entity+col.name}>{col.fullName}</option>)}
 				{!column && <option value={columnId} key={columnId}>{columnId}</option>}
 			</select>
 			<select disabled={disabled} style={{ flex: '2', textAlign: 'center', maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
-				borderColor: column?.type === 'enum' && isInvalid ? 'var(--color-red)' : 'transparent', marginRight: '4px' }}
+				borderColor: column?.type === 'enum' && isInvalid ? color('red') : 'transparent', marginRight: '4px' }}
 			value={operation} onChange={set('operation')}>
 				{FILTER_OPS.map(op => <option key={op} value={op}>{op}</option>)}
 			</select>
 			{!operation.includes('null') && !isSelectInput &&
 			<input type='text' disabled={disabled} style={{ textAlign: 'center', flex: '2', minWidth: 0, maxWidth: '8em',
-				...(isInvalid && { borderColor: 'var(--color-red)' }) }} value={value} onChange={set('value')}/>}
+				...(isInvalid && { borderColor: color('red') }) }} value={value} onChange={set('value')}/>}
 			{!operation.includes('null') && isSelectInput &&
 			<select disabled={disabled} style={{ flex: '2', maxWidth: '8em', minWidth: 0 }} value={value} onChange={set('value')}>
 				{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
@@ -113,11 +113,11 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const whitelisted = whitelist.filter(id => tableData.find(row => row[0] === id)).length;
 		const blacklisted = blacklist.filter(id => tableData.find(row => row[0] === id)).length;
 		return <span style={{ minWidth: 'max-content' }}>
-			<span title='Whitelisted events: found/total' style={{ color: whitelisted ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}
+			<span title='Whitelisted events: found/total' style={{ color: whitelisted ? color('cyan') : color('text-dark') }}
 			>[+{whitelisted}{whitelist.length ? '/' + whitelist.length : ''}]</span>
-			<span title='Blacklisted events: found/total' style={{ color: blacklisted ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}
+			<span title='Blacklisted events: found/total' style={{ color: blacklisted ? color('magenta') : color('text-dark') }}
 			> [-{blacklisted}{blacklist.length ? '/' + blacklist.length : ''}]</span>
-			<span title='Total members in sample' style={{ color: 'var(--color-text-dark)' }}> = [{applied.length}]</span>
+			<span title='Total members in sample' style={{ color: color('text-dark') }}> = [{applied.length}]</span>
 		</span>;
 
 	}, [columns, sample, tableData]);
@@ -129,18 +129,29 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
 			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
-				...(!nameValid && { borderColor: 'var(--color-red)' }) }} onKeyDown={e => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
+				...(!nameValid && { borderColor: color('red') }) }} onKeyDown={e => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
 			placeholder='Sample name' autoFocus onFocus={e => e.target.select()} onBlur={(e) => {
 				if (nameValid) set({ name: nameInput });
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
 			value={nameInput} onChange={e => setNameInput(e.target.value)}/>}
-			{nameInput == null && <select title='Select events sample'
-				style={{ color: 'var(--color-white)', flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
+			{/* {nameInput == null && <select title='Select events sample'
+				style={{ color: color('white'), flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
 				onChange={e => e.target.value === '_create' ? createSample() : setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
 				<option value='_create'>-- Create sample --</option>
 				<option value='_none'>-- All events --</option>
 				{samples.map(({ id, name }) => <option key={id} value={id}>{sample?.id === id ? sample.name : name}</option>)}
-			</select>}
+			</select>} */}
+			{nameInput == null && <Select title='Select events sample'
+				style={{ color: color('white'), flex: '6 8em', minWidth: 0 }}
+				value={sample?.id?.toString() ?? '_none'}
+				content={sample?.name ?? '-- All events --'}
+				onChange={val => val === '_create' ? createSample() : setSample(samples.find(s => s.id.toString() === val) ?? null)}>
+				<Option value='_create'>-- Create sample --</Option>
+				<Option value='_none'>-- All events --</Option>
+				{samples.map(({ id, name, authors }) =>
+					<Option value={id.toString()} style={{ color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
+						{sample?.id === id ? sample.name : name}</Option>)}
+			</Select>}
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
 				onClick={() => {setShow(!show); if (!show) setSample(samples.find(s => s.id === sample?.id) ?? null); setHoverAuthors(0);}}
 			>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
@@ -153,24 +164,24 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		</div>}
 		{sample && show && !allowEdit && <div style={{ padding: 4 }}>
 			{sampleStats}
-			<span style={{ marginLeft: '1em', color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>				
+			<span style={{ marginLeft: '1em', color: color('text-dark') }}>by {sample.authors.join(',')}</span>				
 		</div>}
 		{allowEdit && show && <><div style={{ padding: 4, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'right' }}>
 			{sampleStats}
 			<div style={{ flex: 1 }}/>
-			<label className='MenuInput' style={{ minWidth: 'max-content', ...(isPicking && { color: 'var(--color-magenta)' }) }}>
+			<label className='MenuInput' style={{ minWidth: 'max-content', ...(isPicking && { color: color('magenta') }) }}>
 				pick events<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type='checkbox'/></label>
 			<label className='MenuInput' style={{ minWidth: 'max-content' }}>
 				public<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type='checkbox'/></label>
 		</div>
 		{publicIssue && <div title='Other users will not be able to use this sample, please make all required columns public'
-			style={{ color: 'var(--color-red)' }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
+			style={{ color: color('red') }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
 		<div title={`Created at: ${prettyDate(sample.created)}\nModified at: ${prettyDate(sample.modified)}`}
 			style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}>
 			<div style={{ width: 'max-content', paddingTop: 2, paddingRight: 4 }} onMouseEnter={() => setHoverAuthors(a => a < 1 ? 1 : a)}
 				onMouseLeave={()=>setHoverAuthors(a => a > 1 ? a : 0)}>
-				{hoverAuthors === 0 && <span style={{ color: 'var(--color-text-dark)' }}>by {sample.authors.join(',')}</span>}
-				{hoverAuthors === 1 && <div style={{ cursor: 'pointer', color: 'var(--color-active)' }}
+				{hoverAuthors === 0 && <span style={{ color: color('text-dark') }}>by {sample.authors.join(',')}</span>}
+				{hoverAuthors === 1 && <div style={{ cursor: 'pointer', color: color('active') }}
 					onClick={()=>setHoverAuthors(2)}>Edit authors?</div>}
 			</div>
 			{hoverAuthors === 2 && <><span>by </span><input autoFocus onBlur={() => setHoverAuthors(0)}
@@ -180,7 +191,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				onClick={() => setNameInput(nameInput ? null : sample.name)}>Rename</button>
 			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
 			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
-				maxWidth: '12em', ...(unsavedChanges && { color: 'var(--color-active)' }) }}
+				maxWidth: '12em', ...(unsavedChanges && { color: color('active') }) }}
 			onClick={() => mutate('update', { onSuccess: () =>{ setShow(false);
 				logMessage('Sample edited: '+sample.name); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
 		</div></>}
