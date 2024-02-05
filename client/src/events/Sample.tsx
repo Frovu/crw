@@ -78,28 +78,39 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const [nameInput, setNameInput] = useState<string | null>(null);
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
-		() => mutate('remove', { onSuccess: () => { setSample(null); logMessage('Sample deleted: ' + sample?.name); } }));
+		() => mutate({ action: 'remove' }, { onSuccess: () => { setSample(null); logMessage('Sample deleted: ' + sample?.name); } }));
 	
 	const newName = (i: number=0): string => {
 		const name = 'New Sample #' + i;
 		return samples.find(s => s.name === name) ? newName(i + 1) : name; };
 	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
-	const { mutate, isLoading } = useMutation(async (action: 'create' | 'remove' | 'update') =>
-		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(`events/samples/${action}`, (() => {
-			switch (action) {
-				case 'create': return {
-					name: newName(),
-					filters: filters.map(({ column, operation, value }) => ({ column, operation, value })) };
-				case 'remove': return { id: sample?.id };
-				case 'update': return stripFilters ?? {};
-			}
-		})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: logError });
+	const { mutate, isLoading } = useMutation(async ({ action, oid }: { action: 'create' | 'remove' | 'update' | 'copy', oid?: number }) =>
+		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(
+			`events/samples/${action === 'copy' ? 'create' : action}`, (() => {
+				switch (action) {
+					case 'copy': return {
+						name: 'Copy ' + sample!.name,
+						filters: [] };
+					case 'create': return {
+						name: newName(),
+						filters: filters.map(({ column, operation, value }) => ({ column, operation, value })) };
+					case 'remove': return { id: oid ?? sample?.id };
+					case 'update': return stripFilters ?? {};
+				}
+			})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: logError });
 
 	useEventListener('escape', () => setNameInput(null));
 
-	const createSample = () => mutate('create', { onSuccess: (smpl: Sample) => {
+	const createSample = () => mutate({ action: 'create' }, { onSuccess: (smpl: Sample) => {
 		setShow(true); setNameInput(smpl.name); clearFilters();
 		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? null });
+	 } });
+	const copySample = () => mutate({ action: 'copy' }, { onSuccess: (smpl: Sample) => {
+		setShow(true);
+		setNameInput(sample?.name ?? 'Copy');
+		clearFilters();
+		setSample({ ...sample!, id: smpl.id });
+		mutate({ action: 'update', oid: smpl.id }, {});
 	 } });
 
 	const unsavedChanges = show && sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
@@ -173,6 +184,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				pick events<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type='checkbox'/></label>
 			<label className='MenuInput' style={{ minWidth: 'max-content' }}>
 				public<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type='checkbox'/></label>
+			<button className='TextButton' style={{ paddingLeft: 8 }}
+				onClick={copySample}>Make copy</button>
 		</div>
 		{publicIssue && <div title='Other users will not be able to use this sample, please make all required columns public'
 			style={{ color: color('red') }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
@@ -192,7 +205,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
 			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
 				maxWidth: '12em', ...(unsavedChanges && { color: color('active') }) }}
-			onClick={() => mutate('update', { onSuccess: () =>{ setShow(false);
+			onClick={() => mutate({ action: 'update' }, { onSuccess: () =>{ setShow(false);
 				logMessage('Sample edited: '+sample.name); setHoverAuthors(0); } })}>{isLoading ? '...' : 'Save changes'}</button>}
 		</div></>}
 		{filters.length > 0 && <div className='Filters' style={{ padding: '2px 0 2px 0' }}>

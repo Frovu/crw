@@ -226,7 +226,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		for (const smpl of samples)
 			for (const k of ['created', 'modified'] as const)
 				smpl[k] = smpl[k] && new Date(smpl[k]);
-		const isOwn = (s: Sample) => s.authors.includes(login as any) ? 0 : 1;
+		const isOwn = (s: Sample) => s.authors.includes(login as any) ? -1 : 1;
 		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
 			.sort((a, b) => isOwn(a) - isOwn(b));
 		console.log('%cavailable samples:', 'color: #0f0', sorted);
