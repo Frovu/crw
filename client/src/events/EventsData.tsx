@@ -226,16 +226,16 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		for (const smpl of samples)
 			for (const k of ['created', 'modified'] as const)
 				smpl[k] = smpl[k] && new Date(smpl[k]);
-		const isOwn = (s: Sample) => s.authors.includes(login as any) ? -1 : 1;
-		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
-			.sort((a, b) => isOwn(a) - isOwn(b));
-		console.log('%cavailable samples:', 'color: #0f0', sorted);
-		return sorted;
+		console.log('%cavailable samples:', 'color: #0f0', samples);
+		return samples;
 	});
 
 	const sampleContext = useMemo(() => {
 		const samples = samplesQuery.data;
 		if (!mainContext || !samples) return null;
+		const isOwn = (s: Sample) => s.authors.includes(login as any) ? -1 : 1;
+		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
+			.sort((a, b) => isOwn(a) - isOwn(b));
 		const { columns, data } = mainContext;
 		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns);
 		const filterFn = renderFilters(filters, columns);
@@ -243,9 +243,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		return {
 			data: filtered, 
 			current: sample,
-			samples,
+			samples: sorted,
 		};
-	}, [filters, isPicking, mainContext, sample, samplesQuery.data]);
+	}, [filters, isPicking, mainContext, sample, login, samplesQuery.data]);
 
 	if (!mainContext || !sampleContext || !structureQuery.data || !dataQuery.data || !samplesQuery.data) {
 		return <div style={{ padding: 8 }}>

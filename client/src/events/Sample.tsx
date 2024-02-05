@@ -80,22 +80,22 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
 		() => mutate({ action: 'remove' }, { onSuccess: () => { setSample(null); logMessage('Sample deleted: ' + sample?.name); } }));
 	
-	const newName = (i: number=0): string => {
-		const name = 'New Sample #' + i;
-		return samples.find(s => s.name === name) ? newName(i + 1) : name; };
+	const newName = (i: number=0, n?: string): string => {
+		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
+		return samples.find(s => s.name === name) ? newName(i + 1, n) : name; };
 	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
-	const { mutate, isLoading } = useMutation(async ({ action, oid }: { action: 'create' | 'remove' | 'update' | 'copy', oid?: number }) =>
+	const { mutate, isLoading } = useMutation(async ({ action, ow }: { action: 'create' | 'remove' | 'update' | 'copy', ow?: Sample }) =>
 		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(
 			`events/samples/${action === 'copy' ? 'create' : action}`, (() => {
 				switch (action) {
 					case 'copy': return {
-						name: 'Copy ' + sample!.name,
+						name: newName(0, sample!.name),
 						filters: [] };
 					case 'create': return {
 						name: newName(),
 						filters: filters.map(({ column, operation, value }) => ({ column, operation, value })) };
-					case 'remove': return { id: oid ?? sample?.id };
-					case 'update': return stripFilters ?? {};
+					case 'remove': return { id: sample?.id };
+					case 'update': return ow ? ow : stripFilters ?? {};
 				}
 			})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: logError });
 
@@ -109,13 +109,15 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		setShow(true);
 		setNameInput(sample?.name ?? 'Copy');
 		clearFilters();
-		setSample({ ...sample!, id: smpl.id });
-		mutate({ action: 'update', oid: smpl.id }, {});
+		const authors = sample?.authors.includes(login!) ? sample.authors : [login!];
+		const newSample = { ...sample!, name: smpl.name, id: smpl.id, authors, public: false };
+		setSample(newSample);
+		mutate({ action: 'update', ow: newSample }, {});
 	 } });
 
 	const unsavedChanges = show && sample && JSON.stringify(samples.find(s => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find(s => s.id === sample.id)?.authors.includes(login!);
-	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && s.name === nameInput);
+	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
 
 	const sampleStats = useMemo(() => {
 		if (sample == null) return null;
@@ -145,13 +147,6 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				if (nameValid) set({ name: nameInput });
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
 			value={nameInput} onChange={e => setNameInput(e.target.value)}/>}
-			{/* {nameInput == null && <select title='Select events sample'
-				style={{ color: color('white'), flex: '6 8em', minWidth: 0 }} value={sample?.id ?? '_none'}
-				onChange={e => e.target.value === '_create' ? createSample() : setSample(samples.find(s => s.id.toString() === e.target.value) ?? null)}>
-				<option value='_create'>-- Create sample --</option>
-				<option value='_none'>-- All events --</option>
-				{samples.map(({ id, name }) => <option key={id} value={id}>{sample?.id === id ? sample.name : name}</option>)}
-			</select>} */}
 			{nameInput == null && <Select title='Select events sample'
 				style={{ color: color('white'), flex: '6 8em', minWidth: 0 }}
 				value={sample?.id?.toString() ?? '_none'}
@@ -160,7 +155,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				<Option value='_create'>-- Create sample --</Option>
 				<Option value='_none'>-- All events --</Option>
 				{samples.map(({ id, name, authors }) =>
-					<Option value={id.toString()} style={{ color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
+					<Option key={id} value={id.toString()} style={{ color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
 						{sample?.id === id ? sample.name : name}</Option>)}
 			</Select>}
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
@@ -173,9 +168,11 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		{show && sample?.filters && <div className='Filters'>
 			{sample.filters.map((filter) => <FilterCard key={filter.id} filter={filter} disabled={!allowEdit}/>)}
 		</div>}
-		{sample && show && !allowEdit && <div style={{ padding: 4 }}>
+		{sample && show && !allowEdit && <div style={{ padding: 4, display: 'flex', flexWrap: 'wrap' }}>
 			{sampleStats}
-			<span style={{ marginLeft: '1em', color: color('text-dark') }}>by {sample.authors.join(',')}</span>				
+			<span style={{ marginLeft: '1em', color: color('text-dark') }}>by {sample.authors.join(',')}</span>
+			<div style={{ flex: 1 }}/>
+			{login && <button className='TextButton' style={{ paddingRight: 4 }} onClick={copySample}>Make copy</button>}
 		</div>}
 		{allowEdit && show && <><div style={{ padding: 4, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'right' }}>
 			{sampleStats}
@@ -184,8 +181,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				pick events<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type='checkbox'/></label>
 			<label className='MenuInput' style={{ minWidth: 'max-content' }}>
 				public<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type='checkbox'/></label>
-			<button className='TextButton' style={{ paddingLeft: 8 }}
-				onClick={copySample}>Make copy</button>
+			<button className='TextButton' style={{ paddingLeft: 8 }} onClick={copySample}>Make copy</button>
 		</div>
 		{publicIssue && <div title='Other users will not be able to use this sample, please make all required columns public'
 			style={{ color: color('red') }}>! Public sample depends on a private column: {publicIssue.fullName}</div>}
