@@ -1,4 +1,4 @@
-import { forwardRef, useContext, useMemo, useState } from 'react';
+import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
 import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
@@ -76,9 +76,14 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		set, setSample, setPicking, setShow, clearFilters } = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [nameInput, setNameInput] = useState<string | null>(null);
+	const toDelete = useRef<Sample>();
 
 	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
-		() => mutate({ action: 'remove' }, { onSuccess: () => { setSample(null); logMessage('Sample deleted: ' + sample?.name); } }));
+		() => mutate({ action: 'remove', ow: toDelete.current ?? sample! }, { onSuccess: () => {
+			logMessage('Sample deleted: ' + (toDelete.current ?? sample)?.name );
+			toDelete.current = undefined;
+			setSample(null);
+		} }));
 	
 	const newName = (i: number=0, n?: string): string => {
 		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
@@ -94,7 +99,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					case 'create': return {
 						name: newName(),
 						filters: filters.map(({ column, operation, value }) => ({ column, operation, value })) };
-					case 'remove': return { id: sample?.id };
+					case 'remove': return { id: ow?.id ?? sample?.id };
 					case 'update': return ow ? ow : stripFilters ?? {};
 				}
 			})()), { onSuccess: () => queryClient.refetchQueries(['samples']), onError: logError });
@@ -155,8 +160,15 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				<Option value='_create'>-- Create sample --</Option>
 				<Option value='_none'>-- All events --</Option>
 				{samples.map(({ id, name, authors }) =>
-					<Option key={id} value={id.toString()} style={{ color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
-						{sample?.id === id ? sample.name : name}</Option>)}
+					<Option key={id} value={id.toString()} style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
+						{sample?.id === id ? sample.name : name}
+						<div style={{ flex: 1 }}/>
+						{authors.includes(login!) && <div className='CloseButton' onClick={e => {
+							e.stopPropagation();
+							toDelete.current = samples.find(s => s.id === id)!;
+							askConfirmation(e);
+						}}/>}
+					</Option>)}
 			</Select>}
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
 				onClick={() => {setShow(!show); if (!show) setSample(samples.find(s => s.id === sample?.id) ?? null); setHoverAuthors(0);}}
