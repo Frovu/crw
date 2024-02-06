@@ -43,6 +43,10 @@ export default function Help() {
 				}
 			</div><div ref={scrollRef} style={{ overflowY: 'auto', padding: '0 1em' }}
 				onScroll={e => setScrollPos((e as any).target.scrollTop)}>
+				{(infoPage === 'manual' || infoPage === 'advanced') && <div>
+					The detailed manual is not ready yet.<br/>
+					For now please email to <a href='mailto:izmiran.crdt@gmail.com'>izmiran.crdt@gmail.com</a> with any questions.	
+				</div>}
 					
 				{infoPage === 'shortcuts' && <div style={{ lineHeight: '2em' }}>
 					     <b>C</b> - Select Columns
@@ -62,7 +66,7 @@ export default function Help() {
 					<br/><b>Ctrl+X</b> - Discard table changes
 
 				</div>}
-				{infoPage === 'manual' && <div>
+				{infoPage === null && <div>
 					<h4>Setting up table</h4>
 					<p>
 					Table only shows colhumns explicitly selected by user. Columns are selected in special menu, which can be opened under <button>Table</button> menu, or using <b>{KEY_COMB.openColumnsSelector}</b> key. One can click on table names to toggle many columns at once.

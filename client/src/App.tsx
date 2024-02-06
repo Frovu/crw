@@ -15,6 +15,7 @@ import { useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor } from './app';
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
+import { CatchErrors } from './Utility';
 
 const theQueryClient = new QueryClient();
 
@@ -103,15 +104,19 @@ function App() {
 
 	const showNav = !['ros', 'help'].includes(app);
 	return (<div className='bbox' style={{ overflow: 'clip' }}>
-		<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
-			{app === 'ros' && <PlotCirclesStandalone/>}
-			{app === 'feid' && <EventsApp/>}
-			{app === 'meteo' && <TemperatureApp/>}
-			{app === 'neutron' && <Neutron/>}
-			{app === 'muon' && <MuonApp/>}
-			{app === 'omni' && <OmniApp/>}
-		</div>
-		{app !== 'feid' && <ContextMenu/>}
+		<CatchErrors>
+			<div className='bbox' style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
+				{app === 'ros' && <PlotCirclesStandalone/>}
+				{app === 'feid' && <EventsApp/>}
+				{app === 'meteo' && <TemperatureApp/>}
+				{app === 'neutron' && <Neutron/>}
+				{app === 'muon' && <MuonApp/>}
+				{app === 'omni' && <OmniApp/>}
+			</div>
+		</CatchErrors>
+		<CatchErrors>
+			{app !== 'feid' && <ContextMenu/>}
+		</CatchErrors>
 		{infoOpen && <Info/>}
 		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
 			<div>
