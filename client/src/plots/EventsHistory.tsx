@@ -57,15 +57,15 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 			<span title='Reset' style={{ color: color(seriesColors[i]), cursor: 'pointer', userSelect: 'none' }}
 				onClick={() => set('historySeries', series.toSpliced(i, 1, { column: null, sample: '<current>' }))}>#{i}</span>
 			<div><select title='Column' className='Borderless' style={{ width: '10em',
-				color: series[i].column == null ? color('text-dark') : 'unset' }}
-			value={series[i].column ?? '__none'} onChange={e => setColumn(i, e.target.value === '__none' ? null : e.target.value)}>
+				color: series[i]?.column == null ? color('text-dark') : 'unset' }}
+			value={series[i]?.column ?? '__none'} onChange={e => setColumn(i, e.target.value === '__none' ? null : e.target.value)}>
 				<option value='__none'>&lt;none&gt;</option>
 				<option value='<count>'>&lt;count&gt;</option>
 				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 			</select>:
 			<select title='Sample (none = all events)' className='Borderless' style={{ width: '7em', marginLeft: 1,
-				color: series[i].sample === '<current>' ? color('text-dark') : 'unset' }}
-			value={series[i].sample} onChange={e => setSample(i, e.target.value)}>
+				color: series[i]?.sample === '<current>' ? color('text-dark') : 'unset' }}
+			value={series[i]?.sample} onChange={e => setSample(i, e.target.value)}>
 				<option value='<none>'>&lt;none&gt;</option>
 				<option value='<current>'>&lt;current&gt;</option>
 				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}

@@ -2,6 +2,15 @@ import React, { type SetStateAction,
 	useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement, type Reducer } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 
+if (!Array.prototype.toSpliced) {
+	// eslint-disable-next-line no-extend-native
+	Array.prototype.toSpliced = function (...args) {
+		const arr = Array.from(this);
+		arr.splice(...(args as [any, ...any[]]));
+		return arr;
+	};
+}
+
 export type Size = { width: number, height: number };
 
 export function prettyDate(inp: Date | number | null, short=false) {
