@@ -6,7 +6,7 @@ import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, find
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform, drawCustomLegend, tooltipPlugin } from './basicPlot';
+import { applyTextTransform, drawCustomLegend, titlePlugin, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
@@ -163,9 +163,6 @@ export default function CorrelationPlot() {
 		const regrPredicts = regrPoints.map(x => loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]);
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
-		const title = regr ? <span><span style={{ color: color('text-dark') }}>α={intercept.toFixed(2)}; </span>
-			β={gradient.toFixed(3)} ± {err.toFixed(3)}; r={Math.sqrt(regr.r2).toFixed(2)}</span> : null;
-
 		const timeIdx = columns.findIndex(c => c.fullName === 'time');
 		const findRow = (i: number) => sampleData.find(row =>
 			equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
@@ -173,7 +170,6 @@ export default function CorrelationPlot() {
 		let hoveredRect: any;
 		let qt: Quadtree;
 		return {
-			title,
 			options: () => {
 				const ch = measureDigit().width, scale = scaled(1);
 				return {
@@ -208,6 +204,12 @@ export default function CorrelationPlot() {
 							const row = findRow(didx);
 							return row ? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}` : '??';
 						},
+					}), titlePlugin({
+						text: [
+							{ text: `α=${intercept.toFixed(2)}; `, color: 'text-dark' },
+							{ text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`, color: 'text' }
+						],
+						params: { showTitle: !!regr }
 					}) ],
 					hooks: {
 						drawClear: [ u => { 
@@ -272,9 +274,8 @@ export default function CorrelationPlot() {
 	}, [columns, layoutParams, currentData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
-	const { title, options, data } = memo;
+	const { options, data } = memo;
 	return (<>
-		{title && <div style={{ textAlign: 'center', whiteSpace: 'nowrap', overflowX: 'clip', userSelect: 'text' }}>{title}</div>}
-		<ExportableUplot {...{ size: (sz) => ({ ...sz, height: sz.height - (title ? 22 : 0) }), options, data }}/>
+		<ExportableUplot {...{ options, data }}/>
 	</>);
 }

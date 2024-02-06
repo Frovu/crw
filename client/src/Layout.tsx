@@ -74,7 +74,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';
 	const type = items[id]?.type;
-	return <>
+	return <CatchErrors>
 		{items[id] && !(items[id]!.type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
 			onChange={e => setNodeParams(id, 'type', e.target.value as typeof allPanelOptions[number])}>
 			{type == null && <option value={'empty'}>Select panel</option>}
@@ -88,7 +88,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 		{!items[id] && <button onClick={() => splitNode(id, 'column', true)}>Split top</button>}
 		{(!items[id] || type) && <button onClick={() => splitNode(id, 'column')}>Split bottom</button>}
 		{items[id] && id !== 'root' && !(items[id]!.type && isFirstInRoot) && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
-	</>;
+	</CatchErrors>;
 }
 
 export function LayoutNav() {
