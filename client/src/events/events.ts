@@ -24,6 +24,7 @@ const defaultSettings = {
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
+	showTitle: true,
 	shownColumns: undefined as undefined | string[],
 	columnOrder: undefined as undefined | string[], 
 };

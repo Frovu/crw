@@ -109,7 +109,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 }
 
 export default function CorrelationPlot() {
-	const { showGrid, showLegend } = useEventsSettings();
+	const { showGrid, showLegend, showTitle } = useEventsSettings();
 	const { setCursor, setPlotId } = useViewState();
 	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
@@ -209,7 +209,7 @@ export default function CorrelationPlot() {
 							{ text: `α=${intercept.toFixed(2)}; `, color: 'text-dark' },
 							{ text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`, color: 'text' }
 						],
-						params: { showTitle: !!regr }
+						params: { showTitle: showTitle && !!regr }
 					}) ],
 					hooks: {
 						drawClear: [ u => { 
@@ -271,7 +271,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, currentData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid, setCursor, shownData, setPlotId]);
+	}, [columns, layoutParams, currentData, allData, samplesList, showTitle, showLegend, legendPos, legendSize, handleDragLegend, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { options, data } = memo;

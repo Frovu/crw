@@ -351,16 +351,16 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 	};
 }
 
-export function titlePlugin({ text: textParts, params }:
+export function titlePlugin({ text: textParts, params: { showTitle } }:
 { text: { text: string, styles?: TextNode['styles'], color: string }[], params: { showTitle: boolean } }): uPlot.Plugin {
 	const pad = getFontSize() + scaled(2);
 	const captureOverrides = { fontSize: 16, ...applyOverrides };
 	return {
-		opts: (u, opts) => ({ 
+		opts: (u, opts) => !showTitle ? opts : ({ 
 			...opts,
 			padding: opts.padding?.toSpliced(0, 1, (opts.padding as any)[0] + pad) as any
 		}),
-		hooks: {
+		hooks: !showTitle ? { } : {
 			ready: [ u => {
 				u.root.addEventListener('click', e => {
 					const rect = u.root.getBoundingClientRect();
