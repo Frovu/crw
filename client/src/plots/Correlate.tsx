@@ -10,10 +10,12 @@ import { applyTextTransform, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
+import { applySample } from '../events/sample';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
 export type CorrelationParams = {
+	sample0: '<current>' | '<none>' | string,
 	column0: string | null,
 	column1: string | null,
 	forceMin: number | null,
@@ -27,6 +29,7 @@ export type CorrelationParams = {
 };
 
 export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = columns => ({
+	sample0: '<current>',
 	column0: findColumn(columns, 'VmBm')?.id ?? null,
 	column1: findColumn(columns, 'magnitude')?.id ?? null,
 	forceMin: null,
@@ -41,6 +44,7 @@ export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = co
 
 export function CorrelationContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
 	const { columns } = useContext(MainTableContext);
+	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const cur = { ...defaultCorrParams(columns), ...params.statParams };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
@@ -58,9 +62,19 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
 
 	return <div className='Group'>
-		<div className='Row'>
+		<div>
+			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
+				onClick={() => set('sample0', '<current>')}>Sample:</span>
+			<select title='Sample (none = all events)' className='Borderless' style={{ width: '10em', marginLeft: 4,
+				color: cur.sample0 === '<current>' ? color('text-dark') : 'unset' }}
+			value={cur.sample0} onChange={e => set('sample0', e.target.value)}>
+				<option value='<none>'>&lt;none&gt;</option>
+				<option value='<current>'>&lt;current&gt;</option>
+				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
+			</select>
+		</div> <div>
 			X:<ColumnSelect k='column0'/>
-		</div> <div className='Row'>
+		</div> <div>
 			Y:<ColumnSelect k='column1'/>
 		</div>
 		<div style={{ textAlign: 'right' }}>
@@ -99,12 +113,15 @@ export default function CorrelationPlot() {
 	const { setCursor, setPlotId } = useViewState();
 	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
-	const { columns } = useContext(MainTableContext);
-	const { data: sampleData } = useContext(SampleContext);
+	const { columns, data: allData } = useContext(MainTableContext);
+	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 
 	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams(columns), ...layoutParams };
-		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY } = params;
+		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY, sample0 } = params;
+
+		const sampleData = sample0 === '<current>' ? currentData : sample0 === '<none>' ? allData :
+			applySample(allData, samplesList.find(s => s.id.toString() === sample0) ?? null, columns);
 
 		if (!sampleData.length)
 			return null;
@@ -241,7 +258,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, sampleData, setCursor, setPlotId, showGrid, shownData]);
+	}, [columns, layoutParams, currentData, allData, samplesList, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { title, options, data } = memo;
