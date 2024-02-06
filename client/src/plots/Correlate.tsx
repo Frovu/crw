@@ -1,12 +1,12 @@
 import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, getFontSize, measureDigit, scaled } from './plotUtil';
+import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlayPosition, type DefaultPosition } from './plotUtil';
 import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString, useViewState, TableViewContext } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform, tooltipPlugin } from './basicPlot';
+import { applyTextTransform, drawCustomLegend, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
@@ -109,12 +109,17 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 }
 
 export default function CorrelationPlot() {
-	const { showGrid } = useEventsSettings();
+	const { showGrid, showLegend } = useEventsSettings();
 	const { setCursor, setPlotId } = useViewState();
 	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params.statParams;
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
+
+	const defaultPos: DefaultPosition = (u, { width }) => ({
+		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
+		y: 3 });
+	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
 
 	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams(columns), ...layoutParams };
@@ -176,7 +181,7 @@ export default function CorrelationPlot() {
 					padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
 					legend: { show: false },
 					cursor: {
-						show: true, drag: { x: false, y: false, setScale: false },
+						drag: { x: false, y: false, setScale: false },
 						points: {
 							width: 2, size: 6,
 							stroke: (u, sidx) => sidx === 1 ? color('red') : 'transparent', fill: 'transparent'
@@ -208,7 +213,9 @@ export default function CorrelationPlot() {
 						drawClear: [ u => { 
 							qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 							qt.clear();
-						}]
+						}],
+						draw: [ drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos) ],
+						ready: [ handleDragLegend ]
 					},
 					axes: [
 						{
@@ -246,6 +253,10 @@ export default function CorrelationPlot() {
 						{ facets: [ { scale: 'x', auto: true } ] }, {
 							facets: [ { scale: 'x', auto: true }, { scale: 'y', auto: true } ],
 							label: 'scatter',
+							legend: sample0 === '<current>' ? undefined : sample0 === '<none>' ? 'all events'
+								: samplesList.find(s => s.id.toString() === sample0)?.name,
+							marker: 'circle',
+							bars: true,
 							stroke: color(params.color),
 							paths: pointPaths(scaled(4), (r: any) => qt.add(r))
 						}, {
@@ -258,7 +269,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, currentData, allData, samplesList, showGrid, setCursor, shownData, setPlotId]);
+	}, [columns, layoutParams, currentData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { title, options, data } = memo;

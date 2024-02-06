@@ -110,7 +110,7 @@ export function drawCustomLegend(params: { showLegend: boolean }, position: Muta
 	const captureOverrides = applyOverrides;
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
 		if (!params.showLegend) return;
-		const series = u.series.filter(s => s.show! && s.legend)
+		const series = u.series.filter(s => s && s.show! && s.legend)
 			.map(s => ({ ...s, legend: parseText(applyTextTransform(' '+s.legend!).trim()) }));
 		if (!series.length) return;
 
@@ -149,7 +149,7 @@ export function drawCustomLegend(params: { showLegend: boolean }, position: Muta
 				u.ctx.stroke();
 			}
 			u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
-			const mrkr = bars ? 'square' : marker;
+			const mrkr = bars ? marker ?? 'square' : marker;
 			if (mrkr)
 				draw[mrkr](x + px(6 + makrerWidth / 2), y);
 			if (mrkr !== 'arrow')
@@ -333,6 +333,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 					});
 				}
 			} ],
+			drawClear: [ u => u.setCursor({ left: -1, top: -1 }) ],
 			setCursor: [ u => {
 				const idx = userDidx ? userDidx() : u.cursor.idx ?? null;
 				if (dataIdx !== idx) {
