@@ -3,6 +3,8 @@ import BasicPlot from '../BasicPlot';
 import { type CustomScale, type BasicPlotParams,
 	applyTextTransform, basicDataQuery } from '../basicPlot';
 import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
+import { useRef, type MutableRefObject } from 'react';
+import { distToSegment } from '../../util';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -13,7 +15,9 @@ export type GSMParams = BasicPlotParams & {
 	showAz: boolean,
 };
 
-function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHandle, params: GSMParams): uPlot.Series.PathBuilder {
+type VectorCache = MutableRefObject<number[][] | undefined>;
+
+function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHandle, params: GSMParams, posCache: VectorCache): uPlot.Series.PathBuilder {
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
@@ -49,9 +53,11 @@ function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHand
 		x = left + x0 * scalex + shiftx; y = top + y0 * scaley + shifty;
 
 		points[0] = [x, y];
+		posCache.current = Array(length);
 		for (let i = 1; i < length; i++) {
 			const dx = dataX[i] == null ? null : dataX[i] * scalex;
 			const dy = dataY[i] * scaley;
+			posCache.current[i] = [x, y, dx!, dy];
 			x += dx ?? 3; y += dy;
 			points[i] = [x, y, dx, dy];
 		}
@@ -133,6 +139,8 @@ function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHand
 
 export default function PlotGSM({ params }: { params: GSMParams }) {
 	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
+
+	const vectorCache: VectorCache = useRef<number[][]>();
 	const vectorLegendHandle = usePlotOverlay(() => ({ x: 8, y: 8 }));
 
 	return (<BasicPlot {...{
@@ -152,6 +160,36 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			under: true
 		},
 		options: () => ({
+			...((showAxyVector || showAz) && { focus: { alpha: 1 } }),
+			cursor: {
+				dataIdx: (u, sidx, closest, xval) => {
+					const vectors = vectorCache.current;
+					const cx = u.cursor.left! + u.bbox.left;
+					const cy = u.cursor.top!  + u.bbox.top;
+					if (!vectors || !cx || !cy)
+						return closest;
+					let found, minDist = Infinity;
+					for (let i=1; i < vectors?.length; ++i) {
+						const [x, y, dx, dy] = vectors[i];
+						const x2 = x + dx, y2 = y + dy;
+						const dist = distToSegment(cx, cy, x, y, x2, y2);
+						if (dist < minDist) {
+							minDist = dist;
+							found = i;
+						}
+					}
+					const x = u.valToPos(xval, 'x', true);
+					for (let i=0; i < u.series.length; ++i) {
+						if (!u.series[i].show)
+							continue;
+						const y = u.valToPos(u.data[i][closest]!, u.series[i].scale!, true);
+						const dist = Math.sqrt((cx - x) ** 2 + (cy - y) ** 2);
+						if (dist < minDist)
+							return closest;
+					}
+					return found ?? closest;
+				}
+			},
 			hooks: {
 				ready: [ vectorLegendHandle.onReady ],
 			}
@@ -216,7 +254,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			label: 'vector',
 			legend: 'Axy vector',
 			stroke: color('magenta'),
-			myPaths: scl => tracePaths(scl, vectorLegendHandle, params),
+			myPaths: scl => tracePaths(scl, vectorLegendHandle, params, vectorCache),
 			marker: 'arrow',
 			points: { show: false }
 		}]

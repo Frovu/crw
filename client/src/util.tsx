@@ -22,6 +22,17 @@ export function prettyDate(inp: Date | number | null, short=false) {
 export const clamp = (min: number, max: number, val: number, minFirst: boolean=false) =>
 	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
 
+export const dist2 = (x1: number, y1: number, x2: number, y2: number) =>
+	(x1 - x2) ** 2 + (y1 - y2) ** 2;
+
+export const distToSegment = (xp: number, yp: number, x1: number, y1: number, x2: number, y2: number) => {
+	const l2 = dist2(x1, y1, x2, y2);
+	let t = ((xp - x1) * (x2 - x1) + (yp - y1) * (y2 - y1)) / l2;
+	t = Math.max(0, Math.min(1, t));
+	const dsq = dist2(xp, yp, x1 + t * (x2 - x1), y1 + t * (y2 - y1));
+	return Math.sqrt(dsq);
+};
+
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
 		method: 'POST', credentials: 'include',

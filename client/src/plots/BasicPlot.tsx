@@ -34,6 +34,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), 0],
 			legend: { show: params.interactive },
 			focus: { alpha: .6 },
+			...uopts,
 			cursor: {
 				focus: { prox: 24 },
 				drag: { x: false, y: false, setScale: false },
@@ -92,7 +93,6 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				paths: ser.myPaths?.(scaled(1)),
 				width: scaled(ser.width ?? 1)
 			}))),
-			...uopts,
 			plugins: [
 				metainfoPlugin({ params, ...metaParams }),
 				legendPlugin({ params, overlayHandle }),
