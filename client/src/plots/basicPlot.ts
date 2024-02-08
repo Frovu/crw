@@ -291,7 +291,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 		const value = typeof series.value == 'function'
 			? series.value(u, val, seriesIdx!, dataIdx) : Math.round(val / 100) * 100;
 		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
-		
+
 		const top = u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(xval, 'x');
 		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
@@ -314,6 +314,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 				tooltipLeftOffset = parseFloat(u.over.style.left);
 				tooltipTopOffset  = parseFloat(u.over.style.top);
 				u.root.querySelector('.u-wrap')!.appendChild(tooltip);
+				u.setCursor({ left: -1, top: -1 });
 
 				if (onclick) {
 					let clientX: number;
@@ -333,7 +334,6 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 					});
 				}
 			} ],
-			drawClear: [ u => u.setCursor({ left: -1, top: -1 }) ],
 			setCursor: [ u => {
 				const idx = userDidx ? userDidx() : u.cursor.idx ?? null;
 				if (dataIdx !== idx) {

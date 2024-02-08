@@ -34,7 +34,6 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			legend: { show: params.interactive },
 			focus: { alpha: .6 },
 			cursor: {
-				// show: params.interactive,
 				focus: { prox: 24 },
 				drag: { x: false, y: false, setScale: false },
 				points: {
