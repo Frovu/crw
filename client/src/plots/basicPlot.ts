@@ -2,7 +2,7 @@ import type { MutableRefObject } from 'react';
 import type { Onset, MagneticCloud } from '../events/events';
 import { type Size, clamp, apiGet, prettyDate } from '../util';
 import { getParam, font, scaled, type Shape, type Position,
-	applyOverrides, withOverrides, getFontSize, drawShape, measureDigit, color } from './plotUtil';
+	applyOverrides, withOverrides, getFontSize, drawShape, measureDigit, color, drawMagneticClouds, drawOnsets } from './plotUtil';
 import type uPlot from 'uplot';
 
 export type TextTransform = {
@@ -400,5 +400,17 @@ export function titlePlugin({ text: textParts, params: { showTitle } }:
 				}
 				u.ctx.restore();
 			}, captureOverrides) ] }
+	};
+}
+
+export function metainfoPlugin({ params, truncate, under }:
+{ params: BasicPlotParams, truncate?: (u: Omit<uPlot, 'scales'> & { scales: {[k: string]: CustomScale} }) => number, under?: boolean }): uPlot.Plugin {
+	return {
+		hooks: {
+			drawAxes: [
+				drawMagneticClouds(params, truncate)
+			].concat(under ? drawOnsets(params, truncate) : []),
+			draw: under ? [] : [ drawOnsets(params, truncate) ]
+		}
 	};
 }

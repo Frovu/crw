@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
-import { type BasicPlotParams, basicDataQuery, tooltipPlugin } from '../basicPlot';
-import { axisDefaults, color, customTimeSplits, drawMagneticClouds, drawOnsets, font, scaled } from '../plotUtil';
+import { type BasicPlotParams, basicDataQuery, tooltipPlugin, metainfoPlugin } from '../basicPlot';
+import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
 import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
@@ -21,11 +21,7 @@ function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height
 		legend: { show: false },
 		focus: { alpha: .5 },
 		cursor: { drag: { setScale: false }, focus: { prox: 32 } },
-		hooks: {
-			drawAxes: [ drawMagneticClouds(params) ],
-			draw: [ drawOnsets(params) ]
-		},
-		plugins: [ tooltipPlugin() ],
+		plugins: [ metainfoPlugin({ params }), tooltipPlugin() ],
 		scales: { y: { range: [ -.2, SW_TYPES.length - .8 ] } },
 		axes: [{
 			...axDef,

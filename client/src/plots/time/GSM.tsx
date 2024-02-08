@@ -2,8 +2,7 @@ import uPlot from 'uplot';
 import BasicPlot from '../BasicPlot';
 import { type CustomScale, type BasicPlotParams,
 	applyTextTransform, basicDataQuery } from '../basicPlot';
-import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow,
-	usePlotOverlayPosition, drawMagneticClouds, drawOnsets } from '../plotUtil';
+import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow, usePlotOverlayPosition } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -149,12 +148,12 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			return data;
 		},
 		params,
+		metaParams: {
+			truncate: u => u.valToPos(u.scales.A0.scaleValue?.max ?? 0, 'A0', true),
+			under: true
+		},
 		options: () => ({
 			hooks: {
-				drawAxes: [
-					drawMagneticClouds(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
-					drawOnsets(params, u => u.valToPos((u.scales.A0 as CustomScale).scaleValue?.max ?? 0, 'A0', true)),
-				],
 				ready: [ handleDrag ],
 			}
 		}),

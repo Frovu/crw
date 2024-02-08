@@ -1,16 +1,16 @@
 import { useCallback } from 'react';
 import { useQuery } from 'react-query';
 import { type DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, 
-	markersPaths, drawMagneticClouds, drawOnsets, color, type Size,
-	scaled, getParam, getFontSize } from './plotUtil';
+	markersPaths, color, type Size, scaled, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
-import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
+import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin, metainfoPlugin } from './basicPlot';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
-export default function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params }:
+export default function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params, metaParams }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
+	metaParams?: Partial<Parameters<typeof metainfoPlugin>[0]>,
 	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
 	const query = useQuery({
 		queryKey,
@@ -95,11 +95,11 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			hooks: {
 				...uopts?.hooks,
 				drawAxes: uopts?.hooks?.drawAxes ?? (params.showMetaInfo ? [
-					drawMagneticClouds(params),
+					// drawMagneticClouds(params),
 				] : []),
 				draw: [
 					drawCustomLabels(params),
-					...(params.showMetaInfo && !uopts?.hooks?.drawAxes ? [drawOnsets(params)] : []),
+					// ...(params.showMetaInfo && !uopts?.hooks?.drawAxes ? [drawOnsets(params)] : []),
 					drawCustomLegend(params, legendPos, legendSize, defaultPos),
 					...(uopts?.hooks?.draw ?? [])
 				],
@@ -107,7 +107,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 					handleDragLegend
 				].concat(uopts?.hooks?.ready ?? [] as any)
 			},
-			plugins: [ tooltipPlugin() ]
+			plugins: [
+				metainfoPlugin({ params, ...metaParams }),
+				tooltipPlugin()
+			]
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
 	
