@@ -2,7 +2,7 @@ import uPlot from 'uplot';
 import BasicPlot from '../BasicPlot';
 import { type CustomScale, type BasicPlotParams,
 	applyTextTransform, basicDataQuery } from '../basicPlot';
-import { type PosRef, type SizeRef, type DefaultPosition, color, drawArrow, usePlotOverlayPosition } from '../plotUtil';
+import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
 
 export type GSMParams = BasicPlotParams & {
 	subtractTrend: boolean,
@@ -13,7 +13,7 @@ export type GSMParams = BasicPlotParams & {
 	showAz: boolean,
 };
 
-function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: DefaultPosition, params: GSMParams): uPlot.Series.PathBuilder {
+function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHandle, params: GSMParams): uPlot.Series.PathBuilder {
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
@@ -105,11 +105,11 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 		const arrowRadius = px(6);
 
 		if (scl === 1)
-			sizeRef.current = {
+			size.current = {
 				width:  Math.max(xArrowPercent * scalex, lineW + arrowRadius * 2) + px(2),
 				height: yArrowPercent * scaley + lineH + arrowRadius + px(2)
 			};
-		const { x: lx, y: ly } = posRef.current ?? defaultPos(u, sizeRef.current);
+		const { x: lx, y: ly } = position.current ?? defaultPos(u, size.current);
 		x = lx * scl + arrowRadius + px(2); y = ly * scl + lineH + px(2);
 
 		u.ctx.beginPath();
@@ -132,9 +132,8 @@ function tracePaths(scl: number, posRef: PosRef, sizeRef: SizeRef, defaultPos: D
 }
 
 export default function PlotGSM({ params }: { params: GSMParams }) {
-	const defaultPos = () => ({ x: 8, y: 8 });
-	const [pos, size, handleDrag] = usePlotOverlayPosition(defaultPos);
 	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
+	const vectorLegendHandle = usePlotOverlay(() => ({ x: 8, y: 8 }));
 
 	return (<BasicPlot {...{
 		queryKey: ['GSMani', interval, maskGLE, subtractTrend, useA0m],
@@ -154,7 +153,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		},
 		options: () => ({
 			hooks: {
-				ready: [ handleDrag ],
+				ready: [ vectorLegendHandle.onReady ],
 			}
 		}),
 		axes: () => [{
@@ -217,7 +216,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			label: 'vector',
 			legend: 'Axy vector',
 			stroke: color('magenta'),
-			myPaths: scl => tracePaths(scl, pos, size, defaultPos, params),
+			myPaths: scl => tracePaths(scl, vectorLegendHandle, params),
 			marker: 'arrow',
 			points: { show: false }
 		}]

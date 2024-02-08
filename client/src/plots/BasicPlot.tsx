@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
 import { useQuery } from 'react-query';
-import { type DefaultPosition, usePlotOverlayPosition, axisDefaults, customTimeSplits, 
+import { usePlotOverlay, axisDefaults, customTimeSplits, 
 	markersPaths, color, type Size, scaled, getParam, getFontSize } from './plotUtil';
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
-import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin, metainfoPlugin } from './basicPlot';
+import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale,
+	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
@@ -17,10 +18,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 		queryFn
 	});
 
-	const defaultPos: DefaultPosition = (u, { width }) => ({
+	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
-		y: u.bbox.top / scaled(1) });
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
+		y: u.bbox.top / scaled(1)
+	}));
 
 	const options = useCallback(() => {
 		const axes = getAxes(), series = getSeries();
@@ -92,23 +93,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				width: scaled(ser.width ?? 1)
 			}))),
 			...uopts,
-			hooks: {
-				...uopts?.hooks,
-				drawAxes: uopts?.hooks?.drawAxes ?? (params.showMetaInfo ? [
-					// drawMagneticClouds(params),
-				] : []),
-				draw: [
-					drawCustomLabels(params),
-					// ...(params.showMetaInfo && !uopts?.hooks?.drawAxes ? [drawOnsets(params)] : []),
-					drawCustomLegend(params, legendPos, legendSize, defaultPos),
-					...(uopts?.hooks?.draw ?? [])
-				],
-				ready: [
-					handleDragLegend
-				].concat(uopts?.hooks?.ready ?? [] as any)
-			},
 			plugins: [
 				metainfoPlugin({ params, ...metaParams }),
+				legendPlugin({ params, overlayHandle }),
+				labelsPlugin({ params }),
 				tooltipPlugin()
 			]
 		} as uPlot.Options;

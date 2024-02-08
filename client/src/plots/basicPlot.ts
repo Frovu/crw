@@ -1,8 +1,7 @@
-import type { MutableRefObject } from 'react';
 import type { Onset, MagneticCloud } from '../events/events';
-import { type Size, clamp, apiGet, prettyDate } from '../util';
-import { getParam, font, scaled, type Shape, type Position,
-	applyOverrides, withOverrides, getFontSize, drawShape, measureDigit, color, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { clamp, apiGet, prettyDate } from '../util';
+import { getParam, font, scaled, type Shape, applyOverrides, withOverrides, getFontSize,
+	drawShape, measureDigit, color, drawMagneticClouds, drawOnsets, type PlotOverlayHandle } from './plotUtil';
 import type uPlot from 'uplot';
 
 export type TextTransform = {
@@ -105,8 +104,8 @@ export const measureStyled = (ctx: CanvasRenderingContext2D, parts: TextNode[]) 
 	return textWidth;
 };
 
-export function drawCustomLegend(params: { showLegend: boolean }, position: MutableRefObject<Position|null>, size: MutableRefObject<Size>,
-	defaultPos: (u: uPlot, csize: Size) => Position) {
+export function drawCustomLegend({ params, overlayHandle: { size, position, defaultPos } }:
+{ params: { showLegend: boolean }, overlayHandle: PlotOverlayHandle }) {
 	const captureOverrides = applyOverrides;
 	return (u: Omit<uPlot, 'series'> & { series: CustomSeries[] }) => withOverrides(() => {
 		if (!params.showLegend) return;
@@ -170,7 +169,7 @@ export function drawCustomLegend(params: { showLegend: boolean }, position: Muta
 	}, captureOverrides);
 }
 
-export function drawCustomLabels({ showLegend }: { showLegend: boolean }) {
+export function drawCustomLabels({ params: { showLegend } }: { params: { showLegend: boolean } }) {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
 		for (const axis of (u.axes as CustomAxis[])) {
@@ -411,6 +410,23 @@ export function metainfoPlugin({ params, truncate, under }:
 				drawMagneticClouds(params, truncate)
 			].concat(under ? drawOnsets(params, truncate) : []),
 			draw: under ? [] : [ drawOnsets(params, truncate) ]
+		}
+	};
+}
+
+export function legendPlugin(para: Parameters<typeof drawCustomLegend>[0]): uPlot.Plugin {
+	return {
+		hooks: {
+			ready: [ para.overlayHandle.onReady ],
+			draw: [ drawCustomLegend(para) ]
+		}
+	};
+}
+
+export function labelsPlugin(para: Parameters<typeof drawCustomLabels>[0]): uPlot.Plugin {
+	return {
+		hooks: {
+			draw: [ drawCustomLabels(para) ]
 		}
 	};
 }

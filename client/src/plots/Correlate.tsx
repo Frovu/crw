@@ -1,12 +1,12 @@
 import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlayPosition, type DefaultPosition } from './plotUtil';
+import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString, useViewState, TableViewContext } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform, drawCustomLegend, titlePlugin, tooltipPlugin } from './basicPlot';
+import { applyTextTransform, legendPlugin, titlePlugin, tooltipPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
@@ -116,10 +116,10 @@ export default function CorrelationPlot() {
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 
-	const defaultPos: DefaultPosition = (u, { width }) => ({
+	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
-		y: 3 });
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
+		y: 3
+	}));
 
 	const memo = useMemo(() => {
 		const params = { ...defaultCorrParams(columns), ...layoutParams };
@@ -210,14 +210,15 @@ export default function CorrelationPlot() {
 							{ text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`, color: 'text' }
 						],
 						params: { showTitle: showTitle && !!regr }
+					}), legendPlugin({
+						params: { showLegend },
+						overlayHandle
 					}) ],
 					hooks: {
 						drawClear: [ u => { 
 							qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 							qt.clear();
 						}],
-						draw: [ drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos) ],
-						ready: [ handleDragLegend ]
 					},
 					axes: [
 						{
@@ -271,7 +272,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, currentData, allData, samplesList, showTitle, showLegend, legendPos, legendSize, handleDragLegend, showGrid, setCursor, shownData, setPlotId]);
+	}, [columns, layoutParams, currentData, allData, samplesList, showTitle, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { options, data } = memo;

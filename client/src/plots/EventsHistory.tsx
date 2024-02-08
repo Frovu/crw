@@ -2,12 +2,12 @@ import { useContext, useMemo } from 'react';
 import { useEventsSettings, type PanelParams, MainTableContext, SampleContext } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import type uPlot from 'uplot';
-import { axisDefaults, markersPaths, measureDigit, scaled, type DefaultPosition, usePlotOverlayPosition } from './plotUtil';
+import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
 import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
+import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
 
@@ -102,10 +102,10 @@ export default function EventsHistory() {
 
 	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;
 
-	const defaultPos: DefaultPosition = (u, { width }) => ({
+	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
-		y: 3 });
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
+		y: 3
+	}));
 
 	const data = useMemo(() => {
 		console.time('Events History data');
@@ -163,14 +163,11 @@ export default function EventsHistory() {
 				padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
 				focus: { alpha: 1 },
 				cursor: { focus: { prox: 32 }, drag: { x: false, y: false, setScale: false } },
-				hooks: {
-					draw: [
-						drawCustomLabels({ showLegend }),
-						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
-					],
-					ready: [ handleDragLegend ]
-				},
-				plugins: [ tooltipPlugin() ],
+				plugins: [
+					tooltipPlugin(),
+					legendPlugin({ params: { showLegend }, overlayHandle }),
+					labelsPlugin({ params: { showLegend } })
+				],
 				axes: [{
 					...axisDefaults(showGrid),
 					space: 5 * ch,
@@ -210,7 +207,7 @@ export default function EventsHistory() {
 			} as Omit<uPlot.Options, 'width'|'height'>;
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params, showLegend, legendPos, legendSize, showGrid, columns, samplesList, showMarkers]);
+	}, [params, showLegend, showGrid, columns, samplesList, showMarkers]);
 
 	return <ExportableUplot {...{ options, data }}/>;
 }

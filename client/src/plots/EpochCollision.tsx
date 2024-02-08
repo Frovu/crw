@@ -1,13 +1,13 @@
 import { useContext, useMemo } from 'react';
 import { apiPost } from '../util';
-import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlayPosition, type DefaultPosition } from './plotUtil';
+import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
 import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
-import { type CustomAxis, type CustomScale, drawCustomLabels, drawCustomLegend, tooltipPlugin } from './basicPlot';
+import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -96,10 +96,10 @@ export default function EpochCollision() {
 		return found ? applySample(allData, found, columns) : null;
 	}), [sample0, sample1, sample2, currentData, allData, samplesList, columns]);
 
-	const defaultPos: DefaultPosition = (u, { width }) => ({
+	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1), 
-		y: u.bbox.top / scaled(1) + 8 });
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
+		y: u.bbox.top / scaled(1) + 8
+	}));
 
 	const queryHandler = async (qi: number) => {
 		const sample = samples[qi];
@@ -154,14 +154,11 @@ export default function EpochCollision() {
 					padding: [scaled(10), scaled(4), 0, 0],
 					focus: { alpha: 1 },
 					cursor: { focus: { prox: 24 }, drag: { x: false, y: false, setScale: false } },
-					hooks: {
-						draw: [
-							drawCustomLabels({ showLegend }), 
-							drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos)
-						],
-						ready: [ handleDragLegend ]
-					},
-					plugins: [ tooltipPlugin() ],
+					plugins: [
+						tooltipPlugin(),
+						legendPlugin({ params: { showLegend }, overlayHandle }),
+						labelsPlugin({ params: { showLegend } })
+					],
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: measureDigit().height + scaled(12),

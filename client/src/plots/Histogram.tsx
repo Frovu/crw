@@ -1,10 +1,10 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { type DefaultPosition, axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlayPosition } from './plotUtil';
+import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings, type Value } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
-import { drawCustomLabels, drawCustomLegend, type CustomAxis, tooltipPlugin } from './basicPlot';
+import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { LayoutContext, type ParamsSetter } from '../layout';
 import { NumberInput } from '../Utility';
 
@@ -201,10 +201,10 @@ export default function HistogramPlot() {
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
 
-	const defaultPos: DefaultPosition = (u, { width }) => ({
+	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
-		y: 3 });
-	const [legendPos, legendSize, handleDragLegend] = usePlotOverlayPosition(defaultPos);
+		y: 3
+	}));
 
 	const hist = useMemo(() => {
 		const options = { ...defaultHistOptions(columns), ...layoutParams };
@@ -272,20 +272,22 @@ export default function HistogramPlot() {
 					legend: { show: false },
 					focus: { alpha: .5 },
 					cursor: { focus: { prox: 64 }, drag: { x: false, y: false, setScale: false }, points: { show: false } },
-					hooks: { draw: [
-						drawAverages(options, samples),
-						drawCustomLabels({ showLegend }),
-						enumMode ? () => {} : drawResiduals(options, samples as any, min, max),
-						drawCustomLegend({ showLegend }, legendPos, legendSize, defaultPos),
-					], ready: [
-						handleDragLegend
-					] },
-					plugins: [ tooltipPlugin({
-						html: (u, sidx, i) => 
-							`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round(binSize / 2 * 100) / 100};`
+					hooks: {
+						draw: [
+							drawAverages(options, samples),
+							enumMode ? () => {} : drawResiduals(options, samples as any, min, max),
+						]
+					},
+					plugins: [
+						tooltipPlugin({
+							html: (u, sidx, i) => 
+								`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round(binSize / 2 * 100) / 100};`
 							+ `<span style="color: ${(u.series[sidx].stroke as any)()}"> `
 							+ (Math.round(u.data[sidx][i]! * 100) / (yScale === '%' ? 1 : 100)).toString() + (yScale === '%' ? ' %' : ' events') + '</span>'
-					}) ],
+						}),
+						legendPlugin({ params: { showLegend }, overlayHandle }),
+						labelsPlugin({ params: { showLegend } })
+					],
 					axes: [ {
 						...axisDefaults(showGrid),
 						size: scaled(12) + getFontSize(),
@@ -350,7 +352,7 @@ export default function HistogramPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>; },
 			data: [binsValues, ...elevated] as any
 		};
-	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, legendPos, legendSize, handleDragLegend, showGrid]);
+	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, overlayHandle, showGrid]);
 
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;
