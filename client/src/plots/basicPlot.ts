@@ -262,8 +262,9 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 	return ordered;
 }
 
-export function tooltipPlugin({ html, didx: userDidx, onclick }: {
+export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }: {
 	didx?: () => number,
+	sidx?: (u: uPlot, sidx: number) => number,
 	onclick?: (u: uPlot, dIdx: number) => void,
 	html?: (u: uPlot, sIdx: number, dIdx: number) => string
 } = { }): uPlot.Plugin {
@@ -274,21 +275,25 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 	let seriesIdx: number | null = 1;
 	let dataIdx: number | null = 1;
 
+	const isHidden = (u: uPlot, si: number) =>
+		['Value'].includes(u.series[si]?.label!);
+
 	function setTooltip(u: uPlot) {
-		const show = seriesIdx != null && dataIdx != null;
+		const show = seriesIdx != null && dataIdx != null
+			&& !isHidden(u, seriesIdx);
 
 		tooltip.style.display = show ? 'block' : 'none';
 		u.over.style.cursor = onclick ? 'pointer' : 'crosshair';
-		const series = u.series[seriesIdx!];
 
-		if (!show || ['Value', 'vector'].includes(series.label!))
-			return;
+		if (!show) return;
+		const sidx = userSidx ? userSidx(u, seriesIdx!) : seriesIdx!;
+		const series = u.series[sidx];
 
 		const isScatter = (u as any).mode === 2;
-		const stroke = typeof series.stroke == 'function' ? series.stroke(u, seriesIdx!) : series.stroke;
-		const val = isScatter ? (u.data as any)[seriesIdx!][1][dataIdx!] : u.data[seriesIdx!][dataIdx!] as number;
+		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
+		const val = isScatter ? (u.data as any)[sidx][1][dataIdx!] : u.data[sidx][dataIdx!] as number;
 		const value = typeof series.value == 'function'
-			? series.value(u, val, seriesIdx!, dataIdx) : Math.round(val / 100) * 100;
+			? series.value(u, val, sidx, dataIdx) : Math.round(val / 100) * 100;
 		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
 
 		const top = u.valToPos(val, series.scale ?? 'y');
@@ -300,7 +305,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 		tooltip.style.left = (flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
-		tooltip.innerHTML = html ? html(u, seriesIdx!, dataIdx!)
+		tooltip.innerHTML = html ? html(u, sidx, dataIdx!)
 			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
 	}
 
@@ -308,6 +313,28 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 	tooltip.className = 'u-tooltip';
 
 	return {
+		opts: (_, opts) => ({
+			...opts,
+			cursor: {
+				drag: { x: false, y: false, setScale: false },
+				...opts.cursor,
+				focus: {
+					prox: 32,
+					dist: (u, sidx, didx, valPos, curPos) => {
+						if (isHidden(u, sidx))
+							return Infinity;
+						return curPos - valPos;
+					},
+					...opts.cursor?.focus
+				},
+				points: {
+					width: 2, size: 8,
+					stroke: (u, sidx) =>  isHidden(u, sidx) ? 'transparent' : color('white'),
+					fill: 'transparent',
+					...opts.cursor?.points
+				},
+			}
+		}),
 		hooks: {
 			ready: [ u => {
 				tooltipLeftOffset = parseFloat(u.over.style.left);
@@ -323,9 +350,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 						clientX = e.clientX;
 						clientY = e.clientY;
 					});
-	
 					u.over.addEventListener('mouseup', e => {
-						// clicked in-place
 						if (e.clientX === clientX && e.clientY === clientY) {
 							if (dataIdx != null)
 								onclick(u, dataIdx);
@@ -334,7 +359,7 @@ export function tooltipPlugin({ html, didx: userDidx, onclick }: {
 				}
 			} ],
 			setCursor: [ u => {
-				const idx = userDidx ? userDidx() : u.cursor.idx ?? null;
+				const idx = userDidx ? userDidx() : u.cursor.idxs?.[seriesIdx!] ?? null;
 				if (dataIdx !== idx) {
 					dataIdx = idx;
 					setTooltip(u);

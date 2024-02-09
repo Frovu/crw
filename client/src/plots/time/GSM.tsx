@@ -159,9 +159,50 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			truncate: u => u.valToPos(u.scales.A0.scaleValue?.max ?? 0, 'A0', true),
 			under: true
 		},
+		tooltipParams: {
+			sidx: (u, si) => si === 4 ? 1 : si
+		},
 		options: () => ({
-			...((showAxyVector || showAz) && { focus: { alpha: 1 } }),
+			focus: { alpha: 1 },
 			cursor: {
+				focus: {
+					prox: 32,
+					dist: (u, si, di, valPos, curPos) => {
+						if (si !== 4)
+							return valPos - curPos;
+						if (!vectorCache.current)
+							return Infinity;
+						const cx = u.bbox.left + u.cursor.left!;
+						const cy = u.bbox.top + u.cursor.top!;
+						const [x, y, dx, dy] = vectorCache.current[di];
+						return distToSegment(cx, cy, x, y, x + dx, y + dy);
+					}
+				},
+				points: {
+					bbox: (u, si) => {
+						const di = u.cursor.idxs?.[si];
+						if (si !== 4) {
+							const x = u.valToPos(u.data[0][di!], 'x');
+							const y = u.valToPos(u.data[si][di!]!, u.series[si].scale!);
+							return {
+								left: x - 4,
+								top: y - 4,
+								width: 8,
+								height: 8
+							};
+						} else {
+							const [x, y, dx, dy] = vectorCache.current?.[di!] ?? [-99, -99, 0, 0];
+							return {
+								left: x - u.bbox.left + dx / 3 - 4,
+								top: y - u.bbox.top + dy / 3 - 4,
+								width: 8,
+								height: 8
+							};
+
+						}
+					}
+
+				},
 				dataIdx: (u, sidx, closest, xval) => {
 					const vectors = vectorCache.current;
 					const cx = u.cursor.left! + u.bbox.left;

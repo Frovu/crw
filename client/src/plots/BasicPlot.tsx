@@ -9,9 +9,10 @@ import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomSc
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
-export default function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params, metaParams }:
+export default function BasicPlot({ queryKey, queryFn, options: userOptions, axes: getAxes, series: getSeries, params, metaParams, tooltipParams }:
 { queryKey: any[], queryFn: () => Promise<any[][] | null>, params: BasicPlotParams,
 	metaParams?: Partial<Parameters<typeof metainfoPlugin>[0]>,
+	tooltipParams?: Partial<Parameters<typeof tooltipPlugin>[0]>,
 	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
 	const query = useQuery({
 		queryKey,
@@ -35,16 +36,6 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			legend: { show: params.interactive },
 			focus: { alpha: .6 },
 			...uopts,
-			cursor: {
-				focus: { prox: 24 },
-				drag: { x: false, y: false, setScale: false },
-				points: {
-					width: 2, size: 8,
-					stroke: (u, sidx) => ['Value', 'vector'].includes(u.series[sidx].label!)  ? 'transparent' : color('white'),
-					fill: 'transparent'
-				},
-				...(uopts?.cursor?.dataIdx && { dataIdx: uopts.cursor.dataIdx })
-			},
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
 				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
@@ -97,7 +88,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				metainfoPlugin({ params, ...metaParams }),
 				legendPlugin({ params, overlayHandle }),
 				labelsPlugin({ params }),
-				tooltipPlugin()
+				tooltipPlugin({ ...tooltipParams })
 			]
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
