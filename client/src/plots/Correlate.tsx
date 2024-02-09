@@ -175,7 +175,7 @@ export default function CorrelationPlot() {
 				return {
 					mode: 2,
 					padding: [8, 12, 0, 0].map(p => scaled(p)) as any,
-					legend: { show: false },
+					focus: { alpha: 1 },
 					cursor: {
 						drag: { x: false, y: false, setScale: false },
 						points: {

@@ -315,6 +315,7 @@ export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }:
 	return {
 		opts: (_, opts) => ({
 			...opts,
+			legend: { show: false },
 			cursor: {
 				drag: { x: false, y: false, setScale: false },
 				...opts.cursor,
@@ -413,7 +414,7 @@ export function titlePlugin({ text: textParts, params: { showTitle } }:
 				const parts = textParts.map(t =>
 					({ ...t, styles: t.styles ?? [], text: applyTextTransform(t.text) }));
 				const width = measureStyled(u.ctx, parts);
-				let x = clamp(4, u.width - width, u.width / 2 - width / 2);
+				let x = clamp(4, u.width * devicePixelRatio - width, (u.width * devicePixelRatio - width) / 2 );
 				for (const { text, styles, color: c } of parts) {
 					u.ctx.save();
 					applyStyles(u.ctx, styles);

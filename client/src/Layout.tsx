@@ -13,7 +13,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 	if (!items[id]) relinquishNode(id);
 	return items[id] && <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
-		onMouseDown={() => isPanelDraggable(items[id]?.type) && startDrag(id)}
+		onMouseDown={e => e.ctrlKey && isPanelDraggable(items[id]?.type) && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
 		{<LayoutContext.Provider value={{ id, size, params: items[id]!, setParams: (k, para) => setNodeParams(id, k, para) }}>
