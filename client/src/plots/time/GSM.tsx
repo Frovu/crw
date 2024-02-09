@@ -74,7 +74,10 @@ function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHand
 			if (val == null)
 				continue;
 			const a0y = u.valToPos(val, 'A0', true);
-			u.ctx.moveTo(points[i][0], points[i][1]);
+			const [ax, ay, dx, dy] = points[i];
+			const lx = ax - dx * 2 / 3;
+			const ly = ay - dy * 2 / 3;
+			u.ctx.moveTo(lx, ly);
 			u.ctx.lineTo(a0x, a0y);
 		}
 		u.ctx.lineWidth = px(1);
@@ -170,10 +173,10 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 					dist: (u, si, di, valPos, curPos) => {
 						if (si !== 4)
 							return valPos - curPos;
-						if (!vectorCache.current)
+						if (!vectorCache.current || di < 1)
 							return Infinity;
-						const cx = u.bbox.left + u.cursor.left!;
-						const cy = u.bbox.top + u.cursor.top!;
+						const cx = u.bbox.left + u.cursor.left! * devicePixelRatio;
+						const cy = u.bbox.top + u.cursor.top! * devicePixelRatio;
 						const [x, y, dx, dy] = vectorCache.current[di];
 						return distToSegment(cx, cy, x, y, x + dx, y + dy);
 					}
@@ -193,8 +196,8 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 						} else {
 							const [x, y, dx, dy] = vectorCache.current?.[di!] ?? [-99, -99, 0, 0];
 							return {
-								left: x - u.bbox.left + dx / 3 - 4,
-								top: y - u.bbox.top + dy / 3 - 4,
+								left: (x - u.bbox.left + dx / 3) / devicePixelRatio - 4,
+								top: (y - u.bbox.top + dy / 3) / devicePixelRatio - 4,
 								width: 8,
 								height: 8
 							};
@@ -205,8 +208,8 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 				},
 				dataIdx: (u, sidx, closest, xval) => {
 					const vectors = vectorCache.current;
-					const cx = u.cursor.left! + u.bbox.left;
-					const cy = u.cursor.top!  + u.bbox.top;
+					const cx = u.cursor.left! * devicePixelRatio + u.bbox.left;
+					const cy = u.cursor.top!  * devicePixelRatio + u.bbox.top;
 					if (!vectors || !cx || !cy)
 						return closest;
 					let found, minDist = Infinity;
@@ -262,7 +265,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			fill: color('magenta', .75),
 			width: 0,
 			bars: true,
-			myPaths: scl => uPlot.paths.bars!({ size: [.45, 16 * scl, 1 * scl], align: 1 }),
+			myPaths: scl => uPlot.paths.bars!({ size: [.45, 16 * scl, 1 * scl], align: 0 }),
 		}, {
 			show: showAz,
 			label: 'Az',
