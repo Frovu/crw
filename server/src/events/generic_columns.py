@@ -205,7 +205,8 @@ def upset_generic(uid, json_body):
 		raise ValueError('Such column already exists: '+found.pretty_name)
 	if nickname is not None and len(nickname) > 24:
 		raise ValueError('Nickname too long')
-	if not gid and uid and get_role() not in ('operator', 'admin') and len(generics) > 24:
+	if not gid and uid and get_role() not in ('operator', 'admin') \
+		and len([g for g in generics if g.owner == uid]) > 19:
 		raise ValueError('Limit reached, please delete some other columns first')
 	if entity not in G_ENTITY or not p.operation:
 		raise ValueError('Unknown entity')
