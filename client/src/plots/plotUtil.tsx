@@ -105,7 +105,14 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
 		}),
 		space: width * 5.5,
-		gap: scaled(-1),
+		gap: scaled(1),
+		ticks: {
+			show,
+			size: scaled(6),
+			width: scaled(2),
+			stroke: color('grid'),
+			filter: (u, splits) => splits.map(s => s % 86400 === 0 ? s : null)
+		},
 		...(!show && { ticks: { show: false } }),
 		size: show ? height + scaled(6) + 1 : 0
 	};
