@@ -166,12 +166,12 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			sidx: (u, si) => si === 4 ? 1 : si
 		},
 		options: () => ({
-			focus: { alpha: 1 },
+			focus: { alpha: (showAxyVector || showAz) ? 1 : .7 },
 			cursor: {
 				focus: {
 					prox: 32,
 					dist: (u, si, di, valPos, curPos) => {
-						if (si !== 4)
+						if (si !== 4 || !showAxyVector)
 							return valPos - curPos;
 						if (!vectorCache.current || di < 1)
 							return Infinity;
@@ -207,6 +207,9 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 
 				},
 				dataIdx: (u, sidx, closest, xval) => {
+					if (!showAxyVector)
+						return closest;
+
 					const vectors = vectorCache.current;
 					const cx = u.cursor.left! * devicePixelRatio + u.bbox.left;
 					const cy = u.cursor.top!  * devicePixelRatio + u.bbox.top;
@@ -222,8 +225,9 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 							found = i;
 						}
 					}
+
 					const x = u.valToPos(xval, 'x', true);
-					for (let i=0; i < u.series.length; ++i) {
+					for (let i=0; i < 4; ++i) {
 						if (!u.series[i].show)
 							continue;
 						const y = u.valToPos(u.data[i][closest]!, u.series[i].scale!, true);

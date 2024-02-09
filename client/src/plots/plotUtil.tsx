@@ -1,4 +1,4 @@
-import React, { type MutableRefObject, useRef, useState } from 'react';
+import React, { type MutableRefObject, useRef, useState, useMemo } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
@@ -261,7 +261,7 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 	const sizeRef = useRef<Size>({ width: 0, height: 0 });
 	const dragRef = useRef<{ click: Position, saved: Position } | null>(null);
 
-	return {
+	const handle = useMemo(() => ({
 		defaultPos,
 		size: sizeRef,
 		position: posRef,
@@ -302,7 +302,10 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 			u.root.addEventListener('mouseleave', e => { dragRef.current = null; });
 			u.root.addEventListener('mouseup', e => { dragRef.current = null; });
 		}
-	};
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}), []);
+
+	return handle;
 }
 
 export function ScatterPlot({ data, colour }: { data: [number[], number[]][], colour: string }) {
