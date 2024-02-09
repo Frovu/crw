@@ -29,14 +29,14 @@ export default function PlotIMF({ params }: { params: IMFParams }) {
 		series: () => [
 			{
 				label: 'Vsw',
-				legend: 'Vsw, km/s',
+				legend: 'Vsw',
 				scale: 'Vsw',
 				stroke: color('acid'),
 				width: 2,
 				marker: 'diamond',
 			}, {
 				label: '|B|',
-				legend: 'IMF |B|, nT',
+				legend: 'IMF |B|',
 				scale: 'IMF',
 				stroke: color('purple'),
 				width: 2,
@@ -45,7 +45,7 @@ export default function PlotIMF({ params }: { params: IMFParams }) {
 			...[['Bx', 'green', 'triangleDown'], ['By', 'cyan', 'triangleUp'], ['Bz', 'magenta', 'square']].map(([label, stroke, marker]) => ({
 				show: label === 'Bz' ? params.showBz : params.showBxBy,
 				label,
-				legend: `IMF  ${label}, nT`,
+				legend: `IMF  ${label}`,
 				scale: 'IMF',
 				stroke: color(stroke),
 				marker,

@@ -260,7 +260,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		series: () => [{
 			show: showAxy,
 			label: 'Axy',
-			legend: 'Axy (GSM) var, %',
+			legend: 'Axy (GSM)',
 			stroke: color('magenta', .75),
 			fill: color('magenta', .75),
 			width: 0,
@@ -270,7 +270,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 			show: showAz,
 			label: 'Az',
 			scale: 'A0',
-			legend: 'Az (GSM) var, %',
+			legend: 'Az  (GSM)',
 			stroke: color('blue'),
 			fill: color('blue'),
 			width: 0,
@@ -289,7 +289,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		}, {
 			scale: 'A0',
 			label: useA0m ? 'A0m' : 'A0',
-			legend: `${useA0m ? 'A0m' : 'A0'} (GSM) var, %`,
+			legend: `${useA0m ? 'A0m' : 'A0'} (GSM)`,
 			stroke: color('green'),
 			width: 2,
 			marker: 'diamond'

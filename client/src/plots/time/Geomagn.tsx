@@ -57,7 +57,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 			},
 			{
 				label: 'Dst',
-				fullLabel: 'Dst, nT',
+				fullLabel: 'Dst index',
 				position: [2/5, 1],
 				minMax: [null, 0],
 				side: 1,

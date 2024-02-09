@@ -47,7 +47,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 			{
 				show: !!showDensity,
 				label: 'Dp',
-				legend: 'Proton density, N/cm^3',
+				legend: 'Proton density',
 				scale: 'Dp',
 				marker: 'circle',
 				stroke: color('peach'),
@@ -64,7 +64,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 			},
 			{
 				label: 'Tp',
-				legend: useTemperatureIndex ? 'Temperature index' : 'Proton temperature, K',
+				legend: useTemperatureIndex ? 'Temperature index' : 'Proton temperature',
 				scale: 'Tp',
 				marker: 'diamond',
 				stroke: color('cyan'),
