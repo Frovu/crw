@@ -37,7 +37,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const { id: nodeId, params: { tableParams } } = useContext(LayoutContext)!;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers } = useContext(TableViewContext);
-	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor } = useViewState();
+	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = tableParams?.showChangelog && size.height > 300;
 	const showAverages = tableParams?.showAverages && size.height > 300;
@@ -191,7 +191,12 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 							{columns.map((column, cidx) => {
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
-									onClick={() => setCursor({ row: idx, column: cidx, editing: !!curs })}
+									onClick={e => {
+										const cur = { row: idx, column: cidx, editing: !!curs };
+										setCursor(cur);
+										updateViewIndex(cur);
+										if (e.ctrlKey)
+											setPlotId(() => row[0]); }}
 									onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
