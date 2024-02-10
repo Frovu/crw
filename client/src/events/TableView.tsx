@@ -201,7 +201,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
-											<div style={{ position: 'absolute', height: 24 + 2 + trPadding, width: `calc(${column.width}ch + 4px)` }}/>
+											<div className='TdOver'/>
 											{valueToString(row[cidx+1])}
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
 								</td>;

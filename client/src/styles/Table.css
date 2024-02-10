@@ -16,8 +16,18 @@
 }
 
 .Table td {
+	position: relative;
 	padding: 0;
 	border: 1px solid var(--color-border);
+}
+
+.TdOver {
+	cursor: pointer;
+	position: absolute;
+	top: -2px;
+	left: -2px;
+	height: calc(100% + 4px);
+	width: calc(100% + 4px);
 }
 
 .ColumnHeader {
