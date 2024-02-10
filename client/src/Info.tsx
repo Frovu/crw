@@ -26,6 +26,11 @@ export default function Help() {
 			scrollRef.current.scrollTop = infoPage === 'manual' ? useInfoState.getState().scrollPos : 0;
 	}, [infoPage]);
 
+	useEffect(() => {
+		if (scrollRef.current) // FIXME
+			scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+	}, [])
+
 	useEventListener('escape', closeInfo);
 
 	const PageLink = ({ page, text }: { page: typeof infoPage, text: string }) =>
@@ -46,22 +51,33 @@ export default function Help() {
 				}
 			</div><div ref={scrollRef} style={{ overflowY: 'auto', padding: '0 1em' }}
 				onScroll={e => { if (['manual'].includes(infoPage)) setScrollPos((e as any).target.scrollTop); }}>
-				{(infoPage === 'manual' || infoPage === 'advanced') && <div>
+				{infoPage === 'manual' && <div>
 					<h2>General usage</h2>
 					<h3>Program interface</h3>
 					<p>The program interface consists of a navigation bar on the bottom and the main area. The bottom bar includes login button, layout menu, color theme selector and log display. And the main area hosts unlimited number of useful program panels. Each panel can be indefinitely split either vertically or horizontally, or joined back with its sibling ("relinquish" option in the context menu).</p>
 					<p>Interaction with program is performed primarily through context menus, which appear after <b>clicking right mouse button </b>on any panel, or the nav bar. The nav bar context menu containing some general options like changing user password or resetting program settings.</p>
-					<p>Note: Resetting settings can often fix minor program issues.</p>
+					<p>Tip: Resetting settings can often fix minor program issues.</p>
 					<p>Major part of program intercations can be performed more swiftly with keyboard. <PageLink page='shortcuts' text='The shortcuts'/> are listed on a separate tab of this manual and <PageLink page='advanced' text='the advanced section'/> covers more niche behaviours.</p>
 					<h3>Utilising layouts</h3>
 					<p>Layouts allow the user to quickly change tasks, without the need for repeating the setup. Each layout persists its panels disposition along with each panels settings. By default there are three layouts - one for observing events parameters along with interplanetary medium plots, the other for statistical plots, and the third for exporting the plots. Layouts can be swiftly cycled through with <b>{KEY_COMB.switchLayout}</b> key.</p>
 					<h3>User accounts</h3>
 					<p>Registration is not mandatory to use the program, but the registered users have more options, including computation of new parameter columns, creatig samples of events, etc. Registration does not require anything apart from the username and password, and is needed to remember your work and allow working from different computers. Note that if you ever decide to make public samples, your username will be visible to other users. To change username contact support.</p>
+					<h2>Events catalogue</h2>
+					<p>The <i>MainTable</i> panel allowes one to interact with the table which lists Forbush effects and other associated events parameters. Panel consists of the sample menu at the top and the table itself. The left corner of table footer shows the count  of entries in current effective sample.</p>
+					<h3>Picking interesting paramters</h3>
+					<p>When working with the table, it is recommended to enable only those columns that are of interest at the moment. This can be done with the columns menu, which can be opened from context menu, or by pressing <b>{KEY_COMB.openColumnsSelector}</b> key. Multiple columns can be enabled or disabled by holding Ctrl and dragging cursor over them or by clicking at an entity name. Drag column names without pressing Ctrl in order to change their order. This menu is also used for custom column creation, which will be discussed below.</p>
+					<h3>Navigating table</h3>
+					<p>Table is best navigated by moving the <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> with keyboard arrows. <b>Ctrl + Home/End</b> allows to quickly get to the top or the bottom of the table. While cursor stands in the time column, <b>Ctrl + Up/Down</b> move it to the previous/next year, it is often much faster than scrolling with mouse wheel or PgUp/PgDown.</p>
+					<p>Tip: When cursor is not set, press <b>{KEY_COMB.plot}</b> to set it to the <span style={{ background: 'var(--color-area)' }}>plotted row</span>.</p>
+					<p>Click at the column header to order table by this column. This always scrolls table to the end, which can be used to quickly observe minimum and maximum values.</p>
 
 
 <br/><br/><br/><br/>
-					The detailed manual is not ready yet.<br/>
+					The detailed manual is not finished yet.<br/>
 					For now please email to <a href='mailto:izmiran.crdt@gmail.com'>izmiran.crdt@gmail.com</a> with any questions.	
+				</div>}
+				{infoPage === 'advanced' && <div>
+					Work in progress
 				</div>}
 					
 				{infoPage === null && <div>

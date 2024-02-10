@@ -1,7 +1,7 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
-import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext } from './events';
+import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
 import { Option, Select, useConfirmation } from '../Utility';
@@ -23,6 +23,7 @@ function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 
 function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?: boolean }) {
 	const { columns } = useContext(MainTableContext);
+	const { shownColumns } = useEventsSettings();
 	const [filter, setFilter] = useState({ ...filterOri });
 	const { changeFilter, removeFilter } = useSampleState();
 
@@ -40,14 +41,17 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 		setFilter(fl);
 		if (!isFilterInvalid(fl, column))
 			changeFilter(fl);
+		e.target.blur();
 	};
 	
 	return (
 		<div className='FilterCard' onKeyDown={e => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select disabled={disabled} style={{ flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : color('red') }} 
+			<select disabled={disabled} style={{ width: 400, flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : color('red') }} 
 				value={columnId} onChange={set('column')}>
-				{columns.filter(col => !col.hidden).map(col =>
-					<option value={col.id} key={col.entity+col.name}>{col.fullName}</option>)}
+				{shownColumns?.map(c => columns.find(col => col.id === c)).filter(c => c).map(col =>
+					<option value={col!.id} key={col!.id}>{col!.fullName}</option>)}
+				{column && !shownColumns?.includes(columnId) &&
+					<option value={columnId} key={columnId}>{column.fullName}</option>}
 				{!column && <option value={columnId} key={columnId}>{columnId}</option>}
 			</select>
 			<select disabled={disabled} style={{ flex: '2', textAlign: 'center', maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
