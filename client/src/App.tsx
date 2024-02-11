@@ -57,6 +57,8 @@ function App() {
 	const apps = [...commonApps, 'ros', 'help', 'test'];
 	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
 	useEffect(() => {
+		const icon = document.head.querySelector("link[rel~='icon']") as HTMLAnchorElement;
+		icon.href = app === 'feid' ? '/feid.png' : '/favicon.png';
 		document.title = {
 			meteo: 'Crow: meteo',
 			neutron: 'CREAM: NM',

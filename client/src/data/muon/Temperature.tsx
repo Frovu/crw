@@ -52,7 +52,7 @@ export default function TemperatureApp() {
 	const query = useQuery({
 		queryKey: ['temperature', interval, coords.lat, coords.lon],
 		queryFn: () => apiGet<{ status: 'ok' | 'busy', downloading?: { [key: string]: number }, coords: { lat: number, lon: number },
-			fields: string[], rows: null | number[][] }>('temperature', {
+			fields: string[], rows: null | number[][] }>('meteo/temperature', {
 			from: interval[0],
 			to: interval[1],
 			...coords
