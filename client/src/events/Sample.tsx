@@ -21,6 +21,25 @@ function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	return !isValidColumnValue(val, column);
 }
 
+function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null, disabled?: boolean }) {
+	const { samples } = useContext(SampleContext);
+	const { changeInclude, removeInclude, current } = useSampleState();
+	const blank = id === null;
+	const opts = samples.filter(s => s.id !== current?.id && (s.id === id || !current?.includes?.includes(s.id)));
+	const sample = samples.find(s => s.id === id);
+
+	return <div>
+		{!blank && <span style={{ fontSize: 14, color: color('text-dark'), paddingLeft: 8 }}>include</span>}
+		{<select style={{ color: color(blank && !current?.includes?.length ? 'text-dark' : 'text'), borderColor: 'transparent',
+			width: sample ? sample.name.length + 4 + 'ch' : 'auto' }}
+		value={id ?? '__none'} onChange={e => changeInclude(id, parseInt(e.target.value))}>
+			{blank && <option disabled value='__none' style={{ lineHeight: 2 }}>include sample</option>}
+			{opts.map(({ id: s, name }) => <option key={s} value={s}>{name}</option>)}
+		</select>}
+		{id && !disabled && <div className='CloseButton' onClick={() => removeInclude(id)}/>}
+	</div>;
+}
+
 function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?: boolean }) {
 	const { columns } = useContext(MainTableContext);
 	const { shownColumns } = useEventsSettings();
@@ -96,7 +115,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
 	const { mutate, isLoading } = useMutation(async ({ action, ow }: { action: 'create' | 'remove' | 'update' | 'copy', ow?: Sample }) =>
 		apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(
-			`events/samples/${action === 'copy' ? 'create' : action}`, (() => {
+			`events/samples/${['copy'].includes(action) ? 'create' : action}`, (() => {
 				switch (action) {
 					case 'copy': return {
 						name: newName(0, sample!.name),
@@ -112,8 +131,10 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	useEventListener('escape', () => setNameInput(null));
 
 	const createSample = () => mutate({ action: 'create' }, { onSuccess: (smpl: Sample) => {
-		setShow(true); setNameInput(smpl.name); clearFilters();
-		setSample({ ...smpl, filters: smpl.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? null });
+		setShow(true);
+		setNameInput(smpl.name);
+		clearFilters();
+		setSample({ ...smpl, filters: [] });
 	 } });
 	const copySample = () => mutate({ action: 'copy' }, { onSuccess: (smpl: Sample) => {
 		setShow(true);
@@ -130,7 +151,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const nameValid = nameInput?.length && !samples.find(s => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
 
 	const sampleStats = useMemo(() => {
-		if (sample == null) return null;
+		if (sample == null)
+			return null;
 		const { whitelist, blacklist } = sample;
 		const applied = applySample(tableData, sample, columns);
 		const whitelisted = whitelist.filter(id => tableData.find(row => row[0] === id)).length;
@@ -152,7 +174,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
 			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
-				...(!nameValid && { borderColor: color('red') }) }} onKeyDown={e => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
+				...(!nameValid && { borderColor: color('red') }) }}
+			onKeyDown={e => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
 			placeholder='Sample name' autoFocus onFocus={e => e.target.select()} onBlur={(e) => {
 				if (nameValid) set({ name: nameInput });
 				if (e.relatedTarget?.id !== 'rename') setNameInput(null); }}
@@ -161,11 +184,14 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				style={{ color: color('white'), flex: '6 8em', minWidth: 0 }}
 				value={sample?.id?.toString() ?? '_none'}
 				content={sample?.name ?? '-- All events --'}
-				onChange={val => val === '_create' ? createSample() : setSample(samples.find(s => s.id.toString() === val) ?? null)}>
+				onChange={val => val === '_create' ? createSample()
+					: setSample(samples.find(s => s.id.toString() === val) ?? null)}>
 				<Option value='_create'>-- Create sample --</Option>
+				<div className='separator'/>
 				<Option value='_none'>-- All events --</Option>
 				{samples.map(({ id, name, authors }) =>
-					<Option key={id} value={id.toString()} style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
+					<Option key={id} value={id.toString()} style={{ display: 'flex',
+						color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
 						{sample?.id === id ? sample.name : name}
 						<div style={{ flex: 1 }}/>
 						{authors.includes(login!) && <div className='CloseButton' onClick={e => {
@@ -178,10 +204,13 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			{sample && <button style={{ flex: '1 fit-content' }} title='View sample parameters'
 				onClick={() => {setShow(!show); if (!show) setSample(samples.find(s => s.id === sample?.id) ?? null); setHoverAuthors(0);}}
 			>{show ? allowEdit ? 'Cancel' : 'Hide' : allowEdit ? 'Edit' : 'View'}</button>}
-			{!sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }} onClick={createSample}>Create sample</button>}
+			{!sample && role && filters.length > 0 && <button style={{ flex: '1 fit-content' }} onClick={() => createSample()}>Create sample</button>}
 			<button style={{ flex: '1 fit-content' }} onClick={() => dispatchCustomEvent('action+addFilter')}>Add filter</button>
 		</div>
 		
+		{show && sample?.filters && <div className='Filters'>
+			{sample.includes?.map(sid => <IncludeCard key={sid} sampleId={sid} disabled={!allowEdit}/>)}
+		</div>}
 		{show && sample?.filters && <div className='Filters'>
 			{sample.filters.map((filter) => <FilterCard key={filter.id} filter={filter} disabled={!allowEdit}/>)}
 		</div>}
@@ -191,8 +220,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			<div style={{ flex: 1 }}/>
 			{login && <button className='TextButton' style={{ paddingRight: 4 }} onClick={copySample}>Make copy</button>}
 		</div>}
-		{allowEdit && show && <><div style={{ padding: 4, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'right' }}>
+		{allowEdit && show && <><div style={{ padding: 4, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'right', alignItems: 'center' }}>
 			{sampleStats}
+			{<IncludeCard sampleId={null}/>}
 			<div style={{ flex: 1 }}/>
 			<label className='MenuInput' style={{ minWidth: 'max-content', ...(isPicking && { color: color('magenta') }) }}>
 				pick events<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type='checkbox'/></label>

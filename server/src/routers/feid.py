@@ -71,7 +71,7 @@ def add_sample():
 	filters_json = json.dumps(request.json.get('filters'))
 	if not name:
 		raise ValueError('Empty name')
-	return samples.create_sample(uid, name, filters_json)
+	return samples.create_sample(uid, name, filters_json, request.json.get('includes'))
 
 @bp.route('/samples/remove', methods=['POST'])
 @route_shielded
@@ -94,9 +94,10 @@ def update_sample():
 	filters_json = json.dumps(request.json.get('filters'))
 	whitelist = request.json.get('whitelist')
 	blacklist = request.json.get('blacklist')
+	includes = request.json.get('includes')
 	if not name:
 		raise ValueError('Empty name')
-	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist)
+	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist, includes)
 	return msg('OK')
 
 @bp.route('/generics', methods=['POST'])

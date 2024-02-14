@@ -13,6 +13,7 @@ export type Filter = {
 export type Sample = {
 	id: number,
 	name: string,
+	includes: number[] | null,
 	filters: Filter[],
 	whitelist: number[],
 	blacklist: number[]
@@ -33,6 +34,8 @@ export type SampleState = {
 	addFilter: (column: ColumnDef, val?: Value) => void,
 	changeFilter: (filter: Filter) => void,
 	removeFilter: (id?: number) => void,
+	changeInclude: (id: number | null, newId: number) => void,
+	removeInclude: (id: number) => void,
 	clearFilters: () => void,
 	setSample: (s: null | Sample) => void
 };
@@ -68,6 +71,16 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	removeFilter: (id) => set(state => {
 		const target = (state.showDetails ? state.current : null) ?? state;
 		target.filters = target.filters.filter((f) => f.id !== id);
+	}),
+	changeInclude: (id, newId) => set(state => {
+		const inc = state.current?.includes;
+		if (!state.current || !inc) return;
+		state.current.includes = (id == null || !inc.includes(id))
+			? inc.concat(newId) : inc.map(i => i === id ? newId : i); 
+	}),
+	removeInclude: (id) => set(state => {
+		if (!state.current) return;
+		state.current.includes = state.current.includes?.filter(i => i !== id) ?? null; 
 	}),
 	clearFilters: () => set(state => ({ ...state, filters: [] })),
 	setSample: (sample) => set(state => {
