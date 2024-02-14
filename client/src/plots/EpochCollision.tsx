@@ -93,7 +93,7 @@ export default function EpochCollision() {
 		if (name === '<current>') return currentData;
 		if (name === '<none>') return allData;
 		const found = samplesList.find(s => s.id.toString() === name);
-		return found ? applySample(allData, found, columns) : null;
+		return found ? applySample(allData, found, columns, samplesList) : null;
 	}), [sample0, sample1, sample2, currentData, allData, samplesList, columns]);
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({

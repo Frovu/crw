@@ -120,7 +120,7 @@ export default function EventsHistory() {
 		const values = params.historySeries.map(s => [] as number[]);
 		const samples = params.historySeries.map(({ sample }) =>
 			sample === '<none>' ? allData : sample === '<current>' ? currentData :
- 				applySample(allData, samplesList.find(s => s.id.toString() === sample) ?? null, columns));
+ 				applySample(allData, samplesList.find(s => s.id.toString() === sample) ?? null, columns, samplesList));
 		
 		for (let bin=0; bin < 9999; ++bin) {
 			const start = Date.UTC(1970, firstMonth + bin * window, 1);

@@ -13,7 +13,7 @@ export type Filter = {
 export type Sample = {
 	id: number,
 	name: string,
-	includes: number[] | null,
+	includes: number[],
 	filters: Filter[],
 	whitelist: number[],
 	blacklist: number[]
@@ -93,7 +93,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 			state.current = { ...sample, filters: sample.filters?.map(
 			   (f, i) => ({ ...f, id: Date.now() + i })) ?? [] };
 		}
-	}) 
+	})
 })));
 
 export function pickEventForSampe(action: 'whitelist' | 'blacklist', id: number) {
@@ -135,10 +135,21 @@ export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 	return (row: DataRow) => !fns.some(fn => !fn(row));
 }
 
-export function applySample(data: DataRow[], sample: Sample | null, columns: ColumnDef[]): DataRow[] {
+export function applySample(data: DataRow[], sample: Sample | null, columns: ColumnDef[], samples: Sample[]): DataRow[] {
 	if (!sample) return data;
-	const filter = sample.filters?.length && renderFilters(sample.filters, columns);	
-	return data.filter(row => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
+	const filter = sample.filters?.length && renderFilters(sample.filters, columns);
+	const base = !sample.includes?.length ? data : (()=>{
+		const set = sample.includes.reduce((acc, sid) => {
+			const smpl = samples.find(s => s.id === sid);
+			if (!smpl) return acc;
+			const applied = applySample(data, smpl, columns, samples);
+			const ent = Object.fromEntries(applied.map(r => [r[0], r]));
+			return Object.assign(acc, ent);
+		}, {}) as { [k: number]: DataRow };
+		const timeIdx = columns.findIndex(c => c.fullName === 'time');
+		return Object.values(set).sort((a, b) => a[timeIdx] as any - (b[timeIdx] as any));
+	})();
+	return base.filter(row => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
 		.filter(row => !sample.blacklist.includes(row[0]));
 }
 

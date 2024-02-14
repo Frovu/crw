@@ -217,7 +217,7 @@ export default function HistogramPlot() {
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
 			const data = sampleId === '<current>' ? sampleData : sampleId === '<none>' ? allData :
-				applySample(allData, samplesList.find(s => s.id.toString() === sampleId) ?? null, columns);
+				applySample(allData, samplesList.find(s => s.id.toString() === sampleId) ?? null, columns, samplesList);
 			return data.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex(s => s.length);

@@ -30,8 +30,9 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null, disa
 
 	return <div>
 		{!blank && <span style={{ fontSize: 14, color: color('text-dark'), paddingLeft: 8 }}>include</span>}
-		{<select style={{ color: color(blank && !current?.includes?.length ? 'text-dark' : 'text'), borderColor: 'transparent',
-			width: sample ? sample.name.length + 4 + 'ch' : 'auto' }}
+		{!blank && !sample && <span style={{ fontSize: 14, color: color('red'), padding: 6 }}>DELETED</span>}
+		{(blank || sample) && <select style={{ color: color(blank && !current?.includes?.length ? 'text-dark' : 'text'),
+			borderColor: 'transparent', width: sample ? sample.name.length + 4 + 'ch' : 'auto' }}
 		value={id ?? '__none'} onChange={e => changeInclude(id, parseInt(e.target.value))}>
 			{blank && <option disabled value='__none' style={{ lineHeight: 2 }}>include sample</option>}
 			{opts.map(({ id: s, name }) => <option key={s} value={s}>{name}</option>)}
@@ -154,7 +155,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		if (sample == null)
 			return null;
 		const { whitelist, blacklist } = sample;
-		const applied = applySample(tableData, sample, columns);
+		const applied = applySample(tableData, sample, columns, samples);
 		const whitelisted = whitelist.filter(id => tableData.find(row => row[0] === id)).length;
 		const blacklisted = blacklist.filter(id => tableData.find(row => row[0] === id)).length;
 		return <span style={{ minWidth: 'max-content' }}>
@@ -165,7 +166,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			<span title='Total members in sample' style={{ color: color('text-dark') }}> = [{applied.length}]</span>
 		</span>;
 
-	}, [columns, sample, tableData]);
+	}, [columns, sample, samples, tableData]);
 
 	const publicIssue = sample?.public && sample.filters?.map(({ column }) => columns.find(c => c.id === column))
 		.find(col => col?.generic && !col.generic.is_public);

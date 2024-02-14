@@ -237,7 +237,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
 			.sort((a, b) => isOwn(a) - isOwn(b));
 		const { columns, data } = mainContext;
-		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns);
+		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns, sorted);
 		const filterFn = renderFilters(filters, columns);
 		const filtered = applied.filter(row => filterFn(row));
 		return {

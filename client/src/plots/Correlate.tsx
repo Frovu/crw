@@ -126,7 +126,7 @@ export default function CorrelationPlot() {
 		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY, sample0 } = params;
 
 		const sampleData = sample0 === '<current>' ? currentData : sample0 === '<none>' ? allData :
-			applySample(allData, samplesList.find(s => s.id.toString() === sample0) ?? null, columns);
+			applySample(allData, samplesList.find(s => s.id.toString() === sample0) ?? null, columns, samplesList);
 
 		if (!sampleData.length)
 			return null;
