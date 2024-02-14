@@ -10,10 +10,18 @@ import { Confirmation } from '../Utility';
 
 export function ExportMenu() {
 	const { tables } = useContext(MainTableContext);
-	const { data: shownData, columns } = useContext(TableViewContext);
+	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
+
+	const columns = inc ? allColumns.concat({
+		fullName: 'SAMPLE',
+		type: 'text',
+		description: 'Included in these samples (separated by ;)',
+		width: 16
+	} as any) : allColumns;
 	
 	const renderText = (format: 'json'|'csv'|'txt') => {
-		const data = shownData.map(row => row.slice(1));
+		const data = shownData.map((row, i) => !inc ? row.slice(1)
+			: row.slice(1).concat(inc[i]));
 		const cols = columns.map(({ fullName, type, description, enum: aenum }, i) => ({
 			name: fullName, type, description, enum: aenum
 		}));

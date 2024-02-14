@@ -51,6 +51,8 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const headerPadding = (hRem - viewSize * trPadding);
 	const padTableH = Math.floor(headerPadding / 3);
 	const padColumnH = headerPadding - padTableH;
+
+	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m.length)));
 	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
@@ -209,7 +211,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 								</td>;
 							})}
 							{includeMarkers?.[idx] && <td title='Included in these samples'>
-								<span className='Cell'>{includeMarkers?.[idx]}</span>
+								<span style={{ width: incMarkWidth! + 2 + 'ch' }} className='Cell'>{includeMarkers?.[idx]}</span>
 							</td>}
 						</tr>;})}</tbody>
 					{showAverages && (<tfoot>
