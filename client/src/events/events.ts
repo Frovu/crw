@@ -327,7 +327,12 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			left: {
 				split: 'row',
 				ratio: .5,
-				children: ['leftTwo', 'preview']
+				children: ['leftTwo', 'previewAnd']
+			},
+			previewAnd: {
+				split: 'column',
+				ratio: .7,
+				children: ['preview', 'colors']
 			},
 			leftTwo: {
 				split: 'column',
@@ -356,6 +361,9 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			},
 			exp: {
 				type: 'ExportControls'
+			},
+			colors: {
+				type: 'ColorSettings'
 			},
 			empty: {
 				type: 'Empty',

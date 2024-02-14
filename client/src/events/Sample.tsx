@@ -41,7 +41,8 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 		setFilter(fl);
 		if (!isFilterInvalid(fl, column))
 			changeFilter(fl);
-		e.target.blur();
+		if (e.target instanceof HTMLSelectElement)
+			e.target.blur();
 	};
 	
 	return (
