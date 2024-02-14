@@ -18,6 +18,7 @@ import type { HistoryOptions } from '../plots/EventsHistory';
 const defaultSettings = {
 	showChangelog: false,
 	showAverages: true,
+	showIncludeMarkers: true,
 	showMagneticClouds: true,
 	plotOffset: [-24, 48],
 	plotUnlistedEvents: true,
@@ -52,6 +53,7 @@ export const useEventsSettings = create<EventsSettings>()(
 export type TableParams = {
 	showChangelog: boolean,
 	showAverages: boolean,
+	showIncludeMarkers?: boolean,
 };
 
 export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
@@ -139,7 +141,8 @@ export const MainTableContext = createContext<{ data: DataRow[], columns: Column
 
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[]	}>({} as any);
 
-export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[], markers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[],
+	markers: null | string[], includeMarkers: null | string[] }>({} as any);
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 

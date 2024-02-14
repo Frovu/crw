@@ -2,7 +2,7 @@ import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEff
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
 	MainTableContext, useViewState, type Cursor, prettyTable, shortTable } from './events';
-import { pickEventForSampe } from './sample';
+import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext } from '../layout';
 
@@ -36,7 +36,7 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 export default function TableView({ size, averages }: { size: Size, averages: (null | number[])[] }) {
 	const { id: nodeId, params: { tableParams } } = useContext(LayoutContext)!;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
-	const { data, columns, markers } = useContext(TableViewContext);
+	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = tableParams?.showChangelog && size.height > 300;
@@ -92,7 +92,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 		if (cursor?.editing) return;
 
 		if (cursor && ['-', '+', '='].includes(e.key))
-			return pickEventForSampe('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 
 		const set = (curs: Cursor) => {
 			setCursor(curs);
@@ -164,6 +164,8 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						{[...tables].map(([table, cls]) =>
 							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
 								<>{cls.length > 1 ? prettyTable(table) : shortTable(table)}</></div></td>)}
+						{includeMarkers && <td rowSpan={2} title='Event included from samples:'
+							className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
 					</tr><tr>
 						{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
 							className='ColumnHeader' onClick={() => toggleSort(col.id)}
@@ -184,7 +186,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						return <tr style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}
 							key={row[0]}>
 							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
-								onClick={(e) => pickEventForSampe(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
+								onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
 									marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
 							</td>}
@@ -206,6 +208,9 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
 								</td>;
 							})}
+							{includeMarkers?.[idx] && <td title='Included in these samples'>
+								<span className='Cell'>{includeMarkers?.[idx]}</span>
+							</td>}
 						</tr>;})}</tbody>
 					{showAverages && (<tfoot>
 						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>

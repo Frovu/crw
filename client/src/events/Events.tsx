@@ -216,6 +216,7 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 			</>}
 			{!column && <><div className='separator'/><div className='Group'>
 				<CheckboxTable text='Show column averages' k='showAverages'/>
+				<CheckboxGlob text='Show include markers' k='showIncludeMarkers'/>
 				<CheckboxTable text='Show changes log' k='showChangelog'/>
 			</div></>}
 		</>}

@@ -2,21 +2,21 @@ import { useContext, useMemo } from 'react';
 import { useEventListener } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
-import { sampleEditingMarkers, useSampleState } from './sample';
+import { applySample, sampleEditingMarkers, useSampleState } from './sample';
 import { type MagneticCloud, MainTableContext, type Onset, PlotContext,
 	SampleContext, TableViewContext, useEventsSettings,
 	useViewState } from './events';
 import ContextMenu from '../ContextMenu';
 
 function EventsView() {
-	const { shownColumns, plotOffset, plotUnlistedEvents } = useEventsSettings();
+	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
 	const { columns, data } = useContext(MainTableContext);
-	const { current: sample, data: sampleData } = useContext(SampleContext);
+	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
 	const sort = useViewState(state => state.sort);
 	const plotId = useViewState(state => state.plotId);
 	
-	const dataContext = useMemo(() => {
+	const dataCo = useMemo(() => {
 		console.time('compute table');
 		const cols = columns.filter(c => shownColumns?.includes(c.id));
 		const enabledIdxs = [0, ...cols.map(c => columns.findIndex(cc => cc.id === c.id))];
@@ -38,6 +38,22 @@ function EventsView() {
 			columns: cols
 		};
 	}, [columns, sampleData, editingSample, sample, sort, shownColumns]);
+
+	const dataContext = useMemo(() => {
+		if (!showIncludeMarkers || !sample?.includes?.length)
+			return { ...dataCo, includeMarkers: null };
+		const smpls = sample.includes.map(sid => samples.find(s => s.id === sid));
+		const set = {} as any;
+		for (const smpl of smpls) {
+			if (!smpl) continue;
+			const applied = applySample(data, smpl, columns, samples);
+			for (let i = 0; i < applied.length; ++i) {
+				set[applied[i][0]] = (set[applied[i][0]] ? set[applied[i][0]] + ';' : '') + smpl.name;
+			}
+		}
+		const markers = dataCo.data.map(r => set[r[0]]);
+		return { ...dataCo, includeMarkers: markers };
+	}, [columns, data, dataCo, sample?.includes, samples, showIncludeMarkers]);
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);

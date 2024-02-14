@@ -96,7 +96,7 @@ export const useSampleState = create<SampleState>()(immer(set => ({
 	})
 })));
 
-export function pickEventForSampe(action: 'whitelist' | 'blacklist', id: number) {
+export function pickEventForSample(action: 'whitelist' | 'blacklist', id: number) {
 	useSampleState.setState(({ current, isPicking }) => {
 		if (!current || !isPicking) return;
 		const found = current[action].indexOf(id);
