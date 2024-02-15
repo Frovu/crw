@@ -8,8 +8,9 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
 import { persist } from 'zustand/middleware';
-import type { Size } from '../util';
-import { useAppSettings } from '../app';
+import { apiGet, type Size } from '../util';
+import { logError, openContextMenu, useAppSettings } from '../app';
+import { useQuery } from 'react-query';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {
@@ -19,6 +20,11 @@ type PlotEntryParams = {
 };
 
 type TranformEntry = TextTransform & { id: number, enabled: boolean };
+type TransformSet = {
+	author: string,
+	public: boolean,
+	transforms: TextTransform[]
+};
 type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] };
 type PlotExportState = {
 	inches: number,
@@ -247,6 +253,34 @@ export function ExportableUplot({ size, options, data, onCreate }:
 	return plot;
 }
 
+export type TextTransformMenuDetail = {
+	action: 'save' | 'load'
+};
+export function TextTransformContextMenu({ detail: { action } }: { detail: TextTransformMenuDetail }) {
+	const isLoad = action === 'load', isSave = action === 'save';
+	const { overrides: { textTransform: current } } = usePlotExportSate();
+
+	const query = useQuery(['textTransforms'], () => apiGet<{ list: TransformSet[] }>('events/textTransforms'), {
+		onError: e => logError(e)
+	});
+
+	const presets = useMemo(() => {
+		if (!query.data)
+			return null;
+
+	}, [query.data]);
+
+	if (query.error)
+		return <div style={{ color: color('red') }}>error</div>;
+	if (!presets)
+		return <div style={{ color: color('text-dark') }}>loading...</div>;
+
+	return <>
+		<div style={{ color: color('text-dark'), fontSize: 12, width: 210, textAlign: 'left' }}>
+			load text transforms set: current replaces will be lost</div>
+	</>;
+}
+
 export function ExportControls() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
 		plots, inches, perPlotScales, setInches, set, setTransform, swapTransforms,
@@ -338,14 +372,20 @@ export function ExportControls() {
 			<div className='separator'/>
 			<div style={{ display: 'flex', flexFlow: 'column wrap', gap: 4, minWidth: 160, paddingTop: 4, paddingRight: 8 }}
 				onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
-				<div style={{ textAlign: 'right', marginTop: -8, paddingRight: 4 }}>
-					<span title='Some characters, if thou mightst need em' style={{ userSelect: 'text', letterSpacing: 2,
-						fontSize: 16, paddingRight: 8, color: color('text-dark') }}>−+±×⋅·∙⋆°</span>
+				<div style={{ textAlign: 'right', marginTop: -8, padding: '0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+					<button title='Load saved or public transforms (replace current)' className='TextButton' style={{ padding: '0 6px', color: color('skyblue') }}
+						onClick={openContextMenu('textTransform', { action: 'load' })}><u>load</u></button>
+					<button title='Save text transorms for future reuse or sharing' className='TextButton'
+						disabled={!textTransform?.length} style={{ padding: '0 6px', color: color(!textTransform?.length ? 'text-dark' : 'skyblue') }}
+						onClick={openContextMenu('textTransform', { action: 'save' })}><u>save</u></button>
+					<div title='Some characters, if thou mightst need em' style={{ userSelect: 'text', letterSpacing: 2,
+						fontSize: 16, paddingRight: 8, color: color('text-dark') }}>−+±×⋅·∙⋆°</div>
 					<button title='Replace text in labels via Regular Expressions which are applied to labels parts'
 						className='TextButton' style={{ color: color('skyblue') }}
 						onClick={() => set('textTransform', [{
 							search: '', replace: '', enabled: true, id: Date.now()
-						}].concat(textTransform ?? []))}>+ <u>new replace</u></button></div>
+						}].concat(textTransform ?? []))}>+ <u>new replace</u></button>
+				</div>
 				{textTransform?.map(({ search, replace, id, enabled }) => <div key={id}
 					style={{ color: !enabled ? color('text-dark') : 'unset', display: 'flex', gap: 4, flexFlow: 'row wrap', alignItems: 'center' }}
 					title='Drag to change replacement order' onMouseOver={e => {

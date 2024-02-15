@@ -6,6 +6,7 @@ import type { TableMenuDetails } from './events/events';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/react-color';
 import { immer } from 'zustand/middleware/immer';
+import type { TextTransformMenuDetail } from './events/ExportPlot';
 
 export const KEY_COMB = {
 	'openColumnsSelector': 'C',
@@ -111,8 +112,9 @@ export const logColor = {
 type menuDetails = {
 	layout: LayoutsMenuDetails,
 	events: LayoutsMenuDetails & TableMenuDetails,
-	tableExport: undefined,
-	app: undefined,
+	tableExport: never,
+	textTransform: TextTransformMenuDetail,
+	app: never,
 };
 type ContextMenu = {
 	menu: null | {

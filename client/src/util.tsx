@@ -39,9 +39,9 @@ export async function apiPost<T = { message?: string }>(url: string, body?: { [k
 		headers: { 'Content-Type': 'application/json' },
 		body: body && JSON.stringify(body)
 	});
-	const json = await res.json();
+	const json = await res.json().catch(() => {});
 	if (res.status !== 200)
-		throw new Error(json.message ?? ('HTTP '+res.status));
+		throw new Error(json?.message ?? ('HTTP '+res.status));
 	return json;
 }
 export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
@@ -49,9 +49,9 @@ export async function apiGet<T = { message?: string }>(url: string, query?: { [k
 	if (query)
 		uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });
-	const json = await res.json();
+	const json = await res.json().catch(() => {});
 	if (res.status !== 200)
-		throw new Error(json.message ?? ('HTTP '+res.status));
+		throw new Error(json?.message ?? ('HTTP '+res.status));
 	return json;
 }
 

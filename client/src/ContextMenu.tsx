@@ -5,6 +5,7 @@ import { ExportMenu } from './events/EventsData';
 import { defaultLayouts } from './events/events';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
+import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/ExportPlot';
 
 export default function ContextMenu() {
 	const { active, resetLayout } = useLayoutsStore();
@@ -24,6 +25,7 @@ export default function ContextMenu() {
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
 		{'tableExport' === menu.type && <ExportMenu/>}
+		{'textTransform' === menu.type && <TextTransformContextMenu detail={menu.detail as TextTransformMenuDetail}/>}
 		{['layout', 'events'].includes(menu.type) && <LayoutContextMenu detail={menu.detail as LayoutsMenuDetails}/>}
 	</div>;
 }

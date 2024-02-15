@@ -292,6 +292,10 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 				</>}
 			</div>
 		</>}
+		{params.type === 'ExportControls' && <>
+			<button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save replaces</button>
+			<button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load replaces</button>
+		</>}
 		{(isPlot || statPanelOptions.includes(params.type as any)) && <>
 			<div className='separator'/>
 			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
