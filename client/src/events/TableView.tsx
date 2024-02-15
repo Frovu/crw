@@ -52,7 +52,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const padTableH = Math.floor(headerPadding / 3);
 	const padColumnH = headerPadding - padTableH;
 
-	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m.length)));
+	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m?.length)));
 	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 

@@ -145,6 +145,16 @@
 			"data_type": "text",
 			"parse_name": "Fdata"
 		},
+		"h_lat": {
+			"pretty_name": "lat",
+			"parse_name": "Hlat",
+			"description": "Heliolatitude"
+		},
+		"h_lon": {
+			"pretty_name": "lon",
+			"parse_name": "HLon",
+			"description": "Heliolongitude"
+		},
 		"magnitude": {
 			"parse_name": "Xmagn",
 			"description": "Maximum X-ray power (W/m/m)"

@@ -5,6 +5,7 @@ import { apiPost, useEventListener, useMutationHandler } from '../util';
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
 	[/_*None_*/g, 'None'],
+	[/-91\s/g, '-999 ']
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
