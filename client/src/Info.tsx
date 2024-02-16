@@ -93,6 +93,11 @@ export default function Help() {
 					For now please email to <a href='mailto:izmiran.crdt@gmail.com'>izmiran.crdt@gmail.com</a> with any questions.	
 				</div>}
 				{infoPage === 'advanced' && <div>
+					<h3>Persist text transforms</h3>
+					<p>The program allows to save text transform presets (sets of search & replace entries) to be used later or by other users. Save and load buttons can be found on the top of replaces list. When overwriting existing preset publicity or name can't be changed. To change that just create a new preset. When loading a preset, "overwrite current" option can be unchecked to merge current entries whith a preset (this allowes to load two presets on top of each other). When merging, entries with the same search value are ommited. Don't forget to save your presets after making modifications!</p>
+					<p>.</p>
+					<p>.</p>
+					<p>.</p>
 					Work in progress
 					{/* <p>
 					If you seek for some OR like behavior, <u>regexp</u> filter operators might come in handy. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet">Regular expressions</a> are a powerful search and filter tool, just look at some examples: <i>okay|high</i> to filter for SStype confindence; <i>^(4|7|9)$</i> to include deifferent SStypes; <i>CH.*_2[^\d]</i> to search for second streams of coronal holes.
