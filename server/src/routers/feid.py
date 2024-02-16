@@ -6,6 +6,7 @@ from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import upset_generic, remove_generic
 from events.other_columns import compute_all, compute_column
+import events.text_transforms as tts
 from events import samples
 from events import query
 from server import compress
@@ -98,6 +99,32 @@ def update_sample():
 	if not name:
 		raise ValueError('Empty name')
 	samples.update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist, includes)
+	return msg('OK')
+
+@bp.route('/text_transforms', methods=['GET'])
+@route_shielded
+def get_tts():
+	uid = session.get('uid')
+	return { 'list': tts.select(uid) }
+
+@bp.route('/text_transforms/upsert', methods=['POST'])
+@route_shielded
+@require_role('user')
+def upsert_tts():
+	uid = session.get('uid')
+	name = request.json.get('name')
+	public = request.json.get('public')
+	transforms = json.dumps(request.json.get('transforms'))
+	tts.upsert(uid, name, public, transforms)
+	return msg('OK')
+
+@bp.route('/text_transforms/remove', methods=['POST'])
+@route_shielded
+@require_role('user')
+def remove_tts():
+	uid = session.get('uid')
+	name = request.json.get('name')
+	tts.remove(uid, name)
 	return msg('OK')
 
 @bp.route('/generics', methods=['POST'])

@@ -8,9 +8,9 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
 import { persist } from 'zustand/middleware';
-import { apiGet, type Size } from '../util';
-import { logError, openContextMenu, useAppSettings } from '../app';
-import { useQuery } from 'react-query';
+import { apiGet, apiPost, type Size } from '../util';
+import { AuthContext, closeContextMenu, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {
@@ -21,8 +21,12 @@ type PlotEntryParams = {
 
 type TranformEntry = TextTransform & { id: number, enabled: boolean };
 type TransformSet = {
+	id: number,
+	name: string,
 	author: string,
 	public: boolean,
+	created: string,
+	modified: string,
 	transforms: TextTransform[]
 };
 type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] };
@@ -257,28 +261,78 @@ export type TextTransformMenuDetail = {
 	action: 'save' | 'load'
 };
 export function TextTransformContextMenu({ detail: { action } }: { detail: TextTransformMenuDetail }) {
-	const isLoad = action === 'load', isSave = action === 'save';
 	const { overrides: { textTransform: current } } = usePlotExportSate();
+	const { login } = useContext(AuthContext);
+	const [selected, setSelected] = useState<number | null>(null);
+	const [nameInput, setNameInput] = useState('');
+	const [publicInput, setPublicInput] = useState(false);
+	const queryClient = useQueryClient();
 
-	const query = useQuery(['textTransforms'], () => apiGet<{ list: TransformSet[] }>('events/textTransforms'), {
-		onError: e => logError(e)
+	const query = useQuery(['textTransforms'], () => apiGet<{ list: TransformSet[] }>('events/text_transforms'), {
+		onError: logError
 	});
 
 	const presets = useMemo(() => {
 		if (!query.data)
 			return null;
-
+		return query.data.list;
 	}, [query.data]);
+
+	const sel = presets?.find(p => p.id === selected);
+
+	const upsertMut = useMutation(() => apiPost('events/text_transforms/upsert', {
+		name: sel?.name ?? nameInput,
+		public: sel?.public ?? publicInput,
+		transforms: current?.map(({ search, replace }) => ({ search, replace }))
+	}), {
+		onSuccess: () => {
+			logSuccess('Text preset saved: ' + (sel?.name ?? nameInput));
+			setTimeout(closeContextMenu, 1000);
+			queryClient.invalidateQueries('textTransforms');
+		},
+		onError: logError
+	});
+
+	// const removeMut = 
 
 	if (query.error)
 		return <div style={{ color: color('red') }}>error</div>;
 	if (!presets)
 		return <div style={{ color: color('text-dark') }}>loading...</div>;
 
-	return <>
-		<div style={{ color: color('text-dark'), fontSize: 12, width: 210, textAlign: 'left' }}>
-			load text transforms set: current replaces will be lost</div>
-	</>;
+	const upsert = (e: any) => {
+		e.stopPropagation();
+		upsertMut.mutate();
+	};
+
+	if (action === 'load')
+		return <>
+			<div style={{ color: color('text-dark'), fontSize: 12, width: 210, textAlign: 'left' }}>
+				load text transforms set: current replaces will be lost</div>
+			{presets.length < 1 && <div>no saved presets</div>}
+		</>;
+	const nameInvalid = nameInput === '' || presets.find(p => p.author === login && p.name === nameInput);
+	console.log(nameInput, nameInvalid)
+	return <div className='Group'>
+		<div>Save as:<select className='Borderless' style={{ width: 164, marginLeft: 4 }}
+			value={selected ?? '__new'}>
+			<option value='__new'>new preset</option>
+			{presets.filter(s => s.author === login).map(({ id, name }) =>
+				<option key={id} value={id}>{name}</option>)}
+		</select></div>
+		{selected == null && <div>
+			Name:<input autoFocus type='text' style={{ width: 192, marginLeft: 4, borderColor: color(nameInvalid ? 'active' : 'bg')  }}
+				value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.code === 'Enter' && upsert(e)}/>	
+		</div>}
+		{selected == null && <div><label style={{ color: color(publicInput ? 'magenta' : 'text') }}>public preset
+			<input type='checkbox' checked={publicInput} onChange={e => setPublicInput(e.target.checked)}/></label></div>}
+		<div className='separator'/>
+		<div className='Row'>
+			<div style={{ color: color(upsertMut.isError ? 'red' : 'green') }}>{upsertMut.isSuccess ? 'OK' : upsertMut.isError ? 'ERROR' : ''}</div>
+			<div style={{ flex: 1 }}/>
+			<button className='TextButton' disabled={!!nameInvalid} style={{ textAlign: 'right' }} onClick={upsert}>Save preset</button>
+		</div>
+	</div>;
 }
 
 export function ExportControls() {
