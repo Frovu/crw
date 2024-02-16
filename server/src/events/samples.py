@@ -1,4 +1,4 @@
-from database import pool
+from database import pool, log
 
 def _init():
 	with pool.connection() as conn:
@@ -40,6 +40,7 @@ def remove_sample(uid, sid):
 		if not exists:
 			raise ValueError('Not found or not authorized')
 		conn.execute('DELETE FROM events.samples WHERE id = %s', [sid])
+		log.info('Sample removed by user #%s: %s', uid, sid)
 
 def update_sample(uid, sid, name, authors, public, filters_json, whitelist, blacklist, includes):
 	with pool.connection() as conn:
@@ -56,3 +57,4 @@ def update_sample(uid, sid, name, authors, public, filters_json, whitelist, blac
 		conn.execute('UPDATE events.samples SET name=%s, authors=%s, public=%s, filters=%s, whitelist=%s, blacklist=%s, includes=%s,' +\
 			'last_modified = CURRENT_TIMESTAMP WHERE id=%s',
 			[name, list(author_ids), public, filters_json, whitelist, blacklist, includes, sid])
+		log.info('Sample updated by user #%s: %s', uid, name)

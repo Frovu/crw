@@ -8,7 +8,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
 import { persist } from 'zustand/middleware';
-import { apiGet, apiPost, type Size } from '../util';
+import { apiGet, apiPost, prettyDate, type Size } from '../util';
 import { AuthContext, closeContextMenu, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
@@ -295,7 +295,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	});
 
 	const removeMut = useMutation((name: string) => apiPost('events/text_transforms/remove', { name }), {
-		onSuccess: (name) => {
+		onSuccess: (msg, name) => {
 			logSuccess('Text preset deleted: ' + name);
 			queryClient.invalidateQueries('textTransforms');
 		},
@@ -313,10 +313,12 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	};
 
 	const load = (transforms: TextTransform[]) => (e: any) => {
-		const merged = doReplace ? transforms : [];
-		console.log(merged)
-		set('textTransform', merged.map(({ search, replace }, i) =>
-			({ search, replace, id: Date.now() + i, enabled: true })));
+		const entries = transforms.map(({ search, replace }, i) =>
+			({ search, replace, id: Date.now() + i, enabled: true }));
+		const merged = doReplace ? entries : current?.concat(
+			entries.filter(nt => !current.find(t => t.search === nt.search)));
+		
+		set('textTransform', merged);
 		closeContextMenu();
 	};
 
@@ -324,18 +326,20 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 		return <>
 			<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2 }}>
 				load text transforms set:</div>
-			<label title='Current transforms will be lost' style={{ paddingLeft: 2 }}>overwrite current
+			<label title='Current transforms will be lost if checked' style={{ paddingLeft: 2 }}>overwrite current
 				<input type='checkbox' checked={doReplace} onChange={e => setDoReplace(e.target.checked)}/></label>
 			<div className='separator'/>
 			{presets.length < 1 && <div>no saved presets</div>}
 			{presets.length > 0 && <div style={{ userSelect: 'none' }}>
-				{presets.map(({ name, public: isPub, author, transforms }) =>
-					<div className='SelectOption' style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}>
+				{presets.map(({ name, public: isPub, author, transforms, created, modified }) =>
+					<div className='SelectOption' style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}
+						title={`Author: ${author}\nCreated: ${prettyDate(new Date(created))}\nModified: ${prettyDate(new Date(modified))}`}>
 						<div style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', cursor: 'pointer', flex: 1 }}
 							onClick={load(transforms)}>
 							{name}</div>
 						{isPub && <div style={{ color: color('text-dark'), fontSize: 12 }}>(public)</div>}
-						{author === login ? <div className='CloseButton' onClick={() => removeMut.mutate(name)}/> : <div style={{ width: 16 }}/>}
+						{author === login ? <div className='CloseButton' title='Delete preset'
+							onClick={() => removeMut.mutate(name)}/> : <div style={{ width: 16 }}/>}
 					</div>)}	
 			</div>}
 		</>;
