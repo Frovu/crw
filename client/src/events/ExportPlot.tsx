@@ -261,11 +261,12 @@ export type TextTransformMenuDetail = {
 	action: 'save' | 'load'
 };
 export function TextTransformContextMenu({ detail: { action } }: { detail: TextTransformMenuDetail }) {
-	const { overrides: { textTransform: current } } = usePlotExportSate();
+	const { overrides: { textTransform: current }, set } = usePlotExportSate();
 	const { login } = useContext(AuthContext);
 	const [selected, setSelected] = useState<number | null>(null);
 	const [nameInput, setNameInput] = useState('');
 	const [publicInput, setPublicInput] = useState(false);
+	const [doReplace, setDoReplace] = useState(true);
 	const queryClient = useQueryClient();
 
 	const query = useQuery(['textTransforms'], () => apiGet<{ list: TransformSet[] }>('events/text_transforms'), {
@@ -275,15 +276,15 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	const presets = useMemo(() => {
 		if (!query.data)
 			return null;
-		return query.data.list;
-	}, [query.data]);
+		return query.data.list.sort((a, b) => (a.author === login ? -1 : 1) - (b.author === login ? -1 : 1));
+	}, [query.data, login]);
 
 	const sel = presets?.find(p => p.id === selected);
 
 	const upsertMut = useMutation(() => apiPost('events/text_transforms/upsert', {
 		name: sel?.name ?? nameInput,
 		public: sel?.public ?? publicInput,
-		transforms: current?.map(({ search, replace }) => ({ search, replace }))
+		transforms: current?.filter(f => f.enabled).map(({ search, replace }) => ({ search, replace }))
 	}), {
 		onSuccess: () => {
 			logSuccess('Text preset saved: ' + (sel?.name ?? nameInput));
@@ -293,7 +294,13 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 		onError: logError
 	});
 
-	// const removeMut = 
+	const removeMut = useMutation((name: string) => apiPost('events/text_transforms/remove', { name }), {
+		onSuccess: (name) => {
+			logSuccess('Text preset deleted: ' + name);
+			queryClient.invalidateQueries('textTransforms');
+		},
+		onError: logError
+	});
 
 	if (query.error)
 		return <div style={{ color: color('red') }}>error</div>;
@@ -305,23 +312,47 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 		upsertMut.mutate();
 	};
 
+	const load = (transforms: TextTransform[]) => (e: any) => {
+		const merged = doReplace ? transforms : [];
+		console.log(merged)
+		set('textTransform', merged.map(({ search, replace }, i) =>
+			({ search, replace, id: Date.now() + i, enabled: true })));
+		closeContextMenu();
+	};
+
 	if (action === 'load')
 		return <>
-			<div style={{ color: color('text-dark'), fontSize: 12, width: 210, textAlign: 'left' }}>
-				load text transforms set: current replaces will be lost</div>
+			<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2 }}>
+				load text transforms set:</div>
+			<label title='Current transforms will be lost' style={{ paddingLeft: 2 }}>overwrite current
+				<input type='checkbox' checked={doReplace} onChange={e => setDoReplace(e.target.checked)}/></label>
+			<div className='separator'/>
 			{presets.length < 1 && <div>no saved presets</div>}
+			{presets.length > 0 && <div style={{ userSelect: 'none' }}>
+				{presets.map(({ name, public: isPub, author, transforms }) =>
+					<div className='SelectOption' style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}>
+						<div style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', cursor: 'pointer', flex: 1 }}
+							onClick={load(transforms)}>
+							{name}</div>
+						{isPub && <div style={{ color: color('text-dark'), fontSize: 12 }}>(public)</div>}
+						{author === login ? <div className='CloseButton' onClick={() => removeMut.mutate(name)}/> : <div style={{ width: 16 }}/>}
+					</div>)}	
+			</div>}
 		</>;
-	const nameInvalid = nameInput === '' || presets.find(p => p.author === login && p.name === nameInput);
-	console.log(nameInput, nameInvalid)
+	const nameInvalid = selected == null &&
+		(nameInput === '' || presets.find(p => p.author === login && p.name === nameInput));
+	
 	return <div className='Group'>
-		<div>Save as:<select className='Borderless' style={{ width: 164, marginLeft: 4 }}
-			value={selected ?? '__new'}>
-			<option value='__new'>new preset</option>
+		<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2, fontSize: 14 }}>
+			Only enabled replaces are saved!</div>
+		<div>Save as:<select className='Borderless' style={{ width: 194, marginLeft: 4 }}
+			value={selected ?? '__new'} onChange={e => setSelected(e.target.value === '__new' ? null : parseInt(e.target.value))}>
+			<option value='__new'>-- new preset --</option>
 			{presets.filter(s => s.author === login).map(({ id, name }) =>
 				<option key={id} value={id}>{name}</option>)}
 		</select></div>
 		{selected == null && <div>
-			Name:<input autoFocus type='text' style={{ width: 192, marginLeft: 4, borderColor: color(nameInvalid ? 'active' : 'bg')  }}
+			Name:<input autoFocus type='text' style={{ width: 222, marginLeft: 4, borderColor: color(nameInvalid ? 'active' : 'bg')  }}
 				value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => e.code === 'Enter' && upsert(e)}/>	
 		</div>}
 		{selected == null && <div><label style={{ color: color(publicInput ? 'magenta' : 'text') }}>public preset
