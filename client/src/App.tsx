@@ -4,7 +4,6 @@ import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import './styles/App.css';
 import Info from './Info';
-import PlotGSM from './plots/time/GSM';
 import TemperatureApp from './data/muon/Temperature';
 import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';
@@ -12,7 +11,7 @@ import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
 import { useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor } from './app';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor, APPS } from './app';
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
 import { CatchErrors } from './Utility';
@@ -52,25 +51,29 @@ function Logs() {
 }
 
 function App() {
-	const { theme, infoOpen, openInfo, closeInfo, setTheme } = useAppSettings();
-	const commonApps = ['feid', 'meteo', 'muon', 'neutron', 'omni'];
-	const apps = [...commonApps, 'ros', 'help', 'test'];
-	const app = apps.find(a => window.location.pathname.endsWith(a)) ?? 'none';
+	const { app, theme, infoOpen, openInfo, closeInfo, setTheme, setApp } = useAppSettings();
+
 	useEffect(() => {
+		const titleApp = APPS.find(a => window.location.pathname.endsWith(a)) ?? null;
+		if (titleApp != null && titleApp !== app)
+			setApp(titleApp);
+
 		const icon = document.head.querySelector("link[rel~='icon']") as HTMLAnchorElement;
 		icon.href = app === 'feid' ? './feid.png' : './favicon.png';
-		document.title = {
+		document.title = !app ? 'Swan & Crow' : {
 			meteo: 'Crow: meteo',
 			neutron: 'CREAM: NM',
 			muon: 'CREAM: MT',
 			omni: 'Crow: Omni',
 			ros: 'RoS',
-			help: 'Manual',
 			feid: 'FEID',
-			test: 'test',
-			none: 'Swan & Crow'
 		}[app]!;
-	}, [app]);
+	}, [app, setApp]);
+
+	const selectApp = (a: typeof APPS[number]) => {
+		window.history.replaceState(null, '', a);
+		setApp(a as any);
+	};
 
 	useEventListener('action+switchTheme', () => 
 		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
@@ -82,26 +85,15 @@ function App() {
 	useEventListener('contextmenu', (e: PointerEvent) => { e.preventDefault(); closeContextMenu(); });
 	useEventListener('keydown', handleGlobalKeydown);
 
-	if (app === 'none')
-		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }}>
-			<h4>Select an application:</h4>
-			- <a href='feid'>Forbush Effects and Interplanetary Disturbances catalogue</a><br/>
-			- <a href='ros'>Ring of Stations method</a><br/>
-			- <a href='meteo'>Atmospheric temperature</a><br/>
-			- <a href='neutron'>Neutron monitors</a><br/>
-			- <a href='muon'>Muon telescopes</a><br/>
-			- <a href='omni'>Interplanetary medium (omni)</a>
-		</div>;
-
-	if (app === 'test')
-		return <div style={{ width: 800, marginLeft: 20, height: 600, position: 'relative' }}>
-			<PlotGSM params={{
-				showAxy: true, showAxyVector: true, showMetaLabels: true,
-				subtractTrend: true, showAz: true, maskGLE: true, useA0m: true,
-				interval: [new Date('2023-04-23 08:00'), new Date('2023-04-26T10:00:00')],
-				onsets: [ { time: new Date('2023-04-23T17:38:00Z'), type: 'SSC' } ],
-				clouds: [{ start: new Date('2023-04-24T01:00:00Z'), end: new Date('2023-04-25T19:00:00Z') }],
-				showGrid: true, showLegend: true, showMarkers: true, showMetaInfo: true, showTimeAxis: true }}/>
+	if (app === null)
+		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }} className='AppSelect'>
+			<h2>Select an application:</h2>
+			<button className='TextButton' onClick={() => selectApp('feid')}>- Forbush Effects and Interplanetary Disturbances catalogue</button>
+			<button className='TextButton' onClick={() => selectApp('ros')}>- Ring of Stations method</button>
+			<button className='TextButton' onClick={() => selectApp('meteo')}>- Atmospheric temperature</button>
+			<button className='TextButton' onClick={() => selectApp('neutron')}>- Neutron monitors</button>
+			<button className='TextButton' onClick={() => selectApp('muon')}>- Muon telescopes</button>
+			<button className='TextButton' onClick={() => selectApp('omni')}>- Interplanetary medium (omni)</button>
 		</div>;
 
 	const showNav = !['ros', 'help'].includes(app);
@@ -122,8 +114,8 @@ function App() {
 		{infoOpen && <Info/>}
 		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
 			<div>
-				<select value={app} onChange={e => { window.location.href = e.target.value; }}>
-					{commonApps.map(a => <option key={a} value={a}>/{a}</option>)}
+				<select value={app} onChange={e => selectApp(e.target.value as any)}>
+					{APPS.map(a => <option key={a} value={a}>/{a}</option>)}
 				</select>
 			</div>
 			<AuthNav/>

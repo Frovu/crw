@@ -92,10 +92,11 @@ export const useLayoutsStore = create<LayoutsState>()(
 export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
 export const LayoutContext = createContext<{ id: string, size: Size, params: PanelParams, setParams: ParamsSetter } | null>(null);
 
-export const setNodeParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) => useLayoutsStore.setState(state => {
-	const { items } = state.list[state.active];
-	items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
-});
+export const setNodeParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) =>
+	useLayoutsStore.setState(state => {
+		const { items } = state.list[state.active];
+		items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
+	});
 
 export const setStatColumn = (col: ColumnDef, i: number) => {
 	const { list, active } = useLayoutsStore.getState();

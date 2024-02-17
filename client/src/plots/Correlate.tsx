@@ -53,7 +53,8 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		setParams('statParams', { [k]: val });
 
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
-		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }} value={cur[k] as string}
+		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }}
+			value={cur[k] as string}
 			onChange={e => setParams('statParams', { [k]: e.target.value })}>
 			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 		</select>;
