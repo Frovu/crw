@@ -84,6 +84,8 @@ export const useAppSettings = create<AppSettings>()(
 	}))
 );
 
+export const getApp = () => useAppSettings.getState().app ?? 'feid';
+
 export function color(name: typeof colorKeys[number], alpha?: number) {
 	const { colors, theme } = useAppSettings.getState();
 	const col = colors[theme]?.[name] ?? getDefaultColor(name);

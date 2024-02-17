@@ -2,7 +2,7 @@ import { createContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { logMessage } from './app';
+import { getApp, logMessage } from './app';
 import { type PanelParams, defaultLayouts, isPanelDuplicatable, statPanelOptions, type ColumnDef } from './events/events';
 import type { Size } from './util';
 
@@ -22,8 +22,12 @@ export type Layout = {
 type LayoutsState = {
 	dragFrom: null | string,
 	dragTo: null | string,
-	active: string,
-	list: { [name: string]: Layout },
+	apps: {
+		[app: string]: {
+			active: string,
+			list: { [name: string]: Layout },
+		}
+	}
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
@@ -38,8 +42,13 @@ type LayoutsState = {
 const defaultState = {
 	dragFrom: null,
 	dragTo: null,
-	active: 'default',
-	list: defaultLayouts,
+	apps: {
+		feid: {
+			active: 'default',
+			list: defaultLayouts,
+
+		}
+	}
 };
 
 export type LayoutsMenuDetails = { nodeId: string };
@@ -51,40 +60,60 @@ export const useLayoutsStore = create<LayoutsState>()(
 			startDrag: nodeId => set(state =>
 				state.dragFrom === nodeId ? state : ({ ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
 			dragOver: nodeId => set(state => state.dragFrom ? ({ ...state, dragTo: nodeId }) : state),
-			finishDrag: () => set(({ list, active, dragFrom, dragTo }) => {
+			finishDrag: () => set(({ apps, dragFrom, dragTo }) => {
+				const app = getApp();
 				if (!dragFrom || !dragTo) return;
+				const { list, active } = apps[app];
 				const items = list[active].items;
 				[items[dragFrom], items[dragTo]] = [items[dragTo], items[dragFrom]];
 			}),
-			updateRatio: (nodeId, ratio) =>
-				set(state => { state.list[state.active].tree[nodeId]!.ratio = ratio; }),
-			selectLayout: layout => set(state => { if (state.list[layout]) state.active = layout; }),
-			deleteLayout: layout => set(state => {
+			updateRatio: (nodeId, ratio) => set(state => {
+				const app = getApp();
+				const { list, active } = state.apps[app];
+				list[active].tree[nodeId]!.ratio = ratio;
+			}),
+			selectLayout: layout => set(({ apps }) => {
+				const app = getApp();
+				if (apps[app].list[layout])
+					apps[app].active = layout;
+			}),
+			deleteLayout: layout => set(({ apps }) => {
+				const app = getApp();
 				logMessage('layout removed: ' + layout);
-				delete state.list[layout];
-				if (state.active === layout)
-					state.active = 'default'; }),
-			copyLayout: layout => set((state) => {
-				const list = state.list;
-				if (!list[layout]) return;
+				delete apps[app].list[layout];
+				if (apps[app].active === layout)
+					apps[app].active = 'default';
+			}),
+			copyLayout: layout => set(({ apps }) => {
+				const app = getApp();
+				if (!apps[app].list[layout]) return;
+				const { list } = apps[app];
 				const name = (i: number) => layout+'(copy)'+(i||'');
 				const copyName = name([...Array(Object.keys(list).length).keys()].find(i => !list[name(i)])!);
 				list[copyName] = list[layout];
-				state.active = copyName;
+				apps[app].active = copyName;
 			}),
-			renameLayout: (layout, name) => set(state => {
+			renameLayout: (layout, name) => set(({ apps }) => {
+				const app = getApp();
 				if (layout === name) return;
-				state.list[name] = state.list[layout];
-				delete state.list[layout];
-				if (state.active === layout)
-					state.active = name; }),
-			resetLayout: () => set(({ list, active }) => {
+				const { list } = apps[app];
+				list[name] = list[layout];
+				delete list[layout];
+				if (apps[app].active === layout)
+					apps[app].active = name;
+			}),
+			resetLayout: () => set(({ apps }) => {
+				const app = getApp();
+				if (!(defaultState as any).apps[app].list[apps[app].active])
+					return;
+				const { list, active } = apps[app];
 				logMessage('layout reset: ' + active);
-				if (defaultState.list[active]) list[active] = defaultState.list[active]; }),
+				list[active] = (defaultState as any).apps[app].list[active];
+			}),
 		})),
 		{
-			name: 'eventsAppLayouts',
-			partialize: ({ list, active }) => ({ list, active })
+			name: 'crwAppLayouts',
+			partialize: ({ apps }) => ({ apps })
 		}
 	)
 );
@@ -94,14 +123,16 @@ export const LayoutContext = createContext<{ id: string, size: Size, params: Pan
 
 export const setNodeParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) =>
 	useLayoutsStore.setState(state => {
-		const { items } = state.list[state.active];
+		const { list, active } = state.apps[getApp()];
+		const { items } = list[active];
 		items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
 	});
 
 export const setStatColumn = (col: ColumnDef, i: number) => {
-	const { list, active } = useLayoutsStore.getState();
+	const { list, active } = useLayoutsStore.getState().apps[getApp()];
+	const layout = list[active];
 	const key = (['column0', 'column1'] as const)[i];
-	for (const [id, item] of Object.entries(list[active].items))
+	for (const [id, item] of Object.entries(layout.items))
 		if (statPanelOptions.includes(item?.type as any))
 			setNodeParams(id, 'statParams', { [key]:
 		item?.type === 'Histogram' && item?.statParams?.[key] === col.id ? null : col.id });
@@ -110,7 +141,8 @@ export const setStatColumn = (col: ColumnDef, i: number) => {
 export const resetLayout = () => useLayoutsStore.setState(defaultState);
 
 export const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
-	const { tree, items } = state.list[state.active];
+	const { list, active } = state.apps[getApp()];
+	const { tree, items } = list[active];
 	const parent = Object.keys(tree).find(node => tree[node]?.children.includes(nodeId));
 	if (!parent) return state;
 	const otherNodeId = tree[parent]!.children.filter(ch => ch !== nodeId)[0];
@@ -123,7 +155,8 @@ export const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state
 });
 
 export const splitNode = (nodeId: string, split: 'row'|'column', inverse?: boolean) => useLayoutsStore.setState(state => {
-	const { tree, items } = state.list[state.active];
+	const { list, active } = state.apps[getApp()];
+	const { tree, items } = list[active];
 	const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString());
 
 	if (tree[nodeId])
@@ -139,7 +172,8 @@ export const splitNode = (nodeId: string, split: 'row'|'column', inverse?: boole
 });
 
 export const useLayout = () => ({
-	...useLayoutsStore(({ dragFrom, dragTo, list, active }) => {
+	...useLayoutsStore(({ dragFrom, dragTo, apps }) => {
+		const { list, active } = apps[getApp()];
 		const st = list[active] ?? list.default;
 		if (!dragFrom || !dragTo)
 			return st; 

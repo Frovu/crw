@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { defaultLayouts, isPanelDraggable, allPanelOptions } from './events/events';
-import { openContextMenu } from './app';
+import { getApp, openContextMenu } from './app';
 import { color } from './plots/plotUtil';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams, gapSize, type LayoutsMenuDetails, splitNode, resetLayout } from './layout';
 import { EventsContextMenu, LayoutContent } from './events/Events';
@@ -92,7 +92,8 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 }
 
 export function LayoutNav() {
-	const { active, list, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
+	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
+	const { list, active } = apps[getApp()];
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
 	const [renaming, setRenaming] = useState<{ layout: string, input: string } | null>(null);
 	const [open, setOpen] = useState(false);
