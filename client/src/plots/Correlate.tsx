@@ -3,7 +3,7 @@ import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString, useViewState, TableViewContext } from '../events/events';
-import { LayoutContext, type ParamsSetter } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
 import { applyTextTransform, legendPlugin, titlePlugin, tooltipPlugin } from './basicPlot';
@@ -42,25 +42,25 @@ export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = co
 	logx: true,
 });
 
-export function CorrelationContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+export function CorrelationContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultCorrParams(columns), ...params.statParams };
+	const cur = { ...defaultCorrParams(columns), ...params };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) =>
-		setParams('statParams', { [k]: val });
+		setParams({ [k]: val });
 
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }}
 			value={cur[k] as string}
-			onChange={e => setParams('statParams', { [k]: e.target.value })}>
+			onChange={e => setParams({ [k]: e.target.value })}>
 			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 		</select>;
 	const Checkbox = ({ text, k }: { text: string, k: keyof CorrelationParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={cur[k] as boolean} onChange={e => setParams('statParams', { [k]: e.target.checked })}/></label>;
+			checked={cur[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
 
 	return <div className='Group'>
 		<div>
@@ -80,7 +80,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Limit X:</span>
+				onClick={() => setParams({ forceMin: null, forceMax: null })}>Limit X:</span>
 			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
 			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
@@ -88,7 +88,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams('statParams', { forceMinY: null, forceMaxY: null })}>Limit Y:</span>
+				onClick={() => setParams({ forceMinY: null, forceMaxY: null })}>Limit Y:</span>
 			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 				value={cur.forceMinY} onChange={val => set('forceMinY', val)} allowNull={true}/>
 			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
@@ -96,7 +96,7 @@ export function CorrelationContextMenu({ params, setParams }: { params: PanelPar
 		</div>
 		<div className='Row'>
 			color:<select className='Borderless' style={{ padding: '0 6px' }} value={cur.color}
-				onChange={e => setParams('statParams', { color: e.target.value })}>
+				onChange={e => setParams({ color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>
 		</div>
@@ -113,7 +113,7 @@ export default function CorrelationPlot() {
 	const { showGrid, showLegend, showTitle } = useEventsSettings();
 	const { setCursor, setPlotId } = useViewState();
 	const { data: shownData } = useContext(TableViewContext);
-	const layoutParams = useContext(LayoutContext)?.params.statParams;
+	const layoutParams = useContext(LayoutContext)?.params;
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 

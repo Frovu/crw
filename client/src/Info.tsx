@@ -44,7 +44,7 @@ export default function Help() {
 			width: '80ch', maxWidth: 'calc(100vw - 16px)', maxHeight: 'calc(100vh - 32px)', textAlign: 'justify' }}>
 			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, fontSize: 18, padding: '0 0 1em calc(1em - 8px)' }}>
 				{infoPages.map(page =>
-					<button className='TextButton' style={{ color: page === infoPage ? color('active') : 'unset', padding: '0 8px' }}
+					<button key={page} className='TextButton' style={{ color: page === infoPage ? color('active') : 'unset', padding: '0 8px' }}
 						onClick={() => setInfoPage(page)}>
 						{page.at(0)?.toUpperCase()+page.slice(1)}
 					

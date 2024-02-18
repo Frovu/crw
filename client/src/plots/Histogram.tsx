@@ -5,7 +5,7 @@ import { type ColumnDef, MainTableContext, type PanelParams, SampleContext, find
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
-import { LayoutContext, type ParamsSetter } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
 
 const colors = ['green', 'purple', 'magenta'] as const;
@@ -47,16 +47,16 @@ const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns =>
 	drawMedian: false
 });
 
-export function HistogramContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+export function HistogramContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultHistOptions(columns), ...params.statParams };
+	const cur = { ...defaultHistOptions(columns), ...params };
 	const columnOpts = columns.filter(c => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
 		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
-		setParams('statParams', { [k]: val });
+		setParams({ [k]: val });
 	const Checkbox = ({ text, k }: { text: string, k: keyof HistogramParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
@@ -90,7 +90,7 @@ export function HistogramContextMenu({ params, setParams }: { params: PanelParam
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams('statParams', { forceMin: null, forceMax: null })}>Limits:</span>
+				onClick={() => setParams({ forceMin: null, forceMax: null })}>Limits:</span>
 			<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
 				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
 			&lt;= X &lt;<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
@@ -197,7 +197,7 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 
 export default function HistogramPlot() {
 	const { data: allData, columns } = useContext(MainTableContext);
-	const layoutParams = useContext(LayoutContext)?.params.statParams;
+	const layoutParams = useContext(LayoutContext)?.params;
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
 

@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings, type PanelParams, MainTableContext, SampleContext } from '../events/events';
-import { LayoutContext, type ParamsSetter } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
@@ -31,15 +31,15 @@ const defaultOptions = {
 
 export type HistoryOptions = typeof defaultOptions;
 
-export function EventsHistoryContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+export function EventsHistoryContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultOptions, ...params.statParams } as HistoryOptions;
+	const cur = { ...defaultOptions, ...params } as HistoryOptions;
 	const { historySeries: series } = cur;
 
 	const set = <T extends keyof HistoryOptions>(k: T, val: HistoryOptions[T]) =>
-		setParams('statParams', { [k]: val });
+		setParams({ [k]: val });
 	const setSample = (i: number, val: StatSeries['sample']) =>
 		set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
 	const setColumn = (i: number, val: StatSeries['column']) =>
@@ -80,7 +80,7 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams('statParams', { forceLeft: null, forceRight: null })}>Limit years:</span>
+				onClick={() => setParams({ forceLeft: null, forceRight: null })}>Limit years:</span>
 			<NumberInput style={{ width: '4em', marginLeft: 4, padding: 0 }}
 				min={1950} max={new Date().getUTCFullYear()}
 				value={cur.forceLeft} onChange={val => set('forceLeft', val)} allowNull={true}/>
@@ -97,7 +97,7 @@ export function EventsHistoryContextMenu({ params, setParams }: { params: PanelP
 export default function EventsHistory() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
-	const layoutParams = useContext(LayoutContext)?.params.statParams;
+	const layoutParams = useContext(LayoutContext)?.params;
 	const { columns, data: allData } = useContext(MainTableContext);
 
 	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;

@@ -9,7 +9,7 @@ import { immer } from 'zustand/middleware/immer';
 import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
 import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../util';
-import { AuthContext, closeContextMenu, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
+import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
@@ -89,7 +89,7 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 }));
 
 function computePlotsLayout() {
-	const { active, list } = useLayoutsStore.getState();
+	const { active, list } = useLayoutsStore.getState().apps[getApp()];
 	const { tree, items } = list[active];
 
 	const root = document.getElementById('layoutRoot')!;
@@ -132,7 +132,7 @@ function computePlotsLayout() {
 
 export function renderOne(nodeId: string) {
 	const { plots } = usePlotExportSate.getState();
-	const { active, list } = useLayoutsStore.getState();
+	const { active, list } = useLayoutsStore.getState().apps[getApp()];
 	const { overrides: { scalesParams, textTransform } } = usePlotExportSate.getState();
 	const { layout } = computePlotsLayout();
 	if (!layout[nodeId] || !plots[nodeId]) return;
@@ -331,8 +331,8 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 			<div className='separator'/>
 			{presets.length < 1 && <div>no saved presets</div>}
 			{presets.length > 0 && <div style={{ userSelect: 'none' }}>
-				{presets.map(({ name, public: isPub, author, transforms, created, modified }) =>
-					<div className='SelectOption' style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}
+				{presets.map(({ id, name, public: isPub, author, transforms, created, modified }) =>
+					<div key={id} className='SelectOption' style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}
 						title={`Author: ${author}\nCreated: ${prettyDate(new Date(created))}\nModified: ${prettyDate(new Date(modified))}`}>
 						<div style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', cursor: 'pointer', flex: 1 }}
 							onClick={load(transforms)}>

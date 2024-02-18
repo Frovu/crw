@@ -1,4 +1,4 @@
-import { useRef, useState, useContext, useLayoutEffect } from 'react';
+import { useRef, useState, useContext } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { getApp, openContextMenu } from './app';
 import { color } from './plots/plotUtil';
@@ -11,7 +11,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 	const { Content, panelOptions } = useContext(AppLayoutContext);
 	const { startDrag, dragOver, finishDrag } = useLayoutsStore.getState();
 	const { items } = useLayout();
-	if (!items[id] || !panelOptions.includes(items[id]!.type as any))
+	if (!items[id] || (items[id]!.type != null && !panelOptions.includes(items[id]!.type as any)))
 		relinquishNode(id);
 
 	return items[id] && <div style={{ ...size, position: 'relative' }}
@@ -146,11 +146,11 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
-	useLayoutEffect(() => useLayoutsStore.setState(state => {
+	useLayoutsStore.setState(state => {
 		state.appsDefaults[getApp()] = props.defaultLayouts;
 		if (!state.apps[getApp()])
 			state.apps[getApp()] = { active: 'default', list: props.defaultLayouts };
-	}), [props.defaultLayouts]);
+	});
 
 	useEventListener('resetSettings', () => resetLayout());
 

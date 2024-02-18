@@ -5,7 +5,7 @@ import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
 import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
-import { LayoutContext, type ParamsSetter } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 
@@ -28,14 +28,14 @@ const defaultOptions = {
 
 export type CollisionOptions = typeof defaultOptions;
 
-export function EpochCollisionContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
 	const { series: seriesOptions } = useContext(MainTableContext);
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
-	const cur = { ...defaultOptions, ...params.statParams };
+	const cur = { ...defaultOptions, ...params };
 	const timeOptions = columns.filter(col => col.type === 'time');
 	const set = <T extends keyof CollisionOptions>(k: T, val: CollisionOptions[T]) =>
-		setParams('statParams', { [k]: val });
+		setParams({ [k]: val });
 	
 	return <div className='Group'>
 		{(['A', 'B', 'C']).map((letter, i) => <div key={letter} className='Row' style={{ paddingRight: 4 }}>
@@ -82,7 +82,7 @@ export function EpochCollisionContextMenu({ params, setParams }: { params: Panel
 
 export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const layoutParams = useContext(LayoutContext)?.params.statParams;
+	const layoutParams = useContext(LayoutContext)?.params;
 	const { plotOffset, showGrid, showLegend } = useEventsSettings();
 	const { columns, data: allData, series: seriesDict } = useContext(MainTableContext);
 
