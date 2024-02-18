@@ -1,9 +1,8 @@
-import { createContext } from 'react';
+import { createContext, type ComponentType } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { getApp, logMessage } from './app';
-import { type PanelParams, defaultLayouts, isPanelDuplicatable, statPanelOptions, type ColumnDef } from './events/events';
 import type { Size } from './util';
 
 export const gapSize = 2;
@@ -14,18 +13,22 @@ type LayoutTreeNode = {
 	children: [string, string],
 };
 
-export type Layout = {
+export type NodeParams<T> = { type: string | null } & T;
+export type ParamsSetter<T> = (para: Partial<NodeParams<T>>) => void;
+
+export type Layout<T> = {
 	tree: { [key: string]: LayoutTreeNode | null },
-	items: { [key: string]: PanelParams | undefined }
+	items: { [key: string]: NodeParams<T> | undefined }
 };
 
 type LayoutsState = {
 	dragFrom: null | string,
 	dragTo: null | string,
+	appsDefaults: { [app: string]: { [name: string]: Layout<object> } },
 	apps: {
 		[app: string]: {
 			active: string,
-			list: { [name: string]: Layout },
+			list: { [name: string]: Layout<object> },
 		}
 	}
 	updateRatio: (nodeId: string, ratio: number) => void,
@@ -42,16 +45,26 @@ type LayoutsState = {
 const defaultState = {
 	dragFrom: null,
 	dragTo: null,
-	apps: {
-		feid: {
-			active: 'default',
-			list: defaultLayouts,
-
-		}
-	}
+	appsDefaults: {},
+	apps: {}
 };
 
 export type LayoutsMenuDetails = { nodeId: string };
+
+export type ContextMenuProps<T> = { params: NodeParams<T>, setParams: ParamsSetter<T> };
+
+export type AppLayoutProps<T> = {
+	Content: ComponentType,
+	ContextMenu: ComponentType<ContextMenuProps<T>>,
+	defaultLayouts: { [name: string]: Layout<T> },
+	panelOptions: readonly string[],
+	duplicatablePanels?: readonly string[]
+};
+
+export type LayoutContextType<T> = { id: string, size: Size, params: NodeParams<T>, setParams: ParamsSetter<T> };
+export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
+
+export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
 
 export const useLayoutsStore = create<LayoutsState>()(
 	persist(
@@ -102,13 +115,13 @@ export const useLayoutsStore = create<LayoutsState>()(
 				if (apps[app].active === layout)
 					apps[app].active = name;
 			}),
-			resetLayout: () => set(({ apps }) => {
+			resetLayout: () => set(({ apps, appsDefaults }) => {
 				const app = getApp();
-				if (!(defaultState as any).apps[app].list[apps[app].active])
-					return;
 				const { list, active } = apps[app];
+				if (!appsDefaults[app]?.[active])
+					return;
 				logMessage('layout reset: ' + active);
-				list[active] = (defaultState as any).apps[app].list[active];
+				list[active] = appsDefaults[app][active];
 			}),
 		})),
 		{
@@ -118,25 +131,13 @@ export const useLayoutsStore = create<LayoutsState>()(
 	)
 );
 
-export type ParamsSetter = <T extends keyof PanelParams>(k: T, para: Partial<PanelParams[T]>) => void;
-export const LayoutContext = createContext<{ id: string, size: Size, params: PanelParams, setParams: ParamsSetter } | null>(null);
-
-export const setNodeParams = <T extends keyof PanelParams>(nodeId: string, k: T, para: Partial<PanelParams[T]>) =>
+export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =>
 	useLayoutsStore.setState(state => {
 		const { list, active } = state.apps[getApp()];
-		const { items } = list[active];
-		items[nodeId]![k] = typeof items[nodeId]![k] == 'object' ? Object.assign(items[nodeId]![k] as any, para) : para;
+		const items = list[active].items;
+		if (!items[nodeId]) return state;
+		items[nodeId] = Object.assign(items[nodeId]!, para);
 	});
-
-export const setStatColumn = (col: ColumnDef, i: number) => {
-	const { list, active } = useLayoutsStore.getState().apps[getApp()];
-	const layout = list[active];
-	const key = (['column0', 'column1'] as const)[i];
-	for (const [id, item] of Object.entries(layout.items))
-		if (statPanelOptions.includes(item?.type as any))
-			setNodeParams(id, 'statParams', { [key]:
-		item?.type === 'Histogram' && item?.statParams?.[key] === col.id ? null : col.id });
-};
 
 export const resetLayout = () => useLayoutsStore.setState(defaultState);
 
@@ -154,22 +155,23 @@ export const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state
 	delete items[otherNodeId];
 });
 
-export const splitNode = (nodeId: string, split: 'row'|'column', inverse?: boolean) => useLayoutsStore.setState(state => {
-	const { list, active } = state.apps[getApp()];
-	const { tree, items } = list[active];
-	const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString());
+export const splitNode = (nodeId: string, split: 'row'|'column', inverse: boolean, dupe: boolean) =>
+	useLayoutsStore.setState(state => {
+		const { list, active } = state.apps[getApp()];
+		const { tree, items } = list[active];
+		const [aId, bId] = ['A', 'B'].map(lt => lt + Date.now().toString());
 
-	if (tree[nodeId])
-		tree[aId] = tree[nodeId];
-	tree[nodeId] = {
-		split,
-		ratio: .5,
-		children: inverse ? [bId, aId] : [aId, bId] };
-	if (items[nodeId])
-		items[aId] = items[nodeId];
-	items[bId] = isPanelDuplicatable(items[nodeId]?.type) ? { ...items[nodeId] } : {};
-	delete items[nodeId];
-});
+		if (tree[nodeId])
+			tree[aId] = tree[nodeId];
+		tree[nodeId] = {
+			split,
+			ratio: .5,
+			children: inverse ? [bId, aId] : [aId, bId] };
+		if (items[nodeId])
+			items[aId] = items[nodeId];
+		items[bId] = dupe && items[nodeId] ? { ...items[nodeId]! } : { type: null };
+		delete items[nodeId];
+	});
 
 export const useLayout = () => ({
 	...useLayoutsStore(({ dragFrom, dragTo, apps }) => {

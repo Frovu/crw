@@ -1,15 +1,15 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
 import { AuthContext, useContextMenu, openContextMenu, useAppSettings } from '../app';
-import { type ParamsSetter, type LayoutsMenuDetails, useLayout, setStatColumn, LayoutContext } from '../layout';
+import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
 import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollision';
 import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
-import { type PanelParams, type TableMenuDetails, useViewState, statPanelOptions,
+import { type TableMenuDetails, useViewState, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, MainTableContext, PlotContext,
-	SampleContext, TableViewContext, findColumn } from './events';
+	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import { ColorsSettings } from '../Colors';
 import PlotCircles from '../plots/time/Circles';
@@ -25,8 +25,8 @@ import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory'
 import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 
-export function LayoutContent() {
-	const { params: { plotParams, type } } = useContext(LayoutContext)!; 
+export function EventsLayoutContent() {
+	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
 	const settings = useEventsSettings();
 	const appState = useAppSettings();
 	const plotContext = useContext(PlotContext);
@@ -67,7 +67,7 @@ export function LayoutContent() {
 }
 
 function MainTablePanel() {
-	const { size, params: { tableParams } } = useContext(LayoutContext)!;
+	const { size, params } = useContext(LayoutContext) as LayoutContextType<PanelParams>;
 	const { columns, data: allData } = useContext(MainTableContext);
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
@@ -106,7 +106,7 @@ function MainTablePanel() {
 		return closest?.[0] ?? null;
 	});
 	
-	const averages = useMemo(() => !tableParams?.showAverages ? [] : shownColumns.map((col, i) => {
+	const averages = useMemo(() => !params.showAverages ? [] : shownColumns.map((col, i) => {
 		if (!['integer', 'real'].includes(col.type)) return null;
 		const sorted = (shownData.map(row => row[i + 1]).filter(v => v != null)  as number[]).sort((a, b) => a - b);
 		if (!sorted.length) return null;
@@ -118,7 +118,7 @@ function MainTablePanel() {
 		const std = Math.sqrt(sorted.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
 		const sem = std / Math.sqrt(n);
 		return [median, mean, std, sem];
-	}), [shownColumns, shownData, tableParams?.showAverages]);
+	}), [shownColumns, shownData, params.showAverages]);
 
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1, true));
@@ -149,7 +149,7 @@ function MainTablePanel() {
 	</>;
 }
 
-export function EventsContextMenu({ params, setParams }: { params: PanelParams, setParams: ParamsSetter }) {
+export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
@@ -166,18 +166,15 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 	const isPlot = isEventPlot || statPanelOptions.includes(params.type as any);
 	const cur = (isPlot && {
 		...defaultPlotParams,
-		...params?.plotParams
-	}) as CommonPlotParams;
+		...params
+	}) as PanelParams;
 
 	const CheckboxGlob = ({ text, k }: { text: string, k: keyof typeof settings }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={settings[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
-	const Checkbox = ({ text, k }: { text: string, k: keyof CommonPlotParams }) =>
+	const Checkbox = ({ text, k }: { text: string, k: keyof (CommonPlotParams & TableParams) }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={cur[k] as boolean} onChange={e => setParams('plotParams', { [k]: e.target.checked })}/></label>;
-	const CheckboxTable = ({ text, k }: { text: string, k: keyof TableParams }) =>
-		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={params.tableParams?.[k] as boolean} onChange={e => setParams('tableParams', { [k]: e.target.checked })}/></label>;
+			checked={cur[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
 			
 	return <>
 		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
@@ -215,9 +212,9 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 				<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>
 			</>}
 			{!column && <><div className='separator'/><div className='Group'>
-				<CheckboxTable text='Show column averages' k='showAverages'/>
+				<Checkbox text='Show column averages' k='showAverages'/>
 				<CheckboxGlob text='Show include markers' k='showIncludeMarkers'/>
-				<CheckboxTable text='Show changes log' k='showChangelog'/>
+				<Checkbox text='Show changes log' k='showChangelog'/>
 			</div></>}
 		</>}
 		{isEventPlot && 
@@ -272,7 +269,7 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 					<div>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em', padding: 0 }}
 						defaultValue={cur.exclude?.join(',') ?? ''}
 						onChange={e => JSON.stringify(e.target.value.split(/\s*,\s*/g).filter(s => s.length>3)) !== JSON.stringify(cur.exclude)
-							&& setParams('plotParams', { exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></div>
+							&& setParams({ exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></div>
 					<div className='Row'>
 						<Checkbox text='Filter' k='autoFilter'/>
 						<Checkbox text='Linear size' k='linearSize'/>
@@ -282,11 +279,11 @@ export function EventsContextMenu({ params, setParams }: { params: PanelParams, 
 					</div> <div className='Row'>
 						<input style={{ width: '6em' }}
 							type='number' min='-99' max='99' step='.05' value={cur.variationShift?.toFixed(2) ?? ''} placeholder='shift'
-							onChange={e => setParams('plotParams', { variationShift:
+							onChange={e => setParams({ variationShift:
 								(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
 						<input style={{ width: '6em' }}
 							type='number' min='-200' max='200' step='2' value={cur.sizeShift?.toFixed(0) ?? ''} placeholder='size'
-							onChange={e => setParams('plotParams', { sizeShift:
+							onChange={e => setParams({ sizeShift:
 								(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
 					</div>
 				</>}

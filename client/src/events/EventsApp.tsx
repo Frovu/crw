@@ -3,10 +3,9 @@ import { useEventListener } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
-import { type MagneticCloud, MainTableContext, type Onset, PlotContext,
-	SampleContext, TableViewContext, useEventsSettings,
-	useViewState } from './events';
-import ContextMenu from '../ContextMenu';
+import { type MagneticCloud, MainTableContext, type Onset, PlotContext, SampleContext,
+	TableViewContext, useEventsSettings, useViewState,  defaultLayouts, allPanelOptions, statPanelOptions } from './events';
+import { EventsContextMenu, EventsLayoutContent } from './Events';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
@@ -82,8 +81,13 @@ function EventsView() {
 	return (
 		<TableViewContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
-				<ContextMenu/>
-				<AppLayout/>
+				<AppLayout {...{
+					Content: EventsLayoutContent,
+					ContextMenu: EventsContextMenu,
+					panelOptions: allPanelOptions,
+					duplicatablePanels: statPanelOptions,
+					defaultLayouts,
+				}} Content={EventsLayoutContent} ContextMenu={EventsContextMenu}/>
 			</PlotContext.Provider>
 		</TableViewContext.Provider>
 	);

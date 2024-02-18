@@ -2,13 +2,12 @@ import { useContext, useState } from 'react';
 import { LayoutContextMenu } from './Layout';
 import { AuthContext, useContextMenu, closeContextMenu } from './app';
 import { ExportMenu } from './events/EventsData';
-import { defaultLayouts } from './events/events';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
 import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/ExportPlot';
 
 export default function ContextMenu() {
-	const { active, resetLayout } = useLayoutsStore();
+	const { resetLayout } = useLayoutsStore();
 	const { role, promptLogin } = useContext(AuthContext);
 	const { menu } = useContextMenu();
 	const [ div, setDiv ] = useState<HTMLDivElement|null>(null);
@@ -21,7 +20,7 @@ export default function ContextMenu() {
 		{menu.type === 'app' && <>
 			{role && <button onClick={() => promptLogin('password')}>Change password</button>}
 			{role === 'admin' && <button onClick={() => promptLogin('upsert')}>Upsert user</button>}
-			{defaultLayouts[active] && <button onClick={() => resetLayout()}>Reset layout</button>}
+			<button onClick={() => resetLayout()}>Reset layout</button>
 			<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
 		</>}
 		{'tableExport' === menu.type && <ExportMenu/>}

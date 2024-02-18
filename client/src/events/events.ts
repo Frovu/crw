@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { createContext } from 'react';
 import type { Filter, Sample } from './sample';
-import type { Layout } from '../layout';
 import type { CirclesParams } from '../plots/time/Circles';
 import type { GSMParams } from '../plots/time/GSM';
 import type { GeomagnParams } from '../plots/time/Geomagn';
@@ -14,6 +13,8 @@ import type { CorrelationParams } from '../plots/Correlate';
 import type { HistogramParams } from '../plots/Histogram';
 import type { CollisionOptions } from '../plots/EpochCollision';
 import type { HistoryOptions } from '../plots/EventsHistory';
+import { useLayoutsStore, type Layout, setNodeParams, type NodeParams } from '../layout';
+import { getApp } from '../app';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -102,15 +103,8 @@ export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'Empty' ] as const;
 
-export const isPanelDraggable = (panel?: string) => panel !== 'MainTable';
-export const isPanelDuplicatable = (panel?: string) => statPanelOptions.includes(panel as any);
-
-export type PanelParams = {
-	type?: typeof allPanelOptions[number],
-	tableParams?: TableParams,
-	plotParams?: Partial<CommonPlotParams>,
-	statParams?: Partial<CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>,
-};
+export type PanelParams = NodeParams<Partial<CommonPlotParams>
+& Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -231,7 +225,20 @@ export function isValidColumnValue(val: Value, column: ColumnDef) {
 	}
 }
 
-export const defaultLayouts: { [name: string]: Layout } = {
+export const setStatColumn = (col: ColumnDef, i: number) => {
+	const { list, active } = useLayoutsStore.getState().apps[getApp()];
+	const layout = list[active];
+	const key = (['column0', 'column1'] as const)[i];
+	for (const [id, iitem] of Object.entries(layout.items)) {
+		if (statPanelOptions.includes(iitem?.type as any)) {
+			const item = iitem as PanelParams;
+			setNodeParams<PanelParams>(id, {
+				[key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
+		}
+	}
+};
+
+export const defaultLayouts: { [name: string]: Layout<PanelParams> } = {
 	default: {
 		tree: {
 			root: {
@@ -258,28 +265,22 @@ export const defaultLayouts: { [name: string]: Layout } = {
 		items: {
 			left: {
 				type: 'MainTable',
-				tableParams: {
-					showAverages: true,
-					showChangelog: false,
-				}
+				showAverages: true,
+				showChangelog: false,
 			},
 			p1: {
 				type: 'IMF + Speed'
 			},
 			p2: {
 				type: 'SW Plasma',
-				plotParams: {
-					showTimeAxis: false,
-				}
+				showTimeAxis: false,
 			},
 			p3: {
 				type: 'Cosmic Rays'
 			},
 			p4: {
 				type: 'Geomagn',
-				plotParams: {
-					showTimeAxis: false,
-				}
+				showTimeAxis: false,
 			}
 		}
 	},
@@ -304,10 +305,8 @@ export const defaultLayouts: { [name: string]: Layout } = {
 		items: {
 			top: {
 				type: 'MainTable',
-				tableParams: {
-					showAverages: true,
-					showChangelog: false,
-				}
+				showAverages: true,
+				showChangelog: false,
 			},
 			p1: {
 				type: 'Correlation'
@@ -376,18 +375,14 @@ export const defaultLayouts: { [name: string]: Layout } = {
 			},
 			top: {
 				type: 'IMF + Speed',
-				plotParams: {
-					showTimeAxis: false,
-				}
+				showTimeAxis: false,
 			},
 			p3: {
 				type: 'Cosmic Rays'
 			},
 			p4: {
 				type: 'Geomagn',
-				plotParams: {
-					showTimeAxis: false,
-				}
+				showTimeAxis: false,
 			}
 		}
 	}
