@@ -14,10 +14,12 @@ export type ScaleParams = {
 export type BasicPlotParams = {
 	interval: [Date, Date],
 	onsets?: Onset[],
+	ends?: Onset[],
 	clouds?: MagneticCloud[],
 	interactive?: boolean,
 	stretch?: boolean,
 	showTimeAxis: boolean,
+	showEventsEnds: boolean,
 	showMetaLabels: boolean,
 	showMetaInfo: boolean,
 	showGrid: boolean,

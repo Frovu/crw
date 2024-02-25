@@ -57,13 +57,16 @@ function EventsView() {
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
 		if (idx == null || idx < 0) return null;
-		const [timeIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_onset_type', 'mc_time', 'mc_duration'].map(c => columns.findIndex(cc => cc.id === c));
+		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_duration', 'fe_onset_type', 'mc_time', 'mc_duration']
+			.map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = data[idx][timeIdx] as Date;
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
-		const onsets = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
-			.map(r => ({ time: r[timeIdx], type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset);
+		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]));
+		const [onsets, ends] = [0, 36e5].map(end => events.map(r =>
+			({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
+				type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset));
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
 			if (!time || !dur) return null;
@@ -74,7 +77,9 @@ function EventsView() {
 		}).filter((v): v is MagneticCloud => v != null);
 		return {
 			interval: interval as [Date, Date],
-			onsets, clouds
+			onsets,
+			ends,
+			clouds
 		};
 	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData]);
 

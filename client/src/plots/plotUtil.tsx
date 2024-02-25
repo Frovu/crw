@@ -185,13 +185,13 @@ export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuil
 export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => number) {
 	const captureOverrides = applyOverrides;
 	return (u: uPlot) => withOverrides(() => {
+		const { height } = measureDigit();
 		if (!params.showMetaInfo || !params.onsets?.length) return;
 		for (const onset of params.onsets) {
 			const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
 			const useColor = onset.secondary ? color('text', .6) : color('white');
-			const { height } = measureDigit();
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 			u.ctx.font = font(null, true);
@@ -203,8 +203,28 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			const minTop = 2 + (label ? height  : 0);
 			const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 			u.ctx.moveTo(x, lineY);
-			u.ctx.lineTo(x, u.bbox.top + u.bbox.height);
+			u.ctx.lineTo(x, u.bbox.top + u.bbox.height + scaled(4));
 			label && u.ctx.fillText(onset.type || 'ons', x + scaled(2), lineY);
+			u.ctx.stroke();
+			u.ctx.restore();
+		}
+
+		if (!params.showEventsEnds || !params.ends?.length) return;
+
+		for (const { time, secondary } of params.ends) {
+			const x = u.valToPos(time.getTime() / 1e3, 'x', true) - scaled(1);
+			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
+				continue;
+			const useColor = secondary ? color('text', .6) : color('white');
+			u.ctx.save();
+			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
+			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
+			u.ctx.beginPath();
+			const len = scaled(secondary ? 12 : 16);
+			const y = u.bbox.top + u.bbox.height + scaled(4);
+			u.ctx.moveTo(x - len * 2, y);
+			u.ctx.lineTo(x, y);
+			u.ctx.lineTo(x, y - len);
 			u.ctx.stroke();
 			u.ctx.restore();
 		}

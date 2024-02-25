@@ -239,7 +239,8 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 			</div>
 			<div className='Row'>
 				<CheckboxGlob text='show unlisted' k='plotUnlistedEvents'/>
-				<CheckboxGlob text='show MCs' k='showMagneticClouds'/>
+				<CheckboxGlob text='MCs' k='showMagneticClouds'/>
+				<CheckboxGlob text='ends' k='showEventsEnds'/>
 			</div>
 			<div className='separator'/>
 			<div className='Group'>
