@@ -2,7 +2,7 @@ import React, { type MutableRefObject, useRef, useState, useMemo } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import type { BasicPlotParams, ScaleParams, TextTransform } from './basicPlot';
+import { applyTextTransform, type BasicPlotParams, type ScaleParams, type TextTransform } from './basicPlot';
 import * as APP from '../app';
 
 export const color = APP.color;
@@ -86,6 +86,7 @@ export function seriesDefaults(name: string, colour: string, scale?: string) {
 export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> {
 	const { height, width } = measureDigit();
 	const show = !params || params?.showTimeAxis;
+	const captureOverrides = applyOverrides;
 	return {
 		splits: (u, ax, min, max, incr, space) => {
 			const num = Math.floor(u.width / space);
@@ -95,15 +96,16 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			const limit = Math.ceil((max - split/4 - start) / split);
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
-		values: (u, splits) => splits.map((v, i) => {
+		values: (u, splits) => withOverrides(() => splits.map((v, i) => {
 			if (!show || v % 86400 !== 0)
 				return null;
 			const d = new Date(v * 1e3);
 			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
 			const day = String(d.getUTCDate()).padStart(2, '0');
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
-			return (showYear ? showYear + '-' : '     ') + month + '-' + day;
-		}),
+			const text = (showYear ? showYear + '-' : '     ') + month + '-' + day;
+			return applyTextTransform(text);
+		}), captureOverrides),
 		space: width * 5.5,
 		gap: scaled(1),
 		ticks: {
