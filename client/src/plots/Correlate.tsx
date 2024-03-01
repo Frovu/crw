@@ -6,7 +6,7 @@ import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, find
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
-import { applyTextTransform, legendPlugin, titlePlugin, tooltipPlugin } from './basicPlot';
+import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
@@ -214,7 +214,7 @@ export default function CorrelationPlot() {
 					}), legendPlugin({
 						params: { showLegend },
 						overlayHandle
-					}) ],
+					}), labelsPlugin({ params: { showLegend } })],
 					hooks: {
 						drawClear: [ u => { 
 							qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
@@ -225,7 +225,8 @@ export default function CorrelationPlot() {
 						{
 							...axisDefaults(showGrid),
 							space: getFontSize() * 2.5,
-							label: applyTextTransform(colX.fullName),
+							fullLabel: colX.fullName,
+							label: '',
 							size: getFontSize() + scaled(12),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
 							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
@@ -234,13 +235,14 @@ export default function CorrelationPlot() {
 						},
 						{
 							...axisDefaults(showGrid),
-							label: applyTextTransform(colY.fullName),
+							fullLabel: colY.fullName,
+							label: '',
 							size: (u, values) => scale * 12 + ch *
 								(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 							values: (u, vals) => vals.map(v => loglog ? v?.toString()
 								.replace(/00+/, 'e'+v.toString().match(/00+/)?.[0].length) : v?.toString())
-						},
+						} as CustomAxis,
 					],
 					scales: {
 						x: {

@@ -183,13 +183,14 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 			const rec = (txt: string=axis.fullLabel!): string[][] => {
 				if (!txt) return [];
 				const re = (label: string) => new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
-				const series = u.series.find(ser => !marked[ser.label!] && txt.match(re(ser.label!)));
+				const series = u.series.find(ser => ser && !marked[ser.label!] && txt.match(re(ser.label!)));
 				if (!series) return [[txt, color('text')]];
 				marked[series.label!] = true;
 				const split = txt.slice().split(re(series.label!));
 				const stroke = typeof series.stroke === 'function' ? series.stroke(u, 0) : series.stroke; // FIXME: seriesIdx
 				return [...rec(split[0]), [series.label!, stroke as string], ...rec(split[1])];
 			};
+			
 			const parts = showLegend
 				? parseText(applyTextTransform(axis.fullLabel!))
 					.map(n => ({ ...n, stroke: color('text') }))

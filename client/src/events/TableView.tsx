@@ -1,10 +1,10 @@
 import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
-	MainTableContext, useViewState, type Cursor, prettyTable, shortTable } from './events';
+	MainTableContext, useViewState, type Cursor, prettyTable, shortTable, type TableParams } from './events';
 import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
-import { LayoutContext } from '../layout';
+import { LayoutContext, type LayoutContextType } from '../layout';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
@@ -34,13 +34,13 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 }
 
 export default function TableView({ size, averages }: { size: Size, averages: (null | number[])[] }) {
-	const { id: nodeId, params: { tableParams } } = useContext(LayoutContext)!;
+	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
 	const [changesHovered, setChangesHovered] = useState(false);
-	const showChangelog = tableParams?.showChangelog && size.height > 300;
-	const showAverages = tableParams?.showAverages && size.height > 300;
+	const showChangelog = params?.showChangelog && size.height > 300;
+	const showAverages = params?.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
 	const rowsHeight = size.height - (showAverages ? 213 : 106) - (showChangelog ? 54 : 0);
