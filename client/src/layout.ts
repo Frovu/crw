@@ -175,7 +175,10 @@ export const splitNode = (nodeId: string, split: 'row'|'column', inverse: boolea
 
 export const useLayout = () => ({
 	...useLayoutsStore(({ dragFrom, dragTo, apps }) => {
-		const { list, active } = apps[getApp()];
+		const appLayouts = apps[getApp()];
+		if (!appLayouts)
+			return { tree: {}, items: {} };
+		const { list, active } = appLayouts;
 		const st = list[active] ?? list.default;
 		if (!dragFrom || !dragTo)
 			return st; 
