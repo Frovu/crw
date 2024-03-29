@@ -147,7 +147,7 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 	const vectorLegendHandle = usePlotOverlay(() => ({ x: 8, y: 8 }));
 
 	return (<BasicPlot {...{
-		queryKey: ['GSMani', interval, maskGLE, subtractTrend, useA0m],
+		queryKey: ['GSMani', maskGLE, subtractTrend, useA0m],
 		queryFn: async () => {
 			const data = await basicDataQuery('cream/gsm', interval, ['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'], {
 				mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase

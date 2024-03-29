@@ -245,10 +245,23 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 	}, captureOverrides);
 }
 
+export function paddedInterval(interv: [Date, Date]) {
+	return [
+		Math.floor(interv[0].getTime() / 864e5) * 86400,
+		 Math.ceil((interv[1].getTime() + 36e5) / 864e5) * 86400 ];
+}
+
+export function sliceData(data: (number | null)[][], interval: [Date, Date]) {
+	const sliceLft = data[0].findIndex(t => t != null && t >= interval[0].getTime() / 1000);
+	const sliceRgt = data[0].findLastIndex(t => t != null && t <= interval[1].getTime() / 1000);
+	return data.map(col => col.slice(sliceLft, sliceRgt));
+}
+
 export async function basicDataQuery(path: string, interval: [Date, Date], query: string[], params?: {}) {
+	const interv = paddedInterval(interval);
 	const body = await apiGet<{rows: (number | null)[][], fields: string[]}>(path, {
-		from: (interval[0].getTime() / 1000).toFixed(0),
-		to:   (interval[1].getTime() / 1000).toFixed(0),
+		from: interv[0].toFixed(0),
+		to:   interv[1].toFixed(0),
 		query: query.join(),
 		...params
 	});

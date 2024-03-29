@@ -1,5 +1,5 @@
 import { useQuery } from 'react-query';
-import { type BasicPlotParams, basicDataQuery, tooltipPlugin, metainfoPlugin } from '../basicPlot';
+import { type BasicPlotParams, basicDataQuery, tooltipPlugin, metainfoPlugin, paddedInterval, sliceData } from '../basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
 import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
@@ -65,7 +65,7 @@ async function getTypes(interval: SWTypesParams['interval']) {
 
 export default function PlotSWTypes({ params }: { params: SWTypesParams }) {
 	const query = useQuery({
-		queryKey: ['SWTypes', params.interval],
+		queryKey: ['SWTypes', paddedInterval(params.interval)],
 		queryFn: async () => await getTypes(params.interval)
 	});
 
@@ -79,6 +79,6 @@ export default function PlotSWTypes({ params }: { params: SWTypesParams }) {
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }}>
-		<ExportableUplot {...{ options, data: query.data }}/>
+		<ExportableUplot {...{ options, data: sliceData(query.data, params.interval) }}/>
 	</div>);
 }

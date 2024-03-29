@@ -16,7 +16,7 @@ export default function InsertControls() {
 		const idx = data.findIndex(r => r[0] === plotId);
 		const timeIdx = columns.findIndex(cc => cc.id === 'fe_time');
 		const plotDate = data[idx][timeIdx] as Date;
-		setInsert(plotDate);
+		setInsert(new Date(Math.round(plotDate.getTime() / 36e5) * 36e5 + 36e5));
 	};
 
 	const doModify = () => {

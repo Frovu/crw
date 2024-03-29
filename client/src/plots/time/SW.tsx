@@ -12,7 +12,7 @@ export default function PlotSW({ params }: { params: SWParams }) {
 	const { useTemperatureIndex, showBeta, showDensity, interval } = params;
 	const tColumn = useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
-		queryKey: ['SW', interval, useTemperatureIndex],
+		queryKey: ['SW', useTemperatureIndex],
 		queryFn: async () => {
 			const data = await basicDataQuery('omni', interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
 			return data?.concat([Array(data[0].length).fill(.5)]) ?? null;

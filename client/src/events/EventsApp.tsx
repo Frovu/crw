@@ -60,7 +60,7 @@ function EventsView() {
 		if (idx == null || idx < 0) return null;
 		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_duration', 'fe_onset_type', 'mc_time', 'mc_duration']
 			.map(c => columns.findIndex(cc => cc.id === c));
-		const plotDate = data[idx][timeIdx] as Date;
+		const plotDate = insertAt || data[idx][timeIdx] as Date;
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
