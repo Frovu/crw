@@ -14,6 +14,7 @@ function EventsView() {
 	const editingSample = useSampleState(state => state.isPicking);
 	const sort = useViewState(state => state.sort);
 	const plotId = useViewState(state => state.plotId);
+	const insertAt = useViewState(state => state.insertAt);
 	
 	const dataCo = useMemo(() => {
 		console.time('compute table');
@@ -66,7 +67,9 @@ function EventsView() {
 		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]));
 		const [onsets, ends] = [0, 36e5].map(end => events.map(r =>
 			({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
-				type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset));
+				type: r[onsIdx] || null, secondary: insertAt || r[0] !== plotId }) as Onset));
+		if (insertAt)
+			onsets.push({ time: insertAt, type: null, insert: true });
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
 			if (!time || !dur) return null;
@@ -81,7 +84,7 @@ function EventsView() {
 			ends,
 			clouds
 		};
-	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData]);
+	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData, insertAt]);
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

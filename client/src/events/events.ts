@@ -103,12 +103,13 @@ export type ColumnDef = {
 
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
-export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'Empty' ] as const;
+export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
+	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;
 
-export type Onset = { time: Date, type: string | null, secondary?: boolean };
+export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
 export type ChangeLog = {
 	[id: string]: {
@@ -142,21 +143,22 @@ export const TableViewContext = createContext<{ data: DataRow[], columns: Column
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
 
-type ViewState = {
-	cursor: Cursor | null,
-	sort: Sort,
-	plotId: number | null,
+const defaultViewSate = {
+	cursor: null as Cursor | null,
+	sort: { column: 'fe_time', direction: 1 } as Sort,
+	plotId: null as number | null,
+	modifyId: null as number | null,
+	insertAt: null as Date | null
+};
+
+type ViewState = typeof defaultViewSate & {
 	setEditing: (val: boolean) => void,
+	setModify: (val: number | null) => void,
+	setInsert: (val: Date | null) => void,
 	setCursor: (cursor: ViewState['cursor']) => void,
 	toggleSort: (column: string, dir?: Sort['direction']) => void,
 	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
 	escapeCursor: () => void,
-};
-
-const defaultViewSate = {
-	cursor: null,
-	sort: { column: 'fe_time', direction: 1 } as const,
-	plotId: null,
 };
 
 export const useViewState = create<ViewState>()(
@@ -164,6 +166,8 @@ export const useViewState = create<ViewState>()(
 		set => ({
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
+			setModify: (val) => set(st => { st.modifyId = val; }),
+			setInsert: (val) => set(st => { st.insertAt = val; }),
 			setCursor: (cursor) => set(st => ({ ...st, cursor })),
 			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
 				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),

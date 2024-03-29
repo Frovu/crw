@@ -37,7 +37,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const { plotId, sort, cursor, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
+	const { plotId, sort, cursor, insertAt, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
@@ -86,6 +86,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	}, [cursor, ref.current?.offsetWidth]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (insertAt) return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
 		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
 			if (isInput) e.target.blur();

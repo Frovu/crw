@@ -193,7 +193,7 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
-			const useColor = onset.secondary ? color('text', .6) : color('white');
+			const useColor = onset.secondary ? color('text', .6) : onset.insert ? color('active') : color('white');
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 			u.ctx.font = font(null, true);
@@ -206,7 +206,7 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 			u.ctx.moveTo(x, lineY);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height + scaled(4));
-			label && u.ctx.fillText(onset.type || 'ons', x + scaled(2), lineY);
+			label && u.ctx.fillText(onset.insert ? 'Ins' : (onset.type || 'ons'), x + scaled(2), lineY);
 			u.ctx.stroke();
 			u.ctx.restore();
 		}
