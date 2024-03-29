@@ -155,9 +155,23 @@
 			"parse_name": "HLon",
 			"description": "Heliolongitude"
 		},
-		"magnitude": {
-			"parse_name": "Xmagn",
-			"description": "Maximum X-ray power (W/m/m)"
+		"psi": {
+			"pretty_name": "psi"
+		},
+		"gle": {
+			"pretty_name": "GLE"
+		},
+		"dt_p10": {
+			"pretty_name": "dtp10"
+		},
+		"p10": {
+			"pretty_name": "p>10"
+		},
+		"p60": {
+			"pretty_name": "p>60"
+		},
+		"p100": {
+			"pretty_name": "p>100"
 		}
 	}
 }
