@@ -14,7 +14,9 @@ function EventsView() {
 	const editingSample = useSampleState(state => state.isPicking);
 	const sort = useViewState(state => state.sort);
 	const plotId = useViewState(state => state.plotId);
-	const insertAt = useViewState(state => state.insertAt);
+	const modifyId = useViewState(state => state.modifyId);
+	const setStartAt = useViewState(state => state.setStartAt);
+	const setEndAt = useViewState(state => state.setEndAt);
 	
 	const dataCo = useMemo(() => {
 		console.time('compute table');
@@ -60,16 +62,19 @@ function EventsView() {
 		if (idx == null || idx < 0) return null;
 		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_duration', 'fe_onset_type', 'mc_time', 'mc_duration']
 			.map(c => columns.findIndex(cc => cc.id === c));
-		const plotDate = insertAt || data[idx][timeIdx] as Date;
+		const plotDate = setStartAt || data[idx][timeIdx] as Date;
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
-		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]));
+		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
+			.filter(r => r[0] !== modifyId);
 		const [onsets, ends] = [0, 36e5].map(end => events.map(r =>
 			({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
-				type: r[onsIdx] || null, secondary: insertAt || r[0] !== plotId }) as Onset));
-		if (insertAt)
-			onsets.push({ time: insertAt, type: null, insert: true });
+				type: r[onsIdx] || null, secondary: setStartAt || r[0] !== plotId }) as Onset));
+		if (setStartAt)
+			onsets.push({ time: setStartAt, type: null, insert: true });
+		if (setEndAt)
+			ends.push({ time: setEndAt, type: null, insert: true });
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
 			if (!time || !dur) return null;
@@ -84,7 +89,7 @@ function EventsView() {
 			ends,
 			clouds
 		};
-	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData, insertAt]);
+	}, [plotId, data, setStartAt, plotOffset, setEndAt, columns, plotUnlistedEvents, sampleData, modifyId]);
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 

@@ -9,7 +9,7 @@ import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
-import EventsApp from './events/EventsApp';
+import EventsApp from './events/EventsView';
 import { useEventListener } from './util';
 import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor, APPS } from './app';
 import { LayoutNav } from './Layout';

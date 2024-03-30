@@ -37,7 +37,8 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const { plotId, sort, cursor, insertAt, toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
+	const { plotId, sort, cursor, setStartAt, setEndAt,
+		toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
@@ -86,9 +87,10 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	}, [cursor, ref.current?.offsetWidth]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (insertAt) return;
+		if (setStartAt || setEndAt)
+			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (cursor && ['Enter', 'NumpadEnter', 'Insert'].includes(e.code)) {
+		if (cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
 			if (isInput) e.target.blur();
 			return setEditing(!cursor?.editing); }
 		if (isInput) return;
@@ -153,7 +155,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	return ( 
 		<div style={{ position: 'absolute', top: `calc(100% - ${size.height-1}px)`,
 			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
-			<div className='Table' style={{ position: 'relative' }} ref={ref}>
+			<div className='Table' style={{ position: 'relative' }} ref={ref} onScroll={console.log}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
 						queueMicrotask(() => setCursor(null));

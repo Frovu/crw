@@ -148,13 +148,15 @@ const defaultViewSate = {
 	sort: { column: 'fe_time', direction: 1 } as Sort,
 	plotId: null as number | null,
 	modifyId: null as number | null,
-	insertAt: null as Date | null
+	setStartAt: null as Date | null,
+	setEndAt: null as Date | null,
 };
 
 type ViewState = typeof defaultViewSate & {
 	setEditing: (val: boolean) => void,
 	setModify: (val: number | null) => void,
-	setInsert: (val: Date | null) => void,
+	setStart: (val: Date | null) => void,
+	setEnd: (val: Date | null) => void,
 	setCursor: (cursor: ViewState['cursor']) => void,
 	toggleSort: (column: string, dir?: Sort['direction']) => void,
 	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
@@ -167,7 +169,8 @@ export const useViewState = create<ViewState>()(
 			...defaultViewSate,
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
 			setModify: (val) => set(st => { st.modifyId = val; }),
-			setInsert: (val) => set(st => { st.insertAt = val; }),
+			setStart:  (val) => set(st => { st.setStartAt = val; st.setEndAt = null; }),
+			setEnd:    (val) => set(st => { st.setEndAt = val; }),
 			setCursor: (cursor) => set(st => ({ ...st, cursor })),
 			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
 				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
