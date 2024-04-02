@@ -5,7 +5,7 @@ import { usePlotOverlay, axisDefaults, customTimeSplits,
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale,
-	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin, paddedInterval, sliceData } from './basicPlot';
+	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin, paddedInterval, sliceData, actionsPlugin } from './basicPlot';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
@@ -88,7 +88,8 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				metainfoPlugin({ params, ...metaParams }),
 				legendPlugin({ params, overlayHandle }),
 				labelsPlugin({ params }),
-				tooltipPlugin({ ...tooltipParams })
+				tooltipPlugin({ ...tooltipParams }),
+				actionsPlugin(),
 			]
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line

@@ -3,7 +3,7 @@ import { MainTableContext, TableViewContext, useViewState } from './events';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 
-const roundHour = (t: number) => Math.round(t / 36e5) * 36e5;
+const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
 	const { data, columns } = useContext(MainTableContext);
@@ -48,6 +48,15 @@ export default function InsertControls() {
 	};
 
 	useEventListener('escape', escape);
+
+	useEventListener('plotClick', (e: CustomEvent<{ timestamp: number }>) => {
+		const hour = new Date(roundHour(e.detail.timestamp * 1000));
+
+		if (setEndAt)
+			setEnd(hour);
+		else if (setStartAt)
+			setStart(hour);
+	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (e.code === 'Insert')

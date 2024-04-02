@@ -1,5 +1,5 @@
 import type { Onset, MagneticCloud } from '../events/events';
-import { clamp, apiGet, prettyDate } from '../util';
+import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import { getParam, font, scaled, type Shape, applyOverrides, withOverrides, getFontSize,
 	drawShape, measureDigit, color, drawMagneticClouds, drawOnsets, type PlotOverlayHandle } from './plotUtil';
 import type uPlot from 'uplot';
@@ -469,6 +469,19 @@ export function labelsPlugin(para: Parameters<typeof drawCustomLabels>[0]): uPlo
 	return {
 		hooks: {
 			draw: [ drawCustomLabels(para) ]
+		}
+	};
+}
+
+export function actionsPlugin(): uPlot.Plugin {
+	return {
+		hooks: {
+			ready: [ u => {
+				u.over.addEventListener('mousedown', e => {
+					if (u.cursor?.left)
+						dispatchCustomEvent('plotClick', { timestamp: u.posToVal(u.cursor.left, 'x') });
+				});
+			} ]
 		}
 	};
 }
