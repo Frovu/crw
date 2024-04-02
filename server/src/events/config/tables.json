@@ -155,6 +155,9 @@
 			"parse_name": "HLon",
 			"description": "Heliolongitude"
 		},
+		"magnitude": {
+			
+		},
 		"psi": {
 			"pretty_name": "psi"
 		},

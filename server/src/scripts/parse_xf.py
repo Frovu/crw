@@ -6,6 +6,7 @@ from database import pool
 PATH = 'tmp/XF_table.txt'
 
 COLUMNS = {
+	'magnitude': None,
 	'gle': 'GLE',
 	'psi': 'psi',
 	'p10': 'p>10',
@@ -22,14 +23,16 @@ def parse_xf():
 				columns = [b for a in line.split(',') for b in (['XI', 'XMp'] if a.strip() == 'XIMp' else a.strip().split())]
 				break
 
-		index = [columns.index(c) for c in COLUMNS.values()]
+		index = [columns.index(c) for c in COLUMNS.values() if c]
 		for line in f:
+			if not line: continue
 			y, m, d = line[:10].split('.')
 			h, u, s = line[11:19].split(':')
+			xm = float(line[27:39])
 			split = line[90:].split()
 			time = datetime(*[int(a) for a in [y, m, d, h, u, s]], tzinfo=timezone.utc)
 			values = [float(split[i-12]) for i in index]
-			data.append([*values, time])
+			data.append([xm, *values, time])
 
 	q = 'UPDATE events.solar_flares SET ' + ','.join([c + ' = %s' for c in [*COLUMNS.keys()]]) + ' WHERE time = %s'
 	with pool.connection() as conn:

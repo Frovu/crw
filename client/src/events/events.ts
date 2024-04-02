@@ -209,9 +209,11 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 export function valueToString(v: Value) {
 	if (v instanceof Date)
 		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
-	if (typeof v === 'number')
-		return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
-	return v?.toString() ?? '';
+	if (typeof v !== 'number')
+		return v?.toString() ?? '';
+	if (v !== 0 && Math.abs(v) < 0.01)
+		return v.toExponential();
+	return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 }
 
 export function isValidColumnValue(val: Value, column: ColumnDef) {
