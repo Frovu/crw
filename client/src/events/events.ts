@@ -211,8 +211,8 @@ export function valueToString(v: Value) {
 		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
 	if (typeof v !== 'number')
 		return v?.toString() ?? '';
-	if (v !== 0 && Math.abs(v) < 0.01)
-		return v.toExponential();
+	if (v !== 0 && (Math.abs(v) < 0.01 || Math.abs(v) > 9999))
+		return v.toExponential(0);
 	return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 }
 

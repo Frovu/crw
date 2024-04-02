@@ -28,7 +28,7 @@ def parse_xf():
 			if not line: continue
 			y, m, d = line[:10].split('.')
 			h, u, s = line[11:19].split(':')
-			xm = float(line[27:39])
+			xm = float(line[26:39]) * 1e6
 			split = line[90:].split()
 			time = datetime(*[int(a) for a in [y, m, d, h, u, s]], tzinfo=timezone.utc)
 			values = [float(split[i-12]) for i in index]

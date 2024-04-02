@@ -220,12 +220,13 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 							{markers && <td style={{ borderColor: 'transparent' }}/>}
 							{averages.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
+								const val = avgs?.[ari];
 								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
 									textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
 								onContextMenu={openContextMenu('events', { nodeId, averages: {
 									averages, label, row: ari, column: i } })}
-								title={(!isLabel && avgs?.[ari].toString()) || ''}>
-									{isLabel ? label : avgs ? avgs[ari].toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
+								title={(!isLabel && val?.toString()) || ''}>
+									{isLabel ? label : val ?  val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 							})}
 						</tr>)}
 					</tfoot>)}
