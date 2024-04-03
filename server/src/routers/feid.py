@@ -12,6 +12,8 @@ from events import query
 from server import compress
 from routers.utils import route_shielded, require_role, msg
 
+from events.source import r_c_icme
+
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 
 @bp.route('/epoch_collision', methods=['POST'])

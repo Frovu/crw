@@ -40,7 +40,7 @@ def scrape_month(year, month):
 		log.debug('LASCO CME page not found: %s', mon)
 		return None
 	elif res.status_code != 200:
-		log.debug('LASCO CME failed: HTTP %s', res.status_code)
+		log.error('LASCO CME failed: HTTP %s', res.status_code)
 		raise Exception('Failed to load')
 
 	soup = BeautifulSoup(res.text, 'html.parser')
