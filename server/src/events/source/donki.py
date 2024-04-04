@@ -7,11 +7,12 @@ from events.table import ColumnDef as Col
 
 URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/'
 CME_TABLE = T1 = 'donki_cmes'
+FLR_TABLE = T2 = 'donki_flrs'
 
 CME_COLS = [
-	Col(T1, 'time', not_null=True, data_type='time', description='CME start time'),
 	Col(T1, 'id', sql='id integer PRIMARY KEY'),
 	Col(T1, 'event_id', data_type='text'),
+	Col(T1, 'time', not_null=True, data_type='time', description='CME start time'),
 	Col(T1, 'time_21_5', pretty_name='time 21.5', data_type='time'),
 	Col(T1, 'lat'),
 	Col(T1, 'lon'),
@@ -26,12 +27,36 @@ CME_COLS = [
 	Col(T1, 'enlil_filename', data_type='text'),
 ]
 
+FLR_COLS = [
+	Col(T2, 'id', sql='id integer PRIMARY KEY'),
+	Col(T2, 'event_id', data_type='text'),
+	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
+	Col(T2, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
+	Col(T2, 'end_time', not_null=True, data_type='time', pretty_name='end'),
+	Col(T2, 'class', data_type='text'),
+	Col(T2, 'lat'),
+	Col(T2, 'lon'),
+	Col(T2, 'active_region', data_type='integer', pretty_name='AR'),
+	Col(T2, 'note', data_type='text'),
+	Col(T2, 'linked_events', data_type='text[]'),
+]
+
 def _init():
-	cols = ',\n'.join([c.sql for c in CME_COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{CME_TABLE} (\n{cols})'
 	with pool.connection() as conn:
-		conn.execute(query)
+		for col, tbl in [(CME_COLS, CME_TABLE), (FLR_COLS, FLR_TABLE)]:
+			cols = ',\n'.join([c.sql for c in col if c])
+			query = f'CREATE TABLE IF NOT EXISTS events.{tbl} (\n{cols})'
+			conn.execute(query)
 _init()
+
+def parse_coords(loc: str):
+	m = re.match(r'(N|S)(\d{1,2})(W|E)(\d{1,3})', loc)
+	if not m:
+		raise ValueError('Failed to parse coords: ' + loc)
+	ns, alat, we, alon = m.groups()
+	lat = (1 if ns == 'N' else -1) * int(alat)
+	lon = (1 if we == 'W' else -1) * int(alon)
+	return lat, lon
 
 def next_month(m_start):
 	end = m_start + timedelta(days=31)
@@ -52,12 +77,9 @@ def scrape_enlil_filename(link):
 		log.error('Failed resolving ENLIL: %s', str(e))
 		return None
 	
-def obtain_cmes_month(month_start: datetime):
-	month_next = next_month(month_start)
-	s_str = month_start.strftime('%Y-%m-%d')
-	e_str = (month_next - timedelta(days=1)).strftime('%Y-%m-%d')
+def _obtain_cmes(s_str, e_str):
 	url = f'{URL}WS/get/CME?startDate={s_str}&endDate={e_str}'
-	log.debug('Loading DONKI CMEs for %s', str(month_start).split()[0])
+	log.debug('Loading DONKI CMEs for %s', s_str)
 	res = requests.get(url, timeout=10)
 
 	if res.status_code != 200:
@@ -82,8 +104,46 @@ def obtain_cmes_month(month_start: datetime):
 		e_id = enlil and int(enlil['link'].split('/')[-2])
 		e_fname = None
 		
-		data.append([time, iid, aid, *vals, note, linked, e_id, e_shock, e_fname])
+		data.append([iid, aid, time, *vals, note, linked, e_id, e_shock, e_fname])
 
-	log.info('Upserting [%s] DONKI CMEs for %s', len(data), str(month_start).split()[0])
+	log.info('Upserting [%s] DONKI CMEs for %s', len(data), s_str)
 	upsert_many('events.'+CME_TABLE, [c.name for c in CME_COLS], data, conflict_constraint='id')
-	upsert_coverage(CME_TABLE, month_start, month_next)
+
+def _obtain_flrs(s_str, e_str):
+	url = f'{URL}WS/get/FLR?startDate={s_str}&endDate={e_str}'
+	log.debug('Loading DONKI FLRs for %s', s_str)
+	res = requests.get(url, timeout=10)
+
+	if res.status_code != 200:
+		log.error('Failed loading %s: HTTP %s', url, res.status_code)
+		raise Exception('Failed loading')
+
+	data = []
+	for flr in res.json():
+		times = (parse_time(flr[t+'Time']) for t in ['begin', 'peak', 'end'])
+		lat, lon = parse_coords(flr['sourceLocation'])
+		ctype, note, ar, eid = (flr[k] for k in ['classType', 'note', 'activeRegionNum', 'flrID'])
+		iid = int(flr['link'].split('/')[-2])
+		linked = [e['activityID'] for e in flr['linkedEvents'] or []]
+
+		data.append([iid, eid, *times, ctype, lat, lon, ar, note, linked])
+	
+	log.info('Upserting [%s] DONKI FLRs for %s', len(data), s_str)
+	upsert_many('events.'+FLR_TABLE, [c.name for c in FLR_COLS], data, conflict_constraint='id')
+
+
+def obtain_month(what, month_start: datetime):
+	month_next = next_month(month_start)
+	s_str = month_start.strftime('%Y-%m-%d')
+	e_str = (month_next - timedelta(days=1)).strftime('%Y-%m-%d')
+
+	if what == 'CME':
+		_obtain_cmes(s_str, e_str)
+		upsert_coverage(CME_TABLE, month_start, month_next)
+	elif what == 'FLR':
+		_obtain_flrs(s_str, e_str)
+		upsert_coverage(FLR_TABLE, month_start, month_next)
+	else:
+		assert not 'reached'
+
+obtain_month('FLR', datetime(2024, 3, 1, tzinfo=timezone.utc))
