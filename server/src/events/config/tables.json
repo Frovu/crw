@@ -121,6 +121,11 @@
 		"angle": {
 			"description": "Direction of the maximum velocity",
 			"parse_name": "CMEAngle"
+		},
+		"v_index": {
+			"pretty_name": "V idx",
+			"description": "CME V0 / 1000",
+			"computed": true
 		}
 	},
 	"coronal_holes": {
@@ -158,6 +163,15 @@
 		"magnitude": {
 			
 		},
+		"dt": {
+			
+		},
+		"dt1": {
+			
+		},
+		"dt2": {
+			
+		},
 		"psi": {
 			"pretty_name": "psi"
 		},
@@ -175,6 +189,11 @@
 		},
 		"p100": {
 			"pretty_name": "p>100"
+		},
+		"x_index": {
+			"pretty_name": "X idx",
+			"description": "Xm * dt1 / 1000",
+			"computed": true
 		}
 	}
 }
