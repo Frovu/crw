@@ -9,6 +9,23 @@ pool = ConnectionPool(kwargs = {
 	'host': os.environ.get('DB_HOST')
 })
 
+def _init():
+	with pool.connection() as conn:
+		conn.execute('''CREATE TABLE IF NOT EXISTS coverage_info (
+			entity TEXT NOT NULL,
+			start TIMESTAMPTZ NOT NULL,
+			i_end TIMESTAMPTZ,
+			at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(entity, start))''')
+_init()
+
+def upsert_coverage(entity, start, end, single=False):
+	with pool.connection() as conn:
+		if single:
+			conn.execute('DELETE FROM coverage_info WHERE entity = %s', [entity])
+		conn.execute('INSERT INTO coverage_info (entity, start, i_end, at) VALUES (%s, %s, %s, now()) ' +\
+			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
+
 def upsert_many(table, columns, data, constants=[], conflict_constraint='time', do_nothing=False, write_nulls=False, write_values=True):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		tmpname = table.split('.')[-1] + '_tmp'

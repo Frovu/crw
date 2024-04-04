@@ -12,7 +12,7 @@ from events import query
 from server import compress
 from routers.utils import route_shielded, require_role, msg
 
-from events.source import r_c_icme
+from events.source import donki
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 

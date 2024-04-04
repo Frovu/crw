@@ -25,6 +25,9 @@ class ColumnDef:
 		return f'enum_{self.entity}_{self.name}'
 
 	def __post_init__(self):
+		if self.sql:
+			return
+		
 		dtype = self.data_type
 		if dtype == 'time':
 			dtype = 'timestamp with time zone'

@@ -38,8 +38,8 @@ def scrape_month(year, month):
 
 	if res.status_code == 404:
 		log.debug('LASCO CME page not found: %s', mon)
-		return None
-	elif res.status_code != 200:
+		return
+	if res.status_code != 200:
 		log.error('LASCO CME failed: HTTP %s', res.status_code)
 		raise Exception('Failed to load')
 
