@@ -49,6 +49,12 @@ def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm
 		conn.cursor().executemany(query, data.tolist())
 		log.info('Computed %s VmBm', entity)
 
+def _compute_x_v_idx(for_row=None):
+	with pool.connection() as conn:
+		w, v = (' WHERE id = %s', [for_row]) if for_row is not None else ('', [])
+		conn.execute('UPDATE events.coronal_mass_ejections SET v_index = v_mean_0 / 1000' + w, v)
+		conn.execute('UPDATE events.solar_flares SET x_index = magnitude * dt1 / 1000' + w, v)
+
 def _compute_all(for_row):
 	generics = select_generics(select_all=True)
 	_compute_duration(for_row)
@@ -58,6 +64,7 @@ def _compute_all(for_row):
 		recompute_for_row([g for g in generics if g.params.operation not in G_DERIVED], for_row)
 		recompute_for_row([g for g in generics if g.params.operation 	 in G_DERIVED], for_row)
 	_compute_vmbm(generics, for_row)
+	_compute_x_v_idx(for_row)
 	compute_cache[for_row] = (compute_cache.get(for_row, [time()])[0], time())
 
 def compute_all(for_row=None):
@@ -83,8 +90,11 @@ def compute_all(for_row=None):
 def compute_column(cid):
 	entity, name = parse_column_id(cid)
 	generics = select_generics(select_all=True)
-	if name == 'vmbm':
+	print(cid)
+	if cid == 'fe_vmbm':
 		_compute_vmbm(generics, entity=entity)
+	elif cid in ['sf_x_index', 'cme_v_index']:
+		_compute_x_v_idx()
 	elif name == 'duration':
 		_compute_duration(entity=entity)
 	else:
