@@ -12,7 +12,7 @@ from events import query
 from server import compress
 from routers.utils import route_shielded, require_role, msg
 
-from events.source import solarsoft_flrs
+from events.source import solardemon
 
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 

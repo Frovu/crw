@@ -7,7 +7,7 @@ from events.table import ColumnDef as Col
 
 URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/'
 CME_TABLE = T1 = 'donki_cmes'
-FLR_TABLE = T2 = 'donki_flrs'
+FLR_TABLE = T2 = 'donki_flares'
 
 CME_COLS = [
 	Col(T1, 'id', sql='id integer PRIMARY KEY'),

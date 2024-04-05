@@ -9,7 +9,7 @@ from events.source.donki import parse_coords
 
 URL = 'https://www.lmsal.com/solarsoft/'
 
-TABLE = 'solarsoft_flrs'
+TABLE = 'solarsoft_flares'
 COLS = [
 	Col(TABLE, 'start_time', not_null=True, sql='start_time timestamptz PRIMARY KEY', pretty_name='start'),
 	Col(TABLE, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
@@ -106,5 +106,3 @@ def scrape_flares(dt_start, dt_end):
 	upsert_many('events.'+TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
 
 	# TODO: upsert coverage
-
-scrape_flares(datetime(2024, 3, 30, tzinfo=timezone.utc), datetime(2024, 4, 1, tzinfo=timezone.utc))
