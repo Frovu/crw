@@ -31,8 +31,8 @@ FLR_COLS = [
 	Col(T2, 'id', sql='id integer PRIMARY KEY'),
 	Col(T2, 'event_id', data_type='text'),
 	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
-	Col(T2, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
-	Col(T2, 'end_time', not_null=True, data_type='time', pretty_name='end'),
+	Col(T2, 'peak_time', data_type='time', pretty_name='peak'),
+	Col(T2, 'end_time', data_type='time', pretty_name='end'),
 	Col(T2, 'class', data_type='text'),
 	Col(T2, 'lat'),
 	Col(T2, 'lon'),
@@ -115,7 +115,7 @@ def _obtain_month(what, month_start: datetime):
 	elif what == 'FLR':
 		table, cols = FLR_TABLE, FLR_COLS
 		for flr in res.json():
-			times = (parse_time(flr[t+'Time']) for t in ['begin', 'peak', 'end'])
+			times = (parse_time(flr[t+'Time']) if flr[t+'Time'] else None for t in ['begin', 'peak', 'end'])
 			lat, lon = parse_coords(flr['sourceLocation'])
 			ctype, note, ar, eid = (flr[k] for k in ['classType', 'note', 'activeRegionNum', 'flrID'])
 			iid = int(flr['link'].split('/')[-2])

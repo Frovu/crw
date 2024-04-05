@@ -52,7 +52,7 @@ _init()
 def scrape_solardemon(what, days):
 	log.debug('Scraping solardemon %s for %s days', what, days)
 
-	url = f'{URL}{what}.php?days={days}&science=1&min_flux_est=0.000001'
+	url = f'{URL}{what}.php?days={days}&science=1&dimming_threshold=-100000&min_flux_est=0.000001'
 	res = requests.get(url, timeout=10)
 
 	if res.status_code != 200:
@@ -68,7 +68,7 @@ def scrape_solardemon(what, days):
 		if len(tds) < 2:
 			cur_date = datetime.strptime(tds[0].text, '%B, %Y').date()
 			continue
-		vals = [td.get_text(strip=True) for td in tds]
+		vals = [td.get_text(strip=True).replace('&nbsp', '') for td in tds] # nbsp part is quite funny right
 
 		cur_date = cur_date.replace(day=int(vals[0]))
 
@@ -84,14 +84,14 @@ def scrape_solardemon(what, days):
 
 		if what == 'flares':
 			cl = vals[1]
-			lat, lon, dist, fl, gfl, det = (None if not vals[i] or vals[i] == 'N/A'
+			lat, lon, dist, fl, gfl, det = (None if not vals[i] or vals[i] in ['N/A', 'not']
 				else float(vals[i].replace(',', '')) for i in [6, 7, 8, 10, 11, 15])
 			dim_a = tds[-1].find('a')
 			dim_id = dim_a and int(dim_a['href'].split('did=')[-1])
 			
 			goes_peak = None
-			if vals[13] and vals[13] != 'N/A':
-				gtm = datetime.strptime(vals[13], '%H:%M').time()
+			if vals[12] and vals[12] not in ['N/A', 'in range']:
+				gtm = datetime.strptime(vals[12], '%H:%M').time()
 				goes_peak = datetime.combine(cur_date, gtm, timezone.utc)
 				if goes_peak < times[0]:
 					goes_peak += timedelta(days=1)
@@ -99,20 +99,19 @@ def scrape_solardemon(what, days):
 			data.append((iid, dim_id, *times, cl, lat, lon, dist, ar, fl, gfl, goes_peak, det))
 
 		elif what == 'dimmings':
-			intensity = float(vals[1].replace(',', ''))
-			drop, lat, lon, dist, cnt = (None if not vals[i] or vals[i] == 'N/A'
-				else float(vals[i]) for i in [6, 7, 8, 9, 11])
+			tens, drop, lat, lon, dist, cnt = (None if not vals[i] or vals[i] == 'N/A'
+				else float(vals[i].replace(',', '')) for i in [1, 6, 7, 8, 9, 11])
 			flr_a = tds[-1].find('a')
 			flr_id = flr_a and int(flr_a['href'].split('fid=')[-1])
 
-			data.append((iid, flr_id, *times, intensity, drop, lat, lon, dist, ar, cnt))
+			data.append((iid, flr_id, *times, tens, drop, lat, lon, dist, ar, cnt))
 	
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
 	upsert_many('events.'+tbl, [c.name for c in cols], data, conflict_constraint='id')
-	upsert_coverage(tbl, data[0][2], data[-1][2], single=True)
+	upsert_coverage(tbl, data[-1][2], data[0][2], single=True)
 
 def fetch(entity, month):
 	now = datetime.now(timezone.utc)
-	days = max(min(int((now - month).total_seconds / 86400) + 1, 999), 10)
+	days = max(min(int((now - month).total_seconds() / 86400) + 33, 999), 10)
 	scrape_solardemon(entity, days)
