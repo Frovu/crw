@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 
 import os, re, requests
 
-from database import pool, log, get_coverage, upsert_coverage, upsert_many
+from database import pool, log, upsert_coverage, upsert_many
 from events.table import ColumnDef as Col
 from events.source.donki import parse_coords
 
@@ -54,12 +54,13 @@ def fetch_archive_page():
 	last_fetched = now
 	return res.text
 
-def scrape_flares(dt_start, dt_end):
+def _scrape_flares(progr, dt_start, dt_end):
 	log.debug('Scraping solarsoft flares from %s to %s', str(dt_start).split()[0], str(dt_end).split()[0])
 	text = fetch_archive_page()
 
 	archive_re = re.compile(r'A HREF="(.+?)".+?<td>([^<]+).+?<td>([^<]+)', re.MULTILINE | re.DOTALL)
 	data = {}
+	links = []
 
 	for match in archive_re.findall(text):
 		link, first, last = match
@@ -71,7 +72,9 @@ def scrape_flares(dt_start, dt_end):
 			continue
 		if last < dt_start:
 			break
+		links.append((link, first))
 
+	for link, first in links:
 		log.debug('Loading solarsoft last_events > %s', first)
 		url = URL + link
 		res = requests.get(url, timeout=10)
@@ -101,8 +104,17 @@ def scrape_flares(dt_start, dt_end):
 			ar = None if '(  )' in pos else m and int(m[1])
 
 			data[start] = [start, peak, stop, cl, lat, lon, ar]
+		progr[0] += 100 / len(links)
 	
 	log.info('Upserting [%s] solarsoft FLRs from %s', len(data), str(dt_start).split()[0])
 	upsert_many('events.'+TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
+	upsert_coverage(TABLE, dt_start)
 
-	# TODO: upsert coverage
+def fetch(progr, entity, month):
+	next_month = (month + timedelta(days=31)).replace(day=1)
+	prev_month = (month - timedelta(days=1)).replace(day=1)
+
+	assert entity == 'flares'
+	progr[1] = 200
+	_scrape_flares(progr, month, next_month)
+	_scrape_flares(progr, prev_month, month)

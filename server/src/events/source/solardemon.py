@@ -1,9 +1,9 @@
 from datetime import datetime, timezone, timedelta
 
-import os, re, requests
+import requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, get_coverage, upsert_coverage, upsert_many
+from database import pool, log, upsert_coverage, upsert_many
 from events.table import ColumnDef as Col
 
 URL = 'https://www.sidc.be/solardemon/science/'
@@ -49,7 +49,7 @@ def _init():
 			conn.execute(query)
 _init()
 
-def scrape_solardemon(what, days=10):
+def scrape_solardemon(what, days):
 	log.debug('Scraping solardemon %s for %s days', what, days)
 
 	url = f'{URL}{what}.php?days={days}&science=1&min_flux_est=0.000001'
@@ -110,7 +110,9 @@ def scrape_solardemon(what, days=10):
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
 	upsert_many('events.'+tbl, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_coverage(tbl, data[0][2], data[-1][2], single=True)
 
-	# TODO: upsert coverage
-
-scrape_solardemon('dimmings')
+def fetch(entity, month):
+	now = datetime.now(timezone.utc)
+	days = max(min(int((now - month).total_seconds / 86400) + 1, 999), 10)
+	scrape_solardemon(entity, days)

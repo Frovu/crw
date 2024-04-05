@@ -23,7 +23,7 @@ def get_coverage(ent):
 	with pool.connection() as conn:
 		return conn.execute('SELECT start, i_end, at FROM coverage_info WHERE entity = %s', ent).fetchall()
 
-def upsert_coverage(entity, start, end, single=False):
+def upsert_coverage(entity, start, end=None, single=False):
 	with pool.connection() as conn:
 		if single:
 			conn.execute('DELETE FROM coverage_info WHERE entity = %s', [entity])

@@ -44,7 +44,7 @@ _init()
 def parse_date(s):
 	return datetime.strptime(s[:15], '%Y/%m/%d %H%M').replace(tzinfo=timezone.utc)
 
-def scrape():
+def fetch():
 	res = requests.get(URL, timeout=10)
 
 	if res.status_code != 200:

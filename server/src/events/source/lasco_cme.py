@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 import requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many
+from database import pool, log, upsert_many, upsert_coverage
 from events.table import ColumnDef as Col
 
 TABLE = 'lasco_cmes'
@@ -32,8 +32,8 @@ def _init():
 		conn.execute(query)
 _init()
 
-def scrape_month(year, month):
-	mon = f'{year}_{month:02}'
+def scrape_month(month: datetime):
+	mon = f'{month.year}_{month.month:02}'
 	res = requests.get(f'{URL}{mon}/univ{mon}.html', timeout=10)
 
 	if res.status_code == 404:
@@ -59,14 +59,23 @@ def scrape_month(year, month):
 
 	log.info('Upserting [%s] LASCO CMEs for %s', len(data), mon)
 	upsert_many('events.'+TABLE, cols, data, conflict_constraint='time, central_angle, linear_speed')
+	upsert_coverage(TABLE, month)
 	
-def scrape_all():
-	year, month = EPOCH
-	now = datetime.utcnow()
-	to_year, to_month = now.year, now.month
-	while year < to_year or (year == to_year and month < to_month):
-		scrape_month(year, month)
-		month += 1
-		if month > 12:
-			month = 1
-			year += 1
+# def scrape_all():
+# 	year, month = EPOCH
+# 	now = datetime.utcnow()
+# 	to_year, to_month = now.year, now.month
+# 	while year < to_year or (year == to_year and month < to_month):
+# 		scrape_month(datetime year, month)
+# 		month += 1
+# 		if month > 12:
+# 			month = 1
+# 			year += 1
+
+def fetch(progr, month):
+	prev_month = (month - timedelta(days=1)).replace(day=1)
+
+	progr[1] = 2
+	scrape_month(month)
+	progr[0] = 1
+	scrape_month(prev_month)

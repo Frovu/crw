@@ -1,5 +1,7 @@
 import json
 from time import time
+from datetime import datetime, timezone
+
 import numpy as np
 from flask import Blueprint, request, session
 from events.plots import epoch_collision
@@ -12,8 +14,11 @@ from events import query
 from server import compress
 from routers.utils import route_shielded, require_role, msg
 
-from events.source import solardemon
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
 
+from database import get_coverage
+
+op_cache = OperationCache()
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 
 @bp.route('/epoch_collision', methods=['POST'])
@@ -30,6 +35,38 @@ def _epoch_collision():
 	res = epoch_collision(times, interval, series)
 	offset, median, mean, std = [np.where(np.isnan(v), None, np.round(v, 3)).tolist() for v in res]
 	return { 'offset': offset, 'median': median, 'mean': mean, 'std': std }
+
+@bp.route('/coverage', methods=['GET'])
+@route_shielded
+def _coverage():
+	res = {}
+	for c in ['donki_flares', 'donki_cmes', 'solarsoft_flares', 
+		'solardemon_flares', 'solardemon_dimmings', 'lasco_cmes', 'r_c_icmes']:
+		res[c] = get_coverage(c)
+	return res
+
+def _fetch_source(progr, source, tstamp):
+	month = datetime.utcfromtimestamp(tstamp).replace(day=1, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+	if source in ['donki_flares', 'donki_cmes']:
+		donki.fetch(progr, source.split('_')[-1], month)
+	elif source in ['solarsoft_flares']:
+		solarsoft.fetch(progr, source.split('_')[-1], month)
+	elif source in ['solardemon_flares', 'solardemon_dimmings']:
+		solardemon.fetch(source.split('_')[-1], month)
+	elif source == 'lasco_cmes':
+		lasco_cme.fetch(progr, month)
+	elif source == 'r_c_icmes':
+		r_c_icme.fetch()
+	else:
+		assert not 'reached'
+
+@bp.route('/fetch_source', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _get_fetch_source():
+	source = request.json.get('source')
+	timestamp = request.json.get('timestamp')
+	return op_cache.fetch(_fetch_source, (source, timestamp))
 
 @bp.route('/', methods=['GET'])
 @route_shielded

@@ -76,72 +76,64 @@ def scrape_enlil_filename(link):
 	except Exception as e:
 		log.error('Failed resolving ENLIL: %s', str(e))
 		return None
-	
-def _obtain_cmes(s_str, e_str):
-	url = f'{URL}WS/get/CME?startDate={s_str}&endDate={e_str}'
-	log.debug('Loading DONKI CMEs for %s', s_str)
-	res = requests.get(url, timeout=10)
 
-	if res.status_code != 200:
-		log.error('Failed loading %s: HTTP %s', url, res.status_code)
-		raise Exception('Failed loading')
-
-	data = []
-	for cme in res.json():
-		time = parse_time(cme['startTime'])
-		iid = int(cme['link'].split('/')[-2])
-		aid, note = cme['activityID'], cme['note']
-		linked = [e['activityID'] for e in cme['linkedEvents'] or []]
-
-		an = next((a for a in cme['cmeAnalyses'] if a['isMostAccurate']), None)
-		if not an:
-			log.debug('DONKI CME without analysis: %s', cme['link'])
-			continue
-		
-		vals = (an[k] for k in ['time21_5', 'latitude', 'longitude', 'halfAngle', 'speed', 'type', 'levelOfData'])
-		enlil = next((m for m in (an['enlilList'] or [])[::-1] if m['au'] == 2), None)
-		e_shock = enlil and enlil['estimatedShockArrivalTime']
-		e_id = enlil and int(enlil['link'].split('/')[-2])
-		e_fname = None
-		
-		data.append([iid, aid, time, *vals, note, linked, e_id, e_shock, e_fname])
-
-	log.info('Upserting [%s] DONKI CMEs for %s', len(data), s_str)
-	upsert_many('events.'+CME_TABLE, [c.name for c in CME_COLS], data, conflict_constraint='id')
-
-def _obtain_flrs(s_str, e_str):
-	url = f'{URL}WS/get/FLR?startDate={s_str}&endDate={e_str}'
-	log.debug('Loading DONKI FLRs for %s', s_str)
-	res = requests.get(url, timeout=10)
-
-	if res.status_code != 200:
-		log.error('Failed loading %s: HTTP %s', url, res.status_code)
-		raise Exception('Failed loading')
-
-	data = []
-	for flr in res.json():
-		times = (parse_time(flr[t+'Time']) for t in ['begin', 'peak', 'end'])
-		lat, lon = parse_coords(flr['sourceLocation'])
-		ctype, note, ar, eid = (flr[k] for k in ['classType', 'note', 'activeRegionNum', 'flrID'])
-		iid = int(flr['link'].split('/')[-2])
-		linked = [e['activityID'] for e in flr['linkedEvents'] or []]
-
-		data.append([iid, eid, *times, ctype, lat, lon, ar, note, linked])
-	
-	log.info('Upserting [%s] DONKI FLRs for %s', len(data), s_str)
-	upsert_many('events.'+FLR_TABLE, [c.name for c in FLR_COLS], data, conflict_constraint='id')
-
-
-def obtain_month(what, month_start: datetime):
+def _obtain_month(what, month_start: datetime):
 	month_next = next_month(month_start)
 	s_str = month_start.strftime('%Y-%m-%d')
 	e_str = (month_next - timedelta(days=1)).strftime('%Y-%m-%d')
 
+	url = f'{URL}WS/get/{what}?startDate={s_str}&endDate={e_str}'
+	log.debug('Loading DONKI %ss for %s', what, s_str)
+	res = requests.get(url, timeout=10)
+
+	if res.status_code != 200:
+		log.error('Failed loading %s: HTTP %s', url, res.status_code)
+		raise Exception('Failed loading')
+
+	data = []
+
 	if what == 'CME':
-		_obtain_cmes(s_str, e_str)
-		upsert_coverage(CME_TABLE, month_start, month_next)
+		table, cols = CME_TABLE, CME_COLS
+		for cme in res.json():
+			time = parse_time(cme['startTime'])
+			iid = int(cme['link'].split('/')[-2])
+			aid, note = cme['activityID'], cme['note']
+			linked = [e['activityID'] for e in cme['linkedEvents'] or []]
+
+			an = next((a for a in cme['cmeAnalyses'] if a['isMostAccurate']), None)
+			if not an:
+				log.debug('DONKI CME without analysis: %s', cme['link'])
+				continue
+			
+			vals = (an[k] for k in ['time21_5', 'latitude', 'longitude', 'halfAngle', 'speed', 'type', 'levelOfData'])
+			enlil = next((m for m in (an['enlilList'] or [])[::-1] if m['au'] == 2), None)
+			e_shock = enlil and enlil['estimatedShockArrivalTime']
+			e_id = enlil and int(enlil['link'].split('/')[-2])
+			e_fname = None
+			
+			data.append([iid, aid, time, *vals, note, linked, e_id, e_shock, e_fname])
 	elif what == 'FLR':
-		_obtain_flrs(s_str, e_str)
-		upsert_coverage(FLR_TABLE, month_start, month_next)
+		table, cols = FLR_TABLE, FLR_COLS
+		for flr in res.json():
+			times = (parse_time(flr[t+'Time']) for t in ['begin', 'peak', 'end'])
+			lat, lon = parse_coords(flr['sourceLocation'])
+			ctype, note, ar, eid = (flr[k] for k in ['classType', 'note', 'activeRegionNum', 'flrID'])
+			iid = int(flr['link'].split('/')[-2])
+			linked = [e['activityID'] for e in flr['linkedEvents'] or []]
+
+			data.append([iid, eid, *times, ctype, lat, lon, ar, note, linked])
 	else:
 		assert not 'reached'
+	
+	log.info('Upserting [%s] DONKI %ss for %s', len(data), what, s_str)
+	upsert_many('events.'+table, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_coverage(table, month_start)
+
+def fetch(progr, entity, month):
+	prev_month = (month - timedelta(days=1)).replace(day=1)
+
+	what = { 'flares': 'FLR', 'cmes': 'CME' }[entity]
+	progr[1] = 2
+	_obtain_month(what, month)
+	progr[0] = 1
+	_obtain_month(what, prev_month)
