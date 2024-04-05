@@ -19,6 +19,10 @@ def _init():
 			UNIQUE(entity, start))''')
 _init()
 
+def get_coverage(ent):
+	with pool.connection() as conn:
+		return conn.execute('SELECT start, i_end, at FROM coverage_info WHERE entity = %s', ent).fetchall()
+
 def upsert_coverage(entity, start, end, single=False):
 	with pool.connection() as conn:
 		if single:

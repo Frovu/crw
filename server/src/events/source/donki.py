@@ -145,5 +145,3 @@ def obtain_month(what, month_start: datetime):
 		upsert_coverage(FLR_TABLE, month_start, month_next)
 	else:
 		assert not 'reached'
-
-obtain_month('FLR', datetime(2024, 3, 1, tzinfo=timezone.utc))
