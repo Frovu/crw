@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import re, requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many
+from database import pool, log, upsert_many, upsert_coverage
 from events.table import ColumnDef as Col
 
 TABLE = 'r_c_icmes'
@@ -75,3 +75,4 @@ def fetch():
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
 	upsert_many('events.'+TABLE, [c.name for c in COLS], data)
+	upsert_coverage(TABLE, data[0][0], data[-1][0], single=True)

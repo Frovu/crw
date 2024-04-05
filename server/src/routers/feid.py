@@ -8,15 +8,15 @@ from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import upset_generic, remove_generic
 from events.other_columns import compute_all, compute_column
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
 import events.text_transforms as tts
 from events import samples
 from events import query
-from server import compress
 from routers.utils import route_shielded, require_role, msg
 
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
-
 from database import get_coverage
+from utility import OperationCache
+from server import compress
 
 op_cache = OperationCache()
 bp = Blueprint('events', __name__, url_prefix='/api/events')
@@ -64,9 +64,9 @@ def _fetch_source(progr, source, tstamp):
 @route_shielded
 @require_role('operator')
 def _get_fetch_source():
-	source = request.json.get('source')
+	entity = request.json.get('entity')
 	timestamp = request.json.get('timestamp')
-	return op_cache.fetch(_fetch_source, (source, timestamp))
+	return op_cache.fetch(_fetch_source, (entity, timestamp))
 
 @bp.route('/', methods=['GET'])
 @route_shielded
