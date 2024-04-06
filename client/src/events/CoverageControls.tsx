@@ -13,6 +13,8 @@ const ENTS = {
 	r_c_icmes: ['R&C ICME', true],
 } as const;
 
+const ORANGE_THRESHOLD = 30;
+
 function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 { entity: string, entShort: string, isSingle: boolean, d1: number|null, d2: number|null, date: Date }) {
 	const [hovered, setHovered] = useState(false);
@@ -58,7 +60,7 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 
 	const border = { border: '1px solid ' + color('border') };
 	const style = (d: number | null) => {
-		const col = d == null ? 'red' : d >= 30 ? 'orange' : 'green';
+		const col = d == null ? 'red' : d >= ORANGE_THRESHOLD ? 'orange' : 'green';
 		return { ...border, width: 56, backgroundColor: color(col, .2), color: color(col) };
 	};
 
@@ -79,7 +81,9 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 }
 
 export default function CoverageControls({ date }: { date: Date }) {
+	const [userMinified, setUserMinified] = useState(true);
 	const [hovered, setHovered] = useState(false);
+
 	useEffect(() => {
 		if (!hovered) return;
 		const timeout = setTimeout(() => setHovered(false), 2000);
@@ -119,16 +123,27 @@ export default function CoverageControls({ date }: { date: Date }) {
 		}), m1, m2];
 	}, [coverageQuery.data, date]);
 
-	return <div style={{ textAlign: 'center', fontSize: 14 }}>
-		<table style={{ borderCollapse: 'collapse' }}>
-			<tr style={{ cursor: 'pointer' }} onClick={() => dispatchCustomEvent('fetchAllSources')}
+	if (!data) return <div>coverage...</div>;
+
+	const minified = userMinified && !data?.find(({ d1, d2 }) => d1 == null || d2 == null );
+	const oldest = !minified ? 0 : Math.max.apply(null, data.flatMap(({ d1, d2 }) => [d1!, d2!]));
+	const colour = oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
+
+	return <div>
+		<table style={{ textAlign: 'center', fontSize: 14, borderCollapse: 'collapse' }}>
+			<tr style={{ cursor: 'pointer', lineHeight: minified ? 1 : 1.5 }}
 				onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
-				<td style={{ color: color('text-dark'), paddingBottom: 4 }}>coverage</td>
-				{hovered && <td colSpan={2} style={{ color: color('active'), width: 112 }}>update all</td>}
-				{!hovered && <>
+				<td style={{ color: color('text-dark'), paddingBottom: 4, width: 84 }} className='TextButton'
+					onClick={() => setUserMinified(m => !m)}>{minified ? (hovered ? 'expand' : 'Coverage:') : 'hide'}</td>
+				{minified && <td style={{
+					width: 56, border: '1px solid '+color('border'),
+					color: color(colour), backgroundColor: color(colour, .2) }}>T-{oldest.toFixed()}d</td>}
+				{!minified && hovered && <td colSpan={2} style={{ width: 112 }} className='TextButton'
+					onClick={() => dispatchCustomEvent('fetchAllSources')}>update all</td>}
+				{!minified && !hovered && <>
 					<td>{month1.toLocaleString('default', { month: 'short' })}</td>
 					<td><b>{month2.toLocaleString('default', { month: 'short' })}</b></td></>}</tr>
-			{data?.map(ent => <CoverageEntry key={ent.entity} date={month2} {...ent}/>)}
+			{!minified && data?.map(ent => <CoverageEntry key={ent.entity} date={month2} {...ent}/>)}
 		</table>
 	</div>;
 }
