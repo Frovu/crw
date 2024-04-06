@@ -1,4 +1,4 @@
-import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect } from 'react';
+import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect, useMemo } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
 	MainTableContext, useViewState, type Cursor, prettyTable, shortTable, type TableParams } from './events';
@@ -33,18 +33,18 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-export default function TableView({ size, averages, isSecondary }: {
+export default function TableView({ size, averages, entity }: {
 	size: Size,
-	isSecondary?: boolean,
+	entity?: string,
 	averages?: (null | number[])[],
 }) {
+	const isSecondary = !!entity;
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useViewState();
-	const { plotId, sort, cursor, setStartAt, setEndAt, toggleSort, setCursor,
-		setEditing, escapeCursor, setPlotId } = Object.assign(viewState, isSecondary ? {
-		sort: { column: 'time', direction: 1 },
+	const { plotId, sort: sSort, cursor: sCursor, setStartAt, setEndAt, toggleSort, setCursor,
+		setEditing, escapeCursor, setPlotId } = Object.assign({}, viewState, isSecondary ? {
 		toggleSort: () => {},
 		setEditing: () => {},
 		setPlotId: () => {}
@@ -52,19 +52,20 @@ export default function TableView({ size, averages, isSecondary }: {
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = !isSecondary && params?.showChangelog && size.height > 300;
 	const showAverages = !isSecondary && params?.showAverages && size.height > 300;
+	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
 	const rowsHeight = size.height
 		- (showAverages ? 107 : 0)
 		- (showChangelog ? 54 : 0)
-		- (106);
+		- (isSecondary ? 60 : 105);
 	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
 	const viewSize = Math.floor(rowsHeight / rowH);
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const padTableH = Math.floor(headerPadding / 3);
-	const padColumnH = headerPadding - padTableH;
+	const columnH = (isSecondary ? 22 : 46) + headerPadding - padTableH;
 
 	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m?.length)));
 	
@@ -85,10 +86,16 @@ export default function TableView({ size, averages, isSecondary }: {
 
 	useEventListener('escape', escapeCursor);
 
+	const sort = useMemo(() => {
+		if (!isSecondary)
+			return sSort;
+		return { column: columns.find(c => c.name.includes('time'))?.name, direction: 1 };
+	}, [columns, isSecondary, sSort]);
+
 	useLayoutEffect(() => {
 		setCursor(null);
 		setViewIndex(clamp(0, data.length - viewSize, data.length));
-	}, [data.length, columns.length, viewSize, sort, setCursor]);
+	}, [data.length, columns.length, viewSize, sort]); // eslint-disable-line
 
 	useEffect(() => { cursor && updateViewIndex(cursor); }, [cursor]); // eslint-disable-line
 
@@ -103,7 +110,7 @@ export default function TableView({ size, averages, isSecondary }: {
 		if (setStartAt || setEndAt)
 			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
+		if (!isSecondary && cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
 			if (isInput) e.target.blur();
 			return setEditing(!cursor?.editing); }
 		if (isInput) return;
@@ -118,9 +125,9 @@ export default function TableView({ size, averages, isSecondary }: {
 			e.preventDefault(); };
 		
 		if (e.ctrlKey && e.code === 'Home')
-			return set({ row: 0, column: cursor?.column ?? 0 });
+			return set({ entity, row: 0, column: cursor?.column ?? 0 });
 		if (e.ctrlKey && e.code === 'End')
-			return set({ row: data.length - 1, column: cursor?.column ?? 0 });
+			return set({ entity, row: data.length - 1, column: cursor?.column ?? 0 });
 
 		const delta = {
 			'ArrowUp': [-1, 0],
@@ -132,7 +139,10 @@ export default function TableView({ size, averages, isSecondary }: {
 			'Home': [0, -columns.length],
 			'End': [0, columns.length]
 		}[e.code];
-		if (!delta) return;
+
+		if (!delta || (sCursor && !cursor))
+			return;
+	
 		const [deltaRow, deltaCol] = delta;
 		const { row, column } = cursor ?? {
 			row: deltaRow > 0 ? -1 : data.length,
@@ -151,9 +161,10 @@ export default function TableView({ size, averages, isSecondary }: {
 						&& cur > 0 && cur < data.length - 1)
 					cur += deltaRow;
 			}
-			return set({ row: cur, column });
+			return set({ entity, row: cur, column });
 		}
 		set({
+			entity, 
 			row: clamp(0, data.length - 1, row + deltaRow),
 			column: clamp(0, columns.length - 1, column + deltaCol)
 		});		
@@ -166,7 +177,7 @@ export default function TableView({ size, averages, isSecondary }: {
 	columns.forEach(col => tables.has(col.entity) ? tables.get(col.entity)?.push(col) : tables.set(col.entity, [col]));
 
 	return ( 
-		<div style={{ position: 'absolute', top: `calc(100% - ${size.height-1}px)`,
+		<div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
 			<div className='Table' style={{ position: 'relative' }} ref={ref}>
 				<table onWheel={e => {
@@ -188,7 +199,7 @@ export default function TableView({ size, averages, isSecondary }: {
 						{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
 							className='ColumnHeader' onClick={() => toggleSort(col.id)}
 							onContextMenu={openContextMenu('events', { nodeId, header: col })}>
-							<div style={{ height: 46 + padColumnH }}><span>{col.name}</span>
+							<div style={{ height: columnH }}><span>{col.name}</span>
 								{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 						</td>)}
 					</tr></thead>
@@ -210,9 +221,10 @@ export default function TableView({ size, averages, isSecondary }: {
 							</td>}
 							{columns.map((column, cidx) => {
 								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : ''}
+								const value = valueToString(row[cidx+1]);
+								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
 									onClick={e => {
-										const cur = { row: idx, column: cidx, editing: !!curs };
+										const cur = { entity, row: idx, column: cidx, editing: !!curs };
 										setCursor(cur);
 										updateViewIndex(cur);
 										if (e.ctrlKey)
@@ -222,7 +234,7 @@ export default function TableView({ size, averages, isSecondary }: {
 									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
 										<span className='Cell' style={{ width: column.width + 'ch' }}>
 											<div className='TdOver'/>
-											{valueToString(row[cidx+1])}
+											{value}
 											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
 								</td>;
 							})}

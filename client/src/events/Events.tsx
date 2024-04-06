@@ -44,7 +44,8 @@ export function EventsLayoutContent() {
 		};
 	}, [appState, plotContext, type, settings, plotParams]);
 
-	return <div style={{ height: '100%', border: type === 'MainTable' ? 'unset' : '1px var(--color-border) solid', userSelect: 'none', overflow: 'clip' }}>
+	return <div style={{ height: '100%', userSelect: 'none', overflow: 'clip',
+		border: ['MainTable', 'EventTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
 		{type === 'MainTable' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
@@ -76,10 +77,12 @@ function MainTablePanel() {
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
 	const { plotUnlistedEvents } = useEventsSettings();
-	const { plotId, setPlotId, cursor, setCursor } = useViewState();
+	const { plotId, setPlotId, cursor: sCursor, setCursor } = useViewState();
 	const { addFilter } = useSampleState();
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
+
+	const cursor = !sCursor?.entity ? sCursor : null;
 
 	// always plot something
 	useEffect(() => {

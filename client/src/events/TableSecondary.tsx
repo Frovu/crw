@@ -4,17 +4,22 @@ import { TableViewContext, type ColumnDef, type Value } from './events';
 import { useQuery } from 'react-query';
 import { apiGet } from '../util';
 import { fromDesc } from './columns';
+import TableView from './TableView';
 
 export default function SecondaryTable() {
-	const { id: nodeId, params } = useContext(LayoutContext)!;
+	const { id: nodeId, params, size } = useContext(LayoutContext)!;
 
-	const entity = 'r_c_icmes';
+	const entity = 'solarsoft_flares';
 
 	// TODO: limit time
 	const query = useQuery(['eventsCatalogue', entity], async () => {
 		const res = await apiGet<{ columns: ColumnDef[], data: (Value | string[])[][] }>('events/catalogue', { entity });
 		const columns = res.columns.map(desc => fromDesc(entity, desc.name, desc, entity));
-		const data = res.data.map(row => columns.map((c, i) => {
+		for (const col of columns) {
+			if (col.name === 'class')
+				col.width = 7;
+		}
+		const data = res.data.map((row, ri) => [ri, ...columns.map((c, i) => {
 			if (c.type === 'time') {
 				if (row[i] == null)
 					return row[i];
@@ -25,21 +30,21 @@ export default function SecondaryTable() {
 				return row[i] == null || (row[i] as any).length < 1 ? null : (row[i] as string[]).join(',')
 			}
 			return row[i];
-		}));
+		})]) as [number, ...Value[]][];
 
 		return {
-			columns, data: data as any,
+			columns, data,
 			markers: null,
 			includeMarkers: null
 		};
 	});
-	console.log(query.data)
+
 	if (query.error)
 		return <div className='Center'>FAILED TO LOAD</div>;
 	if (!query.data)
 		return null;
 
 	return <TableViewContext.Provider value={query.data}>
-
-	</TableViewContext.Provider>
+		<TableView {...{ size, entity }}/>
+	</TableViewContext.Provider>;
 }

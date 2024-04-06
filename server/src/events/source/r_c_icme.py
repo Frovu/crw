@@ -29,8 +29,8 @@ COLS = [
 		pretty_name='MC',
 		description='2: MC reported; 1: ICME shows evidence of a rotation in field direction; 0: No MC reported'),
 	Col(TABLE, 'cmes_time',
-		not_null=True, data_type='timestamptz[]',
-		pretty_name='DONKI time',
+		not_null=True, data_type='time[]', sql='cmes_time timestamptz[]',
+		pretty_name='CME time',
 		description='Probable CMEs associated with the ICME from LASCO catlogue and/or CCMC DONKI')
 ]
 

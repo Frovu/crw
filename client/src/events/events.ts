@@ -86,7 +86,7 @@ export const defaultPlotParams: CommonPlotParams = {
 export type ColumnDef = {
 	name: string,
 	fullName: string,
-	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
+	type: 'real' | 'integer' | 'text' | 'enum' | 'time' | 'time[]' | 'text[]',
 	description?: string,
 	enum?: string[],
 	nullable: boolean,
@@ -129,7 +129,7 @@ export type Value = Date | string | number | null;
 export type DataRow = [number, ...Array<Value>];
 export type ChangeValue = { id: number, column: ColumnDef, value: Value };
 export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, editing?: boolean };
+export type Cursor = { row: number, column: number, entity?: string, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{ data: DataRow[], columns: ColumnDef[],
@@ -215,10 +215,10 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 
 export function valueToString(v: Value) {
 	if (v instanceof Date)
-		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
+		return v.toISOString().replace(/:\d\d\..+/, '').replace('T', ' ');
 	if (typeof v !== 'number')
 		return v?.toString() ?? '';
-	if (v !== 0 && (Math.abs(v) < 0.01 || Math.abs(v) > 9999))
+	if (v !== 0 && (Math.abs(v) < 0.001 || Math.abs(v) > 99999))
 		return v.toExponential(0);
 	return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 }

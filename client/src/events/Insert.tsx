@@ -14,7 +14,7 @@ export default function InsertControls() {
 	const isModify = modifyId != null;
 	const isInsert = !isModify && (setStartAt != null || setEndAt != null);
 	const [timeIdx, durIdx] = ['fe_time', 'fe_duration'].map(c => columns.findIndex(cc => cc.id === c));
-	const targetId = cursor ? viewData[cursor.row][0] : plotId;
+	const targetId = cursor && !cursor.entity ? viewData[cursor.row][0] : plotId;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
 	const startDate = data[targetIdx]?.[timeIdx] as Date;
 	const endDate = new Date(startDate?.getTime() + (data[targetIdx]?.[durIdx] as number) * 36e5);

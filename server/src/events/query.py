@@ -40,7 +40,8 @@ def select_catalogue(entity):
 	cols = COLS[entity]
 	with pool.connection() as conn:
 		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
-		data = conn.execute(f'SELECT {cl} FROM events.{entity}').fetchall()
+		time_col = next((c for c in cols if 'time' in c.name)).name
+		data = conn.execute(f'SELECT {cl} FROM events.{entity} ORDER BY {time_col}').fetchall()
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
 def select_events(uid=None, root='forbush_effects', changelog=False):

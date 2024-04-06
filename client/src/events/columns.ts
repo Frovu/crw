@@ -135,6 +135,7 @@ export function fromDesc(table: string, sqlName: string, desc: ColumnDef, firstT
 	const width = (()=>{
 		switch (desc.type) {
 			case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
+			case 'time[]': return 17;
 			case 'time': return 17;
 			case 'text': return 14;
 			default: return 6; 
