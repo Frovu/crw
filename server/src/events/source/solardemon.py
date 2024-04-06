@@ -11,7 +11,7 @@ URL = 'https://www.sidc.be/solardemon/science/'
 FLR_TABLE = T1 = 'solardemon_flares'
 DIM_TABLE = T2 = 'solardemon_dimmings'
 FLR_COLS = [
-	Col(T1, 'id', sql='id integer PRIMARY KEY'),
+	Col(T1, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
 	Col(T1, 'dimming_id', data_type='integer'),
 	Col(T1, 'start_time', not_null=True, data_type='time', pretty_name='start'),
 	Col(T1, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
@@ -27,7 +27,7 @@ FLR_COLS = [
 	Col(T1, 'detection_number', pretty_name='detections'),
 ]
 DIM_COLS = [
-	Col(T2, 'id', sql='id integer PRIMARY KEY'),
+	Col(T2, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
 	Col(T2, 'flare_id', data_type='integer'),
 	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
 	Col(T2, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),

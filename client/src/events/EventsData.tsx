@@ -5,7 +5,7 @@ import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
-import { G_ALL_OPS } from './columns';
+import { G_ALL_OPS, fromDesc } from './columns';
 import { Confirmation } from '../Utility';
 
 export function ExportMenu() {
@@ -86,25 +86,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				series: { [s: string]: string }
 			}>('events/info');
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([sqlName, desc]) => {
-				const width = (()=>{
-					switch (desc.type) {
-						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
-						case 'time': return 17;
-						case 'text': return 14;
-						default: return 6; 
-					}
-				})();
-				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
-				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
-				return {
-					...desc, width, sqlName,
-					entity: table,
-					name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
-					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
-					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
-				} as ColumnDef;
-			}) 	);
+			const columns = Object.entries(tables).flatMap(([table, cols]) =>
+				Object.entries(cols).map(([sqlName, desc]) => fromDesc(table, sqlName, desc, firstTable)));
 			console.log('%cavailable columns:', 'color: #0f0' , columns);
 			return {
 				tables: Object.keys(tables),

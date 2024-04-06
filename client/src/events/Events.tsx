@@ -25,6 +25,7 @@ import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory'
 import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
+import SecondaryTable from './TableSecondary';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -50,6 +51,7 @@ export function EventsLayoutContent() {
 		{type === 'ColorSettings' && <ColorsSettings/>}
 		{type === 'InsertControls' && <InsertControls/>}
 		{type === 'Histogram' && <HistogramPlot/>}
+		{type === 'EventTable' && <SecondaryTable/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}

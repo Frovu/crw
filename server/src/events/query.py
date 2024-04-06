@@ -3,6 +3,17 @@ from database import pool, log
 from events.table import table_columns, all_columns, select_from_root, column_id
 from events.generic_columns import select_generics
 from events.generic_core import G_SERIES, G_DERIVED
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
+
+COLS = {
+	donki.FLR_TABLE: donki.FLR_COLS,
+	donki.CME_TABLE: donki.CME_COLS,
+	lasco_cme.TABLE: lasco_cme.COLS,
+	r_c_icme.TABLE: r_c_icme.COLS,
+	solardemon.DIM_TABLE: solardemon.DIM_COLS,
+	solardemon.FLR_TABLE: solardemon.FLR_COLS,
+	solarsoft.TABLE: solarsoft.COLS
+}
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -10,19 +21,7 @@ def render_table_info(uid):
 	for table, columns in table_columns.items():
 		info[table] = {}
 		for name, col in columns.items():
-			info[table][name] = {
-				'id': column_id(col),
-				'parseName': col.parse_name,
-				'parseValue': col.parse_value,
-				'nullable': not col.not_null,
-				'name': col.pretty_name or name,
-				'type': col.data_type,
-				'isComputed': col.computed
-			}
-			if col.enum:
-				info[table][name]['enum'] = col.enum
-			if col.description:
-				info[table][name]['description'] = col.description
+			info[table][name] = col.as_dict()
 	for g in generics:
 		info[g.entity][g.name] = {
 			'id': g.name,
@@ -34,6 +33,15 @@ def render_table_info(uid):
 		}
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }
+
+def select_catalogue(entity):
+	if entity not in COLS:
+		raise ValueError('Unknown catalogue: '+entity)
+	cols = COLS[entity]
+	with pool.connection() as conn:
+		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
+		data = conn.execute(f'SELECT {cl} FROM events.{entity}').fetchall()
+	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
 def select_events(uid=None, root='forbush_effects', changelog=False):
 	generics = select_generics(uid)

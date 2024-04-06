@@ -33,18 +33,31 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-export default function TableView({ size, averages }: { size: Size, averages: (null | number[])[] }) {
+export default function TableView({ size, averages, isSecondary }: {
+	size: Size,
+	isSecondary?: boolean,
+	averages?: (null | number[])[],
+}) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const { plotId, sort, cursor, setStartAt, setEndAt,
-		toggleSort, setCursor, setEditing, escapeCursor, setPlotId } = useViewState();
+	const viewState = useViewState();
+	const { plotId, sort, cursor, setStartAt, setEndAt, toggleSort, setCursor,
+		setEditing, escapeCursor, setPlotId } = Object.assign(viewState, isSecondary ? {
+		sort: { column: 'time', direction: 1 },
+		toggleSort: () => {},
+		setEditing: () => {},
+		setPlotId: () => {}
+	} : {});
 	const [changesHovered, setChangesHovered] = useState(false);
-	const showChangelog = params?.showChangelog && size.height > 300;
-	const showAverages = params?.showAverages && size.height > 300;
+	const showChangelog = !isSecondary && params?.showChangelog && size.height > 300;
+	const showAverages = !isSecondary && params?.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const rowsHeight = size.height - (showAverages ? 213 : 106) - (showChangelog ? 54 : 0);
+	const rowsHeight = size.height
+		- (showAverages ? 107 : 0)
+		- (showChangelog ? 54 : 0)
+		- (106);
 	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
 	const viewSize = Math.floor(rowsHeight / rowH);
 	const hRem = rowsHeight % rowH;
@@ -155,7 +168,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 	return ( 
 		<div style={{ position: 'absolute', top: `calc(100% - ${size.height-1}px)`,
 			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
-			<div className='Table' style={{ position: 'relative' }} ref={ref} onScroll={console.log}>
+			<div className='Table' style={{ position: 'relative' }} ref={ref}>
 				<table onWheel={e => {
 					setViewIndex(idx => {
 						queueMicrotask(() => setCursor(null));
@@ -221,7 +234,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
 							{markers && <td style={{ borderColor: 'transparent' }}/>}
-							{averages.map((avgs, i) => {
+							{averages?.map((avgs, i) => {
 								const isLabel = columns[i].type === 'time';
 								const val = avgs?.[ari];
 								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
@@ -249,7 +262,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 						{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
 					</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 			</div>}
-			<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
+			{!isSecondary && <div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
 				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
 					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
@@ -272,7 +285,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 					<button className='TableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
 					<button className='TableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
 				</span>
-			</div>
+			</div>}
 		</div>
 	);
 }

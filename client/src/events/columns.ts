@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { SW_TYPES } from '../plots/time/SWTypes';
+import type { ColumnDef } from './events';
 
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 export const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
@@ -129,3 +130,24 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 	setPointSeries: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'extremum') point.series = val; }),
 	setPointStruct: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'sw_structure') point.structure = val as any; }),
 })));
+
+export function fromDesc(table: string, sqlName: string, desc: ColumnDef, firstTable: string) {
+	const width = (()=>{
+		switch (desc.type) {
+			case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
+			case 'time': return 17;
+			case 'text': return 14;
+			default: return 6; 
+		}
+	})();
+	const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
+	const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
+	return {
+		...desc, width, sqlName,
+		entity: table,
+		name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
+		fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
+		description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
+	} as ColumnDef;
+
+}

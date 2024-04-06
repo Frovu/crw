@@ -11,7 +11,7 @@ URL = 'https://www.lmsal.com/solarsoft/'
 
 TABLE = 'solarsoft_flares'
 COLS = [
-	Col(TABLE, 'start_time', not_null=True, sql='start_time timestamptz PRIMARY KEY', pretty_name='start'),
+	Col(TABLE, 'start_time', not_null=True, sql='start_time timestamptz PRIMARY KEY', data_type='time', pretty_name='start'),
 	Col(TABLE, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
 	Col(TABLE, 'end_time', not_null=True, data_type='time', pretty_name='end'),
 	Col(TABLE, 'class', data_type='text'),

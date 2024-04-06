@@ -12,7 +12,7 @@ const swRefToStr = (ref: Partial<Extract<ReferencePoint, { type: 'sw_structure' 
 	pretty ? ('SWS ' + (ref.end ? 'End' : 'Start')) : ((ref.end ? 'end+' : '') + 'sws');
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
 	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +
-	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity));
+	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity)); 
 
 export default function ColumnsSelector() {
 	const queryClient = useQueryClient();

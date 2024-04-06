@@ -104,7 +104,7 @@ export type ColumnDef = {
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'Empty' ] as const;
+	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'EventTable', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;

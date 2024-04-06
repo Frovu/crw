@@ -44,6 +44,22 @@ class ColumnDef:
 		if self.generic:
 			self.computed = True
 
+	def as_dict(self):
+		col = {
+			'id': column_id(self),
+			'parseName': self.parse_name,
+			'parseValue': self.parse_value,
+			'nullable': not self.not_null,
+			'name': self.pretty_name or self.name,
+			'type': self.data_type,
+			'isComputed': self.computed
+		}
+		if self.enum:
+			col['enum'] = self.enum
+		if self.description:
+			col['description'] = self.description
+		return col
+
 ENTITY_SHORT = {}
 tables_tree = {}
 select_from_root = {}
@@ -54,6 +70,8 @@ table_columns = {}
 def column_id(col):
 	if col is None:
 		return col
+	if col.entity not in ENTITY_SHORT:
+		return col.name
 	return f'{ENTITY_SHORT[col.entity]}_{col.name}'
 def parse_column_id(s):
 	if s.startswith('g__'):

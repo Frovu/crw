@@ -10,7 +10,7 @@ CME_TABLE = T1 = 'donki_cmes'
 FLR_TABLE = T2 = 'donki_flares'
 
 CME_COLS = [
-	Col(T1, 'id', sql='id integer PRIMARY KEY'),
+	Col(T1, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
 	Col(T1, 'event_id', data_type='text'),
 	Col(T1, 'time', not_null=True, data_type='time', description='CME start time'),
 	Col(T1, 'time_21_5', pretty_name='time 21.5', data_type='time'),
@@ -28,7 +28,7 @@ CME_COLS = [
 ]
 
 FLR_COLS = [
-	Col(T2, 'id', sql='id integer PRIMARY KEY'),
+	Col(T2, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
 	Col(T2, 'event_id', data_type='text'),
 	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
 	Col(T2, 'peak_time', data_type='time', pretty_name='peak'),

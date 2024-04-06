@@ -68,6 +68,13 @@ def _get_fetch_source():
 	timestamp = request.json.get('timestamp')
 	return op_cache.fetch(_fetch_source, (entity, timestamp))
 
+@bp.route('/catalogue', methods=['GET'])
+@route_shielded
+@compress.compressed()
+def list_catalogue():
+	entity = request.args.get('entity')
+	return query.select_catalogue(entity)
+
 @bp.route('/', methods=['GET'])
 @route_shielded
 @compress.compressed()
