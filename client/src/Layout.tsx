@@ -45,6 +45,7 @@ function Node({ id, size }: { id: string, size: Size }) {
 
 	const isRow = split === 'row';
 	const dim = isRow ? 'width' : 'height';
+	const otherDim = isRow ? 'height' : 'width';
 	const propsA = { id: children![0],
 		size: { ...size, [dim]: Math.round(size[dim] * ratio! - gapSize / 2) } };
 	const propsB = { id: children![1],
@@ -64,7 +65,11 @@ function Node({ id, size }: { id: string, size: Size }) {
 			[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 			cursor: isRow ? 'col-resize' : 'row-resize' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
-		onMouseDown={e => { drag.current = { ratio, click: isRow ? e.clientX : e.clientY }; }}/>
+		onMouseDown={e => {
+			if (e.ctrlKey)
+				return updateRatio(id, clamp(.05, .95, (size[otherDim] + gapSize / 2) / size[dim]));
+			drag.current = { ratio, click: isRow ? e.clientX : e.clientY };
+		}}/>
 		<Node {...propsB}/>
 	</div>;
 }

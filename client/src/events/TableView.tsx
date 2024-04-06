@@ -250,7 +250,7 @@ export default function TableView({ size, averages }: { size: Size, averages: (n
 					</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 			</div>}
 			<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
-				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px' }}>
+				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
 					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
 					{changes.length > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}

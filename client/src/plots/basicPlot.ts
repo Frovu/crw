@@ -478,6 +478,8 @@ export function actionsPlugin(): uPlot.Plugin {
 		hooks: {
 			ready: [ u => {
 				u.over.addEventListener('mousedown', e => {
+					if (e.button !== 0)
+						return;
 					if (u.cursor?.left)
 						dispatchCustomEvent('plotClick', { timestamp: u.posToVal(u.cursor.left, 'x') });
 				});

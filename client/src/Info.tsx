@@ -55,7 +55,7 @@ export default function Help() {
 				{infoPage === 'manual' && <div>
 	<h2>General usage</h2>
 	<h3>Program interface</h3>
-	<p>The program interface consists of a navigation bar on the bottom and the main area. The bottom bar includes login button, layout menu, color theme selector and log display. And the main area hosts unlimited number of useful program panels. Each panel can be indefinitely split either vertically or horizontally, or joined back with its sibling ("relinquish" option in the context menu).</p>
+	<p>The program interface consists of a navigation bar on the bottom and the main area. The bottom bar includes login button, layout menu, color theme selector and log display. And the main area hosts unlimited number of useful program panels. Each panel can be indefinitely split either vertically or horizontally, or joined back with its sibling ("relinquish" option in the context menu). Panels size is changed by dragging it's border.</p>
 	<p>Three color themes are presented, which can be <button className='TextButton' onClick={() => dispatchCustomEvent('action+switchTheme')}><u>switched</u></button> from the bottom bar or by pressing <b>{KEY_COMB.switchTheme}</b> key. Colors can also be adjusted individually using the <i>ColorSettings</i> panel.</p>
 	<p>Interaction with program is performed primarily through context menus, which appear after <b>clicking right mouse button </b>on any panel, or the nav bar. The nav bar context menu containing some general options like changing user password or resetting program settings. On the top of each panel's context menu one should select what is displayed in this panel, be it some type of plot or other useful interface.</p>
 	<p>Tip: Resetting settings can sometimes fix minor program issues.</p>
@@ -95,6 +95,10 @@ export default function Help() {
 				{infoPage === 'advanced' && <div>
 					<h3>Persist text transforms</h3>
 					<p>The program allows to save text transform presets (sets of search & replace entries) to be used later or by other users. Save and load buttons can be found on the top of replaces list. When overwriting existing preset publicity or name can't be changed. To change that just create a new preset. When loading a preset, "overwrite current" option can be unchecked to merge current entries whith a preset (this allowes to load two presets on top of each other). When merging, entries with the same search value are ommited. Don't forget to save your presets after making modifications!</p>
+					<h3>Advanced layout oprerations</h3>
+					<p>- When a panel is split it is split in 1 to 1 ratio.<br/>
+					- Right click on panels border to split it's parent.<br/>
+					- Ctrl+click panel border to make left/top panel square.</p>
 					<p>.</p>
 					<p>.</p>
 					<p>.</p>

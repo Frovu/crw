@@ -60,8 +60,10 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 	useEventListener('fetchAllSources', () => !isWorking && mutate());
 
 	const border = { border: '1px solid ' + color('border') };
-	const style = (d: number | null) =>
-		({ ...border, width: 56, color: color(d == null ? 'red' : d > 30 ? 'yellow' : 'green', .9) });
+	const style = (d: number | null) => {
+		const col = d == null ? 'red' : d >= 30 ? 'orange' : 'green';
+		return { ...border, width: 56, backgroundColor: color(col, .2), color: color(col) };
+	}
 
 	return <tr style={{ cursor: 'pointer' }} onClick={() => mutate()}
 		onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
@@ -81,6 +83,11 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 
 function CoverageControls({ date }: { date: Date }) {
 	const [hovered, setHovered] = useState(false);
+	useEffect(() => {
+		if (!hovered) return;
+		const timeout = setTimeout(() => setHovered(false), 2000);
+		return () => clearTimeout(timeout);
+	}, [hovered]);
 
 	const coverageQuery = useQuery(['events_coverage'],
 		() => apiGet<{ [ent: string]: string[][] }>('events/coverage'));
@@ -118,7 +125,8 @@ function CoverageControls({ date }: { date: Date }) {
 	return <div style={{ textAlign: 'center', fontSize: 14 }}>
 		<table style={{ borderCollapse: 'collapse' }}>
 			<tr style={{ cursor: 'pointer' }} onClick={() => dispatchCustomEvent('fetchAllSources')}
-				onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}><td></td>
+				onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
+				<td style={{ color: color('text-dark'), paddingBottom: 4 }}>coverage</td>
 				{hovered && <td colSpan={2} style={{ color: color('active'), width: 112 }}>update all</td>}
 				{!hovered && <>
 					<td>{month1.toLocaleString('default', { month: 'short' })}</td>
@@ -206,7 +214,7 @@ export default function InsertControls() {
 	if (targetIdx < 0)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 8, display: 'flex', flexFlow: 'column', gap: 8 }}>
+	return <div style={{ padding: 8, display: 'flex', flexFlow: 'column', gap: 8, height: '100%', overflowY: 'scroll' }}>
 		{<CoverageControls date={startDate}/>}
 		<div>Mode: <span style={{ color: color(isModify || isInsert ? 'red' : 'text') }}>
 			{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isModify ? 'MOVE' : 'VIEW'}</span></div>
