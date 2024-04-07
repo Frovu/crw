@@ -31,7 +31,8 @@ def render_table_info(uid):
 			'type': g.data_type,
 			'description': g.desc,
 			'isComputed': True,
-			'generic': g.as_dict(uid)
+			'generic': g.as_dict(uid),
+			'rel': g.rel
 		}
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }
@@ -49,11 +50,11 @@ def select_catalogue(entity):
 def select_events(uid=None, changelog=False):
 	generics = select_generics(uid)
 	columns = []
-	for col in FEID[1].values().concat(generics):
-		sel = f'feid.{col.name}'
-		value = f'EXTRACT(EPOCH FROM {sel})::integer' if col.data_type == 'time' else col
+	for col in list(FEID[1].values()) + generics:
+		value = f'EXTRACT(EPOCH FROM {col.name})::integer' if col.data_type == 'time' else col.name
 		columns.append(f'{value} as {col.name}')
-	select_query = f'SELECT {", ".join(columns)} FROM events.feid ORDER BY time'
+	select_query = f'SELECT {", ".join(columns)} FROM events.feid '+\
+		'LEFT JOIN events.generic_data ON id = feid_id ORDER BY time'
 	with pool.connection() as conn:
 		curs = conn.execute(select_query)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]

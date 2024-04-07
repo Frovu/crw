@@ -23,7 +23,7 @@ export type RefPointSWStruct = {
 export type RefPointEvent = {
 	type: 'event',
 	hours_offset: number,
-	entity_offset: number,
+	events_offset: number,
 	entity: string,
 	end?: boolean,
 };
@@ -32,7 +32,7 @@ export type ReferencePoint = RefPointExtremum | RefPointSWStruct | RefPointEvent
 export type GenericParamsClone = {
 	operation: 'clone_column',
 	column: string,
-	entity_offset: number,
+	events_offset: number,
 };
 export type GenericParamsCombine = {
 	operation: typeof G_COMBINE_OP[number],
@@ -72,7 +72,7 @@ export type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 };
 
 export const defaultRefPoint = {
-	type: 'event', entity: 'forbush_effects', hours_offset: 0, entity_offset: 0
+	type: 'event', entity: 'forbush_effects', hours_offset: 0, events_offset: 0
 } as const as RefPointEvent;
 
 const defaultState = {
@@ -98,7 +98,7 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 			const typeChanged = type(inp?.operation) !== type(val);
 			state.params = inp = { ...(!typeChanged && inp), [k]: val };
 			if (typeChanged && val === 'clone_column')
-				inp.entity_offset = 0;
+				inp.events_offset = 0;
 			if (typeChanged && G_VALUE_OP.includes(val as any)) {
 				inp.reference = { ...defaultRefPoint, entity: state.entity ?? defaultRefPoint.entity };
 				inp.boundary = { ...inp.reference, end: true };
@@ -122,8 +122,8 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 		} else if (type === 'event') {
 			const entity = val.split('+').at(-1)!;
 			const end = val.includes('end+');
-			const entity_offset = val.includes('prev+') ? -1 :  val.includes('next+') ? 1 : 0;
-			params[k] = { type, entity, entity_offset, hours_offset, end };
+			const events_offset = val.includes('prev+') ? -1 :  val.includes('next+') ? 1 : 0;
+			params[k] = { type, entity, events_offset, hours_offset, end };
 		}
 	}),
 	setPointHours: (k, val) => set(({ params: { [k]: point } }) => { if (point) point.hours_offset = val; }),

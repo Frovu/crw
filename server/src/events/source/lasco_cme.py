@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_many, upsert_coverage
-from events.table import ColumnDef as Col
+from events.table_structure import ColumnDef as Col
 
 TABLE = 'lasco_cmes'
 URL = 'https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL_ver1/'

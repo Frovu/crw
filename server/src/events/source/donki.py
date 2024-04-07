@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 import re, requests
 
 from database import pool, log, upsert_coverage, upsert_many
-from events.table import ColumnDef as Col
+from events.table_structure import ColumnDef as Col
 
 URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/'
 CME_TABLE = T1 = 'donki_cmes'

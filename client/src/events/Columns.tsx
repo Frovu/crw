@@ -11,7 +11,7 @@ import { SW_TYPES } from '../plots/time/SWTypes';
 const swRefToStr = (ref: Partial<Extract<ReferencePoint, { type: 'sw_structure' }>>, pretty?: boolean) =>
 	pretty ? ('SWS ' + (ref.end ? 'End' : 'Start')) : ((ref.end ? 'end+' : '') + 'sws');
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
-	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.entity_offset??0)+1] +
+	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.events_offset??0)+1] +
 	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity)); 
 
 export default function ColumnsSelector() {
@@ -168,9 +168,9 @@ export default function ColumnsSelector() {
 			value={isEvent ? refToStr(st) : isSWS ? swRefToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
 				<option value='null' disabled>-- None --</option>
 				{EXTREMUM_OP.map(ext => <option key={ext} value={ext}>{ext.startsWith('abs_') ? `|${ext.slice(4)}|` : ext}</option>)}
-				{tables.flatMap((ent, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(entity_offset => 
+				{tables.flatMap((ent, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(events_offset => 
 					(i === 0 || withDuration.includes(ent) ? [false, true] : [undefined])
-						.map(end => [false, true].map(p => refToStr({ entity: ent, entity_offset, end }, p)))))
+						.map(end => [false, true].map(p => refToStr({ entity: ent, events_offset, end }, p)))))
 					.map(([str, pretty]) => <option key={str} value={str}>{pretty}</option>)}
 				{[false, true].map(end =>
 					<option key={swRefToStr({ end })} value={swRefToStr({ end })}>{swRefToStr({ end }, true)}</option>)}
@@ -258,7 +258,7 @@ export default function ColumnsSelector() {
 				{isCombine && <Select txt='Column' k='other_column' opts={columnOpts!}/>}
 				{isClone && <label>Offset, events:
 					<input style={{ width: 48, margin: '0 4px' }} type='number' step={1} min={-2} max={2}
-						value={params.entity_offset} onChange={e => setParam('entity_offset', e.target.valueAsNumber)}/></label>}
+						value={params.events_offset} onChange={e => setParam('events_offset', e.target.valueAsNumber)}/></label>}
 				{isValue && <>
 					{!isTime && <Select txt='Series' k='series' opts={Object.entries(seriesOpts)}/>}
 					<div style={{ minWidth: 278, paddingTop: 4 }}>From<RefInput k='reference'/></div>

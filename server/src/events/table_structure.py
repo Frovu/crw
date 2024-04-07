@@ -64,7 +64,7 @@ C_FLR = lambda *args, **kwargs: ColumnDef('feid', 'flr_'+args[0], *args[1:], **k
 FEID = ['feid', { c.name: c for c in [
 	C_FE('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
 	C_FE('time',
-		sql='timestamptz NOT NULL UNIQUE',
+		sql='time timestamptz NOT NULL UNIQUE',
 		not_null=True,
 		data_type='time',
 		description='Event onset time',
@@ -116,13 +116,17 @@ FEID = ['feid', { c.name: c for c in [
 	C_MC('originator', data_type='integer', parse_name='MC'),
 	C_MC('size', parse_name='RMC'),
 
-	C_CME('time', data_type='time', parse_name='CMETime'),
+	C_CME('time',
+		pretty_name='CME time',
+		data_type='time',
+		parse_name='CMETime'),
 	C_CME('v_index',
 		pretty_name='V idx',
 		description='CME V0 / 1000',
 		computed=True),
 
 	C_FLR('time',
+		pretty_name='flare time',
 		data_type='time',
 		parse_name='STime',
 		description='Flare start time'),

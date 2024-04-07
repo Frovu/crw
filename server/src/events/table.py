@@ -14,8 +14,8 @@ def _init():
 					conn.execute(f'INSERT INTO events.{column.enum_name()} VALUES {",".join(["(%s)" for i in enum])} '+\
 						'ON CONFLICT DO NOTHING', enum)
 				conn.execute(f'ALTER TABLE IF EXISTS events.{table} ADD COLUMN IF NOT EXISTS {column.sql}')
-			create_columns = ',\n\t'.join([c.sql for c in columns])
-			create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns}))'
+			create_columns = ',\n\t'.join([c.sql for c in columns.values()])
+			create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns})'
 			conn.execute(create_table)
 
 		conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (

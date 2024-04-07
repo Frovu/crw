@@ -2,7 +2,6 @@ from time import time
 from threading import Thread, Lock
 import numpy as np
 from database import pool, log
-from events.table import parse_column_id
 from events.generic_columns import select_generics
 from events.generic_core import apply_changes, recompute_for_row, recompute_generics, G_DERIVED
 
@@ -11,12 +10,11 @@ DEFAULT_DURATION = 72
 compute_lock = Lock()
 compute_cache = {}
 
-def _compute_duration(for_row=None, entity='forbush_effects'):
-	assert entity == 'forbush_effects'
+def _compute_duration(for_row=None):
 	with pool.connection() as conn:
-		q = f'SELECT id, duration, EXTRACT(EPOCH FROM time)::integer FROM events.{entity} '
+		q = 'SELECT id, duration, EXTRACT(EPOCH FROM time)::integer FROM events.feid '
 		if for_row is not None:
-			q += f'WHERE time >= (SELECT time FROM events.{entity} WHERE id = %s) ORDER BY TIME LIMIT 2'
+			q += 'WHERE time >= (SELECT time FROM events.feid WHERE id = %s) ORDER BY TIME LIMIT 2'
 			rows = conn.execute(q, [for_row]).fetchall()
 		else:
 			rows = conn.execute(q + ' ORDER BY time').fetchall()
@@ -27,9 +25,9 @@ def _compute_duration(for_row=None, entity='forbush_effects'):
 		t_after[-1] = 9999
 		src_dur[src_dur < 1] = DEFAULT_DURATION
 		duration = np.minimum(src_dur, t_after)
-		query = f'UPDATE events.{entity} SET duration = %s WHERE id = %s'
+		query = 'UPDATE events.feid SET duration = %s WHERE id = %s'
 		conn.cursor().executemany(query, np.column_stack((duration, eid)).tolist())
-		log.info('Computed %s duration', entity)
+		log.info('Computed duration')
 
 def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm'):
 	assert entity == 'forbush_effects'
@@ -38,16 +36,16 @@ def _compute_vmbm(generics, for_row=None, entity='forbush_effects', column='vmbm
 	if not vm or not bm:
 		raise BaseException('Vm or Bm not found')
 	with pool.connection() as conn:
-		q = f'SELECT id, {vm.name}, {bm.name} FROM events.{entity}'
+		q = f'SELECT id, {vm.name}, {bm.name} FROM events.feid LEFT JOIN events.generic_data ON id = feid_id'
 		curs = conn.execute(q) if for_row is None else conn.execute(q + ' WHERE id = %s', [for_row])
 		data = np.array(curs.fetchall(), dtype='f8')
 		result = data[:,1] * data[:,2] / 5 / 400
 
 		data = np.column_stack((np.where(np.isnan(result), None, np.round(result, 2)), data[:,0].astype('i8')))
-		apply_changes(data[:,1], data[:,0], entity, column, conn)
-		query = f'UPDATE events.{entity} SET {column} = %s WHERE {entity}.id = %s'
+		apply_changes(data[:,1], data[:,0], column, conn)
+		query = f'UPDATE events.feid SET {column} = %s WHERE {entity}.id = %s'
 		conn.cursor().executemany(query, data.tolist())
-		log.info('Computed %s VmBm', entity)
+		log.info('Computed VmBm')
 
 def _compute_x_v_idx(for_row=None):
 	with pool.connection() as conn:
@@ -87,18 +85,16 @@ def compute_all(for_row=None):
 		del compute_cache[for_row]
 	return { 'time': round(elapsed, 2), 'done': done }
 
-def compute_column(cid):
-	entity, name = parse_column_id(cid)
+def compute_column(column):
 	generics = select_generics(select_all=True)
-	print(cid)
-	if cid == 'fe_vmbm':
-		_compute_vmbm(generics, entity=entity)
-	elif cid in ['sf_x_index', 'cme_v_index']:
+	if column == 'vmbm':
+		_compute_vmbm(generics)
+	elif column in ['flr_x_index', 'cme_v_index']:
 		_compute_x_v_idx()
-	elif name == 'duration':
-		_compute_duration(entity=entity)
+	elif column == 'duration':
+		_compute_duration()
 	else:
-		found = next((g for g in generics if g.name == name), None)
+		found = next((g for g in generics if g.name == column), None)
 		if not found:
 			raise ValueError('Column not found')
 		return recompute_generics(found)

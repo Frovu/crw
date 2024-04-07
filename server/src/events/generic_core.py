@@ -6,7 +6,6 @@ import numpy as np
 from database import log, pool
 import data.omni.core as omni
 from cream import gsm
-from events.table import table_columns, select_from_root, parse_column_id
 
 @dataclass
 class GenericRefPoint:
@@ -15,8 +14,8 @@ class GenericRefPoint:
 	operation: str = None
 	structure: str = None
 	series: str = None
-	entity_offset: int = None
-	entity: str = None
+	events_offset: int = None
+	time_src: str = None
 	end: bool = None
 
 HOUR = 3600
@@ -32,8 +31,8 @@ G_OP_CLONE = ['clone_column']
 G_OP_COMBINE = ['diff', 'abs_diff']
 G_DERIVED = G_OP_CLONE + G_OP_COMBINE
 
-G_EVENT = [t for t in table_columns if 'time' in table_columns[t]]
-G_ENTITY = [t for t in G_EVENT if 'duration' in table_columns[t]]
+G_TIME_SRC = ['FE', 'MC', 'FLR', 'CME']
+G_TIME_SRC_WITH_END = ['FE', 'MC']
 
 G_SERIES = { # order matters (no it does not)
 	'v_sw': ['omni', 'sw_speed', 'V'],
@@ -60,20 +59,20 @@ G_SERIES = { # order matters (no it does not)
 }
 G_SERIES = {**G_SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in G_SERIES.items() }}
 
-def default_window(ent): 
+def default_window(): 
 	return [
-		GenericRefPoint('event', 0, entity=ent, entity_offset=0),
-		GenericRefPoint('event', 0, entity=ent, entity_offset=0, end=True),
+		GenericRefPoint('event', 0, time_src='FEID', events_offset=0),
+		GenericRefPoint('event', 0, time_src='FEID', events_offset=0, end=True),
 	]
 
-def _select(for_rows, query, root='forbush_effects'):
-	columns = ','.join([f'EXTRACT(EPOCH FROM {e}.time)::integer'
-		if 'time' == c else (f'{e}.{c}' if e is not None else c) for e, c in query])
-	select_query = f'SELECT {columns}\nFROM {select_from_root[root]} '
+def _select(for_rows, query):
+	columns = ','.join([f'EXTRACT(EPOCH FROM {c})::integer'
+		if 'time' in c else c for c in query])
+	select_query = f'SELECT {columns}\nFROM events.feid LEFT JOIN LEFT JOIN events.generic_data ON id = feid_id '
 	if for_rows is not None:
-		select_query += f'WHERE {root}.id = ANY(%s) '
+		select_query += 'WHERE id = ANY(%s) '
 	with pool.connection() as conn:
-		curs = conn.execute(select_query + f'ORDER BY {root}.time', [] if for_rows is None else [for_rows])
+		curs = conn.execute(select_query + 'ORDER BY time', [] if for_rows is None else [for_rows])
 		res = np.array(curs.fetchall(), dtype='f8')
 	return [res[:,i] for i in range(len(query))]
 
@@ -100,21 +99,22 @@ def _select_series(t_1, t_2, series):
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
 	return arr[:,0], arr[:,1]
 
-def get_ref_time(for_rows, ref: GenericRefPoint, entity, cache): # always (!) rounds down
+def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds down
 	if ref.type == 'event':
-		has_dur = ref.entity in G_ENTITY
-		res = cache.get(ref.entity) or \
-			_select(for_rows, [(ref.entity, a) for a in ('time',) + (('duration',) if has_dur else ())])
-		cache[ref.entity] = res
+		has_dur = ref.time_src in G_TIME_SRC_WITH_END
+		assert ref.time_src == 'FE' # FIXME
+		res = cache.get(ref.time_src) or \
+			_select(for_rows, [(ref.time_src, a) for a in ('time',) + (('duration',) if has_dur else ())])
+		cache[ref.time_src] = res
 		e_start, e_dur = res if has_dur else (res, [])
-		e_start, e_dur = [apply_shift(a, ref.entity_offset) for a in (e_start, e_dur)]
+		e_start, e_dur = [apply_shift(a, ref.events_offset) for a in (e_start, e_dur)]
 		r_time = np.floor(e_start / HOUR) * HOUR
 		if ref.end:
 			r_time = r_time + e_dur * HOUR - HOUR
 	elif ref.type == 'extremum':
-		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(entity), entity, cache=cache)
+		r_time = find_extremum(for_rows, ref.operation, ref.series, default_window(), cache=cache)
 	elif ref.type == 'sw_structure':
-		r_time = find_sw_structure(for_rows, ref.structure, ref.end, default_window(entity), entity, cache=cache)
+		r_time = find_sw_structure(for_rows, ref.structure, ref.end, default_window(), cache=cache)
 	else:
 		assert not 'reached'
 	return r_time + ref.hours_offset * HOUR
@@ -131,8 +131,8 @@ def get_slices(t_time, t_1, t_2):
 	slice_len[np.isnan(slice_len)] = 0
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
-def find_sw_structure(for_rows, structure, is_end, window, entity, cache):
-	t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in window]
+def find_sw_structure(for_rows, structure, is_end, window, cache):
+	t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in window]
 	d_time, value = cache.get('sw_type') or _select_series(t_1, t_2, 'sw_type')
 	cache['sw_type'] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
@@ -147,9 +147,9 @@ def find_sw_structure(for_rows, structure, is_end, window, entity, cache):
 		
 	return result
 
-def find_extremum(for_rows, op, ser, window, entity, cache, return_value=False):
+def find_extremum(for_rows, op, ser, window, cache, return_value=False):
 	is_max, is_abs = 'max' in op, 'abs' in op
-	t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in window]
+	t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in window]
 	d_time, value = cache.get(ser) or _select_series(t_1, t_2, ser)
 	cache[ser] = (d_time, value)
 	slices = get_slices(d_time, t_1, t_2)
@@ -199,17 +199,15 @@ def apply_delta(data, series):
 	return delta
 
 def _do_compute(generic, for_rows=None):
-	entity, para = generic.entity, generic.params
+	para = generic.params
 	op = para.operation
 
 	if op in G_OP_CLONE:
-		target_id, target_value = _select(for_rows, [[entity, 'id'], parse_column_id(para.column)])
-		return target_id, apply_shift(target_value, para.entity_offset, stub=None)
+		target_id, target_value = _select(for_rows, ['id', para.column])
+		return target_id, apply_shift(target_value, para.events_offset, stub=None)
 
 	if op in G_OP_COMBINE:
-		lcol = parse_column_id(para.column)
-		rcol = parse_column_id(para.other_column)
-		target_id, lhv, rhv = _select(for_rows, [[entity, 'id'], lcol, rcol])
+		target_id, lhv, rhv = _select(for_rows, ['id', para.column, para.other_column])
 		if 'diff' in op:
 			result = lhv - rhv
 		else:
@@ -220,12 +218,12 @@ def _do_compute(generic, for_rows=None):
 
 	assert op in G_OP_VALUE
 	
-	target_id, event_start, event_duration = _select(for_rows, [(entity, a) for a in ('id', 'time', 'duration')])
-	cache = { entity: (event_start, event_duration) }
+	target_id, event_start, event_duration = _select(for_rows, ('id', 'time', 'duration'))
+	cache = { 'FE': (event_start, event_duration) }
 
 	if op in G_OP_TIME:
 		if op.startswith('time_offset'):
-			t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
+			t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
 			result = (t_2 - t_1) / HOUR
 			if '%' in op:
 				result = result / event_duration * 100
@@ -234,10 +232,10 @@ def _do_compute(generic, for_rows=None):
 
 	elif op in G_EXTREMUM:
 		window = (para.reference, para.boundary)
-		result = find_extremum(for_rows, op, para.series, window, entity, cache, return_value=True)
+		result = find_extremum(for_rows, op, para.series, window, cache, return_value=True)
 
 	else:
-		t_1, t_2 = [get_ref_time(for_rows, r, entity, cache) for r in (para.reference, para.boundary)]
+		t_1, t_2 = [get_ref_time(for_rows, r, cache) for r in (para.reference, para.boundary)]
 		d_time, d_value = cache.get(para.series) or _select_series(t_1, t_2, para.series)
 		cache[para.series] = (d_time, d_value)
 		slices = get_slices(d_time, t_1, t_2)
@@ -251,8 +249,8 @@ def _do_compute(generic, for_rows=None):
 
 		elif op in ['range']:
 			window = (para.reference, para.boundary)
-			max_val = find_extremum(for_rows, 'max', para.series, window, entity, cache, return_value=True)
-			min_val = find_extremum(for_rows, 'min', para.series, window, entity, cache, return_value=True)
+			max_val = find_extremum(for_rows, 'max', para.series, window, cache, return_value=True)
+			min_val = find_extremum(for_rows, 'min', para.series, window, cache, return_value=True)
 			result = max_val - min_val
 
 		elif op in ['coverage']:
@@ -285,7 +283,7 @@ def compute_generic(g, for_row=None):
 		result = np.where(~np.isfinite(result), None, np.round(result, 2))
 		update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
 		with pool.connection() as conn:
-			apply_changes(target_id, result, g.entity, g.name, conn)
+			apply_changes(target_id, result, g.name, conn)
 			data = np.column_stack((result, target_id)).tolist()
 			conn.cursor().executemany(update_q, data)
 			if for_row is None:
@@ -312,13 +310,14 @@ def recompute_for_row(generics, rid):
 		res = executor.map(func, generics)
 		return any(res)
 
-def apply_changes(d_ids, d_values, entity, column, conn):
-	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' + 
-		' WHERE entity_name = %s AND column_name = %s ORDER BY event_id, time DESC) chgs WHERE new_value IS NULL OR new_value != \'auto\'', [entity, column]).fetchall()
+def apply_changes(d_ids, d_values, column, conn):
+	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' +
+		' WHERE entity_name = \'feid\' AND column_name = %s ORDER BY event_id, time DESC) chgs ' +
+		'WHERE new_value IS NULL OR new_value != \'auto\'', [column]).fetchall()
 	if len(changes):
 		changes = np.array(changes, dtype='object')
 		ids = changes[:,0]
 		parsed = np.array([v and float(v) for v in changes[:,1]]) # presumes that only dtype=real generics are modifiable
 		_, a_idx, b_idx = np.intersect1d(ids, d_ids, return_indices=True)
 		d_values[b_idx] = parsed[a_idx]
-		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {entity}.{column}')
+		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {column}')

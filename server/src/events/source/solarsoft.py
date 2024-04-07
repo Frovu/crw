@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 import os, re, requests
 
 from database import pool, log, upsert_coverage, upsert_many
-from events.table import ColumnDef as Col
+from events.table_structure import ColumnDef as Col
 from events.source.donki import parse_coords
 
 URL = 'https://www.lmsal.com/solarsoft/'
