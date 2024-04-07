@@ -104,7 +104,7 @@ export type ColumnDef = {
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'EventTable', 'Empty' ] as const;
+	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'SecondaryTable', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;
@@ -133,6 +133,7 @@ export type Cursor = { row: number, column: number, entity?: string, editing?: b
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{ data: DataRow[], columns: ColumnDef[],
+	columnIndex: { [col: string]: number },
 	firstTable: string, tables: string[], series: {[s: string]: string},
 	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
 

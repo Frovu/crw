@@ -7,13 +7,15 @@ import CoverageControls from './CoverageControls';
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
-	const { data, columns } = useContext(MainTableContext);
+	const { data, columnIndex } = useContext(MainTableContext);
 	const { data: viewData } = useContext(TableViewContext);
 	const { modifyId, setStartAt, setEndAt, cursor, plotId, setStart, setEnd, setModify } = useViewState();
 
-	const isModify = modifyId != null;
-	const isInsert = !isModify && (setStartAt != null || setEndAt != null);
-	const [timeIdx, durIdx] = ['fe_time', 'fe_duration'].map(c => columns.findIndex(cc => cc.id === c));
+	const isMove = modifyId != null;
+	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
+	const isLink = false;
+	const isIdle = !isMove && !isInsert && !isLink;
+	const [timeIdx, durIdx, magnIdx] = ['fe_time', 'fe_duration', 'fe_magnitude'].map(c => columnIndex[c]);
 	const targetId = cursor && !cursor.entity ? viewData[cursor.row][0] : plotId;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
 	const startDate = data[targetIdx]?.[timeIdx] as Date;
@@ -84,16 +86,33 @@ export default function InsertControls() {
 	if (targetIdx < 0)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 8, display: 'flex', flexFlow: 'column', gap: 8, height: '100%', overflowY: 'scroll' }}>
-		{<CoverageControls date={startDate}/>}
-		<div>Mode: <span style={{ color: color(isModify || isInsert ? 'red' : 'text') }}>
-			{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isModify ? 'MOVE' : 'VIEW'}</span></div>
-		<div style={{ display: 'flex', gap: 4 }}>
-			<button disabled={isModify || plotId == null} onClick={isInsert ? handleEnter : toggle('insert')}>Insert</button>
-			<button disabled={isInsert} onClick={isModify ? handleEnter : toggle('modify')}>Modify</button>
-			{(setStartAt || setEndAt) && <button onClick={escape}>Cancel</button>}
+	return <div style={{ padding: 2, fontSize: 14, height: '100%', overflowY: 'scroll', textAlign: 'center'}}>
+		<div style={{ display: 'flex' }}>
+			{/* {(setStartAt || setEndAt) && <div>{isInsert ? 'New' : 'Move'} event at {prettyDate(setStartAt)}
+				{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>} */}
+			<div style={{ display: 'flex', color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
+				{(isIdle || isInsert) && <button onClick={isInsert ? handleEnter : toggle('insert')} style={{ width: 72 }}>Insert</button>}
+				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('modify')} style={{ width: 56 }}>Move</button>}
+				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('modify')} style={{ width: 56 }}>Link</button>}
+				{!isIdle && <button style={{ width: isInsert ? 112 : 128 }} onClick={escape}>Cancel</button>}
+			</div>
+			<div style={{ alignSelf: 'start', position: 'relative' }}>
+				<CoverageControls date={startDate}/>
+			</div>
+			
 		</div>
-		{(setStartAt || setEndAt) && <div>{isInsert ? 'New' : 'Move'} event at {prettyDate(setStartAt)}
-			{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>}
+		<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}>
+			<tr>
+				<td width={90}>MODE</td>
+				<td width={180}>start time</td>
+				<td width={48}>dur</td>
+			</tr>
+			<tr>
+				<td style={{ color: color(isMove || isInsert ? 'red' : 'text') }}>
+					{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : 'VIEW'}</td>
+				<td>{prettyDate(startDate)}</td>
+				<td>{data[targetIdx]?.[durIdx] as number}</td>
+			</tr>
+		</table>
 	</div>;
 }

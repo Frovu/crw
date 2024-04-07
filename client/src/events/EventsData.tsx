@@ -146,10 +146,14 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
+
+		const columnIndex = Object.fromEntries(filtered.map((c, i) => [c.id, i]));
+
 		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
 		return {
 			data,
 			columns: filtered,
+			columnIndex,
 			changelog,
 			firstTable,
 			tables: Array.from(tables),

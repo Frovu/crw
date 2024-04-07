@@ -1,10 +1,21 @@
 import { useContext, useMemo } from 'react';
-import { LayoutContext } from '../layout';
-import { TableViewContext, type ColumnDef, type Value } from './events';
+import { LayoutContext, type ContextMenuProps } from '../layout';
+import { TableViewContext, type ColumnDef, type Value, type PanelParams } from './events';
 import { useQuery } from 'react-query';
 import { apiGet } from '../util';
 import { fromDesc } from './columns';
 import TableView from './TableView';
+
+const TABLES = ['Eruptive Events', 'Flares', 'CMEs', 'ICMEs', 'Dimmings'];
+
+export function SecTableContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
+
+	return <>
+		<select className='Borderless'>
+
+		</select>
+	</>;
+}
 
 export default function SecondaryTable() {
 	const { id: nodeId, params, size } = useContext(LayoutContext)!;
@@ -27,7 +38,7 @@ export default function SecondaryTable() {
 				return isNaN(date.getTime()) ? null : date;
 			}
 			if (c.type.endsWith('[]')) {
-				return row[i] == null || (row[i] as any).length < 1 ? null : (row[i] as string[]).join(',')
+				return row[i] == null || (row[i] as any).length < 1 ? null : (row[i] as string[]).join(',');
 			}
 			return row[i];
 		})]) as [number, ...Value[]][];

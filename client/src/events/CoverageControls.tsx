@@ -81,7 +81,7 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 }
 
 export default function CoverageControls({ date }: { date: Date }) {
-	const [userMinified, setUserMinified] = useState(true);
+	const [minified, setMinified] = useState(true);
 	const [hovered, setHovered] = useState(false);
 
 	useEffect(() => {
@@ -125,18 +125,19 @@ export default function CoverageControls({ date }: { date: Date }) {
 
 	if (!data) return <div>coverage...</div>;
 
-	const minified = userMinified && !data?.find(({ d1, d2 }) => d1 == null || d2 == null );
+	const gaps = minified && data.find(({ d1, d2 }) => d1 == null || d2 == null);
 	const oldest = !minified ? 0 : Math.max.apply(null, data.flatMap(({ d1, d2 }) => [d1!, d2!]));
-	const colour = oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
+	const colour = gaps ? 'red' : oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
 
-	return <div>
-		<table style={{ textAlign: 'center', fontSize: 14, borderCollapse: 'collapse' }}>
-			<tr style={{ cursor: 'pointer', lineHeight: minified ? 1 : 1.5 }}
+	return <div style={{ position: 'absolute', padding: '1px 3px 3px 3px', background: color('bg'), zIndex: 2,
+		border: !minified ? '1px solid'+color('border') : 'none' }}>
+		<table style={{ textAlign: 'center', width: 'max-content', fontSize: 14, borderCollapse: 'collapse' }}>
+			<tr style={{ cursor: 'pointer', lineHeight: minified ? 1.1 : 1.5 }}
 				onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
-				<td style={{ color: color('text-dark'), paddingBottom: 4, width: 84 }} className='TextButton'
-					onClick={() => setUserMinified(m => !m)}>{minified ? (hovered ? 'expand' : 'Coverage:') : 'hide'}</td>
+				<td style={{ color: color(colour === 'red' ? 'red' : 'text-dark'), paddingBottom: 4, width: 84 }} className='TextButton'
+					onClick={() => setMinified(minified ? false : true)}>{hovered ? (minified ? 'expand' : 'hide') : 'coverage'}</td>
 				{minified && <td style={{
-					width: 56, border: '1px solid '+color('border'),
+					width: 62, border: '1px solid '+color('border'),
 					color: color(colour), backgroundColor: color(colour, .2) }}>T-{oldest.toFixed()}d</td>}
 				{!minified && hovered && <td colSpan={2} style={{ width: 112 }} className='TextButton'
 					onClick={() => dispatchCustomEvent('fetchAllSources')}>update all</td>}

@@ -25,7 +25,7 @@ import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory'
 import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
-import SecondaryTable from './TableSecondary';
+import SecondaryTable, { SecTableContextMenu } from './TableSecondary';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -45,14 +45,14 @@ export function EventsLayoutContent() {
 	}, [appState, plotContext, type, settings, plotParams]);
 
 	return <div style={{ height: '100%', userSelect: 'none', overflow: 'clip',
-		border: ['MainTable', 'EventTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
+		border: ['MainTable', 'SecondaryTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
 		{type === 'MainTable' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
 		{type === 'ColorSettings' && <ColorsSettings/>}
 		{type === 'InsertControls' && <InsertControls/>}
 		{type === 'Histogram' && <HistogramPlot/>}
-		{type === 'EventTable' && <SecondaryTable/>}
+		{type === 'SecondaryTable' && <SecondaryTable/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}
@@ -162,13 +162,14 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useViewState();
 	const layout = useLayout();
+	const { set, ...settings } = useEventsSettings();
+	const { addFilter } = useSampleState(); 
+
 	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;
 	const averages = details?.averages;
-	const { set, ...settings } = useEventsSettings();
-	const { addFilter } = useSampleState(); 
 	const isEventPlot = plotPanelOptions.includes(params.type as any);
 	const isPlot = isEventPlot || statPanelOptions.includes(params.type as any);
 	const cur = (isPlot && {
@@ -188,6 +189,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
+		{params.type === 'SecondaryTable' && <SecTableContextMenu {...{ params, setParams }}/>}
 		{params.type === 'MainTable' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
