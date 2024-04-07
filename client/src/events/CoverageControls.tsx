@@ -90,6 +90,8 @@ export default function CoverageControls({ date }: { date: Date }) {
 		return () => clearTimeout(timeout);
 	}, [hovered]);
 
+	useEventListener('escape', () => setMinified(true));
+
 	const coverageQuery = useQuery(['events_coverage'],
 		() => apiGet<{ [ent: string]: string[][] }>('events/coverage'));
 

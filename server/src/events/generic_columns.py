@@ -5,7 +5,7 @@ from datetime import datetime
 from database import log, pool
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
-from events.table import table_columns, parse_column_id, ENTITY_SHORT
+from events.table_structure import FEID
 from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, compute_generic, default_window
@@ -16,10 +16,8 @@ def shift_indicator(shift):
 def find_column_info(rows, name):
 	try:
 		if not name.startswith('g__'):
-			entity, col = parse_column_id(name)
-			found = table_columns[entity][col]
-			return found.pretty_name or col, found.data_type, entity
-		# found = next((g for g in generics if g.name == name))
+			found = FEID[1][name]
+			return found.pretty_name or name, found.data_type, 'feid'
 
 		gen = next((GenericColumn.from_row(row, rows) for row in rows if str(row[0]) == name.replace('g__', '')))
 		return gen.pretty_name, gen.data_type, gen.entity
@@ -62,7 +60,6 @@ class GenericColumn:
 	id: int
 	created: datetime
 	last_computed: datetime
-	entity: str
 	owner: int
 	is_public: bool
 	params: GenericParams
@@ -71,6 +68,7 @@ class GenericColumn:
 	pretty_name: str = None
 	desc: str = None
 	data_type: str = None
+	rel: str = None # TODO:
 
 	@classmethod
 	def from_row(cls, row, gs=None):
@@ -195,7 +193,7 @@ def upset_generic(uid, json_body):
 		if col.startswith('g__'):
 			return next((g for g in generics if g.name == col), None)
 		ent, c = parse_column_id(col)
-		return table_columns[ent].get(c)
+		return FEID[1].get(c)
 
 	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
 		raise ValueError('Trying to edit generic that does not exist')
@@ -255,14 +253,14 @@ def upset_generic(uid, json_body):
 			row = conn.execute('INSERT INTO events.generic_columns ' +\
 				'(entity, owner, is_public, params, nickname, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
 				[entity, uid, is_public, json.dumps(p.as_dict()), nickname, description]).fetchone()
-			generic = GenericColumn.from_row(row, generics)
+			generic = GenericColumn.from_row(row, generics, curs)
 			_create_column(conn, generic)
 			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 		else:
 			row = conn.execute('UPDATE events.generic_columns SET ' +\
 				'params=%s, is_public=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
 				[json.dumps(p.as_dict()), is_public, nickname, description, gid]).fetchone()
-			generic = GenericColumn.from_row(row, generics)
+			generic = GenericColumn.from_row(row, generics, curs)
 			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
 	if not gid or found.params != p:
 		compute_generic(generic)

@@ -86,7 +86,7 @@ export default function InsertControls() {
 	if (targetIdx < 0)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 2, fontSize: 14, height: '100%', overflowY: 'scroll', textAlign: 'center'}}>
+	return <div style={{ padding: 2, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center'}}>
 		<div style={{ display: 'flex' }}>
 			{/* {(setStartAt || setEndAt) && <div>{isInsert ? 'New' : 'Move'} event at {prettyDate(setStartAt)}
 				{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>} */}
@@ -108,7 +108,7 @@ export default function InsertControls() {
 				<td width={48}>dur</td>
 			</tr>
 			<tr>
-				<td style={{ color: color(isMove || isInsert ? 'red' : 'text') }}>
+				<td style={{ color: color(isMove || isInsert ? 'magenta' : 'text') }}>
 					{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : 'VIEW'}</td>
 				<td>{prettyDate(startDate)}</td>
 				<td>{data[targetIdx]?.[durIdx] as number}</td>
