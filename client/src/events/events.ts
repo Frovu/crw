@@ -111,19 +111,27 @@ export type PanelParams = NodeParams<Partial<CommonPlotParams>
 
 export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
+
+export type ChangeLogEntry = {
+	time: number,
+	author: string,
+	old: string,
+	new: string,
+	special: 'import' | null
+}[];
+
 export type ChangeLog = {
-	[id: string]: {
-		[col: string]: [
-			{
-				time: number,
-				author: string,
-				old: string,
-				new: string,
-				special: 'import' | null
-			}
-		]
+	fields: string[],
+	events: {
+		[id: string]: {
+			[col: string]: (number | null | string)[][]
+		}
 	}
 };
+
+export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: string) =>
+	chl?.events[eid]?.[cid]?.map(row =>
+		Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
 
 export type Value = Date | string | number | null;
 export type DataRow = [number, ...Array<Value>];

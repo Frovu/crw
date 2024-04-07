@@ -1,7 +1,7 @@
 import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect, useMemo } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
-	MainTableContext, useViewState, type Cursor, type TableParams } from './events';
+	MainTableContext, useViewState, type Cursor, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
 import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext, type LayoutContextType } from '../layout';
@@ -72,10 +72,10 @@ export default function TableView({ size, averages, entity }: {
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
 	const cursCol = cursor && columns[cursor?.column]?.id;
-	const changelogEntry = (showChangelog || null) && cursor && wholeChangelog && data[cursor.row] && wholeChangelog[data[cursor.row][0]];
-	const changelog = changelogEntry && Object.entries(changelogEntry)
-		.filter(([col]) => columns.find(c => c.id === col))
-		.flatMap(([col, chgs]) => chgs.map(c => ({ column: col, ...c })))
+	const changelogCols = (showChangelog || null) && cursor && wholeChangelog
+		&& data[cursor.row] && columns.map(c => [c.id, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.id)]);
+	const changelog = changelogCols?.filter(c => !!c[1])
+		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map(c => ({ column: col, ...c })))
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 
@@ -209,7 +209,7 @@ export default function TableView({ size, averages, entity }: {
 						const marker = markers?.[idx];
 						const isCompModified = columns.map(c => {
 							if (!c.isComputed) return false;
-							const chgs = wholeChangelog?.[row[0]]?.[c.id]?.sort((a, b) => b.time - a.time);
+							const chgs = getChangelogEntry(wholeChangelog, row[0], c.id)?.sort((a, b) => b.time - a.time);
 							if (!chgs?.length) return false;
 							return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 						});

@@ -117,6 +117,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true }),
 		onSuccess: () => logMessage('Events table loaded', 'debug')
 	});
+	
 	const rawMainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
 		const { columns, rels, series, structure } = structureQuery.data;

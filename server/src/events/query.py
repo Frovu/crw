@@ -59,33 +59,23 @@ def select_events(uid=None, changelog=False):
 		curs = conn.execute(select_query)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
 		if changelog:
-			rendered = {}
-			# changes = []
-			# for entity in table_columns:
-			# 	query = f'''SELECT {root}.id as root_id, entity_name, column_name, special,
-			# 	(select login from users where uid = author) as author, EXTRACT (EPOCH FROM changes_log.time)::integer, old_value, new_value
-			# 		FROM events.changes_log LEFT JOIN {select_from_root[root]} ON {entity}.id = event_id AND entity_name = %s
-			# 		WHERE {root}.id is not null AND (column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s))'''
-			# 	res = conn.execute(query, (entity, [g.name for g in generics])).fetchall()
-			# 	changes.extend(res)
-			# for root_id, entity, column, special, author, made_at, old_val, new_val in changes:
-			# 	if root_id not in rendered:
-			# 		rendered[root_id] = {}
-
-			# 	name = column_id(table_columns[entity][column]) if column in table_columns[entity] else column
-
-			# 	if name not in rendered[root_id]:
-			# 		rendered[root_id][name] = []
-			# 	# TODO: pack changelog in array matrix instead of objects to optimize payload size
-			# 	rendered[root_id][name].append({
-			# 		'special': special,
-			# 		'time': made_at,
-			# 		'author': author,
-			# 		'old': old_val,
-			# 		'new': new_val
-			# 	})
+			changes = { 'fields': ['time', 'author', 'old', 'new', 'special'], 'events': {} }
+			query = '''SELECT event_id, column_name, special, old_value, new_value,
+				EXTRACT (EPOCH FROM changes_log.time)::integer,
+				(select login from users where uid = author) as author
+				FROM events.changes_log WHERE
+					event_id is not null AND entity_name=\'feid\' AND
+					(column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s))'''
+			res = conn.execute(query, [[g.name for g in generics]]).fetchall()
+			per_event = changes['events']
+			for eid, column, special, old_val, new_val, made_at, author in res:
+				if eid not in per_event:
+					per_event[eid] = {}
+				if column not in per_event[eid]:
+					per_event[eid][column] = []
+				per_event[eid][column].append([made_at, author, old_val, new_val, special])
 		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
-		return rows, fields, rendered if changelog else None
+		return rows, fields, changes if changelog else None
 
 def submit_changes(uid, changes):
 	with pool.connection() as conn:
