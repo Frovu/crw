@@ -45,8 +45,8 @@ export function EventsLayoutContent() {
 	}, [appState, plotContext, type, settings, plotParams]);
 
 	return <div style={{ height: '100%', userSelect: 'none', overflow: 'clip',
-		border: ['MainTable', 'SecondaryTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
-		{type === 'MainTable' && <MainTablePanel/>}
+		border: ['FEID Table', 'SecondaryTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
+		{type === 'FEID Table' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
 		{type === 'ColorSettings' && <ColorsSettings/>}
@@ -190,7 +190,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
 		{params.type === 'SecondaryTable' && <SecTableContextMenu {...{ params, setParams }}/>}
-		{params.type === 'MainTable' && <>
+		{params.type === 'FEID Table' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
 				<button onClick={() => copyAverages(averages, 'col')}>Copy column averages</button>

@@ -86,17 +86,17 @@ export default function ImportMenu() {
 				++diff.found;
 				lost[foundIdx] = null;
 				const changes: typeof diff.changes[number][2] = [];
-				for (const [ci, { id, sqlName, entity }] of columns.entries()) {
+				for (const [ci, { id, entity }] of columns.entries()) {
 					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
-					if (sqlName === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
+					if (id === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
 						continue;
 					if (equalValues(oldVal, newVal) ||
 						(oldVal == null && [-999, -99, -99.9, 0, -1].includes(newVal as number)))
 						continue;
 					changes.push({
 						entity,
-						column: sqlName,
+						column: id,
 						before: oldVal,
 						after: newVal,
 					});
@@ -123,7 +123,7 @@ export default function ImportMenu() {
 			remove: actuallyLost.map(l => l![0]),
 			total: rows.length,
 			interval: interval as [Date, Date],
-			columns: columns.map(c => [ c.entity, c.sqlName ] )
+			columns: columns.map(c => c.id)
 		} };
 
 	}, [allColumns, currentData, fileText, open]);

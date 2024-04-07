@@ -25,7 +25,7 @@ export default function SecondaryTable() {
 	// TODO: limit time
 	const query = useQuery(['eventsCatalogue', entity], async () => {
 		const res = await apiGet<{ columns: ColumnDef[], data: (Value | string[])[][] }>('events/catalogue', { entity });
-		const columns = res.columns.map(desc => fromDesc(entity, desc.name, desc, entity));
+		const columns = res.columns.map(desc => fromDesc(desc));
 		for (const col of columns) {
 			if (col.name === 'class')
 				col.width = 7;

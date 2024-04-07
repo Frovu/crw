@@ -15,7 +15,7 @@ export default function InsertControls() {
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isLink = false;
 	const isIdle = !isMove && !isInsert && !isLink;
-	const [timeIdx, durIdx, magnIdx] = ['fe_time', 'fe_duration', 'fe_magnitude'].map(c => columnIndex[c]);
+	const [timeIdx, durIdx] = ['time', 'duration'].map(c => columnIndex[c]);
 	const targetId = cursor && !cursor.entity ? viewData[cursor.row][0] : plotId;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
 	const startDate = data[targetIdx]?.[timeIdx] as Date;

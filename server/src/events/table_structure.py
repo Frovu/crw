@@ -42,6 +42,7 @@ class ColumnDef:
 	def as_dict(self):
 		col = {
 			'id': self.name,
+			'entity': self.entity,
 			'parseName': self.parse_name,
 			'parseValue': self.parse_value,
 			'nullable': not self.not_null,
@@ -57,9 +58,11 @@ class ColumnDef:
 		return col
 
 C_FE  = lambda *args, **kwargs: ColumnDef('feid', *args, **kwargs, rel='FE')
-C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], **kwargs, rel='MC')
+C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], pretty_name=args[0], **kwargs, rel='MC')
 C_CME = lambda *args, **kwargs: ColumnDef('feid', 'cme_'+args[0], *args[1:], **kwargs, rel='CME')
 C_FLR = lambda *args, **kwargs: ColumnDef('feid', 'flr_'+args[0], *args[1:], **kwargs, rel='FLR')
+
+SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id'
 
 FEID = ['feid', { c.name: c for c in [
 	C_FE('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),

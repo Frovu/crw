@@ -65,10 +65,10 @@ class GenericColumn:
 	params: GenericParams
 	nickname: str = None
 	description: str = None
+	rel: str = None # TODO:
 	pretty_name: str = None
 	desc: str = None
 	data_type: str = None
-	rel: str = None # TODO:
 
 	@classmethod
 	def from_row(cls, row, gs=None):
@@ -167,8 +167,8 @@ def _init():
 			nickname text,
 			description text,
 			rel text)''')
-	conn.execute('CREATE TABLE IF NOT EXISTS events.generic_data ('+
-		'feid_id INTEGER NOT NULL REFERENCES events.feid ON DELETE CASCADE)')
+		conn.execute('CREATE TABLE IF NOT EXISTS events.generic_data ('+
+			'feid_id INTEGER NOT NULL UNIQUE REFERENCES events.feid ON DELETE CASCADE)')
 	generics = select_generics(select_all=True)
 	with pool.connection() as conn:
 		for generic in generics:
@@ -185,8 +185,8 @@ def select_generics(user_id=None, select_all=False):
 _init()
 
 def upset_generic(uid, json_body):
-	gid, entity, nickname, description, is_public = \
-		[json_body.get(i) for i in ('gid', 'entity', 'nickname', 'description', 'is_public')]
+	gid, nickname, description, is_public = \
+		[json_body.get(i) for i in ('gid', 'nickname', 'description', 'is_public')]
 	p = GenericParams.from_dict(json_body['params'])
 	op = p.operation
 	generics = select_generics(uid)
@@ -196,19 +196,17 @@ def upset_generic(uid, json_body):
 			return next((g for g in generics if g.name == col), None)
 		return FEID[1].get(col)
 
-	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
+	if gid and not (found := next((g for g in generics if g.id == gid), None)):
 		raise ValueError('Trying to edit generic that does not exist')
 	if gid and found.owner != uid and get_role() != 'admin':
 		raise ValueError('Forbidden')
-	if not gid and (found := next((g for g in generics if g.entity == entity and g.params == p), None)):
+	if not gid and (found := next((g for g in generics if g.params == p), None)):
 		raise ValueError('Such column already exists: '+found.pretty_name)
 	if nickname is not None and len(nickname) > 24:
 		raise ValueError('Nickname too long')
 	if not gid and uid and get_role() not in ('operator', 'admin') \
 		and len([g for g in generics if g.owner == uid]) > 19:
 		raise ValueError('Limit reached, please delete some other columns first')
-	if entity not in G_TIME_SRC_WITH_END or not p.operation:
-		raise ValueError('Unknown entity')
 	if op in G_OP_CLONE:
 		if not find_col(p.column):
 			raise ValueError('Column not found')
@@ -252,8 +250,8 @@ def upset_generic(uid, json_body):
 	with pool.connection() as conn:
 		if gid is None:
 			row = conn.execute('INSERT INTO events.generic_columns ' +\
-				'(entity, owner, is_public, params, nickname, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
-				[entity, uid, is_public, json.dumps(p.as_dict()), nickname, description]).fetchone()
+				'(owner, is_public, params, nickname, description, rel) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
+				[uid, is_public, json.dumps(p.as_dict()), nickname, description, 'FE']).fetchone()
 			generic = GenericColumn.from_row(row, generics)
 			_create_column(conn, generic)
 			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name}')

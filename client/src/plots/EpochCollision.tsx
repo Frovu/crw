@@ -14,7 +14,7 @@ const seriesKeys = ['series0', 'series1', 'series2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 
 const defaultOptions = {
-	timeColumn: 'fe_time',
+	timeColumn: 'time',
 	series0: 'a10m',
 	series1: null as null | string,
 	series2: null as null | string,

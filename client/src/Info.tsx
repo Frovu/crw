@@ -66,7 +66,7 @@ export default function Help() {
 	<h3>User accounts</h3>
 	<p>Registration is not mandatory to use the program, but the registered users have more options, including computation of new parameter columns, creatig samples of events, etc. Registration does not require anything apart from the username and password, and is needed to remember your work and allow working from different computers. Note that if you ever decide to make public samples, your username will be visible to other users. To change username contact support.</p>
 	<h2>Events catalogue</h2>
-	<p>The <i>MainTable</i> panel allowes one to interact with the table which lists Forbush effects and other associated events parameters. Panel consists of the sample menu at the top and the table itself. The left corner of table footer shows the count  of entries in current effective sample.</p>
+	<p>The <i>FEID Table</i> panel allowes one to interact with the table which lists Forbush effects and other associated events parameters. Panel consists of the sample menu at the top and the table itself. The left corner of table footer shows the count  of entries in current effective sample.</p>
 	<h3>Picking interesting paramters</h3>
 	<p>When working with the table, it is recommended to enable only those columns that are of interest at the moment. This can be done with the columns menu, which can be opened from context menu, or by pressing <b>{KEY_COMB.openColumnsSelector}</b> key. Multiple columns can be enabled or disabled by holding Ctrl and dragging cursor over them or by clicking at an entity name. Drag column names without pressing Ctrl in order to change their order. This menu is also used for custom column creation, which will be discussed below.</p>
 	<h3>Navigating table</h3>

@@ -3,7 +3,8 @@ import traceback
 from time import time
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
-from database import log, pool
+from database import log, pool, upsert_many
+from events.table_structure import SELECT_FEID
 import data.omni.core as omni
 from cream import gsm
 
@@ -68,7 +69,7 @@ def default_window():
 def _select(for_rows, query):
 	columns = ','.join([f'EXTRACT(EPOCH FROM {c})::integer'
 		if 'time' in c else c for c in query])
-	select_query = f'SELECT {columns}\nFROM events.feid LEFT JOIN LEFT JOIN events.generic_data ON id = feid_id '
+	select_query = f'SELECT {columns}\nFROM {SELECT_FEID} '
 	if for_rows is not None:
 		select_query += 'WHERE id = ANY(%s) '
 	with pool.connection() as conn:
@@ -281,13 +282,13 @@ def compute_generic(g, for_row=None):
 		if g.params.series == 'kp':
 			result /= 10
 		result = np.where(~np.isfinite(result), None, np.round(result, 2))
-		update_q = f'UPDATE events.{g.entity} SET {g.name} = %s WHERE {g.entity}.id = %s'
+		data = np.column_stack((target_id, result)).tolist()
+		upsert_many('events.generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
 		with pool.connection() as conn:
-			apply_changes(target_id, result, g.name, conn)
-			data = np.column_stack((result, target_id)).tolist()
-			conn.cursor().executemany(update_q, data)
+			apply_changes(conn, g.name)
 			if for_row is None:
-				conn.execute('UPDATE events.generic_columns_info SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
+				conn.execute('UPDATE events.generic_columns SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
+			
 		return True
 	except:
 		log.error(f'Failed at generic {g.pretty_name}: {traceback.format_exc()}')
@@ -310,14 +311,10 @@ def recompute_for_row(generics, rid):
 		res = executor.map(func, generics)
 		return any(res)
 
-def apply_changes(d_ids, d_values, column, conn):
-	changes = conn.execute('SELECT * FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' +
-		' WHERE entity_name = \'feid\' AND column_name = %s ORDER BY event_id, time DESC) chgs ' +
-		'WHERE new_value IS NULL OR new_value != \'auto\'', [column]).fetchall()
-	if len(changes):
-		changes = np.array(changes, dtype='object')
-		ids = changes[:,0]
-		parsed = np.array([v and float(v) for v in changes[:,1]]) # presumes that only dtype=real generics are modifiable
-		_, a_idx, b_idx = np.intersect1d(ids, d_ids, return_indices=True)
-		d_values[b_idx] = parsed[a_idx]
-		log.info(f'Applied {b_idx.size}/{len(changes)} overriding changes to {column}')
+def apply_changes(conn, column, table='generic_data', dtype='real'):
+	id_col = 'feid_id' if table == 'generic_data' else 'id'
+	curs = conn.execute(f'UPDATE events.{table} tgt SET {column} = new_value::{dtype} ' +
+		'FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' +
+		'WHERE entity_name = \'feid\' AND column_name = %s ORDER BY event_id, time DESC) chgs ' +
+		f'WHERE tgt.{id_col} = event_id AND (new_value IS NULL OR new_value != \'auto\')', [column])
+	log.info(f'Applied {curs.rowcount} overriding changes to {column}')

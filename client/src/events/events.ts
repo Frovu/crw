@@ -104,7 +104,7 @@ export type ColumnDef = {
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'SecondaryTable', 'Empty' ] as const;
+	'FEID Table', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'SecondaryTable', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;
@@ -153,7 +153,7 @@ export const PlotContext = createContext<null | { interval: [Date, Date], onsets
 
 const defaultViewSate = {
 	cursor: null as Cursor | null,
-	sort: { column: 'fe_time', direction: 1 } as Sort,
+	sort: { column: 'time', direction: 1 } as Sort,
 	plotId: null as number | null,
 	modifyId: null as number | null,
 	setStartAt: null as Date | null,
@@ -280,7 +280,7 @@ export const defaultLayouts: { [name: string]: Layout<PanelParams> } = {
 		},
 		items: {
 			left: {
-				type: 'MainTable',
+				type: 'FEID Table',
 				showAverages: true,
 				showChangelog: false,
 			},
@@ -320,7 +320,7 @@ export const defaultLayouts: { [name: string]: Layout<PanelParams> } = {
 		},
 		items: {
 			top: {
-				type: 'MainTable',
+				type: 'FEID Table',
 				showAverages: true,
 				showChangelog: false,
 			},
@@ -375,7 +375,7 @@ export const defaultLayouts: { [name: string]: Layout<PanelParams> } = {
 		},
 		items: {
 			tbl: {
-				type: 'MainTable'
+				type: 'FEID Table'
 			},
 			exp: {
 				type: 'ExportControls'
