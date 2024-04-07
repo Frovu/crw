@@ -61,8 +61,8 @@ G_SERIES = {**G_SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in G_SE
 
 def default_window(): 
 	return [
-		GenericRefPoint('event', 0, time_src='FEID', events_offset=0),
-		GenericRefPoint('event', 0, time_src='FEID', events_offset=0, end=True),
+		GenericRefPoint('event', 0, time_src='FE', events_offset=0),
+		GenericRefPoint('event', 0, time_src='FE', events_offset=0, end=True),
 	]
 
 def _select(for_rows, query):

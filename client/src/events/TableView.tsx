@@ -1,7 +1,7 @@
 import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect, useMemo } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
-	MainTableContext, useViewState, type Cursor, prettyTable, shortTable, type TableParams } from './events';
+	MainTableContext, useViewState, type Cursor, type TableParams } from './events';
 import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext, type LayoutContextType } from '../layout';
@@ -40,7 +40,7 @@ export default function TableView({ size, averages, entity }: {
 }) {
 	const isSecondary = !!entity;
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changes, changelog: wholeChangelog } = useContext(MainTableContext);
+	const { changes, changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useViewState();
 	const { plotId, sort: sSort, cursor: sCursor, setStartAt, setEndAt, toggleSort, setCursor,
@@ -173,8 +173,8 @@ export default function TableView({ size, averages, entity }: {
 	const simulateKey = (key: string, ctrl: boolean=false) =>
 		() => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 
-	const tables = new Map<any, ColumnDef[]>();
-	columns.forEach(col => tables.has(col.entity) ? tables.get(col.entity)?.push(col) : tables.set(col.entity, [col]));
+	const rels = new Map<any, ColumnDef[]>();
+	columns.forEach(col => rels.has(col.rel) ? rels.get(col.rel)?.push(col) : rels.set(col.rel, [col]));
 
 	return ( 
 		<div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
@@ -190,9 +190,10 @@ export default function TableView({ size, averages, entity }: {
 						{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
 							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
 						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
-						{[...tables].map(([table, cls]) =>
-							<td className='ColumnHeader' key={table} style={{ clipPath: 'none' }} colSpan={cls.length}><div style={{ height: 26 + padTableH }}>
-								<>{cls.length > 1 ? prettyTable(table) : shortTable(table)}</></div></td>)}
+						{[...rels].map(([rel, cls]) =>
+							<td className='ColumnHeader' key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
+								<div style={{ height: 26 + padTableH }}>
+									{cls.length > 1 ? relsNames[rel] : rel}</div></td>)}
 						{includeMarkers && <td rowSpan={2} title='Event included from samples:'
 							className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
 					</tr><tr>

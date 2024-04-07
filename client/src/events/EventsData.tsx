@@ -9,7 +9,6 @@ import { G_ALL_OPS, fromDesc } from './columns';
 import { Confirmation } from '../Utility';
 
 export function ExportMenu() {
-	const { tables } = useContext(MainTableContext);
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
 
 	const columns = inc ? allColumns.concat({
@@ -53,7 +52,7 @@ export function ExportMenu() {
 			return navigator.clipboard.writeText(renderText(format));
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(new Blob([renderText(format)]));
-		a.download = `${tables[0]}.${format}`;
+		a.download = `feid.${format}`;
 		a.click();
 	};
 
@@ -75,7 +74,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// 								  MAIN TABLE STRUCTURE
 	// ************************************************************************************
 
-	const firstTable = 'forbush_effects'; // FIXME: actually this is weird stuff
 	const structureQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -86,13 +84,20 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				series: { [s: string]: string }
 			}>('events/info');
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) =>
-				Object.entries(cols).map(([sqlName, desc]) => fromDesc(table, sqlName, desc, firstTable)));
+			const structure = Object.fromEntries(Object.entries(tables).map(([table, cols]) =>
+				[table, Object.values(cols).map(desc => fromDesc(desc))]));
+			const columns = structure['feid'];
 			console.log('%cavailable columns:', 'color: #0f0' , columns);
 			return {
-				tables: Object.keys(tables),
-				columns: [ { id: 'id', hidden: true, entity: firstTable } as ColumnDef, ...columns],
-				series: series
+				rels: {
+					'FE': 'Forbush Effects',
+					'MC': 'Magnetic Clouds',
+					'FLR': 'Flares',
+					'CME': 'Coronal Mass Ejections',
+				},
+				structure,
+				columns,
+				series
 			};
 		}
 	});
@@ -114,7 +119,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	});
 	const rawMainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
-		const { columns, tables, series } = structureQuery.data;
+		const { columns, rels, series, structure } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
 		const cols = columns.slice(1);
@@ -132,7 +137,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				return cols.sort((a, b) => index(a.id) - index(b.id));
 			}
 		})())
-			.sort((a, b) => tables.indexOf(a.entity) - tables.indexOf(b.entity))
+			.sort((a, b) => Object.keys(rels).indexOf(a.rel ?? '') - Object.keys(rels).indexOf(b.rel ?? ''))
 			.filter(c => fields.includes(c.id));
 
 		const indexes = filtered.map(c => fields.indexOf(c.id));
@@ -154,9 +159,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			data,
 			columns: filtered,
 			columnIndex,
+			structure,
 			changelog,
-			firstTable,
-			tables: Array.from(tables),
+			rels,
 			series
 		} as const;
 	}, [columnOrder, dataQuery.data, structureQuery.data]);
@@ -200,7 +205,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
-		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.entity, column: column.sqlName }))
+		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.entity, column: column.id }))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {

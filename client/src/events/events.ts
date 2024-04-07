@@ -93,7 +93,7 @@ export type ColumnDef = {
 	entity: string,
 	width: number,
 	id: string,
-	sqlName: string, // not unique across tables
+	rel?: string,
 	hidden?: boolean,
 	isComputed: boolean,
 	generic?: GenericColumn,
@@ -132,10 +132,17 @@ export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, entity?: string, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
-export const MainTableContext = createContext<{ data: DataRow[], columns: ColumnDef[],
+export const MainTableContext = createContext<{
+	data: DataRow[],
+	columns: ColumnDef[],
 	columnIndex: { [col: string]: number },
-	firstTable: string, tables: string[], series: {[s: string]: string},
-	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
+	structure: { [col: string]: ColumnDef[] },
+	rels: {[s: string]: string},
+	series: {[s: string]: string},
+	changelog?: ChangeLog,
+	changes: ChangeValue[],
+	makeChange: (c: ChangeValue) => boolean
+}>({} as any);
 
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[]	}>({} as any);
 
@@ -197,9 +204,6 @@ export function copyAverages({ averages, row, column }: Required<TableMenuDetail
 }
 
 export const findColumn = (columns: ColumnDef[], name: string) => columns.find(c => c.fullName === name) ?? null;
-
-export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
-export const shortTable = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
 
 export function equalValues(a: Value, b: Value) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;

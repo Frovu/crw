@@ -4,7 +4,7 @@ import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } f
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
-import { MainTableContext, type PanelParams, SampleContext, shortTable, useEventsSettings } from '../events/events';
+import { MainTableContext, type PanelParams, SampleContext, useEventsSettings } from '../events/events';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
@@ -61,8 +61,8 @@ export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProp
 		<div> Time source:<select className='Borderless'
 			style={{ width: '7.5em', margin: '0 4px', padding: 0 }}
 			value={cur.timeColumn} onChange={e => set('timeColumn', e.target.value as any)}>
-			{timeOptions.map(({ id, entity }) =>
-				<option key={id} value={id}>{shortTable(entity)} time</option>)}
+			{timeOptions.map(({ id, rel }) =>
+				<option key={id} value={id}>{rel} time</option>)}
 		</select> </div>
 		<div className='Row' style={{ marginTop: 2 }}>
 			<PlotIntervalInput/>

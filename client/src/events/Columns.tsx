@@ -1,10 +1,11 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { apiPost, useEventListener } from '../util';
-import { type ColumnDef, MainTableContext, SampleContext, findColumn, prettyTable, shortTable, useEventsSettings } from './events';
+import { type ColumnDef, MainTableContext, SampleContext, findColumn, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
-import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState, type ReferencePoint, type GenericColumn, type GenericParams, defaultRefPoint, type RefPointEvent } from './columns';
+import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState,
+	type ReferencePoint, type GenericColumn, type GenericParams, defaultRefPoint, type RefPointEvent } from './columns';
 import { Confirmation } from '../Utility';
 import { SW_TYPES } from '../plots/time/SWTypes';
 
@@ -12,20 +13,20 @@ const swRefToStr = (ref: Partial<Extract<ReferencePoint, { type: 'sw_structure' 
 	pretty ? ('SWS ' + (ref.end ? 'End' : 'Start')) : ((ref.end ? 'end+' : '') + 'sws');
 const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
 	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.events_offset??0)+1] +
-	(pretty ? (shortTable(ref.entity??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.entity)); 
+	(pretty ? ((ref.time_src??'') + (ref.end == null ? '' : ref.end ? ' End' : ' Start')) : ((ref.end ? 'end+' : '') + ref.time_src)); 
 
 export default function ColumnsSelector() {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const { shownColumns, setColumnOrder, setColumns } = useEventsSettings();
 	const { samples } = useContext(SampleContext);
-	const { tables: allTables, columns, series: seriesOpts } = useContext(MainTableContext);
+	const { rels, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
 	const [dragging, setDragging] = useState<null | { y: number, id: string, pos: number }>(null);
 	const [open, setOpen] = useState(false);
 	const [report, setReport] = useState<{ error?: string, success?: string }>({});
 	const genericSate = useGenericState();
-	const { params, entity, id: gid, nickname, description: desc, setGeneric, set, reset,
+	const { params, id: gid, nickname, description: desc, setGeneric, set, reset,
 		setParam, setPoint, setPointHours, setPointSeries, setPointStruct } = genericSate;
 	const { operation } = params;
 
@@ -54,11 +55,10 @@ export default function ColumnsSelector() {
 
 	const oriColumn = gid == null ? null : columns.find(c => c.generic?.id === gid);
 	const original = oriColumn && oriColumn.generic;
-	const paramsChanged = original && (entity !== original.entity || JSON.stringify(original.params) !== JSON.stringify(params));
+	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
 	const smhChanged = original && (paramsChanged ||
 		genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
-	const tables = allTables.filter(t => columns.find(c => c.entity === t && c.name === 'time'));
-	const withDuration = tables.filter(t => columns.find(c => c.entity === t && c.name === 'duration'));
+	const withDuration = ['FE', 'MC'];
 	const isClone = operation === 'clone_column', isCombine = G_COMBINE_OP.includes(operation as any), isValue = G_VALUE_OP.includes(operation as any);
 	const isTime = operation?.startsWith('time_offset');
 	const isValid = (isClone && params.column) || (isCombine && params.column && params.other_column) || (isValue && (params.series || isTime));
@@ -160,17 +160,17 @@ export default function ColumnsSelector() {
 		const st = params[k];
 		const isEvent = st?.type === 'event';
 		const isSWS = st?.type === 'sw_structure';
-		const isDefault = isEvent && st.entity === entity && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
-			.some((p) => p !== 'entity' && st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
+		const isDefault = isEvent && !(Object.keys(defaultRefPoint) as (keyof RefPointEvent)[])
+			.some((p) => st[p] !== defaultRefPoint[p]) && st.end !== (k === 'reference' ? true : false);
 		return <>
 			<select style={{ color: isDefault ? color('text-dark') : 'unset',
 				width: isEvent ? '16ch' : isSWS ? '10ch' : '7.5ch' }} className='Borderless'
 			value={isEvent ? refToStr(st) : isSWS ? swRefToStr(st) : st?.operation} onChange={e => setPoint(k, e.target.value)}>
 				<option value='null' disabled>-- None --</option>
 				{EXTREMUM_OP.map(ext => <option key={ext} value={ext}>{ext.startsWith('abs_') ? `|${ext.slice(4)}|` : ext}</option>)}
-				{tables.flatMap((ent, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(events_offset => 
-					(i === 0 || withDuration.includes(ent) ? [false, true] : [undefined])
-						.map(end => [false, true].map(p => refToStr({ entity: ent, events_offset, end }, p)))))
+				{Object.keys(rels).flatMap((rel, i) => (i > 0 ? [0] : [0, -1, 1]).flatMap(events_offset => 
+					(i === 0 || withDuration.includes(rel) ? [false, true] : [undefined])
+						.map(end => [false, true].map(p => refToStr({ time_src: rel, events_offset, end }, p)))))
 					.map(([str, pretty]) => <option key={str} value={str}>{pretty}</option>)}
 				{[false, true].map(end =>
 					<option key={swRefToStr({ end })} value={swRefToStr({ end })}>{swRefToStr({ end }, true)}</option>)}
@@ -198,12 +198,12 @@ export default function ColumnsSelector() {
 			onContextMenu={e => { setOpen(false); e.stopPropagation(); e.preventDefault(); }}/>
 		<div className='Popup ColumnsSelector' onContextMenu={e => { e.preventDefault(); e.stopPropagation(); }}
 			onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
-			{allTables.map(table => <Fragment key={table}>
+			{Object.keys(rels).map(rel => <Fragment key={rel}>
 				<button className='TextButton' onClick={() => setColumns(cols => [
-					...cols.filter(c => columns.find(cc => cc.id === c)?.entity !== table),
-					...(!columns.find(cc => cc.entity === table && cols.includes(cc.id)) ? columns.filter(c => c.entity === table).map(c => c.id) : [])])}>
-					<b><u>{prettyTable(table)}</u></b></button>
-				{sortedColumns.filter(c => !c.hidden && c.entity === table).map(({ id, name, description, generic }) =>
+					...cols.filter(c => columns.find(cc => cc.id === c)?.rel !== rel),
+					...(!columns.find(cc => cc.rel === rel && cols.includes(cc.id)) ? columns.filter(c => c.rel === rel).map(c => c.id) : [])])}>
+					<b><u>{rels[rel]}</u></b></button>
+				{sortedColumns.filter(c => !c.hidden && c.rel === rel).map(({ id, name, description, generic }) =>
 					<div key={id} style={{ color: (generic && !generic?.is_public) ? color('text-dark') : color('text'), cursor: 'pointer' }} title={description}>
 						<button className='TextButton' style={{ flex: 1, textAlign: 'left', lineHeight: '1.1em', wordBreak: 'break-all' }}
 							onMouseEnter={e => {
@@ -249,10 +249,6 @@ export default function ColumnsSelector() {
 				{(original || isValid) && <label title='Column description (optional)' style={{ paddingBottom: 4 }}>Desc:
 					<input type='text' style={{ width: '11em', marginLeft: 4 }} placeholder={oriColumn?.description}
 						value={desc ?? ''} onChange={e => set('description', e.target.value)}/></label>}
-				<div style={entity === defaultRefPoint.entity ? { color: color('text-dark') } : {}}>Entity:
-					<select className='Borderless' value={entity} onChange={e => set('entity', e.target.value)}>
-						{withDuration.map(tbl => <option key={tbl} value={tbl}>{prettyTable(tbl)}</option>)}
-					</select></div>
 				<Select txt='Type' k='operation' opts={G_ALL_OPS.map(t => [t, t])}/>
 				{(isClone || isCombine) && <Select txt='Column' k='column' opts={columnOpts!}/>}
 				{isCombine && <Select txt='Column' k='other_column' opts={columnOpts!}/>}

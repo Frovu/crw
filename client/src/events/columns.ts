@@ -24,7 +24,7 @@ export type RefPointEvent = {
 	type: 'event',
 	hours_offset: number,
 	events_offset: number,
-	entity: string,
+	time_src: string,
 	end?: boolean,
 };
 export type ReferencePoint = RefPointExtremum | RefPointSWStruct | RefPointEvent;
@@ -72,11 +72,10 @@ export type GenericState = Partial<Omit<GenericColumn, 'params'>> & {
 };
 
 export const defaultRefPoint = {
-	type: 'event', entity: 'forbush_effects', hours_offset: 0, events_offset: 0
+	type: 'event', time_src: 'FE', hours_offset: 0, events_offset: 0
 } as const as RefPointEvent;
 
 const defaultState = {
-	entity: defaultRefPoint.entity,
 	id: undefined,
 	is_public: false,
 	is_own: undefined,
@@ -100,7 +99,7 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 			if (typeChanged && val === 'clone_column')
 				inp.events_offset = 0;
 			if (typeChanged && G_VALUE_OP.includes(val as any)) {
-				inp.reference = { ...defaultRefPoint, entity: state.entity ?? defaultRefPoint.entity };
+				inp.reference = { ...defaultRefPoint };
 				inp.boundary = { ...inp.reference, end: true };
 			}
 		} else {
@@ -120,10 +119,10 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 			const end = val.includes('end+');
 			params[k] = { type, hours_offset, structure, end };
 		} else if (type === 'event') {
-			const entity = val.split('+').at(-1)!;
+			const time_src = val.split('+').at(-1)!;
 			const end = val.includes('end+');
 			const events_offset = val.includes('prev+') ? -1 :  val.includes('next+') ? 1 : 0;
-			params[k] = { type, entity, events_offset, hours_offset, end };
+			params[k] = { type, time_src, events_offset, hours_offset, end };
 		}
 	}),
 	setPointHours: (k, val) => set(({ params: { [k]: point } }) => { if (point) point.hours_offset = val; }),
@@ -131,7 +130,7 @@ export const useGenericState = create<GenericState>()(immer(set => ({
 	setPointStruct: (k, val) => set(({ params: { [k]: point } }) => { if (point?.type === 'sw_structure') point.structure = val as any; }),
 })));
 
-export function fromDesc(table: string, sqlName: string, desc: ColumnDef, firstTable: string) {
+export function fromDesc(desc: ColumnDef) {
 	const width = (()=>{
 		switch (desc.type) {
 			case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
@@ -141,11 +140,12 @@ export function fromDesc(table: string, sqlName: string, desc: ColumnDef, firstT
 			default: return 6; 
 		}
 	})();
-	const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
-	const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
+	
+	const fullName = desc.name + (desc.rel && 'FE' !== desc.rel ? ' of ' + desc.rel : '');
 	return {
-		...desc, width, sqlName,
-		entity: table,
+		...desc,
+		width,
+		hidden: desc.name === 'id',
 		name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
 		fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
 		description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description

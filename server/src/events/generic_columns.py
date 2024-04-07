@@ -17,13 +17,13 @@ def find_column_info(rows, name):
 	try:
 		if not name.startswith('g__'):
 			found = FEID[1][name]
-			return found.pretty_name or name, found.data_type, 'feid'
+			return found.pretty_name or name, found.data_type, 'FE'
 
 		gen = next((GenericColumn.from_row(row, rows) for row in rows if str(row[0]) == name.replace('g__', '')))
 		return gen.pretty_name, gen.data_type, gen.rel
 	except:
 		log.warning('Could not find generic target column: %s', name)
-		return '<DELETED>', 'real', 'FEID'
+		return '<DELETED>', 'real', 'FE'
 
 @dataclass
 class GenericParams:

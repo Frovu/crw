@@ -56,7 +56,7 @@ class ColumnDef:
 			col['description'] = self.description
 		return col
 
-C_FE  = lambda *args, **kwargs: ColumnDef('feid', *args, **kwargs, rel='FEID')
+C_FE  = lambda *args, **kwargs: ColumnDef('feid', *args, **kwargs, rel='FE')
 C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], **kwargs, rel='MC')
 C_CME = lambda *args, **kwargs: ColumnDef('feid', 'cme_'+args[0], *args[1:], **kwargs, rel='CME')
 C_FLR = lambda *args, **kwargs: ColumnDef('feid', 'flr_'+args[0], *args[1:], **kwargs, rel='FLR')
