@@ -1,5 +1,5 @@
 
-from events.table import ColumnDef
+from events.table_structure import ColumnDef
 
 
 TABLE = 'izmiran_flares'

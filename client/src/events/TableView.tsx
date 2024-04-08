@@ -1,4 +1,5 @@
-import { useState, useRef, useContext, useLayoutEffect, type ChangeEvent, useEffect, useMemo } from 'react';
+import { useState, useRef, useContext, useLayoutEffect, useEffect,
+	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
 	MainTableContext, useViewState, type Cursor, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
@@ -33,51 +34,26 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-export default function TableView({ size, averages, entity }: {
+type RowConstructor = (row: any[], idx: number, updateViewIndex: (c: Cursor) => void) => ReactNode;
+
+export function TableWithCursor({ entity, data, columns, viewSize, thead, row: rowCallback, tfoot, footer, size, onKeydown }: {
 	size: Size,
-	entity?: string,
-	averages?: (null | number[])[],
+	entity: string,
+	data: any[][],
+	columns: ColumnDef[],
+	viewSize: number,
+	thead: ReactNode,
+	row: RowConstructor,
+	tfoot?: ReactNode,
+	footer?: ReactNode,
+	onKeydown: (e: KeyboardEvent) => void
 }) {
-	const isSecondary = !!entity;
-	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changes, changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
-	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const viewState = useViewState();
-	const { plotId, sort: sSort, cursor: sCursor, setStartAt, setEndAt, toggleSort, setCursor,
-		setEditing, escapeCursor, setPlotId } = Object.assign({}, viewState, isSecondary ? {
-		toggleSort: () => {},
-		setEditing: () => {},
-		setPlotId: () => {}
-	} : {});
-	const [changesHovered, setChangesHovered] = useState(false);
-	const showChangelog = !isSecondary && params?.showChangelog && size.height > 300;
-	const showAverages = !isSecondary && params?.showAverages && size.height > 300;
+	const { cursor: sCursor, setStartAt, setEndAt, setCursor, escapeCursor } = useViewState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
-	const rowsHeight = size.height
-		- (showAverages ? 107 : 0)
-		- (showChangelog ? 54 : 0)
-		- (isSecondary ? 60 : 105);
-	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
-	const viewSize = Math.floor(rowsHeight / rowH);
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
-	const padTableH = Math.floor(headerPadding / 3);
-	const columnH = (isSecondary ? 22 : 46) + headerPadding - padTableH;
 
-	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m?.length)));
-	
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
-
-	const cursCol = cursor && columns[cursor?.column]?.id;
-	const changelogCols = (showChangelog || null) && cursor && wholeChangelog
-		&& data[cursor.row] && columns.map(c => [c.id, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.id)]);
-	const changelog = changelogCols?.filter(c => !!c[1])
-		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map(c => ({ column: col, ...c })))
-		.sort((a, b) => b.time - a.time)
-		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 
 	const updateViewIndex = (curs: Cursor) => {
 		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
@@ -86,16 +62,10 @@ export default function TableView({ size, averages, entity }: {
 
 	useEventListener('escape', escapeCursor);
 
-	const sort = useMemo(() => {
-		if (!isSecondary)
-			return sSort;
-		return { column: columns.find(c => c.name.includes('time'))?.name, direction: 1 };
-	}, [columns, isSecondary, sSort]);
-
 	useLayoutEffect(() => {
 		setCursor(null);
 		setViewIndex(clamp(0, data.length - viewSize, data.length));
-	}, [data.length, columns.length, viewSize, sort]); // eslint-disable-line
+	}, [data.length, columns.length, data[0]?.[0], data.at(-1)?.[0], viewSize]); // eslint-disable-line
 
 	useEffect(() => { cursor && updateViewIndex(cursor); }, [cursor]); // eslint-disable-line
 
@@ -110,23 +80,17 @@ export default function TableView({ size, averages, entity }: {
 		if (setStartAt || setEndAt)
 			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (!isSecondary && cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
-			if (isInput) e.target.blur();
-			return setEditing(!cursor?.editing); }
-		if (isInput) return;
-		if (cursor?.editing) return;
-
-		if (cursor && ['-', '+', '='].includes(e.key))
-			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+		if (isInput || cursor?.editing)
+			return;
 
 		const set = (curs: Cursor) => {
 			setCursor(curs);
 			updateViewIndex(curs);
 			e.preventDefault(); };
 		
-		if (e.ctrlKey && e.code === 'Home')
+		if (cursor && e.ctrlKey && e.code === 'Home')
 			return set({ entity, row: 0, column: cursor?.column ?? 0 });
-		if (e.ctrlKey && e.code === 'End')
+		if (cursor && e.ctrlKey && e.code === 'End')
 			return set({ entity, row: data.length - 1, column: cursor?.column ?? 0 });
 
 		const delta = {
@@ -141,7 +105,7 @@ export default function TableView({ size, averages, entity }: {
 		}[e.code];
 
 		if (!delta || (sCursor && !cursor))
-			return;
+			return onKeydown?.(e);
 	
 		const [deltaRow, deltaCol] = delta;
 		const { row, column } = cursor ?? {
@@ -169,6 +133,81 @@ export default function TableView({ size, averages, entity }: {
 			column: clamp(0, columns.length - 1, column + deltaCol)
 		});		
 	});
+
+	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
+		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
+		<div className='Table' style={{ position: 'relative' }} ref={ref}>
+			<table onWheel={e => setViewIndex(idx => {
+				queueMicrotask(() => setCursor(null));
+				const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
+				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
+			})}>
+				<thead>{thead}</thead> 
+				<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize))
+					.map((rw, ri) => rowCallback(rw, ri + viewIndex, updateViewIndex))}</tbody> 
+				{tfoot && <tfoot>{tfoot}</tfoot> }
+			</table>
+		</div>
+		{footer}
+	</div>;
+}
+
+export default function TableView({ size, averages, entity }: {
+	size: Size,
+	entity: string,
+	averages?: (null | number[])[],
+}) {
+	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
+	const { changes, changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
+	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
+	const viewState = useViewState();
+	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt,
+		toggleSort, setCursor, setEditing, setPlotId } = viewState;
+	const [changesHovered, setChangesHovered] = useState(false);
+	const showChangelog = params?.showChangelog && size.height > 300;
+	const showAverages = params?.showAverages && size.height > 300;
+	const cursor = sCursor?.entity === entity ? sCursor : null;
+
+	const rowsHeight = size.height
+		- (showAverages ? 107 : 0)
+		- (showChangelog ? 54 : 0) - 105;
+	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
+	const viewSize = Math.floor(rowsHeight / rowH);
+	const hRem = rowsHeight % rowH;
+	const trPadding = hRem > viewSize ? 1 : 0;
+	const headerPadding = (hRem - viewSize * trPadding);
+	const padTableH = Math.floor(headerPadding / 3);
+	const columnH = 46 + headerPadding - padTableH;
+
+	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m?.length)));
+
+	const cursCol = cursor && columns[cursor?.column]?.id;
+	const changelogCols = (showChangelog || null) && cursor && wholeChangelog
+		&& data[cursor.row] && columns.map(c => [c.id, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.id)]);
+	const changelog = changelogCols?.filter(c => !!c[1])
+		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map(c => ({ column: col, ...c })))
+		.sort((a, b) => b.time - a.time)
+		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
+
+	const onKeydown = useCallback((e: KeyboardEvent) => {
+		if (cursor && ['-', '+', '='].includes(e.key))
+			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+	}, [cursor, data]);
+
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (setStartAt || setEndAt)
+			return;
+		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
+		if (cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
+			if (isInput) (e.target as any).blur();
+			return setEditing(!cursor?.editing); }
+		if (isInput) return;
+		if (cursor?.editing) return;
+
+		if (cursor && ['-', '+', '='].includes(e.key))
+			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+
+	});
 	
 	const simulateKey = (key: string, ctrl: boolean=false) =>
 		() => document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
@@ -176,129 +215,115 @@ export default function TableView({ size, averages, entity }: {
 	const rels = new Map<any, ColumnDef[]>();
 	columns.forEach(col => rels.has(col.rel) ? rels.get(col.rel)?.push(col) : rels.set(col.rel, [col]));
 
-	return ( 
-		<div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
-			border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
-			<div className='Table' style={{ position: 'relative' }} ref={ref}>
-				<table onWheel={e => {
-					setViewIndex(idx => {
-						queueMicrotask(() => setCursor(null));
-						const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
-						return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
-					});}}>
-					<thead><tr>
-						{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
-							className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
-						##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
-						{[...rels].map(([rel, cls]) =>
-							<td className='ColumnHeader' key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
-								<div style={{ height: 26 + padTableH }}>
-									{cls.length > 1 ? relsNames[rel] : rel}</div></td>)}
-						{includeMarkers && <td rowSpan={2} title='Event included from samples:'
-							className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
-					</tr><tr>
-						{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
-							className='ColumnHeader' onClick={() => toggleSort(col.id)}
-							onContextMenu={openContextMenu('events', { nodeId, header: col })}>
-							<div style={{ height: columnH }}><span>{col.name}</span>
-								{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
-						</td>)}
-					</tr></thead>
-					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, ri) => {
-						const idx = viewIndex + ri;
-						const marker = markers?.[idx];
-						const isCompModified = columns.map(c => {
-							if (!c.isComputed) return false;
-							const chgs = getChangelogEntry(wholeChangelog, row[0], c.id)?.sort((a, b) => b.time - a.time);
-							if (!chgs?.length) return false;
-							return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
-						});
-						return <tr style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}
-							key={row[0]}>
-							{marker && <td title='f: filtered; + whitelisted; - blacklisted'
-								onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
-								<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
-									marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
-							</td>}
-							{columns.map((column, cidx) => {
-								const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-								const value = valueToString(row[cidx+1]);
-								return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
-									onClick={e => {
-										const cur = { entity, row: idx, column: cidx, editing: !!curs };
-										setCursor(cur);
-										updateViewIndex(cur);
-										if (e.ctrlKey)
-											setPlotId(() => row[0]); }}
-									onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
-									style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-									{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
-										<span className='Cell' style={{ width: column.width + 'ch' }}>
-											<div className='TdOver'/>
-											{value}
-											{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
-								</td>;
-							})}
-							{includeMarkers?.[idx] && <td title='Included in these samples'>
-								<span style={{ width: incMarkWidth! + 2 + 'ch' }} className='Cell'>{includeMarkers?.[idx]}</span>
-							</td>}
-						</tr>;})}</tbody>
-					{showAverages && (<tfoot>
-						<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
-						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
-							{markers && <td style={{ borderColor: 'transparent' }}/>}
-							{averages?.map((avgs, i) => {
-								const isLabel = columns[i].type === 'time';
-								const val = avgs?.[ari];
-								return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
-									textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
-								onContextMenu={openContextMenu('events', { nodeId, averages: {
-									averages, label, row: ari, column: i } })}
-								title={(!isLabel && val?.toString()) || ''}>
-									{isLabel ? label : val ?  val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
-							})}
-						</tr>)}
-					</tfoot>)}
-				</table>
-			</div>
-			{showChangelog && <div style={{ position: 'relative', display: 'flex', flexDirection: 'column-reverse', fontSize: 14, border: '1px var(--color-border) solid',
-				height: 52, padding: 2, margin: 2, marginTop: 0, overflowY: 'scroll' }}>
-				{changelog?.length ? changelog.map(change => {
-					const column = columns.find(c => c.id === change.column)!;
-					const time = new Date(change.time * 1e3);
-					const val = (str: string | null) =>
-						str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
-					return (<div key={JSON.stringify(change)} style={{ margin: '0' }}>
-						<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
-						<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
-						: {val(change.old)} -&gt; <b>{val(change.new)}</b>
-						{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
-					</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
-			</div>}
-			{!isSecondary && <div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
-				<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
-					<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
-					&nbsp;{viewIndex+1} to {Math.min(viewIndex+viewSize+1, data.length)}
-					{changes.length > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
-						onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
-						{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
-							&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
-						</span>}
-						{changesHovered && <>
-							<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyS', true)}>save</button>
-							<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyX', true)}>discard</button>
-						</>}
-					</div>}
-				</span>
-				<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
-					<button className='TableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
-					<button className='TableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
-					<button className='TableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
-					<button className='TableControl' onClick={simulateKey('End', true)}><span>E</span></button>
-					<button className='TableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
-					<button className='TableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
-				</span>
-			</div>}
-		</div>
-	);
+	return <TableWithCursor {...{
+		data, columns, size, viewSize, onKeydown, entity,
+		thead: <><tr>
+			{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
+				className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
+			##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
+			{[...rels].map(([rel, cls]) =>
+				<td className='ColumnHeader' key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
+					<div style={{ height: 26 + padTableH }}>
+						{cls.length > 1 ? relsNames[rel] : rel}</div></td>)}
+			{includeMarkers && <td rowSpan={2} title='Event included from samples:'
+				className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
+		</tr><tr>
+			{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
+				className='ColumnHeader' onClick={() => toggleSort(col.id)}
+				onContextMenu={openContextMenu('events', { nodeId, header: col })}>
+				<div style={{ height: columnH }}><span>{col.name}</span>
+					{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
+			</td>)}
+		</tr></>,
+		row: (row, idx, updateViewIndex) => {
+			const marker = markers?.[idx];
+			const isCompModified = columns.map(c => {
+				if (!c.isComputed) return false;
+				const chgs = getChangelogEntry(wholeChangelog, row[0], c.id)?.sort((a, b) => b.time - a.time);
+				if (!chgs?.length) return false;
+				return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
+			});
+			return <tr key={row[0]}style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
+				{marker && <td title='f: filtered; + whitelisted; - blacklisted'
+					onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
+					<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
+						marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
+				</td>}
+				{columns.map((column, cidx) => {
+					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
+					const value = valueToString(row[cidx+1]);
+					return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
+						onClick={e => {
+							const cur = { entity, row: idx, column: cidx, editing: !!curs };
+							setCursor(cur);
+							updateViewIndex(cur);
+							if (e.ctrlKey)
+								setPlotId(() => row[0]); }}
+						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
+						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
+						{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
+							<span className='Cell' style={{ width: column.width + 'ch' }}>
+								<div className='TdOver'/>
+								{value}
+								{isCompModified?.[cidx] && <span className='ModifiedMarker'/>}</span>}
+					</td>;
+				})}
+				{includeMarkers?.[idx] && <td title='Included in these samples'>
+					<span style={{ width: incMarkWidth! + 2 + 'ch' }} className='Cell'>{includeMarkers?.[idx]}</span>
+				</td>}
+			</tr>;},
+		tfoot: showAverages && <>
+			<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
+			{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
+				{markers && <td style={{ borderColor: 'transparent' }}/>}
+				{averages?.map((avgs, i) => {
+					const isLabel = columns[i].type === 'time';
+					const val = avgs?.[ari];
+					return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
+						textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
+					onContextMenu={openContextMenu('events', { nodeId, averages: {
+						averages, label, row: ari, column: i } })}
+					title={(!isLabel && val?.toString()) || ''}>
+						{isLabel ? label : val ?  val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
+				})}
+			</tr>)}</>,
+		footer: <>{showChangelog && <div style={{ position: 'relative', display: 'flex',
+			flexDirection: 'column-reverse', fontSize: 14, border: '1px var(--color-border) solid',
+			height: 52, padding: 2, margin: 2, marginTop: 0, overflowY: 'scroll' }}>
+			{changelog?.length ? changelog.map(change => {
+				const column = columns.find(c => c.id === change.column)!;
+				const time = new Date(change.time * 1e3);
+				const val = (str: string | null) =>
+					str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
+				return (<div key={JSON.stringify(change)} style={{ margin: '0' }}>
+					<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
+					<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
+					: {val(change.old)} -&gt; <b>{val(change.new)}</b>
+					{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
+				</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
+		</div>}
+		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
+			<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
+				<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
+				{changes.length > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
+					onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
+					{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
+						&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
+					</span>}
+					{changesHovered && <>
+						<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyS', true)}>save</button>
+						<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyX', true)}>discard</button>
+					</>}
+				</div>}
+			</span>
+			<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
+				<button className='TableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
+				<button className='TableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
+				<button className='TableControl' onClick={simulateKey('Home', true)}><span>H</span></button>
+				<button className='TableControl' onClick={simulateKey('End', true)}><span>E</span></button>
+				<button className='TableControl' onClick={simulateKey('ArrowLeft')}><span>←</span></button>
+				<button className='TableControl' onClick={simulateKey('ArrowRight')}><span>→</span></button>
+			</span>
+		</div></>
+	}}/>;
 }

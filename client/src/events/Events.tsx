@@ -152,7 +152,7 @@ function MainTablePanel() {
 		<ImportMenu/>
 		<ColumnsSelector/>
 		<SampleView ref={ref}/>
-		<TableView averages={averages} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
+		<TableView averages={averages} entity='feid' size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}/>
 	</>;
 }
 
