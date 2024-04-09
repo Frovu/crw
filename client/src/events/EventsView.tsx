@@ -4,8 +4,9 @@ import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
 import { type MagneticCloud, MainTableContext, type Onset, PlotContext, SampleContext,
-	TableViewContext, useEventsSettings, useEventsState,  defaultLayouts, allPanelOptions, statPanelOptions } from './events';
+	TableViewContext, useEventsSettings, defaultLayouts, allPanelOptions, statPanelOptions } from './events';
 import { EventsContextMenu, EventsLayoutContent } from './Events';
+import { useEventsState } from './eventsState';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();

@@ -6,7 +6,7 @@ import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollisi
 import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
-import { type TableMenuDetails, useEventsState, statPanelOptions,
+import { type TableMenuDetails, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, MainTableContext, PlotContext,
 	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn } from './events';
@@ -26,6 +26,7 @@ import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
 import SecondaryTable, { SecTableContextMenu } from './TableSecondary';
+import { useEventsState } from './eventsState';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 

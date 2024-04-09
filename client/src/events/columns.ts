@@ -174,7 +174,7 @@ export function fromDesc(desc: ColumnDef) {
 }
 
 export type TableRes = { columns: ColumnDef[], data: (Value | string[])[][] };
-export const fetchTable = (entity: string) => async () => {
+export const fetchTable = async (entity: string) => {
 	const res = await apiGet<TableRes>('events', { entity });
 	const columns = res.columns.map(desc => fromDesc(desc));
 	const data = res.data.map(row => [...columns.map((c, i) => {

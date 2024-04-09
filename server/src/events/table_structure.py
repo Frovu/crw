@@ -152,14 +152,14 @@ FEID_SOURCE = ['feid_sorces', { c.name: c for c in [
 	C_SRC('cr_influence', data_type='enum', enum=['residual', 'primary', 'secondary']),
 ]}]
 
-SOURCE_ERUPT = ['sources_ch', { c.name: c for c in [
+SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
 	C_ER('lasco_cme_time', data_type='time'),
 	C_ER('ab_flr_time', data_type='time'),
 	C_ER('rc_icme_time', data_type='time'),
 ]}]
 
-SOURCE_CH = ['sources_erupt', { c.name: c for c in [
+SOURCE_CH = ['sources_ch', { c.name: c for c in [
 	C_CH('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
 	C_CH('tag', data_type='text'),
 ]}]

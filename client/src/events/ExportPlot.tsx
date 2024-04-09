@@ -1,7 +1,7 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { plotPanelOptions, statPanelOptions, useEventsSettings, useEventsState } from './events';
+import { plotPanelOptions, statPanelOptions, useEventsSettings } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -11,6 +11,7 @@ import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../util';
 import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useEventsState } from './eventsState';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {

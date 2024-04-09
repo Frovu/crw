@@ -57,10 +57,11 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
-	const updateViewIndex = (curs: Cursor) => {
-		const newIdx = curs.row - 1 <= viewIndex ? curs.row - 1 : 
-			(curs.row + 1 >= viewIndex+viewSize ? curs.row - viewSize + 2 : viewIndex);
-		setViewIndex(clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx)); };
+	const updateViewIndex = (curs: Cursor) => setViewIndex(vidx => {
+		const newIdx = curs.row - 1 <= vidx ? curs.row - 1 : 
+			(curs.row + 1 >= vidx + viewSize ? curs.row - viewSize + 2 : vidx);
+		return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx); 
+	});
 
 	useEventListener('escape', escapeCursor);
 
@@ -69,7 +70,9 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 		setViewIndex(clamp(0, data.length - viewSize, data.length));
 	}, [data.length, columns.length, data[0]?.[0], data.at(-1)?.[0], viewSize]); // eslint-disable-line
 
-	useEffect(() => { cursor && updateViewIndex(cursor); }, [cursor]); // eslint-disable-line
+	useEffect(() => {
+		cursor && updateViewIndex(cursor);
+	}, [cursor]); // eslint-disable-line
 
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;

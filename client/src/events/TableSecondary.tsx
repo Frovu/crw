@@ -21,8 +21,6 @@ export default function SecondaryTable() {
 
 	const entity = 'solarsoft_flares';
 
-	// TODO: limit time
-	// const query = useQuery(['eventsCatalogue', entity], fetchTable(entity));
 
 	// if (query.error)
 	// 	return <div className='Center'>FAILED TO LOAD</div>;

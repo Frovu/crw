@@ -134,7 +134,7 @@ export default function CoverageControls({ date }: { date: Date }) {
 
 	return <div style={{ position: 'absolute', padding: '1px 3px 3px 3px', background: color('bg'), zIndex: 2,
 		border: !minified ? '1px solid'+color('border') : 'none' }}>
-		<table style={{ textAlign: 'center', width: 'max-content', fontSize: 14, borderCollapse: 'collapse' }}>
+		<table style={{ textAlign: 'center', width: 'max-content', fontSize: 14, borderCollapse: 'collapse' }}><tbody>
 			<tr style={{ cursor: 'pointer', lineHeight: minified ? 1.1 : 1.5 }}
 				onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
 				<td style={{ color: color(colour === 'red' ? 'red' : 'text-dark'), paddingBottom: 4, width: 84 }} className='TextButton'
@@ -148,6 +148,6 @@ export default function CoverageControls({ date }: { date: Date }) {
 					<td>{month1.toLocaleString('default', { month: 'short' })}</td>
 					<td><b>{month2.toLocaleString('default', { month: 'short' })}</b></td></>}</tr>
 			{!minified && data?.map(ent => <CoverageEntry key={ent.entity} date={month2} {...ent}/>)}
-		</table>
+		</tbody></table>
 	</div>;
 }
