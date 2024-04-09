@@ -68,20 +68,16 @@ def _get_fetch_source():
 	timestamp = request.json.get('timestamp')
 	return op_cache.fetch(_fetch_source, (entity, timestamp))
 
-@bp.route('/catalogue', methods=['GET'])
-@route_shielded
-@compress.compressed()
-def list_catalogue():
-	entity = request.args.get('entity')
-	return query.select_catalogue(entity)
-
 @bp.route('/', methods=['GET'])
 @route_shielded
 @compress.compressed()
 def list_events():
+	entity = request.args.get('entity')
+	if entity:
+		return query.select_events(entity)
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = query.select_events(uid, changelog=changelog)
+	res = query.select_feid(uid, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
 	if changelog and uid is not None:
 		result['changelog'] = res[2]

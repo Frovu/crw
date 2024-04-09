@@ -137,7 +137,7 @@ export type Value = Date | string | number | null;
 export type DataRow = [number, ...Array<Value>];
 export type ChangeValue = { id: number, column: ColumnDef, value: Value };
 export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, entity?: string, editing?: boolean };
+export type Cursor = { row: number, column: number, entity: string, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{

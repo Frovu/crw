@@ -38,7 +38,7 @@ def render_table_info(uid):
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }
 
-def select_catalogue(entity):
+def select_events(entity):
 	if entity not in TABLES:
 		raise ValueError('Unknown entity: '+entity)
 	cols = TABLES[entity]
@@ -48,7 +48,7 @@ def select_catalogue(entity):
 		data = conn.execute(f'SELECT {cl} FROM events.{entity} ORDER BY {time_col}').fetchall()
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
-def select_events(uid=None, changelog=False):
+def select_feid(uid=None, changelog=False):
 	generics = select_generics(uid)
 	columns = []
 	for col in list(FEID[1].values()) + generics:

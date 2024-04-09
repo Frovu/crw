@@ -34,7 +34,7 @@ function CellInput({ id, column, value }: { id: number, column: ColumnDef, value
 	</>;
 }
 
-type RowConstructor = (row: any[], idx: number, updateViewIndex: (c: Cursor) => void) => ReactNode;
+type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;
 
 export function TableWithCursor({ entity, data, columns, viewSize, thead, row: rowCallback, tfoot, footer, size, onKeydown }: {
 	size: Size,
@@ -46,7 +46,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 	row: RowConstructor,
 	tfoot?: ReactNode,
 	footer?: ReactNode,
-	onKeydown: (e: KeyboardEvent) => void
+	onKeydown?: (e: KeyboardEvent) => void
 }) {
 	const { cursor: sCursor, setStartAt, setEndAt, setCursor, escapeCursor } = useViewState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
@@ -134,8 +134,15 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 		});		
 	});
 
+	const onClick = useCallback((idx: number, cidx: number) => {
+		const cur = { entity, row: idx, column: cidx,
+			editing: cursor?.column === cidx && cursor?.row === idx };
+		setCursor(cur);
+		updateViewIndex(cur);
+	}, [cursor, entity]); // eslint-disable-line
+
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
-		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width }}>
+		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
 		<div className='Table' style={{ position: 'relative' }} ref={ref}>
 			<table onWheel={e => setViewIndex(idx => {
 				queueMicrotask(() => setCursor(null));
@@ -144,7 +151,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 			})}>
 				<thead>{thead}</thead> 
 				<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize))
-					.map((rw, ri) => rowCallback(rw, ri + viewIndex, updateViewIndex))}</tbody> 
+					.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick))}</tbody> 
 				{tfoot && <tfoot>{tfoot}</tfoot> }
 			</table>
 		</div>
@@ -235,7 +242,7 @@ export default function TableView({ size, averages, entity }: {
 					{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
 			</td>)}
 		</tr></>,
-		row: (row, idx, updateViewIndex) => {
+		row: (row, idx, onClick) => {
 			const marker = markers?.[idx];
 			const isCompModified = columns.map(c => {
 				if (!c.isComputed) return false;
@@ -243,7 +250,8 @@ export default function TableView({ size, averages, entity }: {
 				if (!chgs?.length) return false;
 				return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 			});
-			return <tr key={row[0]}style={{ height: 24 + trPadding, ...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
+			return <tr key={row[0]} style={{ height: 24 + trPadding,
+				...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
 				{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 					onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
 					<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
@@ -254,9 +262,7 @@ export default function TableView({ size, averages, entity }: {
 					const value = valueToString(row[cidx+1]);
 					return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
 						onClick={e => {
-							const cur = { entity, row: idx, column: cidx, editing: !!curs };
-							setCursor(cur);
-							updateViewIndex(cur);
+							onClick(idx, cidx);
 							if (e.ctrlKey)
 								setPlotId(() => row[0]); }}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}

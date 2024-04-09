@@ -101,7 +101,7 @@ export default function InsertControls() {
 			</div>
 			
 		</div>
-		<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}>
+		<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
 			<tr>
 				<td width={90}>MODE</td>
 				<td width={180}>start time</td>
@@ -113,6 +113,6 @@ export default function InsertControls() {
 				<td>{prettyDate(startDate)}</td>
 				<td>{data[targetIdx]?.[durIdx] as number}</td>
 			</tr>
-		</table>
+		</tbody></table>
 	</div>;
 }

@@ -82,7 +82,7 @@ function MainTablePanel() {
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
 
-	const cursor = !sCursor?.entity ? sCursor : null;
+	const cursor = sCursor?.entity === 'feid' ? sCursor : null;
 
 	// always plot something
 	useEffect(() => {
@@ -98,7 +98,7 @@ function MainTablePanel() {
 			if (cursor) return shownData[cursor.row][0];
 			// set cursor to plotted line
 			const found = shownData.findIndex(r => r[0] === current);
-			if (found >= 0) queueMicrotask(() => setCursor({ row: found, column: 0 }));
+			if (found >= 0) queueMicrotask(() => setCursor({ row: found, column: 0, entity: 'feid' }));
 			return current; }
 		if (current == null)
 			return null;
