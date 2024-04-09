@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { SW_TYPES } from '../plots/time/SWTypes';
-import type { ColumnDef } from './events';
+import type { ColumnDef, Value } from './events';
+import { apiGet } from '../util';
 
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 export const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
@@ -152,3 +153,22 @@ export function fromDesc(desc: ColumnDef) {
 	} as ColumnDef;
 
 }
+
+export type TableRes = { columns: ColumnDef[], data: (Value | string[])[][] };
+export const fetchTable = (entity: string) => async () => {
+	const res = await apiGet<TableRes>('events', { entity });
+	const columns = res.columns.map(desc => fromDesc(desc));
+	const data = res.data.map(row => [...columns.map((c, i) => {
+		if (c.type === 'time') {
+			if (row[i] == null)
+				return row[i];
+			const date = new Date((row[i] as number) * 1e3);
+			return isNaN(date.getTime()) ? null : date;
+		}
+		if (c.type.endsWith('[]')) {
+			return row[i] == null || (row[i] as any).length < 1 ? null : (row[i] as string[]).join(',');
+		}
+		return row[i];
+	})]);
+	return { columns, data };
+};

@@ -235,7 +235,7 @@ export default function TableView({ size, averages, entity }: {
 			{includeMarkers && <td rowSpan={2} title='Event included from samples:'
 				className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
 		</tr><tr>
-			{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description}`}
+			{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description ?? ''}`}
 				className='ColumnHeader' onClick={() => toggleSort(col.id)}
 				onContextMenu={openContextMenu('events', { nodeId, header: col })}>
 				<div style={{ height: columnH }}><span>{col.name}</span>

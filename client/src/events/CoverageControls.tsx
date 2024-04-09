@@ -38,6 +38,7 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 			} else {
 				if (state.status === 'done') {
 					queryClient.invalidateQueries('events_coverage');
+					queryClient.invalidateQueries(entity);
 					logSuccess('Updated ' + entShort);
 				} else {
 					logError('Failed to update: ' + state.error);

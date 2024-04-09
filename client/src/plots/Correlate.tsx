@@ -198,7 +198,7 @@ export default function CorrelationPlot() {
 						onclick: (u, didx) => {
 							const row = findRow(didx);
 							if (!row) return;
-							setCursor({ row: shownData.findIndex(r => r[0] === row[0]), column: 0 });
+							setCursor({ row: shownData.findIndex(r => r[0] === row[0]), column: 0, entity: 'feid' });
 							setPlotId(() => row[0]);
 						},
 						html: (u, sidx, didx) => {

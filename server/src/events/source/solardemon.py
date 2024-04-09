@@ -16,12 +16,12 @@ FLR_COLS = [
 	Col(T1, 'start_time', not_null=True, data_type='time', pretty_name='start'),
 	Col(T1, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
 	Col(T1, 'end_time', not_null=True, data_type='time', pretty_name='end'),
-	Col(T1, 'class', data_type='text'),
+	Col(T1, 'est_class', data_type='text', pretty_name='est. class'),
 	Col(T1, 'lat'),
 	Col(T1, 'lon'),
 	Col(T1, 'dist', description='dist, R☉'),
 	Col(T1, 'active_region', data_type='integer', pretty_name='AR'),
-	Col(T1, 'flux'),
+	Col(T1, 'est_flux', pretty_name='est. flux'),
 	Col(T1, 'goes_flux', pretty_name='GOES flux'),
 	Col(T1, 'goes_peak_time', data_type='time', pretty_name='GOES peak'),
 	Col(T1, 'detection_number', pretty_name='detections'),
@@ -79,7 +79,7 @@ def scrape_solardemon(what, days):
 				times[i] += timedelta(days=1)
 		
 		ar_text = vals[9 if what == 'flares' else 10]
-		ar = int(ar_text.split()[-1]) if ar_text else None
+		ar = int(ar_text.split()[-1]) + 10000 if ar_text else None
 		iid = int(vals[5])
 
 		if what == 'flares':

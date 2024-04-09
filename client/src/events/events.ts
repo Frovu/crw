@@ -8,7 +8,7 @@ import type { GSMParams } from '../plots/time/GSM';
 import type { GeomagnParams } from '../plots/time/Geomagn';
 import type { IMFParams } from '../plots/time/IMF';
 import type { SWParams } from '../plots/time/SW';
-import type { GenericColumn } from './columns';
+import { type GenericColumn } from './columns';
 import type { CorrelationParams } from '../plots/Correlate';
 import type { HistogramParams } from '../plots/Histogram';
 import type { CollisionOptions } from '../plots/EpochCollision';
