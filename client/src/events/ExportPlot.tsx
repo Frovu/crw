@@ -1,7 +1,7 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { plotPanelOptions, statPanelOptions, useEventsSettings, useViewState } from './events';
+import { plotPanelOptions, statPanelOptions, useEventsSettings, useEventsState } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -374,7 +374,7 @@ export function ExportControls() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
 		plots, inches, perPlotScales, setInches, set, setTransform, swapTransforms,
 		addScale, setScale, removeScale, setPerPlotMode, restoreScales } = usePlotExportSate();
-	const plotId = useViewState(state => state.plotId);
+	const plotId = useEventsState(state => state.plotId);
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);

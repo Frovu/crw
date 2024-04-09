@@ -1,15 +1,16 @@
 import { useContext, type MouseEvent } from 'react';
-import { MainTableContext, TableViewContext, useViewState } from './events';
+import { MainTableContext, TableViewContext } from './events';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
+import { useEventsState } from './eventsState';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
 	const { data, columnIndex } = useContext(MainTableContext);
 	const { data: viewData } = useContext(TableViewContext);
-	const { modifyId, setStartAt, setEndAt, cursor, plotId, setStart, setEnd, setModify } = useViewState();
+	const { modifyId, setStartAt, setEndAt, cursor, plotId, setStart, setEnd, setModify } = useEventsState();
 
 	const isMove = modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);

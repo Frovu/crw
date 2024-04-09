@@ -1,6 +1,7 @@
 import { useContext, useMemo, useState } from 'react';
-import { type Value, MainTableContext, equalValues, valueToString } from './events';
+import { MainTableContext, equalValues, valueToString } from './events';
 import { apiPost, useEventListener, useMutationHandler } from '../util';
+import type { Value } from './columns';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],

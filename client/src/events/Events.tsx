@@ -6,7 +6,7 @@ import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollisi
 import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
-import { type TableMenuDetails, useViewState, statPanelOptions,
+import { type TableMenuDetails, useEventsState, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, MainTableContext, PlotContext,
 	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn } from './events';
@@ -77,7 +77,7 @@ function MainTablePanel() {
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
 	const { plotUnlistedEvents } = useEventsSettings();
-	const { plotId, setPlotId, cursor: sCursor, setCursor } = useViewState();
+	const { plotId, setPlotId, cursor: sCursor, setCursor } = useEventsState();
 	const { addFilter } = useSampleState();
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
@@ -160,7 +160,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
-	const { toggleSort, setPlotId } = useViewState();
+	const { toggleSort, setPlotId } = useEventsState();
 	const layout = useLayout();
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 

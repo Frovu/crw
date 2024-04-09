@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { SW_TYPES } from '../plots/time/SWTypes';
-import type { ColumnDef, Value } from './events';
 import { apiGet } from '../util';
 
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
@@ -58,6 +57,26 @@ export type GenericColumn = {
 	nickname: string | null,
 	description: string | null,
 	params: GenericParams,
+};
+
+export type Value = Date | string | number | null;
+export type DataRow = [number, ...Array<Value>];
+export type ColumnDef = {
+	name: string,
+	fullName: string,
+	type: 'real' | 'integer' | 'text' | 'enum' | 'time' | 'time[]' | 'text[]',
+	description?: string,
+	enum?: string[],
+	nullable: boolean,
+	entity: string,
+	width: number,
+	id: string,
+	rel?: string,
+	hidden?: boolean,
+	isComputed: boolean,
+	generic?: GenericColumn,
+	parseName: null | string,
+	parseValue: null | { [key: string|number]: string|number|null }
 };
 
 export type GenericState = Partial<Omit<GenericColumn, 'params'>> & {

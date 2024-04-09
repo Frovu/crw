@@ -1,10 +1,11 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
-import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
+import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
 import { Option, Select, useConfirmation } from '../Utility';
+import type { ColumnDef } from './columns';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	if (!column)

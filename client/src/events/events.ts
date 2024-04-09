@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
 import { createContext } from 'react';
 import type { Filter, Sample } from './sample';
 import type { CirclesParams } from '../plots/time/Circles';
@@ -8,13 +7,13 @@ import type { GSMParams } from '../plots/time/GSM';
 import type { GeomagnParams } from '../plots/time/Geomagn';
 import type { IMFParams } from '../plots/time/IMF';
 import type { SWParams } from '../plots/time/SW';
-import { type GenericColumn } from './columns';
 import type { CorrelationParams } from '../plots/Correlate';
 import type { HistogramParams } from '../plots/Histogram';
 import type { CollisionOptions } from '../plots/EpochCollision';
 import type { HistoryOptions } from '../plots/EventsHistory';
 import { useLayoutsStore, type Layout, setNodeParams, type NodeParams } from '../layout';
 import { getApp } from '../app';
+import type { ColumnDef, Value, DataRow } from './columns';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -83,24 +82,6 @@ export const defaultPlotParams: CommonPlotParams = {
 	rsmExtended: false
 };
 
-export type ColumnDef = {
-	name: string,
-	fullName: string,
-	type: 'real' | 'integer' | 'text' | 'enum' | 'time' | 'time[]' | 'text[]',
-	description?: string,
-	enum?: string[],
-	nullable: boolean,
-	entity: string,
-	width: number,
-	id: string,
-	rel?: string,
-	hidden?: boolean,
-	isComputed: boolean,
-	generic?: GenericColumn,
-	parseName: null | string,
-	parseValue: null | { [key: string|number]: string|number|null }
-};
-
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
@@ -133,11 +114,7 @@ export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: 
 	chl?.events[eid]?.[cid]?.map(row =>
 		Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
 
-export type Value = Date | string | number | null;
-export type DataRow = [number, ...Array<Value>];
 export type ChangeValue = { id: number, column: ColumnDef, value: Value };
-export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, entity: string, editing?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{
@@ -158,43 +135,6 @@ export const TableViewContext = createContext<{ data: DataRow[], columns: Column
 	markers: null | string[], includeMarkers: null | string[] }>({} as any);
 
 export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
-
-const defaultViewSate = {
-	cursor: null as Cursor | null,
-	sort: { column: 'time', direction: 1 } as Sort,
-	plotId: null as number | null,
-	modifyId: null as number | null,
-	setStartAt: null as Date | null,
-	setEndAt: null as Date | null,
-};
-
-type ViewState = typeof defaultViewSate & {
-	setEditing: (val: boolean) => void,
-	setModify: (val: number | null) => void,
-	setStart: (val: Date | null) => void,
-	setEnd: (val: Date | null) => void,
-	setCursor: (cursor: ViewState['cursor']) => void,
-	toggleSort: (column: string, dir?: Sort['direction']) => void,
-	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
-	escapeCursor: () => void,
-};
-
-export const useViewState = create<ViewState>()(
-	immer(
-		set => ({
-			...defaultViewSate,
-			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
-			setModify: (val) => set(st => { st.modifyId = val; }),
-			setStart:  (val) => set(st => { st.setStartAt = val; st.setEndAt = null; }),
-			setEnd:    (val) => set(st => { st.setEndAt = val; }),
-			setCursor: (cursor) => set(st => ({ ...st, cursor })),
-			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
-				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
-			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
-			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
-		})
-	)
-);
 
 export type TableMenuDetails = {
 	header?: ColumnDef,

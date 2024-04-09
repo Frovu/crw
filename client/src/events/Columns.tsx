@@ -1,10 +1,10 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { apiPost, useEventListener } from '../util';
-import { type ColumnDef, MainTableContext, SampleContext, findColumn, useEventsSettings } from './events';
+import { MainTableContext, SampleContext, findColumn, useEventsSettings } from './events';
 import { color } from '../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from 'react-query';
-import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState,
+import { EXTREMUM_OP, G_ALL_OPS, G_COMBINE_OP, G_VALUE_OP, useGenericState, type ColumnDef,
 	type ReferencePoint, type GenericColumn, type GenericParams, defaultRefPoint, type RefPointEvent } from './columns';
 import { Confirmation } from '../Utility';
 import { SW_TYPES } from '../plots/time/SWTypes';

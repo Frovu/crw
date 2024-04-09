@@ -4,7 +4,7 @@ import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
 import { type MagneticCloud, MainTableContext, type Onset, PlotContext, SampleContext,
-	TableViewContext, useEventsSettings, useViewState,  defaultLayouts, allPanelOptions, statPanelOptions } from './events';
+	TableViewContext, useEventsSettings, useEventsState,  defaultLayouts, allPanelOptions, statPanelOptions } from './events';
 import { EventsContextMenu, EventsLayoutContent } from './Events';
 
 function EventsView() {
@@ -12,11 +12,11 @@ function EventsView() {
 	const { columns, data } = useContext(MainTableContext);
 	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
-	const sort = useViewState(state => state.sort);
-	const plotId = useViewState(state => state.plotId);
-	const modifyId = useViewState(state => state.modifyId);
-	const setStartAt = useViewState(state => state.setStartAt);
-	const setEndAt = useViewState(state => state.setEndAt);
+	const sort = useEventsState(state => state.sort);
+	const plotId = useEventsState(state => state.plotId);
+	const modifyId = useEventsState(state => state.modifyId);
+	const setStartAt = useEventsState(state => state.setStartAt);
+	const setEndAt = useEventsState(state => state.setEndAt);
 	
 	const dataCo = useMemo(() => {
 		console.time('compute table');

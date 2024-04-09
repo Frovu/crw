@@ -1,16 +1,18 @@
 import { useState, useRef, useContext, useLayoutEffect, useEffect,
 	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
-import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, type ColumnDef,
-	MainTableContext, useViewState, type Cursor, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
+import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
+	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
 import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext, type LayoutContextType } from '../layout';
+import type { ColumnDef } from './columns';
+import { useEventsState, type Cursor } from './eventsState';
 
 function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
 	const [invalid, setInvalid] = useState(false);
 	const { makeChange } = useContext(MainTableContext);
-	const { escapeCursor } = useViewState(); 
+	const { escapeCursor } = useEventsState(); 
 
 	const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
 		const str = e.target.value.trim();
@@ -48,7 +50,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 	footer?: ReactNode,
 	onKeydown?: (e: KeyboardEvent) => void
 }) {
-	const { cursor: sCursor, setStartAt, setEndAt, setCursor, escapeCursor } = useViewState();
+	const { cursor: sCursor, setStartAt, setEndAt, setCursor, escapeCursor } = useEventsState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -167,9 +169,9 @@ export default function TableView({ size, averages, entity }: {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changes, changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const viewState = useViewState();
+	const viewState = useEventsState();
 	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt,
-		toggleSort, setCursor, setEditing, setPlotId } = viewState;
+		toggleSort, setEditing, setPlotId } = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;

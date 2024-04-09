@@ -1,11 +1,11 @@
 import { type ReactNode, useContext, useMemo, useState } from 'react';
-import type { ChangeLog, ChangeValue, ColumnDef, DataRow, Value } from './events';
+import type { ChangeLog, ChangeValue } from './events';
 import { MainTableContext, SampleContext, TableViewContext, equalValues, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
-import { G_ALL_OPS, fromDesc } from './columns';
+import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
 
 export function ExportMenu() {

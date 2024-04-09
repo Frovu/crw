@@ -2,7 +2,8 @@ import { useContext, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { type ColumnDef, type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, equalValues, valueToString, useViewState, TableViewContext } from '../events/events';
+import { type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, 
+	equalValues, valueToString, TableViewContext } from '../events/events';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
@@ -11,6 +12,8 @@ import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
+import type { ColumnDef } from '../events/columns';
+import { useEventsState } from '../events/eventsState';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
@@ -111,7 +114,7 @@ export function CorrelationContextMenu({ params, setParams }: ContextMenuProps<P
 
 export default function CorrelationPlot() {
 	const { showGrid, showLegend, showTitle } = useEventsSettings();
-	const { setCursor, setPlotId } = useViewState();
+	const { setCursor, setPlotId } = useEventsState();
 	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { columns, data: allData } = useContext(MainTableContext);

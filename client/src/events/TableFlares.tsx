@@ -2,20 +2,21 @@ import { useContext, useMemo } from 'react';
 import { useQueries } from 'react-query';
 import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
-import { fetchTable } from './columns';
-import { useViewState, type ColumnDef, valueToString } from './events';
+import { type ColumnDef, fetchTable } from './columns';
+import { valueToString } from './events';
 import { color } from '../app';
+import { useEventsState } from './eventsState';
 
 const columnOrder = ['class', 'lat', 'lon', 'AR', 'start', 'peak', 'end'];
 const timeIdx = 5;
 const sources = ['SFT', 'DKI', 'dMN'] as const;
 
 const defaultParams = {
-	
+
 }
 
 export default function FlaresTable() {
-	const { cursor } = useViewState();
+	const { cursor } = useEventsState();
 
 	const { id: nodeId, params, size } = useContext(LayoutContext)!;
 	const queries = useQueries([
