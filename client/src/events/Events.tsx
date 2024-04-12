@@ -8,7 +8,7 @@ import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
 import { type TableMenuDetails, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
-	type TableParams, copyAverages, valueToString, MainTableContext, PlotContext,
+	type TableParams, copyAverages, valueToString, PlotContext,
 	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import { ColorsSettings } from '../Colors';
@@ -26,7 +26,7 @@ import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
 import SecondaryTable, { SecTableContextMenu } from './TableSecondary';
-import { useEventsState } from './eventsState';
+import { useEventsState, useTable } from './eventsState';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -74,7 +74,7 @@ export function EventsLayoutContent() {
 
 function MainTablePanel() {
 	const { size, params } = useContext(LayoutContext) as LayoutContextType<PanelParams>;
-	const { columns, data: allData } = useContext(MainTableContext);
+	const { columns, data: allData } = useTable('feid');
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
 	const { plotUnlistedEvents } = useEventsSettings();

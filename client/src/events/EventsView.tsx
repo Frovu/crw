@@ -3,14 +3,14 @@ import { useEventListener } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
-import { type MagneticCloud, MainTableContext, type Onset, PlotContext, SampleContext,
+import { type MagneticCloud, type Onset, PlotContext, SampleContext,
 	TableViewContext, useEventsSettings, defaultLayouts, allPanelOptions, statPanelOptions } from './events';
 import { EventsContextMenu, EventsLayoutContent } from './Events';
-import { useEventsState } from './eventsState';
+import { useEventsState, useTable } from './eventsState';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
-	const { columns, data } = useContext(MainTableContext);
+	const { columns, data } = useTable('feid');
 	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
 	const sort = useEventsState(state => state.sort);
@@ -18,7 +18,7 @@ function EventsView() {
 	const modifyId = useEventsState(state => state.modifyId);
 	const setStartAt = useEventsState(state => state.setStartAt);
 	const setEndAt = useEventsState(state => state.setEndAt);
-	
+
 	const dataCo = useMemo(() => {
 		console.time('compute table');
 		const cols = columns.filter(c => shownColumns?.includes(c.id));

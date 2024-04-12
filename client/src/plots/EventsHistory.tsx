@@ -8,6 +8,7 @@ import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
+import { useTable } from '../events/eventsState';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
 
@@ -98,7 +99,7 @@ export default function EventsHistory() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
 	const layoutParams = useContext(LayoutContext)?.params;
-	const { columns, data: allData } = useContext(MainTableContext);
+	const { columns, data: allData } = useTable('feid');
 
 	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;
 

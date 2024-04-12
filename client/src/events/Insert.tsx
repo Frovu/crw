@@ -3,12 +3,12 @@ import { MainTableContext, TableViewContext } from './events';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useEventsState } from './eventsState';
+import { useEventsState, useTable } from './eventsState';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
-	const { data, columnIndex } = useContext(MainTableContext);
+	const { data, columns } = useTable('feid');
 	const { data: viewData } = useContext(TableViewContext);
 	const { modifyId, setStartAt, setEndAt, cursor, plotId, setStart, setEnd, setModify } = useEventsState();
 
@@ -16,7 +16,7 @@ export default function InsertControls() {
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isLink = false;
 	const isIdle = !isMove && !isInsert && !isLink;
-	const [timeIdx, durIdx] = ['time', 'duration'].map(c => columnIndex[c]);
+	const [timeIdx, durIdx] = ['time', 'duration'].map(c => columns.findIndex(col => col.name === c));
 	const targetId = cursor && !cursor.entity ? viewData[cursor.row][0] : plotId;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
 	const startDate = data[targetIdx]?.[timeIdx] as Date;

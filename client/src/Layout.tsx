@@ -1,4 +1,4 @@
-import { useRef, useState, useContext } from 'react';
+import { useRef, useState, useContext, useEffect } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { getApp, openContextMenu } from './app';
 import { color } from './plots/plotUtil';
@@ -151,11 +151,13 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
-	useLayoutsStore.setState(state => {
-		state.appsDefaults[getApp()] = props.defaultLayouts;
-		if (!state.apps[getApp()])
-			state.apps[getApp()] = { active: 'default', list: props.defaultLayouts };
-	});
+	useEffect(() => {
+		useLayoutsStore.setState(state => {
+			state.appsDefaults[getApp()] = props.defaultLayouts;
+			if (!state.apps[getApp()])
+				state.apps[getApp()] = { active: 'default', list: props.defaultLayouts };
+		});
+	}, [props.defaultLayouts]);
 
 	useEventListener('resetSettings', () => resetLayout());
 

@@ -6,6 +6,7 @@ import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } fro
 import { useMutation, useQueryClient } from 'react-query';
 import { Option, Select, useConfirmation } from '../Utility';
 import type { ColumnDef } from './columns';
+import { useTable } from './eventsState';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	if (!column)
@@ -95,7 +96,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 
 const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
-	const { data: tableData, columns } = useContext(MainTableContext);
+	const { data: tableData, columns } = useTable('feid');
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show,

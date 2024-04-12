@@ -118,15 +118,12 @@ export type ChangeValue = { id: number, column: ColumnDef, value: Value };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{
-	data: DataRow[],
 	columns: ColumnDef[],
 	columnIndex: { [col: string]: number },
 	structure: { [col: string]: ColumnDef[] },
 	rels: {[s: string]: string},
 	series: {[s: string]: string},
-	changelog?: ChangeLog,
-	changes: ChangeValue[],
-	makeChange: (c: ChangeValue) => boolean
+	changelog?: ChangeLog
 }>({} as any);
 
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[]	}>({} as any);

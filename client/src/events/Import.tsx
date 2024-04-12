@@ -1,7 +1,8 @@
-import { useContext, useMemo, useState } from 'react';
-import { MainTableContext, equalValues, valueToString } from './events';
+import { useMemo, useState } from 'react';
+import { equalValues, valueToString } from './events';
 import { apiPost, useEventListener, useMutationHandler } from '../util';
 import type { Value } from './columns';
+import { useTable } from './eventsState';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -10,7 +11,7 @@ const FIXES = [
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
-	const { columns: allColumns, data: currentData } = useContext(MainTableContext);
+	const { columns: allColumns, data: currentData } = useTable('feid');
 	const [fileText, setFileText] = useState<string>();
 	const [open, setOpen] = useState(false);
 

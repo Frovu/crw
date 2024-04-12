@@ -7,18 +7,17 @@ import { pickEventForSample } from './sample';
 import { openContextMenu } from '../app';
 import { LayoutContext, type LayoutContextType } from '../layout';
 import type { ColumnDef } from './columns';
-import { useEventsState, type Cursor } from './eventsState';
+import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
 
-function CellInput({ id, column, value }: { id: number, column: ColumnDef, value: string }) {
+function CellInput({ id, column, value, table }: { id: number, column: ColumnDef, value: string, table: TableName }) {
 	const [invalid, setInvalid] = useState(false);
-	const { makeChange } = useContext(MainTableContext);
 	const { escapeCursor } = useEventsState(); 
 
 	const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
 		const str = e.target.value.trim();
 		const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
 		const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
-		const isOk = isValid && (!save || makeChange({ id, column, value: val }));
+		const isOk = isValid && (!save || makeChange(table, { id, column, value: val }));
 		setInvalid(!isOk);
 	};
 
@@ -170,10 +169,10 @@ export default function TableView({ size, averages, entity }: {
 	averages?: (null | number[])[],
 }) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changes, changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
+	const { changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
-	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt,
+	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, changes,
 		toggleSort, setEditing, setPlotId } = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
@@ -200,6 +199,7 @@ export default function TableView({ size, averages, entity }: {
 		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map(c => ({ column: col, ...c })))
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
+	const changeCount = Object.values(changes).reduce((a, b) => a + b.length, 0);
 
 	const onKeydown = useCallback((e: KeyboardEvent) => {
 		if (cursor && ['-', '+', '='].includes(e.key))
@@ -272,7 +272,12 @@ export default function TableView({ size, averages, entity }: {
 								setPlotId(() => row[0]); }}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-						{curs?.editing ? <CellInput {...{ id: row[0], column, value: valueToString(row[cidx+1]) }}/> :
+						{curs?.editing ? <CellInput {...{
+							table: entity as any,
+							id: row[0],
+							column,
+							value: valueToString(row[cidx+1])
+						}}/> :
 							<span className='Cell' style={{ width: column.width + 'ch' }}>
 								<div className='TdOver'/>
 								{value}
@@ -316,10 +321,10 @@ export default function TableView({ size, averages, entity }: {
 		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
 			<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
 				<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
-				{changes.length > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
+				{changeCount > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
 					onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
 					{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
-						&nbsp;&nbsp;With [{changes.length}] unsaved&nbsp;
+						&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;
 					</span>}
 					{changesHovered && <>
 						<button className='TextButton' style={{ lineHeight: 1 }} onClick={simulateKey('KeyS', true)}>save</button>

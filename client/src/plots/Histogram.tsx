@@ -8,6 +8,7 @@ import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './ba
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
 import type { ColumnDef, Value } from '../events/columns';
+import { useTable } from '../events/eventsState';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -197,7 +198,7 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 } 
 
 export default function HistogramPlot() {
-	const { data: allData, columns } = useContext(MainTableContext);
+	const { data: allData, columns } = useTable('feid');
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);

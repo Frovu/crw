@@ -13,9 +13,9 @@ TABLES = {
 	solardemon.DIM_TABLE: solardemon.DIM_COLS,
 	solardemon.FLR_TABLE: solardemon.FLR_COLS,
 	solarsoft.TABLE: solarsoft.COLS,
-	FEID[0]: FEID[1],
-	SOURCE_CH[0]: SOURCE_CH[1],
-	SOURCE_ERUPT[0]: SOURCE_ERUPT[1]
+	FEID[0]: list(FEID[1].values()),
+	SOURCE_CH[0]: list(SOURCE_CH[1].values()),
+	SOURCE_ERUPT[0]: list(SOURCE_ERUPT[1].values())
 }
 
 def render_table_info(uid):

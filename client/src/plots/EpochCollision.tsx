@@ -8,6 +8,7 @@ import { MainTableContext, type PanelParams, SampleContext, useEventsSettings } 
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
+import { useTable } from '../events/eventsState';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
@@ -84,7 +85,8 @@ export default function EpochCollision() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { plotOffset, showGrid, showLegend } = useEventsSettings();
-	const { columns, data: allData, series: seriesDict } = useContext(MainTableContext);
+	const { columns, series: seriesDict } = useContext(MainTableContext);
+	const { data: allData } = useTable('feid');
 
 	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
 	const series = [cur.series0, cur.series1, cur.series2];

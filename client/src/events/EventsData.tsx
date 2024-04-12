@@ -1,12 +1,13 @@
 import { type ReactNode, useContext, useMemo, useState } from 'react';
-import type { ChangeLog, ChangeValue } from './events';
-import { MainTableContext, SampleContext, TableViewContext, equalValues, useEventsSettings, valueToString } from './events';
+import type { ChangeLog } from './events';
+import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
+import { discardChange, resetChanges, setRawData, useEventsState } from './eventsState';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
@@ -86,8 +87,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 			const structure = Object.fromEntries(Object.entries(tables).map(([table, cols]) =>
 				[table, Object.values(cols).map(desc => fromDesc(desc))]));
-			const columns = structure['feid'];
-			console.log('%cavailable columns:', 'color: #0f0' , columns);
+			const columns = structure.feid;
+			console.log('%cavailable columns:', 'color: #0f0' , structure);
 			return {
 				rels: {
 					'FE': 'Forbush Effects',
@@ -107,8 +108,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// ************************************************************************************
 
 	const columnOrder = useEventsSettings(st => st.columnOrder);
-	const [showCommit, setShowCommit] = useState(false);
-	const [changes, setChanges] = useState<ChangeValue[]>([]);
 	const dataQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -118,7 +117,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		onSuccess: () => logMessage('Events table loaded', 'debug')
 	});
 	
-	const rawMainContext = useMemo(() => {
+	const mainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
 		const { columns, rels, series, structure } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
@@ -155,12 +154,14 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 		const columnIndex = Object.fromEntries(filtered.map((c, i) => [c.id, i]));
 
-		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
+		setRawData('feid', data, filtered);
+
+		console.log('%crendered table:', 'color: #0f0', columns, fields, data, changelog);
 		return {
-			data,
+			
 			columns: filtered,
 			columnIndex,
-			structure,
+			structure: { ...structure, feid: filtered },
 			changelog,
 			rels,
 			series
@@ -168,50 +169,30 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	}, [columnOrder, dataQuery.data, structureQuery.data]);
 
 	// ************************************************************************************
-	// 						 	  MAIN TABLE DATA WITH CHANGES
+	// 										CHANGES
 	// ************************************************************************************
-
-	const mainContext = useMemo(() => {
-		if (!rawMainContext) return null;
-		const { data: rawData, columns } = rawMainContext;
-		const data = [...rawData.map(r => [...r])] as typeof rawData;
-		for (const { id, column, value } of changes) {
-			const row = data.find(r => r[0] === id);
-			const columnIdx = columns.findIndex(c => c.id === column.id);
-			if (row) row[columnIdx] = value;
-		}
-		const sortIdx = columns.findIndex(c => c.name === 'time');
-		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
-		
-		return {
-			...rawMainContext,
-			data,
-			changes,
-			makeChange: ({ id, column, value }: ChangeValue) => {
-				const row = rawData.find(r => r[0] === id);
-				// FIXME: create entity if not exists
-				const colIdx = columns.findIndex(c => c.id === column.id);
-				const entityExists = row && columns.some((c, i) => c.entity === column.entity && row[i] != null);
-				if (!entityExists) return false;
-
-				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
-					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
-				return true;
-			}
-		};
-	}, [rawMainContext, changes]);
 	
-	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
-	useEventListener('action+discardChanges', () => setChanges([]));
+	const [showCommit, setShowCommit] = useState(false);
+	const changes = useEventsState(state => state.changes);
+	const data = useEventsState(state => state.data);
+	const columns = useEventsState(state => state.columns);
+	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
+
+	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
+	useEventListener('action+discardChanges', () => resetChanges());
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
-		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.entity, column: column.id }))
+		changes: Object.fromEntries(Object.entries(changes).map(([tbl, chgs]) => 
+			[tbl, chgs.map(({ column, ...c }) => ({ ...c, column: column.id }))]))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {
 			queryClient.invalidateQueries('tableData');
-			logSuccess('Changes commited!'); setShowCommit(false); setChanges([]); }
+			logSuccess('Changes commited!');
+			setShowCommit(false);
+			resetChanges(true);
+		}
 	});
 
 	// ************************************************************************************
@@ -233,22 +214,23 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const sampleContext = useMemo(() => {
 		const samples = samplesQuery.data;
-		if (!mainContext || !samples) return null;
+		if (!data.feid || !columns.feid || !samples)
+			return null;
 		const isOwn = (s: Sample) => s.authors.includes(login as any) ? -1 : 1;
 		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
 			.sort((a, b) => isOwn(a) - isOwn(b));
-		const { columns, data } = mainContext;
-		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns, sorted);
-		const filterFn = renderFilters(filters, columns);
+		const dt = data.feid;
+		const applied = isPicking ? dt.map(row => [...row]) as typeof dt : applySample(dt, sample, columns.feid, sorted);
+		const filterFn = renderFilters(filters, columns.feid);
 		const filtered = applied.filter(row => filterFn(row));
 		return {
 			data: filtered, 
 			current: sample,
 			samples: sorted,
 		};
-	}, [filters, isPicking, mainContext, sample, login, samplesQuery.data]);
+	}, [samplesQuery.data, data.feid, columns.feid, isPicking, sample, filters, login]);
 
-	if (!mainContext || !sampleContext || !structureQuery.data || !dataQuery.data || !samplesQuery.data) {
+	if (!mainContext || !data || !sampleContext || !structureQuery.data || !samplesQuery.data) {
 		return <div style={{ padding: 8 }}>
 			<div>{structureQuery.isLoading && 'Loading tables..'}</div>
 			<div>{dataQuery.isLoading && 'Loading data...'}</div>
@@ -261,21 +243,24 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	return (
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
-				{rawMainContext && showCommit && <Confirmation
+				{mainContext && showCommit && <Confirmation
 					callback={() => doCommit()} closeSelf={() => setShowCommit(false)}>
-					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
+					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
-						{changes.map(({ id, column, value }) => {
-							const row = rawMainContext.data.find(r => r[0] === id);
-							const colIdx = rawMainContext.columns.findIndex(c => c.id === column.id);
-							const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
-							const val1 = value == null ? 'null' : valueToString(value);
-							return (<div key={id+column.id+value}>
-								<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
-								<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
-								<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
-									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}/>
-							</div>);})}
+						{Object.entries(changes).map(([tbl, chgs]) => <div>
+							{chgs.map(({ id, column, value }) => {
+								const row = data[tbl as keyof typeof changes].find(r => r[0] === id);
+								const colIdx = columns[tbl as keyof typeof changes].findIndex(c => c.id === column.id);
+								const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
+								const val1 = value == null ? 'null' : valueToString(value);
+								return (<div key={id+column.id+value}>
+									<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
+									<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
+									<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
+										onClick={() => discardChange(tbl as any, { id, column, value })}/>
+								</div>);})}
+						</div>)}
+						
 					</div>
 				</Confirmation>}
 				{children}
