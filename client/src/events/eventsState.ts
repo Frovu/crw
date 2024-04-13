@@ -4,7 +4,7 @@ import { equalValues, type ChangeValue } from './events';
 import type { ColumnDef, DataRow } from './columns';
 
 export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, entity: string, editing?: boolean };
+export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id?: number };
 const tables = ['feid', 'feid_sources', 'sources_erupt'] as const;
 export type TableName = typeof tables[number];
 
@@ -64,10 +64,26 @@ const applyChanges = (rawData: DataRow[], columns: ColumnDef[], changes: ChangeV
 	return data;
 };
 
-export const useTable = (tbl: TableName) => ({
+export const useTable = (tbl: TableName='feid') => ({
 	data: useEventsState(st => st.data[tbl]),
 	columns: useEventsState(st => st.columns[tbl]),
 });
+
+export const useCursorTime = () => {
+	const { data, columns } = useTable();
+	const cursor = useEventsState(st => st.cursor);
+	const plotId = useEventsState(st => st.plotId);
+
+	const [timeIdx, durIdx] = ['time', 'duration'].map(c =>
+		columns.findIndex(col => col.name === c));
+	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
+	const targetIdx = data.findIndex(r => r[0] === targetId);
+	const duration = data[targetIdx]?.[durIdx] as number | undefined;
+	const start = data[targetIdx]?.[timeIdx] as Date | undefined;
+	const end = duration == null ? undefined : start &&
+		new Date(start?.getTime() + duration * 36e5);
+	return { duration, start, end }; 
+};
 
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
 	useEventsState.setState(state => {

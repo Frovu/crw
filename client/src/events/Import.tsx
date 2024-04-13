@@ -11,7 +11,7 @@ const FIXES = [
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
-	const { columns: allColumns, data: currentData } = useTable('feid');
+	const { columns: allColumns, data: currentData } = useTable();
 	const [fileText, setFileText] = useState<string>();
 	const [open, setOpen] = useState(false);
 

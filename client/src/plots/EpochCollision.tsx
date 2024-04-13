@@ -86,7 +86,7 @@ export default function EpochCollision() {
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { plotOffset, showGrid, showLegend } = useEventsSettings();
 	const { columns, series: seriesDict } = useContext(MainTableContext);
-	const { data: allData } = useTable('feid');
+	const { data: allData } = useTable();
 
 	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
 	const series = [cur.series0, cur.series1, cur.series2];

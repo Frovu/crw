@@ -198,7 +198,7 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 } 
 
 export default function HistogramPlot() {
-	const { data: allData, columns } = useTable('feid');
+	const { data: allData, columns } = useTable();
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);

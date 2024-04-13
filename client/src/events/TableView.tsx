@@ -49,7 +49,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 	footer?: ReactNode,
 	onKeydown?: (e: KeyboardEvent) => void
 }) {
-	const { cursor: sCursor, setStartAt, setEndAt, setCursor, escapeCursor } = useEventsState();
+	const { cursor: sCursor, setStartAt, setEndAt, plotId, setCursor, escapeCursor } = useEventsState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -74,6 +74,18 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 		cursor && updateViewIndex(cursor);
 	}, [cursor, updateViewIndex]);
 
+	useLayoutEffect(() => {
+		if (cursor) return;
+		const plotIdx = data.findIndex(r => r[0] === plotId);
+		setViewIndex(vidx => {
+			if (plotIdx <= vidx)
+				return clamp(0, data.length - viewSize, plotIdx - 1);
+			if (plotIdx >= vidx + viewSize - 1)
+				return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
+			return vidx;
+		});
+	}, [plotId, cursor, data, viewSize]);
+
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
 		if (!cursor || !cell) return;
@@ -89,6 +101,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 			return;
 
 		const set = (curs: Cursor) => {
+			curs.id = data[curs.row]?.[0];
 			setCursor(curs);
 			updateViewIndex(curs);
 			e.preventDefault(); };
@@ -133,18 +146,18 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 			return set({ entity, row: cur, column });
 		}
 		set({
-			entity, 
+			entity,
 			row: clamp(0, data.length - 1, row + deltaRow),
 			column: clamp(0, columns.length - 1, column + deltaCol)
 		});		
 	});
 
 	const onClick = useCallback((idx: number, cidx: number) => {
-		const cur = { entity, row: idx, column: cidx,
+		const cur = { entity, row: idx, column: cidx, id: data[idx]?.[0],
 			editing: cursor?.column === cidx && cursor?.row === idx };
 		setCursor(cur);
 		updateViewIndex(cur);
-	}, [cursor?.column, cursor?.row, entity, setCursor, updateViewIndex]);
+	}, [cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
 
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>

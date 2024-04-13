@@ -10,7 +10,7 @@ import { useEventsState, useTable } from './eventsState';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
-	const { columns, data } = useTable('feid');
+	const { columns, data } = useTable();
 	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
 	const sort = useEventsState(state => state.sort);

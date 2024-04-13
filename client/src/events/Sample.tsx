@@ -96,7 +96,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 
 const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
-	const { data: tableData, columns } = useTable('feid');
+	const { data: tableData, columns } = useTable();
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show,

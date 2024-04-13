@@ -74,7 +74,7 @@ export function EventsLayoutContent() {
 
 function MainTablePanel() {
 	const { size, params } = useContext(LayoutContext) as LayoutContextType<PanelParams>;
-	const { columns, data: allData } = useTable('feid');
+	const { columns, data: allData } = useTable();
 	const { data: sampleData } = useContext(SampleContext);
 	const { data: shownData, columns: shownColumns } = useContext(TableViewContext);
 	const { plotUnlistedEvents } = useEventsSettings();

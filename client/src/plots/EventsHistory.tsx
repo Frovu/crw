@@ -99,7 +99,7 @@ export default function EventsHistory() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
 	const layoutParams = useContext(LayoutContext)?.params;
-	const { columns, data: allData } = useTable('feid');
+	const { columns, data: allData } = useTable();
 
 	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;
 
