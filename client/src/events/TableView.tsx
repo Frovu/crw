@@ -56,11 +56,12 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
-	const updateViewIndex = (curs: Cursor) => setViewIndex(vidx => {
+	const updateViewIndex = useCallback((curs: Cursor) => setViewIndex(vidx => {
 		const newIdx = curs.row - 1 <= vidx ? curs.row - 1 : 
 			(curs.row + 1 >= vidx + viewSize ? curs.row - viewSize + 2 : vidx);
-		return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx); 
-	});
+		
+		return clamp(0, data.length <= viewSize ? 0 : (data.length - viewSize), newIdx); 
+	}), [data.length, viewSize]);
 
 	useEventListener('escape', escapeCursor);
 
@@ -71,7 +72,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 
 	useEffect(() => {
 		cursor && updateViewIndex(cursor);
-	}, [cursor]); // eslint-disable-line
+	}, [cursor, updateViewIndex]);
 
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
@@ -143,7 +144,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 			editing: cursor?.column === cidx && cursor?.row === idx };
 		setCursor(cur);
 		updateViewIndex(cur);
-	}, [cursor, entity]); // eslint-disable-line
+	}, [cursor?.column, cursor?.row, entity, setCursor, updateViewIndex]);
 
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
@@ -183,7 +184,7 @@ export default function TableView({ size, averages, entity }: {
 		- (showAverages ? 107 : 0)
 		- (showChangelog ? 54 : 0) - 105;
 	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
-	const viewSize = Math.floor(rowsHeight / rowH);
+	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);

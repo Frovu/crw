@@ -17,7 +17,7 @@ export default function EruptionsTable() {
 
 	const rowsHeight = size.height - 28;
 	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.floor(rowsHeight / rowH);
+	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);

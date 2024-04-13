@@ -84,7 +84,6 @@ function MainTablePanel() {
 	useSize(ref.current);
 
 	const cursor = sCursor?.entity === 'feid' ? sCursor : null;
-
 	// always plot something
 	useEffect(() => {
 		const magn = shownColumns.findIndex(c => c.fullName === 'magnitude') + 1; // +1 for id col

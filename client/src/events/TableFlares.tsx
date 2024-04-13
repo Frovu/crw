@@ -17,7 +17,7 @@ export default function FlaresTable() {
 
 	const rowsHeight = size.height - 28;
 	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.floor(rowsHeight / rowH);
+	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
@@ -27,7 +27,7 @@ export default function FlaresTable() {
 
 		data, columns, size, viewSize, entity: 'flares',
 		thead: <tr>{columns.map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'
+			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}
 				// onContextMenu={}
 			>
 				<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
