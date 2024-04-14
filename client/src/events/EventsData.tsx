@@ -4,7 +4,7 @@ import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, v
 import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
-import { AuthContext, logError, logMessage, logSuccess } from '../app';
+import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
 import { discardChange, resetChanges, setRawData, useEventsState } from './eventsState';
@@ -182,7 +182,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	useEventListener('action+discardChanges', () => resetChanges());
 
 	const queryClient = useQueryClient();
-	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
+	const { mutate: doCommit, error } = useMutation(() => apiPost('events/changes', {
 		changes: Object.fromEntries(Object.entries(changes).map(([tbl, chgs]) => 
 			[tbl, chgs.map(({ column, ...c }) => ({ ...c, column: column.id }))]))
 	}), {
@@ -260,8 +260,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 										onClick={() => discardChange(tbl as any, { id, column, value })}/>
 								</div>);})}
 						</div>)}
-						
 					</div>
+					{(error as any) && <div style={{ color: color('red') }}>{(error as any).toString()}</div>}
 				</Confirmation>}
 				{children}
 			</SampleContext.Provider>

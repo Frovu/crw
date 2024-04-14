@@ -11,10 +11,10 @@ import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsView';
 import { useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor, APPS } from './app';
+import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor, APPS, useContextMenu, closeConfirmation } from './app';
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
-import { CatchErrors } from './Utility';
+import { CatchErrors, Confirmation } from './Utility';
 
 const theQueryClient = new QueryClient();
 
@@ -52,6 +52,7 @@ function Logs() {
 
 function App() {
 	const { app, theme, infoOpen, openInfo, closeInfo, setTheme, setApp } = useAppSettings();
+	const confirmation = useContextMenu(s => s.confirmation);
 
 	useEffect(() => {
 		const titleApp = APPS.find(a => window.location.pathname.endsWith(a)) ?? null;
@@ -111,6 +112,9 @@ function App() {
 		<CatchErrors>
 			{app !== 'feid' && <ContextMenu/>}
 		</CatchErrors>
+		{confirmation && <CatchErrors>
+			<Confirmation closeSelf={closeConfirmation} callback={confirmation.callback}>{confirmation.content}</Confirmation>
+		</CatchErrors>}
 		{infoOpen && <Info/>}
 		{showNav && <div className='AppNav' onContextMenu={openContextMenu('app')}>
 			<div>

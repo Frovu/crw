@@ -154,8 +154,32 @@ FEID_SOURCE = ['feid_sorces', { c.name: c for c in [
 
 SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
+	C_ER('impact_time', pretty_name='impact', data_type='time'),
+	C_ER('flr_start', pretty_name='XF start', data_type='time'),
+	C_ER('flr_peak', pretty_name='XF peak', data_type='time'),
+	C_ER('flr_end', pretty_name='XF end', data_type='time'),
+	C_ER('flr_flux', pretty_name='XF flux'),
+	C_ER('lat'),
+	C_ER('lon'),
+	C_ER('active_region', pretty_name='AR', data_type='integer'),
+	C_ER('flr_source',
+		pretty_name='XF src',
+		data_type='enum',
+		enum=['solarsoft', 'donki', 'noaa', 'manual', 'solardemon']),
+	C_ER('eruption_time', pretty_name='erupt time', data_type='time'),
+	C_ER('erupt_source',
+		pretty_name='erupt src',
+		data_type='enum',
+		enum=['lasco', 'donki', 'manual', 'solardemon']),
+	C_ER('note', data_type='text'),
+
+	C_ER('solarsoft_flr_start', data_type='time'),
+	C_ER('noaa_flr_time', data_type='time'),
+	C_ER('donki_flr_id', data_type='integer'),
+	C_ER('solardemon_flr_id', data_type='integer'),
+	C_ER('solardemon_dim_id', data_type='integer'),
+	C_ER('donki_cme_id', data_type='integer'),
 	C_ER('lasco_cme_time', data_type='time'),
-	C_ER('ab_flr_time', data_type='time'),
 	C_ER('rc_icme_time', data_type='time'),
 ]}]
 

@@ -3,7 +3,7 @@ import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
 import { color } from '../app';
-import { useEventsState } from './eventsState';
+import { useCursorTime, useEventsState } from './eventsState';
 import { useFlaresTable } from './sources';
 
 export default function FlaresTable() {
@@ -11,6 +11,7 @@ export default function FlaresTable() {
 
 	const { id: nodeId, params, size } = useContext(LayoutContext)!;
 	const context = useFlaresTable();
+	const { start: cursorTime } = useCursorTime();
 	if (!context)
 		return <div className='Center'>LOADING..</div>;
 	const { columns, data } = context;
@@ -22,10 +23,12 @@ export default function FlaresTable() {
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const timeIdx = columns.findIndex(c => c.name === 'start');
+	const focusIdx = data.findIndex(r =>
+		(r[timeIdx] as Date)?.getTime() > cursorTime!.getTime() - 2 * 864e5);
 
 	return <TableWithCursor {...{
-
-		data, columns, size, viewSize, entity: 'flares',
+		entity: 'flares',
+		data, columns, size, viewSize, focusIdx,
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}
 				// onContextMenu={}
@@ -34,11 +37,12 @@ export default function FlaresTable() {
 			</td>)}
 		</tr>,
 		row: (row, idx, onClick) => {
-			const stime = row[timeIdx];
-			return <tr key={row[0]+stime?.getTime()+row[timeIdx+2]?.getTime()}
+			const stime = row[timeIdx]?.getTime();
+			const curTime = cursorTime!.getTime();
+			const isFar = stime > curTime - 864e5 || stime < curTime - 5 * 864e5; 
+			return <tr key={row[0]+stime+row[timeIdx+2]?.getTime()}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
-					const isFar = false; 
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 					const value = valueToString(row[cidx]);
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
@@ -46,8 +50,8 @@ export default function FlaresTable() {
 							onClick(idx, cidx);
 						}}
 						// onContextMenu={}
-						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-						<span className='Cell' style={{ width: column.width + 'ch', color: color('text-dark')  }}>
+						style={{ borderColor: color(curs ? 'active' : 'border') }}>
+						<span className='Cell' style={{ width: column.width + 'ch', color: color(isFar ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
 							{value}
 						</span>

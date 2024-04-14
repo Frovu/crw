@@ -93,9 +93,9 @@ export default function InsertControls() {
 				{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>} */}
 			<div style={{ display: 'flex', color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
 				{(isIdle || isInsert) && <button onClick={isInsert ? handleEnter : toggle('insert')} style={{ width: 72 }}>Insert</button>}
-				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('modify')} style={{ width: 56 }}>Move</button>}
-				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('modify')} style={{ width: 56 }}>Link</button>}
-				{!isIdle && <button style={{ width: isInsert ? 112 : 128 }} onClick={escape}>Cancel</button>}
+				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('modify')} style={{ width: 54 }}>Move</button>}
+				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('modify')} style={{ width: 54 }}>Link</button>}
+				{!isIdle && <button style={{ width: isInsert ? 110 : 128 }} onClick={escape}>Cancel</button>}
 			</div>
 			<div style={{ alignSelf: 'start', position: 'relative' }}>
 				<CoverageControls date={start}/>

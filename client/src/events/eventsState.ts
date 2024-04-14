@@ -108,15 +108,17 @@ export const resetChanges = (keepData?: boolean) =>
 		}
 	});
 
-export const makeChange = (tbl: TableName, { column, value, id }: ChangeValue) =>
-	useEventsState.setState(({ changes, rawData, data, columns }) => {
-		const row = rawData[tbl].find(r => r[0] === id);
-		const colIdx = columns[tbl].findIndex(c => c.id === column.id);
-		if (!row) return false;
+export const makeChange = (tbl: TableName, { column, value, id }: ChangeValue) => {
+	const { rawData, columns } = useEventsState.getState();
+	const row = rawData[tbl].find(r => r[0] === id);
+	const colIdx = columns[tbl].findIndex(c => c.id === column.id);
+	if (!row) return false;
 
+	useEventsState.setState(({ changes, data }) => {
 		changes[tbl] = [
 			...changes[tbl].filter(c => c.id !== id || column.id !== c.column.id ),
 			...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])];
 		data[tbl] = applyChanges(rawData[tbl], columns[tbl], changes[tbl]);
-		return true;
 	});
+	return true;
+};

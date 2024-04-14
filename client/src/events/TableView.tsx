@@ -37,10 +37,11 @@ function CellInput({ id, column, value, table }: { id: number, column: ColumnDef
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;
 
-export function TableWithCursor({ entity, data, columns, viewSize, thead, row: rowCallback, tfoot, footer, size, onKeydown }: {
+export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, row: rowCallback, tfoot, footer, size, onKeydown }: {
 	size: Size,
 	entity: string,
 	data: any[][],
+	focusIdx?: number,
 	columns: ColumnDef[],
 	viewSize: number,
 	thead: ReactNode,
@@ -54,7 +55,8 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
+	const [viewIndex, setViewIndex] = useState(focusIdx == null ? Math.max(0, data.length - viewSize) :
+		clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2)));
 
 	const updateViewIndex = useCallback((curs: Cursor) => setViewIndex(vidx => {
 		const newIdx = curs.row - 1 <= vidx ? curs.row - 1 : 
@@ -75,7 +77,14 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 	}, [cursor, updateViewIndex]);
 
 	useLayoutEffect(() => {
-		if (cursor) return;
+		if (!focusIdx || cursor)
+			return;
+		setViewIndex(clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2)));
+	}, [cursor, data.length, focusIdx, viewSize]);
+
+	useLayoutEffect(() => {
+		if (cursor || entity !== 'feid')
+			return;
 		const plotIdx = data.findIndex(r => r[0] === plotId);
 		setViewIndex(vidx => {
 			if (plotIdx <= vidx)
@@ -84,7 +93,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 				return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
 			return vidx;
 		});
-	}, [plotId, cursor, data, viewSize]);
+	}, [plotId, cursor, data, viewSize, entity]);
 
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
@@ -163,7 +172,8 @@ export function TableWithCursor({ entity, data, columns, viewSize, thead, row: r
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
 		<div className='Table' style={{ position: 'relative' }} ref={ref}>
 			<table onWheel={e => setViewIndex(idx => {
-				queueMicrotask(() => setCursor(null));
+				if (cursor)
+					queueMicrotask(() => setCursor(null));
 				const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			})}>
