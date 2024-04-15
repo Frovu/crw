@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues, type ChangeValue } from './events';
-import type { ColumnDef, DataRow } from './columns';
+import type { ColumnDef, DataRow, Value } from './columns';
 
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id?: number };
-const tables = ['feid', 'feid_sources', 'sources_erupt'] as const;
+const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
 
 const defaultSate = {
@@ -13,18 +13,20 @@ const defaultSate = {
 	sort: { column: 'time', direction: 1 } as Sort,
 	plotId: null as number | null,
 	modifyId: null as number | null,
+	modifySource: null as number | null,
 	setStartAt: null as Date | null,
 	setEndAt: null as Date | null,
 
 	changes: Object.fromEntries(tables.map(t => [t, [] as ChangeValue[]])) as { [t in TableName]: ChangeValue[] },
-	columns: {} as { [t in TableName]: ColumnDef[] },
-	rawData: {} as { [t in TableName]: DataRow[] },
-	data:    {} as { [t in TableName]: DataRow[] },
+	columns: {} as { [t in TableName]?: ColumnDef[] },
+	rawData: {} as { [t in TableName]?: DataRow[] },
+	data:    {} as { [t in TableName]?: DataRow[] },
 };
 
 type EventsState = typeof defaultSate & {
 	setEditing: (val: boolean) => void,
 	setModify: (val: number | null) => void,
+	setModifySource: (val: number | null) => void,
 	setStart: (val: Date | null) => void,
 	setEnd: (val: Date | null) => void,
 	setCursor: (cursor: EventsState['cursor']) => void,
@@ -38,6 +40,7 @@ export const useEventsState = create<EventsState>()(
 	immer(
 		set => ({
 			...defaultSate,
+			setModifySource: (val) => set(st => { st.modifySource = val; }),
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
 			setModify: (val) => set(st => { st.modifyId = val; }),
 			setStart:  (val) => set(st => { st.setStartAt = val; st.setEndAt = null; }),
@@ -65,11 +68,11 @@ const applyChanges = (rawData: DataRow[], columns: ColumnDef[], changes: ChangeV
 };
 
 export const useTable = (tbl: TableName='feid') => ({
-	data: useEventsState(st => st.data[tbl]),
-	columns: useEventsState(st => st.columns[tbl]),
+	data: useEventsState(st => st.data[tbl])!,
+	columns: useEventsState(st => st.columns[tbl])!,
 });
 
-export const useCursorTime = () => {
+export const useCursor = () => {
 	const { data, columns } = useTable();
 	const cursor = useEventsState(st => st.cursor);
 	const plotId = useEventsState(st => st.plotId);
@@ -82,7 +85,33 @@ export const useCursorTime = () => {
 	const start = data[targetIdx]?.[timeIdx] as Date | undefined;
 	const end = duration == null ? undefined : start &&
 		new Date(start?.getTime() + duration * 36e5);
-	return { duration, start, end }; 
+	return { duration, start, end, id: targetId }; 
+};
+
+const rowAsDict = (row: DataRow, columns: ColumnDef[]) =>
+	Object.fromEntries(columns.map((c, i) => [c.id, row[i] as Value | undefined]));
+
+export const useSources = () => {
+	const cursor = useEventsState(st => st.cursor);
+	const plotId = useEventsState(st => st.plotId);
+	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
+	const src = useTable('feid_sources');
+	const erupt = useTable('sources_erupt');
+	const ch = useTable('sources_ch');
+	if (!src.data || !erupt.data || !ch.data)
+		return [];
+	const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
+	return src.data.filter(row => row[fIdIdx] === targetId).map(row => {
+		const source = rowAsDict(row, src.columns);
+		if (row[chIdIdx]) {
+			const found = ch.data.find(r => r[0] === row[chIdIdx]);
+			return { source, ch: found && rowAsDict(found, ch.columns) };
+		} else if (row[eruptIdIdx]) {
+			const found = erupt.data.find(r => r[0] === row[eruptIdIdx]);
+			return { source, erupt: found && rowAsDict(found, erupt.columns) };
+		}
+		return { source };
+	}).filter(a => !!a); 
 };
 
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
@@ -96,7 +125,7 @@ export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
 	useEventsState.setState(({ changes, rawData, data, columns }) => {
 		changes[tbl] = changes[tbl].filter(c => c.id !== id || column.id !== c.column.id);
-		data[tbl] = applyChanges(rawData[tbl], columns[tbl], []);
+		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, []);
 	});
 
 export const resetChanges = (keepData?: boolean) =>
@@ -104,21 +133,21 @@ export const resetChanges = (keepData?: boolean) =>
 		for (const tbl of tables) {
 			changes[tbl] = [];
 			if (!keepData)
-				data[tbl] = applyChanges(rawData[tbl], columns[tbl], []);
+				data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, []);
 		}
 	});
 
 export const makeChange = (tbl: TableName, { column, value, id }: ChangeValue) => {
 	const { rawData, columns } = useEventsState.getState();
-	const row = rawData[tbl].find(r => r[0] === id);
-	const colIdx = columns[tbl].findIndex(c => c.id === column.id);
+	const row = rawData[tbl]!.find(r => r[0] === id);
+	const colIdx = columns[tbl]!.findIndex(c => c.id === column.id);
 	if (!row) return false;
 
 	useEventsState.setState(({ changes, data }) => {
 		changes[tbl] = [
 			...changes[tbl].filter(c => c.id !== id || column.id !== c.column.id ),
 			...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])];
-		data[tbl] = applyChanges(rawData[tbl], columns[tbl], changes[tbl]);
+		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl]);
 	});
 	return true;
 };

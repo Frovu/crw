@@ -1,5 +1,6 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
+import { setRawData, type TableName } from './eventsState';
 
 export const flrColumnOrder = ['class', 'lat', 'lon', 'AR', 'start', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
@@ -42,22 +43,13 @@ export function useFlaresTable() {
 	}).data ?? null;
 }
 
-export function useEruptTable() {
-	const srcQuery = useQuery({
-		queryKey: ['sources_erupt'],
-		staleTime: Infinity,
-		queryFn: () => fetchTable('sources_erupt')
-	});
-
+export function useTableQuery(tbl: TableName) {
 	return useQuery({
-		queryKey: ['sources_erupt', srcQuery?.data],
+		queryKey: [tbl],
 		staleTime: Infinity,
-		queryFn: () => {
-			if (!srcQuery?.data)
-				return null;
-			const { columns, data } = srcQuery.data;
-
-			return { columns, data };
+		queryFn: async () => {
+			const { columns, data } = await fetchTable('sources_erupt');
+			setRawData(tbl, data as any, columns);
 		}
-	}).data ?? null;
+	});
 }

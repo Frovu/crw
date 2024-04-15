@@ -3,18 +3,17 @@ import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
 import { color } from '../app';
-import { useEventsState } from './eventsState';
-import { useEruptTable } from './sources';
+import { useEventsState, useTable } from './eventsState';
+import { useTableQuery } from './sources';
 
 export default function EruptionsTable() {
 	const { cursor } = useEventsState();
+	const { data, columns } = useTable('sources_erupt');
+	useTableQuery('sources_erupt');
 
 	const { id: nodeId, params, size } = useContext(LayoutContext)!;
-	const context = useEruptTable();
-	if (!context)
+	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;
-	const { columns, data } = context;
-
 	const rowsHeight = size.height - 28;
 	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));

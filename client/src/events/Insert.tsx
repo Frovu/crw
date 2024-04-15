@@ -3,23 +3,26 @@ import { MainTableContext, TableViewContext } from './events';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useCursorTime, useEventsState, useTable } from './eventsState';
+import { useCursor, useEventsState, useSources, useTable } from './eventsState';
+import { useQuery } from 'react-query';
+import { useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
 	const { data } = useTable();
 	const { modifyId, setStartAt, setEndAt, plotId, cursor: sCursor,
-		setStart, setEnd, setModify } = useEventsState();
-	const { start, end, duration } = useCursorTime();
+		setStart, setEnd, setModify, setModifySource } = useEventsState();
+	const { start, end, duration, id: targetId } = useCursor();
+	const sources = useSources();
 
-	const cursor = sCursor?.entity === 'feid' ? sCursor : null;
-	const targetId = cursor?.id ?? plotId;
-	const isMove = modifyId != null;
+	const isLink = modifyId != null && setStartAt == null && setEndAt == null;
+	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
-	const isLink = false;
 	const isIdle = !isMove && !isInsert && !isLink;
 	
+	useTableQuery('feid_sources');
+	useTableQuery('sources_erupt');
 
 	const escape = () => {
 		setModify(null);
@@ -27,12 +30,14 @@ export default function InsertControls() {
 		setEnd(null);
 	};
 
-	const toggle = (what: 'insert' | 'modify') => (e?: MouseEvent) => {
+	const toggle = (what: 'insert' | 'move' | 'link') => (e?: MouseEvent) => {
 		if (e) (e.target as HTMLButtonElement)?.blur();
-		if (setStartAt || setEndAt || !start)
+		if (!isIdle || !start)
 			return escape();
-		if (what === 'modify')
-			setModify(targetId);
+		if (what === 'move' || what === 'link')
+			targetId && setModify(targetId);
+		if (what === 'link') 
+			return;
 		const at = what === 'insert' ? roundHour(start.getTime()) + 36e5 : start.getTime();
 		setStart(new Date(at));
 	};
@@ -41,7 +46,6 @@ export default function InsertControls() {
 		if (!end) return;
 		if (setStartAt && setEndAt) {
 			// insertEvent(setStartAt, setEndAt);
-			console.log(setStartAt, setEndAt)
 			
 			return escape();
 		}
@@ -87,14 +91,14 @@ export default function InsertControls() {
 	if (!start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 2, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center'}}>
+	return <div style={{ padding: 2, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
 		<div style={{ display: 'flex' }}>
 			{/* {(setStartAt || setEndAt) && <div>{isInsert ? 'New' : 'Move'} event at {prettyDate(setStartAt)}
 				{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>} */}
 			<div style={{ display: 'flex', color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
 				{(isIdle || isInsert) && <button onClick={isInsert ? handleEnter : toggle('insert')} style={{ width: 72 }}>Insert</button>}
-				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('modify')} style={{ width: 54 }}>Move</button>}
-				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('modify')} style={{ width: 54 }}>Link</button>}
+				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('move')} style={{ width: 54 }}>Move</button>}
+				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('link')} style={{ width: 54 }}>Link</button>}
 				{!isIdle && <button style={{ width: isInsert ? 110 : 128 }} onClick={escape}>Cancel</button>}
 			</div>
 			<div style={{ alignSelf: 'start', position: 'relative' }}>
@@ -109,11 +113,12 @@ export default function InsertControls() {
 				<td width={48}>dur</td>
 			</tr>
 			<tr>
-				<td style={{ color: color(isMove || isInsert ? 'magenta' : 'text') }}>
-					{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : 'VIEW'}</td>
+				<td style={{ color: color(!isIdle ? 'magenta' : 'text') }}>
+					{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}</td>
 				<td>{prettyDate(start)}</td>
 				<td>{duration}</td>
 			</tr>
 		</tbody></table>
+		srcs: {sources.length}
 	</div>;
 }

@@ -68,7 +68,7 @@ function EventsView() {
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
 		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
-			.filter(r => r[0] !== modifyId);
+			.filter(r => (!setStartAt && !setEndAt) || r[0] !== modifyId);
 		const [onsets, ends] = [0, 36e5].map(end => events.map(r =>
 			({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
 				type: r[onsIdx] || null, secondary: setStartAt || r[0] !== plotId }) as Onset));
