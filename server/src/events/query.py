@@ -19,6 +19,13 @@ TABLES = {
 	SOURCE_ERUPT[0]: list(SOURCE_ERUPT[1].values())
 }
 
+TABLES_EDITABLE = {
+	FEID[0]: FEID[1],
+	FEID_SOURCE[0]: FEID_SOURCE[1],
+	SOURCE_CH[0]: SOURCE_CH[1],
+	SOURCE_ERUPT[0]: SOURCE_ERUPT[1]
+}
+
 def render_table_info(uid):
 	generics = select_generics(uid)
 	info = {}
@@ -79,42 +86,57 @@ def select_feid(uid=None, changelog=False):
 		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
 		return rows, fields, changes if changelog else None
 
+def create_source(feid_id, entity):
+	with pool.connection() as conn:
+		assert entity in [SOURCE_CH[0], SOURCE_ERUPT[0]]
+		se_id = conn.execute(f'INSERT INTO events.{entity} '+\
+			'DEFAULT VALUES RETURNING id').fetchone()[0]
+		link_col = 'ch_id' if entity == SOURCE_CH[0] else 'erupt_id'
+		src_id = conn.execute(f'INSERT INTO events.{FEID_SOURCE[0]} (feid_id, {link_col}) '+
+			'VALUES (%s, %s) RETURNING id', [feid_id, se_id]).fetchone()[0]
+	log.info('%s #%s created as source #%s of #%s', entity, se_id, src_id, feid_id)
+	return { 'id': se_id, 'source_id': src_id }
+
 def submit_changes(uid, changes):
 	with pool.connection() as conn:
-		for change in changes:
-			target_id, entity, column, value = [change.get(w) for w in ['id', 'entity', 'column', 'value']]
-			if entity not in TABLES:
+		for entity in changes:
+			if entity not in TABLES_EDITABLE:
 				raise ValueError(f'Unknown entity: {entity}')
-			found_column = TABLES[entity].get(column)
-			generics = not found_column and select_generics(uid)
-			found_generic = generics and next((g for g in generics if g.name == column), False)
-			if not found_column and not found_generic:
-				raise ValueError(f'Column not found: {column}')
-			if found_generic and found_generic.params.operation in G_DERIVED:
-				raise ValueError('Can\'t edit derived generics')
-			dtype = found_column.data_type if found_column else found_generic.data_type
-			new_value = value
-			if value is not None:
-				if dtype == 'time':
-					new_value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
-				if dtype == 'real':
-					new_value = float(value) if value != 'auto' else None
-				if dtype == 'integer':
-					new_value = int(value) if value != 'auto' else None
-				if dtype == 'enum' and value is not None and value not in found_column.get('enum'):
-					raise ValueError(f'Bad enum value: {value}')
-			table = 'generic_data' if found_generic else entity
-			id_col = 'feid_id' if found_generic else 'id'
-			res = conn.execute(f'SELECT {column} FROM events.{table} WHERE {id_col} = %s', [target_id]).fetchone()
-			if not res:
-				raise ValueError('Target event not found')
-			old_value = res[0]
-			if value == old_value:
-				raise ValueError(f'Value did not change: {old_value} == {value}')
-			conn.execute(f'UPDATE events.{table} SET {column} = %s WHERE {id_col} = %s', [new_value, target_id])
-			new_value_str = 'auto' if new_value is None and value == 'auto' else new_value
-			old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time'
-				else (v if v is None else str(v)) for v in [old_value, new_value_str]]
-			conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) '+\
-				'VALUES (%s,%s,%s,%s,%s,%s)', [uid, target_id, entity, column, old_str, new_str])
-			log.info(f'Change authored by user ({uid}): {entity}.{column} {old_value} -> {new_value_str}')
+			for change in changes[entity]:
+				target_id, column, value, silent = [change.get(w) for w in ['id', 'column', 'value', 'silent']]
+				found_column = TABLES_EDITABLE[entity].get(column)
+				generics = not found_column and select_generics(uid)
+				found_generic = generics and next((g for g in generics if g.name == column), False)
+				if not found_column and not found_generic:
+					raise ValueError(f'Column not found: {column}')
+				if found_generic and found_generic.params.operation in G_DERIVED:
+					raise ValueError(f'Can\'t edit derived generics ({found_generic.pretty_name})')
+				dtype = found_column.data_type if found_column else found_generic.data_type
+				new_value = value
+				if value is not None:
+					if dtype == 'time':
+						new_value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.000Z')
+					if dtype == 'real':
+						new_value = float(value) if value != 'auto' else None
+					if dtype == 'integer':
+						new_value = int(value) if value != 'auto' else None
+					if dtype == 'enum' and value is not None and value not in found_column.enum:
+						raise ValueError(f'Bad enum value for {found_column.pretty_name}: {value}')
+				table = 'generic_data' if found_generic else entity
+				id_col = 'feid_id' if found_generic else 'id'
+				res = conn.execute(f'SELECT {column} FROM events.{table} WHERE {id_col} = %s', [target_id]).fetchone()
+				if not res:
+					raise ValueError(f'Event not found: {entity} #{target_id}')
+				old_value = res[0]
+				conn.execute(f'UPDATE events.{table} SET {column} = %s WHERE {id_col} = %s', [new_value, target_id])
+
+				if silent:
+					continue
+
+				new_value_str = 'auto' if new_value is None and value == 'auto' else new_value
+				old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time'
+					else (v if v is None else str(v)) for v in [old_value, new_value_str]]
+
+				conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) '+\
+					'VALUES (%s,%s,%s,%s,%s,%s)', [uid, target_id, entity, column, old_str, new_str])
+				log.info(f'Change authored by user #{uid}: {entity}.{column} {old_value} -> {new_value_str}')

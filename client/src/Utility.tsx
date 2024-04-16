@@ -79,7 +79,7 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 }
 	
 export function Confirmation({ children, callback, closeSelf }:
-{ children: ReactNode, closeSelf: () => void, callback: () => void }) {
+{ children: ReactNode, closeSelf: (positive?: boolean) => void, callback: () => void }) {
 
 	useEventListener('click', () => closeSelf());
 	useEventListener('escape', () => closeSelf());
@@ -90,13 +90,13 @@ export function Confirmation({ children, callback, closeSelf }:
 	});
 	return <>
 		<div className='PopupBackground'/>
-		<div className='Popup' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: '50vw' }} onClick={e => e.stopPropagation()}>
+		<div className='Popup Confirmation' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
 			{children}
 			<div style={{ marginTop: '1em' }}>
 				<button style={{ width: '8em' }}
-					onClick={callback}>Confirm (Y)</button>
+					onClick={() => {callback(); closeSelf(true);}}>Confirm (Y)</button>
 				<button style={{ width: '8em', marginLeft: '24px' }}
-					onClick={closeSelf}>Cancel (N)</button>
+					onClick={() => closeSelf()}>Cancel (N)</button>
 			</div>
 		</div>
 	</>;
@@ -104,7 +104,7 @@ export function Confirmation({ children, callback, closeSelf }:
 
 export function askConfirmation(cntnt: ReactNode | string, callback: () => void) {
 	const content = typeof cntnt === 'string' ? <><h4>Confirm action</h4><p>{cntnt}</p></> : cntnt;
-	openConfirmation({ content, callback });
+	setTimeout(() => openConfirmation({ content, callback }), 20);
 }
 
 export function askProceed(content: ReactNode) {

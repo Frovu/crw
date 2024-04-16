@@ -175,6 +175,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const [showCommit, setShowCommit] = useState(false);
 	const changes = useEventsState(state => state.changes);
 	const data = useEventsState(state => state.data);
+	const rawData = useEventsState(state => state.rawData);
 	const columns = useEventsState(state => state.columns);
 	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
 
@@ -244,18 +245,19 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
 				{mainContext && showCommit && <Confirmation
-					callback={() => doCommit()} closeSelf={() => setShowCommit(false)}>
+					callback={() => doCommit()} closeSelf={(yes) => !yes && setShowCommit(false)}>
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
-						{Object.entries(changes).map(([tbl, chgs]) => <div>
-							{chgs.map(({ id, column, value }) => {
-								const row = data[tbl as keyof typeof changes].find(r => r[0] === id);
-								const colIdx = columns[tbl as keyof typeof changes].findIndex(c => c.id === column.id);
+						{Object.entries(changes).map(([tbl, chgs]) => <div key={tbl}>
+							{chgs.length > 0 && <div>{tbl}</div>}
+							{chgs.filter(ch => !ch.silent).map(({ id, column, value }) => {
+								const row = rawData[tbl as keyof typeof changes]!.find(r => r[0] === id);
+								const colIdx = columns[tbl as keyof typeof changes]!.findIndex(c => c.id === column.id);
 								const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 								const val1 = value == null ? 'null' : valueToString(value);
 								return (<div key={id+column.id+value}>
-									<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
-									<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
+									<span style={{ color: color('text-dark') }}>#{id}: </span>
+									<i style={{ color: color('active') }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
 									<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
 										onClick={() => discardChange(tbl as any, { id, column, value })}/>
 								</div>);})}

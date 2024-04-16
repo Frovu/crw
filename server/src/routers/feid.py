@@ -88,6 +88,14 @@ def list_events():
 def events_tables_info():
 	return query.render_table_info(session.get('uid'))
 
+@bp.route('/createSource', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _create_src():
+	feid_id = request.json.get('id')
+	entity = request.json.get('entity')
+	return query.create_source(feid_id, entity)
+
 @bp.route('/changes', methods=['POST'])
 @route_shielded
 @require_role('operator')

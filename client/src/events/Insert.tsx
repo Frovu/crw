@@ -4,7 +4,6 @@ import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
 import { useCursor, useEventsState, useSources, useTable } from './eventsState';
-import { useQuery } from 'react-query';
 import { useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
@@ -16,6 +15,8 @@ export default function InsertControls() {
 	const { start, end, duration, id: targetId } = useCursor();
 	const sources = useSources();
 
+	console.log(useEventsState.getState(), sources)
+
 	const isLink = modifyId != null && setStartAt == null && setEndAt == null;
 	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
@@ -23,6 +24,7 @@ export default function InsertControls() {
 	
 	useTableQuery('feid_sources');
 	useTableQuery('sources_erupt');
+	useTableQuery('sources_ch');
 
 	const escape = () => {
 		setModify(null);

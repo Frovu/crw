@@ -58,7 +58,7 @@ export const useEventsState = create<EventsState>()(
 const applyChanges = (rawData: DataRow[], columns: ColumnDef[], changes: ChangeValue[], created: number[]) => {
 	const data = [
 		...rawData.map(r => [...r]),
-		...created.map(id => [id, columns.slice(1).map(c => null)])
+		...created.map(id => [id, ...columns.slice(1).map(c => null)])
 	] as typeof rawData;
 	for (const { id, column, value } of changes) {
 		const row = data.find(r => r[0] === id);
@@ -157,22 +157,31 @@ export function makeChange (tbl: TableName, { column, value, id }: ChangeValue) 
 	return true;
 };
 
-export function makeSourceChanges (tbl: 'sources_ch' | 'sources_erupt', id: number, row: RowDict, createdSrc?: number) {
+export function makeSourceChanges (tbl: 'sources_ch' | 'sources_erupt', feid_id: number, id: number, row: RowDict, createdSrc?: number) {
 	useEventsState.setState(({ changes, created, columns, rawData, data }) => {
 		if (createdSrc && !created.feid_sources.includes(createdSrc))
 			created.feid_sources = [createdSrc, ...created.feid_sources];
 		if (createdSrc && !created[tbl].includes(id))
 			created[tbl] = [id, ...created[tbl]];
+		if (createdSrc) {
+			const sLinkIdx = tbl === 'sources_ch' ? 2 : 3;
+			changes.feid_sources = [...changes.feid_sources,
+				{ id: createdSrc, column: columns.feid_sources![1], value: feid_id, silent: true },
+				{ id: createdSrc, column: columns.feid_sources![sLinkIdx], value: id, silent: true }
+			];
+		}
 		const rawRow = rowAsDict(createdSrc ? [id] : rawData[tbl]!.find(r => r[0] === id)!, columns[tbl]!);
 
 		for (const [colId, value] of Object.entries(row)) {
 			const column = columns[tbl]!.find(c => c.id === colId)!;
+			const silent = !colId.endsWith('source');
 			changes[tbl] = [
 				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
-				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null }] : [])];
+				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null, silent }] : [])];
 
 		}
-		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl], created[tbl]);
+		for (const tb of [tbl, 'feid_sources'] as TableName[])
+			data[tb] = applyChanges(rawData[tb]!, columns[tb]!, changes[tb], created[tb]);
 	});
 
 };

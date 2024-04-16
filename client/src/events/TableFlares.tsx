@@ -2,12 +2,11 @@ import { useContext } from 'react';
 import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
-import { color, logError } from '../app';
-import { rowAsDict, useCursor, useEventsState, type RowDict } from './eventsState';
+import { color, logError, logMessage } from '../app';
+import { makeSourceChanges, rowAsDict, useCursor, useEventsState, type RowDict } from './eventsState';
 import { useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
-import type { ColumnDef, DataRow } from './columns';
 
 export const flaresLinkId = {
 	SFT: 'solarsoft_flr_start',
@@ -33,6 +32,7 @@ function parseFlareFlux(cls: string | null) {
 
 async function linkFlare(flare: RowDict) {
 	const { data, columns, modifySource, modifyId, setStartAt, setEndAt } = useEventsState.getState();
+
 	if (setStartAt || setEndAt || modifyId == null
 		|| !data.feid_sources || !data.sources_erupt)
 		return;
@@ -76,6 +76,9 @@ async function linkFlare(flare: RowDict) {
 			erupt.active_region = flare.active_region;
 			erupt.flr_flux = flare.flux ?? parseFlareFlux(flare.class as string);
 		}
+
+		makeSourceChanges('sources_erupt', modifyId, eruptId, erupt, createdSrc);
+		logMessage(`Linked ${flare.src} flare ${flare.class} to FE/ID #${modifyId}`);
 	};
 
 	if (modifyingEruptId != null)
@@ -86,7 +89,8 @@ async function linkFlare(flare: RowDict) {
 		<p>No source is selected, create a new one linked to current event?</p>
 	</>, async () => {
 		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/create', { entity: 'sources_erupt' });
+			const res = await apiPost<{ id: number, source_id: number }>('events/createSource',
+				{ entity: 'sources_erupt', id: modifyId });
 			actuallyLink(res.id, res.source_id);
 		} catch (e) {
 			logError(e?.toString());
@@ -142,6 +146,9 @@ export default function FlaresTable() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							onClick(idx, cidx);
+							if (cidx === 0) {
+								linkFlare(rowAsDict(row as any, columns));
+							}
 						}}
 						// onContextMenu={}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
