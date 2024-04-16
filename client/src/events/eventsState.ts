@@ -18,6 +18,7 @@ const defaultSate = {
 	setEndAt: null as Date | null,
 
 	changes: Object.fromEntries(tables.map(t => [t, [] as ChangeValue[]])) as { [t in TableName]: ChangeValue[] },
+	created: Object.fromEntries(tables.map(t => [t, [] as number[]])) as { [t in TableName]: number[] },
 	columns: {} as { [t in TableName]?: ColumnDef[] },
 	rawData: {} as { [t in TableName]?: DataRow[] },
 	data:    {} as { [t in TableName]?: DataRow[] },
@@ -54,8 +55,11 @@ export const useEventsState = create<EventsState>()(
 	)
 );
 
-const applyChanges = (rawData: DataRow[], columns: ColumnDef[], changes: ChangeValue[]) => {
-	const data = [...rawData.map(r => [...r])] as typeof rawData;
+const applyChanges = (rawData: DataRow[], columns: ColumnDef[], changes: ChangeValue[], created: number[]) => {
+	const data = [
+		...rawData.map(r => [...r]),
+		...created.map(id => [id, columns.slice(1).map(c => null)])
+	] as typeof rawData;
 	for (const { id, column, value } of changes) {
 		const row = data.find(r => r[0] === id);
 		const columnIdx = columns.findIndex(c => c.id === column.id);
@@ -88,8 +92,9 @@ export const useCursor = () => {
 	return { duration, start, end, id: targetId }; 
 };
 
-const rowAsDict = (row: DataRow, columns: ColumnDef[]) =>
-	Object.fromEntries(columns.map((c, i) => [c.id, row[i] as Value | undefined]));
+export type RowDict = { [k: string] : Value | undefined };
+export const rowAsDict = (row: DataRow, columns: ColumnDef[]): RowDict =>
+	Object.fromEntries(columns.map((c, i) => [c.id, row[i] ?? null]));
 
 export const useSources = () => {
 	const cursor = useEventsState(st => st.cursor);
@@ -118,36 +123,56 @@ export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) 
 	useEventsState.setState(state => {
 		state.columns[tbl] = cols;
 		state.rawData[tbl] = rdata;
-		state.data[tbl] = applyChanges(rdata, cols, state.changes[tbl]);
+		state.data[tbl] = applyChanges(rdata, cols, state.changes[tbl], state.created[tbl]);
 	
 	}));
 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
-	useEventsState.setState(({ changes, rawData, data, columns }) => {
+	useEventsState.setState(({ changes, created, rawData, data, columns }) => {
 		changes[tbl] = changes[tbl].filter(c => c.id !== id || column.id !== c.column.id);
-		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, []);
+		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl], created[tbl]);
 	});
 
 export const resetChanges = (keepData?: boolean) =>
-	useEventsState.setState(({ changes, rawData, data, columns }) => {
+	useEventsState.setState(({ changes, created, rawData, data, columns }) => {
 		for (const tbl of tables) {
 			changes[tbl] = [];
+			created[tbl] = [];
 			if (!keepData)
-				data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, []);
+				data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, [], []);
 		}
 	});
 
-export const makeChange = (tbl: TableName, { column, value, id }: ChangeValue) => {
+export function makeChange (tbl: TableName, { column, value, id }: ChangeValue) {
 	const { rawData, columns } = useEventsState.getState();
 	const row = rawData[tbl]!.find(r => r[0] === id);
 	const colIdx = columns[tbl]!.findIndex(c => c.id === column.id);
-	if (!row) return false;
 
-	useEventsState.setState(({ changes, data }) => {
+	useEventsState.setState(({ changes, created, data }) => {
 		changes[tbl] = [
 			...changes[tbl].filter(c => c.id !== id || column.id !== c.column.id ),
-			...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])];
-		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl]);
+			...(!equalValues(row?.[colIdx] ?? null, value) ? [{ id, column, value }] : [])];
+		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl], created[tbl]);
 	});
 	return true;
+};
+
+export function makeSourceChanges (tbl: 'sources_ch' | 'sources_erupt', id: number, row: RowDict, createdSrc?: number) {
+	useEventsState.setState(({ changes, created, columns, rawData, data }) => {
+		if (createdSrc && !created.feid_sources.includes(createdSrc))
+			created.feid_sources = [createdSrc, ...created.feid_sources];
+		if (createdSrc && !created[tbl].includes(id))
+			created[tbl] = [id, ...created[tbl]];
+		const rawRow = rowAsDict(createdSrc ? [id] : rawData[tbl]!.find(r => r[0] === id)!, columns[tbl]!);
+
+		for (const [colId, value] of Object.entries(row)) {
+			const column = columns[tbl]!.find(c => c.id === colId)!;
+			changes[tbl] = [
+				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
+				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null }] : [])];
+
+		}
+		data[tbl] = applyChanges(rawData[tbl]!, columns[tbl]!, changes[tbl], created[tbl]);
+	});
+
 };

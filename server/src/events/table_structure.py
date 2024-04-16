@@ -143,7 +143,7 @@ C_SRC = lambda *args, **kwargs: ColumnDef('feid_sources',  *args, **kwargs)
 C_CH  = lambda *args, **kwargs: ColumnDef('sources_ch',    *args, **kwargs)
 C_ER  = lambda *args, **kwargs: ColumnDef('sources_erupt', *args, **kwargs)
 
-FEID_SOURCE = ['feid_sorces', { c.name: c for c in [
+FEID_SOURCE = ['feid_sources', { c.name: c for c in [
 	C_SRC('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
 	C_SRC('feid_id',  data_type='integer', sql='feid_id integer NOT NULL REFERENCES events.feid ON DELETE CASCADE'),
 	C_SRC('ch_id',    data_type='integer', sql='ch_id integer REFERENCES events.sources_ch ON DELETE CASCADE'),
@@ -154,18 +154,21 @@ FEID_SOURCE = ['feid_sorces', { c.name: c for c in [
 
 SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
-	C_ER('impact_time', pretty_name='impact', data_type='time'),
 	C_ER('flr_start', pretty_name='XF start', data_type='time'),
 	C_ER('flr_peak', pretty_name='XF peak', data_type='time'),
 	C_ER('flr_end', pretty_name='XF end', data_type='time'),
 	C_ER('flr_flux', pretty_name='XF flux'),
-	C_ER('lat'),
-	C_ER('lon'),
 	C_ER('active_region', pretty_name='AR', data_type='integer'),
 	C_ER('flr_source',
 		pretty_name='XF src',
 		data_type='enum',
 		enum=['solarsoft', 'donki', 'noaa', 'manual', 'solardemon']),
+	C_ER('lat'),
+	C_ER('lon'),
+	C_ER('coords_source',
+		pretty_name='coord src',
+		data_type='enum',
+		enum=['flare', 'lasco', 'donki', 'manual', 'solardemon']),
 	C_ER('eruption_time', pretty_name='erupt time', data_type='time'),
 	C_ER('erupt_source',
 		pretty_name='erupt src',
@@ -174,7 +177,7 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('note', data_type='text'),
 
 	C_ER('solarsoft_flr_start', data_type='time'),
-	C_ER('noaa_flr_time', data_type='time'),
+	C_ER('noaa_flr_start', data_type='time'),
 	C_ER('donki_flr_id', data_type='integer'),
 	C_ER('solardemon_flr_id', data_type='integer'),
 	C_ER('solardemon_dim_id', data_type='integer'),

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, createContext, useContext } from 'react';
 import { useEventListener } from './util';
 import { ErrorBoundary } from 'react-error-boundary';
-import { color, useContextMenu } from './app';
+import { color, openConfirmation } from './app';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
@@ -104,7 +104,16 @@ export function Confirmation({ children, callback, closeSelf }:
 
 export function askConfirmation(cntnt: ReactNode | string, callback: () => void) {
 	const content = typeof cntnt === 'string' ? <><h4>Confirm action</h4><p>{cntnt}</p></> : cntnt;
-	useContextMenu.setState(s => ({ ...s, confirmation: { content, callback } }));
+	openConfirmation({ content, callback });
+}
+
+export function askProceed(content: ReactNode) {
+	return new Promise<boolean>(resolve => {
+		openConfirmation({ content,
+			callback: () => resolve(true),
+			onClose: () => resolve(false)
+		});
+	});
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

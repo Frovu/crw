@@ -132,6 +132,7 @@ type ContextMenu = {
 	},
 	confirmation: null | {
 		callback: () => void,
+		onClose?: () => void,
 		content: ReactNode
 	}
 };
@@ -147,8 +148,15 @@ export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: m
 		useContextMenu.setState(({ menu }) =>
 			({ menu: !force && menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
 	};
+export const openConfirmation = (conf: ContextMenu['confirmation']) => useContextMenu.setState(s => {
+	s.confirmation?.onClose?.();
+	return { ...s, confirmation: conf };
+});
 export const closeContextMenu = () => useContextMenu.setState(s => ({ ...s, menu: null }));
-export const closeConfirmation = () => useContextMenu.setState(s => ({ ...s, confirmation: null }));
+export const closeConfirmation = () => useContextMenu.setState(s => {
+	s.confirmation?.onClose?.();
+	return { ...s, confirmation: null };
+});
 
 export const roleOptions = ['admin', 'operator'] as const;
 export const AuthContext = createContext<{ login?: string, role?: typeof roleOptions[number], promptLogin: (a: any) => void }>({} as any);

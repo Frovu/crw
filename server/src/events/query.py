@@ -14,6 +14,7 @@ TABLES = {
 	solardemon.FLR_TABLE: solardemon.FLR_COLS,
 	solarsoft.TABLE: solarsoft.COLS,
 	FEID[0]: list(FEID[1].values()),
+	FEID_SOURCE[0]: list(FEID_SOURCE[1].values()),
 	SOURCE_CH[0]: list(SOURCE_CH[1].values()),
 	SOURCE_ERUPT[0]: list(SOURCE_ERUPT[1].values())
 }
@@ -44,8 +45,9 @@ def select_events(entity):
 	cols = TABLES[entity]
 	with pool.connection() as conn:
 		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
-		time_col = next((c for c in cols if 'time' in c.name)).name
-		data = conn.execute(f'SELECT {cl} FROM events.{entity} ORDER BY {time_col}').fetchall()
+		time_col = next((c for c in cols if 'time' in c.name), None)
+		data = conn.execute(f'SELECT {cl} FROM events.{entity} '+\
+			f'ORDER BY {time_col.name if time_col else "id"}').fetchall()
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
 def select_feid(uid=None, changelog=False):
