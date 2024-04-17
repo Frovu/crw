@@ -20,6 +20,14 @@ export const otherLinkId = {
 	dMN: 'solardemon_dim_id'
 } as const;
 
+export function getFlareLink(src: any) {
+	const lnk = flaresLinkId[src as keyof typeof flaresLinkId];
+	return {
+		linkColId: lnk,
+		idColId: lnk.endsWith('id') ? 'id' : 'start_time'
+	};
+}
+
 export function useFlaresTable() {
 	return useQuery({
 		queryKey: ['flares'],
@@ -57,7 +65,7 @@ export function useFlaresTable() {
 			] };
 
 		}
-	}).data ?? null;
+	}).data ?? { data: [], columns: [] };
 }
 
 export function useTableQuery(tbl: TableName) {
@@ -67,8 +75,8 @@ export function useTableQuery(tbl: TableName) {
 		queryKey: [tbl],
 		staleTime: Infinity,
 		queryFn: async () => {
-			const { columns, data } = await fetchTable(tbl);
-			setRawData(tbl, data as any, columns);
+			const { columns, data: dt } = await fetchTable(tbl);
+			setRawData(tbl, dt as any, columns);
 			return data;
 		}
 	});

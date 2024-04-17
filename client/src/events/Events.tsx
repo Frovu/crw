@@ -27,6 +27,7 @@ import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
 import SecondaryTable, { SecTableContextMenu } from './TableSecondary';
 import { useEventsState, useTable } from './eventsState';
+import SunView, { SunViewContextMenu } from './SunView';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -53,6 +54,7 @@ export function EventsLayoutContent() {
 		{type === 'ColorSettings' && <ColorsSettings/>}
 		{type === 'InsertControls' && <InsertControls/>}
 		{type === 'Histogram' && <HistogramPlot/>}
+		{type === 'Sun View' && <SunView/>}
 		{type === 'SecondaryTable' && <SecondaryTable/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
@@ -191,6 +193,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
 		{params.type === 'SecondaryTable' && <SecTableContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{params.type === 'FEID Table' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>

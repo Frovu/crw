@@ -1,10 +1,10 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
-import { valueToString } from './events';
+import { equalValues, valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict } from './eventsState';
-import { flaresLinkId, useFlaresTable } from './sources';
+import { flaresLinkId, getFlareLink, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
 
@@ -48,12 +48,10 @@ async function linkFlare(flare: RowDict, feidId: number) {
 		return;
 	const modifyingEruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx];
 
-	const linkColId = flaresLinkId[flare.src as keyof typeof flaresLinkId];
-	const idColId = linkColId.endsWith('start') ? 'start_time' : 'id';
+	const { linkColId, idColId } = getFlareLink(flare.src);
 	const linkColIdx = columns.sources_erupt!.findIndex(c => c.id === linkColId);
 
-	const linkedToOther = data.sources_erupt.find(row => linkColId.endsWith('id') ?
-		row[linkColIdx] === flare[idColId] : (row[linkColIdx] as any)?.getTime() === (flare.start_time as any)?.getTime());
+	const linkedToOther = data.sources_erupt.find(row => equalValues(row[linkColIdx], flare[idColId]));
 	
 	if (linkedToOther)
 		return askProceed(<>
@@ -120,12 +118,11 @@ export function FlaresContextMenu() {
 	const flare = detail?.flare;
 	const erupt = useSource('sources_erupt');
 	const src = flare?.src as keyof typeof flaresLinkId;
-	const isLinked = flare && (flaresLinkId[src]!.endsWith('id')
-		? flare.id === erupt?.[flaresLinkId[src]]
-		: (flare.start_time as any).getTime() === (erupt?.[flaresLinkId[src]] as any)?.getTime());
+	const { linkColId, idColId } = getFlareLink(src);
+	const isLinked = flare && equalValues(flare[idColId], erupt?.[linkColId]);
 
 	return !flare ? null : <>
-		<button className='TextButton' style={{ color: color(erupt?.[flaresLinkId[src]] ? 'text-dark' : 'text') }}
+		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
 			onClick={() => id && linkFlare(flare, id)}>
 				Link {src} flare</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkFlare(flare)}>Unlink {src} flare</button>}
@@ -139,11 +136,10 @@ export default function FlaresTable() {
 	const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	const context = useFlaresTable();
+	const { columns, data } = useFlaresTable();
 	const { start: cursorTime, id: feidId } = useFeidCursor();
-	if (!context)
+	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
-	const { columns, data } = context;
 
 	const rowsHeight = size.height - 28;
 	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
@@ -174,10 +170,8 @@ export default function FlaresTable() {
 		row: (row, idx, onClick) => {
 			const flare = rowAsDict(row as any, columns);
 			const stime = (flare.start_time as any)?.getTime();
-			const linkColId = flaresLinkId[flare.src as keyof typeof flaresLinkId];
-			const isLinked = linkColId?.endsWith('id')
-				? flare.id === linked?.[flare.src as any]
-				: stime === (linked?.[flare.src as any] as any)?.getTime();
+			const { linkColId, idColId } = getFlareLink(flare.src);
+			const isLinked = equalValues(flare[idColId], linked?.[flare.src as any]);
 			const isPrime = isLinked && erupt?.flr_source === flare.src;
 			const otherLinked = !isLinked && linked?.[flare.src as any];
 			const darkk = otherLinked || (!erupt?.flr_start ?
@@ -187,9 +181,7 @@ export default function FlaresTable() {
 			// FIXME: this is probably slow
 			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
 			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
-				linkColId?.endsWith('id')
-					? flare.id === eru[eruptLinkIdx]
-					: stime === (eru[eruptLinkIdx] as any)?.getTime())); 
+				equalValues(flare[idColId], eru[eruptLinkIdx]))); 
 		
 			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>

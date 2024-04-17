@@ -60,6 +60,7 @@
 .ContextMenu {
 	z-index: 5;
 	width: max-content;
+	font-size: 14px;
 	position: fixed;
 	padding: 8px;
 	background-color: var(--color-bg);
