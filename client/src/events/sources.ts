@@ -24,7 +24,7 @@ export function getFlareLink(src: any) {
 	const lnk = flaresLinkId[src as keyof typeof flaresLinkId];
 	return {
 		linkColId: lnk,
-		idColId: lnk.endsWith('id') ? 'id' : 'start_time'
+		idColId: lnk?.endsWith('id') ? 'id' : 'start_time'
 	};
 }
 
