@@ -140,8 +140,8 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 			column: deltaCol >= 0 ? -1 : columns.length };
 
 		if (e.ctrlKey && deltaRow !== 0) {
-			let cur = row + deltaRow;
-			if (columns[column].fullName === 'time') {
+			let cur = clamp(0, data.length - 1, row + deltaRow);
+			if (columns[column].type === 'time') {
 				const curYear = (data[cur][column + 1] as Date).getUTCFullYear();
 
 				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear

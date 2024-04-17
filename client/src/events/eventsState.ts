@@ -54,6 +54,10 @@ export const useEventsState = create<EventsState>()(
 			setCursor: (cursor) => set(st => {
 				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId))
 					st.modifySource = null;
+				if (cursor?.entity === 'sources_erupt')
+					st.modifySource = st.data.feid_sources?.find(row => row[eruptIdIdx] === cursor.id)?.[0] ?? null;
+				if (cursor?.entity === 'sources_ch')
+					st.modifySource = st.data.feid_sources?.find(row => row[chIdIdx] === cursor.id)?.[0] ?? null;
 				st.cursor = cursor;
 			}),
 			setPlotId: (setter) => set(st => {
@@ -94,7 +98,7 @@ export const useTable = (tbl: TableName='feid') => ({
 	columns: useEventsState(st => st.columns[tbl])!,
 });
 
-export const useCursor = () => {
+export const useFeidCursor = () => {
 	const { data, columns } = useTable();
 	const cursor = useEventsState(st => st.cursor);
 	const plotId = useEventsState(st => st.plotId);

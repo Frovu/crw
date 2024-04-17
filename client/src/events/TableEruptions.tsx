@@ -10,10 +10,6 @@ import { askConfirmation } from '../Utility';
 
 const ENT = 'sources_erupt';
 
-type EruptiuonMenuDetail = {
-	id: number
-};
-
 function deleteEruption(id: number) {
 	askConfirmation(<><h4>Delete eruption event?</h4><p>Action is irreversible</p></>, async () => {
 		try {
@@ -26,7 +22,6 @@ function deleteEruption(id: number) {
 }
 
 export function EruptionsContextMenu() {
-	const { data, columns } = useTable(ENT);
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
 
@@ -36,13 +31,15 @@ export function EruptionsContextMenu() {
 }
 
 export default function EruptionsTable() {
-	const { cursor } = useEventsState();
+	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
 	const sources = useSources();
 
+	const cursor = sCursor?.entity === 'sources_erupt' ? sCursor : null;
+
 	useTableQuery(ENT);
 
-	const { id: nodeId, params, size } = useContext(LayoutContext)!;
+	const { id: nodeId, size } = useContext(LayoutContext)!;
 	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;
 	const rowsHeight = size.height - 28;
@@ -53,7 +50,7 @@ export default function EruptionsTable() {
 	const headerPadding = (hRem - viewSize * trPadding);
 
 	return <TableWithCursor {...{
-		data, columns, size, viewSize, entity: 'eruptions',
+		data, columns, size, viewSize, entity: 'sources_erupt',
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
 				<div style={{ height: 26 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>

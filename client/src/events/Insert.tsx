@@ -2,7 +2,7 @@ import { type MouseEvent } from 'react';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useCursor, useEventsState, useSources } from './eventsState';
+import { useFeidCursor, useEventsState, useSources } from './eventsState';
 import { flaresLinkId, otherLinkId, useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
@@ -10,7 +10,7 @@ const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 export default function InsertControls() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource } = useEventsState();
-	const { start, end, duration, id: targetId } = useCursor();
+	const { start, end, duration, id: targetId } = useFeidCursor();
 	const sources = useSources();
 
 	const isLink = modifySource;

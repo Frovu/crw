@@ -3,7 +3,7 @@ import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useCursor, useEventsState, useSource, useTable, type RowDict } from './eventsState';
+import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict } from './eventsState';
 import { flaresLinkId, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
@@ -116,7 +116,7 @@ async function linkFlare(flare: RowDict, feidId: number) {
 
 export function FlaresContextMenu() {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
-	const { id } = useCursor();
+	const { id } = useFeidCursor();
 	const flare = detail?.flare;
 	const erupt = useSource('sources_erupt');
 	const src = flare?.src as keyof typeof flaresLinkId;
@@ -133,13 +133,14 @@ export function FlaresContextMenu() {
 }
 
 export default function FlaresTable() {
-	const { cursor, modifySource } = useEventsState();
+	const { cursor: sCursor, modifySource } = useEventsState();
+	const cursor = sCursor?.entity === 'flares' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const context = useFlaresTable();
-	const { start: cursorTime, id: feidId } = useCursor();
+	const { start: cursorTime, id: feidId } = useFeidCursor();
 	if (!context)
 		return <div className='Center'>LOADING..</div>;
 	const { columns, data } = context;
@@ -159,7 +160,12 @@ export default function FlaresTable() {
 
 	return <TableWithCursor {...{
 		entity: 'flares',
-		data, columns, size, viewSize, focusIdx,
+		data, columns, size, viewSize, focusIdx, onKeydown: e => {
+			if (cursor && erupt && e.key === '-')
+				return unlinkFlare(rowAsDict(data[cursor.row] as any, columns));
+			if (cursor && ['+', '='].includes(e.key))
+				return feidId && linkFlare(rowAsDict(data[cursor.row] as any, columns), feidId);
+		},
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
 				<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
