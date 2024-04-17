@@ -96,6 +96,15 @@ def _create_src():
 	entity = request.json.get('entity')
 	return query.create_source(feid_id, entity)
 
+@bp.route('/delete', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _delete_evt():
+	eid = request.json.get('id')
+	entity = request.json.get('entity')
+	query.delete(session.get('uid'), eid, entity)
+	return msg('OK')
+
 @bp.route('/changes', methods=['POST'])
 @route_shielded
 @require_role('operator')

@@ -97,6 +97,13 @@ def create_source(feid_id, entity):
 	log.info('%s #%s created as source #%s of #%s', entity, se_id, src_id, feid_id)
 	return { 'id': se_id, 'source_id': src_id }
 
+def delete(uid, eid, entity):
+	with pool.connection() as conn:
+		assert entity in TABLES
+		conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [eid])
+		# TODO: log deletions?
+	log.info('user #%s deleted %s #%s', uid, entity, eid)
+
 def submit_changes(uid, changes):
 	with pool.connection() as conn:
 		for entity in changes:

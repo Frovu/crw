@@ -1,17 +1,47 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
-import { valueToString } from './events';
-import { color } from '../app';
-import { useEventsState, useSources, useTable } from './eventsState';
+import { valueToString, type TableMenuDetails } from './events';
+import { color, logError, openContextMenu, useContextMenu } from '../app';
+import { deleteEvent, useEventsState, useSources, useTable } from './eventsState';
 import { useTableQuery } from './sources';
+import { apiPost } from '../util';
+import { askConfirmation } from '../Utility';
+
+const ENT = 'sources_erupt';
+
+type EruptiuonMenuDetail = {
+	id: number
+};
+
+function deleteEruption(id: number) {
+	askConfirmation(<><h4>Delete eruption event?</h4><p>Action is irreversible</p></>, async () => {
+		try {
+			await apiPost('events/delete', { entity: ENT, id });
+			deleteEvent(ENT, id);
+		} catch(e) {
+			logError(e?.toString());
+		}
+	});
+}
+
+export function EruptionsContextMenu() {
+	const { data, columns } = useTable(ENT);
+	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
+	const eruptId = detail?.cell?.id;
+	console.log(detail)
+
+	return <>
+		{eruptId && <button className='TextButton' onClick={() => deleteEruption(eruptId)}>Delete row</button>}
+	</>;
+}
 
 export default function EruptionsTable() {
 	const { cursor } = useEventsState();
-	const { data, columns } = useTable('sources_erupt');
+	const { data, columns } = useTable(ENT);
 	const sources = useSources();
 
-	useTableQuery('sources_erupt');
+	useTableQuery(ENT);
 
 	const { id: nodeId, params, size } = useContext(LayoutContext)!;
 	if (!data || !columns)
@@ -46,7 +76,7 @@ export default function EruptionsTable() {
 						onClick={e => {
 							onClick(idx, cidx);
 						}}
-						// onContextMenu={}
+						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0] } as any })}
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 						<span className='Cell' style={{ width: width + 'ch', color: color(dark ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>

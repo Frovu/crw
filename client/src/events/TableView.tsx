@@ -98,7 +98,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	useEffect(() => {
 		const cell = cursor && ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement;
 		if (!cursor || !cell) return;
-		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! / 2);
+		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! * 2/ 3);
 		ref.current?.scrollTo({ left });
 	}, [cursor, ref.current?.offsetWidth]);
 

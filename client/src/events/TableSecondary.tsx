@@ -1,9 +1,7 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import { type PanelParams } from './events';
-import { useQuery } from 'react-query';
 import FlaresTable from './TableFlares';
-import EruptionsTable from './TableEruptions';
+import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
 
 const TABLES = ['Eruptions', 'Flares', 'CMEs', 'ICMEs', 'Dimmings'] as const;
 
@@ -13,18 +11,20 @@ const defaultParams = {
 
 export function SecTableContextMenu({ params, setParams }: ContextMenuProps<Partial<typeof defaultParams>>) {
 
-	const para = { ...defaultParams, ...params };
+	const { secTable } = { ...defaultParams, ...params };
 
 	return <>
-		<select value={para.secTable} onChange={e => setParams({ secTable: e.target.value as any })}
+		<select value={secTable} onChange={e => setParams({ secTable: e.target.value as any })}
 			style={{ border: 'transparent', textAlign: 'left' }}>
 			{TABLES.map(t => <option key={t} value={t}>{t}</option>)}
 		</select>
+		<div className='separator'/>
+		{secTable === 'Eruptions' && <EruptionsContextMenu/>}
 	</>;
 }
 
 export default function SecondaryTable() {
-	const { params, size } = useContext(LayoutContext)!;
+	const { params } = useContext(LayoutContext)!;
 	const { secTable } = { ...defaultParams, ...params };
 
 	if (secTable === 'Flares')
