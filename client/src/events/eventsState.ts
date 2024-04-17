@@ -129,6 +129,17 @@ export const useSources = () => {
 	}).filter(a => !!a); 
 };
 
+export const useSource = (tbl: 'sources_ch' | 'sources_erupt') => {
+	const cursor = useEventsState(st => st.cursor);
+	const modifySource = useEventsState(st => st.modifySource);
+	const src = useTable('feid_sources');
+	const { data, columns } = useTable(tbl);
+	const idIdx = 'sources_erupt' === tbl ? eruptIdIdx : chIdIdx;
+	const targetId = modifySource ? src.data.find(row => row[0] === modifySource)?.[idIdx] as number :
+		cursor?.entity === tbl ? cursor.id! : null;
+	return targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns);
+};
+
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
 	useEventsState.setState(state => {
 		state.columns[tbl] = cols;

@@ -3,7 +3,7 @@ import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
 import { color, logError, logMessage } from '../app';
-import { makeSourceChanges, rowAsDict, useCursor, useEventsState, type RowDict } from './eventsState';
+import { makeSourceChanges, rowAsDict, useCursor, useEventsState, useSource, type RowDict } from './eventsState';
 import { flaresLinkId, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
@@ -96,7 +96,8 @@ export function FlaresContextMenu() {
 }
 
 export default function FlaresTable() {
-	const { cursor } = useEventsState();
+	const { cursor, modifySource } = useEventsState();
+	const erupt = useSource('sources_erupt');
 
 	const { params, size } = useContext(LayoutContext)!;
 	const context = useFlaresTable();
@@ -112,25 +113,32 @@ export default function FlaresTable() {
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const [timeIdx, classIdx] = ['start', 'class'].map(what => columns.findIndex(c => c.name === what));
-	const focusIdx = data.findIndex(r =>
-		(r[timeIdx] as Date)?.getTime() > cursorTime!.getTime() - 2 * 864e5);
+	const focusTime = erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
+		: cursorTime && (cursorTime.getTime() - 2 * 864e5);
+	const focusIdx = focusTime == null ? data.length : data.findIndex(r =>
+		(r[timeIdx] as Date)?.getTime() > focusTime);
+	const linked = erupt && Object.fromEntries(Object.entries(flaresLinkId).map(([src, linkId]) => [src, erupt[linkId]]));
 
 	return <TableWithCursor {...{
 		entity: 'flares',
 		data, columns, size, viewSize, focusIdx,
 		thead: <tr>{columns.map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}
-				// onContextMenu={}
-			>
+			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
 				<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
 			</td>)}
 		</tr>,
 		row: (row, idx, onClick) => {
-			const stime = row[timeIdx]?.getTime();
-			const curTime = cursorTime!.getTime();
-			const isFar = !['M', 'X', 'C'].includes(row[classIdx]?.at(0))
-				|| stime > curTime - 864e5 || stime < curTime - 5 * 864e5; 
-			return <tr key={row[0]+stime+row[timeIdx+2]?.getTime()}
+			const flare = rowAsDict(row as any, columns);
+			const stime = (flare.start_time as any)?.getTime();
+			const isLinked = flaresLinkId[flare.src as keyof typeof flaresLinkId]!.endsWith('id')
+				? flare.id === linked?.[flare.src as any]
+				: stime === (linked?.[flare.src as any] as any)?.getTime();
+			const isPrime = isLinked && erupt?.flr_source === flare.src;
+			const otherLinked = !isLinked && linked?.[flare.src as any];
+			const dark = otherLinked || (row[classIdx] && !['M', 'X', 'C'].includes(row[classIdx]?.at(0)))
+				|| (!erupt?.flr_time ? stime > focusTime! - 864e5 || stime < focusTime! - 5 * 864e5 : 
+					stime > focusTime! - 36e5 * 2 || stime < focusTime! + 36e5 * 2); 
+			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
@@ -148,7 +156,8 @@ export default function FlaresTable() {
 						// onContextMenu={}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
 						<span className='Cell' style={{ width: column.width + 'ch',
-							color: color(isFar ? 'text-dark' : 'text')  }}>
+							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : 'text'),
+							fontWeight: (isPrime) ? 'bold' : 'unset' }}>
 							<div className='TdOver'/>
 							{value}
 						</span>
