@@ -13,9 +13,7 @@ export default function InsertControls() {
 	const { start, end, duration, id: targetId } = useCursor();
 	const sources = useSources();
 
-	console.log(targetId)
-
-	const isLink = modifyId != null && setStartAt == null && setEndAt == null;
+	const isLink = modifySource;
 	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isIdle = !isMove && !isInsert && !isLink;
@@ -25,6 +23,7 @@ export default function InsertControls() {
 	useTableQuery('sources_ch');
 
 	const escape = () => {
+		setModifySource(null);
 		setModify(null);
 		setStart(null);
 		setEnd(null);

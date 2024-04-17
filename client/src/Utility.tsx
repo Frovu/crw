@@ -109,10 +109,10 @@ export function askConfirmation(cntnt: ReactNode | string, callback: () => void)
 
 export function askProceed(content: ReactNode) {
 	return new Promise<boolean>(resolve => {
-		openConfirmation({ content,
+		setTimeout(() => openConfirmation({ content,
 			callback: () => resolve(true),
 			onClose: () => resolve(false)
-		});
+		}), 20);
 	});
 }
 

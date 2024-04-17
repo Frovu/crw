@@ -10,7 +10,7 @@ const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
 const linkIds = Object.values(flaresLinkId).concat(Object.values(otherLinkId) as any) as string[];
 
-const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
+export const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
 
 const defaultSate = {
 	cursor: null as Cursor | null,
