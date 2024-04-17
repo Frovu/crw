@@ -180,7 +180,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
 
 	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
-	useEventListener('action+discardChanges', () => resetChanges());
+	useEventListener('action+discardChanges', () => resetChanges(false));
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit, error } = useMutation(() => apiPost('events/changes', {

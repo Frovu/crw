@@ -55,7 +55,7 @@ async function linkFlare(flare: RowDict) {
 
 		erupt[linkColId] = flare[idColId];
 
-		if (erupt.flr_source == null || alreadyLinked) {
+		if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === flare.src)) {
 			erupt.flr_source = flare.src;
 
 			erupt.lat = flare.lat;

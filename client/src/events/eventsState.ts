@@ -2,11 +2,13 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues, type ChangeValue } from './events';
 import type { ColumnDef, DataRow, Value } from './columns';
+import { flaresLinkId, otherLinkId } from './sources';
 
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id?: number };
 const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
+const linkIds = Object.values(flaresLinkId).concat(Object.values(otherLinkId) as any) as string[];
 
 const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
 
@@ -141,7 +143,7 @@ export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
 		state.data[tbl] = applyChanges(state, tbl);
 	});
 
-export const resetChanges = (keepData: boolean=true) =>
+export const resetChanges = (keepData: boolean) =>
 	useEventsState.setState(state => {
 		for (const tbl of tables) {
 			state.changes[tbl] = [];
@@ -180,7 +182,6 @@ export function makeChange(tbl: TableName, { column, value, id }: ChangeValue) {
 	return true;
 };
 
-
 export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: number, id: number, row: RowDict, createdSrc?: number) {
 	useEventsState.setState(state => {
 		const { changes, created, columns, rawData, data } = state;
@@ -199,7 +200,7 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: 
 
 		for (const [colId, value] of Object.entries(row)) {
 			const column = columns[tbl]!.find(c => c.id === colId)!;
-			const silent = !colId.endsWith('source');
+			const silent = !linkIds.includes(colId) && !colId.endsWith('source');
 			changes[tbl] = [
 				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
 				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null, silent }] : [])];

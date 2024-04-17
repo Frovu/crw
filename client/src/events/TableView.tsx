@@ -162,13 +162,11 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	});
 
 	const onClick = useCallback((idx: number, cidx: number) => {
-		if (setEndAt || setEndAt || modifyId)
-			return;
 		const cur = { entity, row: idx, column: cidx, id: data[idx]?.[0],
 			editing: cursor?.column === cidx && cursor?.row === idx };
 		setCursor(cur);
 		updateViewIndex(cur);
-	}, [cursor?.column, cursor?.row, data, entity, modifyId, setCursor, setEndAt, updateViewIndex]);
+	}, [cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
 
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
@@ -226,6 +224,11 @@ export default function TableView({ size, averages, entity }: {
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 	const changeCount = Object.values(changes).reduce((a, b) => a + b.length, 0);
+
+	useEffect(() => {
+		if (changeCount === 0)
+			setChangesHovered(false);
+	}, [changeCount]);
 
 	const onKeydown = useCallback((e: KeyboardEvent) => {
 		if (cursor && ['-', '+', '='].includes(e.key))
@@ -293,6 +296,8 @@ export default function TableView({ size, averages, entity }: {
 					const value = valueToString(row[cidx+1]);
 					return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
 						onClick={e => {
+							if (setEndAt || setEndAt || modifyId)
+								return;
 							onClick(idx, cidx);
 							if (e.ctrlKey)
 								setPlotId(() => row[0]); }}

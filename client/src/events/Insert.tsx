@@ -8,13 +8,12 @@ import { flaresLinkId, otherLinkId, useTableQuery } from './sources';
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
-	const { data } = useTable();
-	const { modifyId, setStartAt, setEndAt, plotId, cursor: sCursor,
+	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource } = useEventsState();
 	const { start, end, duration, id: targetId } = useCursor();
 	const sources = useSources();
 
-	console.log(useEventsState.getState(), sources)
+	console.log(useEventsState.getState())
 
 	const isLink = modifyId != null && setStartAt == null && setEndAt == null;
 	const isMove = !isLink && modifyId != null;
@@ -122,11 +121,13 @@ export default function InsertControls() {
 		</tbody></table>
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4, fontSize: 14 }}>
 			{sources.filter(s => s.erupt).map((src, i) => {
+				const isActive = src.source.id === modifySource;
 				const clr = (what: 'FLR' | 'CME', which: string) => {
 					const isSet = src.erupt?.[(what === 'FLR' ? flaresLinkId : otherLinkId as any)[which]];
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
-				return <div>
+				return <div style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
+					onClick={() => setModifySource(isActive ? null : src.source.id as number)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
 						<tr>
 							<td width={84}>ERUPT #{i+1}</td>
