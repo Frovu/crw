@@ -150,7 +150,7 @@ export function copyAverages({ averages, row, column }: Required<TableMenuDetail
 
 export const findColumn = (columns: ColumnDef[], name: string) => columns.find(c => c.fullName === name) ?? null;
 
-export function equalValues(a?: Value, b?: Value) {
+export function equalValues(a?: any, b?: any) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;
 }
 

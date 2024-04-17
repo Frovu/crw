@@ -125,7 +125,8 @@ export default function InsertControls() {
 					const isSet = src.erupt?.[(what === 'FLR' ? flaresLinkId : otherLinkId as any)[which]];
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
-				return <div style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
+				return <div key={src.source.id as number}
+					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
 					onClick={() => setModifySource(isActive ? null : src.source.id as number)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
 						<tr>
