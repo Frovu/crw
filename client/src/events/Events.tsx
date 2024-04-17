@@ -98,7 +98,8 @@ function MainTablePanel() {
 			if (cursor) return shownData[cursor.row][0];
 			// set cursor to plotted line
 			const found = shownData.findIndex(r => r[0] === current);
-			if (found >= 0) queueMicrotask(() => setCursor({ row: found, column: 0, entity: 'feid' }));
+			if (found >= 0)
+				queueMicrotask(() => setCursor({ row: found, column: 0, entity: 'feid', id: current! }));
 			return current; }
 		if (current == null)
 			return null;

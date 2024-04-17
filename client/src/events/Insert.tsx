@@ -13,7 +13,7 @@ export default function InsertControls() {
 	const { start, end, duration, id: targetId } = useCursor();
 	const sources = useSources();
 
-	console.log(useEventsState.getState())
+	console.log(targetId)
 
 	const isLink = modifyId != null && setStartAt == null && setEndAt == null;
 	const isMove = !isLink && modifyId != null;

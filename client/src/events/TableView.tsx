@@ -109,8 +109,8 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 		if (isInput || cursor?.editing)
 			return;
 
-		const set = (curs: Cursor) => {
-			curs.id = data[curs.row]?.[0];
+		const set = (crs: Omit<Cursor, 'id'>) => {
+			const curs = { ...crs, id: data[crs.row]?.[0] };
 			setCursor(curs);
 			updateViewIndex(curs);
 			e.preventDefault(); };

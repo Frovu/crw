@@ -13,7 +13,7 @@ import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
 import type { ColumnDef } from '../events/columns';
-import { useEventsState } from '../events/eventsState';
+import { useEventsState, useTable } from '../events/eventsState';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
@@ -117,7 +117,7 @@ export default function CorrelationPlot() {
 	const { setCursor, setPlotId } = useEventsState();
 	const { data: shownData } = useContext(TableViewContext);
 	const layoutParams = useContext(LayoutContext)?.params;
-	const { columns, data: allData } = useContext(MainTableContext);
+	const { data: allData, columns } = useTable();
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -201,7 +201,7 @@ export default function CorrelationPlot() {
 						onclick: (u, didx) => {
 							const row = findRow(didx);
 							if (!row) return;
-							setCursor({ row: shownData.findIndex(r => r[0] === row[0]), column: 0, entity: 'feid' });
+							setCursor({ row: shownData.findIndex(r => r[0] === row[0]), column: 0, entity: 'feid', id: row[0] });
 							setPlotId(() => row[0]);
 						},
 						html: (u, sidx, didx) => {

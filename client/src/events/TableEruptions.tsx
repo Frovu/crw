@@ -29,7 +29,6 @@ export function EruptionsContextMenu() {
 	const { data, columns } = useTable(ENT);
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
-	console.log(detail)
 
 	return <>
 		{eruptId && <button className='TextButton' onClick={() => deleteEruption(eruptId)}>Delete row</button>}
@@ -56,9 +55,7 @@ export default function EruptionsTable() {
 	return <TableWithCursor {...{
 		data, columns, size, viewSize, entity: 'eruptions',
 		thead: <tr>{columns.map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'
-				// onContextMenu={}
-			>
+			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
 				<div style={{ height: 26 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
 			</td>)}
 		</tr>,

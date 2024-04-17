@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import FlaresTable from './TableFlares';
+import FlaresTable, { FlaresContextMenu } from './TableFlares';
 import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
 
 const TABLES = ['Eruptions', 'Flares', 'CMEs', 'ICMEs', 'Dimmings'] as const;
@@ -20,6 +20,7 @@ export function SecTableContextMenu({ params, setParams }: ContextMenuProps<Part
 		</select>
 		<div className='separator'/>
 		{secTable === 'Eruptions' && <EruptionsContextMenu/>}
+		{secTable === 'Flares' && <FlaresContextMenu/>}
 	</>;
 }
 

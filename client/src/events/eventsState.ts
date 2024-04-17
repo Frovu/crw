@@ -5,7 +5,7 @@ import type { ColumnDef, DataRow, Value } from './columns';
 import { flaresLinkId, otherLinkId } from './sources';
 
 export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id?: number };
+export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id: number };
 const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
 const linkIds = Object.values(flaresLinkId).concat(Object.values(otherLinkId) as any) as string[];
@@ -48,13 +48,20 @@ export const useEventsState = create<EventsState>()(
 			...defaultSate,
 			setModifySource: (val) => set(st => { st.modifySource = val; }),
 			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
-			setModify: (val) => set(st => { st.modifyId = val; }),
+			setModify: (val) => set(st => { st.modifyId = val; st.modifySource = null; }),
 			setStart:  (val) => set(st => { st.setStartAt = val; st.setEndAt = null; }),
 			setEnd:    (val) => set(st => { st.setEndAt = val; }),
-			setCursor: (cursor) => set(st => ({ ...st, cursor })),
+			setCursor: (cursor) => set(st => {
+				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId))
+					st.modifySource = null;
+				st.cursor = cursor;
+			}),
+			setPlotId: (setter) => set(st => {
+				st.plotId = setter(st.plotId);
+				st.modifySource = null;
+			}),
 			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
 				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
-			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
 			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
 		})
 	)
@@ -212,6 +219,7 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: 
 		for (const [colId, value] of Object.entries(row)) {
 			const column = columns[tbl]!.find(c => c.id === colId)!;
 			const silent = !linkIds.includes(colId) && !colId.endsWith('source');
+			console.log(colId, equalValues(rawRow[colId], value), rawRow[colId], value)
 			changes[tbl] = [
 				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
 				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null, silent }] : [])];
