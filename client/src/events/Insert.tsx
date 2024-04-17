@@ -1,10 +1,9 @@
-import { useContext, type MouseEvent } from 'react';
-import { MainTableContext, TableViewContext } from './events';
+import { type MouseEvent } from 'react';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
 import { useCursor, useEventsState, useSources, useTable } from './eventsState';
-import { useTableQuery } from './sources';
+import { flaresLinkId, otherLinkId, useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
@@ -121,6 +120,34 @@ export default function InsertControls() {
 				<td>{duration}</td>
 			</tr>
 		</tbody></table>
-		srcs: {sources.length}
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4, fontSize: 14 }}>
+			{sources.filter(s => s.erupt).map((src, i) => {
+				const clr = (what: 'FLR' | 'CME', which: string) => {
+					const isSet = src.erupt?.[(what === 'FLR' ? flaresLinkId : otherLinkId as any)[which]];
+					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
+				};
+				return <div>
+					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
+						<tr>
+							<td width={84}>ERUPT #{i+1}</td>
+							<td width={40} style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}>FLR:</td>
+							<td width={36} style={clr('FLR', 'SFT')}>SFT</td>
+							<td width={36} style={clr('FLR', 'DKI')}>DKI</td>
+							<td width={36} style={clr('FLR', 'NOA')}>NOA</td>
+							<td width={36} style={clr('FLR', 'dMN')}>dMN</td>
+							<td width={36} style={clr('CME', 'dMN')} rowSpan={2}>dMN DIM</td>
+						</tr>
+						<tr>
+							<td height={10} style={{ color: color(src.source.influence == null ? 'red' : 'text') }}>Infl: {src.source.influence as any ?? 'N/A'}</td>
+
+							<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
+							<td style={clr('CME', 'DKI')}>DKI</td>
+							<td style={clr('CME', 'LASCO')} colSpan={2}>LASCO</td>
+							<td style={clr('CME', 'R&C')}>R&C</td>
+						</tr>
+					</tbody></table>
+				</div>;})}
+
+		</div>
 	</div>;
 }

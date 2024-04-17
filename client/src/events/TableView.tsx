@@ -50,7 +50,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	footer?: ReactNode,
 	onKeydown?: (e: KeyboardEvent) => void
 }) {
-	const { cursor: sCursor, setStartAt, setEndAt, plotId, setCursor, escapeCursor } = useEventsState();
+	const { cursor: sCursor, setStartAt, setEndAt, plotId, modifyId, setCursor, escapeCursor } = useEventsState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -103,7 +103,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	}, [cursor, ref.current?.offsetWidth]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (setStartAt || setEndAt)
+		if (setStartAt || setEndAt || modifyId)
 			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
 		if (isInput || cursor?.editing)
@@ -162,11 +162,13 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	});
 
 	const onClick = useCallback((idx: number, cidx: number) => {
+		if (setEndAt || setEndAt || modifyId)
+			return;
 		const cur = { entity, row: idx, column: cidx, id: data[idx]?.[0],
 			editing: cursor?.column === cidx && cursor?.row === idx };
 		setCursor(cur);
 		updateViewIndex(cur);
-	}, [cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
+	}, [cursor?.column, cursor?.row, data, entity, modifyId, setCursor, setEndAt, updateViewIndex]);
 
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
@@ -196,7 +198,7 @@ export default function TableView({ size, averages, entity }: {
 	const { changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
-	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, changes,
+	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, changes, modifyId,
 		toggleSort, setEditing, setPlotId } = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
@@ -231,7 +233,7 @@ export default function TableView({ size, averages, entity }: {
 	}, [cursor, data]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (setStartAt || setEndAt)
+		if (setStartAt || setEndAt || modifyId)
 			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
 		if (cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {

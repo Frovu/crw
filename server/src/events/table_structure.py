@@ -176,14 +176,14 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 		enum=['LASCO', 'DKI', 'MNL', 'dMN']),
 	C_ER('note', data_type='text'),
 
-	C_ER('solarsoft_flr_start', data_type='time'),
-	C_ER('noaa_flr_start', data_type='time'),
-	C_ER('donki_flr_id', data_type='integer'),
-	C_ER('solardemon_flr_id', data_type='integer'),
-	C_ER('solardemon_dim_id', data_type='integer'),
-	C_ER('donki_cme_id', data_type='integer'),
-	C_ER('lasco_cme_time', data_type='time'),
-	C_ER('rc_icme_time', data_type='time'),
+	C_ER('solarsoft_flr_start', data_type='time', pretty_name='SFT FLR start'),
+	C_ER('noaa_flr_start', data_type='time', pretty_name='NOA FLR start'),
+	C_ER('donki_flr_id', data_type='integer', pretty_name='DKI FLR'),
+	C_ER('solardemon_flr_id', data_type='integer', pretty_name='dMN FLR'),
+	C_ER('solardemon_dim_id', data_type='integer', pretty_name='dMN DIM'),
+	C_ER('donki_cme_id', data_type='integer', pretty_name='DKI CME'),
+	C_ER('lasco_cme_time', data_type='time', pretty_name='LASCO CME'),
+	C_ER('rc_icme_time', data_type='time', pretty_name='R&C CME'),
 ]}]
 
 SOURCE_CH = ['sources_ch', { c.name: c for c in [

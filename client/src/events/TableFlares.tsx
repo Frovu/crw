@@ -4,16 +4,9 @@ import { TableWithCursor } from './TableView';
 import { valueToString } from './events';
 import { color, logError, logMessage } from '../app';
 import { makeSourceChanges, rowAsDict, useCursor, useEventsState, type RowDict } from './eventsState';
-import { useFlaresTable } from './sources';
+import { flaresLinkId, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
-
-export const flaresLinkId = {
-	SFT: 'solarsoft_flr_start',
-	NOA: 'noaa_flare_start',
-	DKI: 'donki_flr_id',
-	dMN: 'solardemon_flr_id'
-} as const;
 
 function parseFlareFlux(cls: string | null) {
 	if (!cls) return null;
@@ -65,10 +58,9 @@ async function linkFlare(flare: RowDict) {
 		if (erupt.flr_source == null || alreadyLinked) {
 			erupt.flr_source = flare.src;
 
-			if (erupt.coords_source == null) {
-				erupt.lat = flare.lat;
-				erupt.lon = flare.lon;
-			}
+			erupt.lat = flare.lat;
+			erupt.lon = flare.lon;
+			erupt.coords_source = 'FLR';
 
 			erupt.flr_start = flare.start_time;
 			erupt.flr_peak = flare.peak_time;
@@ -142,17 +134,21 @@ export default function FlaresTable() {
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-					const value = valueToString(row[cidx]);
+					let value = valueToString(row[cidx]);
+					if (['peak', 'end'].includes(column.name))
+						value = value.split(' ')[1];
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
-							onClick(idx, cidx);
 							if (cidx === 0) {
 								linkFlare(rowAsDict(row as any, columns));
+								return;
 							}
+							onClick(idx, cidx);
 						}}
 						// onContextMenu={}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
-						<span className='Cell' style={{ width: column.width + 'ch', color: color(isFar ? 'text-dark' : 'text')  }}>
+						<span className='Cell' style={{ width: column.width + 'ch',
+							color: color(isFar ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
 							{value}
 						</span>

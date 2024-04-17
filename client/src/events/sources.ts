@@ -6,6 +6,20 @@ import { useEffect } from 'react';
 export const flrColumnOrder = ['class', 'lat', 'lon', 'AR', 'start', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
 
+export const flaresLinkId = {
+	SFT: 'solarsoft_flr_start',
+	NOA: 'noaa_flare_start',
+	DKI: 'donki_flr_id',
+	dMN: 'solardemon_flr_id'
+} as const;
+
+export const otherLinkId = {
+	'R&C': 'rc_icme_time',
+	LASCO: 'lasco_cme_time',
+	DKI: 'donki_cme_id',
+	dMN: 'solardemon_dim_id'
+} as const;
+
 export function useFlaresTable() {
 	return useQuery({
 		queryKey: ['flares'],
@@ -32,7 +46,9 @@ export function useFlaresTable() {
 				if (col.name.includes('class'))
 					col.width = 5.5;
 				if (['lat', 'lon'].includes(col.name))
-					col.width = 4.5;
+					col.width = 6;
+				if (['end', 'peak'].includes(col.name))
+					col.width = 6;
 			}
 	
 			return { data, columns: [
