@@ -1,9 +1,9 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
-import { valueToString, type TableMenuDetails } from './events';
+import { valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useCursor, useEventsState, useSource, type RowDict } from './eventsState';
+import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useCursor, useEventsState, useSource, useTable, type RowDict } from './eventsState';
 import { flaresLinkId, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
@@ -48,16 +48,25 @@ async function linkFlare(flare: RowDict, feidId: number) {
 		return;
 	const modifyingEruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx];
 
+	const linkColId = flaresLinkId[flare.src as keyof typeof flaresLinkId];
+	const idColId = linkColId.endsWith('start') ? 'start_time' : 'id';
+	const linkColIdx = columns.sources_erupt!.findIndex(c => c.id === linkColId);
+
+	const linkedToOther = data.sources_erupt.find(row => linkColId.endsWith('id') ?
+		row[linkColIdx] === flare[idColId] : (row[linkColIdx] as any)?.getTime() === (flare.start_time as any)?.getTime());
+	
+	if (linkedToOther)
+		return askProceed(<>
+			<h4>Flare already linked</h4>
+			<p>Unlink this flare from eruption #{linkedToOther[0]} first!</p>
+		</>);
+
 	const actuallyLink = async (eruptId: number, createdSrc?: number) => {
 		const row = createdSrc ? [eruptId, ...columns.sources_erupt!.slice(1).map(a => null)] :
 			data.sources_erupt!.find(rw => rw[0] === eruptId);
 		if (!row)
 			return logError('Eruption not found: '+eruptId.toString());
 		const erupt = rowAsDict(row as any, columns.sources_erupt!);
-
-		const linkColId = flaresLinkId[flare.src as keyof typeof flaresLinkId];
-		const idColId = linkColId.endsWith('start') ? 'start_time' : 'id';
-
 		const alreadyLinked = erupt[linkColId];
 		if (alreadyLinked) {
 			if (!await askProceed(<>
@@ -126,6 +135,7 @@ export function FlaresContextMenu() {
 export default function FlaresTable() {
 	const { cursor, modifySource } = useEventsState();
 	const erupt = useSource('sources_erupt');
+	const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const context = useFlaresTable();
@@ -140,7 +150,7 @@ export default function FlaresTable() {
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
-	const [timeIdx, classIdx] = ['start', 'class'].map(what => columns.findIndex(c => c.name === what));
+	const [timeIdx] = ['start'].map(what => columns.findIndex(c => c.name === what));
 	const focusTime = erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
 		: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length : data.findIndex(r =>
@@ -158,13 +168,23 @@ export default function FlaresTable() {
 		row: (row, idx, onClick) => {
 			const flare = rowAsDict(row as any, columns);
 			const stime = (flare.start_time as any)?.getTime();
-			const isLinked = flaresLinkId[flare.src as keyof typeof flaresLinkId]!.endsWith('id')
+			const linkColId = flaresLinkId[flare.src as keyof typeof flaresLinkId];
+			const isLinked = linkColId?.endsWith('id')
 				? flare.id === linked?.[flare.src as any]
 				: stime === (linked?.[flare.src as any] as any)?.getTime();
 			const isPrime = isLinked && erupt?.flr_source === flare.src;
 			const otherLinked = !isLinked && linked?.[flare.src as any];
-			const dark = otherLinked || (!erupt?.flr_time ? stime > focusTime! + 864e5 || stime < focusTime! - 3 * 864e5 : 
-				stime > focusTime! - 36e5 * 2 || stime < focusTime! + 36e5 * 2); 
+			const darkk = otherLinked || (!erupt?.flr_start ?
+				stime > focusTime! + 864e5    || stime < focusTime! - 3 * 864e5 : 
+				stime > focusTime! + 36e5 * 4 || stime < focusTime! - 36e5 * 4);
+
+			// FIXME: this is probably slow
+			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
+			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
+				linkColId?.endsWith('id')
+					? flare.id === eru[eruptLinkIdx]
+					: stime === (eru[eruptLinkIdx] as any)?.getTime())); 
+		
 			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {

@@ -112,7 +112,7 @@ export const useCursor = () => {
 
 export type RowDict = { [k: string] : Value | undefined };
 export const rowAsDict = (row: DataRow, columns: ColumnDef[]): RowDict =>
-	Object.fromEntries(columns.map((c, i) => [c.id, row[i] ?? null]));
+	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
 
 export const useSources = () => {
 	const cursor = useEventsState(st => st.cursor);
@@ -208,6 +208,7 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: 
 		if (createdSrc && !created[tbl].includes(id))
 			created[tbl] = [id, ...created[tbl]];
 		if (createdSrc) {
+			state.modifySource = createdSrc;
 			const sLinkIdx = tbl === 'sources_ch' ? 2 : 3;
 			changes.feid_sources = [...changes.feid_sources,
 				{ id: createdSrc, column: columns.feid_sources![1], value: feid_id, silent: true },
@@ -219,7 +220,6 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: 
 		for (const [colId, value] of Object.entries(row)) {
 			const column = columns[tbl]!.find(c => c.id === colId)!;
 			const silent = !linkIds.includes(colId) && !colId.endsWith('source');
-			console.log(colId, equalValues(rawRow[colId], value), rawRow[colId], value)
 			changes[tbl] = [
 				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
 				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null, silent }] : [])];

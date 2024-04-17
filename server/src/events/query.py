@@ -141,9 +141,10 @@ def submit_changes(uid, changes):
 					continue
 
 				new_value_str = 'auto' if new_value is None and value == 'auto' else new_value
-				old_str, new_str = [v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time'
-					else (v if v is None else str(v)) for v in [old_value, new_value_str]]
+				old_str, new_str = [v if v is None else
+					v.replace(tzinfo=timezone.utc).timestamp() if dtype == 'time'
+					else str(v) for v in [old_value, new_value_str]]
 
 				conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) '+\
 					'VALUES (%s,%s,%s,%s,%s,%s)', [uid, target_id, entity, column, old_str, new_str])
-				log.info(f'Change authored by user #{uid}: {entity}.{column} {old_value} -> {new_value_str}')
+				log.info(f'Change authored by user #{uid}: {entity}#{target_id} {column} {old_value} -> {new_value_str}')
