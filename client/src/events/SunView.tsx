@@ -41,6 +41,7 @@ function DemonFlareFilm({ id }: { id: number }) {
 	return <>
 		{!loaded && <div className='Center'>LOADING...</div>}
 		<div style={{ transform: `scale(${size / 400})`, transformOrigin: 'top left', height: 400, width: 400, overflow: 'hidden' }}>
+			<div style={{ position: 'absolute', height: '100%', width: '100%', zIndex: 2 }}/>
 			<iframe title='solardemon' onLoad={() => setTimeout(() => setLoaded(true), 50)}
 				style={{ border: 'none',  transform: 'translate(-8px, -8px)', visibility: loaded ? 'visible' : 'hidden' }}
 				src={dMN_FLR+`&flare_id=${id}`} scrolling='no' 
@@ -95,51 +96,47 @@ function SDO({ flare }: { flare: RowDict }) {
 	const t2 = Math.floor((flare.end_time as Date).getTime() / 1000) + 7200;
 	const wavelen = '193';
 
-	const query = useQuery(['sdo', wavelen, t1, t2, cadence], async () => {
-		if (!t1 || !t2)
-			return [];
-		const res = await apiGet<{ timestamps: number[] }>('events/sdo',
-			{ from: t1, to: t2, wavelen });
+	const query = useQuery({
+		staleTime: Infinity,
+		queryKey: ['sdo', wavelen, t1, t2, cadence],
+		queryFn: async () => {
+			if (!t1 || !t2)
+				return [];
+			const res = await apiGet<{ timestamps: number[] }>('events/sdo',
+				{ from: t1, to: t2, wavelen });
 
-		setFrame(0);
+			setFrame(0);
 
-		return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= t1 && tst <= t2).map(timestamp => {
-			const time = new Date(timestamp * 1000);
-			const year = time.getUTCFullYear();
-			const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
-			const day = time.getUTCDate().toString().padStart(2, '0');
-			const hour = time.getUTCHours().toString().padStart(2, '0');
-			const min = time.getUTCMinutes().toString().padStart(2, '0');
-			const sec = time.getUTCSeconds().toString().padStart(2, '0');
-			const fname = `${year}${mon}${day}_${hour}${min}${sec}_sdo_a${wavelen}.jpg`;
-			const url = SDO_URL + `${wavelen}/${year}/${mon}/${day}/${fname}`;
+			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= t1 && tst <= t2).map(timestamp => {
+				const time = new Date(timestamp * 1000);
+				const year = time.getUTCFullYear();
+				const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
+				const day = time.getUTCDate().toString().padStart(2, '0');
+				const hour = time.getUTCHours().toString().padStart(2, '0');
+				const min = time.getUTCMinutes().toString().padStart(2, '0');
+				const sec = time.getUTCSeconds().toString().padStart(2, '0');
+				const fname = `${year}${mon}${day}_${hour}${min}${sec}_sdo_a${wavelen}.jpg`;
+				const url = SDO_URL + `${wavelen}/${year}/${mon}/${day}/${fname}`;
 
-			const entry = {
-				time, state: 'loading',
-				elem: null as HTMLImageElement | null,
-				img: <img alt='' loading='eager' ref={el => { entry.elem = el; }} src={url} width={imgSize}
-					onLoad={() => { entry.state = 'ready'; }}
-					onError={() => { entry.state = 'error'; }}></img> };
-			return entry;
-		});
+				const img = new Image();
+				img.src = url;
+				const entry = { timestamp, url, img, loaded: false };
+				img.onload = img.onerror = () => { entry.loaded = true; };
+				setTimeout(() => { entry.loaded = true; }, 5000);
+
+				return entry;
+			});
+		}
 	});
 
 	useEffect(() => {
 		if (!query.data) return;
-		const { state } = query.data[frame];
-		const stepFrame = () => {
-			const timeout = setTimeout(() => setFrame(f => f + 1 >= query.data.length ? 0 : f + 1), frameTime);
-			return () => clearTimeout(timeout);
-		};
-		console.log(frame, state)
-		if (state === 'ready')
-			return stepFrame();
 		const inter = setInterval(() => {
-			if (query.data[frame].state !== 'loading')
+			if (query.data[frame].loaded)
 				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
-		}, 10);
+		}, frameTime);
 		return () => clearInterval(inter);
-	});
+	}, [frame, query.data]);
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING..</div>;
@@ -150,7 +147,7 @@ function SDO({ flare }: { flare: RowDict }) {
 
 	return <div>
 		<div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>
-		{query.data[frame].img}
+		<img alt='' src={query.data[frame]?.url} width={imgSize}></img>
 	</div>;
 }
 
