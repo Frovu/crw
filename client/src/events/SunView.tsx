@@ -3,8 +3,9 @@ import { LayoutContext, type ContextMenuProps } from '../layout';
 import {  getFlareLink, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
-import { prettyDate } from '../util';
+import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
+import { useQuery } from 'react-query';
 
 const MODES = ['SDO', 'FLR'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
@@ -82,8 +83,19 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 	</div>;
 }
 
-function SunViewFlr() {
-		
+function SDO({ flare }: { flare: RowDict }) {
+	const { size } = useContext(LayoutContext)!;
+
+	const t1 = Math.floor((flare.start_time as Date).getTime() / 1000) - 60;
+	const t2 = Math.floor((flare.end_time as Date).getTime() / 1000) + 60;
+
+	const query = useQuery(['sdo', t1, t2], () => (t1 && t2 &&
+		apiGet<{ timestamps: number[] }>('events/sdo',
+			{ from: t1, to: t2 })) || { timestamps: [] }) ;
+
+	return <div>
+		{query.data?.timestamps.join(',')}
+	</div>;
 }
 
 export default function SunView() {
@@ -94,7 +106,7 @@ export default function SunView() {
 	const { cursor } = useEventsState();
 	const sources = useSources();
 
-	const flare = mode === 'FLR' && (() => {
+	const flare = (() => {
 		if (cursor?.entity === 'flares') {
 			const atCurs = rowAsDict(data[cursor.row] as any, columns);
 			return (prefer === 'ANY' || atCurs.src === prefer) ? atCurs : null;
@@ -107,12 +119,11 @@ export default function SunView() {
 		const { linkColId, idColId } = getFlareLink(src);
 		const idColIdx = columns.findIndex(c => c.id === idColId);
 		const found = data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
-		console.log(linkColId, found)
 		return found ? rowAsDict(found as any, columns) : null;
 	})();
 
-	if (mode === 'SDO')
-		return 'not implemented';
+	if (mode === 'SDO' && flare)
+		return <SDO flare={flare}/>;
 	if (!flare)
 		return <div className='Center'>NO DATA</div>;
 	if (flare.src === 'dMN' && flare.id)

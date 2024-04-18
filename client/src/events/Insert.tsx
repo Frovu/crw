@@ -2,8 +2,8 @@ import { type MouseEvent } from 'react';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources } from './eventsState';
-import { flaresLinkId, otherLinkId, useTableQuery } from './sources';
+import { useFeidCursor, useEventsState, useSources, flaresLinkId, otherLinkId } from './eventsState';
+import { useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 

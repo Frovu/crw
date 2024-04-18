@@ -2,7 +2,20 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues, type ChangeValue } from './events';
 import type { ColumnDef, DataRow, Value } from './columns';
-import { flaresLinkId, otherLinkId } from './sources';
+
+export const flaresLinkId = {
+	SFT: 'solarsoft_flr_start',
+	NOA: 'noaa_flare_start',
+	DKI: 'donki_flr_id',
+	dMN: 'solardemon_flr_id'
+} as const;
+
+export const otherLinkId = {
+	'R&C': 'rc_icme_time',
+	LASCO: 'lasco_cme_time',
+	DKI: 'donki_cme_id',
+	dMN: 'solardemon_dim_id'
+} as const;
 
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id: number };
@@ -54,10 +67,14 @@ export const useEventsState = create<EventsState>()(
 			setCursor: (cursor) => set(st => {
 				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId))
 					st.modifySource = null;
-				if (cursor?.entity === 'sources_erupt')
-					st.modifySource = st.data.feid_sources?.find(row => row[eruptIdIdx] === cursor.id)?.[0] ?? null;
-				if (cursor?.entity === 'sources_ch')
-					st.modifySource = st.data.feid_sources?.find(row => row[chIdIdx] === cursor.id)?.[0] ?? null;
+				if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
+					const srcIdIdx = cursor?.entity === 'sources_ch' ? chIdIdx : eruptIdIdx;
+					const src = st.data.feid_sources?.find(row => row[srcIdIdx] === cursor?.id);
+					if (src) {
+						st.modifySource = src[0];
+						st.plotId = src[fIdIdx] as number;
+					}
+				}
 				st.cursor = cursor;
 			}),
 			setPlotId: (setter) => set(st => {
@@ -87,7 +104,7 @@ const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
 		const columnIdx = columns.findIndex(c => c.id === column.id);
 		if (row) row[columnIdx] = value;
 	}
-	const sortIdx = columns.findIndex(c => c.name === 'time');
+	const sortIdx = columns.findIndex(c => c.type === 'time');
 	if (sortIdx > 0)
 		data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
 	return data;

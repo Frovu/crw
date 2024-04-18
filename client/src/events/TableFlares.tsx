@@ -3,8 +3,8 @@ import { LayoutContext } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict } from './eventsState';
-import { flaresLinkId, getFlareLink, useFlaresTable } from './sources';
+import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinkId } from './eventsState';
+import { getFlareLink, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
 

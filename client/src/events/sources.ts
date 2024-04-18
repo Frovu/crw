@@ -1,24 +1,9 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { setRawData, useEventsState, type TableName } from './eventsState';
-import { useEffect } from 'react';
+import { flaresLinkId, setRawData, useEventsState, type TableName } from './eventsState';
 
 export const flrColumnOrder = ['class', 'lat', 'lon', 'AR', 'start', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
-
-export const flaresLinkId = {
-	SFT: 'solarsoft_flr_start',
-	NOA: 'noaa_flare_start',
-	DKI: 'donki_flr_id',
-	dMN: 'solardemon_flr_id'
-} as const;
-
-export const otherLinkId = {
-	'R&C': 'rc_icme_time',
-	LASCO: 'lasco_cme_time',
-	DKI: 'donki_cme_id',
-	dMN: 'solardemon_dim_id'
-} as const;
 
 export function getFlareLink(src: any) {
 	const lnk = flaresLinkId[src as keyof typeof flaresLinkId];
@@ -54,7 +39,7 @@ export function useFlaresTable() {
 				if (col.name.includes('class'))
 					col.width = 5.5;
 				if (['lat', 'lon'].includes(col.name))
-					col.width = 6;
+					col.width = 5;
 				if (['end', 'peak'].includes(col.name))
 					col.width = 6;
 			}
@@ -81,10 +66,8 @@ export function useTableQuery(tbl: TableName) {
 		}
 	});
 
-	useEffect(() => {
-		if (!data && query.data)
-			query.refetch();
-	}, [data, query]);
+	if (!data && query.isFetched)
+		query.refetch();
 
 	return query;
 }

@@ -34,7 +34,7 @@ def parse_xf():
 			time = datetime(*[int(a) for a in [y, m, d, h, u, s]], tzinfo=timezone.utc)
 			values = [float(line[s].strip()) if line[s].strip() else None for s in slices]
 			# xm !!!
-			values[0] *= 1e6
+			values[0] *= 1e7
 
 			data.append([*values, time])
 
