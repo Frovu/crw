@@ -1,7 +1,7 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { flaresLinkId, getFlareLink, useFlaresTable } from './sources';
-import { rowAsDict, useEventsState, useSources, useTable } from './eventsState';
+import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { prettyDate } from '../util';
 import { color } from '../app';
@@ -44,8 +44,42 @@ function DemonFlareFilm({ id }: { id: number }) {
 	</div>;
 }
 
-function SunViewFlr() {
+function SFTFLare({ flare }: { flare: RowDict }) {
+	const [state, setState] = useState('init' as 'init' | 'loading' | 'error' | 'done');
 	const { size } = useContext(LayoutContext)!;
+	const imgSize = Math.min(size.width, size.height);
+	const time = flare.start_time as Date;
+
+	const year = time.getUTCFullYear();
+	const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
+	const day = time.getUTCDate().toString().padStart(2, '0');
+	const hour = time.getUTCHours().toString().padStart(2, '0');
+	const min = time.getUTCMinutes().toString().padStart(2, '0');
+	const gev = `gev_${year}${mon}${day}_${hour}${min}`;
+
+	const src = SFT_URL+`${year}/${mon}/${day}/${gev}/${gev}.png`;
+	const clip = 40;
+	const move = -clip * imgSize / 512;
+
+	useEffect(() => {
+		setState('init');
+		const tim = setTimeout(() => setState(st => st === 'init' ? 'loading' : st), 30);
+		return () => clearTimeout(tim);
+	}, [src]);
+
+	return  <div style={{ overflow: 'hidden', height: imgSize }} onContextMenu={e => e.ctrlKey && e.stopPropagation()}>
+		<div style={{ position: 'absolute', zIndex: 2, background: 'black', color: 'white', top: 2, left: 3,
+			border: '1px solid white', padding: '1px 8px', fontSize: 14 }}>
+			<b>{flare.class as any}</b> {prettyDate(flare.start_time as any)}</div>
+		{state === 'loading' && <div className='Center'>LOADING...</div>}
+		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
+			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
+			onLoad={() => setState('done')} onError={() =>setState('error')}/>;
+	</div> ;
+}
+
+function SunViewFlr() {
 	const { data, columns } = useFlaresTable();
 	const eruptions = useTable('sources_erupt');
 	const { cursor } = useEventsState();
@@ -69,25 +103,9 @@ function SunViewFlr() {
 		return <div className='Center'>NO FLARE SELECTED</div>;
 	if (flare.src === 'dMN' && flare.id)
 		return <DemonFlareFilm id={flare.id as number}/>;
-	if (flare.src !== 'SFT')
-		return null;
-	const imgSize = Math.min(size.width, size.height);
-	const time = flare.start_time as Date;
-	const year = time.getUTCFullYear();
-	const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
-	const day = time.getUTCDate().toString().padStart(2, '0');
-	const hour = time.getUTCHours().toString().padStart(2, '0');
-	const min = time.getUTCMinutes().toString().padStart(2, '0');
-	const clip = 40;
-	const move = -clip * imgSize / 512;
-	const gev = `gev_${year}${mon}${day}_${hour}${min}`;
-	return  <div style={{ overflow: 'hidden', height: imgSize }} onContextMenu={e => e.ctrlKey && e.stopPropagation()}>
-		<div style={{ position: 'absolute', zIndex: 2, background: 'black', color: 'white', top: 2, left: 3,
-			border: '1px solid white', padding: '1px 8px', fontSize: 14 }}>
-			<b>{flare.class as any}</b> {prettyDate(flare.start_time as any)}</div>
-		<img style={{ transform: `translate(${move}px, ${move}px)` }} width={imgSize * (1 + 2 * clip / 512) - 2} 
-			alt='' src={SFT_URL+`${year}/${mon}/${day}/${gev}/${gev}.png`}/>;
-	</div> ;
+	if (flare.src === 'SFT')
+		return <SFTFLare flare={flare}/>;
+	return null;
 		
 }
 
