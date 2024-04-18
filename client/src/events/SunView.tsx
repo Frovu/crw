@@ -1,47 +1,50 @@
-import { useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import { flaresLinkId, getFlareLink, useFlaresTable } from './sources';
+import {  getFlareLink, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { prettyDate } from '../util';
 import { color } from '../app';
 
 const MODES = ['SDO', 'FLR'] as const;
+const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
 const defaultSettings = {
-	mode: 'SDO' as typeof MODES[number]
+	mode: 'SDO' as typeof MODES[number],
+	prefer: 'ANY' as typeof PREFER_FLR[number]
 };
 type Params = Partial<typeof defaultSettings>;
 
 const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_summary/';
-const dMN_URL = 'https://www.sidc.be/solardemon/detections/science/094/flares/';
+const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
 
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
+	const { mode, prefer } = { ...defaultSettings, ...params };
 	return <>
-		<div>Mode: <select className='Borderless' value={params.mode} onChange={e => setParams({ mode: e.target.value as any })}>
+		<div>Mode: <select className='Borderless' value={mode} onChange={e => setParams({ mode: e.target.value as any })}>
 			{MODES.map(m => <option key={m} value={m}>{m}</option>)}
 		</select></div>
+		{<div>Pref: <select className='Borderless' value={prefer} onChange={e => setParams({ prefer: e.target.value as any })}>
+			{PREFER_FLR.map(m => <option key={m} value={m}>{m}</option>)}
+		</select></div>}
 	</>;
 }
 
 function DemonFlareFilm({ id }: { id: number }) {
-	const [frame, setFrame] = useState(0);
-	const [frameCount, setFrameCount] = useState<number | null>(null);
+	const { size: nodeSize } = useContext(LayoutContext)!;
+	const size = Math.min(nodeSize.width, nodeSize.height);
+	const [loaded, setLoaded] = useState(false);
 
-	useEffect(() => {
-		const interval = setInterval(() => setFrame(f => (frameCount != null && f >= frameCount) ? 0 : f + 1), 150);
-		return () => clearInterval(interval);
-	}, [frameCount]);
+	useEffect(() => setLoaded(false), [id]);
 
-	useEffect(() => {
-		setFrameCount(null);
-		setFrame(0);
-	}, [id]);
-	console.log(frame, frameCount)
-
-	return <div>
-		<img alt='' onError={() => { console.log(123); setFrameCount(frame); setFrame(0); }}
-			src={dMN_URL+`${id}/cl_${frame.toString().padStart(5, '0')}.jpg`}></img>
-	</div>;
+	return <>
+		{!loaded && <div className='Center'>LOADING...</div>}
+		<div style={{ transform: `scale(${size / 400})`, transformOrigin: 'top left', height: 400, width: 400, overflow: 'hidden' }}>
+			<iframe title='solardemon' onLoad={() => setTimeout(() => setLoaded(true), 50)}
+				style={{ border: 'none',  transform: 'translate(-8px, -8px)', visibility: loaded ? 'visible' : 'hidden' }}
+				src={dMN_FLR+`&flare_id=${id}`} scrolling='no' 
+				width={Math.max(size, 408)} height={Math.max(size, 408)}/>
+		</div>
+	</>;
 }
 
 function SFTFLare({ flare }: { flare: RowDict }) {
@@ -75,45 +78,46 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
-			onLoad={() => setState('done')} onError={() =>setState('error')}/>;
-	</div> ;
+			onLoad={() => setState('done')} onError={() =>setState('error')}/>
+	</div>;
 }
 
 function SunViewFlr() {
-	const { data, columns } = useFlaresTable();
-	const eruptions = useTable('sources_erupt');
-	const { cursor } = useEventsState();
-	const sources = useSources();
-
-	const flare = (() => {
-		if (cursor?.entity === 'flares')
-			return rowAsDict(data[cursor.row] as any, columns);
-		const erupt = cursor?.entity === 'sources_erupt'
-			? rowAsDict(eruptions.data[cursor.row] as any, eruptions.columns)
-			: sources.find(s => s.erupt)?.erupt;
-		if (!erupt || !erupt.flr_source) return null;
-		const { linkColId, idColId } = getFlareLink(erupt.flr_source);
-		console.log(erupt)
-		const idColIdx = columns.findIndex(c => c.id === idColId);
-		const found = data.find(row => equalValues(row[idColIdx], erupt[linkColId]));
-		return found ? rowAsDict(found as any, columns) : null;
-	})();
-
-	if (!flare)
-		return <div className='Center'>NO FLARE SELECTED</div>;
-	if (flare.src === 'dMN' && flare.id)
-		return <DemonFlareFilm id={flare.id as number}/>;
-	if (flare.src === 'SFT')
-		return <SFTFLare flare={flare}/>;
-	return null;
 		
 }
 
 export default function SunView() {
 	const layoutParams = useContext(LayoutContext)?.params;
-	const { mode } = { ...defaultSettings, ...layoutParams };
+	const { mode, prefer } = { ...defaultSettings, ...layoutParams };
+	const { data, columns } = useFlaresTable();
+	const eruptions = useTable('sources_erupt');
+	const { cursor } = useEventsState();
+	const sources = useSources();
+
+	const flare = mode === 'FLR' && (() => {
+		if (cursor?.entity === 'flares') {
+			const atCurs = rowAsDict(data[cursor.row] as any, columns);
+			return (prefer === 'ANY' || atCurs.src === prefer) ? atCurs : null;
+		}
+		const erupt = cursor?.entity === 'sources_erupt'
+			? rowAsDict(eruptions.data[cursor.row] as any, eruptions.columns)
+			: sources.find(s => s.erupt)?.erupt;
+		if (!erupt || !erupt.flr_source) return null;
+		const src = prefer === 'ANY' ? erupt.flr_source : prefer;
+		const { linkColId, idColId } = getFlareLink(src);
+		const idColIdx = columns.findIndex(c => c.id === idColId);
+		const found = data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
+		console.log(linkColId, found)
+		return found ? rowAsDict(found as any, columns) : null;
+	})();
 
 	if (mode === 'SDO')
 		return 'not implemented';
-	return <SunViewFlr/>;
+	if (!flare)
+		return <div className='Center'>NO DATA</div>;
+	if (flare.src === 'dMN' && flare.id)
+		return <DemonFlareFilm id={flare.id as number}/>;
+	if (flare.src === 'SFT')
+		return <SFTFLare flare={flare}/>;
+	return null;
 }
