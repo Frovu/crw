@@ -17,6 +17,7 @@ type Params = Partial<typeof defaultSettings>;
 
 const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_summary/';
 const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
+const SDO_URL = 'https://cdaw.gsfc.nasa.gov/images/sdo/aia_synoptic/';
 
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
 	const { mode, prefer } = { ...defaultSettings, ...params };
@@ -85,16 +86,71 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 
 function SDO({ flare }: { flare: RowDict }) {
 	const { size } = useContext(LayoutContext)!;
+	const imgSize = Math.min(size.width, size.height);
+	const [frame, setFrame] = useState(0);
+	const frameTime = 40;
+	const cadence = 2;
 
-	const t1 = Math.floor((flare.start_time as Date).getTime() / 1000) - 60;
-	const t2 = Math.floor((flare.end_time as Date).getTime() / 1000) + 60;
+	const t1 = Math.floor((flare.start_time as Date).getTime() / 1000) - 7200;
+	const t2 = Math.floor((flare.end_time as Date).getTime() / 1000) + 7200;
+	const wavelen = '193';
 
-	const query = useQuery(['sdo', t1, t2], () => (t1 && t2 &&
-		apiGet<{ timestamps: number[] }>('events/sdo',
-			{ from: t1, to: t2 })) || { timestamps: [] }) ;
+	const query = useQuery(['sdo', wavelen, t1, t2, cadence], async () => {
+		if (!t1 || !t2)
+			return [];
+		const res = await apiGet<{ timestamps: number[] }>('events/sdo',
+			{ from: t1, to: t2, wavelen });
+
+		setFrame(0);
+
+		return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= t1 && tst <= t2).map(timestamp => {
+			const time = new Date(timestamp * 1000);
+			const year = time.getUTCFullYear();
+			const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
+			const day = time.getUTCDate().toString().padStart(2, '0');
+			const hour = time.getUTCHours().toString().padStart(2, '0');
+			const min = time.getUTCMinutes().toString().padStart(2, '0');
+			const sec = time.getUTCSeconds().toString().padStart(2, '0');
+			const fname = `${year}${mon}${day}_${hour}${min}${sec}_sdo_a${wavelen}.jpg`;
+			const url = SDO_URL + `${wavelen}/${year}/${mon}/${day}/${fname}`;
+
+			const entry = {
+				time, state: 'loading',
+				elem: null as HTMLImageElement | null,
+				img: <img alt='' loading='eager' ref={el => { entry.elem = el; }} src={url} width={imgSize}
+					onLoad={() => { entry.state = 'ready'; }}
+					onError={() => { entry.state = 'error'; }}></img> };
+			return entry;
+		});
+	});
+
+	useEffect(() => {
+		if (!query.data) return;
+		const { state } = query.data[frame];
+		const stepFrame = () => {
+			const timeout = setTimeout(() => setFrame(f => f + 1 >= query.data.length ? 0 : f + 1), frameTime);
+			return () => clearTimeout(timeout);
+		};
+		console.log(frame, state)
+		if (state === 'ready')
+			return stepFrame();
+		const inter = setInterval(() => {
+			if (query.data[frame].state !== 'loading')
+				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
+		}, 10);
+		return () => clearInterval(inter);
+	});
+
+	if (query.isLoading)
+		return <div className='Center'>LOADING..</div>;
+	if (query.isError)
+		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
+	if (!query.data || query.data.length < 1)
+		return <div className='Center'>NO SDO DATA</div>;
 
 	return <div>
-		{query.data?.timestamps.join(',')}
+		<div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>
+		{query.data[frame].img}
 	</div>;
 }
 
@@ -125,7 +181,7 @@ export default function SunView() {
 	if (mode === 'SDO' && flare)
 		return <SDO flare={flare}/>;
 	if (!flare)
-		return <div className='Center'>NO DATA</div>;
+		return <div className='Center'>NO FLARE DATA</div>;
 	if (flare.src === 'dMN' && flare.id)
 		return <DemonFlareFilm id={flare.id as number}/>;
 	if (flare.src === 'SFT')

@@ -16,7 +16,7 @@ def scrape_day_list(tstmp, wavelen):
 		return []
 	if res.status_code != 200:
 		log.error('Failed to fetch SDO (%s): %s', res.status_code, url)
-		return []
+		raise ValueError('SDO HTTP '+res.status_code)
 	result = []
 	for match in jpg_re.findall(res.text):
 		adt = datetime.strptime(match[0], '%Y%m%d_%H%M%S')
