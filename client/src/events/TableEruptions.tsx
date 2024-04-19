@@ -42,8 +42,8 @@ export default function EruptionsTable() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;
-	const rowsHeight = size.height - 28;
-	const rowH = devicePixelRatio < 1 ? 27 + (2 / devicePixelRatio) : 28;
+	const rowsHeight = size.height - 34;
+	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;

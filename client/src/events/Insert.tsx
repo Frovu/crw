@@ -90,35 +90,34 @@ export default function InsertControls() {
 	if (!start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 2, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
-		<div style={{ display: 'flex' }}>
-			{/* {(setStartAt || setEndAt) && <div>{isInsert ? 'New' : 'Move'} event at {prettyDate(setStartAt)}
-				{setEndAt ? `, dur = ${((setEndAt.getTime()-setStartAt!.getTime())/36e5).toFixed(1)} h` : ''}</div>} */}
-			<div style={{ display: 'flex', color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
-				{(isIdle || isInsert) && <button onClick={isInsert ? handleEnter : toggle('insert')} style={{ width: 72 }}>Insert</button>}
-				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('move')} style={{ width: 54 }}>Move</button>}
-				{(isIdle || isLink) && <button onClick={isLink ? handleEnter : toggle('link')} style={{ width: 54 }}>Link</button>}
-				{!isIdle && <button style={{ width: isInsert ? 110 : 128 }} onClick={escape}>Cancel</button>}
-			</div>
-			<div style={{ alignSelf: 'start', position: 'relative' }}>
+	return <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
+		<div style={{ display: 'flex', padding: '1px 1px 0 0' }}>
+			<div style={{ alignSelf: 'start', position: 'relative', width: 154, paddingTop: 1 }}>
 				<CoverageControls date={start}/>
+			</div>
+			<div style={{ display: 'flex', flex: 1, maxWidth: 163, color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
+				{(isIdle || isInsert) && <button onClick={isInsert ? handleEnter : toggle('insert')} style={{ flex: 1 }}>Insert</button>}
+				{(isIdle || isMove) && <button onClick={isMove ? handleEnter : toggle('move')} style={{ flex: 1 }}>Move</button>}
+				{!isIdle && <button style={{ flex: 1 }} onClick={escape}>Cancel</button>}
 			</div>
 			
 		</div>
-		<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
-			<tr>
-				<td width={90}>MODE</td>
-				<td width={180}>start time</td>
-				<td width={48}>dur</td>
-			</tr>
-			<tr>
-				<td style={{ color: color(!isIdle ? 'magenta' : 'text') }}>
-					{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}</td>
-				<td>{prettyDate(start)}</td>
-				<td>{duration}</td>
-			</tr>
-		</tbody></table>
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4, fontSize: 14 }}>
+		<div style={{ padding: '0 1px' }}>
+			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
+				<tr>
+					<td width={90}>MODE</td>
+					<td width={178}>start time</td>
+					<td width={48}>dur</td>
+				</tr>
+				<tr>
+					<td style={{ color: color(!isIdle ? 'magenta' : 'text') }}>
+						{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}</td>
+					<td>{prettyDate(start)}</td>
+					<td>{duration}</td>
+				</tr>
+			</tbody></table>
+		</div>
+		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 1, fontSize: 14 }}>
 			{sources.filter(s => s.erupt).map((src, i) => {
 				const isActive = src.source.id === modifySource;
 				const clr = (what: 'FLR' | 'CME', which: string) => {

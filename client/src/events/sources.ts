@@ -2,7 +2,7 @@ import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
 import { flaresLinkId, setRawData, useEventsState, type TableName } from './eventsState';
 
-export const flrColumnOrder = ['class', 'lat', 'lon', 'AR', 'start', 'peak', 'end'];
+export const flrColumnOrder = ['class', 'lat', 'lon', 'start', 'AR', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
 
 export function getFlareLink(src: any) {
@@ -39,13 +39,13 @@ export function useFlaresTable() {
 				if (col.name.includes('class'))
 					col.width = 5.5;
 				if (['lat', 'lon'].includes(col.name))
-					col.width = 5;
+					col.width = 4.5;
 				if (['end', 'peak'].includes(col.name))
 					col.width = 6;
 			}
 	
 			return { data, columns: [
-				{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4.5 } as ColumnDef,
+				{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef,
 				...columns
 			] };
 

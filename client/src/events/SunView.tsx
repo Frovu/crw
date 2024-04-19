@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import {  getFlareLink, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
@@ -142,6 +142,8 @@ function SDO({ flare }: { flare: RowDict }) {
 	useEffect(() => {
 		if (!query.data) return;
 		const inter = setInterval(() => {
+			if (frame >= query.data.length)
+				setFrame(0);
 			if (query.data[frame].loaded)
 				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
 		}, frameTime);
@@ -156,32 +158,39 @@ function SDO({ flare }: { flare: RowDict }) {
 		const canvas = canvasRef.current;
 		canvas.width = canvas.height = size;
 		const ctx = canvasRef.current.getContext('2d')!;
+		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
+		const aphDoy = 186;
+		const ascDoy = 356;
 		ctx.clearRect(0, 0, size, size);
 		ctx.lineWidth = 2;
 		ctx.font = font(10);
-		ctx.setLineDash([6, 18]);
+		ctx.setLineDash([8, 18]);
 		ctx.strokeStyle = ctx.fillStyle = color('green');
 		const scl = size / 512;
-		const rs = 204 * scl;
-		const top = 40 * scl;
-		const left = 52 * scl;
-		ctx.arc(left + rs, top + rs, rs, 0, 2 * PI);
+		const x0 = 256.5 * scl;
+		const y0 = 243.5 * scl;
+		const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
+		const rs = (205 - dist * 7) * scl;
+		ctx.arc(x0, y0, rs, 0, 2 * PI);
 		ctx.stroke();
 		ctx.beginPath();
 		ctx.lineWidth = 2;
 		ctx.setLineDash([]);
-		if (flare.lat != null && flare.lon != null) {
-			const x0 = rs + left;
-			const y0 = rs + top;
-			const ascDoy = 356;
-			const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5;
+
+		if (flare.lat != null && flare.lon != null && flare.start_time instanceof Date) {
+			const refTime = flare.start_time.getTime() / 1000;
+			const sunRotation = 360 / 25.38 / 86400; // kinda
+			const rot = (time - refTime) * sunRotation;
 			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
-			const [lat, lon] =  [flare.lat as any + decl, flare.lon] as number[];
+			const lat = (flare.lat as number) + decl;
+			const lon = (flare.lon as number) + rot;
 			const x = x0 + rs * sin(lon / 180 * PI) * cos(lat / 180 * PI);
 			const y = y0 + rs * -sin(lat / 180 * PI);
 			ctx.arc(x, y, 20, 0, 2 * PI);
-			ctx.fillText(`DOY=${(doy % 365.256).toFixed(1)}`, 4, 14);
+			ctx.fillText(`DOY=${doy.toFixed(1)}`, 4, 14);
 			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
+			ctx.fillText(`rot=${rot.toFixed(2).padStart(5)}`, 4, 38);
+			ctx.fillText(`dist=${dist.toFixed(2)}`, 4, 50);
 		}
 		ctx.stroke();
 
