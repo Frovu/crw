@@ -9,7 +9,7 @@ import { LayoutContext, type LayoutContextType } from '../layout';
 import type { ColumnDef } from './columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
 
-function CellInput({ id, column, value, table }: { id: number, column: ColumnDef, value: string, table: TableName }) {
+export function CellInput({ id, column, value, table }: { id: number, column: ColumnDef, value: string, table: TableName }) {
 	const [invalid, setInvalid] = useState(false);
 	const { escapeCursor } = useEventsState(); 
 
@@ -307,7 +307,7 @@ export default function TableView({ size, averages, entity }: {
 							table: entity as any,
 							id: row[0],
 							column,
-							value: valueToString(row[cidx+1])
+							value
 						}}/> :
 							<span className='Cell' style={{ width: column.width + 'ch' }}>
 								<div className='TdOver'/>

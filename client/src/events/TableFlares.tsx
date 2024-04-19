@@ -4,24 +4,9 @@ import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinkId } from './eventsState';
-import { getFlareLink, useFlaresTable } from './sources';
+import { getFlareLink, parseFlareFlux, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
-
-function parseFlareFlux(cls: string | null) {
-	if (!cls) return null;
-	const multi = (() => {
-		switch (cls.at(0)) {
-			case 'A': return .1;
-			case 'B': return 1;
-			case 'C': return 10;
-			case 'M': return 100;
-			case 'X': return 1000; }
-	})();
-	if (!multi) return null;
-	const val = multi * parseFloat(cls.slice(1));
-	return isNaN(val) ? null : val;
-}
 
 async function unlinkFlare(flare: RowDict) {
 	const { modifySource, data, columns } = useEventsState.getState();

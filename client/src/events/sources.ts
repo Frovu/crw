@@ -13,6 +13,21 @@ export function getFlareLink(src: any) {
 	};
 }
 
+export function parseFlareFlux(cls: string | null) {
+	if (!cls) return null;
+	const multi = (() => {
+		switch (cls.at(0)) {
+			case 'A': return .1;
+			case 'B': return 1;
+			case 'C': return 10;
+			case 'M': return 100;
+			case 'X': return 1000; }
+	})();
+	if (!multi) return null;
+	const val = multi * parseFloat(cls.slice(1));
+	return isNaN(val) ? null : Math.round(val * 10) / 10;
+}
+
 export function useFlaresTable() {
 	return useQuery({
 		queryKey: ['flares'],

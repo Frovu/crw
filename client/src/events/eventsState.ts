@@ -132,7 +132,7 @@ export const useFeidCursor = () => {
 };
 
 export type RowDict = { [k: string] : Value | undefined };
-export const rowAsDict = (row: DataRow, columns: ColumnDef[]): RowDict =>
+export const rowAsDict = (row: any[], columns: ColumnDef[]): RowDict =>
 	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
 
 export const useSources = () => {

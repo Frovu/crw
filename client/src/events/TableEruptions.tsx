@@ -1,14 +1,23 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../layout';
-import { TableWithCursor } from './TableView';
-import { valueToString, type TableMenuDetails } from './events';
+import { CellInput, TableWithCursor } from './TableView';
+import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, openContextMenu, useContextMenu } from '../app';
-import { deleteEvent, useEventsState, useSources, useTable } from './eventsState';
-import { useTableQuery } from './sources';
+import { deleteEvent, rowAsDict, useEventsState, useSources, useTable } from './eventsState';
+import { getFlareLink, parseFlareFlux, useFlaresTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
 
 const ENT = 'sources_erupt';
+const flare_columns = {
+	flr_start: 'start_time',
+	flr_peak: 'peak_time',
+	flr_end: 'end_time',
+	flr_flux: 'class',
+	active_region: 'active_region',
+	lat: 'lat',
+	lon: 'lon'
+} as { [k: string]: string };
 
 function deleteEruption(id: number) {
 	askConfirmation(<><h4>Delete eruption event?</h4><p>Action is irreversible</p></>, async () => {
@@ -33,9 +42,10 @@ export function EruptionsContextMenu() {
 export default function EruptionsTable() {
 	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
+	const flares = useFlaresTable();
 	const sources = useSources();
 
-	const cursor = sCursor?.entity === 'sources_erupt' ? sCursor : null;
+	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
 	useTableQuery(ENT);
 
@@ -50,7 +60,7 @@ export default function EruptionsTable() {
 	const headerPadding = (hRem - viewSize * trPadding);
 
 	return <TableWithCursor {...{
-		data, columns, size, viewSize, entity: 'sources_erupt',
+		data, columns, size, viewSize, entity: ENT,
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
 				<div style={{ height: 26 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
@@ -58,10 +68,28 @@ export default function EruptionsTable() {
 		</tr>,
 		row: (row, idx, onClick) => {
 			const dark = !sources.find(src => src.erupt?.id === row[0]);
+			const erupt = rowAsDict(row, columns);
+			// FIXME: do this for all eruptions at load
+			const flare = erupt.flr_source !== 'MNL' && (() => {
+				const { linkColId, idColId } = getFlareLink(erupt.flr_source);
+				const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
+				const flr = flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
+				return flr ? rowAsDict(flr, flares.columns) : null;
+			})();
 			return <tr key={row[0]}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
+					const isLinkedModified = flare_columns[column.id] ? (() => {
+						if (['lat', 'lon'].includes(column.id) && erupt.coords_source !== 'FLR')
+							return false; // FIXME
+						if (!flare)
+							return !flares.data;
+						const val = column.id === 'flr_flux'
+							? flare.flux ?? parseFlareFlux(flare.class as any)
+							: flare[flare_columns[column.id]];
+						return !equalValues(val, row[cidx]);
+					})() : null;
 					let value = valueToString(row[cidx]);
 					if (['XF peak', 'XF end'].includes(column.name))
 						value = value.split(' ')[1];
@@ -72,10 +100,15 @@ export default function EruptionsTable() {
 						}}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0] } as any })}
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
-						<span className='Cell' style={{ width: width + 'ch', color: color(dark ? 'text-dark' : 'text')  }}>
+						{curs?.editing ? <CellInput {...{
+							table: ENT,
+							id: row[0],
+							column, value
+						}}/> : <span className='Cell' style={{ width: width + 'ch', color: color(dark ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
 							{value}
-						</span>
+							{isLinkedModified && <span className='ModifiedMarker'/>}
+						</span>}
 					</td>;
 				})}
 			</tr>;}
