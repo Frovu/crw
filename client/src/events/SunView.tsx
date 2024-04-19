@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import {  getFlareLink, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
@@ -6,6 +6,7 @@ import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
 import { useQuery } from 'react-query';
+import { font } from '../plots/plotUtil';
 
 const MODES = ['SDO', 'FLR'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
@@ -34,15 +35,20 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 function DemonFlareFilm({ id }: { id: number }) {
 	const { size: nodeSize } = useContext(LayoutContext)!;
 	const size = Math.min(nodeSize.width, nodeSize.height);
+	const ref = useRef<HTMLIFrameElement>(null);
 	const [loaded, setLoaded] = useState(false);
 
-	useEffect(() => setLoaded(false), [id]);
+	useEffect(() => {
+		setLoaded(false);
+		const tim = setTimeout(() => setLoaded(true), 2000);
+		return () => clearTimeout(tim);
+	}, [id]);
 
 	return <>
 		{!loaded && <div className='Center'>LOADING...</div>}
 		<div style={{ transform: `scale(${size / 400})`, transformOrigin: 'top left', height: 400, width: 400, overflow: 'hidden' }}>
 			<div style={{ position: 'absolute', height: '100%', width: '100%', zIndex: 2 }}/>
-			<iframe title='solardemon' onLoad={() => setTimeout(() => setLoaded(true), 50)}
+			<iframe ref={ref} title='solardemon' onLoad={() => setTimeout(() => setLoaded(true), 50)}
 				style={{ border: 'none',  transform: 'translate(-8px, -8px)', visibility: loaded ? 'visible' : 'hidden' }}
 				src={dMN_FLR+`&flare_id=${id}`} scrolling='no' 
 				width={Math.max(size, 408)} height={Math.max(size, 408)}/>
@@ -70,6 +76,9 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 	useEffect(() => {
 		setState('init');
 		const tim = setTimeout(() => setState(st => st === 'init' ? 'loading' : st), 30);
+		const img = new Image();
+		img.src = src;
+		img.onload = () => setState('done');
 		return () => clearTimeout(tim);
 	}, [src]);
 
@@ -81,13 +90,14 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
-			onLoad={() => setState('done')} onError={() =>setState('error')}/>
+			onLoad={() => console.log('done')} onError={() =>setState('error')}/>
 	</div>;
 }
 
 function SDO({ flare }: { flare: RowDict }) {
-	const { size } = useContext(LayoutContext)!;
-	const imgSize = Math.min(size.width, size.height);
+	const { size: nodeSize } = useContext(LayoutContext)!;
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
 	const frameTime = 40;
 	const cadence = 2;
@@ -138,16 +148,54 @@ function SDO({ flare }: { flare: RowDict }) {
 		return () => clearInterval(inter);
 	}, [frame, query.data]);
 
-	if (query.isLoading)
-		return <div className='Center'>LOADING..</div>;
-	if (query.isError)
-		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data || query.data.length < 1)
-		return <div className='Center'>NO SDO DATA</div>;
+	useEffect(() => {
+		const time = query.data?.[frame]?.timestamp;
+		if (!canvasRef.current || !time)
+			return;
+		const { PI, sin, cos } = Math;
+		const canvas = canvasRef.current;
+		canvas.width = canvas.height = size;
+		const ctx = canvasRef.current.getContext('2d')!;
+		ctx.clearRect(0, 0, size, size);
+		ctx.lineWidth = 2;
+		ctx.font = font(10);
+		ctx.setLineDash([6, 18]);
+		ctx.strokeStyle = ctx.fillStyle = color('green');
+		const scl = size / 512;
+		const rs = 204 * scl;
+		const top = 40 * scl;
+		const left = 52 * scl;
+		ctx.arc(left + rs, top + rs, rs, 0, 2 * PI);
+		ctx.stroke();
+		ctx.beginPath();
+		ctx.lineWidth = 2;
+		ctx.setLineDash([]);
+		if (flare.lat != null && flare.lon != null) {
+			const x0 = rs + left;
+			const y0 = rs + top;
+			const ascDoy = 356;
+			const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5;
+			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
+			const [lat, lon] =  [flare.lat as any + decl, flare.lon] as number[];
+			const x = x0 + rs * sin(lon / 180 * PI) * cos(lat / 180 * PI);
+			const y = y0 + rs * -sin(lat / 180 * PI);
+			ctx.arc(x, y, 20, 0, 2 * PI);
+			ctx.fillText(`DOY=${(doy % 365.256).toFixed(1)}`, 4, 14);
+			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
+		}
+		ctx.stroke();
+
+	}, [frame, flare, size, query.data]);
+
+	const isLoaded = query.data && query.data.length > 0;
 
 	return <div>
-		<div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>
-		<img alt='' src={query.data[frame]?.url} width={imgSize}></img>
+		{query.isLoading && <div className='Center'>LOADING..</div>}
+		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		{!isLoaded && query.isFetched && <div className='Center'>NO SDO DATA</div>}
+		{isLoaded && <div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>}
+		<canvas ref={canvasRef} style={{ position: 'absolute', zIndex: 3 }}/>
+		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
 }
 
