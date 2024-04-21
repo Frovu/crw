@@ -1,5 +1,5 @@
 import { useState, useRef, useContext, useLayoutEffect, useEffect,
-	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback } from 'react';
+	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback, useMemo} from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
 	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
@@ -9,35 +9,39 @@ import { LayoutContext, type LayoutContextType } from '../layout';
 import type { ColumnDef } from './columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
 
-export function CellInput({ id, column, value, table }: { id: number, column: ColumnDef, value: string, table: TableName }) {
+export function CellInput({ id, column, value, table, options }:
+{ id: number, column: ColumnDef, value: string, table: TableName, options?: string[] }) {
 	const [invalid, setInvalid] = useState(false);
 	const { escapeCursor } = useEventsState(); 
 
-	const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
-		const str = e.target.value.trim();
-		const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
-		const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
-		const isOk = isValid && (!save || makeChange(table, { id, column, value: val }));
-		setInvalid(!isOk);
-	};
+	return useMemo(() => {
+		const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
+			const str = e.target.value.trim();
+			const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
+			const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
+			const isOk = isValid && (!save || makeChange(table, { id, column, value: val }));
+			setInvalid(!isOk);
+		};
+	
+		const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: 'var(--color-bg)',
+			boxShadow: column.type !== 'enum' ? (' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)')) : 'unest' };
 
-	const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: 'var(--color-bg)',
-		boxShadow: ' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)' ) };
-	return <>
-		{column.type === 'enum' && <select autoFocus style={inpStype!}
-			value={value} onChange={e => { onChange(e, true); escapeCursor(); }}>
-			<option value=''></option>
-			{column.enum?.map(val => <option key={val} value={val}>{val}</option>)}
-		</select>}
-		{column.type !== 'enum' &&  <input type='text' autoFocus style={inpStype!}
-			defaultValue={value} onChange={onChange}
-			onBlur={e => { e.target.value !== value && onChange(e, true); escapeCursor(); }}/>}
-	</>;
+		return <>
+			{column.type === 'enum' && <select autoFocus style={inpStype!}
+				value={value} onChange={e => { onChange(e, true); escapeCursor(); }}>
+				{!options && <option value=''></option>}
+				{(options ?? column.enum)?.map(val => <option key={val} value={val}>{val}</option>)}
+			</select>}
+			{column.type !== 'enum' &&  <input type='text' autoFocus style={inpStype!}
+				defaultValue={value} onChange={onChange}
+				onBlur={e => { e.target.value !== value && onChange(e, true); escapeCursor(); }}/>}
+		</>;
+	}, [column, id, invalid, table, value]); // eslint-disable-line
 }
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;
 
-export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, row: rowCallback, tfoot, footer, size, onKeydown }: {
+export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, allowEdit, row: rowCallback, tfoot, footer, size, onKeydown }: {
 	size: Size,
 	entity: string,
 	data: any[][],
@@ -46,11 +50,12 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	viewSize: number,
 	thead: ReactNode,
 	row: RowConstructor,
+	allowEdit?: boolean,
 	tfoot?: ReactNode,
 	footer?: ReactNode,
 	onKeydown?: (e: KeyboardEvent) => void
 }) {
-	const { cursor: sCursor, setStartAt, setEndAt, plotId, modifyId, setCursor, escapeCursor } = useEventsState();
+	const { cursor: sCursor, setStartAt, setEndAt, plotId, modifyId, setCursor, escapeCursor, setEditing } = useEventsState();
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -106,7 +111,13 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 		if (setStartAt || setEndAt || modifyId)
 			return;
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (isInput || cursor?.editing)
+		if (allowEdit && cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
+			if (isInput) (e.target as any).blur();
+			return setEditing(!cursor?.editing);
+		}
+		if (cursor?.editing)
+			return;
+		if ((!cursor || columns[cursor.column].type !== 'enum') && isInput)
 			return;
 
 		const set = (crs: Omit<Cursor, 'id'>) => {
@@ -163,10 +174,10 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 
 	const onClick = useCallback((idx: number, cidx: number) => {
 		const cur = { entity, row: idx, column: cidx, id: data[idx]?.[0],
-			editing: cursor?.column === cidx && cursor?.row === idx };
+			editing: allowEdit && cursor?.column === cidx && cursor?.row === idx };
 		setCursor(cur);
 		updateViewIndex(cur);
-	}, [cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
+	}, [allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
 
 	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
 		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
@@ -197,7 +208,7 @@ export default function TableView({ size, averages, entity }: {
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
 	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, changes, modifyId,
-		toggleSort, setEditing, setPlotId } = viewState;
+		toggleSort, setPlotId } = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
@@ -238,12 +249,8 @@ export default function TableView({ size, averages, entity }: {
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (setStartAt || setEndAt || modifyId)
 			return;
-		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
-			if (isInput) (e.target as any).blur();
-			return setEditing(!cursor?.editing); }
-		if (isInput) return;
-		if (cursor?.editing) return;
+		if (cursor?.editing)
+			return;
 
 		if (cursor && ['-', '+', '='].includes(e.key))
 			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
@@ -258,6 +265,7 @@ export default function TableView({ size, averages, entity }: {
 
 	return <TableWithCursor {...{
 		data, columns, size, viewSize, onKeydown, entity,
+		allowEdit: true,
 		thead: <><tr>
 			{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
 				className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
