@@ -221,8 +221,9 @@ export function makeChange(tbl: TableName, { column, value, id }: ChangeValue) {
 	return true;
 };
 
-export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: number, id: number, row: RowDict, createdSrc?: number) {
+export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict, feid_id?: number, createdSrc?: number) {
 	useEventsState.setState(state => {
+		const id = row.id as number;
 		const { changes, created, columns, rawData, data } = state;
 		if (createdSrc && !created.feid_sources.includes(createdSrc))
 			created.feid_sources = [createdSrc, ...created.feid_sources];
@@ -232,7 +233,7 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', feid_id: 
 			state.modifySource = createdSrc;
 			const sLinkIdx = tbl === 'sources_ch' ? 2 : 3;
 			changes.feid_sources = [...changes.feid_sources,
-				{ id: createdSrc, column: columns.feid_sources![1], value: feid_id, silent: true },
+				{ id: createdSrc, column: columns.feid_sources![1], value: feid_id!, silent: true },
 				{ id: createdSrc, column: columns.feid_sources![sLinkIdx], value: id, silent: true }
 			];
 		}

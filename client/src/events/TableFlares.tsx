@@ -4,7 +4,7 @@ import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinkId } from './eventsState';
-import { getFlareLink, parseFlareFlux, useFlaresTable } from './sources';
+import { assignFlareToErupt, getFlareLink, useFlaresTable } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation, askProceed } from '../Utility';
 
@@ -61,21 +61,10 @@ async function linkFlare(flare: RowDict, feidId: number) {
 
 		erupt[linkColId] = flare[idColId];
 
-		if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === flare.src)) {
-			erupt.flr_source = flare.src;
+		if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === flare.src))
+			assignFlareToErupt(erupt, flare);
 
-			erupt.lat = flare.lat;
-			erupt.lon = flare.lon;
-			erupt.coords_source = 'FLR';
-
-			erupt.flr_start = flare.start_time;
-			erupt.flr_peak = flare.peak_time;
-			erupt.flr_end = flare.end_time;
-			erupt.active_region = flare.active_region;
-			erupt.flr_flux = flare.flux ?? parseFlareFlux(flare.class as string);
-		}
-
-		makeSourceChanges('sources_erupt', feidId, eruptId, erupt, createdSrc);
+		makeSourceChanges('sources_erupt', erupt, feidId, createdSrc);
 		logMessage(`Linked ${flare.src} flare ${flare.class} to FE/ID #${feidId}`);
 	};
 

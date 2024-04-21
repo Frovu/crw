@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { flaresLinkId, setRawData, useEventsState, type TableName } from './eventsState';
+import { flaresLinkId, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 
 export const flrColumnOrder = ['class', 'lat', 'lon', 'start', 'AR', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
@@ -11,6 +11,20 @@ export function getFlareLink(src: any) {
 		linkColId: lnk,
 		idColId: lnk?.endsWith('id') ? 'id' : 'start_time'
 	};
+}
+
+export function assignFlareToErupt(erupt: RowDict, flare: RowDict) {
+	erupt.flr_source = flare.src;
+
+	erupt.lat = flare.lat;
+	erupt.lon = flare.lon;
+	erupt.coords_source = 'FLR';
+
+	erupt.flr_start = flare.start_time;
+	erupt.flr_peak = flare.peak_time;
+	erupt.flr_end = flare.end_time;
+	erupt.active_region = flare.active_region;
+	erupt.flr_flux = flare.flux ?? parseFlareFlux(flare.class as string);
 }
 
 export function parseFlareFlux(cls: string | null) {

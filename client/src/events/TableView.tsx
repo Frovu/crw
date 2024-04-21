@@ -1,5 +1,5 @@
 import { useState, useRef, useContext, useLayoutEffect, useEffect,
-	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback, useMemo} from 'react';
+	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback, useMemo } from 'react';
 import { clamp, useEventListener, type Size } from '../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
 	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
@@ -9,17 +9,19 @@ import { LayoutContext, type LayoutContextType } from '../layout';
 import type { ColumnDef } from './columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
 
-export function CellInput({ id, column, value, table, options }:
-{ id: number, column: ColumnDef, value: string, table: TableName, options?: string[] }) {
+export function CellInput({ id, column, value, table, options, change }:
+{ id: number, column: ColumnDef, value: string, table: TableName, options?: string[], change?: (val: any) => boolean }) {
 	const [invalid, setInvalid] = useState(false);
-	const { escapeCursor } = useEventsState(); 
+	const { escapeCursor } = useEventsState();
 
 	return useMemo(() => {
+		const doChange = (v: any) => change ? change(v) : makeChange(table, { id, column, value: v });
+
 		const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
 			const str = e.target.value.trim();
 			const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
 			const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
-			const isOk = isValid && (!save || makeChange(table, { id, column, value: val }));
+			const isOk = isValid && (!save || doChange(val));
 			setInvalid(!isOk);
 		};
 	
@@ -36,7 +38,7 @@ export function CellInput({ id, column, value, table, options }:
 				defaultValue={value} onChange={onChange}
 				onBlur={e => { e.target.value !== value && onChange(e, true); escapeCursor(); }}/>}
 		</>;
-	}, [column, id, invalid, table, value]); // eslint-disable-line
+	}, [column.type, id, JSON.stringify(options), invalid, table, value]); // eslint-disable-line
 }
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;

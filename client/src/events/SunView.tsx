@@ -90,7 +90,7 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
-			onLoad={() => console.log('done')} onError={() =>setState('error')}/>
+			onError={() =>setState('error')}/>
 	</div>;
 }
 
@@ -103,7 +103,7 @@ function SDO({ flare }: { flare: RowDict }) {
 	const cadence = 2;
 
 	const t1 = Math.floor((flare.start_time as Date).getTime() / 1000) - 7200;
-	const t2 = Math.floor((flare.end_time as Date).getTime() / 1000) + 7200;
+	const t2 = Math.floor((flare.end_time as Date ?? flare.start_time as Date).getTime() / 1000) + 7200;
 	const wavelen = '193';
 
 	const query = useQuery({
