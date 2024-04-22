@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import {  getFlareLink, useFlaresTable } from './sources';
+import {  getFlareLink, serializeCoords, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
@@ -165,7 +165,8 @@ function SDO({ flare }: { flare: RowDict }) {
 		ctx.lineWidth = 2;
 		ctx.font = font(10);
 		ctx.setLineDash([8, 18]);
-		ctx.strokeStyle = ctx.fillStyle = color('green');
+		ctx.strokeStyle = color('blue');
+		ctx.fillStyle = 'white';
 		const scl = size / 512;
 		const x0 = 256.5 * scl;
 		const y0 = 243.5 * scl;
@@ -174,7 +175,7 @@ function SDO({ flare }: { flare: RowDict }) {
 		ctx.arc(x0, y0, rs, 0, 2 * PI);
 		ctx.stroke();
 		ctx.beginPath();
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 1.5;
 		ctx.setLineDash([]);
 
 		if (flare.lat != null && flare.lon != null && flare.start_time instanceof Date) {
@@ -202,6 +203,9 @@ function SDO({ flare }: { flare: RowDict }) {
 		{query.isLoading && <div className='Center'>LOADING..</div>}
 		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 		{!isLoaded && query.isFetched && <div className='Center'>NO SDO DATA</div>}
+		<div style={{ position: 'absolute', zIndex: 2, color: 'white', bottom: 26, left: 4, fontSize: 12, lineHeight: 1.25 }}>
+			<b>{flare.class as any}<br/>{serializeCoords(flare as any)}</b>
+			<br/>{prettyDate(flare.start_time as any)}</div>
 		{isLoaded && <div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>}
 		<canvas ref={canvasRef} style={{ position: 'absolute', zIndex: 3 }}/>
 		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}

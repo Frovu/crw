@@ -27,6 +27,11 @@ export function assignFlareToErupt(erupt: RowDict, flare: RowDict) {
 	erupt.flr_flux = flare.flux ?? parseFlareFlux(flare.class as string);
 }
 
+export function serializeCoords({ lat, lon }: { lat: number, lon: number }) {
+	return (lat > 0 ? 'N' : 'S') + Math.abs(lat)
+		 + (lon > 0 ? 'W' : 'E') + Math.abs(lon);
+}
+
 export function parseFlareFlux(cls: string | null) {
 	if (!cls) return null;
 	const multi = (() => {
