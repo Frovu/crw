@@ -7,6 +7,8 @@ import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
 import { useQuery } from 'react-query';
 import { font } from '../plots/plotUtil';
+import { create } from 'zustand';
+import { NumberInput } from '../Utility';
 
 const MODES = ['SDO', 'FLR'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
@@ -15,9 +17,18 @@ const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
 	src: 'AIA 193' as typeof SDO_SRC[number],
+	frameTime: 40,
 	slave: false,
 };
 type Params = Partial<typeof defaultSettings>;
+
+const useSunViewState = create<{
+	time: number,
+	setTime: (a: number) => void
+}>()(set => ({
+	time: 0,
+	setTime: time => set(s => ({ ...s, time }))
+}));
 
 const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_summary/';
 const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
@@ -25,7 +36,7 @@ const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
 	const para = { ...defaultSettings, ...params };
-	const mode = para.mode;
+	const { mode, slave, frameTime } = para;
 	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src', opts: readonly string[] }) => <select
 		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
 		{opts.map(m => <option key={m} value={m}>{m}</option>)}
@@ -34,6 +45,10 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 		<div>Mode: <Select k={'mode'} opts={MODES}/></div>
 		<div>Prefer flare: <Select k={'prefer'} opts={PREFER_FLR}/></div>
 		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
+		{mode === 'SDO' && <div>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
+			min={20} max={1000} value={frameTime} onChange={val => setParams({ frameTime: val ?? 40 })}/></div>}
+		{mode === 'SDO' && <label>Time slave<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={slave} onChange={e => setParams({ slave: e.target.checked })}/></label>}
 	</div>;
 }
 
@@ -102,11 +117,11 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 function SDO({ time: refTime, start, end, lat, lon, title, src }:
 { time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
 	const { size: nodeSize, params } = useContext(LayoutContext)! as LayoutContextType<Params>;
-	const { src: source } = { ...defaultSettings, ...params };
+	const { src: source, slave, frameTime } = { ...defaultSettings, ...params };
+	const { time: masterTime, setTime } = useSunViewState();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
-	const frameTime = 40;
 	const cadence = 2;
 	const isLsc = source.startsWith('LASCO');
 
@@ -147,15 +162,28 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 	});
 
 	useEffect(() => {
-		if (!query.data) return;
+		if (!query.data || slave)
+			return;
 		const inter = setInterval(() => {
 			if (frame >= query.data.length)
 				setFrame(0);
-			if (query.data[frame].loaded)
+			if (query.data[frame].loaded) {
+				setTime(query.data[frame].timestamp);
 				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
+			}
 		}, frameTime);
 		return () => clearInterval(inter);
-	}, [frame, query.data]);
+	}, [frame, frameTime, query.data, setTime, slave]);
+
+	useEffect(() => {
+		if (!query.data || !slave)
+			return;
+		const foundIdx = query.data.findIndex(e => e.timestamp > masterTime);
+		if (foundIdx < 0)
+			setFrame(0);
+		else
+			setFrame(foundIdx);
+	}, [masterTime, query.data, slave]);
 
 	useEffect(() => {
 		const time = query.data?.[frame]?.timestamp;
