@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import {  getFlareLink, serializeCoords, useCMETable, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
@@ -10,7 +10,7 @@ import { font } from '../plots/plotUtil';
 
 const MODES = ['SDO', 'FLR'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
-const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 304', 'AIA 304 v2', 'AIA 304 v3'];
+const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'];
 const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
@@ -21,7 +21,7 @@ type Params = Partial<typeof defaultSettings>;
 
 const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_summary/';
 const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
-const SDO_URL = 'https://cdaw.gsfc.nasa.gov/images/sdo/aia_synoptic/';
+const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
 	const para = { ...defaultSettings, ...params };
@@ -32,7 +32,7 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 	</select>;
 	return <div className='Group'>
 		<div>Mode: <Select k={'mode'} opts={MODES}/></div>
-		<div>Pref: <Select k={'prefer'} opts={PREFER_FLR}/></div>
+		<div>Prefer flare: <Select k={'prefer'} opts={PREFER_FLR}/></div>
 		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
 	</div>;
 }
@@ -92,7 +92,7 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 			border: '1px solid white', padding: '1px 8px', fontSize: 14 }}>
 			<b>{flare.class as any}</b> {prettyDate(flare.start_time as any)}</div>
 		{state === 'loading' && <div className='Center'>LOADING...</div>}
-		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}src
 		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
 			onError={() =>setState('error')}/>
@@ -101,26 +101,29 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 
 function SDO({ time: refTime, start, end, lat, lon, title, src }:
 { time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
-	const { size: nodeSize } = useContext(LayoutContext)!;
+	const { size: nodeSize, params } = useContext(LayoutContext)! as LayoutContextType<Params>;
+	const { src: source } = { ...defaultSettings, ...params };
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
 	const frameTime = 40;
 	const cadence = 2;
-	const wavelen = '193';
+	const isLsc = source.startsWith('LASCO');
 
 	const query = useQuery({
 		staleTime: Infinity,
-		queryKey: ['sdo', wavelen, start, end, cadence],
+		queryKey: ['sdo', source, start, end, cadence],
 		queryFn: async () => {
 			if (!start || !end)
 				return [];
-			const res = await apiGet<{ timestamps: number[] }>('events/sdo',
-				{ from: start, to: end, wavelen });
+			const res = await apiGet<{ timestamps: number[] }>('events/sun_images',
+				{ from: start, to: end, source });
 
 			setFrame(0);
 
 			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end).map(timestamp => {
+				const dir = isLsc ? 'soho/lasco' :
+					((source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1]);
 				const time = new Date(timestamp * 1000);
 				const year = time.getUTCFullYear();
 				const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -128,8 +131,9 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 				const hour = time.getUTCHours().toString().padStart(2, '0');
 				const min = time.getUTCMinutes().toString().padStart(2, '0');
 				const sec = time.getUTCSeconds().toString().padStart(2, '0');
-				const fname = `${year}${mon}${day}_${hour}${min}${sec}_sdo_a${wavelen}.jpg`;
-				const url = SDO_URL + `${wavelen}/${year}/${mon}/${day}/${fname}`;
+				const fname = `${year}${mon}${day}_${hour}${min}${sec}_` +
+					(isLsc ? `lasc${source.at(-1)}rdf.png` : `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
+				const url = IMG_URL + `${dir}/${year}/${mon}/${day}/${fname}`;
 
 				const img = new Image();
 				img.src = url;
@@ -155,20 +159,22 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 
 	useEffect(() => {
 		const time = query.data?.[frame]?.timestamp;
-		if (!canvasRef.current || !time)
+		if (!canvasRef.current)
 			return;
 		const { PI, sin, cos } = Math;
 		const canvas = canvasRef.current;
 		canvas.width = canvas.height = size;
 		const ctx = canvasRef.current.getContext('2d')!;
+		ctx.clearRect(0, 0, size, size);
+		if (!time || isLsc)
+			return;
 		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
 		const aphDoy = 186;
 		const ascDoy = 356;
-		ctx.clearRect(0, 0, size, size);
 		ctx.lineWidth = 1.5;
 		ctx.font = font(10);
 		ctx.setLineDash([8, 18]);
-		ctx.strokeStyle = 'black';
+		ctx.strokeStyle = color('green');
 		ctx.fillStyle = 'white';
 		const scl = size / 512;
 		const x0 = 256.5 * scl;
@@ -197,18 +203,20 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 		}
 		ctx.stroke();
 
-	}, [frame, size, query.data, lat, lon, refTime]);
+	}, [frame, size, query.data, lat, lon, refTime, isLsc]);
 
 	const isLoaded = query.data && query.data.length > 0;
 
 	return <div>
 		{query.isLoading && <div className='Center'>LOADING..</div>}
 		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
-		{!isLoaded && query.isFetched && <div className='Center'>NO SDO DATA</div>}
-		{isLoaded && <div style={{ position: 'absolute', zIndex: 2, color: 'white', top: size - size * 18 / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
+		{!isLoaded && query.isSuccess && <div className='Center'>NO SDO DATA</div>}
+		{!isLsc && isLoaded && <div style={{ position: 'absolute', zIndex: 2, color: 'white',
+			top: size - size * 18 / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
 			<b>{src ?? ''}<br/>{title ?? ''}<br/>{serializeCoords({ lat, lon })}</b>
 			<br/>{prettyDate(refTime)}</div>}
-		{isLoaded && <div style={{ position: 'absolute', color: 'white', top: size - 18, right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
+		{!isLsc && isLoaded && <div style={{ position: 'absolute', color: 'white',
+			top: size - 18, right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
 		<canvas ref={canvasRef} style={{ position: 'absolute', zIndex: 3 }}/>
 		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
@@ -268,7 +276,7 @@ export default function SunView() {
 			lon: flare?.lon as number,
 			time: start,
 			start: start - 3600 * 2,
-			end: end + 3600 * 2,
+			end: end + 3600 * 3,
 			title: flare.class as string,
 			src: flare.src as string
 		}}/>;

@@ -13,7 +13,7 @@ import events.text_transforms as tts
 from events import samples
 from events import query
 from routers.utils import route_shielded, require_role, msg
-from data import sdo
+from data import sun_images
 
 from database import get_coverage
 from utility import OperationCache
@@ -89,15 +89,15 @@ def list_events():
 def events_tables_info():
 	return query.render_table_info(session.get('uid'))
 
-@bp.route('/sdo', methods=['GET'])
+@bp.route('/sun_images', methods=['GET'])
 @route_shielded
 def _list_sdo():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
-	wavelen = request.args.get('wavelen', '193')
+	source = request.args.get('source', 'AIA 193')
 	if t_to - t_from > 86400 * 8:
 		raise ValueError('Interval too large')
-	lst = sdo.fetch_list(t_from, t_to, wavelen)
+	lst = sun_images.fetch_list(t_from, t_to, source)
 	return { 'timestamps': lst }
 
 @bp.route('/createSource', methods=['POST'])
