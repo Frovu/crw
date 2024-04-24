@@ -111,7 +111,8 @@ export default function EruptionsTable() {
 					let value = valueToString(row[cidx]);
 					if (['XF peak', 'XF end'].includes(column.name))
 						value = value.split(' ')[1];
-					const width = ['XF peak', 'XF end'].includes(column.name) ? 6 : column.name.endsWith('src') ? 6 : column.width;
+					const width = ['XF peak', 'XF end'].includes(column.name) ? 6 : 
+						['lat', 'lon'].includes(column.name) ? 4.5 : column.width;
 					return <td key={cid} title={`${column.fullName} = ${value}`}
 						onClick={e => onClick(idx, cidx)}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0] } as any })}

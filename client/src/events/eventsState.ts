@@ -13,8 +13,7 @@ export const flaresLinkId = {
 export const otherLinkId = {
 	'R&C': 'rc_icme_time',
 	LASCO: 'lasco_cme_time',
-	DKI: 'donki_cme_id',
-	dMN: 'solardemon_dim_id'
+	DKI: 'donki_cme_id'
 } as const;
 
 export type Sort = { column: string, direction: 1 | -1 };

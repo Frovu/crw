@@ -4,6 +4,13 @@ import { flaresLinkId, setRawData, useEventsState, type RowDict, type TableName 
 
 export const flrColumnOrder = ['class', 'lat', 'lon', 'start', 'AR', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
+export const cmeColumnOrder = ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width'];
+export const cmeSources = ['LSC', 'DKI'] as const;
+
+export const cmeLinks = {
+	LSC: ['lasco_cme_time', 'time'],
+	DKI: ['donki_cme_id', 'id']
+};
 
 export function getFlareLink(src: any) {
 	const lnk = flaresLinkId[src as keyof typeof flaresLinkId];
@@ -45,6 +52,43 @@ export function parseFlareFlux(cls: string | null) {
 	if (!multi) return null;
 	const val = multi * parseFloat(cls.slice(1));
 	return isNaN(val) ? null : Math.round(val * 10) / 10;
+}
+
+export function useCMETable() {
+	return useQuery({
+		queryKey: ['CMEs'],
+		staleTime: Infinity,
+		keepPreviousData: true,
+		queryFn: async () => {
+			const results = await Promise.all([
+				fetchTable('lasco_cmes'),
+				fetchTable('donki_cmes')
+			]);
+			const sCols = results.map(q => q.columns);
+			const sData = results.map(q => q.data);
+			const pairs = Object.values(sCols).flatMap(cols => cols.map(c => [c.id, c]));
+			const columns = [...new Map([...cmeColumnOrder.map(cn => [cn, null]) as any, ...pairs]).values()] as ColumnDef[];
+			const indexes = cmeSources.map((src, srci) =>
+				columns.map(c => sCols[srci].findIndex(sc => sc.id === c.id)));
+			const data = sData.flatMap((rows, srci) => rows.map(row =>
+				[cmeSources[srci], ...indexes[srci].map(idx => idx < 0 ? null : row[idx])]));
+			const tIdx = columns.findIndex(c => c.id === 'time') + 1;
+			data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
+	
+			for (const col of columns) {
+				if (['lat', 'lon'].includes(col.name))
+					col.width = 4.5;
+				if (['type', 'level'].includes(col.name))
+					col.width = 3;
+			}
+	
+			return { data, columns: [
+				{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef,
+				...columns
+			] };
+
+		}
+	}).data ?? { data: [], columns: [] };
 }
 
 export function useFlaresTable() {

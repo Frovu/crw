@@ -10,9 +10,11 @@ import { font } from '../plots/plotUtil';
 
 const MODES = ['SDO', 'FLR'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
+const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 304', 'AIA 304 v2', 'AIA 304 v3'];
 const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
-	prefer: 'ANY' as typeof PREFER_FLR[number]
+	prefer: 'ANY' as typeof PREFER_FLR[number],
+	src: 'AIA 193' as typeof SDO_SRC[number]
 };
 type Params = Partial<typeof defaultSettings>;
 
@@ -21,15 +23,17 @@ const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?scien
 const SDO_URL = 'https://cdaw.gsfc.nasa.gov/images/sdo/aia_synoptic/';
 
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
-	const { mode, prefer } = { ...defaultSettings, ...params };
-	return <>
-		<div>Mode: <select className='Borderless' value={mode} onChange={e => setParams({ mode: e.target.value as any })}>
-			{MODES.map(m => <option key={m} value={m}>{m}</option>)}
-		</select></div>
-		{<div>Pref: <select className='Borderless' value={prefer} onChange={e => setParams({ prefer: e.target.value as any })}>
-			{PREFER_FLR.map(m => <option key={m} value={m}>{m}</option>)}
-		</select></div>}
-	</>;
+	const para = { ...defaultSettings, ...params };
+	const mode = para.mode;
+	const Select = ({ k , opts }: { k: keyof Params, opts: readonly string[] }) => <select
+		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
+		{opts.map(m => <option key={m} value={m}>{m}</option>)}
+	</select>;
+	return <div className='Group'>
+		<div>Mode: <Select k={'mode'} opts={MODES}/></div>
+		<div>Pref: <Select k={'prefer'} opts={PREFER_FLR}/></div>
+		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
+	</div>;
 }
 
 function DemonFlareFilm({ id }: { id: number }) {
@@ -162,10 +166,10 @@ function SDO({ flare }: { flare: RowDict }) {
 		const aphDoy = 186;
 		const ascDoy = 356;
 		ctx.clearRect(0, 0, size, size);
-		ctx.lineWidth = 2;
+		ctx.lineWidth = 1.5;
 		ctx.font = font(10);
 		ctx.setLineDash([8, 18]);
-		ctx.strokeStyle = color('blue');
+		ctx.strokeStyle = 'black';
 		ctx.fillStyle = 'white';
 		const scl = size / 512;
 		const x0 = 256.5 * scl;
@@ -175,7 +179,6 @@ function SDO({ flare }: { flare: RowDict }) {
 		ctx.arc(x0, y0, rs, 0, 2 * PI);
 		ctx.stroke();
 		ctx.beginPath();
-		ctx.lineWidth = 1.5;
 		ctx.setLineDash([]);
 
 		if (flare.lat != null && flare.lon != null && flare.start_time instanceof Date) {

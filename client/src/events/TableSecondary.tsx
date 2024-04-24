@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import FlaresTable, { FlaresContextMenu } from './TableFlares';
 import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
+import CMETable, { CMEContextMenu } from './TableCME';
 
 const TABLES = ['Eruptions', 'Flares', 'CMEs', 'ICMEs', 'Dimmings'] as const;
 
@@ -21,6 +22,7 @@ export function SecTableContextMenu({ params, setParams }: ContextMenuProps<Part
 		<div className='separator'/>
 		{secTable === 'Eruptions' && <EruptionsContextMenu/>}
 		{secTable === 'Flares' && <FlaresContextMenu/>}
+		{secTable === 'CMEs' && <CMEContextMenu/>}
 	</>;
 }
 
@@ -32,6 +34,8 @@ export default function SecondaryTable() {
 		return <FlaresTable/>;
 	if (secTable === 'Eruptions')
 		return <EruptionsTable/>;
+	if (secTable === 'CMEs')
+		return <CMETable/>;
 	
 	return null;
 }

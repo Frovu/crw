@@ -18,12 +18,12 @@ COLS = [ # ORDERED !!!
 	Col(TABLE, 'angular_width', pretty_name='width', description='Angular Width, deg'),
 	Col(TABLE, 'speed', pretty_name='speed linear', description='Linear Speed, km/s'),
 	Col(TABLE, 'speed_2', pretty_name='speed 2', description='2nd-order Speed at final height, km/s'),
-	Col(TABLE, 'speed_2_20rs', pretty_name='speed 2 20rs', description='2nd-order Speed at 20 Rs, km/s'),
+	Col(TABLE, 'speed_2_20rs', pretty_name='speed 2 20r', description='2nd-order Speed at 20 Rs, km/s'),
 	Col(TABLE, 'acceleration', pretty_name='accel', description='Acceleration, m/s^2'),
 	Col(TABLE, 'mass', description='Mass, gram'),
-	Col(TABLE, 'kinetic_energy', description='Kinetic Energy, erg'),
+	Col(TABLE, 'kinetic_energy', pretty_name='E', description='Kinetic Energy, erg'),
 	Col(TABLE, 'measurement_angle', pretty_name='MPA', description='Measurement Position Angle, deg'),
-	Col(TABLE, 'remarks', data_type='text'),
+	Col(TABLE, 'note', data_type='text'),
 	Col(TABLE, 'space_speed', pretty_name='space speed'),
 	Col(TABLE, 'lat'),
 	Col(TABLE, 'lon'),
@@ -31,7 +31,7 @@ COLS = [ # ORDERED !!!
 	Col(TABLE, 'flare_onset', data_type='text'),
 ]
 TABLE_COLS = ['time', 'central_angle', 'angular_width', 'speed', 'speed_2', 'speed_2_20rs',
-	'acceleration', 'mass', 'kinetic_energy', 'measurement_angle', 'remarks']
+	'acceleration', 'mass', 'kinetic_energy', 'measurement_angle', 'note']
 HALO_COLS = ['time', 'speed', 'space_speed', 'acceleration', 'measurement_angle',
 	'flare_class', 'flare_onset', 'lat', 'lon']
 assert all(c.name in (TABLE_COLS + HALO_COLS) for c in COLS)
@@ -66,7 +66,8 @@ def scrape_halo():
 			lat, lon = None, None
 		else:
 			lat, lon = parse_coords(loc)
-		res = [time, *numbers, *vals[7:9], lat, lon]
+		strs = [None if '--' in v else v for v in vals[7:9]]
+		res = [time, *numbers, *strs, lat, lon]
 		data.append(res)
 
 	log.info('Upserting [%s] LASCO HALO CMEs', len(data))

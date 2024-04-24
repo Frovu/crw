@@ -41,6 +41,8 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 					queryClient.invalidateQueries(entity);
 					if (entity.includes('flares'))
 						queryClient.invalidateQueries('flares');
+					if (entity.includes('cme'))
+						queryClient.invalidateQueries('CMEs');
 					logSuccess('Updated ' + entShort);
 				} else {
 					logError('Failed to update: ' + state.error);
