@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import {  getFlareLink, serializeCoords, useFlaresTable } from './sources';
-import { rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
+import {  getFlareLink, serializeCoords, useCMETable, useFlaresTable } from './sources';
+import { rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
@@ -14,7 +14,8 @@ const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 304', '
 const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
-	src: 'AIA 193' as typeof SDO_SRC[number]
+	src: 'AIA 193' as typeof SDO_SRC[number],
+	slave: false,
 };
 type Params = Partial<typeof defaultSettings>;
 
@@ -25,7 +26,7 @@ const SDO_URL = 'https://cdaw.gsfc.nasa.gov/images/sdo/aia_synoptic/';
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
 	const para = { ...defaultSettings, ...params };
 	const mode = para.mode;
-	const Select = ({ k , opts }: { k: keyof Params, opts: readonly string[] }) => <select
+	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src', opts: readonly string[] }) => <select
 		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
 		{opts.map(m => <option key={m} value={m}>{m}</option>)}
 	</select>;
@@ -98,30 +99,28 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 	</div>;
 }
 
-function SDO({ flare }: { flare: RowDict }) {
+function SDO({ time: refTime, start, end, lat, lon, title, src }:
+{ time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
 	const { size: nodeSize } = useContext(LayoutContext)!;
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
 	const frameTime = 40;
 	const cadence = 2;
-
-	const t1 = Math.floor((flare.start_time as Date).getTime() / 1000) - 7200;
-	const t2 = Math.floor((flare.end_time as Date ?? flare.start_time as Date).getTime() / 1000) + 7200;
 	const wavelen = '193';
 
 	const query = useQuery({
 		staleTime: Infinity,
-		queryKey: ['sdo', wavelen, t1, t2, cadence],
+		queryKey: ['sdo', wavelen, start, end, cadence],
 		queryFn: async () => {
-			if (!t1 || !t2)
+			if (!start || !end)
 				return [];
 			const res = await apiGet<{ timestamps: number[] }>('events/sdo',
-				{ from: t1, to: t2, wavelen });
+				{ from: start, to: end, wavelen });
 
 			setFrame(0);
 
-			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= t1 && tst <= t2).map(timestamp => {
+			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end).map(timestamp => {
 				const time = new Date(timestamp * 1000);
 				const year = time.getUTCFullYear();
 				const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -179,17 +178,17 @@ function SDO({ flare }: { flare: RowDict }) {
 		ctx.arc(x0, y0, rs, 0, 2 * PI);
 		ctx.stroke();
 		ctx.beginPath();
-		ctx.setLineDash([]);
+		if (!lon || Math.abs(lon) < 90)
+			ctx.setLineDash([]);
 
-		if (flare.lat != null && flare.lon != null && flare.start_time instanceof Date) {
-			const refTime = flare.start_time.getTime() / 1000;
+		if (lat != null && lon != null) {
 			const sunRotation = 360 / 25.38 / 86400; // kinda
 			const rot = (time - refTime) * sunRotation;
 			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
-			const lat = (flare.lat as number) + decl;
-			const lon = (flare.lon as number) + rot;
-			const x = x0 + rs * sin(lon / 180 * PI) * cos(lat / 180 * PI);
-			const y = y0 + rs * -sin(lat / 180 * PI);
+			const flat = lat + decl;
+			const flon = lon + rot;
+			const x = x0 + rs * sin(flon / 180 * PI) * cos(flat / 180 * PI);
+			const y = y0 + rs * -sin(flat / 180 * PI);
 			ctx.arc(x, y, 20, 0, 2 * PI);
 			ctx.fillText(`DOY=${doy.toFixed(1)}`, 4, 14);
 			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
@@ -198,7 +197,7 @@ function SDO({ flare }: { flare: RowDict }) {
 		}
 		ctx.stroke();
 
-	}, [frame, flare, size, query.data]);
+	}, [frame, size, query.data, lat, lon, refTime]);
 
 	const isLoaded = query.data && query.data.length > 0;
 
@@ -206,10 +205,10 @@ function SDO({ flare }: { flare: RowDict }) {
 		{query.isLoading && <div className='Center'>LOADING..</div>}
 		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
 		{!isLoaded && query.isFetched && <div className='Center'>NO SDO DATA</div>}
-		<div style={{ position: 'absolute', zIndex: 2, color: 'white', bottom: 26, left: 4, fontSize: 12, lineHeight: 1.25 }}>
-			<b>{flare.class as any}<br/>{serializeCoords(flare as any)}</b>
-			<br/>{prettyDate(flare.start_time as any)}</div>
-		{isLoaded && <div style={{ position: 'absolute', color: 'white', bottom: 2, right: 8, fontSize: 12 }}>{frame} / {query.data.length}</div>}
+		{isLoaded && <div style={{ position: 'absolute', zIndex: 2, color: 'white', top: size - size * 18 / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
+			<b>{src ?? ''}<br/>{title ?? ''}<br/>{serializeCoords({ lat, lon })}</b>
+			<br/>{prettyDate(refTime)}</div>}
+		{isLoaded && <div style={{ position: 'absolute', color: 'white', top: size - 18, right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
 		<canvas ref={canvasRef} style={{ position: 'absolute', zIndex: 3 }}/>
 		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
@@ -218,34 +217,74 @@ function SDO({ flare }: { flare: RowDict }) {
 export default function SunView() {
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { mode, prefer } = { ...defaultSettings, ...layoutParams };
-	const { data, columns } = useFlaresTable();
+	const flares = useFlaresTable();
+	const cmes = useCMETable();
 	const eruptions = useTable('sources_erupt');
 	const { cursor } = useEventsState();
 	const sources = useSources();
+	const { start: feidTime } = useFeidCursor();
 
 	const flare = (() => {
-		if (cursor?.entity === 'flares') {
-			const atCurs = rowAsDict(data[cursor.row] as any, columns);
-			return (prefer === 'ANY' || atCurs.src === prefer) ? atCurs : null;
-		}
+		if (cursor?.entity === 'flares')
+			return rowAsDict(flares.data[cursor.row], flares.columns);
 		const erupt = cursor?.entity === 'sources_erupt'
-			? rowAsDict(eruptions.data[cursor.row] as any, eruptions.columns)
+			? rowAsDict(eruptions.data[cursor.row], eruptions.columns)
 			: sources.find(s => s.erupt)?.erupt;
 		if (!erupt || !erupt.flr_source) return null;
 		const src = prefer === 'ANY' ? erupt.flr_source : prefer;
 		const { linkColId, idColId } = getFlareLink(src);
-		const idColIdx = columns.findIndex(c => c.id === idColId);
-		const found = data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
-		return found ? rowAsDict(found as any, columns) : null;
+		const idColIdx = flares.columns.findIndex(c => c.id === idColId);
+		const found = flares.data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
+		return found ? rowAsDict(found, flares.columns) : null;
 	})();
 
-	if (mode === 'SDO' && flare)
-		return <SDO flare={flare}/>;
-	if (!flare)
-		return <div className='Center'>NO FLARE DATA</div>;
-	if (flare.src === 'dMN' && flare.id)
-		return <DemonFlareFilm id={flare.id as number}/>;
-	if (flare.src === 'SFT')
-		return <SFTFLare flare={flare}/>;
-	return null;
+	if (mode === 'FLR') {
+		if (!flare)
+			return <div className='Center'>NO FLARE DATA</div>;
+		if (flare.src === 'dMN' && flare.id)
+			return <DemonFlareFilm id={flare.id as number}/>;
+		if (flare.src === 'SFT')
+			return <SFTFLare flare={flare}/>;
+		return null;
+	}
+	if (cursor?.entity === 'CMEs') {
+		const cme = rowAsDict(cmes.data[cursor.row], cmes.columns);
+		const time = (cme.time as Date).getTime() / 1000;
+		return <SDO {...{
+			lat: cme.lat as number,
+			lon: cme.lon as number,
+			time,
+			start: time - 3600 * 2,
+			end: time + 3600 * 4,
+			title: 'CME',
+			src: cme.src as string
+		}}/>;
+	}
+	if (flare) {
+		const start = (flare.start_time as Date).getTime() / 1000;
+		const end = (flare.start_time as Date ?? flare.start_time as Date).getTime() / 1000;
+		return <SDO {...{
+			lat: flare?.lat as number,
+			lon: flare?.lon as number,
+			time: start,
+			start: start - 3600 * 2,
+			end: end + 3600 * 2,
+			title: flare.class as string,
+			src: flare.src as string
+		}}/>;
+	}
+
+	if (!feidTime)
+		return null;
+	const ftime = feidTime.getTime() / 1000;
+	return <SDO {...{
+		lat: null,
+		lon: null,
+		time:  ftime - 86400 * 2,
+		start: ftime - 86400 * 3,
+		end:   ftime - 86400 * 4,
+		title: '',
+		src: ''
+	}}/>;
+
 }

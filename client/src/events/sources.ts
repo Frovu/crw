@@ -4,7 +4,7 @@ import { flaresLinkId, setRawData, useEventsState, type RowDict, type TableName 
 
 export const flrColumnOrder = ['class', 'lat', 'lon', 'start', 'AR', 'peak', 'end'];
 export const flrSources = ['SFT', 'DKI', 'dMN'] as const;
-export const cmeColumnOrder = ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width'];
+export const cmeColumnOrder = ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'];
 export const cmeSources = ['LSC', 'DKI'] as const;
 
 export const cmeLinks = {
@@ -34,9 +34,9 @@ export function assignFlareToErupt(erupt: RowDict, flare: RowDict) {
 	erupt.flr_flux = flare.flux ?? parseFlareFlux(flare.class as string);
 }
 
-export function serializeCoords({ lat, lon }: { lat: number, lon: number }) {
-	return (lat > 0 ? 'N' : 'S') + Math.abs(lat)
-		 + (lon > 0 ? 'W' : 'E') + Math.abs(lon);
+export function serializeCoords({ lat, lon }: { lat: number | null, lon: number | null }) {
+	return (lat != null ? (lat > 0 ? 'N' : 'S') + Math.abs(lat) : '')
+		 + (lon != null ? (lon > 0 ? 'W' : 'E') + Math.abs(lon) : '');
 }
 
 export function parseFlareFlux(cls: string | null) {

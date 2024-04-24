@@ -9,7 +9,7 @@ const ENTS = {
 	donki_flares: ['DONKI FLR', false],
 	solarsoft_flares: ['SSOFT FLR', false],
 	solardemon_flares: ['DEMON FLR', true],
-	solardemon_dimmings: ['DEMON DIM', true],
+	// solardemon_dimmings: ['DEMON DIM', true],
 	r_c_icmes: ['R&C ICME', true],
 } as const;
 
@@ -61,7 +61,7 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 	const isDone = data?.status === 'done';
 	const error = data?.status === 'error' ? data.error : mutError?.toString();
 
-	useEventListener('fetchAllSources', () => !isWorking && mutate());
+	useEventListener('fetchAllSources', () => !isWorking && entity !== 'solardemon_flares' && mutate());
 
 	const border = { border: '1px solid ' + color('border') };
 	const style = (d: number | null) => {
