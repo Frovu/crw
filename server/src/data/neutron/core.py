@@ -74,7 +74,7 @@ def _obtain_similar(interval, stations, source):
 	obtain_fn, src_res = { 'nmdb': (obtain_from_nmdb, 60), 'archive': (obtain_from_archive, 3600) }[source]
 	src_data = obtain_fn(interval, stations)
 	if not src_data:
-		log.warning(f'Empty obtain ({source})! {interval[0]}:{interval[1]}')
+		log.warning(f'Empty obtain ({source}) {stations} {interval[0]}:{interval[1]}')
 		return # FIXME: handle smh
 	
 	src_data = np.array(src_data)
@@ -120,7 +120,7 @@ def update_result_table(conn, station, dt_interval):
 
 def get_stations(group_partial=False, ids=False):
 	# TODO: another criteria
-	return [(s.id if ids else s) for s in all_stations if not group_partial or s.prefer_nmdb]
+	return [(s.id if ids else s) for s in all_stations]
 
 def resolve_station(name: str) -> Station:
 	return next((s for s in all_stations if s.id.lower().startswith(name.lower())), None)
@@ -136,7 +136,6 @@ def obtain_many(interval, stations: list[Station]):
 		_obtain_similar(interval, nmdb_stations, 'nmdb')
 	
 	other_stations = [s.id for s in stations if s.id not in nmdb_stations]
-	if not other_stations: return
 	for s in other_stations:
 		_obtain_similar(interval, [s], 'archive')
 
@@ -151,7 +150,6 @@ def fetch(interval: [int, int], stations: list[Station]):
 		floor(max(interval[0], datetime(1957, 1, 1).timestamp()) / HOUR) * HOUR,
 		 ceil(min(interval[1], datetime.now().timestamp() - 2*HOUR) / HOUR) * HOUR
 	)
-
 	group_partial = True # TODO: actually distinguish full and partial integrity
 	global integrity_partial, integrity_full
 
@@ -167,8 +165,10 @@ def fetch(interval: [int, int], stations: list[Station]):
 			obtain_stations = get_stations(group_partial) # FIXME: ?
 			obtain_many(req, obtain_stations)
 			res_coverage = [min(interval[0], ips or interval[0]), max(ipe or interval[1], interval[1])]
-			if group_partial: integrity_partial = res_coverage
-			else: integrity_full = res_coverage
+			if group_partial:
+				integrity_partial = res_coverage
+			else:
+				integrity_full = res_coverage
 			_save_integrity_state()
 	
 	return select(interval, [s.id for s in stations], True)
