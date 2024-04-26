@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { LayoutContext } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
@@ -36,7 +36,7 @@ function switchMainFlare(erupt: RowDict, flare: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-export function EruptionsContextMenu() {
+export function EruptionsContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
 

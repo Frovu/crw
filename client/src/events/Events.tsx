@@ -25,9 +25,11 @@ import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory'
 import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
-import SecondaryTable, { SecTableContextMenu } from './TableSecondary';
 import { useEventsState, useTable } from './eventsState';
 import SunView, { SunViewContextMenu } from './SunView';
+import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
+import FlaresTable, { FlaresContextMenu } from './TableFlares';
+import CMETable, { CMEContextMenu } from './TableCME';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -47,7 +49,7 @@ export function EventsLayoutContent() {
 	}, [appState, plotContext, type, settings, plotParams]);
 
 	return <div style={{ height: '100%', userSelect: 'none', overflow: 'clip',
-		border: ['FEID Table', 'SecondaryTable'].includes(type as any) ? 'unset' : '1px var(--color-border) solid' }}>
+		border: type?.includes('Table') ? 'unset' : '1px var(--color-border) solid' }}>
 		{type === 'FEID Table' && <MainTablePanel/>}
 		{type === 'ExportControls' && <ExportControls/>}
 		{type === 'ExportPreview' && <ExportPreview/>}
@@ -55,7 +57,9 @@ export function EventsLayoutContent() {
 		{type === 'InsertControls' && <InsertControls/>}
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Sun View' && <SunView/>}
-		{type === 'SecondaryTable' && <SecondaryTable/>}
+		{type === 'Erupt Src Table' && <EruptionsTable/>}
+		{type === 'Flares Table' && <FlaresTable/>}
+		{type === 'CME Table' && <CMETable/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}
@@ -186,13 +190,15 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const Checkbox = ({ text, k }: { text: string, k: keyof (CommonPlotParams & TableParams) }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
-			
 	return <>
 		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
-		{params.type === 'SecondaryTable' && <SecTableContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Erupt Src Table' && <EruptionsContextMenu {...{ params, setParams }}/>}
+		{params.type === 'Flares Table' && <FlaresContextMenu {...{ params, setParams }}/>}
+		{params.type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
+		{/* {params.type === 'ICME Table' && <CMEContextMenu {...{ params, setParams }}/>} */}
 		{params.type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{params.type === 'FEID Table' && <>
 			{averages && <>

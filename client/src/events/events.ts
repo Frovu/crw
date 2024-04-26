@@ -85,7 +85,8 @@ export const defaultPlotParams: CommonPlotParams = {
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 'SecondaryTable', 'Empty' ] as const;
+	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
+	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;

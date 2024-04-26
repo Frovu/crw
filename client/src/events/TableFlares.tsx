@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { LayoutContext } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
@@ -86,7 +86,7 @@ async function linkFlare(flare: RowDict, feidId: number) {
 	
 }
 
-export function FlaresContextMenu() {
+export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
