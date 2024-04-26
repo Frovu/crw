@@ -17,7 +17,7 @@ const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
 	src: 'AIA 193' as typeof SDO_SRC[number],
-	frameTime: 40,
+	frameTime: 50,
 	slave: false,
 };
 type Params = Partial<typeof defaultSettings>;

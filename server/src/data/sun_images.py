@@ -22,7 +22,7 @@ def scrape_day_list(tstmp, src):
 		raise ValueError('HTTP '+res.status_code)
 	result = []
 	for match in jpg_re.findall(res.text):
-		if lasco and src[-1] not in match[1]:
+		if lasco and 'lasc'+src[-1] not in match[1]:
 			continue
 		adt = datetime.strptime(match[0], '%Y%m%d_%H%M%S')
 		ts = adt.replace(tzinfo=timezone.utc).timestamp()
