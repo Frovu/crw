@@ -304,7 +304,7 @@ export default function TableView({ size, averages, entity }: {
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 					const value = valueToString(row[cidx+1]);
-					return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id=${row[0]}` : `${column.fullName} = ${value}`}
+					return <td key={column.id} title={cidx === 0 && column.name === 'time' ? `id = ${row[0]}` : `${column.fullName} = ${value}`}
 						onClick={e => {
 							if (setEndAt || setEndAt || modifyId)
 								return;

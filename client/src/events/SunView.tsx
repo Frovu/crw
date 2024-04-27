@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
-import {  getFlareLink, serializeCoords, useCMETable, useFlaresTable } from './sources';
+import { getSourceLink, serializeCoords, useCMETable, useFlaresTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
@@ -166,7 +166,7 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 			return;
 		const inter = setInterval(() => {
 			if (frame >= query.data.length)
-				setFrame(0);
+				return setFrame(0);
 			if (query.data[frame].loaded) {
 				setTime(query.data[frame].timestamp);
 				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
@@ -268,7 +268,7 @@ export default function SunView() {
 			: sources.find(s => s.erupt)?.erupt;
 		if (!erupt || !erupt.flr_source) return null;
 		const src = prefer === 'ANY' ? erupt.flr_source : prefer;
-		const { linkColId, idColId } = getFlareLink(src);
+		const [linkColId, idColId] = getSourceLink('flare', src);
 		const idColIdx = flares.columns.findIndex(c => c.id === idColId);
 		const found = flares.data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
 		return found ? rowAsDict(found, flares.columns) : null;
@@ -291,7 +291,7 @@ export default function SunView() {
 			lon: cme.lon as number,
 			time,
 			start: time - 3600 * 2,
-			end: time + 3600 * 4,
+			end: time + 3600 * 6,
 			title: 'CME',
 			src: cme.src as string
 		}}/>;

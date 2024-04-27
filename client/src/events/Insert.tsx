@@ -2,8 +2,8 @@ import { type MouseEvent } from 'react';
 import { color } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, flaresLinkId, otherLinkId } from './eventsState';
-import { useTableQuery } from './sources';
+import { useFeidCursor, useEventsState, useSources } from './eventsState';
+import { getSourceLink, useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
@@ -120,8 +120,8 @@ export default function InsertControls() {
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 1, fontSize: 14 }}>
 			{sources.filter(s => s.erupt).map((src, i) => {
 				const isActive = src.source.id === modifySource;
-				const clr = (what: 'FLR' | 'CME', which: string) => {
-					const isSet = src.erupt?.[(what === 'FLR' ? flaresLinkId : otherLinkId as any)[which]];
+				const clr = (what: 'flare' | 'cme' | 'icme', which: string) => {
+					const isSet = src.erupt?.[getSourceLink(what, which)[0]];
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
 				return <div key={src.source.id as number}
@@ -131,19 +131,18 @@ export default function InsertControls() {
 						<tr>
 							<td width={84}>ERUPT #{i+1}</td>
 							<td width={40} style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}>FLR:</td>
-							<td width={36} style={clr('FLR', 'SFT')}>SFT</td>
-							<td width={36} style={clr('FLR', 'DKI')}>DKI</td>
-							<td width={36} style={clr('FLR', 'NOA')}>NOA</td>
-							<td width={36} style={clr('FLR', 'dMN')}>dMN</td>
-							<td width={36} style={clr('CME', 'dMN')} rowSpan={2}>dMN DIM</td>
+							<td width={36} style={clr('flare', 'SFT')}>SFT</td>
+							<td width={36} style={clr('flare', 'DKI')}>DKI</td>
+							<td width={36} style={clr('flare', 'NOA')}>NOA</td>
+							<td width={36} style={clr('flare', 'dMN')}>dMN</td>
 						</tr>
 						<tr>
 							<td height={10} style={{ color: color(src.source.influence == null ? 'red' : 'text') }}>Infl: {src.source.influence as any ?? 'N/A'}</td>
 
 							<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
-							<td style={clr('CME', 'DKI')}>DKI</td>
-							<td style={clr('CME', 'LASCO')} colSpan={2}>LASCO</td>
-							<td style={clr('CME', 'R&C')}>R&C</td>
+							<td style={clr('cme', 'DKI')}>DKI</td>
+							<td style={clr('cme', 'LASCO')} colSpan={2}>LASCO</td>
+							<td style={clr('icme', 'R&C')}>R&C</td>
 						</tr>
 					</tbody></table>
 				</div>;})}

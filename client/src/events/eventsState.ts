@@ -3,24 +3,27 @@ import { immer } from 'zustand/middleware/immer';
 import { equalValues, type ChangeValue } from './events';
 import type { ColumnDef, DataRow, Value } from './columns';
 
-export const flaresLinkId = {
-	SFT: 'solarsoft_flr_start',
-	NOA: 'noaa_flare_start',
-	DKI: 'donki_flr_id',
-	dMN: 'solardemon_flr_id'
+export const flaresLinks = {
+	SFT: ['solarsoft_flr_start', 'start_time'],
+	NOA: ['noaa_flare_start', 'start_time'],
+	DKI: ['donki_flr_id', 'id'],
+	dMN: ['solardemon_flr_id', 'id']
 } as const;
 
-export const otherLinkId = {
-	'R&C': 'rc_icme_time',
-	LASCO: 'lasco_cme_time',
-	DKI: 'donki_cme_id'
+export const cmeLinks = {
+	LSC: ['lasco_cme_time', 'time'],
+	DKI: ['donki_cme_id', 'id']
+} as const;
+
+export const icmeLinks = {
+	'R&C': 'rc_icme_time'
 } as const;
 
 export type Sort = { column: string, direction: 1 | -1 };
 export type Cursor = { row: number, column: number, entity: string, editing?: boolean, id: number };
 const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
-const linkIds = Object.values(flaresLinkId).concat(Object.values(otherLinkId) as any) as string[];
+const linkIds = [flaresLinks, cmeLinks, icmeLinks].flatMap(lnk => Object.values(lnk).map(l => l[0])) as string[];
 
 export const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
 

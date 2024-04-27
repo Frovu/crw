@@ -3,8 +3,8 @@ import { LayoutContext, type ContextMenuProps } from '../layout';
 import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { deleteEvent, flaresLinkId, makeSourceChanges, rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
-import { assignFlareToErupt, getFlareLink, parseFlareFlux, useFlaresTable, useTableQuery } from './sources';
+import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
+import { assignFlareToErupt, flrSources, getSourceLink, parseFlareFlux, useFlaresTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
 
@@ -68,7 +68,7 @@ export default function EruptionsTable() {
 	return <TableWithCursor {...{
 		data, columns, size, viewSize, entity: ENT,
 		allowEdit: true,
-		thead: <tr>{columns.map((col) =>
+		thead: <tr>{columns.slice(1).map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
 				<div style={{ height: 26 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
 			</td>)}
@@ -78,14 +78,15 @@ export default function EruptionsTable() {
 			const erupt = rowAsDict(row, columns);
 			// FIXME: do this for all eruptions at load
 			const flare = erupt.flr_source === 'MNL' ? null : (() => {
-				const { linkColId, idColId } = getFlareLink(erupt.flr_source);
+				const [linkColId, idColId] = getSourceLink('flare', erupt.flr_source);
 				const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 				const flr = flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
 				return flr ? rowAsDict(flr, flares.columns) : null;
 			})();
 			return <tr key={row[0]}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
-				{columns.map((column, cidx) => {
+				{columns.slice(1).map((column, scidx) => {
+					const cidx = scidx + 1;
 					const cid = column.id;
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 					const isLinkedModified = flare_columns[cid] ? (() => {
@@ -98,10 +99,10 @@ export default function EruptionsTable() {
 							: flare[flare_columns[cid]];
 						return !equalValues(val, row[cidx]);
 					})() : null;
-					const flrOpts = (curs && cid === 'flr_source') ? Object.keys(flaresLinkId).map(flrSrc => {
+					const flrOpts = (curs && cid === 'flr_source') ? flrSources.map(flrSrc => {
 						if (flrSrc === erupt.flr_source)
 							return flare;
-						const { linkColId, idColId } = getFlareLink(flrSrc);
+						const [linkColId, idColId] = getSourceLink('flare', flrSrc);
 						const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 						const flr = erupt[linkColId] && flares.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
@@ -113,7 +114,7 @@ export default function EruptionsTable() {
 						value = value.split(' ')[1];
 					const width = ['XF peak', 'XF end'].includes(column.name) ? 6 : 
 						['lat', 'lon'].includes(column.name) ? 4.5 : column.width;
-					return <td key={cid} title={`${column.fullName} = ${value}`}
+					return <td key={cid} title={cidx === 1 ? `id = ${row[0]}` : `${column.fullName} = ${value}`}
 						onClick={e => onClick(idx, cidx)}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0] } as any })}
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>

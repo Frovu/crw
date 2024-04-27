@@ -2,104 +2,23 @@ import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
-import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinkId } from './eventsState';
-import { assignFlareToErupt, getFlareLink, useFlaresTable } from './sources';
-import { apiPost } from '../util';
-import { askConfirmation, askProceed } from '../Utility';
-
-async function unlinkFlare(flare: RowDict) {
-	const { modifySource, data, columns } = useEventsState.getState();
-	if (!modifySource || !data.feid_sources || !data.sources_erupt)
-		return;
-	const eruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx] as number | null;
-	const linkCol = columns.sources_erupt!.find(col =>
-		col.id === flaresLinkId[flare.src as keyof typeof flaresLinkId]);
-	if (!eruptId || !linkCol)
-		return;
-
-	if (!await askProceed(<>
-		<h4>Ulink {flare.src as string} flare?</h4>
-		<p>Remove {flare.class as any ?? ''} {flare.src as string} flare from eruption #{eruptId}?</p>
-	</>))
-		return;
-	makeChange('sources_erupt', { column: linkCol, value: null, id: eruptId });
-}
-
-async function linkFlare(flare: RowDict, feidId: number) {
-	const { data, columns, modifySource, setStartAt, setEndAt } = useEventsState.getState();
-
-	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_erupt)
-		return;
-	const modifyingEruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx];
-
-	const { linkColId, idColId } = getFlareLink(flare.src);
-	const linkColIdx = columns.sources_erupt!.findIndex(c => c.id === linkColId);
-
-	const linkedToOther = data.sources_erupt.find(row => equalValues(row[linkColIdx], flare[idColId]));
-	
-	if (linkedToOther)
-		return askProceed(<>
-			<h4>Flare already linked</h4>
-			<p>Unlink this flare from eruption #{linkedToOther[0]} first!</p>
-		</>);
-
-	const actuallyLink = async (eruptId: number, createdSrc?: number) => {
-		const row = createdSrc ? [eruptId, ...columns.sources_erupt!.slice(1).map(a => null)] :
-			data.sources_erupt!.find(rw => rw[0] === eruptId);
-		if (!row)
-			return logError('Eruption not found: '+eruptId.toString());
-		const erupt = rowAsDict(row as any, columns.sources_erupt!);
-		const alreadyLinked = erupt[linkColId];
-		if (alreadyLinked) {
-			if (!await askProceed(<>
-				<h4>Replace {flare.src as string} flare?</h4>
-				<p>Flare from {flare.src as string} list is already linked to this eruption, replace?</p>
-			</>))
-				return;
-		}
-
-		erupt[linkColId] = flare[idColId];
-
-		if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === flare.src))
-			assignFlareToErupt(erupt, flare);
-
-		makeSourceChanges('sources_erupt', erupt, feidId, createdSrc);
-		logMessage(`Linked ${flare.src} flare ${flare.class} to FE/ID #${feidId}`);
-	};
-
-	if (modifyingEruptId != null)
-		return actuallyLink(modifyingEruptId as number);
-
-	askConfirmation(<>
-		<h4>Create new entry</h4>
-		<p>No source is selected, create a new one linked to current event?</p>
-	</>, async () => {
-		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/createSource',
-				{ entity: 'sources_erupt', id: feidId });
-			actuallyLink(res.id, res.source_id);
-		} catch (e) {
-			logError(e?.toString());
-		}
-	});
-	
-}
+import { color, openContextMenu, useContextMenu } from '../app';
+import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks } from './eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, useFlaresTable } from './sources';
 
 export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
 	const erupt = useSource('sources_erupt');
-	const src = flare?.src as keyof typeof flaresLinkId;
-	const { linkColId, idColId } = getFlareLink(src);
+	const [linkColId, idColId] = getSourceLink('flare', flare?.src);
 	const isLinked = flare && equalValues(flare[idColId], erupt?.[linkColId]);
 
 	return !flare ? null : <>
 		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
-			onClick={() => id && linkFlare(flare, id)}>
-				Link {src} flare</button>
-		{isLinked && <button className='TextButton' onClick={() => unlinkFlare(flare)}>Unlink {src} flare</button>}
+			onClick={() => id && linkEruptiveSourceEvent('flare', flare, id)}>
+				Link {flare.src as string} flare</button>
+		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('flare', flare)}>Unlink {flare.src as string} flare</button>}
 	</>;
 }
 
@@ -126,15 +45,15 @@ export default function FlaresTable() {
 		: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length : data.findIndex(r =>
 		(r[timeIdx] as Date)?.getTime() > focusTime);
-	const linked = erupt && Object.fromEntries(Object.entries(flaresLinkId).map(([src, linkId]) => [src, erupt[linkId]]));
+	const linked = erupt && Object.fromEntries(Object.entries(flaresLinks).map(([src, lnk]) => [src, erupt[lnk[0]]]));
 
 	return <TableWithCursor {...{
 		entity: 'flares',
 		data, columns, size, viewSize, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
-				return unlinkFlare(rowAsDict(data[cursor.row] as any, columns));
+				return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns));
 			if (cursor && ['+', '='].includes(e.key))
-				return feidId && linkFlare(rowAsDict(data[cursor.row] as any, columns), feidId);
+				return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns), feidId);
 		},
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
@@ -144,7 +63,7 @@ export default function FlaresTable() {
 		row: (row, idx, onClick) => {
 			const flare = rowAsDict(row as any, columns);
 			const stime = (flare.start_time as any)?.getTime();
-			const { linkColId, idColId } = getFlareLink(flare.src);
+			const [linkColId, idColId] = getSourceLink('flare', flare.src);
 			const isLinked = equalValues(flare[idColId], linked?.[flare.src as any]);
 			const isPrime = isLinked && erupt?.flr_source === flare.src;
 			const otherLinked = !isLinked && linked?.[flare.src as any];
@@ -167,7 +86,7 @@ export default function FlaresTable() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								modifySource && feidId && linkFlare(rowAsDict(row as any, columns), feidId);
+								modifySource && feidId && linkEruptiveSourceEvent('flare', rowAsDict(row as any, columns), feidId);
 								return;
 							}
 							onClick(idx, cidx);
