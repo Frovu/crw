@@ -30,6 +30,15 @@ type LayoutsState = {
 			active: string,
 			list: { [name: string]: Layout<object> },
 		}
+	},
+	windows: {
+		[id: string]: {
+			x: number, 
+			y: number,
+			w: number,
+			h: number,
+			params: NodeParams<object>
+		}
 	}
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
@@ -46,7 +55,8 @@ const defaultState = {
 	dragFrom: null,
 	dragTo: null,
 	appsDefaults: {},
-	apps: {}
+	apps: {},
+	windows: {},
 };
 
 export type LayoutsMenuDetails = { nodeId: string };
@@ -85,7 +95,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 				const { list, active } = state.apps[app];
 				list[active].tree[nodeId]!.ratio = ratio;
 			}),
-			selectLayout: layout => set(({ apps }) => {
+			selectLayout: layout => set(({ apps, ...st }) => {
+				st.windows = {};
 				const app = getApp();
 				if (apps[app].list[layout])
 					apps[app].active = layout;
@@ -115,7 +126,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 				if (apps[app].active === layout)
 					apps[app].active = name;
 			}),
-			resetLayout: () => set(({ apps, appsDefaults }) => {
+			resetLayout: () => set(({ apps, appsDefaults, ...st }) => {
+				st.windows = {};
 				const app = getApp();
 				const { list, active } = apps[app];
 				if (!appsDefaults[app]?.[active])
@@ -140,6 +152,29 @@ export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =
 	});
 
 export const resetLayout = () => useLayoutsStore.setState(defaultState);
+
+export const setWindowParams = <T>(id: string, para: Partial<NodeParams<T>>) =>
+	useLayoutsStore.setState(({ windows }) => {
+		if (windows[id])
+			windows[id].params = Object.assign(windows[id].params, para);;
+	});
+
+export const openWindow = (para: LayoutsState['windows'][string]) =>
+	useLayoutsStore.setState(({ windows }) => {
+		const id = Date.now().toString() + para.params.type;
+		windows[id] = para;
+	});
+
+export const closeWindow = (id: string) =>
+	useLayoutsStore.setState(state => {
+		delete state.windows[id];
+	});
+
+export const moveWindow = (id: string, move: { x?: number, y?: number, w?: number, h?: number }) =>
+	useLayoutsStore.setState(({ windows }) => {
+		if (windows[id])
+			windows[id] = Object.assign(windows[id], move);
+	});
 
 export const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
 	const { list, active } = state.apps[getApp()];

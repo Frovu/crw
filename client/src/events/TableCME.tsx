@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { useContextMenu, openContextMenu, color } from '../app';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { LayoutContext, openWindow, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
@@ -19,6 +19,9 @@ export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{
 		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
 			onClick={() => id && linkEruptiveSourceEvent('cme', cme, id)}>
 				Link {src} CME</button>
+		<button  className='TextButton' onClick={e => openWindow({
+			x: e.clientX, y: e.clientY, w: 400, h: 200, params: { type: 'Geomagn' }
+		})}>Open enlil</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 	</>;
 }

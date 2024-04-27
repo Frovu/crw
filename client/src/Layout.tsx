@@ -1,11 +1,46 @@
 import { useRef, useState, useContext, useEffect } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
-import { getApp, openContextMenu } from './app';
-import { color } from './plots/plotUtil';
+import { color, getApp, openContextMenu } from './app';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams,
-	gapSize, type LayoutsMenuDetails, splitNode, resetLayout, AppLayoutContext, type AppLayoutProps } from './layout';
+	gapSize, type LayoutsMenuDetails, splitNode, resetLayout, AppLayoutContext, type AppLayoutProps, 
+	setWindowParams, closeWindow, moveWindow } from './layout';
 import { CatchErrors } from './Utility';
 import ContextMenu from './ContextMenu';
+
+function Window({ id }: { id: string}) {
+	const { Content, panelOptions } = useContext(AppLayoutContext);
+	const { params, x, y, w, h } = useLayoutsStore(st => st.windows[id]) ?? {};
+	const size = { height: h, width: w };
+
+	const drag = useRef<null | { wx: number, wy: number, x: number, y: number }>(null);
+
+	if (!params || !panelOptions.includes(params.type as any))
+		relinquishNode(id);
+
+	return <div key={id} style={{ position: 'fixed', zIndex: 3, left: x, top: y, width: w, height: h,
+		backgroundColor: color('bg'), padding: 1, border: '1px solid '+color('border') }}
+	onDoubleClick={() => closeWindow(id)}
+	onMouseDown={e => { drag.current = { wx: x, wy: y, x: e.clientX, y: e.clientY }; }}
+	onMouseLeave={() => { drag.current = null; }}
+	onMouseUp={() => { drag.current = null; }}
+	onMouseMove={e => {
+		if (!drag.current) return;
+		const { wx, wy, x: dx, y: dy } = drag.current;
+		moveWindow(id, {
+			x: wx + e.clientX - dx,
+			y: wy + e.clientY - dy,
+		});
+	}}>
+		<LayoutContext.Provider value={{ id, size, params,
+			setParams: (para) => setWindowParams(id, para) }}>
+			<CatchErrors>
+				<Content/>
+			</CatchErrors>
+		</LayoutContext.Provider>
+		<div className='CloseButton' style={{ position: 'absolute', top: -1, right: -1,
+			background: color('bg'), border: '1px solid '+color('border'), lineHeight: '14px' }}></div>
+	</div>;
+};
 
 function Item({ id, size }: { id: string, size: Size }) {
 	const { Content, panelOptions } = useContext(AppLayoutContext);
@@ -148,6 +183,7 @@ export function LayoutNav() {
 
 export default function AppLayout(props: AppLayoutProps<any>) {
 	const startDrag = useLayoutsStore(st => st.startDrag);
+	const windows = useLayoutsStore(st => st.windows);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
@@ -168,6 +204,7 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 			<CatchErrors>
 				<Node {...{ size, id: 'root' }}/>
 			</CatchErrors>
+			{Object.keys(windows).map(wid => <Window id={wid}/>)}
 		</AppLayoutContext.Provider>
 	</div>;
 }
