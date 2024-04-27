@@ -74,7 +74,8 @@ export function linkEruptiveSourceEvent(which: 'flare' | 'cme' | 'icme', event: 
 				assignFlareToErupt(erupt, event);
 		}
 		if (which === 'cme') {
-			// TODO
+			if (erupt.cme_source == null || (alreadyLinked && erupt.cme_source === event.src))
+				assignCMEToErupt(erupt, event);
 		}
 
 		makeSourceChanges('sources_erupt', erupt, feidId, createdSrc);
@@ -97,6 +98,18 @@ export function linkEruptiveSourceEvent(which: 'flare' | 'cme' | 'icme', event: 
 		}
 	});
 
+}
+
+export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
+	erupt.cme_source = cme.src;
+	erupt.cme_time = cme.time;
+	erupt.cme_speed = cme.speed;
+
+	if (erupt.coords_source == null || erupt.coords_source === cme.src) {
+		erupt.lat = cme.lat;
+		erupt.lon = cme.lon;
+		erupt.coords_source = cme.src;
+	}
 }
 
 export function assignFlareToErupt(erupt: RowDict, flare: RowDict) {

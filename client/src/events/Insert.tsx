@@ -137,11 +137,11 @@ export default function InsertControls() {
 							<td width={36} style={clr('flare', 'dMN')}>dMN</td>
 						</tr>
 						<tr>
-							<td height={10} style={{ color: color(src.source.influence == null ? 'red' : 'text') }}>Infl: {src.source.influence as any ?? 'N/A'}</td>
-
+							<td height={10} style={{ color: color(src.source.influence == null ? 'red' : 'text') }}>
+								Infl: {src.source.influence as any ?? 'N/A'}</td>
 							<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
 							<td style={clr('cme', 'DKI')}>DKI</td>
-							<td style={clr('cme', 'LASCO')} colSpan={2}>LASCO</td>
+							<td style={clr('cme', 'LSC')} colSpan={2}>LASCO</td>
 							<td style={clr('icme', 'R&C')}>R&C</td>
 						</tr>
 					</tbody></table>

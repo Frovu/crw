@@ -3,31 +3,23 @@ import { useContextMenu, openContextMenu, color } from '../app';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
-import { cmeLinks, useCMETable } from './sources';
-
-function linkCME(cme: RowDict, feidId: number) {
-
-}
-
-function unlinkCME(cme: RowDict) {
-
-}
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
+import { cmeSources, getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, useCMETable } from './sources';
 
 export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const cme = detail?.cme;
 	const erupt = useSource('sources_erupt');
-	const src = cme?.src as keyof typeof cmeLinks;
-	const [linkColId, idColId] = cmeLinks[src];
+	const src = cme?.src as string;
+	const [linkColId, idColId] = getSourceLink('cme', src);
 	const isLinked = cme && equalValues(cme[idColId], erupt?.[linkColId]);
 
 	return !cme ? null : <>
 		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
-			onClick={() => id && linkCME(cme, id)}>
+			onClick={() => id && linkEruptiveSourceEvent('cme', cme, id)}>
 				Link {src} CME</button>
-		{isLinked && <button className='TextButton' onClick={() => unlinkCME(cme)}>Unlink {src} CME</button>}
+		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 	</>;
 }
 
@@ -54,15 +46,15 @@ export default function CMETable() {
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(
-		Object.entries(cmeLinks).map(([src, linkId]) => [src, erupt[linkId[0]]]));
+		cmeSources.map((src) => [src, erupt[cmeLinks[src][0]]]));
 
 	return <TableWithCursor {...{
 		entity: 'CMEs',
 		data, columns, size, viewSize, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
-				return unlinkCME(rowAsDict(data[cursor.row] as any, columns));
+				return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns));
 			if (cursor && ['+', '='].includes(e.key))
-				return feidId && linkCME(rowAsDict(data[cursor.row] as any, columns), feidId);
+				return feidId && linkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns), feidId);
 		},
 		thead: <tr>{columns.map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
@@ -92,17 +84,18 @@ export default function CMETable() {
 					let value = valueToString(row[cidx]);
 					if (['peak', 'end'].includes(column.name))
 						value = value.split(' ')[1];
+					const width = column.id.includes('flare_') ? 5.5 : column.width;
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								modifySource && feidId && linkCME(rowAsDict(row as any, columns), feidId);
+								modifySource && feidId && linkEruptiveSourceEvent('cme', rowAsDict(row as any, columns), feidId);
 								return;
 							}
 							onClick(idx, cidx);
 						}}
 						onContextMenu={openContextMenu('events', { nodeId, cme } as any)}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
-						<span className='Cell' style={{ width: column.width + 'ch',
+						<span className='Cell' style={{ width: width + 'ch',
 							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : 'text'),
 							fontWeight: (isPrime) ? 'bold' : 'unset' }}>
 							<div className='TdOver'/>
