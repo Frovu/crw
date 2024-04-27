@@ -59,7 +59,7 @@ const defaultState = {
 	windows: {},
 };
 
-export type LayoutsMenuDetails = { nodeId: string };
+export type LayoutsMenuDetails = { nodeId: string, window?: NodeParams<{}>};
 
 export type ContextMenuProps<T> = { params: NodeParams<T>, setParams: ParamsSetter<T> };
 

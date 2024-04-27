@@ -9,28 +9,52 @@ import ContextMenu from './ContextMenu';
 
 function Window({ id }: { id: string}) {
 	const { Content, panelOptions } = useContext(AppLayoutContext);
-	const { params, x, y, w, h } = useLayoutsStore(st => st.windows[id]) ?? {};
-	const size = { height: h, width: w };
+	const { params, ...pos } = useLayoutsStore(st => st.windows[id]) ?? {};
+	const size = { height: pos.h, width: pos.w };
 
-	const drag = useRef<null | { wx: number, wy: number, x: number, y: number }>(null);
+	const drag = useRef<null | { pos: typeof pos, x: number, y: number, resize?: string }>(null);
 
 	if (!params || !panelOptions.includes(params.type as any))
 		relinquishNode(id);
 
-	return <div key={id} style={{ position: 'fixed', zIndex: 3, left: x, top: y, width: w, height: h,
+	useEventListener('mousemove', e => {
+		if (!drag.current) return;
+		const { pos: { x, y, w, h }, x: sx, y: sy, resize } = drag.current;
+		const cx = e.clientX, cy = e.clientY;
+		if (!resize)
+			return moveWindow(id, {
+				x: x + cx - sx,
+				y: y + cy - sy,
+			});
+		if (resize === 'nw')
+			return moveWindow(id, {
+				x: x + cx - sx,
+				y: y + cy - sy,
+				w: w + sx - cx,
+				h: h + sy - cy,
+			});
+		if (resize === 'sw')
+			return moveWindow(id, {
+				x: x + cx - sx,
+				w: w + sx - cx,
+				h: h + cy - sy,
+			});
+		if (resize === 'se')
+			return moveWindow(id, {
+				w: w + cx - sx,
+				h: h + cy - sy,
+			});
+	});
+
+	useEventListener('mouseup', () => {
+		drag.current = null;
+	});
+
+	return <div style={{ position: 'fixed', zIndex: 3, left: pos.x, top: pos.y, width: pos.w, height: pos.h,
 		backgroundColor: color('bg'), padding: 1, border: '1px solid '+color('border') }}
 	onDoubleClick={() => closeWindow(id)}
-	onMouseDown={e => { drag.current = { wx: x, wy: y, x: e.clientX, y: e.clientY }; }}
-	onMouseLeave={() => { drag.current = null; }}
-	onMouseUp={() => { drag.current = null; }}
-	onMouseMove={e => {
-		if (!drag.current) return;
-		const { wx, wy, x: dx, y: dy } = drag.current;
-		moveWindow(id, {
-			x: wx + e.clientX - dx,
-			y: wy + e.clientY - dy,
-		});
-	}}>
+	onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY }; }}
+	onContextMenu={openContextMenu('layout', { nodeId: id, window: { ...params } })}>
 		<LayoutContext.Provider value={{ id, size, params,
 			setParams: (para) => setWindowParams(id, para) }}>
 			<CatchErrors>
@@ -38,7 +62,14 @@ function Window({ id }: { id: string}) {
 			</CatchErrors>
 		</LayoutContext.Provider>
 		<div className='CloseButton' style={{ position: 'absolute', top: -1, right: -1,
-			background: color('bg'), border: '1px solid '+color('border'), lineHeight: '14px' }}></div>
+			background: color('bg'), border: '1px solid '+color('border'), lineHeight: '14px' }}
+		onClick={() => closeWindow(id)}/>
+		<div style={{ position: 'absolute', cursor: 'nw-resize', zIndex: 4, top: -4, left: -4, width: 16, height: 16 }}
+			onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY, resize: 'nw' }; e.stopPropagation(); }}/>
+		<div style={{ position: 'absolute', cursor: 'sw-resize', zIndex: 4, bottom: -4, left: -4, width: 16, height: 16 }}
+			onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY, resize: 'sw' }; e.stopPropagation(); }}/>
+		<div style={{ position: 'absolute', cursor: 'se-resize', zIndex: 4, bottom: -4, right: -4, width: 16, height: 16 }}
+			onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY, resize: 'se' }; e.stopPropagation(); }}/>
 	</div>;
 };
 
@@ -113,12 +144,17 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 	const { ContextMenu: Content, panelOptions, duplicatablePanels } = useContext(AppLayoutContext);
 	const { items, tree } = useLayout();
 	const id = argId ?? detail?.nodeId;
+	const window = detail?.window;
+	if (window)
+		return <CatchErrors>
+			<Content {...{ params: window, setParams: (para) => setWindowParams(id!, para) }}/>
+		</CatchErrors>;
 	if (!id) return null;
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';
-	const type = items[id]?.type;
+	const type = items[id!]?.type;
 	const dupable = !!duplicatablePanels?.includes(items[id]?.type as any);
 	return <CatchErrors>
 		{items[id] && !(items[id]!.type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
@@ -204,7 +240,7 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 			<CatchErrors>
 				<Node {...{ size, id: 'root' }}/>
 			</CatchErrors>
-			{Object.keys(windows).map(wid => <Window id={wid}/>)}
+			{Object.keys(windows).map(wid => <Window key={wid} id={wid}/>)}
 		</AppLayoutContext.Provider>
 	</div>;
 }
