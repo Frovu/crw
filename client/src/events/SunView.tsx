@@ -12,11 +12,13 @@ import { NumberInput } from '../Utility';
 
 const MODES = ['SDO', 'FLR', 'WSA-ENLIL'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
+const ENLIL_OPTS = ['density', 'velocity'] as const;
 const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'];
 const defaultSettings = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
 	src: 'AIA 193' as typeof SDO_SRC[number],
+	enlilVar: 'density' as typeof SDO_SRC[number],
 	frameTime: 50,
 	slave: false,
 };
@@ -37,13 +39,14 @@ const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
 	const para = { ...defaultSettings, ...params };
 	const { mode, slave, frameTime } = para;
-	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src', opts: readonly string[] }) => <select
+	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src'|'enlilVar', opts: readonly string[] }) => <select
 		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
 		{opts.map(m => <option key={m} value={m}>{m}</option>)}
 	</select>;
 	return <div className='Group'>
 		<div>Mode: <Select k={'mode'} opts={MODES}/></div>
 		{mode !== 'WSA-ENLIL' && <div>Prefer flare: <Select k={'prefer'} opts={PREFER_FLR}/></div>}
+		{mode === 'WSA-ENLIL' && <div>Param: <Select k={'enlilVar'} opts={ENLIL_OPTS}/></div>}
 		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
 		{mode === 'SDO' && <div>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 			min={20} max={1000} value={frameTime} onChange={val => setParams({ frameTime: val ?? 40 })}/></div>}
@@ -53,13 +56,15 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 }
 
 export function EnlilView({ id }: { id: number | null }) {
-	const { size } = useContext(LayoutContext)!;
+	const { size, params } = useContext(LayoutContext)!;
+	const { enlilVar } = { ...defaultSettings, ...params };
 
 	const query = useQuery(['enlil', id], () => id == null ? id : apiGet<{ filename: string }>('events/enlil', { id }));
 	
 	const fname = query.data?.filename;
-	const url = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.tim-den.gif`;
-	const dkiurl = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.tim-den.gif`;
+	const para = fname && (enlilVar === 'density' ? 'tim-den' : 'tim-vel');
+	const url = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.${para}.gif`;
+	const dkiurl = fname && `https://kauai.ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/${id}/-1`;
 
 	return <div onMouseDown={e => e.preventDefault()}>
 		{query.isLoading && <div className='Center'>LOADING..</div>}
@@ -68,7 +73,7 @@ export function EnlilView({ id }: { id: number | null }) {
 		{<img alt='' width={size.width} src={url} />}
 		{url && <div className='Center' style={{ background: color('bg'), top: 11, padding: '0 2px 2px 2px', fontSize: 14 }}>
 			<a target='_blank' rel='noreferrer' href={dkiurl}>#{id}</a>&nbsp;
-			<a target='_blank' rel='noreferrer' href={url}>.gif</a></div>}
+			<a target='_blank' rel='noreferrer' href={url}>{para}.gif</a></div>}
 	</div>;
 }
 

@@ -143,11 +143,12 @@ function Node({ id, size }: { id: string, size: Size }) {
 export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?: LayoutsMenuDetails }) {
 	const { ContextMenu: Content, panelOptions, duplicatablePanels } = useContext(AppLayoutContext);
 	const { items, tree } = useLayout();
+	const windows  = useLayoutsStore(st => st.windows);
 	const id = argId ?? detail?.nodeId;
 	const window = detail?.window;
 	if (window)
 		return <CatchErrors>
-			<Content {...{ params: window, setParams: (para) => setWindowParams(id!, para) }}/>
+			<Content {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id!, para) }}/>
 		</CatchErrors>;
 	if (!id) return null;
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
