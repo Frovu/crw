@@ -65,18 +65,6 @@ def next_month(m_start):
 def parse_time(txt):
 	return datetime.strptime(txt, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
 
-def scrape_enlil_filename(link):
-	log.debug('Resolving %s', link)
-	try:
-		res = requests.get(link, timeout=10)
-		if res.status_code != 200:
-			raise Exception('HTTP '+str(res.status_code))
-		m = re.search(r'downloads/(.+?(?=\.[^\d]))', res.text)
-		return m and m[1]
-	except Exception as e:
-		log.error('Failed resolving ENLIL: %s', str(e))
-		return None
-
 def _obtain_month(what, month_start: datetime):
 	month_next = next_month(month_start)
 	s_str = month_start.strftime('%Y-%m-%d')
@@ -137,3 +125,24 @@ def fetch(progr, entity, month):
 	_obtain_month(what, month)
 	progr[0] = 1
 	_obtain_month(what, prev_month)
+
+def resolve_enlil(eid: int):
+	with pool.connection() as conn:
+		res = conn.execute(f'SELECT enlil_filename FROM events.{CME_TABLE} WHERE enlil_id = %s', [eid]).fetchone()
+	if res and res[0]:
+		return res[0]
+	log.debug('Resolving WSA-ENLIL #%s', eid)
+	url = URL + f'view/WSA-ENLIL/{eid}/-1'
+	res = requests.get(url, timeout=10)
+
+	if res.status_code != 200:
+		log.error('Failed loading %s: HTTP %s', url, res.status_code)
+		raise Exception('Failed loading')
+
+	found = re.search(r'Inner Planets Link = (.+?)nasa.gov/downloads/(.+?).tim-', res.text)
+	fname = found and found[2]
+
+	if fname: 
+		with pool.connection() as conn:
+			conn.execute(f'UPDATE events.{CME_TABLE} SET enlil_filename = %s WHERE enlil_id = %s', [fname, eid])
+	return fname

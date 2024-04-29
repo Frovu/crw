@@ -100,6 +100,13 @@ def _list_sdo():
 	lst = sun_images.fetch_list(t_from, t_to, source)
 	return { 'timestamps': lst }
 
+@bp.route('/enlil', methods=['GET'])
+@route_shielded
+def _resolve_enlil():
+	eid = int(request.args.get('id'))
+	fname = donki.resolve_enlil(eid)
+	return { 'filename': fname }
+
 @bp.route('/createSource', methods=['POST'])
 @route_shielded
 @require_role('operator')

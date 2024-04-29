@@ -20,8 +20,8 @@ export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{
 			onClick={() => id && linkEruptiveSourceEvent('cme', cme, id)}>
 				Link {src} CME</button>
 		<button  className='TextButton' onClick={e => openWindow({
-			x: e.clientX, y: e.clientY, w: 400, h: 200, params: { type: 'Geomagn' }
-		})}>Open enlil</button>
+			x: e.clientX, y: e.clientY, w: 400, h: 200, params: { type: 'Sun View', mode: 'WSA-ENLIL' } as any
+		})}>Open ENLIL view</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 	</>;
 }

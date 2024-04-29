@@ -10,7 +10,7 @@ import { font } from '../plots/plotUtil';
 import { create } from 'zustand';
 import { NumberInput } from '../Utility';
 
-const MODES = ['SDO', 'FLR'] as const;
+const MODES = ['SDO', 'FLR', 'WSA-ENLIL'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
 const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'];
 const defaultSettings = {
@@ -43,12 +43,32 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 	</select>;
 	return <div className='Group'>
 		<div>Mode: <Select k={'mode'} opts={MODES}/></div>
-		<div>Prefer flare: <Select k={'prefer'} opts={PREFER_FLR}/></div>
+		{mode !== 'WSA-ENLIL' && <div>Prefer flare: <Select k={'prefer'} opts={PREFER_FLR}/></div>}
 		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
 		{mode === 'SDO' && <div>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 			min={20} max={1000} value={frameTime} onChange={val => setParams({ frameTime: val ?? 40 })}/></div>}
 		{mode === 'SDO' && <label>Time slave<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={slave} onChange={e => setParams({ slave: e.target.checked })}/></label>}
+	</div>;
+}
+
+export function EnlilView({ id }: { id: number | null }) {
+	const { size } = useContext(LayoutContext)!;
+
+	const query = useQuery(['enlil', id], () => id == null ? id : apiGet<{ filename: string }>('events/enlil', { id }));
+	
+	const fname = query.data?.filename;
+	const url = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.tim-den.gif`;
+	const dkiurl = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.tim-den.gif`;
+
+	return <div onMouseDown={e => e.preventDefault()}>
+		{query.isLoading && <div className='Center'>LOADING..</div>}
+		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		{query.isSuccess && (!id || !url) && <div className='Center'>NO ENLIL MODEL</div>}
+		{<img alt='' width={size.width} src={url} />}
+		{url && <div className='Center' style={{ background: color('bg'), top: 11, padding: '0 2px 2px 2px', fontSize: 14 }}>
+			<a target='_blank' rel='noreferrer' href={dkiurl}>#{id}</a>&nbsp;
+			<a target='_blank' rel='noreferrer' href={url}>.gif</a></div>}
 	</div>;
 }
 
@@ -259,6 +279,21 @@ export default function SunView() {
 	const { cursor } = useEventsState();
 	const sources = useSources();
 	const { start: feidTime } = useFeidCursor();
+
+	if (mode === 'WSA-ENLIL') {
+		if (cursor?.entity === 'CMEs') {
+			const cme = rowAsDict(cmes.data[cursor.row], cmes.columns);
+			return <EnlilView id={cme.enlil_id as number | null}/>;
+		}
+		const erupt = cursor?.entity === 'sources_erupt'
+			? rowAsDict(eruptions.data[cursor.row], eruptions.columns)
+			: sources.find(s => s.erupt)?.erupt;
+		const [linkColId, idColId] = getSourceLink('cme', 'DKI');
+		const idColIdx = cmes.columns.findIndex(c => c.id === idColId);
+		const found = erupt && cmes.data.find(row => row[0] === 'DKI' && equalValues(row[idColIdx], erupt[linkColId]));
+		const id = found ? rowAsDict(found, cmes.columns).enlil_id as number : null;
+		return <EnlilView id={id}/>;
+	}
 
 	const flare = (() => {
 		if (cursor?.entity === 'flares')
