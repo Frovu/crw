@@ -1,13 +1,13 @@
 
 from ftplib import FTP
-import logging, os
+import os
 from threading import Thread
 from datetime import datetime, timedelta, timezone
 from scipy import interpolate, ndimage
 from netCDF4 import Dataset, num2date, date2index
 import numpy as np
+from database import log
 
-log = logging.getLogger('crdt')
 last_downloaded = [datetime(2024, 1, 1)]
 download_progress = {}
 
