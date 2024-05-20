@@ -94,6 +94,7 @@ def get_local_coefficients(t_from, t_to, experiment, channel_name, fit):
 	coef['cz'] = coef.get('cz', info['coef']['cz'])
 	expected = (data['a0'] * coef['c0'] + data['az'] * coef['cz'] \
 			  + data['ax'] * coef['cx'] + data['ay'] * coef['cy']) * 100
+	expected = np.where(np.isnan(expected), None, np.round(expected, 3))
 	return res, data['time'].tolist(), expected.tolist()
 
 def select_with_corrected(t_from, t_to, experiment, channel_name, query):
