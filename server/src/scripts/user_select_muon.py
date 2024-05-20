@@ -20,7 +20,7 @@ def select_muon_corrected(dt_from, dt_to, experiment='Moscow-pioneer', query=['r
 	Returns:
 		np.ndarray where first column contains datetime and the others contain queried params in order'''
     tfr, tto = [int(d.replace(tzinfo=timezone.utc).timestamp()) for d in (dt_from, dt_to)]
-    uri = f'https://tools.izmiran.ru/crdt/api/muon/?from={tfr}&to={tto}&experiment={experiment}&query={",".join(query)}'
+    uri = f'https://tools.izmiran.ru/w/api/muon/?from={tfr}&to={tto}&experiment={experiment}&query={",".join(query)}'
     res = requests.get(uri, verify=False, timeout=10000)
     if res.status_code != 200:
         print(f'request failed: {res.status_code}')
