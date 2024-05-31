@@ -84,10 +84,7 @@ export default function CMETable() {
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-					let value = valueToString(row[cidx]);
-					if (['peak', 'end'].includes(column.name))
-						value = value.split(' ')[1];
-					const width = column.id.includes('flare_') ? 5.5 : column.width;
+					const value = valueToString(row[cidx]);
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
@@ -98,7 +95,7 @@ export default function CMETable() {
 						}}
 						onContextMenu={openContextMenu('events', { nodeId, cme } as any)}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
-						<span className='Cell' style={{ width: width + 'ch',
+						<span className='Cell' style={{ width: column.width + 'ch',
 							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : 'text'),
 							fontWeight: (isPrime) ? 'bold' : 'unset' }}>
 							<div className='TdOver'/>

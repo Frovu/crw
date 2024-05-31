@@ -30,6 +30,7 @@ import SunView, { SunViewContextMenu } from './SunView';
 import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
 import FlaresTable, { FlaresContextMenu } from './TableFlares';
 import CMETable, { CMEContextMenu } from './TableCME';
+import ICMETable, { ICMEContextMenu } from './TableICME';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -60,6 +61,7 @@ export function EventsLayoutContent() {
 		{type === 'Erupt Src Table' && <EruptionsTable/>}
 		{type === 'Flares Table' && <FlaresTable/>}
 		{type === 'CME Table' && <CMETable/>}
+		{type === 'ICME Table' && <ICMETable/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}
@@ -198,7 +200,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{params.type === 'Erupt Src Table' && <EruptionsContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Flares Table' && <FlaresContextMenu {...{ params, setParams }}/>}
 		{params.type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
-		{/* {params.type === 'ICME Table' && <CMEContextMenu {...{ params, setParams }}/>} */}
+		{params.type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
 		{params.type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{params.type === 'FEID Table' && <>
 			{averages && <>

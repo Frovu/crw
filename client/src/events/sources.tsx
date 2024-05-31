@@ -183,7 +183,7 @@ export function useCompoundTable(which: EruptEnt) {
 					col.width = 5.5;
 				if (['lat', 'lon'].includes(col.name))
 					col.width = 4.5;
-				if (['end', 'peak'].includes(col.name))
+				if (which === 'flare' && ['end', 'peak'].includes(col.name))
 					col.width = 6;
 				if (['type', 'level'].includes(col.name))
 					col.width = 3;
