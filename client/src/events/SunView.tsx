@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
-import { getSourceLink, serializeCoords, useCMETable, useFlaresTable } from './sources';
+import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
@@ -278,8 +278,8 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 export default function SunView() {
 	const layoutParams = useContext(LayoutContext)?.params;
 	const { mode, prefer } = { ...defaultSettings, ...layoutParams };
-	const flares = useFlaresTable();
-	const cmes = useCMETable();
+	const flares = useCompoundTable('flare');
+	const cmes = useCompoundTable('cme');
 	const eruptions = useTable('sources_erupt');
 	const { cursor } = useEventsState();
 	const sources = useSources();

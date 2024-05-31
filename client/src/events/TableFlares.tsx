@@ -4,7 +4,7 @@ import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { color, openContextMenu, useContextMenu } from '../app';
 import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks } from './eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, useFlaresTable } from './sources';
+import { getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
 
 export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
@@ -29,7 +29,7 @@ export default function FlaresTable() {
 	const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	const { columns, data } = useFlaresTable();
+	const { columns, data } = useCompoundTable('flare');
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;

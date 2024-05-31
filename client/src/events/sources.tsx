@@ -6,17 +6,25 @@ import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
 import { apiPost } from '../util';
 
-export const flrColumnOrder = ['class', 'lat', 'lon', 'start', 'AR', 'peak', 'end'];
-export const flrSources = Object.keys(flaresLinks) as (keyof typeof flaresLinks)[];
-export const cmeColumnOrder = ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'];
-export const cmeSources =  Object.keys(cmeLinks) as (keyof typeof cmeLinks)[];
+type EruptEnt = 'flare' | 'cme' | 'icme';
 
-export function getSourceLink(which: 'flare' | 'cme' | 'icme', src: any) {
+export const columnOrder = {
+	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
+	cme: ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'],
+	icme: ['time']
+};
+export const sourceLabels = {
+	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
+	cme: Object.keys(cmeLinks) as (keyof typeof cmeLinks)[],
+	icme: Object.keys(icmeLinks) as (keyof typeof icmeLinks)[]
+};
+
+export function getSourceLink(which: EruptEnt, src: any) {
 	const links = { flare: flaresLinks, cme: cmeLinks, icme: icmeLinks }[which];
 	return links?.[src as keyof typeof links] as [string, string] ?? [null, null];
 }
 
-export async function unlinkEruptiveSourceEvent(which: 'flare' | 'cme' | 'icme', event: RowDict) {
+export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict) {
 	const { modifySource, data, columns } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_erupt)
 		return logMessage('Source not selected');
@@ -34,7 +42,7 @@ export async function unlinkEruptiveSourceEvent(which: 'flare' | 'cme' | 'icme',
 	makeChange('sources_erupt', { column: linkCol, value: null, id: eruptId });
 }
 
-export function linkEruptiveSourceEvent(which: 'flare' | 'cme' | 'icme', event: RowDict, feidId: number) {
+export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId: number) {
 	const { data, columns, modifySource, setStartAt, setEndAt } = useEventsState.getState();
 
 	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_erupt)
@@ -146,30 +154,37 @@ export function parseFlareFlux(cls: string | null) {
 	return isNaN(val) ? null : Math.round(val * 10) / 10;
 }
 
-export function useCMETable() {
+export function useCompoundTable(which: EruptEnt) {
 	return useQuery({
-		queryKey: ['CMEs'],
+		queryKey: ['erupts:' + which],
 		staleTime: Infinity,
 		keepPreviousData: true,
 		queryFn: async () => {
-			const results = await Promise.all([
-				fetchTable('lasco_cmes'),
-				fetchTable('donki_cmes')
-			]);
+			const tables = {
+				cme: ['lasco_cmes', 'donki_cmes'],
+				icme: ['r_c_icmes'],
+				flare: ['solarsoft_flares', 'donki_flares', 'solardemon_flares']
+			}[which];
+			const results = await Promise.all(tables.map(t => fetchTable(t)));
 			const sCols = results.map(q => q.columns);
 			const sData = results.map(q => q.data);
 			const pairs = Object.values(sCols).flatMap(cols => cols.map(c => [c.id, c]));
-			const columns = [...new Map([...cmeColumnOrder.map(cn => [cn, null]) as any, ...pairs]).values()] as ColumnDef[];
-			const indexes = cmeSources.map((src, srci) =>
-				columns.map(c => sCols[srci].findIndex(sc => sc.id === c.id)));
+			const columns = [...new Map([...columnOrder[which]
+				.map(cn => [cn, null]) as any, ...pairs]).values()] as ColumnDef[];
+			const indexes = sourceLabels[which].map((src, srci) =>
+				columns.map(c => sCols[srci].findIndex(sc => sc.id === c?.id)));
 			const data = sData.flatMap((rows, srci) => rows.map(row =>
-				[cmeSources[srci], ...indexes[srci].map(idx => idx < 0 ? null : row[idx])]));
-			const tIdx = columns.findIndex(c => c.id === 'time') + 1;
+				[sourceLabels[which][srci], ...indexes[srci].map(idx => idx < 0 ? null : row[idx])]));
+			const tIdx = columns.findIndex(c => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
 			data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
 	
 			for (const col of columns) {
+				if (col.name.includes('class'))
+					col.width = 5.5;
 				if (['lat', 'lon'].includes(col.name))
 					col.width = 4.5;
+				if (['end', 'peak'].includes(col.name))
+					col.width = 6;
 				if (['type', 'level'].includes(col.name))
 					col.width = 3;
 			}
@@ -181,47 +196,7 @@ export function useCMETable() {
 
 		}
 	}).data ?? { data: [], columns: [] };
-}
 
-export function useFlaresTable() {
-	return useQuery({
-		queryKey: ['flares'],
-		staleTime: Infinity,
-		keepPreviousData: true,
-		queryFn: async () => {
-			const order = ['SFT', 'DKI', 'dMN'];
-			const results = await Promise.all([
-				fetchTable('solarsoft_flares'),
-				fetchTable('donki_flares'),
-				fetchTable('solardemon_flares')
-			]);
-			const sCols = results.map(q => q.columns);
-			const sData = results.map(q => q.data);
-			const pairs = Object.values(sCols).flatMap(cols => cols.map(c => [c.name, c]));
-			const columns = [...new Map([...flrColumnOrder.map(cn => [cn, null]) as any, ...pairs]).values()] as ColumnDef[];
-			const indexes = order.map((src, srci) =>
-				columns.map(c => sCols[srci].findIndex(sc => sc.name === c.name)));
-			const data = sData.flatMap((rows, srci) => rows.map(row =>
-				[order[srci], ...indexes[srci].map(idx => idx < 0 ? null : row[idx])]));
-			const tIdx = columns.findIndex(c => c.id === 'start_time') + 1;
-			data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
-	
-			for (const col of columns) {
-				if (col.name.includes('class'))
-					col.width = 5.5;
-				if (['lat', 'lon'].includes(col.name))
-					col.width = 4.5;
-				if (['end', 'peak'].includes(col.name))
-					col.width = 6;
-			}
-	
-			return { data, columns: [
-				{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef,
-				...columns
-			] };
-
-		}
-	}).data ?? { data: [], columns: [] };
 }
 
 export function useTableQuery(tbl: TableName) {

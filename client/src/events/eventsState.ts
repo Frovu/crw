@@ -5,7 +5,7 @@ import type { ColumnDef, DataRow, Value } from './columns';
 
 export const flaresLinks = {
 	SFT: ['solarsoft_flr_start', 'start_time'],
-	NOA: ['noaa_flare_start', 'start_time'],
+	// NOA: ['noaa_flare_start', 'start_time'],
 	DKI: ['donki_flr_id', 'id'],
 	dMN: ['solardemon_flr_id', 'id']
 } as const;
@@ -16,7 +16,7 @@ export const cmeLinks = {
 } as const;
 
 export const icmeLinks = {
-	'R&C': 'rc_icme_time'
+	'R&C': ['rc_icme_time', 'time']
 } as const;
 
 export type Sort = { column: string, direction: 1 | -1 };

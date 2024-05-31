@@ -4,7 +4,7 @@ import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
-import { assignFlareToErupt, flrSources, getSourceLink, parseFlareFlux, useFlaresTable, useTableQuery } from './sources';
+import { assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
 
@@ -48,7 +48,7 @@ export function EruptionsContextMenu({ params, setParams }: ContextMenuProps<Par
 export default function EruptionsTable() {
 	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
-	const flares = useFlaresTable();
+	const flares = useCompoundTable('flare');
 	const sources = useSources();
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
@@ -99,7 +99,7 @@ export default function EruptionsTable() {
 							: flare[flare_columns[cid]];
 						return !equalValues(val, row[cidx]);
 					})() : null;
-					const flrOpts = (curs && cid === 'flr_source') ? flrSources.map(flrSrc => {
+					const flrOpts = (curs && cid === 'flr_source') ? sourceLabels.flare.map(flrSrc => {
 						if (flrSrc === erupt.flr_source)
 							return flare;
 						const [linkColId, idColId] = getSourceLink('flare', flrSrc);

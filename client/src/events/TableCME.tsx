@@ -4,7 +4,7 @@ import { LayoutContext, openWindow, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
-import { cmeSources, getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, useCMETable } from './sources';
+import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
 
 export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;
@@ -33,7 +33,7 @@ export default function CMETable() {
 	const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	const { columns, data } = useCMETable();
+	const { columns, data } = useCompoundTable('cme');
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
@@ -49,7 +49,7 @@ export default function CMETable() {
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(
-		cmeSources.map((src) => [src, erupt[cmeLinks[src][0]]]));
+		sourceLabels.cme.map((src) => [src, erupt[cmeLinks[src][0]]]));
 
 	return <TableWithCursor {...{
 		entity: 'CMEs',
