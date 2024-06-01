@@ -229,8 +229,9 @@ def _remove_generic():
 def _compute_generic():
 	name = request.json.get('id')
 	start = time()
-	if not compute_column(name):
-		return msg('Failed miserably'), 500
+	err = compute_column(name)
+	if err:
+		return msg(err), 500
 	return { 'time': round(time() - start, 2) }
 
 @bp.route('/compute_row', methods=['POST'])

@@ -275,7 +275,7 @@ def compute_generic(g, for_row=None):
 			log.debug(f'Computing {g.pretty_name}')
 			target_id, result = _do_compute(g)
 		if result is None:
-			return False
+			return f'{g.pretty_name}: empty result'
 		if for_row is None:
 			log.info(f'Computed {g.pretty_name} in {round(time()-t_start,2)}s')
 		target_id = target_id.astype('i8')
@@ -289,10 +289,10 @@ def compute_generic(g, for_row=None):
 			if for_row is None:
 				conn.execute('UPDATE events.generic_columns SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
 			
-		return True
-	except:
+		return None
+	except Exception as e:
 		log.error(f'Failed at generic {g.pretty_name}: {traceback.format_exc()}')
-		return False
+		return f'{g.pretty_name}: {e}'
 
 def recompute_generics(generics):
 	if not isinstance(generics, list):
@@ -303,13 +303,13 @@ def recompute_generics(generics):
 	omni.ensure_prepared([first - MAX_DURATION_S, last + 2 * MAX_DURATION_S])
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		res = executor.map(compute_generic, generics)
-	return any(res)
+	return res
 
 def recompute_for_row(generics, rid):
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		func = lambda g: compute_generic(g, rid)
 		res = executor.map(func, generics)
-		return any(res)
+	return res
 
 def apply_changes(conn, column, table='generic_data', dtype='real'):
 	id_col = 'feid_id' if table == 'generic_data' else 'id'
