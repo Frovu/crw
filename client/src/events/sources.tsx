@@ -55,7 +55,8 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 	const [linkColId, idColId] = getSourceLink(which, event.src);
 	const linkColIdx = columns.sources_erupt!.findIndex(c => c.id === linkColId);
 
-	const linkedToOther = data.sources_erupt.find(row => equalValues(row[linkColIdx], event[idColId]));
+	const linkedToOther = which !== 'icme' &&
+		data.sources_erupt.find(row => equalValues(row[linkColIdx], event[idColId]));
 	
 	if (linkedToOther)
 		return askProceed(<>

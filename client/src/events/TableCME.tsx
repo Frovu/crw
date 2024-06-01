@@ -3,8 +3,8 @@ import { useContextMenu, openContextMenu, color } from '../app';
 import { LayoutContext, openWindow, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
-import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from './eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
 
 export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;
@@ -31,10 +31,12 @@ export default function CMETable() {
 	const cursor = sCursor?.entity === 'CMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
+	const icmes = useCompoundTable('icme');
+	const sources = useSources();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('cme');
-	const { start: cursorTime, id: feidId } = useFeidCursor();
+	const { start: cursorTime, id: feidId, row: feid } = useFeidCursor();
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
 
@@ -67,18 +69,40 @@ export default function CMETable() {
 		row: (row, idx, onClick) => {
 			const cme = rowAsDict(row as any, columns);
 			const time = (cme.time as any)?.getTime();
-			const [linkColId, idColId] = cmeLinks[cme.src as keyof typeof cmeLinks];
+			const [linkColId, idColId] = getSourceLink('cme', cme.src);
 			const isLinked = equalValues(cme[idColId], linked?.[cme.src as any]);
 			const isPrime = isLinked && erupt?.cme_source === cme.src;
 			const otherLinked = !isLinked && linked?.[cme.src as any];
-			const darkk = otherLinked || (!erupt?.cme_time ?
-				time > focusTime! + 864e5    || time < focusTime! - 3 * 864e5 : 
-				time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4);
+			const linkedToAnyErupt = sources.find(s => equalValues(s.erupt?.[linkColId], cme[idColId]));
 
-			// FIXME: this is probably slow
+			const orange = !isLinked && !otherLinked && !linkedToAnyErupt && (() => {
+				if (timeInMargin(cme.time, erupt?.cme_time, 6e5))
+					return true;
+				if (cme.linked_events && (cme.linked_events as any as string[]).find(lnk =>
+					lnk.includes('GST') && timeInMargin(cme.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)))
+					return true;
+				if (feid.cme_time) {
+					if (timeInMargin(cme.time, feid.cme_time, 6e5))
+						return true;
+				}
+				const anyEruptIcme = sources.find(s => s.erupt?.rc_icme_time)?.erupt?.rc_icme_time;
+				if (anyEruptIcme) {
+					const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
+					const icme = rowAsDict(icmes.data.find(r => equalValues(anyEruptIcme, r[icmeTimeIdx])), icmes.columns);
+					for (const meTime of icme.cmes_time as any as string[])
+						if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5))
+							return true;
+				}
+				return false;
+			})();
+
+			const darkk = !orange && (otherLinked || (!erupt?.cme_time ?
+				time > focusTime! + 864e5    || time < focusTime! - 3 * 864e5 : 
+				time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4));
+
 			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
-			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
-				equalValues(cme[idColId], eru[eruptLinkIdx]))); 
+			const dark = !orange && (darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
+				equalValues(cme[idColId], eru[eruptLinkIdx])))); 
 		
 			return <tr key={row[0]+time+row[2]+row[4]}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
@@ -96,7 +120,7 @@ export default function CMETable() {
 						onContextMenu={openContextMenu('events', { nodeId, cme } as any)}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
 						<span className='Cell' style={{ width: column.width + 'ch',
-							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : 'text'),
+							color: color(isLinked ? 'cyan' : orange ? 'orange' : dark ? 'text-dark' : 'text'),
 							fontWeight: (isPrime) ? 'bold' : 'unset' }}>
 							<div className='TdOver'/>
 							{value}

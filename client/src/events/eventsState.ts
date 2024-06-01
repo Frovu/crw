@@ -106,9 +106,15 @@ const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
 		const columnIdx = columns.findIndex(c => c.id === column.id);
 		if (row) row[columnIdx] = value;
 	}
-	const sortIdx = columns.findIndex(c => c.type === 'time');
-	if (sortIdx > 0)
-		data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
+	if (tbl === 'sources_erupt') {
+		const [i1, i2, i3] = ['flr_start', 'cme_time', 'rc_icme_time']
+			.map(cid => columns.findIndex(c => c.id === cid));
+		data.sort((a: any, b: any) => (a[i1] ?? a[i2] ?? a[i3]) - (b[i1] ?? b[i2] ?? b[i3]));
+	} else {
+		const sortIdx = columns.findIndex(c => c.type === 'time');
+		if (sortIdx > 0)
+			data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
+	}
 	return data;
 };
 
@@ -174,7 +180,6 @@ export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) 
 		state.columns[tbl] = cols;
 		state.rawData[tbl] = rdata;
 		state.data[tbl] = applyChanges(state, tbl);
-	
 	}));
 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
