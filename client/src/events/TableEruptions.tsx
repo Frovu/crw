@@ -4,7 +4,7 @@ import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
-import { assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
+import { assignCMEToErupt, assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
 
@@ -36,6 +36,19 @@ function switchMainFlare(erupt: RowDict, flare: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
+function switchMainCME(erupt: RowDict, cme: RowDict) {
+	logMessage(`CME: ${erupt.cme_source} -> ${cme.src} in ERUPT #${erupt.id}`);
+	assignCMEToErupt(erupt, cme);
+	makeSourceChanges('sources_erupt', erupt);
+}
+
+function switchCoordsSrc(erupt: RowDict, opt: 'FLR' | 'MNL') {
+	if (!erupt.flr_source && opt === 'FLR')
+		return;
+	erupt.coords_source = opt;
+	makeSourceChanges('sources_erupt', erupt);
+}
+
 export function EruptionsContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
@@ -49,6 +62,7 @@ export default function EruptionsTable() {
 	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
 	const flares = useCompoundTable('flare');
+	const cmes = useCompoundTable('cme');
 	const sources = useSources();
 	const { start: cursorTime } = useFeidCursor();
 
@@ -104,13 +118,18 @@ export default function EruptionsTable() {
 						return !equalValues(val, row[cidx]);
 					})() : null;
 					const flrOpts = (curs && cid === 'flr_source') ? sourceLabels.flare.map(flrSrc => {
-						if (flrSrc === erupt.flr_source)
-							return flare;
 						const [linkColId, idColId] = getSourceLink('flare', flrSrc);
 						const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 						const flr = erupt[linkColId] && flares.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
 						return flr ? rowAsDict(flr, flares.columns!) : null;
+					}).filter(s => s) : [];
+					const cmeOpts = (curs && cid === 'cme_source') ? sourceLabels.cme.map(cmeSrc => {
+						const [linkColId, idColId] = getSourceLink('cme', cmeSrc);
+						const idColIdx = cmes.columns?.findIndex(col => col.id === idColId);
+						const cme = erupt[linkColId] && cmes.data?.find(r =>
+							equalValues(r[idColIdx], erupt[linkColId]));
+						return cme ? rowAsDict(cme, cmes.columns!) : null;
 					}).filter(s => s) : [];
 
 					let value = valueToString(row[cidx]);
@@ -124,7 +143,8 @@ export default function EruptionsTable() {
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 						{curs?.editing || (curs && column.type === 'enum') ? <CellInput {...{
 							table: ENT,
-							options: flrOpts?.map(fl => fl!.src as string),
+							options: cid === 'coords_source' ? ['FLR', 'MNL'] // FIXME
+								: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map(a => a!.src as string),
 							id: row[0],
 							column, value,
 							change: cid === 'flr_source' ? (val: any) => {
@@ -132,6 +152,14 @@ export default function EruptionsTable() {
 								if (flr)
 									switchMainFlare(erupt, flr);
 								return !!flr;
+							} : cid === 'cme_source' ? (val: any) => {
+								const cme = cmeOpts.find(fl => fl!.src === val);
+								if (cme)
+									switchMainCME(erupt, cme);
+								return !!cme;
+							} : cid === 'coords_source' ? (val: any) => {
+								switchCoordsSrc(erupt, val);
+								return true;
 							} : undefined
 						}}/> : <span className='Cell' style={{ width: width + 'ch', color: color(dark ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
