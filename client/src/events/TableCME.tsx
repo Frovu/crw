@@ -27,7 +27,7 @@ export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{
 }
 
 export default function CMETable() {
-	const { cursor: sCursor, modifySource } = useEventsState();
+	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'CMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
@@ -88,7 +88,7 @@ export default function CMETable() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								modifySource && feidId && linkEruptiveSourceEvent('cme', rowAsDict(row as any, columns), feidId);
+								feidId && linkEruptiveSourceEvent('cme', rowAsDict(row as any, columns), feidId);
 								return;
 							}
 							onClick(idx, cidx);

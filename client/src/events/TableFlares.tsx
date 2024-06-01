@@ -23,7 +23,7 @@ export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partia
 }
 
 export default function FlaresTable() {
-	const { cursor: sCursor, modifySource } = useEventsState();
+	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'flares' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
@@ -86,7 +86,7 @@ export default function FlaresTable() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								modifySource && feidId && linkEruptiveSourceEvent('flare', rowAsDict(row as any, columns), feidId);
+								feidId && linkEruptiveSourceEvent('flare', rowAsDict(row as any, columns), feidId);
 								return;
 							}
 							onClick(idx, cidx);

@@ -3,8 +3,8 @@ import { useContextMenu, openContextMenu, color } from '../app';
 import { LayoutContext, type ContextMenuProps } from '../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from './events';
-import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useTable, type RowDict } from './eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
+import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
 
 export function ICMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { icme: RowDict } | undefined;
@@ -24,14 +24,15 @@ export function ICMEContextMenu({ params, setParams }: ContextMenuProps<Partial<
 }
 
 export default function ICMETable() {
-	const { cursor: sCursor, modifySource } = useEventsState();
+	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'ICMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
-	const eruptions = useTable('sources_erupt');
+	const sources = useSources();
+	// const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('icme');
-	const { start: cursorTime, id: feidId } = useFeidCursor();
+	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
 
@@ -63,16 +64,13 @@ export default function ICMETable() {
 		row: (row, idx, onClick) => {
 			const icme = rowAsDict(row as any, columns);
 			const time = (icme.time as any)?.getTime();
-			const [linkColId, idColId] = icmeLinks[icme.src as keyof typeof icmeLinks];
-			const isLinked = equalValues(icme[idColId], linked?.[icme.src as any]);
-			const isPrime = isLinked && erupt?.cme_source === icme.src;
-			const otherLinked = !isLinked && linked?.[icme.src as any];
-			const darkk = otherLinked || time > focusTime! + 72e5 || time < focusTime! - 72e5;
-
-			// FIXME: this is probably slow
-			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
-			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
-				equalValues(icme[idColId], eru[eruptLinkIdx]))); 
+			const isLinked = equalValues(icme.time, linked?.[icme.src as any]);
+			const linkedToAnyErupt = sources.find(s => equalValues(s.erupt?.[getSourceLink('icme', icme.src)[0]], icme.time));
+			
+			const orange = !isLinked && !linkedToAnyErupt
+				&& (timeInMargin(icme.time, cursorTime, 36e5) 
+					|| (feid.mc_time && timeInMargin(icme.body_start, feid.mc_time, 36e5)));
+			const dark = linkedToAnyErupt || (!orange && !timeInMargin(icme.time, cursorTime, 24 * 36e5));
 		
 			return <tr key={row[0]+time+row[2]+row[4]}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>
@@ -82,7 +80,8 @@ export default function ICMETable() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								modifySource && feidId && linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
+								if (feidId)
+									linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
 								return;
 							}
 							onClick(idx, cidx);
@@ -90,8 +89,7 @@ export default function ICMETable() {
 						onContextMenu={openContextMenu('events', { nodeId, icme } as any)}
 						style={{ borderColor: color(curs ? 'active' : 'border') }}>
 						<span className='Cell' style={{ width: column.width + 'ch',
-							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : 'text'),
-							fontWeight: (isPrime) ? 'bold' : 'unset' }}>
+							color: color(isLinked ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
 							<div className='TdOver'/>
 							{value}
 						</span>

@@ -122,19 +122,18 @@ export const useFeidCursor = () => {
 	const cursor = useEventsState(st => st.cursor);
 	const plotId = useEventsState(st => st.plotId);
 
-	const [timeIdx, durIdx] = ['time', 'duration'].map(c =>
-		columns.findIndex(col => col.name === c));
 	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
-	const duration = data[targetIdx]?.[durIdx] as number | undefined;
-	const start = data[targetIdx]?.[timeIdx] as Date | undefined;
-	const end = duration == null ? undefined : start &&
-		new Date(start?.getTime() + duration * 36e5);
-	return { duration, start, end, id: targetId }; 
+	const row = rowAsDict(data[targetIdx], columns);
+	const duration = row.duration as number | undefined;
+	const start = row.time as Date | undefined;
+	const end = row.duration == null ? undefined : start &&
+		new Date(start?.getTime() + duration! * 36e5);
+	return { duration, start, end, id: targetId, row }; 
 };
 
 export type RowDict = { [k: string] : Value | undefined };
-export const rowAsDict = (row: any[], columns: ColumnDef[]): RowDict =>
+export const rowAsDict = (row: any[] | undefined, columns: ColumnDef[]): RowDict =>
 	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
 
 export const useSources = () => {

@@ -183,7 +183,7 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('solardemon_flr_id', data_type='integer', pretty_name='dMN FLR'),
 	C_ER('donki_cme_id', data_type='integer', pretty_name='DKI CME'),
 	C_ER('lasco_cme_time', data_type='time', pretty_name='LASCO CME'),
-	C_ER('rc_icme_time', data_type='time', pretty_name='R&C CME'),
+	C_ER('rc_icme_time', data_type='time', pretty_name='R&C ICME'),
 ]}]
 
 SOURCE_CH = ['sources_ch', { c.name: c for c in [

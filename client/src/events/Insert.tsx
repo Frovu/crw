@@ -1,11 +1,42 @@
-import { type MouseEvent } from 'react';
+import { useMemo, type MouseEvent } from 'react';
 import { color } from '../app';
-import { prettyDate, useEventListener } from '../util';
+import { dispatchCustomEvent, prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources } from './eventsState';
-import { getSourceLink, useTableQuery } from './sources';
+import { useFeidCursor, useEventsState, useSources, useTable, rowAsDict } from './eventsState';
+import { getSourceLink, timeInMargin, useCompoundTable, useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
+
+function useAutoSources() {
+	const sources = useSources();
+	const { start: feidOnset, id: feidId } = useFeidCursor();
+	const feid = useTable();
+	const flares = useCompoundTable('flare');
+	const icmes = useCompoundTable('icme');
+	const cmes = useCompoundTable('cme');
+
+	return useMemo(() => {
+		const event = rowAsDict(feid.data.find(r => r[0] === feidId), feid.columns);
+
+		// search ICME
+		const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time')!;
+		const icmeR = icmes.data.find(row => timeInMargin(row[icmeTimeIdx], feidOnset, 72e5));
+		const icme = icmeR && rowAsDict(icmeR, icmes.columns);
+		const icmeCmesTimes = (icme?.cmes_time as any as string[]).map(tm => new Date(tm + 'Z'));
+
+		const cmeLinkedIdx = icmes.columns.findIndex(c => c.id === 'liked_events')!;
+		const gstCmesTimes = cmes.data.filter(row => {
+			for (const lnk of (row[cmeLinkedIdx] as string[] ?? []))
+				if (lnk.includes('GST') && timeInMargin(new Date(lnk.slice(0, 19) + 'Z'), feidOnset, 4 * 36e5))
+					return true;
+			return false;
+		});
+
+		// legacy
+		
+		return { verdict: 'ok' };
+	}, []);
+}
 
 export default function InsertControls() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
@@ -94,6 +125,10 @@ export default function InsertControls() {
 		setModifySource(nxt.source.id as number);
 	});
 
+	useEventListener('action+autoSource', () => {
+		
+	});
+
 	if (plotId == null)
 		return null;
 	if (!start)
@@ -110,6 +145,9 @@ export default function InsertControls() {
 				{!isIdle && <button style={{ flex: 1 }} onClick={escape}>Cancel</button>}
 			</div>
 			
+		</div>
+		<div style={{ paddingBottom: 2 }}>
+			<button style={{ width: 56 }} onClick={() => dispatchCustomEvent('action+autoSource')}>Auto</button>
 		</div>
 		<div style={{ padding: '0 1px' }}>
 			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		

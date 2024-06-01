@@ -17,6 +17,7 @@ export const KEY_COMB = {
 	'setX': '1',
 	'setY': '2',
 	'plot': 'P',
+	'autoSource': 'A',
 	'cycleSource': 'S',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',

@@ -24,6 +24,9 @@ export function getSourceLink(which: EruptEnt, src: any) {
 	return links?.[src as keyof typeof links] as [string, string] ?? [null, null];
 }
 
+export const timeInMargin = (t: any, of: any, margin: number, right?: number) =>
+	of?.getTime() - margin <= t?.getTime() && t?.getTime() <= of?.getTime() + (right ?? margin);
+
 export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict) {
 	const { modifySource, data, columns } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_erupt)
@@ -56,8 +59,8 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 	
 	if (linkedToOther)
 		return askProceed(<>
-			<h4>Flare already linked</h4>
-			<p>Unlink this flare from eruption #{linkedToOther[0]} first!</p>
+			<h4>{which} already linked</h4>
+			<p>Unlink this {which} from eruption #{linkedToOther[0]} first!</p>
 		</>);
 		
 	const actuallyLink = async (eruptId: number, createdSrc?: number) => {
