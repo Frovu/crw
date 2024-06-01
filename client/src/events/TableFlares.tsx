@@ -74,7 +74,7 @@ export default function FlaresTable() {
 			// FIXME: this is probably slow
 			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
 			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
-				equalValues(flare[idColId], eru[eruptLinkIdx]))); 
+				equalValues(flare[idColId], eru[eruptLinkIdx])));
 		
 			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>

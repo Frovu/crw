@@ -3,7 +3,7 @@ import { LayoutContext, type ContextMenuProps } from '../layout';
 import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useSources, useTable, type RowDict } from './eventsState';
+import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
 import { assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
@@ -50,6 +50,7 @@ export default function EruptionsTable() {
 	const { data, columns } = useTable(ENT);
 	const flares = useCompoundTable('flare');
 	const sources = useSources();
+	const { start: cursorTime } = useFeidCursor();
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
@@ -64,9 +65,12 @@ export default function EruptionsTable() {
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
+	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
+	const focusIdx = sources.map(src => data.findIndex(r => src.erupt?.id === r[0])).find(i => i > 0) ||
+	  (focusTime == null ? data.length : data.findIndex(r => (r[1] as Date)?.getTime() > focusTime));
 
 	return <TableWithCursor {...{
-		data, columns, size, viewSize, entity: ENT,
+		data, columns, size, viewSize, focusIdx, entity: ENT,
 		allowEdit: true,
 		thead: <tr>{columns.slice(1).map((col) =>
 			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
