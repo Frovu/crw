@@ -85,6 +85,15 @@ export default function InsertControls() {
 			setStart(new Date(roundHour(setStartAt.getTime()) + move * mul));
 	});
 
+	useEventListener('action+cycleSource', () => {
+		const modSrc = useEventsState.getState().modifySource;
+		const idx = sources.findIndex(s => s.source.id === modSrc);
+		if (idx < 0)
+			return setModifySource(sources.at(0)?.source.id as number || null);
+		const nxt = sources[(idx + 1) % sources.length];
+		setModifySource(nxt.source.id as number);
+	});
+
 	if (plotId == null)
 		return null;
 	if (!start)
