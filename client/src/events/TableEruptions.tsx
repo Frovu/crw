@@ -42,9 +42,11 @@ function switchMainCME(erupt: RowDict, cme: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchCoordsSrc(erupt: RowDict, opt: 'FLR' | 'MNL') {
-	if (!erupt.flr_source && opt === 'FLR')
-		return;
+function switchCoordsSrc(erupt: RowDict, opt: string, sth?: RowDict) {
+	if (opt !== 'MNL') {
+		erupt.lat = sth?.lat;
+		erupt.lon = sth?.lon;
+	}
 	erupt.coords_source = opt;
 	makeSourceChanges('sources_erupt', erupt);
 }
@@ -119,21 +121,20 @@ export default function EruptionsTable() {
 							: flare[flare_columns[cid]];
 						return !equalValues(val, row[cidx]);
 					})() : null;
-					const flrOpts = (curs && cid === 'flr_source') ? sourceLabels.flare.map(flrSrc => {
+					const flrOpts = (curs && ['flr_source', 'coords_source'].includes(cid)) ? sourceLabels.flare.map(flrSrc => {
 						const [linkColId, idColId] = getSourceLink('flare', flrSrc);
 						const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 						const flr = erupt[linkColId] && flares.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
 						return flr ? rowAsDict(flr, flares.columns!) : null;
 					}).filter(s => s) : [];
-					const cmeOpts = (curs && cid === 'cme_source') ? sourceLabels.cme.map(cmeSrc => {
+					const cmeOpts = (curs && ['cme_source', 'coords_source'].includes(cid)) ? sourceLabels.cme.map(cmeSrc => {
 						const [linkColId, idColId] = getSourceLink('cme', cmeSrc);
 						const idColIdx = cmes.columns?.findIndex(col => col.id === idColId);
 						const cme = erupt[linkColId] && cmes.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
 						return cme ? rowAsDict(cme, cmes.columns!) : null;
 					}).filter(s => s) : [];
-
 					let value = valueToString(row[cidx]);
 					if (['XF peak', 'XF end'].includes(column.name))
 						value = value.split(' ')[1];
@@ -145,7 +146,8 @@ export default function EruptionsTable() {
 						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
 						{curs?.editing || (curs && column.type === 'enum') ? <CellInput {...{
 							table: ENT,
-							options: cid === 'coords_source' ? ['FLR', 'MNL'] // FIXME
+							options: cid === 'coords_source' ?
+								[...(flrOpts.length ? ['FLR'] : []),'MNL'].concat(cmeOpts.map(c => c!.src as string))
 								: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map(a => a!.src as string),
 							id: row[0],
 							column, value,
@@ -160,8 +162,15 @@ export default function EruptionsTable() {
 									switchMainCME(erupt, cme);
 								return !!cme;
 							} : cid === 'coords_source' ? (val: any) => {
-								switchCoordsSrc(erupt, val);
-								return true;
+								if (val === 'MNL') {
+									switchCoordsSrc(erupt, val);
+									return true;
+								}
+								const obj = val === 'FLR' ? flrOpts.find(fl => fl!.src === erupt.flr_source)
+									: cmeOpts.find(fl => fl!.src === val);
+								if (obj)
+									switchCoordsSrc(erupt, val, obj);
+								return !!obj;
 							} : undefined
 						}}/> : <span className='Cell' style={{ width: width + 'ch',
 							color: color(cyan ? 'cyan' : dark ? 'text-dark' : 'text')  }}>

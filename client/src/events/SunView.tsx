@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
-import { rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
 import { equalValues } from './events';
 import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
@@ -280,9 +280,9 @@ export default function SunView() {
 	const { mode, prefer } = { ...defaultSettings, ...layoutParams };
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
-	const eruptions = useTable('sources_erupt');
 	const { cursor } = useEventsState();
 	const sources = useSources();
+	const activeErupt = useSource('sources_erupt');
 	const { start: feidTime } = useFeidCursor();
 
 	if (mode === 'WSA-ENLIL') {
@@ -290,9 +290,7 @@ export default function SunView() {
 			const cme = rowAsDict(cmes.data[cursor.row], cmes.columns);
 			return <EnlilView id={cme.enlil_id as number | null}/>;
 		}
-		const erupt = cursor?.entity === 'sources_erupt'
-			? rowAsDict(eruptions.data[cursor.row], eruptions.columns)
-			: sources.find(s => s.erupt)?.erupt;
+		const erupt = activeErupt ?? sources.find(s => s.erupt)?.erupt;
 		const [linkColId, idColId] = getSourceLink('cme', 'DKI');
 		const idColIdx = cmes.columns.findIndex(c => c.id === idColId);
 		const found = erupt && cmes.data.find(row => row[0] === 'DKI' && equalValues(row[idColIdx], erupt[linkColId]));
@@ -303,9 +301,7 @@ export default function SunView() {
 	const flare = (() => {
 		if (cursor?.entity === 'flares')
 			return rowAsDict(flares.data[cursor.row], flares.columns);
-		const erupt = cursor?.entity === 'sources_erupt'
-			? rowAsDict(eruptions.data[cursor.row], eruptions.columns)
-			: sources.find(s => s.erupt)?.erupt;
+		const erupt = activeErupt ?? sources.find(s => s.erupt?.flr_source)?.erupt;
 		if (!erupt || !erupt.flr_source) return null;
 		const src = prefer === 'ANY' ? erupt.flr_source : prefer;
 		const [linkColId, idColId] = getSourceLink('flare', src);
@@ -347,6 +343,18 @@ export default function SunView() {
 			end: end + 3600 * 3,
 			title: flare.class as string,
 			src: flare.src as string
+		}}/>;
+	}
+	if (activeErupt?.lat && activeErupt?.lon && activeErupt?.cme_time ) {
+		const start = (activeErupt.cme_time as Date).getTime() / 1000;
+		return <SDO {...{
+			lat: activeErupt?.lat as number,
+			lon: activeErupt?.lon as number,
+			time: start,
+			start: start - 3600 * 2,
+			end: start + 3600 * 5,
+			title: 'CME',
+			src: activeErupt.coords_source as string
 		}}/>;
 	}
 
