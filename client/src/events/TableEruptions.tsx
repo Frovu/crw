@@ -3,7 +3,7 @@ import { LayoutContext, type ContextMenuProps } from '../layout';
 import { CellInput, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSources, useTable, type RowDict } from './eventsState';
+import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from './eventsState';
 import { assignCMEToErupt, assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
 import { apiPost } from '../util';
 import { askConfirmation } from '../Utility';
@@ -64,6 +64,7 @@ export default function EruptionsTable() {
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const sources = useSources();
+	const selectedErupt = useSource('sources_erupt');
 	const { start: cursorTime } = useFeidCursor();
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
@@ -92,13 +93,14 @@ export default function EruptionsTable() {
 			</td>)}
 		</tr>,
 		row: (row, idx, onClick) => {
-			const dark = !sources.find(src => src.erupt?.id === row[0]);
 			const erupt = rowAsDict(row, columns);
+			const cyan = erupt.id === selectedErupt?.id;
+			const dark = !sources.find(src => src.erupt?.id === erupt.id);
 			// FIXME: do this for all eruptions at load
 			const flare = erupt.flr_source === 'MNL' ? null : (() => {
 				const [linkColId, idColId] = getSourceLink('flare', erupt.flr_source);
 				const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
-				const flr = flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
+				const flr = erupt[linkColId] && flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
 				return flr ? rowAsDict(flr, flares.columns) : null;
 			})();
 			return <tr key={row[0]}
@@ -161,7 +163,8 @@ export default function EruptionsTable() {
 								switchCoordsSrc(erupt, val);
 								return true;
 							} : undefined
-						}}/> : <span className='Cell' style={{ width: width + 'ch', color: color(dark ? 'text-dark' : 'text')  }}>
+						}}/> : <span className='Cell' style={{ width: width + 'ch',
+							color: color(cyan ? 'cyan' : dark ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
 							{value}
 							{isLinkedModified && <span className='ModifiedMarker'/>}

@@ -84,6 +84,9 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 		if (which === 'flare') {
 			if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === event.src))
 				assignFlareToErupt(erupt, event);
+			else
+				erupt.active_region = erupt.active_region ?? event.active_region;
+
 		}
 		if (which === 'cme') {
 			if (erupt.cme_source == null || (alreadyLinked && erupt.cme_source === event.src))

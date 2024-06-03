@@ -19,10 +19,10 @@ export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{
 		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
 			onClick={() => id && linkEruptiveSourceEvent('cme', cme, id)}>
 				Link {src} CME</button>
+		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 		<button  className='TextButton' onClick={e => openWindow({
 			x: e.clientX, y: e.clientY, w: 400, h: 200, params: { type: 'Sun View', mode: 'WSA-ENLIL' } as any
 		})}>Open ENLIL view</button>
-		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 	</>;
 }
 
@@ -47,7 +47,8 @@ export default function CMETable() {
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
 	const focusTime = erupt?.cme_time ? (erupt?.cme_time as Date).getTime()
-		: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
+		: erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
+			: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(
