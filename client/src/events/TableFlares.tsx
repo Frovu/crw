@@ -83,8 +83,8 @@ export default function FlaresTable() {
 			})();
 
 			const darkk = otherLinked || (!erupt?.flr_start ?
-				stime > focusTime! + 864e5    || stime < focusTime! - 3 * 864e5 : 
-				stime > focusTime! + 36e5 * 4 || stime < focusTime! - 36e5 * 4);
+				stime > focusTime! + 2 * 864e5 || stime < focusTime! - 3 * 864e5 : 
+				stime > focusTime! + 36e5 * 4  || stime < focusTime! - 36e5 * 4);
 
 			// FIXME: this is probably slow
 			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);

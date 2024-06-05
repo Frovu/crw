@@ -149,7 +149,7 @@ FEID_SOURCE = ['feid_sources', { c.name: c for c in [
 	C_SRC('ch_id',    data_type='integer', sql='ch_id integer REFERENCES events.sources_ch ON DELETE CASCADE'),
 	C_SRC('erupt_id', data_type='integer', sql='erupt_id integer REFERENCES events.sources_erupt ON DELETE CASCADE'),
 
-	C_SRC('cr_influence', data_type='enum', enum=['residual', 'primary', 'secondary']),
+	C_SRC('cr_influence', data_type='enum', enum=['primary', 'secondary', 'residual']),
 ]}]
 
 SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [

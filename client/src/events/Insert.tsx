@@ -1,8 +1,8 @@
 import { type MouseEvent } from 'react';
 import { color } from '../app';
-import { dispatchCustomEvent, prettyDate, useEventListener } from '../util';
+import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources } from './eventsState';
+import { useFeidCursor, useEventsState, useSources, useTable, makeChange } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
@@ -21,6 +21,10 @@ export default function InsertControls() {
 	useTableQuery('feid_sources');
 	useTableQuery('sources_erupt');
 	useTableQuery('sources_ch');
+
+	const srcs = useTable('feid_sources');
+	const inflColumn = srcs.columns?.find(c => c.id === 'cr_influence');
+	const inflOpts = inflColumn?.enum;
 
 	const escape = () => {
 		setModifySource(null);
@@ -103,7 +107,7 @@ export default function InsertControls() {
 	if (!start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	return <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
+	return inflOpts && <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
 		<div style={{ display: 'flex', padding: '1px 1px 0 0' }}>
 			<div style={{ alignSelf: 'start', position: 'relative', width: 154, paddingTop: 1 }}>
 				<CoverageControls date={start}/>
@@ -116,7 +120,6 @@ export default function InsertControls() {
 			
 		</div>
 		<div style={{ paddingBottom: 2 }}>
-			<button style={{ width: 56 }} onClick={() => dispatchCustomEvent('action+autoSource')}>Auto</button>
 		</div>
 		<div style={{ padding: '0 1px' }}>
 			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
@@ -135,17 +138,26 @@ export default function InsertControls() {
 		</div>
 		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 1, fontSize: 14 }}>
 			{sources.filter(s => s.erupt).map((src, i) => {
-				const isActive = src.source.id === modifySource;
+				const infl = src.source.cr_influence as string | null;
+				const srcId = src.source.id as number;
+				const isActive = srcId === modifySource;
+			
 				const clr = (what: 'flare' | 'cme' | 'icme', which: string) => {
 					const isSet = src.erupt?.[getSourceLink(what, which)[0]];
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
-				return <div key={src.source.id as number}
+
+				const cycleInfl = (dir: -1 | 1) => {
+					const value = inflOpts[(inflOpts.length + inflOpts.indexOf(infl as any) + dir) % inflOpts.length];
+					makeChange('feid_sources', { column: inflColumn, value, id: srcId });
+				};
+				return <div key={srcId}
 					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
-					onClick={() => setModifySource(isActive ? null : src.source.id as number)}>
+					onClick={() => setModifySource(isActive ? null : srcId)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
 						<tr>
-							<td width={84}>ERUPT #{i+1}</td>
+							<td width={84} style={{ color: color('text-dark') }}>
+								ERU{i+1}</td>
 							<td width={40} style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}>FLR:</td>
 							<td width={36} style={clr('flare', 'SFT')}>SFT</td>
 							<td width={36} style={clr('flare', 'DKI')}>DKI</td>
@@ -153,8 +165,13 @@ export default function InsertControls() {
 							<td width={36} style={clr('flare', 'dMN')}>dMN</td>
 						</tr>
 						<tr>
-							<td height={10} style={{ color: color(src.source.influence == null ? 'red' : 'text') }}>
-								Infl: {src.source.influence as any ?? 'N/A'}</td>
+							<td className='TextButton' height={10}
+								style={{ color:color({ primary: 'cyan', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red') }}
+								onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(-1); }}
+								onClick={e => { e.stopPropagation(); cycleInfl(1); }}
+								onWheel={e => cycleInfl(e.deltaY > 0 ? 1 : -1)}>
+								
+								{infl ? infl : 'Infl: N/A'}</td>
 							<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
 							<td style={clr('cme', 'DKI')}>DKI</td>
 							<td style={clr('cme', 'LSC')} colSpan={2}>LASCO</td>

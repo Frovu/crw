@@ -32,7 +32,9 @@ function deleteEruption(id: number) {
 
 function switchMainFlare(erupt: RowDict, flare: RowDict) {
 	logMessage(`FLR: ${erupt.flr_source} -> ${flare.src} in ERUPT #${erupt.id}`);
+	const ar = erupt.active_region;
 	assignFlareToErupt(erupt, flare);
+	erupt.active_region = ar ?? flare.active_region;
 	makeSourceChanges('sources_erupt', erupt);
 }
 
