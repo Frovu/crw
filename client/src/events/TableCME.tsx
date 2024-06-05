@@ -46,9 +46,13 @@ export default function CMETable() {
 	const hRem = rowsHeight % rowH;
 	const trPadding = hRem > viewSize ? 1 : 0;
 	const headerPadding = (hRem - viewSize * trPadding);
-	const focusTime = erupt?.cme_time ? (erupt?.cme_time as Date).getTime()
-		: erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
-			: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
+	const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
+	const eruptIcme = erupt?.rc_icme_time &&
+		rowAsDict(icmes.data.find(r => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])), icmes.columns);
+	const icmeCmeTimes = (eruptIcme as any)?.cmes_time.at(0) as null | string;
+	const icmeCmeTime = icmeCmeTimes && new Date(icmeCmeTimes.slice(0, 19) + 'Z') as null | Date;
+	const focusTime = ((erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start) as Date)?.getTime()
+		?? (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(
@@ -80,7 +84,8 @@ export default function CMETable() {
 				if (timeInMargin(cme.time, erupt?.cme_time, 6e5))
 					return true;
 				if (cme.linked_events && (cme.linked_events as any as string[]).find(lnk =>
-					lnk.includes('GST') && timeInMargin(cme.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)))
+					(lnk.includes('GST') || lnk.includes('IPS')) &&
+					timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)))
 					return true;
 				if (feid.cme_time) {
 					if (timeInMargin(cme.time, feid.cme_time, 6e5))
@@ -88,7 +93,6 @@ export default function CMETable() {
 				}
 				const anyEruptIcme = sources.find(s => s.erupt?.rc_icme_time)?.erupt?.rc_icme_time;
 				if (anyEruptIcme) {
-					const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
 					const icme = rowAsDict(icmes.data.find(r => equalValues(anyEruptIcme, r[icmeTimeIdx])), icmes.columns);
 					for (const meTime of icme.cmes_time as any as string[])
 						if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5))
