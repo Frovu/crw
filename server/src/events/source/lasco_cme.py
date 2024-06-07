@@ -144,7 +144,7 @@ def fetch_height_time(conn, time, width: int, spd: int, mpa: int):
 			result.append((tstmp, float(h)))
 		
 		upsert_many(f'events.{TABLE_HT}', ['cme_time', 'cme_mpa', 'time', 'height'], result, constants=[time, mpa], do_nothing=True)
-		return result
+		return [(t.timestamp(), h) for t, h in result]
 	except Exception as e:
 		log.error('Failed to obtain LASCO CME HT: %s', str(e))
 		return []
