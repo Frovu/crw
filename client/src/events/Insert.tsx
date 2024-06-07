@@ -98,14 +98,12 @@ export default function InsertControls() {
 		setModifySource(nxt.source.id as number);
 	});
 
-	useEventListener('action+autoSource', () => {
-		
-	});
-
 	if (plotId == null)
 		return null;
 	if (!start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
+
+	const errNoPrimary = !sources.find(s => s.source.cr_influence === 'primary');
 
 	return inflOpts && <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
 		<div style={{ display: 'flex', padding: '1px 1px 0 0' }}>
@@ -118,8 +116,6 @@ export default function InsertControls() {
 				{!isIdle && <button style={{ flex: 1 }} onClick={escape}>Cancel</button>}
 			</div>
 			
-		</div>
-		<div style={{ paddingBottom: 2 }}>
 		</div>
 		<div style={{ padding: '0 1px' }}>
 			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
@@ -179,6 +175,9 @@ export default function InsertControls() {
 						</tr>
 					</tbody></table>
 				</div>;})}
+			<pre style={{ margin: 0, color: color('red') }}>
+				{errNoPrimary && 'no primary source\n'}
+			</pre>
 
 		</div>
 	</div>;

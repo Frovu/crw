@@ -8,8 +8,9 @@ from events.table_structure import ColumnDef as Col
 from events.source.donki import parse_coords
 
 TABLE = 'lasco_cmes'
+TABLE_HT = 'lasco_cmes_ht'
 HALO_ENT = 'lasco_cmes_halo'
-URL = 'https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL_ver1/'
+URL = 'https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL_ver2/'
 HALO_URL = 'https://cdaw.gsfc.nasa.gov/CME_list/halo/halo.html'
 EPOCH = (1996, 1)
 COLS = [ # ORDERED !!!
@@ -38,9 +39,14 @@ assert all(c.name in (TABLE_COLS + HALO_COLS) for c in COLS)
 
 def _init():
 	cols = ',\n'.join([c.sql for c in COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols}, UNIQUE NULLS NOT DISTINCT(time, speed, measurement_angle))'
+	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols}, '+\
+		' UNIQUE NULLS NOT DISTINCT(time, speed, measurement_angle))'
+	query2 = f'CREATE TABLE IF NOT EXISTS events.{TABLE_HT} (\n' +\
+		'cme_time timestamptz, cme_mpa real, time timestamptz, height real)'
+	
 	with pool.connection() as conn:
 		conn.execute(query)
+		conn.execute(query2)
 _init()
 
 def scrape_halo():
@@ -114,3 +120,47 @@ def fetch(progr, month):
 	scrape_month(month)
 	progr[0] = 1
 	scrape_month(prev_month)
+
+def fetch_height_time(conn, time, width: int, spd: int, mpa: int):
+	ht = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, height FROM events.{TABLE_HT} '+\
+		'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
+	if len(ht) > 0:
+		return ht
+	y, m, d = time.year, time.month, time.day
+	hh, mm, ss = time.hour, time.minute, time.second
+	letter = 'h' if width >= 360 else 'p' if width > 120 else 'n'
+	url = f'{URL}{y}_{m:02}/yht/{y}{m:02}{d:02}.{hh:02}{mm:02}{ss:02}.w{width:03}{letter}.v{spd:04}.p{mpa:03}g.yht'
+	log.debug('Obtaining LASCO CME height-time for %s %s/%s', time, spd, mpa)
+	try:
+		res = requests.get(url, timeout=5)
+		if res.status_code != 200:
+			raise Exception('HTTP: '+str(res.status_code))
+		result = []
+		for line in res.text.splitlines():
+			if line.startswith('#'):
+				continue
+			h, dt, tm = line.strip().split()[:3]
+			tstmp = datetime.strptime(dt+tm, '%Y/%m/%d%H:%M:%S').replace(tzinfo=timezone.utc)
+			result.append((tstmp, float(h)))
+		
+		upsert_many(f'events.{TABLE_HT}', ['cme_time', 'cme_mpa', 'time', 'height'], result, constants=[time, mpa], do_nothing=True)
+		return result
+	except Exception as e:
+		log.error('Failed to obtain LASCO CME HT: %s', str(e))
+		return []
+
+def plot_height_time(t_from, t_to):
+	with pool.connection() as conn:
+		curs = conn.execute('SELECT time, angular_width, speed, measurement_angle '+\
+			f' FROM events.{TABLE} WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [t_from, t_to])
+		result = []
+		for time, width, spd, mpa in curs.fetchall():
+			ht = fetch_height_time(conn, time, int(width), int(spd), int(mpa))
+			result.append({
+				'time': time.timestamp(),
+				'width': width,
+				'speed': spd,
+				'mpa': mpa,
+				'ht': ht
+			})
+		return result

@@ -89,13 +89,22 @@ def list_events():
 def events_tables_info():
 	return query.render_table_info(session.get('uid'))
 
+@bp.route('/cme_heighttime', methods=['GET'])
+@route_shielded
+def _cme_ht():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	if t_to - t_from > 86400 * 16:
+		raise ValueError('Interval too large')
+	return lasco_cme.plot_height_time(t_from, t_to)
+
 @bp.route('/sun_images', methods=['GET'])
 @route_shielded
 def _list_sdo():
 	t_from = int(request.args.get('from'))
 	t_to = int(request.args.get('to'))
 	source = request.args.get('source', 'AIA 193')
-	if t_to - t_from > 86400 * 8:
+	if t_to - t_from > 86400 * 3:
 		raise ValueError('Interval too large')
 	lst = sun_images.fetch_list(t_from, t_to, source)
 	return { 'timestamps': lst }

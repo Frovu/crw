@@ -31,6 +31,7 @@ import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
 import FlaresTable, { FlaresContextMenu } from './TableFlares';
 import CMETable, { CMEContextMenu } from './TableCME';
 import ICMETable, { ICMEContextMenu } from './TableICME';
+import CMEHeightTime from '../plots/CMEHeightTime';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -62,6 +63,7 @@ export function EventsLayoutContent() {
 		{type === 'Flares Table' && <FlaresTable/>}
 		{type === 'CME Table' && <CMETable/>}
 		{type === 'ICME Table' && <ICMETable/>}
+		{type === 'CME height' && <CMEHeightTime/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}
