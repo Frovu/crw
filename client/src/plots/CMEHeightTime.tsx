@@ -40,7 +40,7 @@ export default function CMEHeightTime() {
 			...(query.data?.map(c => [0, 1].map(i => c.ht.map(r => r[i]))) ?? []),
 		] as any;
 		const options = () => {
-			const ch = measureDigit().width;
+			const ch = measureDigit().width, scale = scaled(1);
 			return {
 				data,
 				mode: 2,
@@ -50,8 +50,31 @@ export default function CMEHeightTime() {
 				plugins: [
 				],
 				hooks: {
-					init: [(u, o, dt) => {
-						console.log('init', dt)
+					drawAxes: [(u) => {
+						const { ctx, bbox } = u;
+						ctx.save();
+						ctx.fillStyle = color('bg');
+						ctx.strokeStyle = color('grid');
+						ctx.lineWidth = 2;
+						const px = (a: number) => a * scale;
+						const x = bbox.left, y = px(4), w = px(30), h = px(28);
+						const margin = px(0);
+						ctx.fillRect(x, y, w, h);
+						ctx.fillStyle = color(colors.north);
+						ctx.textAlign = 'center';
+						ctx.textBaseline = 'top';
+						ctx.fillText('N', x + w / 2, y + margin);
+						ctx.textBaseline = 'bottom';
+						ctx.fillStyle = color(colors.south);
+						ctx.fillText('S', x + w / 2, y + h - margin);
+						ctx.textBaseline = 'middle';
+						ctx.textAlign = 'left';
+						ctx.fillStyle = color(colors.west);
+						ctx.fillText('W', x + margin, y + h / 2);
+						ctx.fillStyle = color(colors.east);
+						ctx.textAlign = 'right';
+						ctx.fillText('E', x + w - margin, y + h / 2);
+						ctx.restore();
 					}]
 				},
 				axes: [ {
