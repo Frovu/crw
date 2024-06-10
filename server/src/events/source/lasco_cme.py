@@ -1,4 +1,5 @@
 from datetime import datetime, timezone, timedelta
+from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from bs4 import BeautifulSoup
@@ -121,9 +122,10 @@ def fetch(progr, month):
 	progr[0] = 1
 	scrape_month(prev_month)
 
-def fetch_height_time(conn, time, width: int, spd: int, mpa: int):
-	ht = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, height FROM events.{TABLE_HT} '+\
-		'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
+def fetch_height_time(time, width: int, spd: int, mpa: int):
+	with pool.connection() as conn:
+		ht = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, height FROM events.{TABLE_HT} '+\
+			'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
 	if len(ht) > 0:
 		return ht
 	y, m, d = time.year, time.month, time.day
@@ -152,15 +154,15 @@ def fetch_height_time(conn, time, width: int, spd: int, mpa: int):
 def plot_height_time(t_from, t_to):
 	with pool.connection() as conn:
 		curs = conn.execute('SELECT time, angular_width, speed, measurement_angle '+\
-			f' FROM events.{TABLE} WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [t_from, t_to])
-		result = []
-		for time, width, spd, mpa in curs.fetchall():
-			ht = fetch_height_time(conn, time, int(width), int(spd), int(mpa))
-			result.append({
-				'time': time.timestamp(),
-				'width': width,
-				'speed': spd,
-				'mpa': mpa,
-				'ht': ht
-			})
-		return result
+			f' FROM events.{TABLE} WHERE speed IS NOT NULL AND angular_width IS NOT NULL AND '+\
+			'to_timestamp(%s) <= time AND time <= to_timestamp(%s)', [t_from, t_to])
+		cmes = [(time, int(width), int(spd), int(mpa)) for time, width, spd, mpa in curs.fetchall()]
+	with ThreadPoolExecutor(max_workers=8) as executor:
+		hts = executor.map(fetch_height_time, *zip(*cmes))
+	return [{
+		'time': time.timestamp(),
+		'width': width,
+		'speed': spd,
+		'mpa': mpa,
+		'ht': ht
+	} for (time, width, spd, mpa), ht in zip(cmes, hts)]
