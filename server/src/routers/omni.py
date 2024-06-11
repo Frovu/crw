@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from data.omni import core as database
-from data.particles_and_xrays import fetch_particles, fetch_xrays
+from data import particles_and_xrays
 from routers.utils import route_shielded, require_role
 
 bp = Blueprint('omni', __name__, url_prefix='/api/omni')
@@ -20,17 +20,17 @@ def get_result():
 def get_part():
 	t_from = int(request.args.get('from', 0))
 	t_to = int(request.args.get('to', 86400))
-	query = request.args.get('query')
-	res = fetch_particles(t_from, t_to, query)
-	return { 'rows': res }
+	query = request.args.get('query', '').split(',')
+	res, fields = particles_and_xrays.fetch('particles', t_from, t_to, query)
+	return { 'fields': fields, 'rows': res }
 
 @bp.route('/xrays', methods=['GET'])
 @route_shielded
 def get_xra():
 	t_from = int(request.args.get('from', 0))
 	t_to = int(request.args.get('to', 86400))
-	res = fetch_xrays(t_from, t_to)
-	return { 'rows': res }
+	res, fields = particles_and_xrays.fetch('xrays', t_from, t_to)
+	return { 'fields': fields, 'rows': res }
 
 @bp.route('/ensure', methods=['POST'])
 @require_role('operator')

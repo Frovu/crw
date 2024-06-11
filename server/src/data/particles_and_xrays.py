@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pymysql
 
@@ -28,19 +28,28 @@ PARTICLES = {
 	'p7': '>100 MeV',
 	'p8': '>500 MeV'
 }
+XRAYS = {
+	's': '0.05-0.4 nm',
+	'l': '0.1-0.8 nm'
+}
+GOES_X_EPOCH = datetime(2009, 11, 26, tzinfo=timezone.utc)
 
 def _init():
 	with pool.connection() as conn:
 		pcols = ', '.join([c+' real' for c in PARTICLES])
 		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key, {pcols})')
+		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_XRAY} (time timestamptz primary key, s real, l real)')
 _init()
 
-def _obtain_goes_particles(t_from, t_to):
+def _obtain_goes(which, t_from, t_to):
+	xra = which == 'xrays'
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in (t_from, t_to)]
 	dt_from = dt_from.replace(day=1, hour=0, minute=0, second=0)
 	dt_to = (dt_from + timedelta(days=31)).replace(day=1)
+	table = ('goes_xrays_goes_x' if dt_from < GOES_X_EPOCH else 'goes_xrays') if xra else 'goes_particles'
+	cols = ['s', 'l'] if xra else PARTICLES.keys()
 	try:
-		log.debug(f'GOES: obtaining particles: {dt_from} - {dt_to}')
+		log.debug('GOES: obtaining %s: %s - %s', which, dt_from, dt_to)
 		conn = pymysql.connect(
 			host=os.environ.get('CRS_HOST'),
 			port=int(os.environ.get('CRS_PORT', 0)),
@@ -48,28 +57,29 @@ def _obtain_goes_particles(t_from, t_to):
 			password=os.environ.get('CRS_PASS'),
 			database='goes')
 		with conn.cursor() as cursor:
-			q = f'SELECT dt, {",".join(PARTICLES.keys())} FROM goes_particles WHERE dt >= %s AND dt < %s'
+			q = f'SELECT dt, {",".join(cols)} FROM {table} WHERE dt >= %s AND dt < %s'
 			cursor.execute(q, [dt_from, dt_to])
 			data = list(cursor.fetchall())
-			upsert_many(T_PART, ['time', *PARTICLES.keys()], data)
+			upsert_many(T_XRAY if xra else T_PART, ['time', *cols], data)
 	except Exception as e:
 		log.error(f'GOES: failed to obtain (crs): {e}')
 	finally:
 		conn.close()
 
-def fetch_particles(t_from, t_to, which=['p1', 'p5', 'p7'], obtain=True):
+def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
+	xra = which == 'xrays'
 	expected_count = (t_to - t_from) // 300
-	query = [f for f in which if f in PARTICLES]
+	query = ['s', 'l'] if xra else [f for f in (query or []) if f in PARTICLES]
+	if len(query) < 1:
+		raise ValueError('Empty query')
 	with pool.connection() as conn:
 		cl = ','.join(query)
-		res = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, {cl} FROM {T_PART} '+\
+		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {cl} FROM {T_XRAY if xra else T_PART} '+\
 			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) '+\
-				'ORDER BY time', [t_from, t_to]).fetchall()
+				'ORDER BY time', [t_from, t_to])
+		res, cols = curs.fetchall(), [desc[0] for desc in curs.description]
 	if (len(res) > 0 and len(res) >= expected_count - 3) or not obtain:
-		return res
+		return res, cols
 
-	_obtain_goes_particles(t_from, t_to)
-	return fetch_particles(t_from, t_to, which, obtain=False)
-
-def fetch_xrays(t_from, t_to):
-	return []
+	_obtain_goes(which, t_from, t_to)
+	return fetch(which, t_from, t_to, query, obtain=False)
