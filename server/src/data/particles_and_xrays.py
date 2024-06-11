@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import pymysql
 
@@ -32,7 +32,7 @@ XRAYS = {
 	's': '0.05-0.4 nm',
 	'l': '0.1-0.8 nm'
 }
-GOES_X_EPOCH = datetime(2009, 11, 26, tzinfo=timezone.utc)
+GOES_X_EPOCH = datetime(2009, 11, 26)
 
 def _init():
 	with pool.connection() as conn:

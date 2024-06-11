@@ -51,8 +51,10 @@ export function font(sz: number|null=null, scale: boolean=false, style: string='
 	return `${style} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
 }
 
-export function superScript(digit: number) {
-	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
+export function superScript(num: number) {
+	const d = Math.abs(num);
+	const min = num < 0 ? '⁻' : '';
+	return min + ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][d];
 }
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {

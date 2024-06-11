@@ -38,7 +38,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			...uopts,
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
-				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
+				...(ax.distr !== 3 ? { range: (u, dmin, dmax) => {
 					const override = scaleOverrides?.[ax.label];
 					const [fmin, fmax] = ax.minMax ?? [null, null];
 					const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - .0001;
@@ -54,7 +54,12 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 						min - resultingH * bottom    - (!override && (dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
 						max + resultingH * (1 - top) + (!override && (dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
 					];
-				} })
+				} } : {
+					range: (u, dmin, dmax) => [
+						Math.min(dmin, ax.minMax?.[0] ?? dmin),
+						Math.max(dmax, ax.minMax?.[1] ?? dmax),
+					]
+				})
 			} as uPlot.Scale]) ?? []),
 			axes: [{
 				...axisDefaults(params.showGrid),
