@@ -69,7 +69,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		space: height * 1.75,
 		size: (width * 3) + scl * 10,
 		gap: scl,
-		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
+		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		ticks: { size: scl * 8, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		...(filter && { filter })
 	};

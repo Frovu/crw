@@ -308,8 +308,8 @@ export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }:
 		const isScatter = (u as any).mode === 2;
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
 		const val = isScatter ? (u.data as any)[sidx][1][dataIdx!] : u.data[sidx][dataIdx!] as number;
-		const value = typeof series.value == 'function'
-			? series.value(u, val, sidx, dataIdx) : Math.round(val / 100) * 100;
+		const valst = Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString()
+			: val.toExponential();
 		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
 
 		const top = u.valToPos(val, series.scale ?? 'y');
@@ -322,7 +322,7 @@ export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }:
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
 		tooltip.innerHTML = html ? html(u, sidx, dataIdx!)
-			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
+			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
 	}
 
 	const tooltip = document.createElement('div');

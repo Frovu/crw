@@ -95,7 +95,8 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				labelsPlugin({ params }),
 				tooltipPlugin({ ...tooltipParams }),
 				actionsPlugin(),
-			]
+				...(uopts?.plugins ?? [])
+			],
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
 	

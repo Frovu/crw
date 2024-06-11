@@ -44,11 +44,9 @@ export default function CMEHeightTime() {
 			return {
 				data,
 				mode: 2,
-				padding: [scaled(10), scaled(4), 0, 0],
+				padding: [scaled(10), scaled(6), 0, 0],
 				focus: { alpha: 1 },
 				cursor: { focus: { prox: 24 }, drag: { x: false, y: false, setScale: false } },
-				plugins: [
-				],
 				hooks: {
 					drawAxes: [(u) => {
 						const { ctx, bbox } = u;

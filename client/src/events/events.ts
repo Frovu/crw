@@ -21,6 +21,7 @@ const defaultSettings = {
 	showIncludeMarkers: true,
 	showMagneticClouds: true,
 	plotOffset: [-24, 48],
+	plotOffsetSolar: [-12, 12],
 	plotUnlistedEvents: true,
 	showEventsEnds: false,
 	showGrid: true,

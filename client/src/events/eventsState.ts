@@ -25,7 +25,7 @@ const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type TableName = typeof tables[number];
 const linkIds = [flaresLinks, cmeLinks, icmeLinks].flatMap(lnk => Object.values(lnk).map(l => l[0])) as string[];
 
-export const [fIdIdx, chIdIdx, eruptIdIdx] = [1, 2, 3];
+export const [fIdIdx, chIdIdx, eruptIdIdx, inflIdIdx] = [1, 2, 3, 4];
 
 const defaultSate = {
 	cursor: null as Cursor | null,
@@ -164,14 +164,17 @@ export const useSources = () => {
 	}).filter(a => !!a); 
 };
 
-export const useSource = (tbl: 'sources_ch' | 'sources_erupt') => {
+export const useSource = (tbl: 'sources_ch' | 'sources_erupt', soft=false) => {
+	const plotId = useEventsState(st => st.plotId);
 	const cursor = useEventsState(st => st.cursor);
 	const modifySource = useEventsState(st => st.modifySource);
 	const src = useTable('feid_sources');
 	const { data, columns } = useTable(tbl);
 	const idIdx = 'sources_erupt' === tbl ? eruptIdIdx : chIdIdx;
 	const targetId = modifySource ? src.data.find(row => row[0] === modifySource)?.[idIdx] as number :
-		cursor?.entity === tbl ? cursor.id! : null;
+		cursor?.entity === tbl ? cursor.id! : !soft ? null :
+			src.data.find(r => r[idIdx] === plotId && r[inflIdIdx] === 'primary')
+				?? src.data.find(r => r[idIdx] === plotId);
 	return targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns);
 };
 
