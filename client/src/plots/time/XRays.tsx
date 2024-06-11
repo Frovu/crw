@@ -6,7 +6,7 @@ import { apiGet } from '../../util';
 import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, measureDigit, scaled, superScript } from '../plotUtil';
-import { useSolarPlotContext } from './solar';
+import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
 
 const defaultParams = {
 }
@@ -36,6 +36,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		},
 		options: () => ({
 			padding: [scaled(16), scaled(6), 0, 0],
+			plugins: [flaresOnsetsPlugin({ show: true, flares })]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),

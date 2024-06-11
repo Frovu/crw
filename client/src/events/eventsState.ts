@@ -167,15 +167,16 @@ export const useSources = () => {
 export const useSource = (tbl: 'sources_ch' | 'sources_erupt', soft=false) => {
 	const plotId = useEventsState(st => st.plotId);
 	const cursor = useEventsState(st => st.cursor);
+	const feidId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const modifySource = useEventsState(st => st.modifySource);
 	const src = useTable('feid_sources');
 	const { data, columns } = useTable(tbl);
 	const idIdx = 'sources_erupt' === tbl ? eruptIdIdx : chIdIdx;
-	const targetId = modifySource ? src.data.find(row => row[0] === modifySource)?.[idIdx] as number :
+	const targetId = modifySource ? src.data?.find(row => row[0] === modifySource)?.[idIdx] as number :
 		cursor?.entity === tbl ? cursor.id! : !soft ? null :
-			src.data.find(r => r[idIdx] === plotId && r[inflIdIdx] === 'primary')
-				?? src.data.find(r => r[idIdx] === plotId);
-	return targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns);
+			src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId && r[inflIdIdx] === 'primary')?.[idIdx]
+				?? src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId)?.[idIdx];
+	return !data || targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns);
 };
 
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
