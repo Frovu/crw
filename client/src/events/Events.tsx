@@ -247,7 +247,10 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 			</div></>}
 		</>}
 		{isEventPlot && 
-			<PlotIntervalInput solar={isSolarPlot}/>}
+			<div className='Row'>
+				<PlotIntervalInput solar={isSolarPlot && (type !== 'Particles' || params.solarTime)}/>
+				{type === 'Particles' && <Checkbox text='solar' k='solarTime'/>}
+			</div> }
 		{isPlot && <>
 			<div className='separator'/>
 			<div className='Row'>
@@ -266,12 +269,12 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				<Checkbox text='meta' k='showMetaInfo'/>
 				<Checkbox text='label' k='showMetaLabels'/>
 			</div>
-			{!isSolarPlot && <><div className='Row'>
+			{(!isSolarPlot || (type === 'Particles' && params.solarTime === false)) && <><div className='Row'>
 				<CheckboxGlob text='show unlisted' k='plotUnlistedEvents'/>
 				<CheckboxGlob text='MCs' k='showMagneticClouds'/>
 				<CheckboxGlob text='ends' k='showEventsEnds'/>
-			</div>
-			<div className='separator'/></>}
+			</div></>}
+			<div className='separator'/>
 			<div className='Group'>
 				{type === 'Particles' && <ParticlesPlotContextMenu {...{ params, setParams }}/>}
 				{type === 'X-Rays' && <>

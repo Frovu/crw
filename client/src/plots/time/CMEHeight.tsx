@@ -97,7 +97,7 @@ export default function CMEHeightTime({ params }: { params: BasicPlotParams }) {
 				]
 			} as Omit<uPlot.Options, 'width'|'height'>;
 		};
-		return <ExportableUplot {...{ options, data: null as any, onCreate: console.log }}/>;
+		return <ExportableUplot {...{ options, data: null as any }}/>;
 	}, [query.isLoading, query.data, showGrid, params, from, to]);
 	
 	if (query.isError)

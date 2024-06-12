@@ -1,4 +1,5 @@
-import type { ContextMenuProps } from '../../layout';
+import { useContext } from 'react';
+import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
@@ -27,7 +28,8 @@ const PARTICLES = {
 export const particlesOptions = Object.keys(PARTICLES);
 
 const defaultParams = {
-	showParticles: ['p7', 'p8', 'p8']
+	solarTime: true,
+	showParticles: ['p3', 'p5', 'p7']
 };
 
 const colors = ['peach', 'cyan', 'green'];
@@ -40,31 +42,43 @@ export function ParticlesPlotContextMenu({ params, setParams }: ContextMenuProps
 	const { showParticles: show } = { ...defaultParams, ...params };
 	const opts = particlesOptions;
 
-	return <>
-		<div className='separator'/>
-		<div style={{ display: 'flex', flexFlow: 'row wrap', maxWidth: 320, justifyContent: 'right', marginTop: -4 }}>
-			{opts.map(part => <div key={part}>
-				<label style={{ padding: '0 4px' }}>
-					{name(part)}<input type='checkbox' style={{ marginLeft: 6 }} checked={show.includes(part)}
-						onChange={e => setParams({ showParticles: e.target.checked ?
-							opts.filter(o => show.includes(o) || o === part) : show.filter(o => o !== part) })}/></label>
-			</div>)}
-		</div></>;
+	return <div style={{ display: 'flex', flexFlow: 'row wrap', maxWidth: 320, justifyContent: 'right' }}>
+		{opts.map(part => <div key={part}>
+			<label style={{ paddingLeft: 6 }}>
+				{name(part)}<input type='checkbox' style={{ marginLeft: 6 }} checked={show.includes(part)}
+					onChange={e => setParams({ showParticles: e.target.checked ?
+						opts.filter(o => show.includes(o) || o === part) : show.filter(o => o !== part) })}/></label>
+		</div>)}
+	</div>;
 }
 
 export default function ParticlesPlot({ params }: { params: SatPartParams }) {
-	const { showParticles, showGrid, showTimeAxis } = { ...defaultParams, ...params };
-	const { interval } = useSolarPlotContext();
+	const { showParticles, showGrid, showTimeAxis, solarTime } = { ...defaultParams, ...params };
+	const para = { ...params };
+	const { interval: sInterv } = useSolarPlotContext();
+	const size = useContext(LayoutContext)?.size;
+	if (solarTime)
+		params.interval = sInterv;
+
+	if (!solarTime && params.stretch && size?.width) {
+		const padRight = 30;
+		const inter = params.interval;
+		const len = Math.ceil((inter[1].getTime() - inter[0].getTime()) / 36e5);
+		const targetHourWidth = (size.width - 30) / len;
+		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1;
+		para.interval = [
+			inter[0], new Date(inter[1].getTime() + 36e5 * addHoursRight)
+		];
+	}
 
 	return (<BasicPlot {...{
 		queryKey: ['satparticles', showParticles.join()],
-		queryFn: () => showParticles.length ? basicDataQuery('omni/particles', interval, ['time', ...showParticles]) : null as any,
-		params: {
-			...params,
-			interval,
+		queryFn: () => showParticles.length ? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles]) : null as any,
+		params: solarTime ? {
+			...para,
 			onsets: [],
 			clouds: [],
-		},
+		} : para,
 		options: () => ({
 			padding: [scaled(8), scaled(6), scaled(showTimeAxis ? 0 : 6), 0]
 		}),

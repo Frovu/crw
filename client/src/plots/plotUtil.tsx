@@ -99,7 +99,8 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, splits) => withOverrides(() => splits.map((v, i) => {
-			if (!show || v % (12 * 3600) !== 0)
+			const w = Math.ceil(((splits.at(-1) ?? 0) - splits[0]) / 3600);
+			if (!show || v % ((w > 40 ? 24 : 12) * 3600) !== 0)
 				return null;
 			const d = new Date(v * 1e3);
 			if (v % 86400 !== 0)
