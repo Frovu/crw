@@ -5,16 +5,19 @@ import { serializeCoords, useCompoundTable } from '../../events/sources';
 import type uPlot from 'uplot';
 import { color } from '../../app';
 import { font, scaled } from '../plotUtil';
+import type { BasicPlotParams } from '../basicPlot';
 
 type FlareOnset = { time: Date, sources: string[], flare: { class: string, lat: number, lon: number, src: string } };
 
-export function flaresOnsetsPlugin({ show, flares, focusTime }: { show: boolean, flares: FlareOnset[], focusTime: Date }): uPlot.Plugin {
+export function flaresOnsetsPlugin({ params, show, flares, focusTime }:
+{ params: BasicPlotParams, show: boolean, flares: FlareOnset[], focusTime: Date }): uPlot.Plugin {
+	const { showMetaInfo, showMetaLabels } = params;
 	const scale = scaled(1);
 	const px = (a: number) => a * scale;
 	return {
 		hooks: {
 			drawSeries: [ (u, si) => {
-				if (si !== 1)
+				if (si !== 1 || !showMetaInfo)
 					return;
 				const ctx = u.ctx;
 				ctx.save();
@@ -37,12 +40,13 @@ export function flaresOnsetsPlugin({ show, flares, focusTime }: { show: boolean,
 					const y = u.valToPos(u.data[1][u.valToIdx(time.getTime() / 1e3)]!, 'y', true);
 					ctx.moveTo(x - px(1), y - px(1));
 					ctx.lineTo(x - px(1), Math.max(px(12), y - hl / 2));
-					if (x - lastX < w && Math.abs(y - lastY) < px(12))
+					if (showMetaLabels && x - lastX < w && Math.abs(y - lastY) < px(12))
 						continue;
-					if (x - lastX < w && flare.src !== lastSrc)
+					if (showMetaLabels && x - lastX < w && flare.src !== lastSrc)
 						continue;
 					ctx.lineTo(x - px(1), Math.max(px(12), y - hl));
-					ctx.fillText(serializeCoords(flare), x + px(2), y - hl);
+					if (showMetaLabels)
+						ctx.fillText(serializeCoords(flare), x + px(2), y - hl);
 					lastY = y;
 					lastX = x;
 					lastSrc = flare.src;

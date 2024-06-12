@@ -499,15 +499,16 @@ export function ExportControls() {
 	</div>;
 }
 
-export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
-	const { plotOffset, set } = useEventsSettings();
-	const [left, right] = plotOffset;
-	const step = alterStep ?? 24;
+export function PlotIntervalInput({ step: alterStep, solar }: { step?: number, solar?: boolean }) {
+	const { plotOffset, plotOffsetSolar, set } = useEventsSettings();
+	const target = solar ? 'plotOffsetSolar' : 'plotOffset';
+	const [left, right] = solar ? plotOffsetSolar : plotOffset;
+	const step = alterStep ?? (solar ? 6 : 24);
 
 	return <div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title='Plot time interval, as hours offset from event onset'>
 		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-240' max='0' step={step} defaultValue={left}
-			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [e.target.valueAsNumber, right])}/>
+			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [e.target.valueAsNumber, right])}/>
 		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='240' step={step} defaultValue={right}
-			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [left, e.target.valueAsNumber])}/> h
+			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [left, e.target.valueAsNumber])}/> h
 	</div>;
 }

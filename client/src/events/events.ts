@@ -14,6 +14,7 @@ import type { HistoryOptions } from '../plots/EventsHistory';
 import { useLayoutsStore, type Layout, setNodeParams, type NodeParams } from '../layout';
 import { getApp } from '../app';
 import type { ColumnDef, Value, DataRow } from './columns';
+import { defaultSatXraysParams, type SatXraysParams } from '../plots/time/XRays';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -58,7 +59,7 @@ export type TableParams = {
 	showIncludeMarkers?: boolean,
 };
 
-export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
+export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams & SatXraysParams, 'interval'|'transformText'>;
 export const defaultPlotParams: CommonPlotParams = {
 	showMetaInfo: true,
 	showMetaLabels: true,
@@ -67,6 +68,7 @@ export const defaultPlotParams: CommonPlotParams = {
 	showGrid: true,
 	showMarkers: true,
 	showLegend: false,
+
 	useA0m: true,
 	subtractTrend: true,
 	showAz: true,
@@ -80,11 +82,13 @@ export const defaultPlotParams: CommonPlotParams = {
 	showBz: true,
 	showBxBy: false,
 	useTemperatureIndex: true,
-	rsmExtended: false
-};
+	rsmExtended: false,
 
+	...defaultSatXraysParams,
+};
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
-export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', 'CME height', 'X-Rays', 'Particles'] as const;
+export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;
+export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
 	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
 	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Empty' ] as const;

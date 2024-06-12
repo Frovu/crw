@@ -1,28 +1,16 @@
-
-import { useEventsSettings, type PanelParams } from '../../events/events';
-import { useFeidCursor, useSource } from '../../events/eventsState';
-import type { ContextMenuProps } from '../../layout';
-import { apiGet } from '../../util';
 import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
-import { axisDefaults, color, measureDigit, scaled, superScript } from '../plotUtil';
+import { axisDefaults, color, measureDigit, scaled } from '../plotUtil';
 import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
 
-const defaultParams = {
-}
+export const defaultSatXraysParams = {
+	showShortXrays: true
+};
 
-export type SatXraysParams = BasicPlotParams & Partial<typeof defaultParams>;
-
-export function XraysContextMenu({ params, setParams }: ContextMenuProps<Partial<SatXraysParams>>) {
-	// const { mode } = { ...defaultParams, ...params };
-
-	return <div className='Group'>
-
-	</div>;
-}
+export type SatXraysParams = BasicPlotParams & typeof defaultSatXraysParams;
 
 export default function XraysPlot({ params }: { params: SatXraysParams }) {
-	const { showGrid, showTimeAxis } = { ...defaultParams, ...params };
+	const { showGrid, showShortXrays } = params;
 	const { interval, flares, focusTime } = useSolarPlotContext();
 
 	return (<BasicPlot {...{
@@ -36,7 +24,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		},
 		options: () => ({
 			padding: [scaled(16), scaled(6), 0, 0],
-			plugins: [flaresOnsetsPlugin({ show: true, flares, focusTime })]
+			plugins: [flaresOnsetsPlugin({ params, show: true, flares, focusTime })]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),
@@ -44,7 +32,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 			fullLabel: 'X-Ray, W/m^2',
 			distr: 3,
 			gap: scaled(4),
-			size: measureDigit().width + measureDigit().height + scaled(4),
+			size: measureDigit().width + measureDigit().height + scaled(2),
 			minMax: [null, 1e-5],
 			values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v)+8] ?? '' : '')
 		}],
@@ -54,6 +42,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 			legend: '1 - 8 Å',
 			stroke: color('magenta'),
 		}, {
+			show: showShortXrays,
 			label: 's',
 			scale: 'y',
 			legend: '.5 - 4 Å',

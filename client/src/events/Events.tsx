@@ -9,7 +9,7 @@ import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './E
 import { type TableMenuDetails, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, PlotContext,
-	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn } from './events';
+	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn, solarPlotOptions } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import { ColorsSettings } from '../Colors';
 import PlotCircles from '../plots/time/Circles';
@@ -180,13 +180,15 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
 
+	const type = params.type;
 	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;
 	const averages = details?.averages;
-	const isEventPlot = plotPanelOptions.includes(params.type as any);
-	const isPlot = isEventPlot || statPanelOptions.includes(params.type as any);
+	const isSolarPlot = solarPlotOptions.includes(type as any);
+	const isEventPlot = isSolarPlot || plotPanelOptions.includes(type as any);
+	const isPlot = isEventPlot || statPanelOptions.includes(type as any);
 	const cur = (isPlot && {
 		...defaultPlotParams,
 		...params
@@ -199,18 +201,16 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={cur[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
 	return <>
-		{params.type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Erupt Src Table' && <EruptionsContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Flares Table' && <FlaresContextMenu {...{ params, setParams }}/>}
-		{params.type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
-		{params.type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
-		{params.type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
-		{/* {params.type === 'X-Rays / Particles' && <XraysParticlesContextMenu {...{ params, setParams }}/>}
-		{params.type === 'X-Rays / Particles' && <XraysParticlesContextMenu {...{ params, setParams }}/>} */}
-		{params.type === 'FEID Table' && <>
+		{type === 'Correlation' && <CorrelationContextMenu {...{ params, setParams }}/>}
+		{type === 'Histogram' && <HistogramContextMenu {...{ params, setParams }}/>}
+		{type === 'Superposed epochs' && <EpochCollisionContextMenu {...{ params, setParams }}/>}
+		{type === 'Events history' && <EventsHistoryContextMenu {...{ params, setParams }}/>}
+		{type === 'Erupt Src Table' && <EruptionsContextMenu {...{ params, setParams }}/>}
+		{type === 'Flares Table' && <FlaresContextMenu {...{ params, setParams }}/>}
+		{type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
+		{type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
+		{type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
+		{type === 'FEID Table' && <>
 			{averages && <>
 				<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
 				<button onClick={() => copyAverages(averages, 'col')}>Copy column averages</button>
@@ -247,15 +247,15 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 			</div></>}
 		</>}
 		{isEventPlot && 
-			<PlotIntervalInput/>}
+			<PlotIntervalInput solar={isSolarPlot}/>}
 		{isPlot && <>
 			<div className='separator'/>
 			<div className='Row'>
 				<CheckboxGlob text='grid' k='showGrid'/>
-				{(isEventPlot || params.type === 'Events history')
+				{(isEventPlot || type === 'Events history')
 					&& <CheckboxGlob text='markers' k='showMarkers'/>}
 				<CheckboxGlob text='legend' k='showLegend'/>
-				{(params.type === 'Correlation')
+				{(type === 'Correlation')
 					&& <CheckboxGlob text='title' k='showTitle'/>}
 			</div>
 		</>}
@@ -266,14 +266,17 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				<Checkbox text='meta' k='showMetaInfo'/>
 				<Checkbox text='label' k='showMetaLabels'/>
 			</div>
-			<div className='Row'>
+			{!isSolarPlot && <><div className='Row'>
 				<CheckboxGlob text='show unlisted' k='plotUnlistedEvents'/>
 				<CheckboxGlob text='MCs' k='showMagneticClouds'/>
 				<CheckboxGlob text='ends' k='showEventsEnds'/>
 			</div>
-			<div className='separator'/>
+			<div className='separator'/></>}
 			<div className='Group'>
-				{params.type === 'Cosmic Rays' && <>
+				{type === 'X-Rays' && <>
+					<Checkbox text='Show short wavelength' k='showShortXrays'/>
+				</>}
+				{type === 'Cosmic Rays' && <>
 					<div className='Row'>
 						<Checkbox text='Show Axy' k='showAxy'/>
 						<Checkbox text='Az' k='showAz'/>
@@ -283,7 +286,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 					<Checkbox text='Subtract trend' k='subtractTrend'/>
 					<Checkbox text='Mask GLE' k='maskGLE'/>
 				</>}
-				{params.type === 'SW Plasma' && <>
+				{type === 'SW Plasma' && <>
 					<Checkbox text='Show T index' k='useTemperatureIndex'/>
 					<div className='Row'>
 						<Checkbox text='Show beta' k='showBeta'/>
@@ -291,11 +294,11 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 
 					</div>
 				</>}
-				{params.type === 'IMF + Speed' && <>
+				{type === 'IMF + Speed' && <>
 					<Checkbox text='Show Bx, By' k='showBxBy'/>
 					<Checkbox text='Show Bz' k='showBz'/>
 				</>}
-				{params.type === 'Ring of Stations' && <>
+				{type === 'Ring of Stations' && <>
 					<div>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em', padding: 0 }}
 						defaultValue={cur.exclude?.join(',') ?? ''}
 						onChange={e => JSON.stringify(e.target.value.split(/\s*,\s*/g).filter(s => s.length>3)) !== JSON.stringify(cur.exclude)
@@ -319,11 +322,11 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				</>}
 			</div>
 		</>}
-		{params.type === 'ExportControls' && <>
+		{type === 'ExportControls' && <>
 			<button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save replaces</button>
 			<button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load replaces</button>
 		</>}
-		{(isPlot || statPanelOptions.includes(params.type as any)) && <>
+		{(isPlot || statPanelOptions.includes(type as any)) && <>
 			<div className='separator'/>
 			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 		</>}
