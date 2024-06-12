@@ -50,8 +50,8 @@ export function flaresOnsetsPlugin({ params, flares, focusTime }:
 						if (y < px(24)) {
 							ctx.beginPath();
 							ctx.moveTo(x, y - px(2));
-							ctx.lineTo(x - hl, y - px(2));
-							ctx.fillText(serializeCoords(flare), x - hl - px(2), y + px(8));
+							ctx.lineTo(x - hl / 2, y - px(2));
+							ctx.fillText(serializeCoords(flare), x - hl / 2 - px(2), y + px(8));
 						} else {
 							ctx.fillText(serializeCoords(flare), x + px(18), y - hl);
 						}

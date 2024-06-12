@@ -99,11 +99,11 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, splits) => withOverrides(() => splits.map((v, i) => {
-			if (!show || v % (6 * 3600) !== 0)
+			if (!show || v % (12 * 3600) !== 0)
 				return null;
 			const d = new Date(v * 1e3);
 			if (v % 86400 !== 0)
-				return applyTextTransform(d.toISOString().slice(11,16));
+				return applyTextTransform('  ' + d.toISOString().slice(11,16));
 			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
 			const day = String(d.getUTCDate()).padStart(2, '0');
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
