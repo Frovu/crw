@@ -23,7 +23,7 @@ export function XraysContextMenu({ params, setParams }: ContextMenuProps<Partial
 
 export default function XraysPlot({ params }: { params: SatXraysParams }) {
 	const { showGrid, showTimeAxis } = { ...defaultParams, ...params };
-	const { interval, flares } = useSolarPlotContext();
+	const { interval, flares, focusTime } = useSolarPlotContext();
 
 	return (<BasicPlot {...{
 		queryKey: ['satxrays'],
@@ -36,7 +36,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		},
 		options: () => ({
 			padding: [scaled(16), scaled(6), 0, 0],
-			plugins: [flaresOnsetsPlugin({ show: true, flares })]
+			plugins: [flaresOnsetsPlugin({ show: true, flares, focusTime })]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),

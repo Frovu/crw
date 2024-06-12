@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useEventsSettings } from '../../events/events';
-import { rowAsDict, useFeidCursor, useSource } from '../../events/eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../../events/eventsState';
 import { serializeCoords, useCompoundTable } from '../../events/sources';
 import type uPlot from 'uplot';
 import { color } from '../../app';
@@ -8,7 +8,7 @@ import { font, scaled } from '../plotUtil';
 
 type FlareOnset = { time: Date, sources: string[], flare: { class: string, lat: number, lon: number, src: string } };
 
-export function flaresOnsetsPlugin({ show, flares }: { show: boolean, flares: FlareOnset[] }): uPlot.Plugin {
+export function flaresOnsetsPlugin({ show, flares, focusTime }: { show: boolean, flares: FlareOnset[], focusTime: Date }): uPlot.Plugin {
 	const scale = scaled(1);
 	const px = (a: number) => a * scale;
 	return {
@@ -19,7 +19,6 @@ export function flaresOnsetsPlugin({ show, flares }: { show: boolean, flares: Fl
 				const ctx = u.ctx;
 				ctx.save();
 				ctx.beginPath();
-				ctx.strokeStyle = color('text-dark');
 				ctx.font = font(px(12));
 				ctx.lineWidth = px(1);
 				ctx.textAlign = 'right';
@@ -29,6 +28,11 @@ export function flaresOnsetsPlugin({ show, flares }: { show: boolean, flares: Fl
 				const hl = px(30);
 				let lastX = 0, lastY = 0, lastSrc = '';
 				for (const { time, flare } of flares) {
+					ctx.stroke();
+					ctx.beginPath();
+					const col = focusTime.getTime() === time.getTime() ? 'active'
+						: ['A', 'B', 'C'].includes((flare.class ?? 'A')[0]) ? 'text-dark' : 'white';
+					ctx.strokeStyle = ctx.fillStyle = color(col);
 					const x = u.valToPos(time.getTime() / 1e3, 'x', true);
 					const y = u.valToPos(u.data[1][u.valToIdx(time.getTime() / 1e3)]!, 'y', true);
 					ctx.moveTo(x - px(1), y - px(1));
@@ -38,13 +42,12 @@ export function flaresOnsetsPlugin({ show, flares }: { show: boolean, flares: Fl
 					if (x - lastX < w && flare.src !== lastSrc)
 						continue;
 					ctx.lineTo(x - px(1), Math.max(px(12), y - hl));
-					ctx.fillStyle = color(['A', 'B', 'C'].includes((flare.class ?? 'A')[0]) ? 'text-dark' : 'white');
-					ctx.fillText(serializeCoords(flare), x, y - hl);
+					ctx.fillText(serializeCoords(flare), x + px(2), y - hl);
 					lastY = y;
 					lastX = x;
 					lastSrc = flare.src;
-					ctx.stroke();
 				}
+				ctx.stroke();
 				ctx.restore();
 			} ]
 		}
@@ -52,14 +55,18 @@ export function flaresOnsetsPlugin({ show, flares }: { show: boolean, flares: Fl
 }
 
 export function useSolarPlotContext() {
+	const cursor = useEventsState(s => s.cursor);
 	const { start: feidTime } = useFeidCursor();
 	const { plotOffsetSolar } = useEventsSettings();
 	const erupt = useSource('sources_erupt', true);
-	const foucsTime = (erupt?.flr_start ?? erupt?.cme_time) as Date
+	const flr = useCompoundTable('flare');
+
+	const focusTime = cursor?.entity === 'flares' ?
+		rowAsDict(flr.data[cursor.row], flr.columns).start_time as Date
+		: (erupt?.flr_start ?? erupt?.cme_time) as Date
 		?? new Date((feidTime?.getTime() ?? 0) - 3 * 864e5);
 	const interval = plotOffsetSolar.map(o =>
-		new Date(foucsTime.getTime() + o * 36e5)) as [Date, Date];
-	const flr = useCompoundTable('flare');
+		new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
 
 	return useMemo(() => {
 		const flrTidx = flr.columns.findIndex(c => c.id === 'start_time');
@@ -77,6 +84,7 @@ export function useSolarPlotContext() {
 			});
 		}
 		return {
+			focusTime,
 			interval,
 			flares: Array.from(flrs.values()) as FlareOnset[]
 		};
