@@ -31,8 +31,8 @@ import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
 import FlaresTable, { FlaresContextMenu } from './TableFlares';
 import CMETable, { CMEContextMenu } from './TableCME';
 import ICMETable, { ICMEContextMenu } from './TableICME';
-import CMEHeightTime from '../plots/CMEHeightTime';
-import ParticlesPlot from '../plots/time/Particles';
+import CMEHeightTime from '../plots/time/CMEHeight';
+import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
 import XraysPlot from '../plots/time/XRays';
 
 export function EventsLayoutContent() {
@@ -273,6 +273,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 			</div>
 			<div className='separator'/></>}
 			<div className='Group'>
+				{type === 'Particles' && <ParticlesPlotContextMenu {...{ params, setParams }}/>}
 				{type === 'X-Rays' && <>
 					<Checkbox text='Show short wavelength' k='showShortXrays'/>
 				</>}

@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { useQuery } from 'react-query';
-import { apiGet } from '../util';
-import { scaled, axisDefaults, customTimeSplits, font } from './plotUtil';
+import { apiGet } from '../../util';
+import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
 import type uPlot from 'uplot';
-import { ExportableUplot } from '../events/ExportPlot';
-import { color } from '../app';
-import { useSolarPlotContext } from './time/solar';
-import type { BasicPlotParams } from './basicPlot';
+import { ExportableUplot } from '../../events/ExportPlot';
+import { color } from '../../app';
+import { useSolarPlotContext } from './solar';
+import type { BasicPlotParams } from '../basicPlot';
 
 const colors = {
 	north: 'green',

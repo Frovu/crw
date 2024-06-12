@@ -104,7 +104,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 		return <div className='Center'>LOADING...</div>;
 	if (query.isError)
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data?.[0].length)
+	if (!query.data?.[0]?.length)
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }}>
