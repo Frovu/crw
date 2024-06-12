@@ -24,11 +24,11 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		},
 		options: () => ({
 			padding: [scaled(8), scaled(6), 0, 0],
-			plugins: [flaresOnsetsPlugin({ params, show: true, flares, focusTime })]
+			plugins: [flaresOnsetsPlugin({ params, flares, focusTime })]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),
-			label: 'y',
+			label: 'xray',
 			fullLabel: 'X-Ray, W/m²',
 			distr: 3,
 			gap: scaled(4),
@@ -37,13 +37,13 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		}],
 		series: () => [{
 			label: 'l',
-			scale: 'y',
+			scale: 'xray',
 			legend: '1 - 8 Å',
 			stroke: color('magenta'),
 		}, {
 			show: showShortXrays,
 			label: 's',
-			scale: 'y',
+			scale: 'xray',
 			legend: '.5 - 4 Å',
 			stroke: color('purple'),
 		}]
