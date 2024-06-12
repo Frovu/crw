@@ -11,10 +11,10 @@ import type { CorrelationParams } from '../plots/Correlate';
 import type { HistogramParams } from '../plots/Histogram';
 import type { CollisionOptions } from '../plots/EpochCollision';
 import type { HistoryOptions } from '../plots/EventsHistory';
+import type { SatXraysParams } from '../plots/time/XRays';
 import { useLayoutsStore, type Layout, setNodeParams, type NodeParams } from '../layout';
 import { getApp } from '../app';
 import type { ColumnDef, Value, DataRow } from './columns';
-import { defaultSatXraysParams, type SatXraysParams } from '../plots/time/XRays';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -84,7 +84,7 @@ export const defaultPlotParams: CommonPlotParams = {
 	useTemperatureIndex: true,
 	rsmExtended: false,
 
-	...defaultSatXraysParams,
+	showShortXrays: true,
 };
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;

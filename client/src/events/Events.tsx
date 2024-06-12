@@ -65,7 +65,6 @@ export function EventsLayoutContent() {
 		{type === 'Flares Table' && <FlaresTable/>}
 		{type === 'CME Table' && <CMETable/>}
 		{type === 'ICME Table' && <ICMETable/>}
-		{type === 'CME height' && <CMEHeightTime/>}
 		{type === 'Correlation' && <CorrelationPlot/>}
 		{type === 'Superposed epochs' && <EpochCollision/>}
 		{type === 'Events history' && <EventsHistory/>}
@@ -77,6 +76,7 @@ export function EventsLayoutContent() {
 			{type === 'SW Types' && <PlotSWTypes {...{ params }}/>}
 			{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
 			{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
+			{type === 'CME height' && <CMEHeightTime {...{ params }}/>}
 			{type === 'Ring of Stations' && <>
 				<PlotCircles {...{ params }}/>
 				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}

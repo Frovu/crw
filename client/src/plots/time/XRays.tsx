@@ -1,6 +1,6 @@
 import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
-import { axisDefaults, color, measureDigit, scaled } from '../plotUtil';
+import { axisDefaults, color, scaled } from '../plotUtil';
 import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
 
 export const defaultSatXraysParams = {
@@ -23,16 +23,15 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 			clouds: [],
 		},
 		options: () => ({
-			padding: [scaled(16), scaled(6), 0, 0],
+			padding: [scaled(8), scaled(6), 0, 0],
 			plugins: [flaresOnsetsPlugin({ params, show: true, flares, focusTime })]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),
 			label: 'y',
-			fullLabel: 'X-Ray, W/m^2',
+			fullLabel: 'X-Ray, W/m²',
 			distr: 3,
 			gap: scaled(4),
-			size: measureDigit().width + measureDigit().height + scaled(2),
 			minMax: [null, 1e-5],
 			values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v)+8] ?? '' : '')
 		}],
