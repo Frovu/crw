@@ -190,7 +190,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 				const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			})}>
-				<thead>{thead}</thead> 
+				{thead && <thead>{thead}</thead>}
 				<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize))
 					.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick))}</tbody> 
 				{tfoot && <tfoot>{tfoot}</tfoot> }
@@ -214,11 +214,13 @@ export default function TableView({ size, averages, entity }: {
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
+	const hideHeader = params?.hideHeader && size.height < 480;
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const rowsHeight = size.height
 		- (showAverages ? 107 : 0)
-		- (showChangelog ? 54 : 0) - 105;
+		- (showChangelog ? 54 : 0)
+		- (hideHeader ? 2 : 105);
 	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
@@ -268,7 +270,7 @@ export default function TableView({ size, averages, entity }: {
 	return <TableWithCursor {...{
 		data, columns, size, viewSize, onKeydown, entity,
 		allowEdit: true,
-		thead: <><tr>
+		thead: hideHeader ? null : <><tr>
 			{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
 				className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
 			##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
@@ -344,7 +346,7 @@ export default function TableView({ size, averages, entity }: {
 						{isLabel ? label : val ?  val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}</td>;
 				})}
 			</tr>)}</>,
-		footer: <>{showChangelog && <div style={{ position: 'relative', display: 'flex',
+		footer: hideHeader ? null : <>{showChangelog && <div style={{ position: 'relative', display: 'flex',
 			flexDirection: 'column-reverse', fontSize: 14, border: '1px var(--color-border) solid',
 			height: 52, padding: 2, margin: 2, marginTop: 0, overflowY: 'scroll' }}>
 			{changelog?.length ? changelog.map(change => {
@@ -359,7 +361,7 @@ export default function TableView({ size, averages, entity }: {
 					{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
 				</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 		</div>}
-		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between' }}>
+		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between', alignContent: 'bottom' }}>
 			<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
 				<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 				{changeCount > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}

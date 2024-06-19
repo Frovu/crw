@@ -57,6 +57,7 @@ export const useEventsSettings = create<EventsSettings>()(
 export type TableParams = {
 	showChangelog: boolean,
 	showAverages: boolean,
+	hideHeader?: boolean,
 	showIncludeMarkers?: boolean,
 };
 

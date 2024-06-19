@@ -189,10 +189,10 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const isSolarPlot = solarPlotOptions.includes(type as any);
 	const isEventPlot = isSolarPlot || plotPanelOptions.includes(type as any);
 	const isPlot = isEventPlot || statPanelOptions.includes(type as any);
-	const cur = (isPlot && {
+	const cur = {
 		...defaultPlotParams,
 		...params
-	}) as PanelParams;
+	} as PanelParams;
 
 	const CheckboxGlob = ({ text, k }: { text: string, k: keyof typeof settings }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
@@ -218,13 +218,20 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				<div className='separator'/>
 			</>}
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
+			{rowId != null && cur.hideHeader && <Checkbox text='Hide table head' k='hideHeader'/>}
 			<div className='separator'/>
 			{rowId != null && <>
 				<button onClick={() => setPlotId(() => rowId)}>Plot this event</button>
 				<div className='separator'/>
 			</>}
+			{rowId == null && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
+			{rowId == null && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
+			{!column && role && <>
+				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
+				<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>
+			</>}
 			{column && <>
-				{role && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>}
+				{role && rowId != null && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>}
 				{column.isComputed && role &&
 					<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>}
 				<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
@@ -234,16 +241,11 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				{value !== undefined && <button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}
 				>Filter {column.fullName} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 			</>}
-			{!column && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
-			{!column && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
-			{!column && role && <>
-				<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
-				<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>
-			</>}
-			{!column && <><div className='separator'/><div className='Group'>
+			{rowId == null && <><div className='separator'/><div className='Group'>
 				<Checkbox text='Show column averages' k='showAverages'/>
 				<CheckboxGlob text='Show include markers' k='showIncludeMarkers'/>
 				<Checkbox text='Show changes log' k='showChangelog'/>
+				<Checkbox text='Hide table head' k='hideHeader'/>
 			</div></>}
 		</>}
 		{isEventPlot && 
