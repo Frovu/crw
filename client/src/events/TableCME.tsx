@@ -49,7 +49,7 @@ export default function CMETable() {
 	const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
 	const eruptIcme = erupt?.rc_icme_time &&
 		rowAsDict(icmes.data.find(r => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])), icmes.columns);
-	const icmeCmeTimes = (eruptIcme as any)?.cmes_time.at(0) as null | string;
+	const icmeCmeTimes = (eruptIcme as any)?.cmes_time?.at(0) as null | string;
 	const icmeCmeTime = icmeCmeTimes && new Date(icmeCmeTimes.slice(0, 19) + 'Z') as null | Date;
 	const focusTime = ((erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start) as Date)?.getTime()
 		?? (cursorTime && (cursorTime.getTime() - 2 * 864e5));
@@ -78,9 +78,14 @@ export default function CMETable() {
 			const isLinked = equalValues(cme[idColId], linked?.[cme.src as any]);
 			const isPrime = isLinked && erupt?.cme_source === cme.src;
 			const otherLinked = !isLinked && linked?.[cme.src as any];
-			const linkedToAnyErupt = sources.find(s => equalValues(s.erupt?.[linkColId], cme[idColId]));
+			const darkk = (otherLinked || (!erupt?.cme_time ?
+				time > focusTime! + 864e5    || time < focusTime! - 3 * 864e5 : 
+				time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4));
+			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
+			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
+				equalValues(cme[idColId], eru[eruptLinkIdx])));
 
-			const orange = !isLinked && !otherLinked && !linkedToAnyErupt && (() => {
+			const orange = !dark && (() => {
 				if (timeInMargin(cme.time, erupt?.cme_time, 6e5))
 					return true;
 				if (cme.linked_events && (cme.linked_events as any as string[]).find(lnk =>
@@ -94,20 +99,12 @@ export default function CMETable() {
 				const anyEruptIcme = sources.find(s => s.erupt?.rc_icme_time)?.erupt?.rc_icme_time;
 				if (anyEruptIcme) {
 					const icme = rowAsDict(icmes.data.find(r => equalValues(anyEruptIcme, r[icmeTimeIdx])), icmes.columns);
-					for (const meTime of icme.cmes_time as any as string[])
+					for (const meTime of (icme.cmes_time ?? []) as any as string[])
 						if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5))
 							return true;
 				}
 				return false;
 			})();
-
-			const darkk = !orange && (otherLinked || (!erupt?.cme_time ?
-				time > focusTime! + 864e5    || time < focusTime! - 3 * 864e5 : 
-				time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4));
-
-			const eruptLinkIdx = !darkk && eruptions.columns?.findIndex(col => col.id === linkColId);
-			const dark = !orange && (darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
-				equalValues(cme[idColId], eru[eruptLinkIdx])))); 
 		
 			return <tr key={row[0]+time+row[2]+row[4]}
 				style={{ height: 23 + trPadding, fontSize: 15 }}>

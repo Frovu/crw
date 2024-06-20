@@ -82,7 +82,7 @@ function drawCirclesLegend({ params, overlayHandle: { size, position, defaultPos
 		const sizes = vars.map(szComp);
 
 		const szMax = sizes[0];
-		const width = szMax + ctx.measureText('-3 %').width + px(12);
+		const width = szMax + ctx.measureText('−3 %').width + px(12);
 		const height = sizes.reduce((a, b) => a + (Math.max(getFontSize(), b))) + px(18);
 		if (!captureOverrides?.scale)
 			size.current = { width, height };
@@ -99,7 +99,7 @@ function drawCirclesLegend({ params, overlayHandle: { size, position, defaultPos
 		for (const [i, variation] of vars.entries()) {
 			const sz = Math.max(getFontSize(), sizes[i]);
 			ctx.fillStyle = color('text');
-			ctx.fillText(variation.toString().padStart(2, '  ') + ' %', x + szMax + px(8), y + sz/2);
+			ctx.fillText(variation.toString().replace('-', '−').padStart(2, '  ') + ' %', x + szMax + px(8), y + sz/2);
 			ctx.beginPath();
 			ctx.arc(x + szMax / 2 + px(4), y + sz / 2, sizes[i] / 2, 0, Math.PI * 2);
 			ctx.fillStyle = color(variation > 0 ? 'cyan2' : 'magenta2');

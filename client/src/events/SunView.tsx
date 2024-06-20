@@ -133,9 +133,12 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 			<b>{flare.class as any}</b> {prettyDate(flare.start_time as any)}</div>
 		{state === 'loading' && <div className='Center'>LOADING...</div>}
 		{state === 'error' && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}src
-		<img style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
+		<div style={{ position: 'absolute', top: 2, left: 2, maxWidth: imgSize - 2, maxHeight: imgSize - 2, overflow: 'clip' }}>
+			<img style={{ transform: `translate(${move}px, ${move}px)`,
+				visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
 			onError={() =>setState('error')}/>
+		</div>
 	</div>;
 }
 
