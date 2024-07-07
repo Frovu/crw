@@ -37,12 +37,12 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 				setTimeout(() => mutate(), 500);
 			} else {
 				if (state.status === 'done') {
-					queryClient.invalidateQueries('events_coverage');
-					queryClient.invalidateQueries(entity);
+					queryClient.refetchQueries('events_coverage');
+					queryClient.refetchQueries(entity);
 					if (entity.includes('flares'))
-						queryClient.invalidateQueries('flares');
+						queryClient.refetchQueries('flares');
 					if (entity.includes('cme'))
-						queryClient.invalidateQueries('CMEs');
+						queryClient.refetchQueries('CMEs');
 					logSuccess('Updated ' + entShort);
 				} else {
 					logError('Failed to update: ' + state.error);

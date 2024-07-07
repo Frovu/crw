@@ -80,7 +80,7 @@ export default function ParticlesPlot({ params }: { params: SatPartParams }) {
 			clouds: [],
 		} : para,
 		options: () => ({
-			padding: [scaled(8), scaled(6), scaled(showTimeAxis ? 0 : 6), 0]
+			padding: [scaled(8), scaled(36), scaled(showTimeAxis ? 0 : 6), 0]
 		}),
 		axes: () => [{
 			...axisDefaults(showGrid, (u, splits) => splits.map(s => Math.log10(s) % 1 === 0 ? s : null)),

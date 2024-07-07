@@ -105,7 +105,7 @@ export default function CMEHeightTime({ params }: { params: BasicPlotParams }) {
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
 	if (!query.data?.length)
-		return <div className='Center'>NO CMEs (check coverage)</div>;
+		return <div className='Center'>NO LASCO CMEs</div>;
 	return <div>
 		{plot}
 	</div>;

@@ -27,7 +27,7 @@ def _init():
 		conn.execute(query)
 _init()
 
-last_fetched = datetime.now(timezone.utc)
+last_fetched = None
 
 def parse_time(txt):
 	return datetime.strptime(txt, '%Y/%m/%d %H:%M').replace(tzinfo=timezone.utc)

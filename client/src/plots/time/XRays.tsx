@@ -32,7 +32,7 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 			fullLabel: 'X-Ray, W/m²',
 			distr: 3,
 			gap: scaled(4),
-			minMax: [null, 1e-5],
+			// minMax: [null, 1e-5],
 			values: (u, vals) => vals.map(v => Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v)+8] ?? '' : '')
 		}],
 		series: () => [{

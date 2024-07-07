@@ -303,13 +303,13 @@ def recompute_generics(generics):
 	omni.ensure_prepared([first - MAX_DURATION_S, last + 2 * MAX_DURATION_S])
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		res = executor.map(compute_generic, generics)
-	return res
+	return list(res)
 
 def recompute_for_row(generics, rid):
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		func = lambda g: compute_generic(g, rid)
 		res = executor.map(func, generics)
-	return res
+	return list(res)
 
 def apply_changes(conn, column, table='generic_data', dtype='real'):
 	id_col = 'feid_id' if table == 'generic_data' else 'id'
