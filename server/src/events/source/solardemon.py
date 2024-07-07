@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_coverage, upsert_many
+from database import pool, log, upsert_coverage, get_coverage, upsert_many
 from events.table_structure import ColumnDef as Col
 
 URL = 'https://www.sidc.be/solardemon/science/'
@@ -109,7 +109,11 @@ def scrape_solardemon(what, days):
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
 	upsert_many('events.'+tbl, [c.name for c in cols], data, conflict_constraint='id')
-	upsert_coverage(tbl, data[-1][2], data[0][2], single=True)
+
+	cov = get_coverage(tbl)
+	cov_start = cov[0][0] if len(cov) else None
+	new_start = min(cov_start, data[-1][2]) if cov_start else data[-1][2]
+	upsert_coverage(tbl, new_start, data[0][2], single=True)
 
 def fetch(entity, month):
 	now = datetime.now(timezone.utc)
