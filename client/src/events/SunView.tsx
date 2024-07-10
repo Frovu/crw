@@ -241,7 +241,7 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 		ctx.stroke();
 		ctx.beginPath();
 		if (!lon || Math.abs(lon) < 90)
-			ctx.setLineDash([]);
+			ctx.setLineDash(Math.abs(time - refTime) < 600 ? [8, 8] : []);
 
 		if (lat != null && lon != null) {
 			const sunRotation = 360 / 25.38 / 86400; // kinda

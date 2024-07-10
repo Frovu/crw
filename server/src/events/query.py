@@ -3,7 +3,7 @@ from database import pool, log
 from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
 from events.generic_columns import select_generics
 from events.generic_core import G_SERIES, G_DERIVED
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
 
 TABLES = {
 	donki.FLR_TABLE: donki.FLR_COLS,
@@ -13,6 +13,7 @@ TABLES = {
 	solardemon.DIM_TABLE: solardemon.DIM_COLS,
 	solardemon.FLR_TABLE: solardemon.FLR_COLS,
 	solarsoft.TABLE: solarsoft.COLS,
+	solen_info.TABLE: solen_info.COLS,
 	FEID[0]: list(FEID[1].values()),
 	FEID_SOURCE[0]: list(FEID_SOURCE[1].values()),
 	SOURCE_CH[0]: list(SOURCE_CH[1].values()),
@@ -20,6 +21,7 @@ TABLES = {
 }
 
 TABLES_EDITABLE = {
+	solen_info.TABLE: { c.name: c for c in solen_info.COLS },
 	FEID[0]: FEID[1],
 	FEID_SOURCE[0]: FEID_SOURCE[1],
 	SOURCE_CH[0]: SOURCE_CH[1],

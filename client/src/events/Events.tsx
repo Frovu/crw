@@ -34,6 +34,7 @@ import ICMETable, { ICMEContextMenu } from './TableICME';
 import CMEHeightTime from '../plots/time/CMEHeight';
 import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
 import XraysPlot from '../plots/time/XRays';
+import { HolesLinkView } from './TableHoles';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
@@ -62,6 +63,7 @@ export function EventsLayoutContent() {
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Sun View' && <SunView/>}
 		{type === 'Erupt Src Table' && <EruptionsTable/>}
+		{type === 'Holes Link View' && <HolesLinkView/>}
 		{type === 'Flares Table' && <FlaresTable/>}
 		{type === 'CME Table' && <CMETable/>}
 		{type === 'ICME Table' && <ICMETable/>}

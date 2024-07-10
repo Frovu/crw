@@ -94,7 +94,7 @@ export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
 	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
-	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Empty' ] as const;
+	'Holes Src Table', 'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Link View', 'Empty' ] as const;
 
 export type PanelParams = NodeParams<Partial<CommonPlotParams>
 & Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;

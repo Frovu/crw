@@ -28,7 +28,7 @@ COLS = [
 		description='Estimated geomagnetic disturbance date'),
 ]
 
-date_re = re.compile(r'(\d{4})\.(\d\d)\.(\d\d)')
+date_re = re.compile(r'([12]\d{3})\.(\d\d)\.(\d\d)')
 
 def _init():
 	cols = ',\n'.join([c.sql for c in COLS if c])
