@@ -11,7 +11,8 @@ type EruptEnt = 'flare' | 'cme' | 'icme';
 export const columnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
 	cme: ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'],
-	icme: ['time']
+	icme: ['time'],
+	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
 };
 export const sourceLabels = {
 	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
@@ -214,8 +215,17 @@ export function useTableQuery(tbl: TableName) {
 		staleTime: Infinity,
 		queryFn: async () => {
 			const { columns, data: dt } = await fetchTable(tbl);
-			setRawData(tbl, dt as any, columns);
-			return data;
+			const order = columnOrder[tbl as keyof typeof columnOrder];
+			if (!order) {
+				setRawData(tbl, dt as any, columns);
+				return dt;
+			}
+			const cols = [...new Set(['id', ...order, ...columns.map(c => c.id)])];
+			const idxs = cols.map(cid => columns.findIndex(c => c.id === cid));
+			const dat = dt.map(row => idxs.map(i => row[i]));
+			const col = idxs.map(i => columns[i]);
+			setRawData(tbl, dat as any, col);
+			return dat;
 		}
 	});
 

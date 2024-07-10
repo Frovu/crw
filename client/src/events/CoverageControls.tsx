@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from 'react-query';
 import { logSuccess, logError, color } from '../app';
 import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent } from '../util';
 
-const ENTS = {
+const ENTS = { // [pretty name, is single coverage entry]
 	lasco_cmes: ['LASCO CME', false],
 	donki_cmes: ['DONKI CME', false],
 	donki_flares: ['DONKI FLR', false],
@@ -11,6 +11,7 @@ const ENTS = {
 	solardemon_flares: ['DEMON FLR', true],
 	// solardemon_dimmings: ['DEMON DIM', true],
 	r_c_icmes: ['R&C ICME', true],
+	solen_holes: ['SOLEN CH', true]
 } as const;
 
 const ORANGE_THRESHOLD = 30;
@@ -61,7 +62,8 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 	const isDone = data?.status === 'done';
 	const error = data?.status === 'error' ? data.error : mutError?.toString();
 
-	useEventListener('fetchAllSources', () => !isWorking && entity !== 'solardemon_flares' && mutate());
+	useEventListener('fetchAllSources', () =>
+		!isWorking && entity !== 'solardemon_flares' && mutate());
 
 	const border = { border: '1px solid ' + color('border') };
 	const style = (d: number | null) => {

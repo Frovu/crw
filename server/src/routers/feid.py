@@ -8,7 +8,7 @@ from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import upset_generic, remove_generic
 from events.other_columns import compute_all, compute_column
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
 import events.text_transforms as tts
 from events import samples
 from events import query
@@ -42,7 +42,7 @@ def _epoch_collision():
 def _coverage():
 	res = {}
 	for c in ['donki_flares', 'donki_cmes', 'solarsoft_flares', 
-		'solardemon_flares', 'solardemon_dimmings', 'lasco_cmes', 'r_c_icmes']:
+		'solardemon_flares', 'solardemon_dimmings', 'lasco_cmes', 'r_c_icmes', 'solen_holes']:
 		res[c] = get_coverage(c)
 	return res
 
@@ -58,6 +58,8 @@ def _fetch_source(progr, source, tstamp):
 		lasco_cme.fetch(progr, month)
 	elif source == 'r_c_icmes':
 		r_c_icme.fetch()
+	elif source == 'solen_holes':
+		solen_info.fetch()
 	else:
 		assert not 'reached'
 
