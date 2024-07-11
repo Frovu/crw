@@ -55,7 +55,7 @@ function Window({ id }: { id: string}) {
 	onDoubleClick={() => closeWindow(id)}
 	onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY }; }}
 	onContextMenu={openContextMenu('layout', { nodeId: id, window: { ...params } })}>
-		<LayoutContext.Provider value={{ id, size, params,
+		<LayoutContext.Provider value={{ id, size, params, isWindow: true,
 			setParams: (para) => setWindowParams(id, para) }}>
 			<CatchErrors>
 				<Content/>

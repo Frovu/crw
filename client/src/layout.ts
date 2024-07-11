@@ -71,7 +71,7 @@ export type AppLayoutProps<T> = {
 	duplicatablePanels?: readonly string[]
 };
 
-export type LayoutContextType<T> = { id: string, size: Size, params: NodeParams<T>, setParams: ParamsSetter<T> };
+export type LayoutContextType<T> = { id: string, size: Size, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
 export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
 
 export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
