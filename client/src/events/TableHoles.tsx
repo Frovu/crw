@@ -78,8 +78,8 @@ export function HolesLinkView() {
 	return <div>
 		{!isWindow && <div style={{ height: rowsHeight + 28 }}>
 			{<TableWithCursor {...{
-				entity: 'solen_holes',
-				data, columns, size, viewSize, focusIdx, onKeydown: e => {
+				entity: 'solen_holes', hideBorder: true,
+				data, columns, size: { ...size, width: size.width - 3 } , viewSize, focusIdx, onKeydown: e => {
 					// if (cursor && ch && e.key === '-')
 					// 	return unlinkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns));
 					// if (cursor && ['+', '='].includes(e.key))
@@ -128,7 +128,7 @@ export function HolesLinkView() {
 
 		</div>}
 		{imgUrl && <div style={{ overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
-			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Holes Link View' }  })}>
+			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Holes Link View' }, unique: nodeId })}>
 			<img alt='' src={imgUrl} draggable={false} style={{
 				transform: `translate(${move}px, ${moveY}px)` }}
 			width={imgSize * (1 + 2 * clip / 512) - 2}></img>

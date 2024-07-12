@@ -37,7 +37,8 @@ type LayoutsState = {
 			y: number,
 			w: number,
 			h: number,
-			params: NodeParams<object>
+			params: NodeParams<object>,
+			unique?: string,
 		}
 	}
 	updateRatio: (nodeId: string, ratio: number) => void,
@@ -161,6 +162,13 @@ export const setWindowParams = <T>(id: string, para: Partial<NodeParams<T>>) =>
 
 export const openWindow = (para: LayoutsState['windows'][string]) =>
 	useLayoutsStore.setState(({ windows }) => {
+		if (para.unique) {
+			const old = Object.keys(windows).find(w => windows[w].unique === para.unique);
+			if (old) {
+				windows[old] = { ...para, params: { ...windows[old].params, ...para.params } };
+				return;
+			}
+		}
 		const id = Date.now().toString() + para.params.type;
 		windows[id] = para;
 	});

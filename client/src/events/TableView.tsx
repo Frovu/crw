@@ -43,7 +43,7 @@ export function CellInput({ id, column, value, table, options, change }:
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;
 
-export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, allowEdit, row: rowCallback, tfoot, footer, size, onKeydown }: {
+export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, allowEdit, row: rowCallback, tfoot, footer, hideBorder, size, onKeydown }: {
 	size: Size,
 	entity: string,
 	data: any[][],
@@ -55,6 +55,7 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	allowEdit?: boolean,
 	tfoot?: ReactNode,
 	footer?: ReactNode,
+	hideBorder?: boolean,
 	onKeydown?: (e: KeyboardEvent) => void
 }) {
 	const { cursor: sCursor, setStartAt, setEndAt, plotId, modifyId, setCursor, escapeCursor, setEditing } = useEventsState();
@@ -181,8 +182,8 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 		updateViewIndex(cur);
 	}, [allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]);
 
-	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height}px)`,
-		border: '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
+	return <div style={{ position: 'absolute', top: `calc(100% - ${size.height - (hideBorder ? 1 : 0)}px)`,
+		border: hideBorder ? undefined : '1px var(--color-border) solid', maxHeight: size.height, maxWidth: size.width, overflow: 'clip' }}>
 		<div className='Table' style={{ position: 'relative' }} ref={ref}>
 			<table onWheel={e => setViewIndex(idx => {
 				if (cursor)
