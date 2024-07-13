@@ -17,6 +17,7 @@ export function HolesLinkView() {
 	const framesTotal = 3;
 	const [frame, setFrame] = useState(0);
 	const { cursor: sCursor } = useEventsState();
+	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
 	const sourceCh = useSource('sources_ch') as CH;
 	const sources = useSources();
@@ -42,7 +43,9 @@ export function HolesLinkView() {
 		}
 		return res;
 	});
-	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
+
+	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
+
 	if (!query.data?.data.length)
 		return <div className='Center'>LOADING..</div>;
 
@@ -53,17 +56,10 @@ export function HolesLinkView() {
 	const isNorth =  cursorCh?.location === 'northern';
 	const isEquator =  cursorCh?.location === 'trans equatorial';
 
-	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
 	const clip = isWindow ? 18 : isSouth || isNorth ? 196 : isEquator ? 128 : 48;
 	const move = -clip * imgSize / 512 - 2;
 	const moveY = isWindow ? move : isNorth ? -18 * imgSize / 512 : isSouth ? -374 * imgSize / 512 : move;
 
-	const rowsHeight = size.height - 28 - imgSize;
-	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
 	const focusTime = cursorTime && (cursorTime?.getTime() - 2 * 864e5);
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
@@ -76,21 +72,16 @@ export function HolesLinkView() {
 		`AR_CH_${y}${(m!+1).toString().padStart(2, '00')}${d!.toString().padStart(2, '00')}.${ext}`;
 
 	return <div>
-		{!isWindow && <div style={{ height: rowsHeight + 28 }}>
+		{!isWindow && <div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 			{<TableWithCursor {...{
 				entity: 'solen_holes', hideBorder: true,
-				data, columns, size: { ...size, width: size.width - 3 } , viewSize, focusIdx, onKeydown: e => {
+				data, columns, size: { height: size.height - imgSize, width: size.width - 3 }, focusIdx, onKeydown: e => {
 					// if (cursor && ch && e.key === '-')
 					// 	return unlinkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns));
 					// if (cursor && ['+', '='].includes(e.key))
 					// 	return feidId && linkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns), feidId);
 				},
-				thead: <tr>{columns.map((col) =>
-					<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
-						<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
-					</td>)}
-				</tr>,
-				row: (row, idx, onClick) => {
+				row: (row, idx, onClick, padRow) => {
 					const ch = rowAsDict(row as any, columns) as CH;
 					const time = (ch.time as any)?.getTime();
 					const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
@@ -100,7 +91,7 @@ export function HolesLinkView() {
 					const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 				
 					return <tr key={row[0]+time+row[2]+row[4]}
-						style={{ height: 23 + trPadding, fontSize: 15 }}>
+						style={{ height: 23 + padRow, fontSize: 15 }}>
 						{columns.map((column, cidx) => {
 							const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 							const value = valueToString(row[cidx]);
@@ -116,7 +107,7 @@ export function HolesLinkView() {
 								}}
 								onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
 								style={{ borderColor: color(curs ? 'active' : 'border') }}>
-								<span className='Cell' style={{ whiteSpace: 'nowrap', width: column.width + 'ch',
+								<span className='Cell' style={{ 
 									color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
 									<div className='TdOver'/>
 									{val}
@@ -133,12 +124,12 @@ export function HolesLinkView() {
 				transform: `translate(${move}px, ${moveY}px)` }}
 			width={imgSize * (1 + 2 * clip / 512) - 2}></img>
 			<a target='_blank' rel='noreferrer' href={imgUrl} onClick={e => e.stopPropagation()}
-				style={{ position: 'absolute', zIndex: 3, top: -2, right: isWindow ? 16 : 2, fontSize: 10,
-					color: 'orange', background: 'black', padding: 1 }}>{prettyDate(dt, true)}</a>
-			<div style={{ position: 'absolute', zIndex: 3, bottom: 2, right: 2, fontSize: 10,
-				color: 'orange', background: 'black', padding: 1 }}>{frame + 1} / {framesTotal}</div>
-			<div style={{ position: 'absolute', zIndex: 3, top: -2, left: 2, fontSize: 10,
-				color: 'orange', background: 'black', padding: 1 }}>{cursorCh?.tag.slice(2)}</div>
+				style={{ position: 'absolute', zIndex: 3, top: -2, right: isWindow ? 16 : 0, fontSize: isWindow ? 16 : 10,
+					color: 'orange', background: 'black', padding: '0px 2px' }}>{prettyDate(dt, true)}</a>
+			<div style={{ position: 'absolute', zIndex: 3, bottom: isWindow ? 6 : 2, right: 0, fontSize: isWindow ? 16 : 10,
+				color: 'orange', background: 'black', padding: '0px 2px' }}>{frame + 1} / {framesTotal}</div>
+			<div style={{ position: 'absolute', zIndex: 3, top: -2, left: 0, fontSize: isWindow ? 16 : 10,
+				color: 'orange', background: 'black', padding: '0px 2px' }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
 		</div>}
 	</div> ;
 

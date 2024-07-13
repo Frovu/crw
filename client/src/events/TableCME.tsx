@@ -40,12 +40,6 @@ export default function CMETable() {
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
 
-	const rowsHeight = size.height - 28;
-	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
 	const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
 	const eruptIcme = erupt?.rc_icme_time &&
 		rowAsDict(icmes.data.find(r => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])), icmes.columns);
@@ -60,18 +54,13 @@ export default function CMETable() {
 
 	return <TableWithCursor {...{
 		entity: 'CMEs',
-		data, columns, size, viewSize, focusIdx, onKeydown: e => {
+		data, columns, size, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
 				return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns));
 			if (cursor && ['+', '='].includes(e.key))
 				return feidId && linkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns), feidId);
 		},
-		thead: <tr>{columns.map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
-				<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
-			</td>)}
-		</tr>,
-		row: (row, idx, onClick) => {
+		row: (row, idx, onClick, padRow) => {
 			const cme = rowAsDict(row as any, columns);
 			const time = (cme.time as any)?.getTime();
 			const [linkColId, idColId] = getSourceLink('cme', cme.src);
@@ -107,7 +96,7 @@ export default function CMETable() {
 			})();
 		
 			return <tr key={row[0]+time+row[2]+row[4]}
-				style={{ height: 23 + trPadding, fontSize: 15 }}>
+				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 					const value = valueToString(row[cidx]);

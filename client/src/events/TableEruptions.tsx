@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../layout';
-import { CellInput, TableWithCursor } from './TableView';
+import { CellInput, DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from './events';
 import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
 import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from './eventsState';
@@ -78,25 +78,16 @@ export default function EruptionsTable() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;
-	const rowsHeight = size.height - 34;
-	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
+	
 	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
 	const focusIdx = sources.map(src => data.findIndex(r => src.erupt?.id === r[0])).find(i => i > 0) ||
 	  (focusTime == null ? data.length : data.findIndex(r => (r[1] as Date)?.getTime() > focusTime));
 
 	return <TableWithCursor {...{
-		data, columns, size, viewSize, focusIdx, entity: ENT,
+		data, columns, size, focusIdx, entity: ENT,
 		allowEdit: true,
-		thead: <tr>{columns.slice(1).map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader'>
-				<div style={{ height: 26 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
-			</td>)}
-		</tr>,
-		row: (row, idx, onClick) => {
+		head: (cols, padHeader) => <DefaultHead {...{ columns: cols.slice(1), padHeader }}/>,
+		row: (row, idx, onClick, padRow) => {
 			const erupt = rowAsDict(row, columns);
 			const cyan = erupt.id === selectedErupt?.id;
 			const dark = !sources.find(src => src.erupt?.id === erupt.id);
@@ -108,7 +99,7 @@ export default function EruptionsTable() {
 				return flr ? rowAsDict(flr, flares.columns) : null;
 			})();
 			return <tr key={row[0]}
-				style={{ height: 23 + trPadding, fontSize: 15 }}>
+				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.slice(1).map((column, scidx) => {
 					const cidx = scidx + 1;
 					const cid = column.id;

@@ -9,6 +9,14 @@ import { LayoutContext, type LayoutContextType } from '../layout';
 import type { ColumnDef } from './columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
 
+export function DefaultHead({ columns, padHeader }: { padHeader: number, columns: ColumnDef[] } ) {
+	return <tr>{columns.map((col) =>
+		<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
+			<div style={{ height: 20 + padHeader, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
+		</td>)}
+	</tr>;
+}
+
 export function CellInput({ id, column, value, table, options, change }:
 { id: number, column: ColumnDef, value: string, table: TableName, options?: string[], change?: (val: any) => boolean }) {
 	const [invalid, setInvalid] = useState(false);
@@ -41,16 +49,18 @@ export function CellInput({ id, column, value, table, options, change }:
 	}, [column.type, id, JSON.stringify(options), invalid, table, value]); // eslint-disable-line
 }
 
-type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void) => ReactNode;
+type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void, padding: number) => ReactNode;
+type HeadConstructor = (columns: ColumnDef[], padding: number) => ReactNode;
 
-export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, thead, allowEdit, row: rowCallback, tfoot, footer, hideBorder, size, onKeydown }: {
+export function TableWithCursor({ entity, data, columns, focusIdx, headSize, allowEdit,
+	head: headCallback, row: rowCallback, tfoot, footer, hideBorder, size, onKeydown }: {
 	size: Size,
 	entity: string,
 	data: any[][],
 	focusIdx?: number,
 	columns: ColumnDef[],
-	viewSize: number,
-	thead: ReactNode,
+	headSize?: number,
+	head?: HeadConstructor | null,
 	row: RowConstructor,
 	allowEdit?: boolean,
 	tfoot?: ReactNode,
@@ -62,6 +72,13 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 	const cursor = sCursor?.entity === entity ? sCursor : null;
 
 	const ref = useRef<HTMLDivElement | null>(null);
+
+	const rowsHeight = size.height - (headSize ?? 28);
+	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
+	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
+	const hRem = rowsHeight % rowH;
+	const padRow = hRem > viewSize ? 1 : 0;
+	const padHeader = (hRem - viewSize * padRow);
 
 	const [viewIndex, setViewIndex] = useState(focusIdx == null ? Math.max(0, data.length - viewSize) :
 		clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2)));
@@ -103,12 +120,14 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 		});
 	}, [plotId, cursor, data, viewSize, entity]);
 
+	const hasHead = headCallback !== null;
 	useEffect(() => {
-		const cell = cursor && ref.current!.children[0]?.children[thead ? 1 : 0].children[0]?.children[cursor.column] as HTMLElement;
+		const cell = cursor && ref.current!.children[0]
+			?.children[hasHead ? 1 : 0].children[0]?.children[cursor.column] as HTMLElement;
 		if (!cursor || !cell) return;
 		const left = Math.max(0, cell.offsetLeft - ref.current?.offsetWidth! * 2/ 3);
 		ref.current?.scrollTo({ left });
-	}, [cursor, ref.current?.offsetWidth, thead]);
+	}, [cursor, ref.current?.offsetWidth, hasHead]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (setStartAt || setEndAt || modifyId)
@@ -191,9 +210,9 @@ export function TableWithCursor({ entity, data, columns, viewSize, focusIdx, the
 				const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			})}>
-				{thead && <thead>{thead}</thead>}
+				{headCallback !== null && <thead>{headCallback?.(columns, padHeader) ?? <DefaultHead {...{ columns, padHeader }}/>}</thead>}
 				<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize))
-					.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick))}</tbody> 
+					.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}</tbody> 
 				{tfoot && <tfoot>{tfoot}</tfoot> }
 			</table>
 		</div>
@@ -217,18 +236,6 @@ export default function TableView({ size, averages, entity }: {
 	const showAverages = params?.showAverages && size.height > 300;
 	const hideHeader = params?.hideHeader && size.height < 480;
 	const cursor = sCursor?.entity === entity ? sCursor : null;
-
-	const rowsHeight = size.height
-		- (showAverages ? 107 : 0)
-		- (showChangelog ? 54 : 0)
-		- (hideHeader ? 2 : 105);
-	const rowH = devicePixelRatio < 1 ? 25 + (2 / devicePixelRatio) : 26;
-	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
-	const padTableH = Math.floor(headerPadding / 3);
-	const columnH = 46 + headerPadding - padTableH;
 
 	const incMarkWidth = includeMarkers && Math.min(16, Math.max.apply(null, includeMarkers.map(m => m?.length)));
 
@@ -269,27 +276,31 @@ export default function TableView({ size, averages, entity }: {
 	columns.forEach(col => rels.has(col.rel) ? rels.get(col.rel)?.push(col) : rels.set(col.rel, [col]));
 
 	return <TableWithCursor {...{
-		data, columns, size, viewSize, onKeydown, entity,
-		allowEdit: true,
-		thead: hideHeader ? null : <><tr>
-			{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
-				className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
-			##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
-			{[...rels].map(([rel, cls]) =>
-				<td className='ColumnHeader' key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
-					<div style={{ height: 26 + padTableH }}>
-						{cls.length > 1 ? relsNames[rel] : rel}</div></td>)}
-			{includeMarkers && <td rowSpan={2} title='Event included from samples:'
-				className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
-		</tr><tr>
-			{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description ?? ''}`}
-				className='ColumnHeader' onClick={() => toggleSort(col.id)}
-				onContextMenu={openContextMenu('events', { nodeId, header: col })}>
-				<div style={{ height: columnH }}><span>{col.name}</span>
-					{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
-			</td>)}
-		</tr></>,
-		row: (row, idx, onClick) => {
+		data, columns, onKeydown, entity,
+		allowEdit: true, size,
+		headSize: (hideHeader ? 0 : 93) + (showAverages ? 107 : 0) + (!hideHeader && showChangelog ? 54 : 0),
+		head: hideHeader ? null : (cols, padH) => {
+			const padTableH = Math.floor(padH / 3);
+			const columnH = 38 + padH - padTableH;
+			return <><tr style={{ fontSize: 15 }}>
+				{markers && <td rowSpan={2} title='f is for filter, + is whitelist, - is blacklist'
+					className='ColumnHeader' style={{ minWidth: '3.5ch' }} onClick={() => toggleSort('_sample')}>
+				##{sort.column === '_sample' && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</td>}
+				{[...rels].map(([rel, cls]) =>
+					<td className='ColumnHeader' key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
+						<div style={{ height: 22 + padTableH }}>
+							{cls.length > 1 ? relsNames[rel] : rel}</div></td>)}
+				{includeMarkers && <td rowSpan={2} title='Event included from samples:'
+					className='ColumnHeader' style={{ minWidth: '3.5ch' }}>#S</td>}
+			</tr><tr style={{ fontSize: 15 }}>
+				{columns.map((col) => <td key={col.id} title={`[${col.name}] ${col.description ?? ''}`}
+					className='ColumnHeader' onClick={() => toggleSort(col.id)}
+					onContextMenu={openContextMenu('events', { nodeId, header: col })}>
+					<div style={{ height: columnH, lineHeight: 1 }}><span>{col.name}</span>
+						{sort.column === col.id && <div className='SortShadow' style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}/>}</div>
+				</td>)}
+			</tr></>; },
+		row: (row, idx, onClick, padRow) => {
 			const marker = markers?.[idx];
 			const isCompModified = columns.map(c => {
 				if (!c.isComputed) return false;
@@ -297,7 +308,7 @@ export default function TableView({ size, averages, entity }: {
 				if (!chgs?.length) return false;
 				return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 			});
-			return <tr key={row[0]} style={{ height: 24 + trPadding,
+			return <tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15,
 				...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
 				{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 					onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
@@ -334,7 +345,7 @@ export default function TableView({ size, averages, entity }: {
 			</tr>;},
 		tfoot: showAverages && <>
 			<tr style={{ height: 0 }}><td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td></tr>
-			{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24 }}>
+			{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => <tr key={label} style={{ height: 24, fontSize: 15 }}>
 				{markers && <td style={{ borderColor: 'transparent' }}/>}
 				{averages?.map((avgs, i) => {
 					const isLabel = columns[i].type === 'time';
@@ -363,11 +374,11 @@ export default function TableView({ size, averages, entity }: {
 				</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 		</div>}
 		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between', alignContent: 'bottom' }}>
-			<span style={{ color: 'var(--color-text-dark)', fontSize: '14px', overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
+			<span style={{ color: 'var(--color-text-dark)', fontSize: 14, overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
 				<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
 				{changeCount > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
 					onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
-					{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: '14px' }}>
+					{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: 14 }}>
 						&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;
 					</span>}
 					{changesHovered && <>
@@ -376,7 +387,7 @@ export default function TableView({ size, averages, entity }: {
 					</>}
 				</div>}
 			</span>
-			<span style={{ display: 'inline-flex', gap: '2px', fontSize: '16px' }}>
+			<span style={{ display: 'inline-flex', gap: '2px', fontSize: 16 }}>
 				<button className='TableControl' onClick={simulateKey('ArrowUp')}><span>↑</span></button>
 				<button className='TableControl' onClick={simulateKey('ArrowDown')}><span>↓</span></button>
 				<button className='TableControl' onClick={simulateKey('Home', true)}><span>H</span></button>

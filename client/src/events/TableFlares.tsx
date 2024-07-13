@@ -35,12 +35,6 @@ export default function FlaresTable() {
 	if (!data.length)
 		return <div className='Center'>LOADING..</div>;
 
-	const rowsHeight = size.height - 28;
-	const rowH = devicePixelRatio < 1 ? 24 + (2 / devicePixelRatio) : 25;
-	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
-	const hRem = rowsHeight % rowH;
-	const trPadding = hRem > viewSize ? 1 : 0;
-	const headerPadding = (hRem - viewSize * trPadding);
 	const [timeIdx] = ['start'].map(what => columns.findIndex(c => c.name === what));
 	const focusTime = erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
 		: erupt?.cme_time ? (erupt?.cme_time as Date).getTime()
@@ -51,18 +45,13 @@ export default function FlaresTable() {
 
 	return <TableWithCursor {...{
 		entity: 'flares',
-		data, columns, size, viewSize, focusIdx, onKeydown: e => {
+		data, columns, size, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
 				return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns));
 			if (cursor && ['+', '='].includes(e.key))
 				return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns), feidId);
 		},
-		thead: <tr>{columns.map((col) =>
-			<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className='ColumnHeader' style={{ cursor: 'auto' }}>
-				<div style={{ height: 20 + headerPadding, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
-			</td>)}
-		</tr>,
-		row: (row, idx, onClick) => {
+		row: (row, idx, onClick, padRow) => {
 			const flare = rowAsDict(row as any, columns);
 			const stime = (flare.start_time as any)?.getTime();
 			const [linkColId, idColId] = getSourceLink('flare', flare.src);
@@ -92,7 +81,7 @@ export default function FlaresTable() {
 				equalValues(flare[idColId], eru[eruptLinkIdx])));
 		
 			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
-				style={{ height: 23 + trPadding, fontSize: 15 }}>
+				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 					let value = valueToString(row[cidx]);
