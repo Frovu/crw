@@ -1,10 +1,10 @@
 import { useContext } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { equalValues, valueToString } from './events';
-import { color, openContextMenu, useContextMenu } from '../app';
-import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks, useSources } from './eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
+import { equalValues, valueToString } from '../events';
+import { color, openContextMenu, useContextMenu } from '../../app';
+import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks, useSources } from '../eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
 export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;

@@ -1,13 +1,13 @@
 import { useState, useRef, useContext, useLayoutEffect, useEffect,
 	type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback, useMemo } from 'react';
-import { clamp, useEventListener, type Size } from '../util';
+import { clamp, useEventListener, type Size } from '../../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
-	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from './events';
-import { pickEventForSample } from './sample';
-import { openContextMenu } from '../app';
-import { LayoutContext, type LayoutContextType } from '../layout';
-import type { ColumnDef } from './columns';
-import { makeChange, useEventsState, type Cursor, type TableName } from './eventsState';
+	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from '../events';
+import { pickEventForSample } from '../sample';
+import { openContextMenu } from '../../app';
+import { LayoutContext, type LayoutContextType } from '../../layout';
+import type { ColumnDef } from '../columns';
+import { makeChange, useEventsState, type Cursor, type TableName } from '../eventsState';
 
 export function DefaultHead({ columns, padHeader }: { padHeader: number, columns: ColumnDef[] } ) {
 	return <tr>{columns.map((col) =>

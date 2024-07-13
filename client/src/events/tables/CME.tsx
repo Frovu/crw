@@ -1,10 +1,10 @@
 import { useContext } from 'react';
-import { useContextMenu, openContextMenu, color } from '../app';
-import { LayoutContext, openWindow, type ContextMenuProps } from '../layout';
+import { useContextMenu, openContextMenu, color } from '../../app';
+import { LayoutContext, openWindow, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { equalValues, valueToString } from './events';
-import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from './eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from './sources';
+import { equalValues, valueToString } from '../events';
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
 export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;

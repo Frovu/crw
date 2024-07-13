@@ -9,7 +9,7 @@ import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './E
 import { type TableMenuDetails, statPanelOptions,
 	useEventsSettings, plotPanelOptions, defaultPlotParams, type CommonPlotParams,
 	type TableParams, copyAverages, valueToString, PlotContext,
-	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn, solarPlotOptions } from './events';
+	SampleContext, TableViewContext, findColumn, type PanelParams, setStatColumn, solarPlotOptions, allPanelOptions } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import { ColorsSettings } from '../Colors';
 import PlotCircles from '../plots/time/Circles';
@@ -20,24 +20,24 @@ import PlotSW from '../plots/time/SW';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import SampleView from './Sample';
-import TableView from './TableView';
+import TableView from './tables/TableView';
 import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory';
 import { useQueryClient } from 'react-query';
 import PlotSWTypes from '../plots/time/SWTypes';
 import InsertControls from './Insert';
 import { useEventsState, useTable } from './eventsState';
 import SunView, { SunViewContextMenu } from './SunView';
-import EruptionsTable, { EruptionsContextMenu } from './TableEruptions';
-import FlaresTable, { FlaresContextMenu } from './TableFlares';
-import CMETable, { CMEContextMenu } from './TableCME';
-import ICMETable, { ICMEContextMenu } from './TableICME';
+import EruptionsTable, { EruptionsContextMenu } from './tables/Eruptions';
+import FlaresTable, { FlaresContextMenu } from './tables/Flares';
+import CMETable, { CMEContextMenu } from './tables/CME';
+import ICMETable, { ICMEContextMenu } from './tables/ICME';
 import CMEHeightTime from '../plots/time/CMEHeight';
 import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
 import XraysPlot from '../plots/time/XRays';
-import { HolesLinkView } from './TableHoles';
+import { HolesLinkView } from './tables/HolesSolen';
 
 export function EventsLayoutContent() {
-	const { params: { type , ...plotParams } } = useContext(LayoutContext)!; 
+	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
 	const settings = useEventsSettings();
 	const appState = useAppSettings();
 	const plotContext = useContext(PlotContext);
@@ -63,7 +63,8 @@ export function EventsLayoutContent() {
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Sun View' && <SunView/>}
 		{type === 'Erupt Src Table' && <EruptionsTable/>}
-		{type === 'Holes Link View' && <HolesLinkView/>}
+		{type === 'Solen Holes' && <HolesLinkView/>}
+		{/* {type === 'Solen Holes' && <HolesLinkView/>} */}
 		{type === 'Flares Table' && <FlaresTable/>}
 		{type === 'CME Table' && <CMETable/>}
 		{type === 'ICME Table' && <ICMETable/>}
@@ -244,8 +245,8 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 				>Filter {column.fullName} {defaultFilterOp(column, value)} {valueToString(value)}</button>}
 			</>}
 			{rowId == null && <><div className='separator'/><div className='Group'>
-				<Checkbox text='Show column averages' k='showAverages'/>
 				<CheckboxGlob text='Show include markers' k='showIncludeMarkers'/>
+				<Checkbox text='Show column averages' k='showAverages'/>
 				<Checkbox text='Show changes log' k='showChangelog'/>
 				<Checkbox text='Hide table head' k='hideHeader'/>
 			</div></>}

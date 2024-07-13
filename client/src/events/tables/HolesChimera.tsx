@@ -1,13 +1,13 @@
 import { useContext, useEffect, useState } from 'react';
-import { color, openContextMenu } from '../app';
-import { LayoutContext, openWindow } from '../layout';
+import { color, openContextMenu } from '../../app';
+import { LayoutContext, openWindow } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { fetchTable } from './columns';
-import { equalValues, valueToString } from './events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from './eventsState';
-import { timeInMargin } from './sources';
+import { fetchTable } from '../columns';
+import { equalValues, valueToString } from '../events';
+import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
+import { timeInMargin } from '../sources';
 import { useQuery } from 'react-query';
-import { prettyDate } from '../util';
+import { prettyDate } from '../../util';
 
 type CH = { tag: string, time: Date, location?: string };
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));

@@ -1,12 +1,12 @@
 import { useContext } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultHead, TableWithCursor } from './TableView';
-import { equalValues, valueToString, type TableMenuDetails } from './events';
-import { color, logError, logMessage, openContextMenu, useContextMenu } from '../app';
-import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from './eventsState';
-import { assignCMEToErupt, assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from './sources';
-import { apiPost } from '../util';
-import { askConfirmation } from '../Utility';
+import { equalValues, valueToString, type TableMenuDetails } from '../events';
+import { color, logError, logMessage, openContextMenu, useContextMenu } from '../../app';
+import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
+import { assignCMEToErupt, assignFlareToErupt, getSourceLink, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
+import { apiPost } from '../../util';
+import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_erupt';
 const flare_columns = {
