@@ -228,3 +228,8 @@ export const useLayout = () => ({
 		return { ...st, items: { ...st.items, [dragFrom]: st.items[dragTo], [dragTo]: st.items[dragFrom] } };
 	})
 });
+
+export const useNodeExists = (type: string) => {
+	const { items } = useLayout();
+	return !!Object.values(items).find(p => p?.type === type);
+};

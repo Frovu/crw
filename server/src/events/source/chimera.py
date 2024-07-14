@@ -22,7 +22,7 @@ COLS = [
 	Col(TABLE, 'width_text', data_type='text', pretty_name='width'),
 	Col(TABLE, 'width'),
 	Col(TABLE, 'area'),
-	Col(TABLE, 'area_percent', pretty_name='area', description='Area in %% of solar disc'),
+	Col(TABLE, 'area_percent', pretty_name='area', description='Area in % of solar disc'),
 	Col(TABLE, 'b', pretty_name='B'),
 	Col(TABLE, 'b_plus'),
 	Col(TABLE, 'b_minus'),

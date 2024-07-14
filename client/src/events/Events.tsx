@@ -35,7 +35,7 @@ import CMEHeightTime from '../plots/time/CMEHeight';
 import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
 import XraysPlot from '../plots/time/XRays';
 import SolenHoles from './tables/HolesSolen';
-import ChimeraHoles from './tables/HolesChimera';
+import ChimeraHoles, { ChimeraContextMenu } from './tables/HolesChimera';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
@@ -184,7 +184,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 	const { set, ...settings } = useEventsSettings();
 	const { addFilter } = useSampleState(); 
 
-	const type = params.type;
+	const type = params.type as typeof allPanelOptions[number];
 	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
@@ -213,6 +213,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{type === 'Flares Table' && <FlaresContextMenu {...{ params, setParams }}/>}
 		{type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
 		{type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
+		{type === 'Chimera Holes' && <ChimeraContextMenu {...{ params, setParams }}/>}
 		{type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{type === 'FEID Table' && <>
 			{averages && <>

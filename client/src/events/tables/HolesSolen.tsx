@@ -1,10 +1,10 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, openContextMenu } from '../../app';
-import { LayoutContext, openWindow } from '../../layout';
+import { LayoutContext, openWindow, useNodeExists } from '../../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { timeInMargin, useSolenHolesQuery } from '../sources';
+import { timeInMargin, useHolesViewState, useSolenHolesQuery } from '../sources';
 import { prettyDate } from '../../util';
 
 type CH = { tag: string, time: Date, location?: string };
@@ -13,24 +13,27 @@ const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 
 
 export default function SolenHoles() {
 	const framesTotal = 3;
+	const { time: stateTime } = useHolesViewState();
 	const [frame, setFrame] = useState(0);
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
 	const sourceCh = useSource('sources_ch') as CH;
 	const sources = useSources();
+	const chimeraRules = useNodeExists('Chimera Holes');
 
 	useEffect(() => {
+		if (chimeraRules)
+			return;
 		const inte = setInterval(() => {
 			setFrame(f => (f + 1) % framesTotal);
 		}, 750);
 		return () => clearInterval(inte);
-	}, []);
+	}, [chimeraRules]);
 
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
 	const query = useSolenHolesQuery();
 
-	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
 
 	if (!query.data?.data.length)
 		return <div className='Center'>LOADING..</div>;
@@ -38,10 +41,11 @@ export default function SolenHoles() {
 	const { data, columns } = query.data;
 	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as CH : sourceCh;
 
-	const isSouth =  cursorCh?.location === 'southern';
-	const isNorth =  cursorCh?.location === 'northern';
-	const isEquator =  cursorCh?.location === 'trans equatorial';
+	const isSouth = cursorCh?.location === 'southern';
+	const isNorth = cursorCh?.location === 'northern';
+	const isEquator = cursorCh?.location === 'trans equatorial';
 
+	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 104));
 	const clip = isWindow ? 18 : isSouth || isNorth ? 196 : isEquator ? 128 : 48;
 	const move = -clip * imgSize / 512 - 2;
 	const moveY = isWindow ? move : isNorth ? -18 * imgSize / 512 : isSouth ? -374 * imgSize / 512 : move;
@@ -51,7 +55,8 @@ export default function SolenHoles() {
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 
 	const dtTarget = cursor ? cursorCh.time : focusTime == null ? null : new Date(focusTime);
-	const dt = dtTarget && new Date(dtTarget?.getTime() + (frame - Math.ceil(framesTotal / 2)) * 864e5);
+	const dt = chimeraRules ? new Date((Math.round(stateTime / 86400) - 1) * 864e5)
+		: dtTarget && new Date(dtTarget?.getTime() + (frame - Math.ceil(framesTotal / 2)) * 864e5);
 	const ext = (dt && dt >= SOLEN_PNG_SINCE) ? 'png' : 'jpg';
 	const y = dt?.getUTCFullYear(), m = dt?.getUTCMonth(), d = dt?.getUTCDate();
 	const imgUrl = dt && `https://solen.info/solar/old_reports/${y}/${months[m!]}/images/` +

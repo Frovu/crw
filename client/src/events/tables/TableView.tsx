@@ -155,7 +155,7 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 		if (cursor && e.ctrlKey && e.code === 'End')
 			return set({ entity, row: data.length - 1, column: cursor?.column ?? 0 });
 
-		const delta = {
+		const delta = !e.altKey && {
 			'ArrowUp': [-1, 0],
 			'ArrowDown': [1, 0],
 			'ArrowLeft': [0, -1],

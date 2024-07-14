@@ -22,11 +22,15 @@ export const sourceLabels = {
 };
 
 export const useHolesViewState = create<{
+	catched: null | { start: number, end: number },
 	time: number,
-	setTime: (a: number) => void
+	setTime: (a: number) => void,
+	setCatched: (a: null | { start: number, end: number }) => void
 }>()(set => ({
+	catched: null,
 	time: 0,
-	setTime: time => set(s => ({ ...s, time }))
+	setTime: time => set(s => ({ ...s, time })),
+	setCatched: catched => set(s => ({ ...s, catched }))
 }));
 
 export function getSourceLink(which: EruptEnt, src: any) {

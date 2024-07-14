@@ -56,7 +56,10 @@ def parse_coords(loc: str, reverse=False):
 	m = (coords_re_reversed if reverse else coords_re).match(loc)
 	if not m:
 		raise ValueError('Failed to parse coords: ' + loc)
-	ns, alat, we, alon = m.groups()
+	if reverse:
+		we, alon, ns, alat = m.groups()
+	else:
+		ns, alat, we, alon = m.groups()
 	lat = (1 if ns == 'N' else -1) * int(alat)
 	lon = (1 if we == 'W' else -1) * int(alon)
 	return lat, lon
