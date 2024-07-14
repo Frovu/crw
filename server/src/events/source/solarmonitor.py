@@ -1,2 +1,0 @@
-
-chimera_cache = {}

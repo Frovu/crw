@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
 import { TableWithCursor } from './TableView';
@@ -13,7 +13,7 @@ type CH = { tag: string, time: Date, location?: string };
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
 const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
-export function HolesLinkView() {
+export default function SolenHoles() {
 	const framesTotal = 3;
 	const [frame, setFrame] = useState(0);
 	const { cursor: sCursor } = useEventsState();
@@ -71,6 +71,8 @@ export function HolesLinkView() {
 	const imgUrl = dt && `https://solen.info/solar/old_reports/${y}/${months[m!]}/images/` +
 		`AR_CH_${y}${(m!+1).toString().padStart(2, '00')}${d!.toString().padStart(2, '00')}.${ext}`;
 
+	const textStyle: CSSProperties = { position: 'absolute', zIndex: 3, fontSize: isWindow ? 16 : 10,
+		color: 'orange', background: 'black', padding: '0px 2px' };
 	return <div>
 		{!isWindow && <div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 			{<TableWithCursor {...{
@@ -83,14 +85,13 @@ export function HolesLinkView() {
 				},
 				row: (row, idx, onClick, padRow) => {
 					const ch = rowAsDict(row as any, columns) as CH;
-					const time = (ch.time as any)?.getTime();
 					const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
 					const linkedToThisFEID = sources.find(s => equalValues(s.ch?.tag, ch.tag));
 					
 					const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
 					const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 				
-					return <tr key={row[0]+time+row[2]+row[4]}
+					return <tr key={row[0]}
 						style={{ height: 23 + padRow, fontSize: 15 }}>
 						{columns.map((column, cidx) => {
 							const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
@@ -107,7 +108,8 @@ export function HolesLinkView() {
 								}}
 								onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
 								style={{ borderColor: color(curs ? 'active' : 'border') }}>
-								<span className='Cell' style={{ 
+								<span className='Cell' style={{
+									width: column.width + 'ch',
 									color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
 									<div className='TdOver'/>
 									{val}
@@ -119,17 +121,14 @@ export function HolesLinkView() {
 
 		</div>}
 		{imgUrl && <div style={{ overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
-			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Holes Link View' }, unique: nodeId })}>
+			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Solen Holes' }, unique: nodeId })}>
 			<img alt='' src={imgUrl} draggable={false} style={{
 				transform: `translate(${move}px, ${moveY}px)` }}
 			width={imgSize * (1 + 2 * clip / 512) - 2}></img>
 			<a target='_blank' rel='noreferrer' href={imgUrl} onClick={e => e.stopPropagation()}
-				style={{ position: 'absolute', zIndex: 3, top: -2, right: isWindow ? 16 : 0, fontSize: isWindow ? 16 : 10,
-					color: 'orange', background: 'black', padding: '0px 2px' }}>{prettyDate(dt, true)}</a>
-			<div style={{ position: 'absolute', zIndex: 3, bottom: isWindow ? 6 : 2, right: 0, fontSize: isWindow ? 16 : 10,
-				color: 'orange', background: 'black', padding: '0px 2px' }}>{frame + 1} / {framesTotal}</div>
-			<div style={{ position: 'absolute', zIndex: 3, top: -2, left: 0, fontSize: isWindow ? 16 : 10,
-				color: 'orange', background: 'black', padding: '0px 2px' }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
+				style={{ ...textStyle, top: -2, right: isWindow ? 16: 0 }}>{prettyDate(dt, true)}</a>
+			<div style={{ ...textStyle, right: 0, bottom: isWindow ? 6 : 0 }}>{frame + 1} / {framesTotal}</div>
+			<div style={{ ...textStyle, top: -2, left: 0 }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
 		</div>}
 	</div> ;
 

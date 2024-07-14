@@ -8,7 +8,7 @@ from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import upset_generic, remove_generic
 from events.other_columns import compute_all, compute_column
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
 import events.text_transforms as tts
 from events import samples
 from events import query
@@ -99,6 +99,16 @@ def _cme_ht():
 	if t_to - t_from > 86400 * 16:
 		raise ValueError('Interval too large')
 	return lasco_cme.plot_height_time(t_from, t_to)
+
+
+@bp.route('/chimera', methods=['GET'])
+@route_shielded
+def _list_chimera():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	if t_to - t_from > 86400 * 7:
+		raise ValueError('Interval too large')
+	return chimera.fetch_list(t_from, t_to)
 
 @bp.route('/sun_images', methods=['GET'])
 @route_shielded

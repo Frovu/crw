@@ -49,8 +49,11 @@ def _init():
 			conn.execute(query)
 _init()
 
-def parse_coords(loc: str):
-	m = re.match(r'(N|S)(\d{1,2})(W|E)(\d{1,3})', loc)
+coords_re = re.compile(r'(N|S)(\d{1,2})(W|E)(\d{1,3})')
+coords_re_reversed = re.compile(r'(W|E)(\d{1,3})(N|S)(\d{1,2})')
+
+def parse_coords(loc: str, reverse=False):
+	m = (coords_re_reversed if reverse else coords_re).match(loc)
 	if not m:
 		raise ValueError('Failed to parse coords: ' + loc)
 	ns, alat, we, alon = m.groups()
