@@ -93,8 +93,10 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 	useEventListener('escape', escapeCursor);
 
 	useLayoutEffect(() => {
-		setCursor(null);
-		setViewIndex(clamp(0, data.length - viewSize, data.length));
+		const curs = useEventsState.getState().cursor;
+		if (curs?.entity === entity)
+			setCursor(null);
+		setViewIndex(clamp(0, data.length - viewSize, focusIdx ?? data.length));
 	}, [data.length, columns.length, data[0]?.[0], data.at(-1)?.[0], viewSize]); // eslint-disable-line
 
 	useEffect(() => {

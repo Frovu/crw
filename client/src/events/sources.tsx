@@ -5,6 +5,7 @@ import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
 import { apiPost } from '../util';
+import { create } from 'zustand';
 
 type EruptEnt = 'flare' | 'cme' | 'icme';
 
@@ -19,6 +20,14 @@ export const sourceLabels = {
 	cme: Object.keys(cmeLinks) as (keyof typeof cmeLinks)[],
 	icme: Object.keys(icmeLinks) as (keyof typeof icmeLinks)[]
 };
+
+export const useHolesViewState = create<{
+	time: number,
+	setTime: (a: number) => void
+}>()(set => ({
+	time: 0,
+	setTime: time => set(s => ({ ...s, time }))
+}));
 
 export function getSourceLink(which: EruptEnt, src: any) {
 	const links = { flare: flaresLinks, cme: cmeLinks, icme: icmeLinks }[which];
@@ -160,6 +169,22 @@ export function parseFlareFlux(cls: string | null) {
 	if (!multi) return null;
 	const val = multi * parseFloat(cls.slice(1));
 	return isNaN(val) ? null : Math.round(val * 10) / 10;
+}
+
+export function useSolenHolesQuery() {
+	return useQuery(['solen_holes'], async () => {
+		const res = await fetchTable('solen_holes');
+		for (const col of res.columns) {
+			col.width = {
+				tag: 5.5,
+				polarity: 2,
+				loc: 8.5,
+				time: 6,
+				comment: 11
+			}[col.name] ?? col.width;
+		}
+		return res;
+	});
 }
 
 export function useCompoundTable(which: EruptEnt) {

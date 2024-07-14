@@ -50,6 +50,12 @@ def scrape_chimera_images(dt):
 		result.append(int(ts))
 	return result
 
+def soft_float(s):
+	try:
+		return float(s)
+	except:
+		return None
+
 def scrape_chimera_holes(dt):
 	url = f'{URL}data/{dt.year}/{dt.month:02}/{dt.day:02}/meta/arm_ch_summary_{dt.year}{dt.month:02}{dt.day:02}.txt'
 	res = requests.get(url, timeout=10)
@@ -60,13 +66,12 @@ def scrape_chimera_holes(dt):
 		raise ValueError('HTTP '+res.status_code)
 	result = []
 	for line in res.text.splitlines()[2:]:
-		l = line.split()
+		l = [line[:3].strip()] + [line[i:i+11].strip() for i in range(3, len(line), 11)]
 		cid = int(l[0])
-		x, y = float(l[1]), float(l[2])
+		x, y = soft_float(l[1]), soft_float(l[2])
 		lat, lon = parse_coords(l[3], reverse=True)
-		l_rest = line[124:].split()
-		w = l_rest[0]
-		result.append((cid, x, y, lat, lon, w, *[float(i) for i in l_rest[1:]]))
+		w = l[12]
+		result.append((cid, x, y, lat, lon, w, *[soft_float(i) for i in l[13:]]))
 	return result
 
 def _get_day(d_start):

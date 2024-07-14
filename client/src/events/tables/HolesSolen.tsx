@@ -2,11 +2,9 @@ import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { fetchTable } from '../columns';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { timeInMargin } from '../sources';
-import { useQuery } from 'react-query';
+import { timeInMargin, useSolenHolesQuery } from '../sources';
 import { prettyDate } from '../../util';
 
 type CH = { tag: string, time: Date, location?: string };
@@ -27,22 +25,10 @@ export default function SolenHoles() {
 			setFrame(f => (f + 1) % framesTotal);
 		}, 750);
 		return () => clearInterval(inte);
-	});
+	}, []);
 
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
-	const query = useQuery(['solen_holes'], async () => {
-		const res = await fetchTable('solen_holes');
-		for (const col of res.columns) {
-			col.width = {
-				tag: 5.5,
-				polarity: 2,
-				loc: 8.5,
-				time: 6,
-				comment: 11
-			}[col.name] ?? col.width;
-		}
-		return res;
-	});
+	const query = useSolenHolesQuery();
 
 	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
 
@@ -126,7 +112,8 @@ export default function SolenHoles() {
 				transform: `translate(${move}px, ${moveY}px)` }}
 			width={imgSize * (1 + 2 * clip / 512) - 2}></img>
 			<a target='_blank' rel='noreferrer' href={imgUrl} onClick={e => e.stopPropagation()}
-				style={{ ...textStyle, top: -2, right: isWindow ? 16: 0 }}>{prettyDate(dt, true)}</a>
+				style={{ ...textStyle, top: -2, right: isWindow ? 16: 0 }}>
+				{prettyDate(new Date(dt.getTime() + 864e5), true)}</a>
 			<div style={{ ...textStyle, right: 0, bottom: isWindow ? 6 : 0 }}>{frame + 1} / {framesTotal}</div>
 			<div style={{ ...textStyle, top: -2, left: 0 }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
 		</div>}

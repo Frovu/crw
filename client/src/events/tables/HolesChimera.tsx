@@ -5,7 +5,7 @@ import { TableWithCursor } from './TableView';
 import { fetchTable, type ColumnDef, type DataRow } from '../columns';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { timeInMargin } from '../sources';
+import { useHolesViewState, useSolenHolesQuery } from '../sources';
 import { useQuery } from 'react-query';
 import { apiGet, prettyDate } from '../../util';
 
@@ -15,17 +15,23 @@ const columnOrder = ['id', 'lat', 'b', 'phi', 'area_percent', 'width_text'];
 
 export default function ChimeraHoles() {
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
-	const margin = 86400;
+	const { time: stateTime, setTime } = useHolesViewState();
 	const [frame, setFrame] = useState(4);
+	const [catched, setCatchedState] = useState<null | { start: number, end: number, holesTime: number }>(null);
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
+	const solenCursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
 	const sourceCh = useSource('sources_ch') as CH;
 	const sources = useSources();
+	const solenQuery = useSolenHolesQuery();
 
-	const focusTime = cursorTime && (cursorTime?.getTime() - 2 * 864e5);
-	const start = focusTime == null ? null : focusTime / 1e3 - margin;
-	const end = focusTime == null ? null : focusTime / 1e3 + margin;
+	const solenTime = solenCursor && solenQuery.data &&
+		rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns).time as Date;
+
+	const focusTime = solenTime ? solenTime.getTime() : (cursorTime && (cursorTime?.getTime() - 2 * 864e5));
+	const start = catched?.start ?? (focusTime == null ? null : Math.floor(focusTime / 864e5) * 86400 - 86400 * 2);
+	const end = catched?.end ?? (focusTime == null ? null : Math.ceil(focusTime / 864e5) * 86400 + 86400 / 4);
 
 	const query = useQuery({
 		// staleTime: Infinity,
@@ -38,8 +44,8 @@ export default function ChimeraHoles() {
 
 			setFrame(0);
 			
-			const frames = res.images.filter((tst, i) => tst >= start && tst <= end).map(timestamp => {
-				const holesTimestamp = Object.keys(res.holes).map(parseInt).reduce((prev, curr) =>
+			const frames = res.images.filter((tst) => tst >= start && tst <= end).map(timestamp => {
+				const holesTimestamp = Object.keys(res.holes).map(a => parseInt(a)).reduce((prev, curr) =>
 					Math.abs(curr - timestamp) < Math.abs(prev - timestamp) ? curr : prev);
 
 				const time = new Date(timestamp * 1e3);
@@ -81,7 +87,26 @@ export default function ChimeraHoles() {
 		},
 		onError: (err) => logError(err?.toString())
 	});
-	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
+
+	const framesTotal = query.data?.frames.length ?? 1;
+
+	useEffect(() => {
+		const inte = setInterval(() => {
+			if (catched)
+				setFrame(query.data?.frames.findIndex(f => f.timestamp === catched.holesTime) ?? 0);
+			else
+				setFrame(f => (f + 1) % framesTotal);
+		}, 500);
+		return () => clearInterval(inte);
+	}, [catched, framesTotal, query.data?.frames]);
+
+	useEffect(() => {
+		console.log(cursor)
+		if (!start || !end)
+			return;
+		const holesTime = query.data?.frames[frame]?.holesTimestamp;
+		setCatchedState(cursor && holesTime ? { start, end, holesTime } : null);
+	}, [cursor, start, end, frame, query.data?.frames]);
 
 	if (query.isError)
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
@@ -89,12 +114,11 @@ export default function ChimeraHoles() {
 		return <div className='Center'>LOADING..</div>;
 
 	const { columns, holes, frames } = query.data;
-	const { timestamp, url, img, holesTimestamp, loaded } = frames[frame < frames.length ? 1 : 0];
+	const { timestamp, url, img, holesTimestamp, loaded } = frames[frame < frames.length ? frame : 0];
 	const data = holes[holesTimestamp];
 	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as CH : sourceCh;
 
-	const clip = 0;
-	const move = 0;
+	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 128));
 	const targetImgWidth = imgSize * (1 + 430 / 1200) - 2;
 	
 	const clipX = 264 * imgSize / 1200;
@@ -155,9 +179,12 @@ export default function ChimeraHoles() {
 					transform: `translate(${-clipX}px, ${-clipY}px)` }}
 				width={targetImgWidth}></img>
 			</div>
-			<a target='_blank' rel='noreferrer' href={url} onClick={e => e.stopPropagation()}
-				style={{ ...textStyle, top: 0, right: 0 }}>{prettyDate(timestamp).slice(5, -3)}</a>
-			<div style={{ ...textStyle, top: 0, left: 0 }}><b>{prettyDate(holesTimestamp).slice(2, -3)}</b></div>
+			<div style={{ ...textStyle, bottom: isWindow ? 6 : 0, right: 0 }}>
+				<span style={{ paddingRight: 8 }}>{frame+1}/{framesTotal}</span>
+				<a target='_blank' rel='noreferrer' href={url} style={{ color: 'orange' }} onClick={e => e.stopPropagation()}>
+					{prettyDate(timestamp).slice(5, -3)}</a>
+			</div>
+			{!isWindow && <div style={{ ...textStyle, top: 0, left: 0 }}><b>^{prettyDate(holesTimestamp).slice(0, -3)}</b></div>}
 			{cursorCh && <div style={{ width: 36, height: 36, background: 'rgba(0,0,0,.3)', border: '2px solid orange',
 				position: 'absolute', transform: 'translate(-50%, -50%)', color: 'orange', textAlign: 'center',
 				left: arcSecToPx(cursorCh.xcen), fontSize: 24, lineHeight: 1.2,
