@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { color, openContextMenu } from '../../app';
-import { LayoutContext, openWindow } from '../../layout';
+import { LayoutContext } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
@@ -9,11 +9,14 @@ import { timeInMargin, type CHS } from '../sources';
 export default function HolesSourceTable() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { cursor: sCursor } = useEventsState();
-	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
+	const { start: cursorTime, row: feid } = useFeidCursor();
 	const { data, columns } = useTable('sources_ch');
 	const sourceCh = useSource('sources_ch');
 	const sources = useSources();
 	const cursor = sCursor?.entity === 'sources_ch' ? sCursor : null;
+
+	if (!data || !columns)
+		return <div className='Center'>LOADING..</div>;
 
 	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
 	const focusIdx = sources.map(src => data.findIndex(r => src.erupt?.id === r[0])).find(i => i > 0) ||
@@ -38,6 +41,8 @@ export default function HolesSourceTable() {
 						const cidx = scidx + 1;
 						const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
 						const value = valueToString(row[cidx]);
+						const width = 'tag' === column.id ? 7.5 : 
+							['b', 'phi', 'lat', 'area', 'width'].includes(column.id) ? 4.5 : column.width;
 						return <td key={column.id} title={(cidx === 1 ? `id = ${row[0]}; ` : '') + `${column.fullName} = ${value}`}
 							onClick={e => {
 								if (cidx === 0) {
@@ -50,7 +55,7 @@ export default function HolesSourceTable() {
 							onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
 							style={{ borderColor: color(curs ? 'active' : 'border') }}>
 							<span className='Cell' style={{
-								width: column.width + 'ch',
+								width: width + 'ch',
 								color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
 								<div className='TdOver'/>
 								{value}

@@ -21,7 +21,7 @@ export const columnOrder = {
 	cme: ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'],
 	icme: ['time'],
 	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
-	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area'],
+	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
 };
 export const sourceLabels = {
 	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
@@ -202,11 +202,11 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 			const chtm = tch.chimera_time.getTime() / 1e3;
 			const sunRotation = 360 / 27.27 / 86400; // deg/s, kinda
 			const rotateToCenter = -tch.lon / sunRotation;
-			chs.time = new Date((chtm + rotateToCenter) * 1e3);
+			chs.time = new Date(Math.round(chtm + rotateToCenter) * 1e3);
 			chs.b = tch.b;
 			chs.lat = tch.lat;
 			chs.phi = tch.phi;
-			chs.area = tch.area;
+			chs.area = tch.area_percent;
 			chs.width = tch.width;
 		}
 

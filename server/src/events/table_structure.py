@@ -198,6 +198,6 @@ SOURCE_CH = ['sources_ch', { c.name: c for c in [
 	C_CH('lat', description='Centroid helio-latitude, °'),
 	C_CH('area', description='Area in % of solar disc'),
 	C_CH('b', pretty_name='B', description='B, G'),
-	C_CH('phi', pretty_name='Φ', description='Φ, Mx'),
+	C_CH('phi', pretty_name='Φ', description='Φ, Mx * 1e20'),
 	C_CH('width', description='Longitudinal width, °'),
 ]}]

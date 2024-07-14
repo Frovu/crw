@@ -92,9 +92,6 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 
 	useEventListener('escape', escapeCursor);
 
-	if (entity === 'chimera_holes')
-		console.log(data.length, columns.length, data[0]?.[0], viewSize)
-
 	useLayoutEffect(() => {
 		if (cursor?.entity !== entity || cursor?.id === data[cursor.row]?.[0]) 
 			return;

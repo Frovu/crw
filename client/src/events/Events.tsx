@@ -34,7 +34,7 @@ import ICMETable, { ICMEContextMenu } from './tables/ICME';
 import CMEHeightTime from '../plots/time/CMEHeight';
 import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
 import XraysPlot from '../plots/time/XRays';
-import SolenHoles from './tables/HolesSolen';
+import SolenHoles, { SolenHolesContextMenu } from './tables/HolesSolen';
 import ChimeraHoles, { ChimeraContextMenu } from './tables/HolesChimera';
 import HolesSourceTable from './tables/HolesSrc';
 
@@ -216,6 +216,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{type === 'CME Table' && <CMEContextMenu {...{ params, setParams }}/>}
 		{type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
 		{type === 'Chimera Holes' && <ChimeraContextMenu {...{ params, setParams }}/>}
+		{type === 'Solen Holes' && <SolenHolesContextMenu {...{ params, setParams }}/>}
 		{type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{type === 'FEID Table' && <>
 			{averages && <>

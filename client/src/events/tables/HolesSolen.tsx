@@ -37,6 +37,7 @@ export default function SolenHoles() {
 	const query = useSolenHolesQuery();
 	const sourceCh = useSource('sources_ch') as CHS;
 	const sources = useSources();
+	const anySourceCh = sourceCh ?? sources.find(s => s.ch)?.ch as CHS;
 	const chimeraRules = useNodeExists('Chimera Holes');
 
 	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
@@ -70,7 +71,7 @@ export default function SolenHoles() {
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 
-	const dtTarget = cursor ? cursorCh.time : focusTime == null ? null : new Date(focusTime);
+	const dtTarget = cursor ? cursorCh.time : anySourceCh ? anySourceCh.time : focusTime == null ? null : new Date(focusTime);
 	const dt = chimeraRules ? new Date((Math.round(stateTime / 86400) - 1) * 864e5)
 		: dtTarget && new Date(dtTarget?.getTime() + (frame - Math.ceil(framesTotal / 2)) * 864e5);
 	const ext = (dt && dt >= SOLEN_PNG_SINCE) ? 'png' : 'jpg';

@@ -3,9 +3,9 @@ import { color, logError, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
 import { type ColumnDef, type DataRow } from '../columns';
-import { valueToString } from '../events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { useHolesViewState, useSolenHolesQuery, type CHS, type ChimeraCH, type SolenCH } from '../sources';
+import { equalValues, valueToString } from '../events';
+import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../eventsState';
+import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState, useSolenHolesQuery, type CHS, type ChimeraCH, type SolenCH } from '../sources';
 import { useQuery } from 'react-query';
 import { apiGet, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';
@@ -21,20 +21,22 @@ type Params = Partial<typeof defaultSettings>;
 export function ChimeraContextMenu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 	const para = { ...defaultSettings, ...params };
 	const { slowFrameTime: frameTime } = para;
-	const detail = useContextMenu(state => state.menu?.detail);
-	const { id } = useFeidCursor();
-	// const flare = detail?.flare;
-	// const ch = useSource('sources_ch');
-	// const [linkColId, idColId] = getSourceLink('flare', flare?.src);
-	// const isLinked = flare && equalValues(flare[idColId], erupt?.[linkColId]);
+	const detail = useContextMenu(state => state.menu?.detail) as { ch?: ChimeraCH };
+	const { id: feidId } = useFeidCursor();
+	const ch = detail?.ch;
+	const chs = useSource('sources_ch') as CHS;
 
-	return <>
-		<div className='Row'>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
+	const isLinked = ch && equalValues(ch.chimera_time, chs.chimera_time) && equalValues(ch.id, chs.chimera_id);
+
+	return !ch ? null : <>
+		<button className='TextButton' style={{ color: color(chs.chimera_time ? 'text-dark' : 'text') }}
+			onClick={() => feidId && linkHoleSourceEvent('chimera', ch, feidId)}>
+				Link CHIMERA CH</button>
+		{isLinked && <button className='TextButton'
+			onClick={() => unlinkHoleSourceEvent('chimera')}>Unlink CHIMERA CH</button>}
+		<div className='separator'/>
+		<div className=''>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 			min={20} max={1000} value={frameTime} onChange={val => setParams({ slowFrameTime: val ?? defaultSettings.slowFrameTime })}/></div>
-		{/* <button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
-			onClick={() => id && linkEruptiveSourceEvent('flare', flare, id)}>
-				Link {flare.src as string} flare</button>
-		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('flare', flare)}>Unlink {flare.src as string} flare</button>} */}
 	</>;
 }
 
@@ -44,16 +46,19 @@ export default function ChimeraHoles() {
 	const { time: stateTime, catched, setTime, setCatched } = useHolesViewState();
 	const [frame, setFrame] = useState(4);
 	const { cursor: sCursor, setCursor } = useEventsState();
-	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
+	const { start: cursorTime, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
 	const solenCursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
 	const sourceCh = useSource('sources_ch') as CHS;
-	const sources = useSources();
 	const solenQuery = useSolenHolesQuery();
 	const isSlave = useNodeExists('Chimera Holes') && isWindow;
 
-	const solenHole = catched?.solenHole ?? (solenCursor && solenQuery.data &&
-		rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null ?? null;
+	const solenChOfSrc = (sourceCh?.tag && solenQuery.data
+		&& solenQuery.data.data.find(r => r[0] === sourceCh.tag)) || null;
+	const solenHole = catched?.solenHole
+		?? (solenChOfSrc && rowAsDict(solenChOfSrc, solenQuery.data!.columns) as SolenCH)
+		?? (solenCursor && solenQuery.data &&
+			rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null ?? null;
 	const solenTime = solenHole?.time as Date | null;
 
 	const focusTime = solenTime ? solenTime.getTime() : (cursorTime && (cursorTime?.getTime() - 2 * 864e5));
@@ -109,7 +114,7 @@ export default function ChimeraHoles() {
 					continue;
 				}
 				holes[tst] = holes[tst].map(row =>
-					[...reorder.map(idx => row[idx]), new Date(parseInt(tst) * 1e3)]) as any;
+					[...reorder.slice(0, -1).map(idx => row[idx]), new Date(parseInt(tst) * 1e3)]) as any;
 			}
 			console.log('chimera => ', holes);
 			return { holes, frames, columns };
@@ -152,7 +157,7 @@ export default function ChimeraHoles() {
 
 	const { columns, holes, frames } = query.data;
 	const { timestamp, url, holesTimestamp } = frames[frame < frames.length ? frame : 0];
-	const data = holes[holesTimestamp];
+	const data = holes[holesTimestamp] ?? [];
 	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as ChimeraCH : null;
 
 	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 104));
@@ -186,10 +191,10 @@ export default function ChimeraHoles() {
 					const cycle = e.altKey && { 'ArrowLeft': -1, 'ArrowRight': 1 }[e.code];
 					if (cycle)
 						cycleHoles(cycle as any);
-					// if (cursor && ch && e.key === '-')
-					// 	return unlinkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns));
-					// if (cursor && ['+', '='].includes(e.key))
-					// 	return feidId && linkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns), feidId);
+					if (cursor && cursorCh && ['+', '='].includes(e.key))
+						return feidId && linkHoleSourceEvent('chimera', cursorCh, feidId);
+					if (cursor && e.key === '-')
+						return unlinkHoleSourceEvent('chimera');
 				},
 				row: (row, idx, onClick, padRow) => {
 					const ch = rowAsDict(row as any, columns) as ChimeraCH;
@@ -203,18 +208,15 @@ export default function ChimeraHoles() {
 					return <tr key={holesTimestamp+row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
 						{columns.map((column, cidx) => {
 							const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-							const value = valueToString(column.id === 'phi' ? row[cidx] / 1e20 : row[cidx]);
+							const value = valueToString(row[cidx]);
 							return <td key={column.id} title={`${column.name} = ${value}`}
 								onClick={e => {
 									if (start && end)
 										setCatched({ start, end, solenHole });
 									setFrame(query.data?.frames.findIndex(f => f.timestamp === holesTimestamp) ?? 0);
 							
-									if (cidx === 0) {
-										// if (feidId)
-										// 	linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
-										// return;
-									}
+									if (cidx === 0 && feidId !== null)
+										return linkHoleSourceEvent('chimera', ch, feidId);
 									onClick(idx, cidx);
 								}}
 								onContextMenu={openContextMenu('events', { nodeId, ch } as any)}

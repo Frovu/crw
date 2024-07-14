@@ -30,7 +30,7 @@ COLS = [
 	Col(TABLE, 'b_min'),
 	Col(TABLE, 'tot_b_plus'),
 	Col(TABLE, 'tot_b_minus'),
-	Col(TABLE, 'phi', pretty_name='Phi'),
+	Col(TABLE, 'phi', pretty_name='Φ', description='Φ, Mx * 1e20'),
 	Col(TABLE, 'phi_plus'),
 	Col(TABLE, 'phi_minus'),
 ]
@@ -71,7 +71,9 @@ def scrape_chimera_holes(dt):
 		x, y = soft_float(l[1]), soft_float(l[2])
 		lat, lon = parse_coords(l[3], reverse=True)
 		w = l[12]
-		result.append((cid, x, y, lat, lon, w, *[soft_float(i) for i in l[13:]]))
+		row = [cid, x, y, lat, lon, w, *[soft_float(i) for i in l[13:]]]
+		row[-3] /= 1e20
+		result.append(row)
 	return result
 
 def _get_day(d_start):
