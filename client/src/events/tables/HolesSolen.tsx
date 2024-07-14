@@ -106,15 +106,14 @@ export default function SolenHoles() {
 			}}/>}
 
 		</div>}
-		{imgUrl && <div style={{ overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
+		{imgUrl && <div style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
 			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Solen Holes' }, unique: nodeId })}>
 			<img alt='' src={imgUrl} draggable={false} style={{
 				transform: `translate(${move}px, ${moveY}px)` }}
 			width={imgSize * (1 + 2 * clip / 512) - 2}></img>
 			<a target='_blank' rel='noreferrer' href={imgUrl} onClick={e => e.stopPropagation()}
-				style={{ ...textStyle, top: -2, right: isWindow ? 16: 0 }}>
-				{prettyDate(new Date(dt.getTime() + 864e5), true)}</a>
-			<div style={{ ...textStyle, right: 0, bottom: isWindow ? 6 : 0 }}>{frame + 1} / {framesTotal}</div>
+				style={{ ...textStyle, bottom: isWindow ? 6 : 1, right: 0 }}>
+				≈{prettyDate(new Date(dt.getTime() + 864e5), true)}</a>
 			<div style={{ ...textStyle, top: -2, left: 0 }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
 		</div>}
 	</div> ;

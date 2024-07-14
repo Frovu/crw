@@ -17,7 +17,7 @@ export default function ChimeraHoles() {
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
 	const { time: stateTime, setTime } = useHolesViewState();
 	const [frame, setFrame] = useState(4);
-	const [catched, setCatchedState] = useState<null | { start: number, end: number, holesTime: number }>(null);
+	const [catched, setCatchedState] = useState<null | { start: number, end: number }>(null);
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
@@ -34,15 +34,15 @@ export default function ChimeraHoles() {
 	const end = catched?.end ?? (focusTime == null ? null : Math.ceil(focusTime / 864e5) * 86400 + 86400 / 4);
 
 	const query = useQuery({
-		// staleTime: Infinity,
+		staleTime: Infinity,
 		queryKey: ['chimera_holes', start, end],
 		queryFn: async () => {
+			console.log(start, end)
 			if (!start || !end)
 				return null;
 			const res = await apiGet<{ columns: ColumnDef[], holes: { [dtst: number]: DataRow[] },
 				images: number[] }>('events/chimera', { from: start, to: end });
 
-			setFrame(0);
 			
 			const frames = res.images.filter((tst) => tst >= start && tst <= end).map(timestamp => {
 				const holesTimestamp = Object.keys(res.holes).map(a => parseInt(a)).reduce((prev, curr) =>
@@ -92,21 +92,16 @@ export default function ChimeraHoles() {
 
 	useEffect(() => {
 		const inte = setInterval(() => {
-			if (catched)
-				setFrame(query.data?.frames.findIndex(f => f.timestamp === catched.holesTime) ?? 0);
-			else
+			if (!catched)
 				setFrame(f => (f + 1) % framesTotal);
 		}, 500);
 		return () => clearInterval(inte);
 	}, [catched, framesTotal, query.data?.frames]);
 
 	useEffect(() => {
-		console.log(cursor)
-		if (!start || !end)
-			return;
-		const holesTime = query.data?.frames[frame]?.holesTimestamp;
-		setCatchedState(cursor && holesTime ? { start, end, holesTime } : null);
-	}, [cursor, start, end, frame, query.data?.frames]);
+		if (!cursor)
+			setCatchedState(null);
+	}, [cursor]);
 
 	if (query.isError)
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
@@ -151,6 +146,10 @@ export default function ChimeraHoles() {
 							const value = valueToString(column.id === 'phi' ? row[cidx] / 1e20 : row[cidx]);
 							return <td key={column.id} title={`${column.name} = ${value}`}
 								onClick={e => {
+									if (start && end)
+										setCatchedState({ start, end });
+									setFrame(query.data?.frames.findIndex(f => f.timestamp === holesTimestamp) ?? 0);
+							
 									if (cidx === 0) {
 										// if (feidId)
 										// 	linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
@@ -172,7 +171,7 @@ export default function ChimeraHoles() {
 			}}/>}
 
 		</div>}
-		<div style={{ overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
+		<div style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
 			onClick={e => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Chimera Holes' }, unique: nodeId })}>
 			<div style={{ position: 'absolute', maxWidth: imgSize, maxHeight: imgSize, overflow: 'clip' }}>
 				<img alt='' src={url} draggable={false} style={{
