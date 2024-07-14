@@ -244,7 +244,7 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 			ctx.setLineDash(Math.abs(time - refTime) < 600 ? [8, 8] : []);
 
 		if (lat != null && lon != null) {
-			const sunRotation = 360 / 25.38 / 86400; // kinda
+			const sunRotation = 360 / 27.27 / 86400; // kinda
 			const rot = (time - refTime) * sunRotation;
 			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
 			const flat = lat + decl;

@@ -1,26 +1,45 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, openContextMenu } from '../../app';
-import { LayoutContext, openWindow, useNodeExists } from '../../layout';
+import { color, openContextMenu, useContextMenu } from '../../app';
+import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { timeInMargin, useHolesViewState, useSolenHolesQuery } from '../sources';
+import { linkHoleSourceEvent, timeInMargin, unlinkHoleSourceEvent, useHolesViewState, useSolenHolesQuery, type CHS, type SolenCH } from '../sources';
 import { prettyDate } from '../../util';
 
-type CH = { tag: string, time: Date, location?: string };
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
 const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
+export function SolenHolesContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+	const detail = useContextMenu(state => state.menu?.detail) as { ch?: SolenCH };
+	const { id: feidId } = useFeidCursor();
+	const ch = detail?.ch;
+	const chSrc = useSource('sources_ch') as CHS;
+
+	const isLinked = ch && equalValues(ch.tag, chSrc.tag);
+
+	return !ch ? null : <>
+		<button className='TextButton' style={{ color: color(chSrc.tag ? 'text-dark' : 'text') }}
+			onClick={() => feidId && linkHoleSourceEvent('solen', ch, feidId)}>
+				Link solen CH</button>
+		{isLinked && <button className='TextButton'
+			onClick={() => unlinkHoleSourceEvent('solen')}>Unlink solen CH</button>}
+	</>;
+}
+
 export default function SolenHoles() {
 	const framesTotal = 3;
-	const { time: stateTime } = useHolesViewState();
+	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
+	const { time: stateTime, catched } = useHolesViewState();
 	const [frame, setFrame] = useState(0);
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
-	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
-	const sourceCh = useSource('sources_ch') as CH;
+	const query = useSolenHolesQuery();
+	const sourceCh = useSource('sources_ch') as CHS;
 	const sources = useSources();
 	const chimeraRules = useNodeExists('Chimera Holes');
+
+	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
 
 	useEffect(() => {
 		if (chimeraRules)
@@ -31,15 +50,12 @@ export default function SolenHoles() {
 		return () => clearInterval(inte);
 	}, [chimeraRules]);
 
-	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
-	const query = useSolenHolesQuery();
-
-
 	if (!query.data?.data.length)
 		return <div className='Center'>LOADING..</div>;
 
 	const { data, columns } = query.data;
-	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as CH : sourceCh;
+	const cursorCh = catched?.solenHole as SolenCH ??
+		(cursor ? rowAsDict(data[cursor.row], columns) as SolenCH : sourceCh);
 
 	const isSouth = cursorCh?.location === 'southern';
 	const isNorth = cursorCh?.location === 'northern';
@@ -63,24 +79,24 @@ export default function SolenHoles() {
 		`AR_CH_${y}${(m!+1).toString().padStart(2, '00')}${d!.toString().padStart(2, '00')}.${ext}`;
 
 	const textStyle: CSSProperties = { position: 'absolute', zIndex: 3, fontSize: isWindow ? 16 : 10,
-		color: 'orange', background: 'black', padding: '0px 2px' };
+		color: 'orange', background: 'black', padding: '0px 3px' };
 	return <div>
 		{!isWindow && <div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 			{<TableWithCursor {...{
 				entity: 'solen_holes', hideBorder: true,
 				data, columns, size: { height: size.height - imgSize, width: size.width - 3 }, focusIdx, onKeydown: e => {
-					// if (cursor && ch && e.key === '-')
-					// 	return unlinkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns));
-					// if (cursor && ['+', '='].includes(e.key))
-					// 	return feidId && linkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns), feidId);
+					if (cursor && cursorCh && ['+', '='].includes(e.key))
+						return feidId && linkHoleSourceEvent('solen', cursorCh, feidId);
+					if (cursor && e.key === '-')
+						return unlinkHoleSourceEvent('solen');
 				},
 				row: (row, idx, onClick, padRow) => {
-					const ch = rowAsDict(row as any, columns) as CH;
+					const ch = rowAsDict(row as any, columns) as SolenCH;
 					const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
 					const linkedToThisFEID = sources.find(s => equalValues(s.ch?.tag, ch.tag));
 					
 					const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-					const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
+					const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
 				
 					return <tr key={row[0]}
 						style={{ height: 23 + padRow, fontSize: 15 }}>
@@ -89,12 +105,9 @@ export default function SolenHoles() {
 							const value = valueToString(row[cidx]);
 							const val = column.id === 'tag' ? value.slice(2) : column.id === 'time' ? value.slice(5, 10) : value;
 							return <td key={column.id} title={`${column.fullName} = ${value}`}
-								onClick={e => {
-									if (cidx === 0) {
-										// if (feidId)
-										// 	linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
-										// return;
-									}
+								onClick={() => {
+									if (cidx === 0 && feidId !== null)
+										return linkHoleSourceEvent('solen', ch, feidId);
 									onClick(idx, cidx);
 								}}
 								onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
@@ -119,7 +132,7 @@ export default function SolenHoles() {
 			<a target='_blank' rel='noreferrer' href={imgUrl} onClick={e => e.stopPropagation()}
 				style={{ ...textStyle, bottom: isWindow ? 6 : 1, right: 0 }}>
 				≈{prettyDate(new Date(dt.getTime() + 864e5), true)}</a>
-			<div style={{ ...textStyle, top: -2, left: 0 }}>{cursorCh?.tag.slice(isWindow ? 0 : 2)}</div>
+			<div style={{ ...textStyle, top: -2, left: 0, fontSize: 14 }}><b>{cursorCh?.tag}</b></div>
 		</div>}
 	</div> ;
 

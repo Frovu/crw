@@ -36,6 +36,7 @@ import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles
 import XraysPlot from '../plots/time/XRays';
 import SolenHoles from './tables/HolesSolen';
 import ChimeraHoles, { ChimeraContextMenu } from './tables/HolesChimera';
+import HolesSourceTable from './tables/HolesSrc';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
@@ -64,6 +65,7 @@ export function EventsLayoutContent() {
 		{type === 'Histogram' && <HistogramPlot/>}
 		{type === 'Sun View' && <SunView/>}
 		{type === 'Erupt Src Table' && <EruptionsTable/>}
+		{type === 'Holes Src Table' && <HolesSourceTable/>}
 		{type === 'Solen Holes' && <SolenHoles/>}
 		{type === 'Chimera Holes' && <ChimeraHoles/>}
 		{type === 'Flares Table' && <FlaresTable/>}

@@ -92,12 +92,15 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 
 	useEventListener('escape', escapeCursor);
 
+	if (entity === 'chimera_holes')
+		console.log(data.length, columns.length, data[0]?.[0], viewSize)
+
 	useLayoutEffect(() => {
-		const curs = useEventsState.getState().cursor;
-		if (curs?.entity === entity)
-			setCursor(null);
+		if (cursor?.entity !== entity || cursor?.id === data[cursor.row]?.[0]) 
+			return;
+		setCursor(null);
 		setViewIndex(clamp(0, data.length - viewSize, focusIdx ?? data.length));
-	}, [data.length, columns.length, data[0]?.[0], data.at(-1)?.[0], viewSize]); // eslint-disable-line
+	}, [cursor, data, entity, focusIdx, setCursor, viewSize]);
 
 	useEffect(() => {
 		cursor && updateViewIndex(cursor);

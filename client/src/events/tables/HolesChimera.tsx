@@ -1,16 +1,15 @@
-import { useCallback, useContext, useEffect, useState, type CSSProperties } from 'react';
+import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, logError, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { fetchTable, type ColumnDef, type DataRow } from '../columns';
-import { equalValues, valueToString } from '../events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from '../eventsState';
-import { useHolesViewState, useSolenHolesQuery } from '../sources';
+import { type ColumnDef, type DataRow } from '../columns';
+import { valueToString } from '../events';
+import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
+import { useHolesViewState, useSolenHolesQuery, type CHS, type ChimeraCH, type SolenCH } from '../sources';
 import { useQuery } from 'react-query';
 import { apiGet, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';
 
-type CH = { id: number, area_percent: number, xcen: number, ycen: number };
 const URL = 'https://solarmonitor.org/data/';
 const columnOrder = ['id', 'lat', 'lon', 'b', 'phi', 'area_percent', 'width_text'];
 
@@ -48,13 +47,14 @@ export default function ChimeraHoles() {
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
 	const solenCursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
-	const sourceCh = useSource('sources_ch') as CH;
+	const sourceCh = useSource('sources_ch') as CHS;
 	const sources = useSources();
 	const solenQuery = useSolenHolesQuery();
 	const isSlave = useNodeExists('Chimera Holes') && isWindow;
 
-	const solenTime = solenCursor && solenQuery.data &&
-		rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns).time as Date;
+	const solenHole = catched?.solenHole ?? (solenCursor && solenQuery.data &&
+		rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null ?? null;
+	const solenTime = solenHole?.time as Date | null;
 
 	const focusTime = solenTime ? solenTime.getTime() : (cursorTime && (cursorTime?.getTime() - 2 * 864e5));
 	const start = catched?.start ?? (focusTime == null ? null : Math.floor(focusTime / 864e5) * 86400 - 86400 * 5 / 4);
@@ -98,7 +98,7 @@ export default function ChimeraHoles() {
 				case 'area_percent': return 4.5;
 				case 'width_text': return 7.5;
 				default: return 4.5;
-			}})() }));
+			}})() })).concat({ id: 'chimera_time', hidden: true, type: 'time' } as ColumnDef);
 			const reorder = [...new Set([...columnOrder, ...cols.map(c => c.id)])]
 				.map(cid => cols.findIndex(col => col.id === cid));
 			const columns = reorder.map(idx => cols[idx]);
@@ -108,11 +108,10 @@ export default function ChimeraHoles() {
 					delete holes[tst];
 					continue;
 				}
-				holes[tst] = holes[tst].map(row => reorder.map(idx => row[idx])) as any;
-
+				holes[tst] = holes[tst].map(row =>
+					[...reorder.map(idx => row[idx]), new Date(parseInt(tst) * 1e3)]) as any;
 			}
-
-			console.log('chimera => ', holes)
+			console.log('chimera => ', holes);
 			return { holes, frames, columns };
 		},
 		onError: (err) => logError(err?.toString())
@@ -154,7 +153,7 @@ export default function ChimeraHoles() {
 	const { columns, holes, frames } = query.data;
 	const { timestamp, url, holesTimestamp } = frames[frame < frames.length ? frame : 0];
 	const data = holes[holesTimestamp];
-	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as CH : sourceCh;
+	const cursorCh = cursor ? rowAsDict(data[cursor.row], columns) as ChimeraCH : null;
 
 	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 104));
 	const targetImgWidth = imgSize * (1 + 430 / 1200) - 2;
@@ -168,13 +167,13 @@ export default function ChimeraHoles() {
 		const tsts = Object.keys(holes).map(a => parseInt(a));
 		const idx = tsts.indexOf(holesTimestamp);
 		const newHoles = tsts[(idx + dir + tsts.length) % tsts.length];
-		console.log(newHoles, frames.findIndex(f => f.timestamp === newHoles), holes, frames.map(f => f.timestamp))
 		setFrame(frames.findIndex(f => f.timestamp === newHoles));
 		setTime(newHoles);
 		setTimeout(() => {
-			setCatched({ start: start!, end: end! });
+			console.log('set', cursor, start, end);
+			setCatched(catched);
 			setCursor(cursor);
-		}, 1);
+		}, 10);
 	};
 
 	const textStyle: CSSProperties = { position: 'absolute', zIndex: 3, fontSize: isWindow ? 16 : 10,
@@ -193,11 +192,13 @@ export default function ChimeraHoles() {
 					// 	return feidId && linkEruptiveSourceEvent('solen_holes', rowAsDict(data[cursor.row] as any, columns), feidId);
 				},
 				row: (row, idx, onClick, padRow) => {
-					const ch = rowAsDict(row as any, columns) as CH;
+					const ch = rowAsDict(row as any, columns) as ChimeraCH;
 
 					const linkedToThisCH = false;
 					
-					const dark = ch.area_percent < .5;
+					const dark = ch.area_percent < .4
+						|| (solenHole?.location === 'northern' && ch.lat <= 10)
+						|| (solenHole?.location === 'southern' && ch.lat >= -10);
 				
 					return <tr key={holesTimestamp+row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
 						{columns.map((column, cidx) => {
@@ -206,7 +207,7 @@ export default function ChimeraHoles() {
 							return <td key={column.id} title={`${column.name} = ${value}`}
 								onClick={e => {
 									if (start && end)
-										setCatched({ start, end });
+										setCatched({ start, end, solenHole });
 									setFrame(query.data?.frames.findIndex(f => f.timestamp === holesTimestamp) ?? 0);
 							
 									if (cidx === 0) {
