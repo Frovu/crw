@@ -188,5 +188,16 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 
 SOURCE_CH = ['sources_ch', { c.name: c for c in [
 	C_CH('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
-	C_CH('tag', data_type='text'),
+	C_CH('tag', data_type='text', description='STAR Coronal hole tag+'),
+	C_CH('chimera_time', data_type='time', parse_name='chim time',
+		description='Time of associated solarmonitor CHIMERA run'),
+	C_CH('chimera_id', data_type='integer', parse_name='chim id',
+		description='CHIMERA number'),
+
+	C_CH('time', data_type='time', description='Earth facing position time'),
+	C_CH('lat', description='Centroid helio-latitude, °'),
+	C_CH('area', description='Area in % of solar disc'),
+	C_CH('b', pretty_name='B', description='B, G'),
+	C_CH('phi', pretty_name='Φ', description='Φ, Mx'),
+	C_CH('width', description='Longitudinal width, °'),
 ]}]

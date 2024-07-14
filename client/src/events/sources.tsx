@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { cmeLinks, eruptIdIdx, flaresLinks, icmeLinks, makeChange, makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
+import { chIdIdx, cmeLinks, eruptIdIdx, flaresLinks, icmeLinks, makeChange, makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
@@ -8,12 +8,20 @@ import { apiPost } from '../util';
 import { create } from 'zustand';
 
 type EruptEnt = 'flare' | 'cme' | 'icme';
+type HoleEnt = 'solen' | 'chimera';
+
+export type CHS = { id: number, tag: string, time: Date, lat: number, width: number, area: number,
+	b: number, phi: number, chimera_time: Date, chimera_id: number };
+export type SolenCH = { tag: string, time: Date, location: string | null };
+export type ChimeraCH = { id: number, area_percent: number, xcen: number, ycen: number,
+	lat: number, lon: number, width: number, area: number, b: number, phi: number, chimera_time: Date };
 
 export const columnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
 	cme: ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'],
 	icme: ['time'],
 	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
+	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area'],
 };
 export const sourceLabels = {
 	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
@@ -21,11 +29,12 @@ export const sourceLabels = {
 	icme: Object.keys(icmeLinks) as (keyof typeof icmeLinks)[]
 };
 
+type CatchedHolesState = null | { start: number, end: number, solenHole: SolenCH | null };
 export const useHolesViewState = create<{
-	catched: null | { start: number, end: number },
+	catched: CatchedHolesState,
 	time: number,
 	setTime: (a: number) => void,
-	setCatched: (a: null | { start: number, end: number }) => void
+	setCatched: (a: CatchedHolesState) => void
 }>()(set => ({
 	catched: null,
 	time: 0,
@@ -126,7 +135,100 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 			logError(e?.toString());
 		}
 	});
+}
 
+export async function unlinkHoleSourceEvent(which: HoleEnt) {
+	const { modifySource, data, columns } = useEventsState.getState();
+	if (!modifySource || !data.feid_sources || !data.sources_ch)
+		return logMessage('Source not selected');
+	const chId = data.feid_sources.find(row => row[0] === modifySource)?.[chIdIdx] as number | null;
+	if (!chId)
+		return logError('Source not found');
+
+	if (!await askProceed(<>
+		<h4>Ulink {which} CH?</h4>
+		<p>Remove {which} CH info from CHS #{chId}?</p>
+	</>))
+		return;
+	
+	const resetCols = (which === 'solen' ? ['tag'] : ['chimera_id', 'chimera_time']).map(cid =>
+		columns.sources_ch?.find(c => c.id === cid)!);
+	for (const column of resetCols)
+		makeChange('sources_ch', { column, value: null, id: chId });
+}
+
+export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, feidId: number) {
+	const { data, columns, modifySource, setStartAt, setEndAt } = useEventsState.getState();
+
+	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_ch)
+		return;
+	const modifyingChId = data.feid_sources.find(row => row[0] === modifySource)?.[chIdIdx];
+
+	const linkedToOther = which === 'solen' &&
+		data.sources_ch.find(row => equalValues(row[2], (event as SolenCH).tag));
+	
+	if (linkedToOther)
+		return askProceed(<>
+			<h4>{which} CH already linked</h4>
+			<p>Unlink this {which} from CHS #{linkedToOther[0]} first!</p>
+		</>);
+		
+	const actuallyLink = async (chId: number, createdSrc?: number) => {
+		const row = createdSrc ? [chId, ...columns.sources_ch!.slice(1).map(a => null)] :
+			data.sources_ch!.find(rw => rw[0] === chId);
+		if (!row)
+			return logError('CHS not found: '+chId.toString());
+		const chs = rowAsDict(row as any, columns.sources_ch!) as CHS;
+		const alreadyLinked = which === 'solen' ? chs.tag : chs.chimera_time;
+		if (alreadyLinked) {
+			if (!await askProceed(<>
+				<h4>Replace {which} CH?</h4>
+				<p>{which} seems to be linked to this event already, replace?</p>
+			</>))
+				return;
+		}
+
+		if (which === 'solen') {
+			const tch = event as SolenCH;
+			chs.tag = tch.tag;
+			if (!chs.chimera_time || !chs.time)
+				chs.time = tch.time;
+
+		} else if (which === 'chimera') {
+			const tch = event as ChimeraCH;
+			chs.chimera_id = tch.id;
+			chs.chimera_time = tch.chimera_time;
+
+			const chtm = tch.chimera_time.getTime() / 1e3;
+			const sunRotation = 360 / 27.27 / 86400; // deg/s, kinda
+			const rotateToCenter = -tch.lon / sunRotation;
+			chs.time = new Date((chtm + rotateToCenter) * 1e3);
+			chs.b = tch.b;
+			chs.lat = tch.lat;
+			chs.phi = tch.phi;
+			chs.area = tch.area;
+			chs.width = tch.width;
+		}
+
+		makeSourceChanges('sources_ch', chs, feidId, createdSrc);
+		logMessage(`Linked ${which} CH to FE/ID #${feidId}`);
+	};
+
+	if (modifyingChId != null)
+		return actuallyLink(modifyingChId as number);
+
+	askConfirmation(<>
+		<h4>Create new entry</h4>
+		<p>No source is selected, create a new one linked to current event?</p>
+	</>, async () => {
+		try {
+			const res = await apiPost<{ id: number, source_id: number }>('events/createSource',
+				{ entity: 'sources_ch', id: feidId });
+			actuallyLink(res.id, res.source_id);
+		} catch (e) {
+			logError(e?.toString());
+		}
+	});
 }
 
 export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
