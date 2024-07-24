@@ -105,7 +105,22 @@ export default function InsertControls() {
 
 	const errNoPrimary = !sources.find(s => s.source.cr_influence === 'primary');
 
-	return inflOpts && <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
+	const cycleInfl = (src: typeof sources[number], dir: -1 | 1) => {
+		if (!inflColumn) return;
+		const value = inflOpts![(inflOpts!.length + inflOpts!.indexOf(src.source.cr_influence as any) + dir) % inflOpts!.length];
+		makeChange('feid_sources', { column: inflColumn, value, id: src.source.id as number });
+	};
+	const InflButton = ({ src }: { src: typeof sources[number] }) => {
+		const infl = src.source.cr_influence as string;
+		return <td className='TextButton' height={10} width={84}
+			style={{ color: color({ primary: 'cyan', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
+			onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(src, -1); }}
+			onClick={e => { e.stopPropagation(); cycleInfl(src, 1); }}
+			onWheel={e => cycleInfl(src, e.deltaY > 0 ? 1 : -1)}>
+			{infl ? infl : 'Infl: N/A'}</td>;
+	};
+		
+	return <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
 		<div style={{ display: 'flex', padding: '1px 1px 0 0' }}>
 			<div style={{ alignSelf: 'start', position: 'relative', width: 154, paddingTop: 1 }}>
 				<CoverageControls date={start}/>
@@ -132,9 +147,8 @@ export default function InsertControls() {
 				</tr>
 			</tbody></table>
 		</div>
-		<div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 1, fontSize: 14 }}>
+		<div style={{ display: 'flex', flexDirection: 'column', paddingTop: 1, fontSize: 14 }}>
 			{sources.filter(s => s.erupt).map((src, i) => {
-				const infl = src.source.cr_influence as string | null;
 				const srcId = src.source.id as number;
 				const isActive = srcId === modifySource;
 			
@@ -143,10 +157,6 @@ export default function InsertControls() {
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
 
-				const cycleInfl = (dir: -1 | 1) => {
-					const value = inflOpts[(inflOpts.length + inflOpts.indexOf(infl as any) + dir) % inflOpts.length];
-					makeChange('feid_sources', { column: inflColumn, value, id: srcId });
-				};
 				return <div key={srcId}
 					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
 					onClick={() => setModifySource(isActive ? null : srcId)}>
@@ -161,13 +171,8 @@ export default function InsertControls() {
 							<td width={36} style={clr('flare', 'dMN')}>dMN</td>
 						</tr>
 						<tr>
-							<td className='TextButton' height={10}
-								style={{ color:color({ primary: 'cyan', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red') }}
-								onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(-1); }}
-								onClick={e => { e.stopPropagation(); cycleInfl(1); }}
-								onWheel={e => cycleInfl(e.deltaY > 0 ? 1 : -1)}>
+							<InflButton src={src}/>
 								
-								{infl ? infl : 'Infl: N/A'}</td>
 							<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
 							<td style={clr('cme', 'DKI')}>DKI</td>
 							<td style={clr('cme', 'LSC')} colSpan={2}>LASCO</td>
@@ -175,6 +180,30 @@ export default function InsertControls() {
 						</tr>
 					</tbody></table>
 				</div>;})}
+			{sources.filter(s => s.ch).map((src, i) => {
+				const srcId = src.source.id as number;
+				const isActive = srcId === modifySource;
+
+				const clr = (which: 'solen' | 'chimera') => {
+					const isSet = src.ch?.[which === 'solen' ? 'tag' : 'chimera_id'];
+					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
+				};
+
+				return <div key={srcId}
+					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
+					onClick={() => setModifySource(isActive ? null : srcId)}>
+					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
+						<tr>
+							<td width={40} style={{ color: color('text-dark') }}>
+								CH{i+1}</td>
+							<InflButton src={src}/>
+							<td width={72} style={clr('solen' )}>SOLEN</td>
+							<td width={72} style={clr('chimera')}>CHIMERA</td>
+						</tr>
+					</tbody></table>
+				</div>;
+
+			})}
 			<pre style={{ margin: 0, color: color('red') }}>
 				{errNoPrimary && 'no primary source\n'}
 			</pre>

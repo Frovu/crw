@@ -36,7 +36,7 @@ import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles
 import XraysPlot from '../plots/time/XRays';
 import SolenHoles, { SolenHolesContextMenu } from './tables/HolesSolen';
 import ChimeraHoles, { ChimeraContextMenu } from './tables/HolesChimera';
-import HolesSourceTable from './tables/HolesSrc';
+import HolesSourceTable, { HolesContextMenu } from './tables/HolesSrc';
 
 export function EventsLayoutContent() {
 	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
@@ -217,6 +217,7 @@ export function EventsContextMenu({ params, setParams }: ContextMenuProps<PanelP
 		{type === 'ICME Table' && <ICMEContextMenu {...{ params, setParams }}/>}
 		{type === 'Chimera Holes' && <ChimeraContextMenu {...{ params, setParams }}/>}
 		{type === 'Solen Holes' && <SolenHolesContextMenu {...{ params, setParams }}/>}
+		{type === 'Holes Src Table' && <HolesContextMenu {...{ params, setParams }}/>}
 		{type === 'Sun View' && <SunViewContextMenu {...{ params, setParams }}/>}
 		{type === 'FEID Table' && <>
 			{averages && <>

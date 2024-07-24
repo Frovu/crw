@@ -1,30 +1,54 @@
 import { useContext } from 'react';
-import { color, openContextMenu } from '../../app';
-import { LayoutContext } from '../../layout';
+import { color, logError, openContextMenu, useContextMenu } from '../../app';
+import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
+import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { timeInMargin, type CHS } from '../sources';
+import { apiPost } from '../../util';
+import { askConfirmation } from '../../Utility';
+
+const ENT = 'sources_ch';
+
+function deleteHole(id: number) {
+	askConfirmation(<><h4>Delete CHS event?</h4><p>Action is irreversible</p></>, async () => {
+		try {
+			await apiPost('events/delete', { entity: ENT, id });
+			deleteEvent(ENT, id);
+		} catch(e) {
+			logError(e?.toString());
+		}
+	});
+}
+
+export function HolesContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
+	const chid = detail?.ch?.id;
+
+	return <>
+		{chid && <button className='TextButton' onClick={() => deleteHole(chid)}>Delete row</button>}
+	</>;
+}
 
 export default function HolesSourceTable() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid } = useFeidCursor();
-	const { data, columns } = useTable('sources_ch');
-	const sourceCh = useSource('sources_ch');
+	const { data, columns } = useTable(ENT);
+	const sourceCh = useSource(ENT);
 	const sources = useSources();
-	const cursor = sCursor?.entity === 'sources_ch' ? sCursor : null;
+	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
 	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;
 
 	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
-	const focusIdx = sources.map(src => data.findIndex(r => src.erupt?.id === r[0])).find(i => i > 0) ||
+	const focusIdx = sources.map(src => data.findIndex(r => src.ch?.id === r[0])).find(i => i > 0) ||
 	  (focusTime == null ? data.length : data.findIndex(r => (r[1] as Date)?.getTime() > focusTime));
 
 	return <div>
 		{<TableWithCursor {...{
-			entity: 'sources_ch',
+			entity: ENT,
 			data, columns, size, focusIdx,
 			head: (cols, padHeader) => <DefaultHead {...{ columns: cols.slice(1), padHeader }}/>,
 			row: (row, idx, onClick, padRow) => {
