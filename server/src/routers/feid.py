@@ -128,13 +128,14 @@ def _resolve_enlil():
 	fname = donki.resolve_enlil(eid)
 	return { 'filename': fname }
 
-@bp.route('/createSource', methods=['POST'])
+@bp.route('/linkSource', methods=['POST'])
 @route_shielded
 @require_role('operator')
 def _create_src():
-	feid_id = request.json.get('id')
+	feid_id = request.json.get('feid_id')
 	entity = request.json.get('entity')
-	return query.create_source(feid_id, entity)
+	existsing_id = request.json.get('id')
+	return query.link_source(feid_id, entity, existsing_id)
 
 @bp.route('/delete', methods=['POST'])
 @route_shielded

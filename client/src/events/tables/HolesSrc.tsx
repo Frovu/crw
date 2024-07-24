@@ -4,7 +4,7 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { timeInMargin, type CHS } from '../sources';
+import { linkSrcToEvent, timeInMargin, type CHS } from '../sources';
 import { apiPost } from '../../util';
 import { askConfirmation } from '../../Utility';
 
@@ -22,11 +22,13 @@ function deleteHole(id: number) {
 }
 
 export function HolesContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+	const { id: feidId } = useFeidCursor();
 	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
-	const chid = detail?.ch?.id;
+	const chsId = detail?.ch?.id;
 
-	return <>
-		{chid && <button className='TextButton' onClick={() => deleteHole(chid)}>Delete row</button>}
+	return chsId && <>
+		{feidId && <button className='TextButton' onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>Link CHS</button>}
+		<button className='TextButton' onClick={() => deleteHole(chsId)}>Delete row</button>
 	</>;
 }
 

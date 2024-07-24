@@ -88,15 +88,15 @@ def select_feid(uid=None, changelog=False):
 		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
 		return rows, fields, changes if changelog else None
 
-def create_source(feid_id, entity):
+def link_source(feid_id, entity, existing_id = None):
 	with pool.connection() as conn:
 		assert entity in [SOURCE_CH[0], SOURCE_ERUPT[0]]
-		se_id = conn.execute(f'INSERT INTO events.{entity} '+\
+		se_id = existing_id or conn.execute(f'INSERT INTO events.{entity} '+\
 			'DEFAULT VALUES RETURNING id').fetchone()[0]
 		link_col = 'ch_id' if entity == SOURCE_CH[0] else 'erupt_id'
 		src_id = conn.execute(f'INSERT INTO events.{FEID_SOURCE[0]} (feid_id, {link_col}) '+
 			'VALUES (%s, %s) RETURNING id', [feid_id, se_id]).fetchone()[0]
-	log.info('%s #%s created as source #%s of #%s', entity, se_id, src_id, feid_id)
+	log.info('%s #%s linked as source #%s of #%s', entity, se_id, src_id, feid_id)
 	return { 'id': se_id, 'source_id': src_id }
 
 def delete(uid, eid, entity):

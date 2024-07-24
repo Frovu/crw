@@ -1,6 +1,7 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { chIdIdx, cmeLinks, eruptIdIdx, flaresLinks, icmeLinks, makeChange, makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
+import { chIdIdx, cmeLinks, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, makeChange,
+	makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
@@ -18,7 +19,7 @@ export type ChimeraCH = { id: number, area_percent: number, xcen: number, ycen: 
 
 export const columnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
-	cme: ['time', 'speed', 'lat', 'lon', 'central_angle', 'angular_width', 'note'],
+	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'enlil_id', 'note', 'central_angle'],
 	icme: ['time'],
 	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
 	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
@@ -128,8 +129,8 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 		<p>No source is selected, create a new one linked to current event?</p>
 	</>, async () => {
 		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/createSource',
-				{ entity: 'sources_erupt', id: feidId });
+			const res = await apiPost<{ id: number, source_id: number }>('events/linkSource',
+				{ entity: 'sources_erupt', feid_id: feidId });
 			actuallyLink(res.id, res.source_id);
 		} catch (e) {
 			logError(e?.toString());
@@ -183,7 +184,7 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 		if (alreadyLinked) {
 			if (!await askProceed(<>
 				<h4>Replace {which} CH?</h4>
-				<p>{which} seems to be linked to this event already, replace?</p>
+				<p>{which} CH seems to be linked to this event already, replace?</p>
 			</>))
 				return;
 		}
@@ -222,13 +223,36 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 		<p>No source is selected, create a new one linked to current event?</p>
 	</>, async () => {
 		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/createSource',
-				{ entity: 'sources_ch', id: feidId });
+			const res = await apiPost<{ id: number, source_id: number }>('events/linkSource',
+				{ entity: 'sources_ch', feid_id: feidId });
 			actuallyLink(res.id, res.source_id);
 		} catch (e) {
 			logError(e?.toString());
 		}
 	});
+}
+
+export async function linkSrcToEvent(which: 'sources_ch' | 'soruces_erupt', srcId: number, feidId: number) {
+	const isCh = which === 'sources_ch';
+	const { data, setStartAt, setEndAt } = useEventsState.getState();
+
+	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_ch)
+		return;
+
+	const isLinked = data.feid_sources.find(row => row[fIdIdx] === feidId && row[isCh ? chIdIdx : eruptIdIdx]);
+	if (isLinked)
+		return askProceed(<>
+			<h4>Already linked</h4>
+			<p>This {isCh ? 'CHS' : 'Erupt'} is already linked to this FEID event.</p>
+		</>);
+
+	try {
+		await apiPost<{ id: number, source_id: number }>('events/linkSource',
+			{ entity: 'sources_ch', feid_id: feidId, id: srcId });
+		logMessage(`Linked ${isCh ? 'CHS' : 'Erupt'} #${srcId} to FE/ID #${feidId}`);
+	} catch (e) {
+		logError(e?.toString());
+	}
 }
 
 export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
