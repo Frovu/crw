@@ -61,7 +61,7 @@ function Window({ id }: { id: string}) {
 				<Content/>
 			</CatchErrors>
 		</LayoutContext.Provider>
-		<div className='CloseButton' style={{ position: 'absolute', top: -1, right: -1,
+		<div className='CloseButton' style={{ position: 'absolute', top: -1, right: -1, zIndex: 15,
 			background: color('bg'), border: '1px solid '+color('border'), lineHeight: '14px' }}
 		onClick={() => closeWindow(id)}/>
 		<div style={{ position: 'absolute', cursor: 'nw-resize', zIndex: 4, top: -4, left: -4, width: 16, height: 16 }}

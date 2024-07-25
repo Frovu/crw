@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react';
-import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
+import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
 import { equalValues } from './events';
@@ -144,7 +144,7 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 
 function SDO({ time: refTime, start, end, lat, lon, title, src }:
 { time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
-	const { size: nodeSize, params } = useContext(LayoutContext)! as LayoutContextType<Params>;
+	const { size: nodeSize, params, isWindow, id: nodeId } = useContext(LayoutContext)! as LayoutContextType<Params>;
 	const { src: source, slave, frameTime } = { ...defaultSettings, ...params };
 	const { time: masterTime, setTime } = useSunViewState();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -273,7 +273,9 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 			<br/>{prettyDate(refTime)}</div>}
 		{!isLsc && isLoaded && <div style={{ position: 'absolute', color: 'white',
 			top: size - 18, right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
-		<canvas ref={canvasRef} style={{ position: 'absolute', zIndex: 3 }}/>
+		<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }}
+			onClick={e => !isWindow && openWindow({ x: e.clientX - 256, y: e.clientY - 256,
+				w: 512, h: 516, params: { ...params, slave: true } as any, unique: nodeId })}/>
 		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
 }
@@ -285,7 +287,7 @@ export default function SunView() {
 	const cmes = useCompoundTable('cme');
 	const { cursor } = useEventsState();
 	const sources = useSources();
-	const activeErupt = useSource('sources_erupt');
+	const activeErupt = useSource('sources_erupt', true);
 	const { start: feidTime } = useFeidCursor();
 
 	if (mode === 'WSA-ENLIL') {
@@ -348,7 +350,7 @@ export default function SunView() {
 			src: flare.src as string
 		}}/>;
 	}
-	if (activeErupt?.lat && activeErupt?.lon && activeErupt?.cme_time ) {
+	if (activeErupt?.cme_time) {
 		const start = (activeErupt.cme_time as Date).getTime() / 1000;
 		return <SDO {...{
 			lat: activeErupt?.lat as number,

@@ -263,7 +263,8 @@ export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
 	if (erupt.coords_source == null || erupt.coords_source === cme.src) {
 		erupt.lat = cme.lat;
 		erupt.lon = cme.lon;
-		erupt.coords_source = cme.src;
+		if (cme.lon != null && cme.lat != null)
+			erupt.coords_source = cme.src;
 	}
 }
 

@@ -140,7 +140,7 @@ export default function EruptionsTable() {
 						{curs?.editing || (curs && column.type === 'enum') ? <CellInput {...{
 							table: ENT,
 							options: cid === 'coords_source' ?
-								[...(flrOpts.length ? ['FLR'] : []),'MNL'].concat(cmeOpts.map(c => c!.src as string))
+								[...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(cmeOpts.map(c => c!.src as string))
 								: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map(a => a!.src as string),
 							id: row[0],
 							column, value,

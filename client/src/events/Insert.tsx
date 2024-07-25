@@ -113,7 +113,7 @@ export default function InsertControls() {
 	const InflButton = ({ src }: { src: typeof sources[number] }) => {
 		const infl = src.source.cr_influence as string;
 		return <td className='TextButton' height={10} width={84}
-			style={{ color: color({ primary: 'cyan', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
+			style={{ color: color({ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
 			onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(src, -1); }}
 			onClick={e => { e.stopPropagation(); cycleInfl(src, 1); }}
 			onWheel={e => cycleInfl(src, e.deltaY > 0 ? 1 : -1)}>
