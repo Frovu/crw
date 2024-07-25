@@ -175,8 +175,8 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 }
 
 export function LayoutNav() {
-	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
-	const { defaultLayouts } = useContext(AppLayoutContext);
+	const { apps, appsDefaults, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
+	const defaultLayouts = appsDefaults[getApp()];
 	const { list, active } = apps[getApp()] ?? { list: {}, active: {} };
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
 	const [renaming, setRenaming] = useState<{ layout: string, input: string } | null>(null);
@@ -199,7 +199,7 @@ export function LayoutNav() {
 					onKeyDown={e => ['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()}
 					onBlur={() => { renameLayout(renaming.layout, renaming.input); setRenaming(null); }}
 					value={renaming.input} onChange={e => setRenaming({ ...renaming, input: e.target.value })}/> 
-						: <span style={{ flex: 1, cursor: 'pointer', color:  isActive ? color('white') : isUsers ? color('text') : 'unset' }}
+						: <span style={{ flex: 1, cursor: 'pointer', color:  isActive ? color('active') : isUsers ? color('text') : 'unset' }}
 							onClick={() => selectLayout(layout)}>{layout}</span>}
 					<div style={{ minWidth: 8 }}/>
 					<button hidden={!isUsers} className='TextButton' onClick={() => setRenaming({ layout, input: layout })}>rename</button>
