@@ -14,12 +14,12 @@ export function SolenHolesContextMenu({ params, setParams }: ContextMenuProps<Pa
 	const detail = useContextMenu(state => state.menu?.detail) as { ch?: SolenCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
-	const chSrc = useSource('sources_ch') as CHS;
+	const chSrc = useSource('sources_ch') as CHS | null;
 
-	const isLinked = ch && equalValues(ch.tag, chSrc.tag);
+	const isLinked = ch && chSrc && equalValues(ch.tag, chSrc.tag);
 
 	return !ch ? null : <>
-		<button className='TextButton' style={{ color: color(chSrc.tag ? 'text-dark' : 'text') }}
+		<button className='TextButton' style={{ color: color(chSrc?.tag ? 'text-dark' : 'text') }}
 			onClick={() => feidId && linkHoleSourceEvent('solen', ch, feidId)}>
 				Link solen CH</button>
 		{isLinked && <button className='TextButton'

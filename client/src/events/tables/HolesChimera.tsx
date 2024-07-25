@@ -15,34 +15,39 @@ const columnOrder = ['id', 'lat', 'lon', 'b', 'phi', 'area_percent', 'width_text
 
 const defaultSettings = {
 	slowFrameTime: 300,
+	holesAnimation: true,
 };
 type Params = Partial<typeof defaultSettings>;
 
 export function ChimeraContextMenu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 	const para = { ...defaultSettings, ...params };
-	const { slowFrameTime: frameTime } = para;
+	const { slowFrameTime: frameTime, holesAnimation } = para;
 	const detail = useContextMenu(state => state.menu?.detail) as { ch?: ChimeraCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
-	const chs = useSource('sources_ch') as CHS;
+	const chs = useSource('sources_ch') as CHS | null;
 
-	const isLinked = ch && equalValues(ch.chimera_time, chs.chimera_time) && equalValues(ch.id, chs.chimera_id);
+	const isLinked = ch && chs && equalValues(ch.chimera_time, chs.chimera_time) && equalValues(ch.id, chs.chimera_id);
 
-	return !ch ? null : <>
-		<button className='TextButton' style={{ color: color(chs.chimera_time ? 'text-dark' : 'text') }}
-			onClick={() => feidId && linkHoleSourceEvent('chimera', ch, feidId)}>
+	return <>
+		{ch && <>
+			<button className='TextButton' style={{ color: color(chs?.chimera_time ? 'text-dark' : 'text') }}
+				onClick={() => feidId && linkHoleSourceEvent('chimera', ch, feidId)}>
 				Link CHIMERA CH</button>
-		{isLinked && <button className='TextButton'
-			onClick={() => unlinkHoleSourceEvent('chimera')}>Unlink CHIMERA CH</button>}
-		<div className='separator'/>
+			{isLinked && <button className='TextButton'
+				onClick={() => unlinkHoleSourceEvent('chimera')}>Unlink CHIMERA CH</button>}
+			<div className='separator'/>
+		</>}
 		<div className=''>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 			min={20} max={1000} value={frameTime} onChange={val => setParams({ slowFrameTime: val ?? defaultSettings.slowFrameTime })}/></div>
+		<label>Animation<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={holesAnimation} onChange={e => setParams({ holesAnimation: e.target.checked })}/></label>
 	</>;
 }
 
 export default function ChimeraHoles() {
 	const { id: nodeId, size, isWindow, params } = useContext(LayoutContext)!;
-	const { slowFrameTime: frameTime } = { ...defaultSettings, ...params };
+	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
 	const { time: stateTime, catched, setTime, setCatched } = useHolesViewState();
 	const [frame, setFrame] = useState(4);
 	const { cursor: sCursor, setCursor } = useEventsState();
@@ -66,7 +71,7 @@ export default function ChimeraHoles() {
 	const end = catched?.end ?? (focusTime == null ? null : Math.ceil(focusTime / 864e5) * 86400 + 86400 * 5 / 4);
 
 	const query = useQuery({
-		queryKey: ['chimera_holes', start, end],
+		queryKey: ['chimera_holes', start, end, holesAnimation],
 		queryFn: async () => {
 			if (!start || !end)
 				return null;
@@ -87,11 +92,13 @@ export default function ChimeraHoles() {
 				const fname = `${year}${mon}${day}_${hour}${min}${sec}.png`;
 				const url = URL + `${year}/${mon}/${day}/pngs/saia/saia_chimr_ch_${fname}`;
 
-				const img = new Image();
-				img.src = url;
-				const entry = { timestamp, url, img, holesTimestamp, loaded: false };
-				img.onload = img.onerror = () => { entry.loaded = true; };
-				setTimeout(() => { entry.loaded = true; }, 5000);
+				const entry = { timestamp, url, holesTimestamp, loaded: false, img: null as null | HTMLImageElement };
+				if (holesAnimation || holesTimestamp === timestamp) {
+					const img = entry.img = new Image();
+					img.src = url;
+					img.onload = img.onerror = () => { entry.loaded = true; };
+					setTimeout(() => { entry.loaded = true; }, 5000);
+				}
 
 				return entry;
 			});
@@ -134,16 +141,23 @@ export default function ChimeraHoles() {
 		if (!isSlave) return;
 		const fr = query.data?.frames.findIndex(f => f.timestamp === stateTime) ?? 0;
 		setFrame(fr >= 0 ? fr : 0);
-	}, [isSlave, query.data?.frames, stateTime]);
+	}, [isSlave, query.data?.frames, stateTime, holesAnimation]);
 
 	useEffect(() => {
 		if (isSlave) return;
+		if (!holesAnimation && focusTime && query.data?.frames) {
+			const fr = query.data?.frames.findIndex(f => f.timestamp >= focusTime / 1e3) ?? 0;
+			const { holesTimestamp } = query.data?.frames[fr];
+			const fra = query.data?.frames.findIndex(f => f.timestamp === holesTimestamp) ?? 0;
+			setFrame(fra >= 0 ? fra : 0);
+			return;
+		}
 		const inte = setInterval(() => {
 			if (!catched)
 				setFrame(f => (f + 1) % framesTotal);
 		}, frameTime);
 		return () => clearInterval(inte);
-	}, [frameTime, catched, framesTotal, isSlave]);
+	}, [frameTime, catched, framesTotal, isSlave, holesAnimation, query.data?.frames, focusTime]);
 
 	useEffect(() => {
 		if (!cursor)
