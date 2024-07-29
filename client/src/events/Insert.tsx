@@ -5,6 +5,7 @@ import CoverageControls from './CoverageControls';
 import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createdFeid } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { useQueryClient } from 'react-query';
+import { askProceed } from '../Utility';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
@@ -61,10 +62,10 @@ export default function InsertControls() {
 			}
 			if (isInsert) {
 				apiPost<{ id: number }>('events/create', { time: setStartAt, duration: dur }).then(({ id }) => {
+					queryClient.invalidateQueries('tableData');
 					createdFeid(id, setStartAt, dur);
 					logSuccess(`Created FEID #${id}`);
 				}).catch(e => logError(e?.toString()));
-				queryClient.invalidateQueries('tableData');
 			}
 			return escape();
 		}
@@ -72,6 +73,19 @@ export default function InsertControls() {
 			const at = isInsert ? setStartAt.getTime() + 864e5 : end.getTime();
 			return setEnd(new Date(at));
 		}
+	};
+
+	const deleteFeid = async () => {
+		if (!await askProceed(<>
+			<h4>Delete FEID?</h4>
+			<p>Remove FEID #{feidId} at {start && prettyDate(start)}? Action is irreversible.</p>
+		</>))
+			return;
+		if (!feidId) return;
+		apiPost<{ id: number }>('events/delete', { entity: 'feid', id: feidId }).then(() => {
+			queryClient.invalidateQueries('tableData');
+			logSuccess(`Deleted FEID #${feidId}`);
+		}).catch(e => logError(e?.toString()));
 	};
 
 	useEventListener('escape', escape);
@@ -136,7 +150,8 @@ export default function InsertControls() {
 			{infl ? infl : 'Infl: N/A'}</td>;
 	};
 		
-	return <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
+	return <div style={{ display: 'flex', flexDirection: 'column', padding: 1, fontSize: 15,
+		height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
 		<div style={{ display: 'flex', flexWrap: 'wrap', padding: '1px 1px 0 0' }}>
 			<div style={{ alignSelf: 'start', position: 'relative', width: 154, height: 26, paddingTop: 1 }}>
 				<CoverageControls date={start}/>
@@ -224,6 +239,10 @@ export default function InsertControls() {
 				{errNoPrimary && 'no primary source\n'}
 			</pre>
 
+		</div>
+		<div style={{ flex: 1 }}></div>
+		<div style={{ textAlign: 'right', padding: 1, color: color('white') }}>
+			<button onClick={() => deleteFeid()}>Delete event</button>
 		</div>
 	</div>;
 }
