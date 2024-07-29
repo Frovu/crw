@@ -231,7 +231,16 @@ export function makeChange(tbl: TableName, { column, value, id }: ChangeValue) {
 	return true;
 };
 
-export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict, feid_id?: number, createdSrc?: number) {
+export function createdFeid(id: number, time: Date, duration: number) {
+	useEventsState.setState(state => {
+		const { columns, data, created } = state;
+		created.feid = [id, ...created.feid];
+		const newRow = columns.feid!.map(col => col.id === 'time' ? time : col.id === 'duration' ? duration : null);
+		data.feid = [...data.feid!, newRow as any];
+	});
+}
+
+export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict, feidId?: number, createdSrc?: number) {
 	useEventsState.setState(state => {
 		const id = row.id as number;
 		const { changes, created, columns, rawData, data } = state;
@@ -243,7 +252,7 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowD
 			state.modifySource = createdSrc;
 			const sLinkIdx = tbl === 'sources_ch' ? 2 : 3;
 			changes.feid_sources = [...changes.feid_sources,
-				{ id: createdSrc, column: columns.feid_sources![1], value: feid_id!, silent: true },
+				{ id: createdSrc, column: columns.feid_sources![1], value: feidId!, silent: true },
 				{ id: createdSrc, column: columns.feid_sources![sLinkIdx], value: id, silent: true }
 			];
 		}

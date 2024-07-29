@@ -100,11 +100,18 @@ def link_source(feid_id, entity, existing_id = None):
 	return { 'id': se_id, 'source_id': src_id }
 
 def delete(uid, eid, entity):
+	assert entity in TABLES
 	with pool.connection() as conn:
-		assert entity in TABLES
 		conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [eid])
-		# TODO: log deletions?
 	log.info('user #%s deleted %s #%s', uid, entity, eid)
+
+def create(uid, entity, time, duration):
+	assert entity in TABLES
+	with pool.connection() as conn:
+		eid = conn.execute(f'INSERT INTO events.{entity} (time, duration) '+\
+			' VALUES (%s, %s) RETURNING id', [time, duration]).fetchone()[0]
+	log.info('user #%s inserted %s #%s', uid, entity, eid)
+	return eid
 
 def submit_changes(uid, changes):
 	with pool.connection() as conn:

@@ -146,6 +146,16 @@ def _delete_evt():
 	query.delete(session.get('uid'), eid, entity)
 	return msg('OK')
 
+@bp.route('/create', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _insert_evt():
+	entity = 'feid'
+	ttime = request.json.get('time')
+	duration = request.json.get('duration')
+	eid = query.create(session.get('uid'), entity, ttime, duration)
+	return { 'id': eid }
+
 @bp.route('/changes', methods=['POST'])
 @route_shielded
 @require_role('operator')

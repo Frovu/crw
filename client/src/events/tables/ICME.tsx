@@ -20,6 +20,8 @@ export function ICMEContextMenu({ params, setParams }: ContextMenuProps<Partial<
 			onClick={() => id && linkEruptiveSourceEvent('icme', icme, id)}>
 				Link {src} ICME</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('icme', icme)}>Unlink {src} ICME</button>}
+		<div className='separator'/>
+		<a className='Row' href="https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm" target='_blank' rel='noreferrer'>R&C Catalogue</a>
 	</>;
 }
 

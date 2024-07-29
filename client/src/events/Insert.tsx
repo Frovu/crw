@@ -1,17 +1,20 @@
 import { type MouseEvent } from 'react';
-import { color } from '../app';
-import { prettyDate, useEventListener } from '../util';
+import { color, logError, logSuccess } from '../app';
+import { apiPost, prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, useTable, makeChange } from './eventsState';
+import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createdFeid } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
+import { useQueryClient } from 'react-query';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 export default function InsertControls() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource } = useEventsState();
-	const { start, end, duration, id: targetId } = useFeidCursor();
+	const { start, end, duration, id: feidId } = useFeidCursor();
+	const { columns } = useTable();
 	const sources = useSources();
+	const queryClient = useQueryClient();
 
 	const isLink = modifySource;
 	const isMove = !isLink && modifyId != null;
@@ -38,7 +41,7 @@ export default function InsertControls() {
 		if (!isIdle || !start)
 			return escape();
 		if (what === 'move' || what === 'link')
-			targetId && setModify(targetId);
+			feidId && setModify(feidId);
 		if (what === 'link') 
 			return;
 		const at = what === 'insert' ? roundHour(start.getTime()) + 36e5 : start.getTime();
@@ -46,10 +49,23 @@ export default function InsertControls() {
 	};
 
 	const handleEnter = () => {
-		if (!end) return;
+		if (!end || !columns || !feidId) return;
+		const startCol = columns.find(c => c.id === 'time')!;
+		const durCol = columns.find(c => c.id === 'duration')!;
 		if (setStartAt && setEndAt) {
-			// insertEvent(setStartAt, setEndAt);
-			
+			const dur = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
+			if (isMove) {
+				makeChange('feid', { column: startCol, id: feidId, value: setStartAt });
+				makeChange('feid', { column: durCol, id: feidId, value: dur });
+				logSuccess(`Moved FEID #${feidId} to ${prettyDate(setStartAt)}`);
+			}
+			if (isInsert) {
+				apiPost<{ id: number }>('events/create', { time: setStartAt, duration: dur }).then(({ id }) => {
+					createdFeid(id, setStartAt, dur);
+					logSuccess(`Created FEID #${id}`);
+				}).catch(e => logError(e?.toString()));
+				queryClient.invalidateQueries('tableData');
+			}
 			return escape();
 		}
 		if (setStartAt) {
@@ -113,7 +129,7 @@ export default function InsertControls() {
 	const InflButton = ({ src }: { src: typeof sources[number] }) => {
 		const infl = src.source.cr_influence as string;
 		return <td className='TextButton' height={10} width={84}
-			style={{ color: color({ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
+			style={{ minWidth: 80, color: color({ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
 			onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(src, -1); }}
 			onClick={e => { e.stopPropagation(); cycleInfl(src, 1); }}
 			onWheel={e => cycleInfl(src, e.deltaY > 0 ? 1 : -1)}>
@@ -121,8 +137,8 @@ export default function InsertControls() {
 	};
 		
 	return <div style={{ padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
-		<div style={{ display: 'flex', padding: '1px 1px 0 0' }}>
-			<div style={{ alignSelf: 'start', position: 'relative', width: 154, paddingTop: 1 }}>
+		<div style={{ display: 'flex', flexWrap: 'wrap', padding: '1px 1px 0 0' }}>
+			<div style={{ alignSelf: 'start', position: 'relative', width: 154, height: 26, paddingTop: 1 }}>
 				<CoverageControls date={start}/>
 			</div>
 			<div style={{ display: 'flex', flex: 1, maxWidth: 163, color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
