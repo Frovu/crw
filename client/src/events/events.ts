@@ -152,7 +152,7 @@ export type TableMenuDetails = {
 };
 
 export const usePlotParams = <T>() => {
-	const params = useContext(LayoutContext);
+	const { params } = useContext(LayoutContext)!;
 	const settings = useEventsSettings();
 	const plotContext = useContext(PlotContext);
 

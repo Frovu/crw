@@ -12,25 +12,31 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { type Onset } from '../../events/events';
+import { usePlotParams, type Onset } from '../../events/events';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/ExportPlot';
 import { ValidatedInput } from '../../Utility';
+import type { ContextMenuProps } from '../../layout';
 
-export type CirclesParams = BasicPlotParams & {
+const defaultParams = {
+	rsmExtended: false,
+	exclude: [] as string[],
+	window: 3,
+	variationShift: undefined as undefined | number,
+	sizeShift: undefined as undefined | number,
+	autoFilter: true,
+	fixAmplitudeScale: true,
+	linearSize: false,
+	showPrecursorIndex: true
+};
+
+export type CirclesParams = typeof defaultParams & {
 	theme?: string,
-	rsmExtended?: boolean,
 	realtime?: boolean,
 	base?: Date,
-	exclude?: string[],
-	window?: number,
-	variationShift?: number,
-	sizeShift?: number
-	autoFilter?: boolean,
-	fixAmplitudeScale?: boolean,
-	linearSize?: boolean,
-	showPrecursorIndex?: boolean
 };
+
+type CirclesPlotParams = BasicPlotParams & CirclesParams;
 
 type CirclesResponse = {
 	base: number,
@@ -116,8 +122,33 @@ function drawCirclesLegend({ params, overlayHandle: { size, position, defaultPos
 
 }
 
+function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) {
+	return <div className='Group'>
+		<div>Exclude:<input type='text' style={{ marginLeft: 4, width: '10em', padding: 0 }}
+			defaultValue={params.exclude?.join(',') ?? ''}
+			onChange={e => JSON.stringify(e.target.value.split(/\s*,\s*/g).filter(s => s.length>3)) !== JSON.stringify(params.exclude)
+				&& setParams({ exclude: e.target.value.split(/\s*,\s*/g).filter(s => s.length>3) })}/></div>
+		<div className='Row'>
+			<Checkbox text='Filter' k='autoFilter'/>
+			<Checkbox text='Linear size' k='linearSize'/>
+		</div> <div className='Row'>
+			<Checkbox text='Extended plot' k='rsmExtended'/>
+			<Checkbox text='pIndex' k='showPrecursorIndex'/>
+		</div> <div className='Row'>
+			<input style={{ width: '6em' }}
+				type='number' min='-99' max='99' step='.05' value={params.variationShift?.toFixed(2) ?? ''} placeholder='shift'
+				onChange={e => setParams({ variationShift:
+					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
+			<input style={{ width: '6em' }}
+				type='number' min='-200' max='200' step='2' value={params.sizeShift?.toFixed(0) ?? ''} placeholder='size'
+				onChange={e => setParams({ sizeShift:
+					(isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0) ? undefined : e.target.valueAsNumber })}></input>
+		</div>
+	</div>;
+}
+
 const LEGEND_H = 32;
-export default function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesParams, settingsOpen?: boolean }) {
+function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlotParams, settingsOpen?: boolean }) {
 	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const container = useRef<HTMLDivElement>(null);
 	const size = useSize(container.current?.parentElement);
@@ -127,7 +158,7 @@ export default function PlotCircles({ params: initParams, settingsOpen }: { para
 		y: u.bbox.top / scaled(1)
 	}));
 
-	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesParams;
+	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesPlotParams;
 	const { rsmExtended: twoPlots, interactive } = params;
 	let padRight = 64;
 	if (params.stretch && size.width) {
@@ -516,7 +547,7 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 	};
 }
 
-async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(params: CirclesParams, base?: Date, moment?: number) {
+async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(params: CirclesPlotParams, base?: Date, moment?: number) {
 	try {
 		const res = await apiGet('cream/ros', {
 			from: (params.interval[0].getTime() / 1000).toFixed(0),
@@ -578,8 +609,8 @@ function renderPlotData(resp: CirclesResponse, shift?: number) {
 	return [ resp.time, pdata, ndata, [resp.time, resp.precursor_idx] ];
 }
 
-export function PlotCirclesMoment({ params, data: allData, base, moment, setMoment, settingsOpen }:
-{ params: CirclesParams, data: CirclesResponse, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
+function PlotCirclesMoment({ params, data: allData, base, moment, setMoment, settingsOpen }:
+{ params: CirclesPlotParams, data: CirclesResponse, base?: Date, moment: number, setMoment: (m: number | null) => void, settingsOpen?: boolean }) {
 	const query = useQuery({
 		staleTime: 0,
 		keepPreviousData: true,
@@ -607,8 +638,8 @@ export function PlotCirclesMoment({ params, data: allData, base, moment, setMome
 	);
 }
 
-export function CirclesParamsInput({ params, setParams }:
-{ params: CirclesParams, setParams: (p: CirclesParams) => void  }) {
+function CirclesParamsInput({ params, setParams }:
+{ params: CirclesPlotParams, setParams: (p: CirclesPlotParams) => void  }) {
 	const callback = (what: string) => (value: any) => {
 		if (what === 'days') {
 			const from = new Date(+params.interval[1] - value * 86400000);
@@ -671,7 +702,7 @@ export function CirclesParamsInput({ params, setParams }:
 export function PlotCirclesStandalone() {
 	const [settingsOpen, setOpen] = useState(false);
 
-	const [params, setParams] = useState<CirclesParams>(() => {
+	const [params, setParams] = useState<CirclesPlotParams>(() => {
 		const stored = window.localStorage.getItem('plotRefParams');
 		setTimeout(() => window.localStorage.removeItem('plotRefParams'));
 		const referred = stored && JSON.parse(stored);
@@ -695,7 +726,7 @@ export function PlotCirclesStandalone() {
 				realtime: true,
 				window: 3,
 			})
-		} as CirclesParams;
+		} as CirclesPlotParams;
 	});
 
 	if (params.theme)
@@ -733,3 +764,16 @@ export function PlotCirclesStandalone() {
 		</div>
 	);
 }
+
+function Panel() {
+	const params = usePlotParams<CirclesPlotParams>();
+	return <PlotCircles params={params}/>;
+}
+
+export const RSMPlot = {
+	name: 'Ring of Stations',
+	Panel,
+	Menu,
+	defaultParams,
+	isPlot: true
+};

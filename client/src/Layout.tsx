@@ -85,17 +85,19 @@ function Item({ id, size }: { id: string, size: Size }) {
 	const { items } = useLayout();
 	const item = items[id];
 	const panel: Panel<{}> | undefined = panels[item?.type ?? ''];
-	if (!item || !panel) {
+	if (!item || (item.type && !panel)) {
 		relinquishNode(id);
 		return null;
 	}
+	const params = { ...panel?.defaultParams, ...item };
+	console.log(item.type, params)
 
 	return item && <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
 		onMouseDown={e => e.ctrlKey && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
-		{<LayoutContext.Provider value={{ id, size, params: item,
+		{panel && <LayoutContext.Provider value={{ id, size, params,
 			setParams: (para) => setNodeParams(id, para) }}>
 			<CatchErrors>
 				<panel.Panel/>
@@ -178,7 +180,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';
-	const dupable = !!panel.isDuplicatable;
+	const dupable = !!panel?.isDuplicatable;
 
 	return <CatchErrors>
 		{item && !(type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
