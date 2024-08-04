@@ -1,21 +1,20 @@
-import { useRef, useState, useContext, useEffect } from 'react';
+import { useRef, useState, useContext } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { color, getApp, openContextMenu } from './app';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams,
 	gapSize, type LayoutsMenuDetails, splitNode, resetLayout, AppLayoutContext, type AppLayoutProps, 
-	setWindowParams, closeWindow, moveWindow } from './layout';
+	setWindowParams, closeWindow, moveWindow, type Panel, type NodeParams } from './layout';
 import { CatchErrors } from './Utility';
 import ContextMenu from './ContextMenu';
+import { defaultLayouts } from './defaultLayouts';
 
 function Window({ id }: { id: string}) {
-	const { Content, panelOptions } = useContext(AppLayoutContext);
-	const { params, ...pos } = useLayoutsStore(st => st.windows[id]) ?? {};
+	const { panels } = useContext(AppLayoutContext);
+	const { params: rawParams, ...pos } = useLayoutsStore(st => st.windows[id]) ?? {};
 	const size = { height: pos.h, width: pos.w };
+	const panel: Panel<{}> | undefined = panels[rawParams.type ?? ''];
 
 	const drag = useRef<null | { pos: typeof pos, x: number, y: number, resize?: string }>(null);
-
-	if (!params || !panelOptions.includes(params.type as any))
-		relinquishNode(id);
 
 	useEventListener('mousemove', e => {
 		if (!drag.current) return;
@@ -50,6 +49,13 @@ function Window({ id }: { id: string}) {
 		drag.current = null;
 	});
 
+	if (!panel) {
+		relinquishNode(id);
+		return null;
+	}
+
+	const params = { ...panel.defaultParams, ...rawParams };
+
 	return <div style={{ position: 'fixed', zIndex: 3, left: pos.x, top: pos.y, width: pos.w, height: pos.h,
 		backgroundColor: color('bg'), padding: 1, border: '1px solid '+color('border') }}
 	onDoubleClick={() => closeWindow(id)}
@@ -58,7 +64,7 @@ function Window({ id }: { id: string}) {
 		<LayoutContext.Provider value={{ id, size, params, isWindow: true,
 			setParams: (para) => setWindowParams(id, para) }}>
 			<CatchErrors>
-				<Content/>
+				<panel.Panel/>
 			</CatchErrors>
 		</LayoutContext.Provider>
 		<div className='CloseButton' style={{ position: 'absolute', top: -1, right: -1, zIndex: 15,
@@ -74,24 +80,28 @@ function Window({ id }: { id: string}) {
 };
 
 function Item({ id, size }: { id: string, size: Size }) {
-	const { Content, panelOptions } = useContext(AppLayoutContext);
+	const { panels } = useContext(AppLayoutContext);
 	const { startDrag, dragOver, finishDrag } = useLayoutsStore.getState();
 	const { items } = useLayout();
-	if (!items[id] || (items[id]!.type != null && !panelOptions.includes(items[id]!.type as any)))
+	const item = items[id];
+	const panel: Panel<{}> | undefined = panels[item?.type ?? ''];
+	if (!item || !panel) {
 		relinquishNode(id);
+		return null;
+	}
 
-	return items[id] && <div style={{ ...size, position: 'relative' }}
+	return item && <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
 		onMouseDown={e => e.ctrlKey && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
-		{<LayoutContext.Provider value={{ id, size, params: items[id]!,
+		{<LayoutContext.Provider value={{ id, size, params: item,
 			setParams: (para) => setNodeParams(id, para) }}>
 			<CatchErrors>
-				<Content/>
+				<panel.Panel/>
 			</CatchErrors>
 		</LayoutContext.Provider>}
-		{!items[id]!.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
+		{!item.type && <div className='Center'><div className='ContextMenu' style={{ position: 'unset' }}>
 			<CatchErrors>
 				<LayoutContextMenu id={id}/>
 			</CatchErrors>
@@ -141,42 +151,54 @@ function Node({ id, size }: { id: string, size: Size }) {
 }
 
 export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?: LayoutsMenuDetails }) {
-	const { ContextMenu: Content, panelOptions, duplicatablePanels } = useContext(AppLayoutContext);
+	const { panels } = useContext(AppLayoutContext);
 	const { items, tree } = useLayout();
-	const windows  = useLayoutsStore(st => st.windows);
+	const windows = useLayoutsStore(st => st.windows);
 	const id = argId ?? detail?.nodeId;
 	const window = detail?.window;
+
+	if (!id)
+		return null;
+
+	const item = items[id];
+	const type = item?.type ?? null;
+	const panel: Panel<object> | undefined = panels[type ?? ''];
+	const params: NodeParams<{ [k: string]: any }> = { type, ...panel?.defaultParams, ...item };
+
+	const Checkbox =   ({ text, k }: { text: string, k: string }) => 
+		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
+			checked={params[k] as boolean} onChange={e => setNodeParams(id, { [k]: e.target.checked })}/></label>;
+
 	if (window)
 		return <CatchErrors>
-			<Content {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id!, para) }}/>
+			<panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }}/>
 		</CatchErrors>;
-	if (!id) return null;
+
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : (isFirst ? 'bottom' : 'top');
 	const isFirstInRoot = isFirst && parent === 'root';
-	const type = items[id!]?.type;
-	const dupable = !!duplicatablePanels?.includes(items[id]?.type as any);
+	const dupable = !!panel.isDuplicatable;
+
 	return <CatchErrors>
-		{items[id] && !(items[id]!.type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
+		{item && !(type && isFirstInRoot) && <select style={{ borderColor: 'transparent', textAlign: 'left' }} value={type ?? 'empty'}
 			onChange={e => setNodeParams(id, { type: e.target.value as any })}>
 			{type == null && <option value={'empty'}>Select panel</option>}
-			{panelOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+			{Object.keys(panels).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
 		</select>}
 		{!isFirstInRoot && type && <div className='separator'/>}
-		{type && <Content {...{ params: items[id]!, setParams: (para) => setNodeParams(id, para) }}/>}
-		{items[id] && <div className='separator'/>}
-		{!items[id] &&			 <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
-		{(!items[id] || type) && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
-		{!items[id] && 			 <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
-		{(!items[id] || type) && <button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>}
-		{items[id] && id !== 'root' && !(items[id]!.type && isFirstInRoot) && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
+		{type && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox }}/>}
+		{item && <div className='separator'/>}
+		{!item &&			 <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
+		{(!item || type) && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
+		{!item && 			 <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
+		{(!item || type) && <button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>}
+		{item && id !== 'root' && !(item.type && isFirstInRoot) && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
 	</CatchErrors>;
 }
 
 export function LayoutNav() {
-	const { apps, appsDefaults, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
-	const defaultLayouts = appsDefaults[getApp()];
+	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
 	const { list, active } = apps[getApp()] ?? { list: {}, active: {} };
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
 	const [renaming, setRenaming] = useState<{ layout: string, input: string } | null>(null);
@@ -186,12 +208,14 @@ export function LayoutNav() {
 	useEventListener('contextmenu', () => { setOpen(false); setRenaming(null); });
 	useEventListener('action+switchLayout', () => selectLayout(layouts[(layouts.indexOf(active) + 1) % layouts.length]));
 
+	const defaultL = defaultLayouts[getApp() as keyof typeof defaultLayouts]?.list;
+
 	return <div style={{ padding: '2px 0 2px 4px', position: 'relative' }}
 		onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}>
 		{open && <div className='ContextMenu' style={{ position: 'absolute', left: -1, bottom: 'calc(100%)' }}
 			onClick={e => e.stopPropagation()}>
 			{layouts.map(layout => {
-				const isUsers = !defaultLayouts[layout], isActive = active === layout;
+				const isUsers = defaultL[layout], isActive = active === layout;
 				return <div key={layout} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
 					{renaming?.layout === layout ? <input type='text' style={{ width: renaming.input.length+1+'ch',
 						maxWidth: '20em', height: '1.25em', flex: 1, color: color('text') }}
@@ -223,14 +247,6 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	const windows = useLayoutsStore(st => st.windows);
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
-
-	useEffect(() => {
-		useLayoutsStore.setState(state => {
-			state.appsDefaults[getApp()] = props.defaultLayouts;
-			if (!state.apps[getApp()])
-				state.apps[getApp()] = { active: 'default', list: props.defaultLayouts };
-		});
-	}, [props.defaultLayouts]);
 
 	useEventListener('resetSettings', () => resetLayout());
 

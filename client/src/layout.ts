@@ -1,9 +1,10 @@
-import { createContext, type ComponentType } from 'react';
+import { createContext, type ComponentType, type ReactElement } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { getApp, logMessage } from './app';
 import type { Size } from './util';
+import { defaultLayouts } from './defaultLayouts';
 
 export const gapSize = 2;
 
@@ -24,7 +25,6 @@ export type Layout<T> = {
 type LayoutsState = {
 	dragFrom: null | string,
 	dragTo: null | string,
-	appsDefaults: { [app: string]: { [name: string]: Layout<object> } },
 	apps: {
 		[app: string]: {
 			active: string,
@@ -55,21 +55,27 @@ type LayoutsState = {
 const defaultState = {
 	dragFrom: null,
 	dragTo: null,
-	appsDefaults: {},
 	apps: {},
 	windows: {},
 };
 
+export type Panel<T> = {
+	name: string,
+	Panel: ComponentType,
+	Menu: ComponentType<ContextMenuProps<T>>,
+	defaultParams: T,
+	isDuplicatable?: boolean
+};
+
 export type LayoutsMenuDetails = { nodeId: string, window?: NodeParams<{}>};
 
-export type ContextMenuProps<T> = { params: NodeParams<T>, setParams: ParamsSetter<T> };
+export type ContextMenuProps<T> = {
+	params: NodeParams<T>,
+	setParams: ParamsSetter<T>,
+	Checkbox: ({ text, k }: { text: string, k: keyof T }) => ReactElement };
 
 export type AppLayoutProps<T> = {
-	Content: ComponentType,
-	ContextMenu: ComponentType<ContextMenuProps<T>>,
-	defaultLayouts: { [name: string]: Layout<T> },
-	panelOptions: readonly string[],
-	duplicatablePanels?: readonly string[]
+	panels: { [name: string]: Panel<T> }
 };
 
 export type LayoutContextType<T> = { id: string, size: Size, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
@@ -107,7 +113,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 				logMessage('layout removed: ' + layout);
 				delete apps[app].list[layout];
 				if (apps[app].active === layout)
-					apps[app].active = 'default';
+					apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].default;
 			}),
 			copyLayout: layout => set(({ apps }) => {
 				const app = getApp();
@@ -127,14 +133,14 @@ export const useLayoutsStore = create<LayoutsState>()(
 				if (apps[app].active === layout)
 					apps[app].active = name;
 			}),
-			resetLayout: () => set(({ apps, appsDefaults, ...st }) => {
+			resetLayout: () => set(({ apps, ...st }) => {
 				st.windows = {};
-				const app = getApp();
+				const app = getApp() as keyof typeof defaultLayouts;
 				const { list, active } = apps[app];
-				if (!appsDefaults[app]?.[active])
+				if (!defaultLayouts[app].list[active])
 					return;
 				logMessage('layout reset: ' + active);
-				list[active] = appsDefaults[app][active];
+				list[active] = defaultLayouts[app].list[active];
 			}),
 		})),
 		{

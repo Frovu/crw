@@ -4,9 +4,9 @@ import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
 import { type MagneticCloud, type Onset, PlotContext, SampleContext,
-	TableViewContext, useEventsSettings, defaultLayouts, allPanelOptions, statPanelOptions } from './events';
-import { EventsContextMenu, EventsLayoutContent } from './Events';
+	TableViewContext, useEventsSettings } from './events';
 import { useEventsState, useTable } from './eventsState';
+import { eventsPanels } from './eventsPanels';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
@@ -60,7 +60,8 @@ function EventsView() {
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
-		if (idx == null || idx < 0) return null;
+		if (idx == null || idx < 0)
+			return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
 		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['time', 'duration', 'onset_type', 'mc_time', 'mc_duration']
 			.map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = setStartAt || data[idx][timeIdx] as Date;
@@ -78,7 +79,8 @@ function EventsView() {
 			ends.push({ time: setEndAt, type: null, insert: true });
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
-			if (!time || !dur) return null;
+			if (!time || !dur)
+				return null;
 			return {
 				start: new Date(time),
 				end: new Date(time + dur * 36e5)
@@ -95,13 +97,7 @@ function EventsView() {
 	return (
 		<TableViewContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
-				<AppLayout {...{
-					Content: EventsLayoutContent,
-					ContextMenu: EventsContextMenu,
-					panelOptions: allPanelOptions,
-					duplicatablePanels: statPanelOptions,
-					defaultLayouts,
-				}} Content={EventsLayoutContent} ContextMenu={EventsContextMenu}/>
+				<AppLayout panels={eventsPanels}/>
 			</PlotContext.Provider>
 		</TableViewContext.Provider>
 	);
