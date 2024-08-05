@@ -1,13 +1,25 @@
-import { type BasicPlotParams, type CustomSeries, basicDataQuery } from '../basicPlot';
+import { usePlotParams, type EventsPanel } from '../../events/events';
+import type { ContextMenuProps } from '../../layout';
+import { type CustomSeries, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
 
-export type IMFParams = BasicPlotParams & {
-	showBz: boolean,
-	showBxBy: boolean,
+const defaultParams = {
+	showBz: true,
+	showBxBy: false,
 };
 
-export default function PlotIMF({ params }: { params: IMFParams }) {
+export type IMFParams = typeof defaultParams;
+
+function Menu({ Checkbox }: ContextMenuProps<IMFParams>) {
+	return <div className='Group'>
+		<Checkbox text='Show Bx, By' k='showBxBy'/>
+		<Checkbox text='Show Bz' k='showBz'/>
+	</div>;
+}
+
+function Panel() {
+	const params = usePlotParams<IMFParams>();
 	return (<BasicPlot {...{
 		queryKey: ['IMF'],
 		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
@@ -53,3 +65,11 @@ export default function PlotIMF({ params }: { params: IMFParams }) {
 		]
 	}}/>);
 }
+
+export const IMFPlot: EventsPanel<IMFParams> = {
+	name: 'IMF + Speed',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true
+};

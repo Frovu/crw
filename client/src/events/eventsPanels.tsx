@@ -1,16 +1,29 @@
-import { GeomagnPlot } from '../plots/time/Geomagn';
-import { GSMPlot } from '../plots/time/GSM';
-import { EventsCheckbox, FeidTable } from './EventsTable';
-import type { EventsPanel } from './events';
-import { RSMPlot } from '../plots/time/Circles';
 import type { ContextMenuProps } from '../layout';
+import { defaultPlotParams, type EventsPanel } from './events';
 import { PlotIntervalInput } from './ExportPlot';
 
+import { EventsCheckbox, FeidTable } from './EventsTable';
+import { GeomagnPlot } from '../plots/time/Geomagn';
+import { GSMPlot } from '../plots/time/GSM';
+import { RSMPlot } from '../plots/time/Circles';
+import { IMFPlot } from '../plots/time/IMF';
+import { SatParticlesPlot } from '../plots/time/Particles';
+import { SWPlasmaPlot } from '../plots/time/SW';
+import { CMEHeightPlot } from '../plots/time/CMEHeight';
+import { SWTypesPlot } from '../plots/time/SWTypes';
+import { XraysPlot } from '../plots/time/XRays';
+
 const panels = [
-	GeomagnPlot,
 	GSMPlot,
+	IMFPlot,
+	SWPlasmaPlot,
+	SWTypesPlot,
+	GeomagnPlot,
 	RSMPlot,
-	FeidTable
+	FeidTable,
+	SatParticlesPlot,
+	CMEHeightPlot,
+	XraysPlot
 ];
 
 function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
@@ -51,17 +64,18 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }:
 				<EventsCheckbox text='MCs' k='showMagneticClouds'/>
 				<EventsCheckbox text='ends' k='showEventsEnds'/>
 			</div></>}
-			<div className='separator'/>
 		</>}
-		<div className='Group'>
+		{panel.Menu && <>
+			<div className='separator'/>
 			<panel.Menu {...{ params, setParams, Checkbox }}/>
-		</div>
+		</>}
 	</>;
 
 }
 
 export const eventsPanels = Object.fromEntries(panels.map(p => [p.name, {
 	...p,
+	defaultParams: { ...defaultPlotParams, ...p.defaultParams },
 	Panel: () => <PanelWrapper panel={p as any}/>,
 	Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props}/>
 }]));

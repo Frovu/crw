@@ -146,7 +146,7 @@ function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHand
 }
 
 function Menu({ Checkbox }: ContextMenuProps<GSMParams>) {
-	return <>
+	return <div className='Group'>
 		<div className='Row'>
 			<Checkbox text='Show Axy' k='showAxy'/>
 			<Checkbox text='Az' k='showAz'/>
@@ -155,7 +155,7 @@ function Menu({ Checkbox }: ContextMenuProps<GSMParams>) {
 		<Checkbox text='Use corrected A0m' k='useA0m'/>
 		<Checkbox text='Subtract trend' k='subtractTrend'/>
 		<Checkbox text='Mask GLE' k='maskGLE'/>
-	</>;
+	</div>;
 }
 
 function Panel() {

@@ -62,7 +62,7 @@ const defaultState = {
 export type Panel<T> = {
 	name: string,
 	Panel: ComponentType,
-	Menu: ComponentType<ContextMenuProps<T>>,
+	Menu: ComponentType<ContextMenuProps<T>> | null,
 	defaultParams: T,
 	isDuplicatable?: boolean
 };

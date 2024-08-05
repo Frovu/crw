@@ -90,7 +90,6 @@ function Item({ id, size }: { id: string, size: Size }) {
 		return null;
 	}
 	const params = { ...panel?.defaultParams, ...item };
-	console.log(item.type, params)
 
 	return item && <div style={{ ...size, position: 'relative' }}
 		onContextMenu={openContextMenu('layout', { nodeId: id })}
@@ -173,7 +172,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 
 	if (window)
 		return <CatchErrors>
-			<panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }}/>
+			{panel.Menu && <panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }}/>}
 		</CatchErrors>;
 
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
@@ -189,7 +188,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 			{Object.keys(panels).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
 		</select>}
 		{!isFirstInRoot && type && <div className='separator'/>}
-		{type && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox }}/>}
+		{type && panel.Menu && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox }}/>}
 		{item && <div className='separator'/>}
 		{!item &&			 <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
 		{(!item || type) && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}

@@ -45,9 +45,9 @@ const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesId
 };
 
 function Menu({ Checkbox }: ContextMenuProps<GeomagnParams>) {
-	return <>
+	return <div className='Group'>
 		<Checkbox text='Use Ap index' k='useAp'/>
-	</>;
+	</div>;
 }
 
 function Panel() {

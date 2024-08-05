@@ -16,22 +16,8 @@ import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import SampleView from './Sample';
 import TableView from './tables/TableView';
-import EventsHistory, { EventsHistoryContextMenu } from '../plots/EventsHistory';
 import { useQueryClient } from 'react-query';
-import PlotSWTypes from '../plots/time/SWTypes';
-import InsertControls from './Insert';
 import { useEventsState, useTable } from './eventsState';
-import SunView, { SunViewContextMenu } from './SunView';
-import EruptionsTable, { EruptionsContextMenu } from './tables/Eruptions';
-import FlaresTable, { FlaresContextMenu } from './tables/Flares';
-import CMETable, { CMEContextMenu } from './tables/CME';
-import ICMETable, { ICMEContextMenu } from './tables/ICME';
-import CMEHeightTime from '../plots/time/CMEHeight';
-import ParticlesPlot, { ParticlesPlotContextMenu } from '../plots/time/Particles';
-import XraysPlot from '../plots/time/XRays';
-import SolenHoles, { SolenHolesContextMenu } from './tables/HolesSolen';
-import ChimeraHoles, { ChimeraContextMenu } from './tables/HolesChimera';
-import HolesSourceTable, { HolesContextMenu } from './tables/HolesSrc';
 
 // export function EventsLayoutContent() {
 // 	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
@@ -94,7 +80,7 @@ const defaultParams = {
 	showAverages: true,
 	showIncludeMarkers: true,
 	hideHeader: false
-}
+};
 
 export type MainTableParams = typeof defaultParams;
 
@@ -104,7 +90,7 @@ export function EventsCheckbox({ text, k }: { text: string, k: keyof EventsSetti
 		checked={settings[k] as boolean} onChange={e => settings.set(k, e.target.checked)}/></label>;
 }
 
-export function Panel() {
+function Panel() {
 	const { size, params } = useContext(LayoutContext) as LayoutContextType<MainTableParams>;
 	const { columns, data: allData } = useTable();
 	const { data: sampleData } = useContext(SampleContext);
@@ -189,7 +175,7 @@ export function Panel() {
 	</>;
 }
 
-export function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
+function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;

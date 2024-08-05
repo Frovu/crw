@@ -158,7 +158,6 @@ export const usePlotParams = <T>() => {
 
 	return useMemo(() => {
 		return {
-			...defaultPlotParams,
 			...settings,
 			...plotContext!,
 			...params,

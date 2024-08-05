@@ -1,9 +1,10 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
+import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
 import { useSolarPlotContext } from './solar';
+import { usePlotParams, type EventsPanel } from '../../events/events';
 
 const PARTICLES = {
 	'p1': '>1 MeV',
@@ -34,11 +35,11 @@ const defaultParams = {
 
 const colors = ['peach', 'cyan', 'green'];
 
-export type SatPartParams = BasicPlotParams & Partial<typeof defaultParams>;
+export type SatPartParams = typeof defaultParams;
 
 const name = (k: string) => `${k.at(0)} ${PARTICLES[k as keyof typeof PARTICLES]}`;
 
-export function ParticlesPlotContextMenu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 	const { showParticles: show } = { ...defaultParams, ...params };
 	const opts = particlesOptions;
 
@@ -52,8 +53,9 @@ export function ParticlesPlotContextMenu({ params, setParams }: ContextMenuProps
 	</div>;
 }
 
-export default function ParticlesPlot({ params }: { params: SatPartParams }) {
-	const { showParticles, showGrid, showTimeAxis, solarTime } = { ...defaultParams, ...params };
+function Panel() {
+	const params = usePlotParams<SatPartParams>();
+	const { showParticles, showGrid, showTimeAxis, solarTime } = params;
 	const para = { ...params };
 	const { interval: sInterv } = useSolarPlotContext();
 	const size = useContext(LayoutContext)?.size;
@@ -97,3 +99,12 @@ export default function ParticlesPlot({ params }: { params: SatPartParams }) {
 		}))
 	}}/>);
 }
+
+export const SatParticlesPlot: EventsPanel<SatPartParams> = {
+	name: 'Particles',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true,
+	isSolar: true,
+};

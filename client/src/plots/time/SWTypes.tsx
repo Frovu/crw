@@ -1,56 +1,16 @@
 import { useQuery } from 'react-query';
-import { type BasicPlotParams, basicDataQuery, tooltipPlugin, metainfoPlugin, paddedInterval, sliceData } from '../basicPlot';
+import { basicDataQuery, tooltipPlugin, metainfoPlugin, paddedInterval, sliceData } from '../basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
 import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
+import { usePlotParams, type EventsPanel } from '../../events/events';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 
 const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach', 'purple'];
 
-export type SWTypesParams = BasicPlotParams & {
-	
-};
-
-function plotOptions(params: SWTypesParams): Omit<uPlot.Options, 'width'|'height'> {
-	const { showGrid, showTimeAxis } = params;
-	const axDef = axisDefaults(showGrid);
-	return {
-		padding: [scaled(4), 0, showTimeAxis ? 0 : scaled(2), 0],
-		legend: { show: false },
-		focus: { alpha: .5 },
-		cursor: { drag: { setScale: false }, focus: { prox: 32 } },
-		plugins: [ metainfoPlugin({ params }), tooltipPlugin() ],
-		scales: { y: { range: [ -.2, SW_TYPES.length - .8 ] } },
-		axes: [{
-			...axDef,
-			...customTimeSplits(params)
-		}, ...[3, 1].map(side => ({
-			...axDef,
-			font: font(13),
-			side,
-			size: axDef.size as any + axDef.labelSize,
-			splits: Array.from(Array(SW_TYPES.length).keys()),
-			values: SW_TYPES.slice().reverse()
-		}))],
-		series: [{ }].concat(SW_TYPES.flatMap((type, i) => ['high', 'medium'].map(reli => ({
-			stroke: color(COLORS[i]),
-			width: scaled(5),
-			label: type,
-			points: {
-				show: true,
-				width: scaled(.5),
-				size: scaled(8),
-				stroke: color(COLORS[i]),
-				fill: color(reli === 'high' ? COLORS[i] : 'bg')
-			},
-
-		} as uPlot.Series))))
-	};
-}
-
-async function getTypes(interval: SWTypesParams['interval']) {
+async function getTypes(interval: [Date, Date]) {
 	const data = await basicDataQuery('omni', interval, ['time', 'sw_type']);
 	if (!data) return null;
 	const swt = (data[1] as any as (string | null)[]).map(t => t?.split(','));
@@ -63,13 +23,49 @@ async function getTypes(interval: SWTypesParams['interval']) {
 	return plotData;
 }
 
-export default function PlotSWTypes({ params }: { params: SWTypesParams }) {
+function Panel() {
+	const params = usePlotParams<{}>();
 	const query = useQuery({
 		queryKey: ['SWTypes', paddedInterval(params.interval)],
 		queryFn: async () => await getTypes(params.interval)
 	});
 
-	const options = useCallback(() => plotOptions(params), [params]);
+	const options = useCallback(() => {
+		const { showGrid, showTimeAxis } = params;
+		const axDef = axisDefaults(showGrid);
+		return {
+			padding: [scaled(4), 0, showTimeAxis ? 0 : scaled(2), 0],
+			legend: { show: false },
+			focus: { alpha: .5 },
+			cursor: { drag: { setScale: false }, focus: { prox: 32 } },
+			plugins: [ metainfoPlugin({ params }), tooltipPlugin() ],
+			scales: { y: { range: [ -.2, SW_TYPES.length - .8 ] } },
+			axes: [{
+				...axDef,
+				...customTimeSplits(params)
+			}, ...[3, 1].map(side => ({
+				...axDef,
+				font: font(13),
+				side,
+				size: axDef.size as any + axDef.labelSize,
+				splits: Array.from(Array(SW_TYPES.length).keys()),
+				values: SW_TYPES.slice().reverse()
+			}))],
+			series: [{ }].concat(SW_TYPES.flatMap((type, i) => ['high', 'medium'].map(reli => ({
+				stroke: color(COLORS[i]),
+				width: scaled(5),
+				label: type,
+				points: {
+					show: true,
+					width: scaled(.5),
+					size: scaled(8),
+					stroke: color(COLORS[i]),
+					fill: color(reli === 'high' ? COLORS[i] : 'bg')
+				},
+
+			} as uPlot.Series))))
+		} as Omit<uPlot.Options, 'width'|'height'>;
+	}, [params]);
 
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -82,3 +78,11 @@ export default function PlotSWTypes({ params }: { params: SWTypesParams }) {
 		<ExportableUplot {...{ options, data: sliceData(query.data, params.interval) }}/>
 	</div>);
 }
+
+export const SWTypesPlot: EventsPanel<{}> = {
+	name: 'SW Types',
+	Menu: null,
+	Panel,
+	defaultParams: {},
+	isPlot: true
+};

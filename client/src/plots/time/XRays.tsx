@@ -1,15 +1,24 @@
-import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
+import { usePlotParams, type EventsPanel } from '../../events/events';
+import type { ContextMenuProps } from '../../layout';
+import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled } from '../plotUtil';
 import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
 
-export const defaultSatXraysParams = {
+export const defaultParams = {
 	showShortXrays: true
 };
 
-export type SatXraysParams = BasicPlotParams & typeof defaultSatXraysParams;
+export type SatXraysParams = typeof defaultParams;
 
-export default function XraysPlot({ params }: { params: SatXraysParams }) {
+function Menu({ Checkbox }: ContextMenuProps<SatXraysParams>) {
+	return <div className='Group'>
+		<Checkbox text='Show short wavelength' k='showShortXrays'/>
+	</div>;
+}
+
+function Panel() {
+	const params = usePlotParams<SatXraysParams>();
 	const { showGrid, showShortXrays } = params;
 	const { interval, flares, focusTime } = useSolarPlotContext();
 
@@ -49,3 +58,11 @@ export default function XraysPlot({ params }: { params: SatXraysParams }) {
 		}]
 	}}/>);
 }
+
+export const XraysPlot: EventsPanel<SatXraysParams> = {
+	name: 'X-Rays',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true
+};

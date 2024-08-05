@@ -6,7 +6,7 @@ import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/ExportPlot';
 import { color } from '../../app';
 import { useSolarPlotContext } from './solar';
-import type { BasicPlotParams } from '../basicPlot';
+import { usePlotParams, type EventsPanel } from '../../events/events';
 
 const colors = {
 	north: 'green',
@@ -15,7 +15,8 @@ const colors = {
 	west: 'magenta'
 };
 
-export default function CMEHeightTime({ params }: { params: BasicPlotParams }) {
+function Panel() {
+	const params = usePlotParams<{}>();
 	const { showGrid } = params;
 	const { interval } = useSolarPlotContext();
 	const [from, to] = interval.map(d => Math.floor(d.getTime() / 1e3));
@@ -110,3 +111,12 @@ export default function CMEHeightTime({ params }: { params: BasicPlotParams }) {
 		{plot}
 	</div>;
 }
+
+export const CMEHeightPlot: EventsPanel<{}> = {
+	name: 'CME Height',
+	Menu: null,
+	Panel,
+	defaultParams: {},
+	isPlot: true,
+	isSolar: true,
+};

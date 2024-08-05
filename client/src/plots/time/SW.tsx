@@ -1,14 +1,29 @@
-import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
+import { usePlotParams, type EventsPanel } from '../../events/events';
+import type { ContextMenuProps } from '../../layout';
+import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color, superScript } from '../plotUtil';
 
-export type SWParams = BasicPlotParams & {
-	useTemperatureIndex: boolean,
-	showBeta: boolean,
-	showDensity: boolean,
+const defaultParams = {
+	useTemperatureIndex: true,
+	showBeta: false,
+	showDensity: true,
 };
 
-export default function PlotSW({ params }: { params: SWParams }) {
+export type SWParams = typeof defaultParams;
+
+function Menu({ Checkbox }: ContextMenuProps<SWParams>) {
+	return <div className='Group'>
+		<Checkbox text='Show T index' k='useTemperatureIndex'/>
+		<div className='Row'>
+			<Checkbox text='Show beta' k='showBeta'/>
+			<Checkbox text='density' k='showDensity'/>
+		</div>
+	</div>;
+}
+
+function Panel() {
+	const params = usePlotParams<SWParams>();
 	const { useTemperatureIndex, showBeta, showDensity, interval } = params;
 	const tColumn = useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (<BasicPlot {...{
@@ -76,3 +91,11 @@ export default function PlotSW({ params }: { params: SWParams }) {
 		]
 	}}/>);
 }
+
+export const SWPlasmaPlot: EventsPanel<SWParams> = {
+	name: 'SW Plasma',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true
+};
