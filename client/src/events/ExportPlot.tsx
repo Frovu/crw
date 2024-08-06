@@ -513,6 +513,13 @@ export function PlotIntervalInput({ step: alterStep, solar }: { step?: number, s
 	</div>;
 }
 
+function ControlsMenu() {
+	return <>
+		<button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save replaces</button>
+		<button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load replaces</button>
+	</>;
+}
+
 export const ExportPreview: EventsPanel<{}> = {
 	name: 'Export Preview',
 	Panel: PreviewPanel
@@ -520,5 +527,6 @@ export const ExportPreview: EventsPanel<{}> = {
 
 export const ExportControls: EventsPanel<{}> = {
 	name: 'Export Controls',
-	Panel: ControlsPanel
+	Panel: ControlsPanel,
+	Menu: ControlsMenu
 };

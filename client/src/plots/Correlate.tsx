@@ -1,10 +1,10 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { type PanelParams, MainTableContext, SampleContext, findColumn, useEventsSettings, 
-	equalValues, valueToString, TableViewContext } from '../events/events';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { MainTableContext, SampleContext, useEventsSettings, 
+	equalValues, valueToString, TableViewContext, usePlotParams, findColumn } from '../events/events';
+import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
 import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from './basicPlot';
@@ -12,10 +12,23 @@ import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample';
-import type { ColumnDef } from '../events/columns';
 import { useEventsState, useTable } from '../events/eventsState';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
+
+const defaultParams = {
+	sample0: '<current>' as '<current>' | '<none>' | string,
+	column0: null as string | null,
+	column1: null as string | null,
+	forceMin: null as number | null,
+	forceMax: null as number | null,
+	forceMinY: null as number | null,
+	forceMaxY: null as number | null,
+	color: 'green',
+	showRegression: true,
+	loglog: false,
+	logx: true,
+};
 
 export type CorrelationParams = {
 	sample0: '<current>' | '<none>' | string,
@@ -31,47 +44,32 @@ export type CorrelationParams = {
 	logx: boolean,
 };
 
-export const defaultCorrParams: (columns: ColumnDef[]) => CorrelationParams = columns => ({
-	sample0: '<current>',
-	column0: findColumn(columns, 'VmBm')?.id ?? null,
-	column1: findColumn(columns, 'magnitude')?.id ?? null,
-	forceMin: null,
-	forceMax: null,
-	forceMinY: null,
-	forceMaxY: null,
-	color: 'green',
-	showRegression: true,
-	loglog: false,
-	logx: true,
-});
-
-export function CorrelationContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
+function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultCorrParams(columns), ...params };
 	const columnOpts = columns.filter(c => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id))
-		|| (['column0', 'column1'] as const).some(p => cur[p] === c.id));
+		|| (['column0', 'column1'] as const).some(p => params[p] === c.id));
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) =>
 		setParams({ [k]: val });
 
 	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) =>
 		<select className='Borderless' style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }}
-			value={cur[k] as string}
+			value={params[k] as string}
 			onChange={e => setParams({ [k]: e.target.value })}>
 			{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 		</select>;
 	const Checkbox = ({ text, k }: { text: string, k: keyof CorrelationParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={cur[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
+			checked={params[k] as boolean} onChange={e => setParams({ [k]: e.target.checked })}/></label>;
 
 	return <div className='Group'>
 		<div>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => set('sample0', '<current>')}>Sample:</span>
 			<select title='Sample (none = all events)' className='Borderless' style={{ width: '10em', marginLeft: 4,
-				color: cur.sample0 === '<current>' ? color('text-dark') : 'unset' }}
-			value={cur.sample0} onChange={e => set('sample0', e.target.value)}>
+				color: params.sample0 === '<current>' ? color('text-dark') : 'unset' }}
+			value={params.sample0} onChange={e => set('sample0', e.target.value)}>
 				<option value='<none>'>&lt;none&gt;</option>
 				<option value='<current>'>&lt;current&gt;</option>
 				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
@@ -85,20 +83,20 @@ export function CorrelationContextMenu({ params, setParams }: ContextMenuProps<P
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => setParams({ forceMin: null, forceMax: null })}>Limit X:</span>
 			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
-				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
+				value={params.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
 			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
-				value={cur.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
+				value={params.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => setParams({ forceMinY: null, forceMaxY: null })}>Limit Y:</span>
 			<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
-				value={cur.forceMinY} onChange={val => set('forceMinY', val)} allowNull={true}/>
+				value={params.forceMinY} onChange={val => set('forceMinY', val)} allowNull={true}/>
 			;<NumberInput style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
-				value={cur.forceMaxY} onChange={val => set('forceMaxY', val)} allowNull={true}/>
+				value={params.forceMaxY} onChange={val => set('forceMaxY', val)} allowNull={true}/>
 		</div>
 		<div className='Row'>
-			color:<select className='Borderless' style={{ padding: '0 6px' }} value={cur.color}
+			color:<select className='Borderless' style={{ padding: '0 6px' }} value={params.color}
 				onChange={e => setParams({ color: e.target.value })}>
 				{colors.map(c => <option key={c} value={c}>{c}</option>)}
 			</select>
@@ -112,21 +110,28 @@ export function CorrelationContextMenu({ params, setParams }: ContextMenuProps<P
 	</div>;
 }
 
-export default function CorrelationPlot() {
+function Panel() {
 	const { showGrid, showLegend, showTitle } = useEventsSettings();
 	const { setCursor, setPlotId } = useEventsState();
+	const { setParams } = useContext(LayoutContext)! as LayoutContextType<CorrelationParams>;
 	const { data: shownData } = useContext(TableViewContext);
-	const layoutParams = useContext(LayoutContext)?.params;
 	const { data: allData, columns } = useTable();
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
+	const params = usePlotParams<CorrelationParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
 		y: 3
 	}));
 
+	useEffect(() => {
+		for (const k of ['column0', 'column1'] as (keyof CorrelationParams)[]) {
+			if (params[k] == null)
+				setParams({ [k]: findColumn(columns, k === 'column0' ? 'VmBm' : 'magnitude')?.id });
+		}
+	}, [params, columns]); // eslint-disable-line react-hooks/exhaustive-deps
+
 	const memo = useMemo(() => {
-		const params = { ...defaultCorrParams(columns), ...layoutParams };
 		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY, sample0 } = params;
 
 		const sampleData = sample0 === '<current>' ? currentData : sample0 === '<none>' ? allData :
@@ -278,7 +283,7 @@ export default function CorrelationPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>;},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [columns, layoutParams, currentData, allData, samplesList, showTitle, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId]);
+	}, [params, currentData, allData, samplesList, columns, showTitle, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId]);
 
 	if (!memo) return <div className='Center'>NOT ENOUGH DATA</div>;
 	const { options, data } = memo;
@@ -286,3 +291,12 @@ export default function CorrelationPlot() {
 		<ExportableUplot {...{ options, data }}/>
 	</>);
 }
+
+export const Correlation = {
+	name: 'Correlation',
+	Panel,
+	Menu,
+	defaultParams,
+	isPlot: true,
+	isStat: true
+};

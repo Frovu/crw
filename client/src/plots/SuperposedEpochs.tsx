@@ -4,8 +4,8 @@ import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } f
 import { useQueries } from 'react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample';
-import { MainTableContext, type PanelParams, SampleContext, useEventsSettings } from '../events/events';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/events';
+import { type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { useTable } from '../events/eventsState';
@@ -14,7 +14,7 @@ const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 
-const defaultOptions = {
+const defaultParams = {
 	timeColumn: 'time',
 	series0: 'a10m',
 	series1: null as null | string,
@@ -27,13 +27,12 @@ const defaultOptions = {
 	showXLabel: false,
 };
 
-export type CollisionOptions = typeof defaultOptions;
+export type CollisionOptions = typeof defaultParams;
 
-export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
+function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 	const { series: seriesOptions } = useContext(MainTableContext);
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
-	const cur = { ...defaultOptions, ...params };
 	const timeOptions = columns.filter(col => col.type === 'time');
 	const set = <T extends keyof CollisionOptions>(k: T, val: CollisionOptions[T]) =>
 		setParams({ [k]: val });
@@ -43,8 +42,8 @@ export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProp
 			<div><span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
 				onClick={() => {set(seriesKeys[i], null); set(sampleKeys[i], '<current>');}}>{letter}:</span>
 			<select title='Data series' className='Borderless' style={{ width: '7em', marginLeft: 2,
-				color: cur[seriesKeys[i]] == null ? color('text-dark') : 'unset' }}
-			value={cur[seriesKeys[i]] ?? '__none'} onChange={e =>
+				color: params[seriesKeys[i]] == null ? color('text-dark') : 'unset' }}
+			value={params[seriesKeys[i]] ?? '__none'} onChange={e =>
 				set(seriesKeys[i],e.target.value === '__none' ? null : e.target.value)}>
 				<option value='__none'>&lt;none&gt;</option>
 				{Object.entries(seriesOptions).map(([id, name]) =>
@@ -52,8 +51,8 @@ export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProp
 			</select>:
 			<select title='Sample (none = all events)' className='Borderless'
 				style={{ width: '7.5em', marginLeft: 1,
-					color: cur[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
-				value={cur[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
+					color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+				value={params[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
 				<option value='<none>'>&lt;none&gt;</option>
 				<option value='<current>'>&lt;current&gt;</option>
 				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
@@ -61,7 +60,7 @@ export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProp
 		</div>)}
 		<div> Time source:<select className='Borderless'
 			style={{ width: '7.5em', margin: '0 4px', padding: 0 }}
-			value={cur.timeColumn} onChange={e => set('timeColumn', e.target.value as any)}>
+			value={params.timeColumn} onChange={e => set('timeColumn', e.target.value as any)}>
 			{timeOptions.map(({ id, rel }) =>
 				<option key={id} value={id}>{rel} time</option>)}
 		</select> </div>
@@ -70,26 +69,26 @@ export function EpochCollisionContextMenu({ params, setParams }: ContextMenuProp
 		</div>
 		<div className='Row' style={{ marginTop: -2 }}>
 			<label>Plot median<input type='checkbox' style={{ paddingLeft: 4 }}
-				checked={cur.showEpochMedian} onChange={e => set('showEpochMedian', e.target.checked)}/></label>
+				checked={params.showEpochMedian} onChange={e => set('showEpochMedian', e.target.checked)}/></label>
 			<label>std error<input type='checkbox' style={{ paddingLeft: 4 }}
-				checked={cur.showEpochStd} onChange={e => set('showEpochStd', e.target.checked)}/></label>	
+				checked={params.showEpochStd} onChange={e => set('showEpochStd', e.target.checked)}/></label>	
 		</div>
 		<div>
 			<label>Show X label<input type='checkbox' style={{ paddingLeft: 4 }}
-				checked={cur.showXLabel} onChange={e => set('showXLabel', e.target.checked)}/></label>	
+				checked={params.showXLabel} onChange={e => set('showXLabel', e.target.checked)}/></label>	
 		</div>
 	</div>;
 }
 
-export default function EpochCollision() {
+function Panel() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const layoutParams = useContext(LayoutContext)?.params;
 	const { plotOffset, showGrid, showLegend } = useEventsSettings();
 	const { columns, series: seriesDict } = useContext(MainTableContext);
 	const { data: allData } = useTable();
+	const params = usePlotParams<CollisionOptions>();
+	const { sample0, sample1, sample2, timeColumn } = params;
 
-	const { sample0, sample1, sample2, timeColumn, ...cur } =  { ...defaultOptions, ...layoutParams };
-	const series = [cur.series0, cur.series1, cur.series2];
+	const series = [params.series0, params.series1, params.series2];
 	const samples = useMemo(() => [sample0, sample1, sample2].map((name) => {
 		if (!name) return null;
 		if (name === '<current>') return currentData;
@@ -165,8 +164,8 @@ export default function EpochCollision() {
 						...axisDefaults(showGrid),
 						size: measureDigit().height + scaled(12),
 						space: ch * 4 + scaled(4),
-						label: cur.showXLabel ? '' : undefined,
-						fullLabel: cur.showXLabel ? 'time from onset, h' : '',
+						label: params.showXLabel ? '' : undefined,
+						fullLabel: params.showXLabel ? 'time from onset, h' : '',
 					}, ...filtered.map((idx, i) => ({
 						...axisDefaults(showGrid && i === 0),
 						side: i === 0 ? 3 : 1,
@@ -200,7 +199,7 @@ export default function EpochCollision() {
 					},
 					series: [
 						{ }, ...filtered.map((idx, i) => [ {
-							show: cur.showEpochMedian,
+							show: params.showEpochMedian,
 							scale: axScale(idx),
 							label: 'median ' + seriesDict[series[idx]!],
 							stroke: color(colors[idx], .7),
@@ -215,14 +214,14 @@ export default function EpochCollision() {
 							value: (u, val) => val?.toFixed(2),
 							points: { show: false }
 						}, {
-							show: cur.showEpochStd,
+							show: params.showEpochStd,
 							label: seriesDict[series[idx]!] + ' + std',
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
 							width: scaled(.9),
 							points: { show: false }
 						}, {
-							show: cur.showEpochStd,
+							show: params.showEpochStd,
 							label: seriesDict[series[idx]!] + ' - std',
 							scale: axScale(idx),
 							stroke: color(colors[idx]),
@@ -235,7 +234,7 @@ export default function EpochCollision() {
 			}
 		};
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [cur.showEpochMedian, cur.showEpochStd, cur.showXLabel, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
+	}, [params.showEpochMedian, params.showEpochStd, params.showXLabel, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
 	
 	if (queries.some(q => q.isError))
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
@@ -252,3 +251,12 @@ export default function EpochCollision() {
 		</div>
 	</>;
 }
+
+export const SuperposedEpochs = {
+	name: 'Superposed epochs',
+	Panel,
+	Menu,
+	defaultParams,
+	isPlot: true,
+	isStat: true
+};

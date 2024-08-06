@@ -1,13 +1,13 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, type PanelParams, SampleContext, findColumn, useEventsSettings } from '../events/events';
+import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/events';
 import { ExportableUplot } from '../events/ExportPlot';
 import { applySample } from '../events/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
-import type { ColumnDef, Value } from '../events/columns';
+import type { Value } from '../events/columns';
 import { useTable } from '../events/eventsState';
 
 const colors = ['green', 'purple', 'magenta'] as const;
@@ -32,7 +32,7 @@ export type HistogramParams = {
 	column2: string | null,
 };
 
-const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns => ({
+const defaultParams: HistogramParams = {
 	binCount: 16,
 	forceMin: null,
 	forceMax: null,
@@ -42,40 +42,39 @@ const defaultHistOptions: (columns: ColumnDef[]) => HistogramParams = columns =>
 	sample0: '<current>',
 	sample1: '<current>',
 	sample2: '<current>',
-	column0: findColumn(columns, 'duration')?.id ?? null,
+	column0: 'duration',
 	column1: null,
 	column2: null,
 	drawMean: true,
 	drawMedian: false
-});
+};
 
-export function HistogramContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
+function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultHistOptions(columns), ...params };
 	const columnOpts = columns.filter(c => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
-		|| (['column0', 'column1', 'column2'] as const).some(p => cur[p] === c.id));
+		|| (['column0', 'column1', 'column2'] as const).some(p => params[p] === c.id));
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
 		setParams({ [k]: val });
 	const Checkbox = ({ text, k }: { text: string, k: keyof HistogramParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+			checked={params[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 
 	return <div className='Group'>
 		{([0, 1, 2] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
 			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
 				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], '<current>');}}>#{i}</span>
 			<div><select title='Column' className='Borderless' style={{ width: '10em',
-				color: cur[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
-			value={cur[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}>
+				color: params[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
+			value={params[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}>
 				<option value='__none'>&lt;none&gt;</option>
 				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
 			</select>:
 			<select title='Sample (none = all events)' className='Borderless' style={{ width: '7em', marginLeft: 1,
-				color: cur[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
-			value={cur[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
+				color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+			value={params[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
 				<option value='<none>'>&lt;none&gt;</option>
 				<option value='<current>'>&lt;current&gt;</option>
 				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
@@ -83,20 +82,20 @@ export function HistogramContextMenu({ params, setParams }: ContextMenuProps<Pan
 		</div>)}
 		<div className='Row'>
 			<div>Y:<select className='Borderless' style={{ width: '5em', marginLeft: 4, padding: 0 }}
-				value={cur.yScale} onChange={e => set('yScale', e.target.value as any)}>
+				value={params.yScale} onChange={e => set('yScale', e.target.value as any)}>
 				{yScaleOptions.map(o => <option key={o} value={o}>{o}</option>)}
 			</select></div>
 			<div style={{ paddingLeft: 4 }}>Bin count:<input type='number' min='2' max='9999'
 				style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={cur.binCount} onChange={e => set('binCount', e.target.valueAsNumber)}/></div>
+				value={params.binCount} onChange={e => set('binCount', e.target.valueAsNumber)}/></div>
 		</div>
 		<div style={{ textAlign: 'right' }}>
 			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
 				onClick={() => setParams({ forceMin: null, forceMax: null })}>Limits:</span>
 			<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={cur.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
+				value={params.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
 			&lt;= X &lt;<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={cur.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
+				value={params.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
 		</div>
 		<div className='Row'>
 			<Checkbox text='Show Y label' k='showYLabel'/>
@@ -109,7 +108,7 @@ export function HistogramContextMenu({ params, setParams }: ContextMenuProps<Pan
 	</div>;
 }
 
-function drawResiduals(options: HistogramParams, samples: number[][], min: number, max: number) {
+function drawResiduals(params: HistogramParams, samples: number[][], min: number, max: number) {
 	const left  = samples.map(smp => smp.filter(v => v <  min).length);
 	const right = samples.map(smp => smp.filter(v => v >= max).length);
 
@@ -119,12 +118,12 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 	const px = (a: number) => scale * a * devicePixelRatio;
 
 	return (u: uPlot) => {
-		if (!options.showResiduals)
+		if (!params.showResiduals)
 			return;
 		for (const [which, values] of [['left', left], ['right', right]] as const) {
 			if (!values.find(v => v > 0))
 				continue;
-			const vals = options.yScale === '%' ?
+			const vals = params.yScale === '%' ?
 				values.map((v, i) => Math.round(v / samples[i].length * 1000) / 10) : values;
 
 			const height = px(5) + values.filter(v => v > 0).length * lh * devicePixelRatio;
@@ -158,13 +157,13 @@ function drawResiduals(options: HistogramParams, samples: number[][], min: numbe
 	};
 }
 
-function drawAverages(options: HistogramParams, samples: Value[][]) {
+function drawAverages(params: HistogramParams, samples: Value[][]) {
 	const scale = scaled(1);
 	const fnt = font(14, true);
 	const px = (a: number) => scale * a * devicePixelRatio;
 	const averages = {
-		mean: options.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
-		median: options.drawMedian && samples.map(smpl => {
+		mean: params.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
+		median: params.drawMedian && samples.map(smpl => {
 			const s = smpl.sort((a: any, b: any) => a - b) as any, mid = Math.floor(smpl.length / 2);
 			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
 		})
@@ -197,11 +196,11 @@ function drawAverages(options: HistogramParams, samples: Value[][]) {
 	};
 } 
 
-export default function HistogramPlot() {
+function Panel() {
 	const { data: allData, columns } = useTable();
-	const layoutParams = useContext(LayoutContext)?.params;
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
+	const params = usePlotParams<HistogramParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
@@ -209,12 +208,11 @@ export default function HistogramPlot() {
 	}));
 
 	const hist = useMemo(() => {
-		const options = { ...defaultHistOptions(columns), ...layoutParams };
-		const { yScale } = options;
+		const { yScale } = params;
 
-		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === options['column'+i as keyof HistogramParams]));
+		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === params['column'+i as keyof HistogramParams]));
 		const allSamples = [0, 1, 2].map(i => {
-			const sampleId = options['sample'+i as 'sample0'|'sample1'|'sample2'];
+			const sampleId = params['sample'+i as 'sample0'|'sample1'|'sample2'];
 			const colIdx = cols[i];
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
@@ -229,10 +227,10 @@ export default function HistogramPlot() {
 		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v as any) + 1))] : allSamples;
 
 		const everything = samples.flat() as number[];
-		const min = options.forceMin ?? Math.min.apply(null, everything);
-		let max = options.forceMax ?? Math.max.apply(null, everything) + 1;
-		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : options.binCount;
-		if (options.forceMax == null) {
+		const min = params.forceMin ?? Math.min.apply(null, everything);
+		let max = params.forceMax ?? Math.max.apply(null, everything) + 1;
+		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : params.binCount;
+		if (params.forceMax == null) {
 			const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
 			if (countMax > 1) // workaround for inclusive intervals
 				max += (max - min) / (binCount - 1);
@@ -253,9 +251,9 @@ export default function HistogramPlot() {
 		const transformed = samplesBins.map((bins, i) => yScale === '%' ? bins?.map(b => b / samples[i].length)! : bins!).filter(b => b);
 		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : .5)) * binSize) || [];
 
-		const colNames = [0, 1, 2].map(i => options['column'+i as keyof HistogramParams])
+		const colNames = [0, 1, 2].map(i => params['column'+i as keyof HistogramParams])
 			.map(c => columns.find(cc => cc.id === c)?.fullName);
-		const sampleNames = [0, 1, 2].map(i => options['sample'+i as 'sample0'|'sample1'|'sample2'])
+		const sampleNames = [0, 1, 2].map(i => params['sample'+i as 'sample0'|'sample1'|'sample2'])
 			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
 				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 
@@ -276,8 +274,8 @@ export default function HistogramPlot() {
 					cursor: { focus: { prox: 64 }, drag: { x: false, y: false, setScale: false }, points: { show: false } },
 					hooks: {
 						draw: [
-							drawAverages(options, samples),
-							enumMode ? () => {} : drawResiduals(options, samples as any, min, max),
+							drawAverages(params, samples),
+							enumMode ? () => {} : drawResiduals(params, samples as any, min, max),
 						]
 					},
 					plugins: [
@@ -305,10 +303,10 @@ export default function HistogramPlot() {
 					}, {
 						...axisDefaults(showGrid),
 						values: (u, vals) => vals.map(v => v && (yScale === '%' ?
-							(v*100).toFixed(0) + (options.showYLabel ? '' : '%') : v.toFixed())),
+							(v*100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())),
 						gap: scaled(2),
-						fullLabel: options.showYLabel ? yLabel : '',
-						label: options.showYLabel ? '' : undefined,
+						fullLabel: params.showYLabel ? yLabel : '',
+						label: params.showYLabel ? '' : undefined,
 						labelSize: getFontSize() + scaled(3),
 						size: (u, values) => scale * 12 + ch *
 							(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
@@ -354,8 +352,17 @@ export default function HistogramPlot() {
 				} as Omit<uPlot.Options, 'width'|'height'>; },
 			data: [binsValues, ...elevated] as any
 		};
-	}, [columns, layoutParams, sampleData, allData, samplesList, showLegend, overlayHandle, showGrid]);
+	}, [params, columns, sampleData, allData, samplesList, showLegend, overlayHandle, showGrid]);
 
 	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }}/>;
 }
+
+export const Histogram = {
+	name: 'Histogram',
+	Panel,
+	Menu,
+	defaultParams,
+	isPlot: true,
+	isStat: true
+};

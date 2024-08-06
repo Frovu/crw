@@ -24,6 +24,10 @@ import { ICMETable } from './tables/ICME';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
 import { useContextMenu } from '../app';
+import { Correlation } from '../plots/Correlate';
+import { Histogram } from '../plots/Histogram';
+import { SuperposedEpochs } from '../plots/SuperposedEpochs';
+import { EventsHistory } from '../plots/EventsHistory';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -32,6 +36,10 @@ const panels: EventsPanel<any>[] = [
 	SWTypesPlot,
 	GeomagnPlot,
 	RSMPlot,
+	Correlation,
+	Histogram,
+	SuperposedEpochs,
+	EventsHistory,
 	FeidTable,
 	SatParticlesPlot,
 	CMEHeightPlot,

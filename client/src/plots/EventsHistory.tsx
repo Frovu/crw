@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings, type PanelParams, MainTableContext, SampleContext } from '../events/events';
-import { LayoutContext, type ContextMenuProps } from '../layout';
+import { useEventsSettings, MainTableContext, SampleContext, usePlotParams } from '../events/events';
+import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
@@ -20,7 +20,7 @@ type StatSeries = {
 	column: null | '<count>' | string,
 };
 
-const defaultOptions = {
+const defaultParams = {
 	window: '1 year' as keyof typeof windowOptions,
 	historySeries: [0, 1, 2, 3, 4].map(i =>
 		({ sample: '<current>', column: i === 0 ? '<count>' : null })) as StatSeries[],
@@ -30,24 +30,22 @@ const defaultOptions = {
 	historyOneAxis: false,
 };
 
-export type HistoryOptions = typeof defaultOptions;
-
-export function EventsHistoryContextMenu({ params, setParams }: ContextMenuProps<PanelParams>) {
+export type HistoryParams = typeof defaultParams;
+function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const cur = { ...defaultOptions, ...params } as HistoryOptions;
-	const { historySeries: series } = cur;
+	const { historySeries: series } = params;
 
-	const set = <T extends keyof HistoryOptions>(k: T, val: HistoryOptions[T]) =>
+	const set = <T extends keyof HistoryParams>(k: T, val: HistoryParams[T]) =>
 		setParams({ [k]: val });
 	const setSample = (i: number, val: StatSeries['sample']) =>
 		set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
 	const setColumn = (i: number, val: StatSeries['column']) =>
 		set('historySeries', series.toSpliced(i, 1, { ...series[i], column: val }));
-	const Checkbox = ({ text, k }: { text: string, k: keyof HistoryOptions }) =>
+	const Checkbox = ({ text, k }: { text: string, k: keyof HistoryParams }) =>
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={cur[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+			checked={params[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
 	
 	const columnOpts = columns.filter(c =>
 		(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
@@ -75,7 +73,7 @@ export function EventsHistoryContextMenu({ params, setParams }: ContextMenuProps
 		<div className='Row'>
 			<Checkbox text='X label' k='showXLabel'/>
 			<div>Window:<select className='Borderless' style={{ margin: '0 4px' }}
-				value={cur.window} onChange={e => set('window', e.target.value as any)}>
+				value={params.window} onChange={e => set('window', e.target.value as any)}>
 				{Object.keys(windowOptions).map(k => <option key={k} value={k}>{k}</option>)}
 			</select></div>
 		</div>
@@ -84,10 +82,10 @@ export function EventsHistoryContextMenu({ params, setParams }: ContextMenuProps
 				onClick={() => setParams({ forceLeft: null, forceRight: null })}>Limit years:</span>
 			<NumberInput style={{ width: '4em', marginLeft: 4, padding: 0 }}
 				min={1950} max={new Date().getUTCFullYear()}
-				value={cur.forceLeft} onChange={val => set('forceLeft', val)} allowNull={true}/>
+				value={params.forceLeft} onChange={val => set('forceLeft', val)} allowNull={true}/>
 			;<NumberInput style={{ width: '4em', margin: '0 4px 0 2px', padding: 0 }}
 				min={1950} max={new Date().getUTCFullYear()}
-				value={cur.forceRight} onChange={val => set('forceRight', val)} allowNull={true}/>
+				value={params.forceRight} onChange={val => set('forceRight', val)} allowNull={true}/>
 		</div>
 		<div className='Row'>
 			<Checkbox text='Merge vertical axes' k='historyOneAxis'/>
@@ -95,13 +93,11 @@ export function EventsHistoryContextMenu({ params, setParams }: ContextMenuProps
 	</div>;
 }
 
-export default function EventsHistory() {
+function Panel() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
-	const layoutParams = useContext(LayoutContext)?.params;
 	const { columns, data: allData } = useTable();
-
-	const params = useMemo(() => ({ ...defaultOptions, ...layoutParams }), [layoutParams]) as HistoryOptions;
+	const params = usePlotParams<HistoryParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
@@ -212,3 +208,12 @@ export default function EventsHistory() {
 
 	return <ExportableUplot {...{ options, data }}/>;
 }
+
+export const EventsHistory = {
+	name: 'Events history',
+	Panel,
+	Menu,
+	defaultParams,
+	isPlot: true,
+	isStat: true
+};
