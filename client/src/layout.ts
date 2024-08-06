@@ -18,6 +18,7 @@ export type NodeParams<T> = { type: string | null } & T;
 export type ParamsSetter<T> = (para: Partial<NodeParams<T>>) => void;
 
 export type Layout<T> = {
+	ignoreWhenCycling?: boolean,
 	tree: { [key: string]: LayoutTreeNode | null },
 	items: { [key: string]: NodeParams<T> | undefined }
 };
@@ -50,12 +51,13 @@ type LayoutsState = {
 	deleteLayout: (la: string) => void,
 	selectLayout: (la: string) => void,
 	renameLayout: (la: string, name: string) => void,
+	toggleCycling: (la: string, val: boolean) => void
 }; 
 
 const defaultState = {
 	dragFrom: null,
 	dragTo: null,
-	apps: {},
+	apps: defaultLayouts,
 	windows: {},
 };
 
@@ -113,7 +115,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 				logMessage('layout removed: ' + layout);
 				delete apps[app].list[layout];
 				if (apps[app].active === layout)
-					apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].default;
+					apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].active;
 			}),
 			copyLayout: layout => set(({ apps }) => {
 				const app = getApp();
@@ -141,6 +143,10 @@ export const useLayoutsStore = create<LayoutsState>()(
 					return;
 				logMessage('layout reset: ' + active);
 				list[active] = defaultLayouts[app].list[active];
+			}),
+			toggleCycling: (layout, value) => set(({ apps }) => {
+				const { list } = apps[getApp()];
+				list[layout].ignoreWhenCycling = value;
 			}),
 		})),
 		{

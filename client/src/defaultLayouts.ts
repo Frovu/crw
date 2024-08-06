@@ -1,14 +1,14 @@
 import type { Layout } from './layout';
 
 export type LayoutPreset = {
-	default: string,
+	active: string,
 	list: { [name: string]: Layout<{ [key: string]: any }> }
 };
 
 const feidDefaultLayouts: LayoutPreset = {
-	default: 'default',
+	active: 'overview',
 	list: {
-		default: {
+		overview: {
 			tree: {
 				root: {
 					split: 'row',
@@ -54,7 +54,43 @@ const feidDefaultLayouts: LayoutPreset = {
 				}
 			}
 		},
+		stats: {
+			tree: {
+				root: {
+					split: 'column',
+					ratio: .5,
+					children: ['top', 'bottom']
+				},
+				bottom: {
+					split: 'row',
+					ratio: .95,
+					children: ['row', 'empty']
+				},
+				row: {
+					split: 'row',
+					ratio: .5,
+					children: ['p1', 'p2']
+				},
+			},
+			items: {
+				top: {
+					type: 'FEID Table',
+					showAverages: true,
+					showChangelog: false,
+				},
+				p1: {
+					type: 'Correlation'
+				},
+				p2: {
+					type: 'Histogram',
+				},
+				empty: {
+					type: 'Empty',
+				},
+			}
+		},
 		sources: {
+			ignoreWhenCycling: true,
 			tree: {
 				root: {
 					split: 'row',
@@ -329,42 +365,8 @@ const feidDefaultLayouts: LayoutPreset = {
 				}
 			}
 		},
-		stats: {
-			tree: {
-				root: {
-					split: 'column',
-					ratio: .5,
-					children: ['top', 'bottom']
-				},
-				bottom: {
-					split: 'row',
-					ratio: .95,
-					children: ['row', 'empty']
-				},
-				row: {
-					split: 'row',
-					ratio: .5,
-					children: ['p1', 'p2']
-				},
-			},
-			items: {
-				top: {
-					type: 'FEID Table',
-					showAverages: true,
-					showChangelog: false,
-				},
-				p1: {
-					type: 'Correlation'
-				},
-				p2: {
-					type: 'Histogram',
-				},
-				empty: {
-					type: 'Empty',
-				},
-			}
-		},
 		export: {
+			ignoreWhenCycling: true,
 			tree: {
 				root: {
 					split: 'row',

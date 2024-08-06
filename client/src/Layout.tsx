@@ -1,6 +1,6 @@
 import { useRef, useState, useContext } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
-import { color, getApp, openContextMenu } from './app';
+import { color, getApp, KEY_COMB, openContextMenu } from './app';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams,
 	gapSize, type LayoutsMenuDetails, splitNode, resetLayout, AppLayoutContext, type AppLayoutProps, 
 	setWindowParams, closeWindow, moveWindow, type Panel, type NodeParams } from './layout';
@@ -199,15 +199,24 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 }
 
 export function LayoutNav() {
-	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout } = useLayoutsStore();
-	const { list, active } = apps[getApp()] ?? { list: {}, active: {} };
+	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
+	const { list, active } = apps[getApp()] ?? { list: {}, active: '' };
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
 	const [renaming, setRenaming] = useState<{ layout: string, input: string } | null>(null);
 	const [open, setOpen] = useState(false);
 	const layouts = Object.keys(list);
+
+	const cycleLayouts = (idx: number) => {
+		const next = (idx + 1) % layouts.length;
+		if (!list[layouts[next]].ignoreWhenCycling || layouts[next] === active) {
+			return selectLayout(layouts[next]);
+		}
+		return cycleLayouts(next);
+	};
+
 	useEventListener('click', () => { setOpen(false); setRenaming(null); });
 	useEventListener('contextmenu', () => { setOpen(false); setRenaming(null); });
-	useEventListener('action+switchLayout', () => selectLayout(layouts[(layouts.indexOf(active) + 1) % layouts.length]));
+	useEventListener('action+switchLayout', () => cycleLayouts(layouts.indexOf(active)));
 
 	const defaultL = defaultLayouts[getApp() as keyof typeof defaultLayouts]?.list;
 
@@ -217,7 +226,7 @@ export function LayoutNav() {
 			onClick={e => e.stopPropagation()}>
 			{layouts.map(layout => {
 				const isUsers = defaultL[layout], isActive = active === layout;
-				return <div key={layout} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+				return <div key={layout} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
 					{renaming?.layout === layout ? <input type='text' style={{ width: renaming.input.length+1+'ch',
 						maxWidth: '20em', height: '1.25em', flex: 1, color: color('text') }}
 					autoFocus onFocus={e => e.target.select()}
@@ -229,6 +238,9 @@ export function LayoutNav() {
 					<div style={{ minWidth: 8 }}/>
 					<button hidden={!isUsers} className='TextButton' onClick={() => setRenaming({ layout, input: layout })}>rename</button>
 					<button className='TextButton' onClick={() => copyLayout(layout)}>copy</button>
+					<label title={`Cycle with ${KEY_COMB.switchLayout} key`}>cycle
+						<input type='checkbox' checked={!list[layout].ignoreWhenCycling} onChange={e => toggleCycling(layout, !e.target.checked)}/>
+					</label>
 					{isUsers ? <div className='CloseButton'
 						onClick={() => deleteLayout(layout)}/> : <div style={{ minWidth: '1em' }}/>}
 					
