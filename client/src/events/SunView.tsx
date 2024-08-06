@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
-import { equalValues } from './events';
+import { equalValues, type EventsPanel } from './events';
 import { apiGet, prettyDate } from '../util';
 import { color } from '../app';
 import { useQuery } from 'react-query';
@@ -14,7 +14,7 @@ const MODES = ['SDO', 'FLR', 'WSA-ENLIL'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
 const ENLIL_OPTS = ['density', 'velocity'] as const;
 const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'];
-const defaultSettings = {
+const defaultParams = {
 	mode: 'SDO' as typeof MODES[number],
 	prefer: 'ANY' as typeof PREFER_FLR[number],
 	src: 'AIA 193' as typeof SDO_SRC[number],
@@ -22,7 +22,7 @@ const defaultSettings = {
 	frameTime: 50,
 	slave: false,
 };
-type Params = Partial<typeof defaultSettings>;
+type Params = Partial<typeof defaultParams>;
 
 const useSunViewState = create<{
 	time: number,
@@ -36,8 +36,8 @@ const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_su
 const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
 const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
-export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Params>) {
-	const para = { ...defaultSettings, ...params };
+function Menu({ params, setParams }: ContextMenuProps<Params>) {
+	const para = { ...defaultParams, ...params };
 	const { mode, slave, frameTime } = para;
 	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src'|'enlilVar', opts: readonly string[] }) => <select
 		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
@@ -55,9 +55,9 @@ export function SunViewContextMenu({ params, setParams }: ContextMenuProps<Param
 	</div>;
 }
 
-export function EnlilView({ id }: { id: number | null }) {
+function EnlilView({ id }: { id: number | null }) {
 	const { size, params } = useContext(LayoutContext)!;
-	const { enlilVar } = { ...defaultSettings, ...params };
+	const { enlilVar } = { ...defaultParams, ...params };
 
 	const query = useQuery(['enlil', id], () => id == null ? id : apiGet<{ filename: string }>('events/enlil', { id }));
 	
@@ -145,7 +145,7 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 function SDO({ time: refTime, start, end, lat, lon, title, src }:
 { time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
 	const { size: nodeSize, params, isWindow, id: nodeId } = useContext(LayoutContext)! as LayoutContextType<Params>;
-	const { src: source, slave, frameTime } = { ...defaultSettings, ...params };
+	const { src: source, slave, frameTime } = { ...defaultParams, ...params };
 	const { time: masterTime, setTime } = useSunViewState();
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 	const size = Math.min(nodeSize.width, nodeSize.height);
@@ -280,15 +280,15 @@ function SDO({ time: refTime, start, end, lat, lon, title, src }:
 	</div>;
 }
 
-export default function SunView() {
+function Panel() {
 	const layoutParams = useContext(LayoutContext)?.params;
-	const { mode, prefer } = { ...defaultSettings, ...layoutParams };
+	const { mode, prefer } = { ...defaultParams, ...layoutParams };
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const { cursor } = useEventsState();
 	const sources = useSources();
 	const activeErupt = useSource('sources_erupt', true);
-	const { start: feidTime } = useFeidCursor();
+	const { start: feidTime, row: feid } = useFeidCursor();
 
 	if (mode === 'WSA-ENLIL') {
 		if (cursor?.entity === 'CMEs') {
@@ -363,17 +363,36 @@ export default function SunView() {
 		}}/>;
 	}
 
+	if (feid.flr_time) {
+		const ftime = (feid.flr_time as Date).getTime() / 1000;
+		return <SDO {...{
+			lat: null,
+			lon: null,
+			time:  ftime,
+			start: ftime - 3600 * 2,
+			end:   ftime + 3600 * 3,
+			title: '',
+			src: ''
+		}}/>;
+	}
+
 	if (!feidTime)
 		return null;
 	const ftime = feidTime.getTime() / 1000;
 	return <SDO {...{
 		lat: null,
 		lon: null,
-		time:  ftime - 86400 * 2,
+		time:  ftime - 86400 * 2.5,
 		start: ftime - 86400 * 3,
-		end:   ftime - 86400 * 4,
+		end:   ftime - 86400 * 2,
 		title: '',
 		src: ''
 	}}/>;
-
 }
+
+export const SunView: EventsPanel<Params> = {
+	name: 'Sun View',
+	Menu,
+	Panel,
+	defaultParams
+};

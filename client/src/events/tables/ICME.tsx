@@ -6,7 +6,7 @@ import { equalValues, valueToString } from '../events';
 import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
-export function ICMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { icme: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const icme = detail?.icme;
@@ -25,7 +25,7 @@ export function ICMEContextMenu({ params, setParams }: ContextMenuProps<Partial<
 	</>;
 }
 
-export default function ICMETable() {
+function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'ICMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
@@ -89,3 +89,9 @@ export default function ICMETable() {
 			</tr>;}
 	}}/>;
 }
+
+export const ICMETable = {
+	name: 'ICME Table',
+	Panel,
+	Menu
+};

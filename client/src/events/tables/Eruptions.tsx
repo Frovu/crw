@@ -53,7 +53,7 @@ function switchCoordsSrc(erupt: RowDict, opt: string, sth?: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-export function EruptionsContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
 
@@ -62,7 +62,7 @@ export function EruptionsContextMenu({ params, setParams }: ContextMenuProps<Par
 	</>;
 }
 
-export default function EruptionsTable() {
+function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
 	const flares = useCompoundTable('flare');
@@ -176,3 +176,9 @@ export default function EruptionsTable() {
 			</tr>;}
 	}}/>;
 }
+
+export const EruptionsTable = {
+	name: 'Erupt Src Table',
+	Panel,
+	Menu
+};

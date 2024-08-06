@@ -2,20 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createContext, useContext, useMemo } from 'react';
 import type { Filter, Sample } from './sample';
-import type { CirclesParams } from '../plots/time/Circles';
-import type { GSMParams } from '../plots/time/GSM';
-import type { GeomagnParams } from '../plots/time/Geomagn';
-import type { IMFParams } from '../plots/time/IMF';
-import type { SWParams } from '../plots/time/SW';
-import type { CorrelationParams } from '../plots/Correlate';
-import type { HistogramParams } from '../plots/Histogram';
-import type { CollisionOptions } from '../plots/EpochCollision';
-import type { HistoryOptions } from '../plots/EventsHistory';
-import type { SatXraysParams } from '../plots/time/XRays';
-import { useLayoutsStore, type Layout, setNodeParams, type NodeParams, type Panel, LayoutContext } from '../layout';
+import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../layout';
 import { getApp } from '../app';
 import type { ColumnDef, Value, DataRow } from './columns';
-import type { SatPartParams } from '../plots/time/Particles';
 import type { BasicPlotParams } from '../plots/basicPlot';
 
 const defaultSettings = {
@@ -68,40 +57,16 @@ export type TableParams = {
 	showIncludeMarkers?: boolean,
 };
 
-export const defaultPlotParams = {
-	showMetaInfo: true,
-	showMetaLabels: true,
-	showTimeAxis: true,
-	showEventsEnds: false,
-	showGrid: true,
-	showMarkers: true,
-	showLegend: false,
-
-	// useA0m: true,
-	// subtractTrend: true,
-	// showAz: true,
-	// showAxy: true,
-	// showAxyVector: false,
-	// showBeta: true,
-	// showDensity: true,
-	// showPrecursorIndex: false,
-	// maskGLE: true,
-	// useAp: false,
-	// showBz: true,
-	// showBxBy: false,
-	// useTemperatureIndex: true,
-	// rsmExtended: false,
-
-	// showShortXrays: true,
-	// solarTime: true
-};
 export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
 export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;
 export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const;
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
 	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
 	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const;
-
+export const allPфффanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
+	
+	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const;
+	
 export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
 

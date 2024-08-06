@@ -27,6 +27,16 @@ export type BasicPlotParams = {
 	showLegend: boolean,
 };
 
+export const defaultPlotParams: Omit<BasicPlotParams, 'interval'> = {
+	showMetaInfo: true,
+	showMetaLabels: true,
+	showTimeAxis: true,
+	showEventsEnds: false,
+	showGrid: true,
+	showMarkers: true,
+	showLegend: false,
+};
+
 export type CustomAxis = uPlot.Axis & {
 	label: string,
 	fullLabel?: string,

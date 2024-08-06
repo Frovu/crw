@@ -1,16 +1,9 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
-import { AuthContext, useContextMenu, openContextMenu, useAppSettings } from '../app';
+import { AuthContext, useContextMenu, openContextMenu } from '../app';
 import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
-import CorrelationPlot, { CorrelationContextMenu } from '../plots/Correlate';
-import EpochCollision, { EpochCollisionContextMenu } from '../plots/EpochCollision';
-import HistogramPlot, { HistogramContextMenu } from '../plots/Histogram';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
-import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
-import { type TableMenuDetails, statPanelOptions,
-	useEventsSettings, plotPanelOptions, defaultPlotParams,
-	copyAverages, valueToString, PlotContext,
-	SampleContext, TableViewContext, findColumn, setStatColumn, solarPlotOptions, allPanelOptions, 
-	type EventsSettings} from './events';
+import { type TableMenuDetails, statPanelOptions, useEventsSettings,  copyAverages, valueToString,
+	SampleContext, TableViewContext, findColumn, setStatColumn, type EventsSettings } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
@@ -18,62 +11,6 @@ import SampleView from './Sample';
 import TableView from './tables/TableView';
 import { useQueryClient } from 'react-query';
 import { useEventsState, useTable } from './eventsState';
-
-// export function EventsLayoutContent() {
-// 	const { params: { type , ...plotParams } } = useContext(LayoutContext)! as LayoutContextType<{ type: typeof allPanelOptions[number] }>; 
-// 	const settings = useEventsSettings();
-// 	const appState = useAppSettings();
-// 	const plotContext = useContext(PlotContext);
-
-// 	const params = useMemo(() => {
-// 		return appState && plotContext && plotPanelOptions.includes(type as any) && {
-// 			...defaultPlotParams,
-// 			...settings,
-// 			...plotContext!,
-// 			...plotParams,
-// 			...(!settings.showMagneticClouds && { clouds: [] }),
-// 			stretch: true,
-// 		};
-// 	}, [appState, plotContext, type, settings, plotParams]);
-
-// 	const Comp = panels[0].panel;
-
-// 	return <div style={{ height: '100%', userSelect: 'none', overflow: 'clip',
-// 		border: type?.includes('Table') ? 'unset' : '1px var(--color-border) solid' }}>
-// 		{type === 'FEID Table' && <MainTablePanel/>}
-// 		{type === 'ExportControls' && <ExportControls/>}
-// 		{type === 'ExportPreview' && <ExportPreview/>}
-// 		{type === 'ColorSettings' && <ColorsSettings/>}
-// 		{type === 'InsertControls' && <InsertControls/>}
-// 		{type === 'Histogram' && <HistogramPlot/>}
-// 		{type === 'Sun View' && <SunView/>}
-// 		{type === 'Erupt Src Table' && <EruptionsTable/>}
-// 		{type === 'Holes Src Table' && <HolesSourceTable/>}
-// 		{type === 'Solen Holes' && <SolenHoles/>}
-// 		{type === 'Chimera Holes' && <ChimeraHoles/>}
-// 		{type === 'Flares Table' && <FlaresTable/>}
-// 		{type === 'CME Table' && <Comp/>}
-// 		{type === 'ICME Table' && <ICMETable/>}
-// 		{type === 'Correlation' && <CorrelationPlot/>}
-// 		{type === 'Superposed epochs' && <EpochCollision/>}
-// 		{type === 'Events history' && <EventsHistory/>}
-// 		{params && <>
-// 			{type === 'X-Rays' && <XraysPlot {...{ params }}/>}
-// 			{type === 'Particles' && <ParticlesPlot {...{ params }}/>}
-// 			{type === 'IMF + Speed' && <PlotIMF {...{ params }}/>}
-// 			{type === 'SW Plasma' && <PlotSW {...{ params }}/>}
-// 			{type === 'SW Types' && <PlotSWTypes {...{ params }}/>}
-// 			{type === 'Cosmic Rays' && <PlotGSM {...{ params }}/>}
-// 			{type === 'Geomagn' && <PlotGeoMagn {...{ params }}/>}
-// 			{type === 'CME height' && <CMEHeightTime {...{ params }}/>}
-// 			{type === 'Ring of Stations' && <>
-// 				<PlotCircles {...{ params }}/>
-// 				<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
-// 					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
-// 			</>}
-// 		</>}
-// 	</div>;
-// }
 
 const defaultParams = {
 	showChangelog: false,

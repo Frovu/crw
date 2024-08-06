@@ -1,7 +1,7 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { plotPanelOptions, statPanelOptions, useEventsSettings } from './events';
+import { plotPanelOptions, statPanelOptions, useEventsSettings, type EventsPanel } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -196,7 +196,7 @@ async function doRenderPlots() {
 	return canvas;
 }
 
-export function ExportPreview() {
+function PreviewPanel() {
 	const expState = usePlotExportSate();
 	const { overrides: { scale } } = expState;
 	const context = useContext(LayoutContext)!;
@@ -371,7 +371,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	</div>;
 }
 
-export function ExportControls() {
+function ControlsPanel() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
 		plots, inches, perPlotScales, setInches, set, setTransform, swapTransforms,
 		addScale, setScale, removeScale, setPerPlotMode, restoreScales } = usePlotExportSate();
@@ -512,3 +512,13 @@ export function PlotIntervalInput({ step: alterStep, solar }: { step?: number, s
 			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [left, e.target.valueAsNumber])}/> h
 	</div>;
 }
+
+export const ExportPreview: EventsPanel<{}> = {
+	name: 'Export Preview',
+	Panel: PreviewPanel
+};
+
+export const ExportControls: EventsPanel<{}> = {
+	name: 'Export Controls',
+	Panel: ControlsPanel
+};

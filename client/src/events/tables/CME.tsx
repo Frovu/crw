@@ -6,7 +6,7 @@ import { equalValues, valueToString } from '../events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
-export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const cme = detail?.cme;
@@ -28,7 +28,7 @@ export function CMEContextMenu({ params, setParams }: ContextMenuProps<Partial<{
 	</>;
 }
 
-export default function CMETable() {
+function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'CMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
@@ -123,3 +123,9 @@ export default function CMETable() {
 			</tr>;}
 	}}/>;
 }
+
+export const CMETable = {
+	name: 'CME Table',
+	Panel,
+	Menu
+};

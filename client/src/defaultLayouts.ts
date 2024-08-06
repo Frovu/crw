@@ -17,7 +17,7 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 				right: {
 					split: 'column',
-					ratio: .5,
+					ratio: .4,
 					children: ['top', 'bottom']
 				},
 				top: {
@@ -45,7 +45,8 @@ const feidDefaultLayouts: LayoutPreset = {
 					showTimeAxis: false,
 				},
 				p3: {
-					type: 'Cosmic Rays'
+					type: 'Cosmic Rays',
+					showAxyVector: true
 				},
 				p4: {
 					type: 'Geomagn',
@@ -403,19 +404,20 @@ const feidDefaultLayouts: LayoutPreset = {
 			},
 			items: {
 				tbl: {
-					type: 'FEID Table'
+					type: 'FEID Table',
+					showAverages: false,
 				},
 				exp: {
-					type: 'ExportControls'
+					type: 'Export Controls'
 				},
 				colors: {
-					type: 'ColorSettings'
+					type: 'Color Settings'
 				},
 				empty: {
 					type: 'Empty',
 				},
 				preview: {
-					type: 'ExportPreview'
+					type: 'Export Preview'
 				},
 				top: {
 					type: 'IMF + Speed',

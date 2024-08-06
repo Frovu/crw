@@ -19,7 +19,7 @@ const defaultSettings = {
 };
 type Params = Partial<typeof defaultSettings>;
 
-export function ChimeraContextMenu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 	const para = { ...defaultSettings, ...params };
 	const { slowFrameTime: frameTime, holesAnimation } = para;
 	const detail = useContextMenu(state => state.menu?.detail) as { ch?: ChimeraCH };
@@ -45,7 +45,7 @@ export function ChimeraContextMenu({ params, setParams }: ContextMenuProps<Parti
 	</>;
 }
 
-export default function ChimeraHoles() {
+function Panel() {
 	const { id: nodeId, size, isWindow, params } = useContext(LayoutContext)!;
 	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
 	const { time: stateTime, catched, setTime, setCatched } = useHolesViewState();
@@ -270,5 +270,10 @@ export default function ChimeraHoles() {
 				top: arcSecToPx(-cursorCh.ycen) }}><b>{cursorCh.id}</b></div>}
 		</div>
 	</div> ;
-
 }
+
+export const ChimeraHoles = {
+	name: 'Chimera Holes',
+	Panel,
+	Menu
+};

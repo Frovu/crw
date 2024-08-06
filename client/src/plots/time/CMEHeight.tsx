@@ -114,9 +114,7 @@ function Panel() {
 
 export const CMEHeightPlot: EventsPanel<{}> = {
 	name: 'CME Height',
-	Menu: null,
 	Panel,
-	defaultParams: {},
 	isPlot: true,
 	isSolar: true,
 };

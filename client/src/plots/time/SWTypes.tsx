@@ -81,8 +81,6 @@ function Panel() {
 
 export const SWTypesPlot: EventsPanel<{}> = {
 	name: 'SW Types',
-	Menu: null,
 	Panel,
-	defaultParams: {},
 	isPlot: true
 };

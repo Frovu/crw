@@ -6,7 +6,7 @@ import { color, openContextMenu, useContextMenu } from '../../app';
 import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks, useSources } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
-export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
@@ -22,7 +22,7 @@ export function FlaresContextMenu({ params, setParams }: ContextMenuProps<Partia
 	</>;
 }
 
-export default function FlaresTable() {
+function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'flares' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
@@ -108,3 +108,9 @@ export default function FlaresTable() {
 			</tr>;}
 	}}/>;
 }
+
+export const FlaresTable = {
+	name: 'Flares Table',
+	Panel,
+	Menu
+};

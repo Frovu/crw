@@ -21,7 +21,7 @@ function deleteHole(id: number) {
 	});
 }
 
-export function HolesContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
 	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
 	const chsId = detail?.ch?.id;
@@ -32,7 +32,7 @@ export function HolesContextMenu({ params, setParams }: ContextMenuProps<Partial
 	</>;
 }
 
-export default function HolesSourceTable() {
+function Panel() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid } = useFeidCursor();
@@ -90,7 +90,11 @@ export default function HolesSourceTable() {
 					})}
 				</tr>;}
 		}}/>}
-
 	</div>;
-
 }
+
+export const HolesTable = {
+	name: 'Holes Src Table',
+	Panel,
+	Menu
+};

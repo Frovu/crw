@@ -9,7 +9,7 @@ import { askProceed } from '../Utility';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
-export default function InsertControls() {
+function Panel() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource } = useEventsState();
 	const { start, end, duration, id: feidId } = useFeidCursor();
@@ -246,3 +246,8 @@ export default function InsertControls() {
 		</div>
 	</div>;
 }
+
+export const InsertControls = {
+	name: 'Insert Controls',
+	Panel,
+};

@@ -10,7 +10,7 @@ import { prettyDate } from '../../util';
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
 const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
-export function SolenHolesContextMenu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { ch?: SolenCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
@@ -27,7 +27,7 @@ export function SolenHolesContextMenu({ params, setParams }: ContextMenuProps<Pa
 	</>;
 }
 
-export default function SolenHoles() {
+function Panel() {
 	const framesTotal = 3;
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
 	const { time: stateTime, catched } = useHolesViewState();
@@ -136,5 +136,10 @@ export default function SolenHoles() {
 			<div style={{ ...textStyle, top: -2, left: 0, fontSize: 14 }}><b>{cursorCh?.tag}</b></div>
 		</div>}
 	</div> ;
-
 }
+
+export const SolenHoles = {
+	name: 'Solen Holes',
+	Panel,
+	Menu
+};
