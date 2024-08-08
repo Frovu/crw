@@ -86,6 +86,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 	const item = items[id];
 	const panel: Panel<{}> | undefined = panels[item?.type ?? ''];
 	if (!item || (item.type && !panel)) {
+		console.log('uknown item type: ', item?.type, id);
 		relinquishNode(id);
 		return null;
 	}

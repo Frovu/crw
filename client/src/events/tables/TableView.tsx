@@ -104,9 +104,9 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 	}, [cursor, updateViewIndex]);
 
 	useLayoutEffect(() => {
-		if (!focusIdx || cursor)
-			return;
-		setViewIndex(clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2)));
+		if (cursor) return;
+		const focus = focusIdx ? Math.floor(focusIdx - viewSize / 2) : data.length;
+		setViewIndex(clamp(0, data.length - viewSize, focus));
 	}, [cursor, data.length, focusIdx, viewSize]);
 
 	useLayoutEffect(() => {

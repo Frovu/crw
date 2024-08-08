@@ -58,13 +58,23 @@ const feidDefaultLayouts: LayoutPreset = {
 			tree: {
 				root: {
 					split: 'column',
-					ratio: .5,
+					ratio: .6,
 					children: ['top', 'bottom']
+				},
+				top: {
+					split: 'row',
+					ratio: .66,
+					children: ['topLeft', 'topR']
+				},
+				topR: {
+					split: 'column',
+					ratio: .2,
+					children: ['topCorner', 'topRight']
 				},
 				bottom: {
 					split: 'row',
-					ratio: .95,
-					children: ['row', 'empty']
+					ratio: .66,
+					children: ['row', 'bottomRight']
 				},
 				row: {
 					split: 'row',
@@ -73,7 +83,7 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 			},
 			items: {
-				top: {
+				topLeft: {
 					type: 'FEID Table',
 					showAverages: true,
 					showChangelog: false,
@@ -84,7 +94,13 @@ const feidDefaultLayouts: LayoutPreset = {
 				p2: {
 					type: 'Histogram',
 				},
-				empty: {
+				bottomRight: {
+					type: 'Events history',
+				},
+				topRight: {
+					type: 'Superposed epochs',
+				},
+				topCorner: {
 					type: 'Empty',
 				},
 			}
@@ -295,13 +311,7 @@ const feidDefaultLayouts: LayoutPreset = {
 					solarTime: true
 				},
 				sunParams1: {
-					type: 'CME height',
-					mode: 'SDO',
-					prefer: 'ANY',
-					src: 'AIA 193',
-					frameTime: 50,
-					useTemperatureIndex: false,
-					showTimeAxis: false
+					type: 'CME height'
 				},
 				sunParams2: {
 					type: 'X-Rays',
