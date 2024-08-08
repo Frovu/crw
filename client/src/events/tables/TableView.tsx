@@ -113,13 +113,14 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 		if (cursor || entity !== 'feid')
 			return;
 		const plotIdx = data.findIndex(r => r[0] === plotId);
-		setViewIndex(vidx => {
-			if (plotIdx <= vidx)
-				return clamp(0, data.length - viewSize, plotIdx - 1);
-			if (plotIdx >= vidx + viewSize - 1)
-				return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
-			return vidx;
-		});
+		if (plotIdx >= 0)
+			setViewIndex(vidx => {
+				if (plotIdx <= vidx)
+					return clamp(0, data.length - viewSize, plotIdx - 1);
+				if (plotIdx >= vidx + viewSize - 1)
+					return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
+				return vidx;
+			});
 	}, [plotId, cursor, data, viewSize, entity]);
 
 	const hasHead = headCallback !== null;
@@ -268,7 +269,6 @@ export default function TableView({ size, averages, entity }: {
 
 		if (cursor && ['-', '+', '='].includes(e.key))
 			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
-
 	});
 	
 	const simulateKey = (key: string, ctrl: boolean=false) =>

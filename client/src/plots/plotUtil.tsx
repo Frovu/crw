@@ -216,9 +216,10 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			u.ctx.restore();
 		}
 
-		if (!params.showEventsEnds || !params.ends?.length) return;
+		if (!params.showEventsEnds && !params.ends?.find(e => e.insert))
+			return;
 
-		for (const { time, secondary, insert } of params.ends) {
+		for (const { time, secondary, insert } of (params.ends ?? [])) {
 			const x = u.valToPos(time.getTime() / 1e3, 'x', true) - scaled(1);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;

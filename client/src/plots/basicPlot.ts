@@ -1,4 +1,4 @@
-import type { Onset, MagneticCloud } from '../events/events';
+import type { Onset, MagneticCloud, EventsSettings } from '../events/events';
 import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import { getParam, font, scaled, type Shape, applyOverrides, withOverrides, getFontSize,
 	drawShape, measureDigit, color, drawMagneticClouds, drawOnsets, type PlotOverlayHandle } from './plotUtil';
@@ -27,14 +27,10 @@ export type BasicPlotParams = {
 	showLegend: boolean,
 };
 
-export const defaultPlotParams: Omit<BasicPlotParams, 'interval'> = {
+export const defaultPlotParams: Omit<BasicPlotParams, keyof EventsSettings | 'interval'> = {
 	showMetaInfo: true,
 	showMetaLabels: true,
-	showTimeAxis: true,
-	showEventsEnds: false,
-	showGrid: true,
-	showMarkers: true,
-	showLegend: false,
+	showTimeAxis: true
 };
 
 export type CustomAxis = uPlot.Axis & {
