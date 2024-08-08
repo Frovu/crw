@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { equalValues, type ChangeValue } from './events';
+import { equalValues, type ChangeValue, type FEIDRow } from './events';
 import type { ColumnDef, DataRow, Value } from './columns';
 
 export const flaresLinks = {
@@ -130,7 +130,7 @@ export const useFeidCursor = () => {
 
 	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
-	const row = rowAsDict(data[targetIdx], columns);
+	const row = rowAsDict(data[targetIdx], columns) as FEIDRow;
 	const duration = row.duration as number | undefined;
 	const start = row.time as Date | undefined;
 	const end = row.duration == null ? undefined : start &&
@@ -217,16 +217,21 @@ export function deleteEvent(tbl: TableName, id: number) {
 	});
 }
 
-export function makeChange(tbl: TableName, { column, value, id }: ChangeValue) {
+export function makeChange(tbl: TableName, { column, value, id, fast }: ChangeValue) {
 	const { rawData, columns } = useEventsState.getState();
-	const row = rawData[tbl]!.find(r => r[0] === id);
+	const rawRow = rawData[tbl]!.find(r => r[0] === id);
 	const colIdx = columns[tbl]!.findIndex(c => c.id === column.id);
 
 	useEventsState.setState(st => {
 		st.changes[tbl] = [
 			...st.changes[tbl].filter(c => c.id !== id || column.id !== c.column.id ),
-			...(!equalValues(row?.[colIdx] ?? null, value) ? [{ id, column, value }] : [])];
-		st.data[tbl] = applyChanges(st, tbl);
+			...(!equalValues(rawRow?.[colIdx] ?? null, value) ? [{ id, column, value }] : [])];
+		if (fast) {
+			const row = st.data[tbl]!.find(r => r[0] === id);
+			if (row) row[colIdx] = value;
+		} else {
+			st.data[tbl] = applyChanges(st, tbl);
+		}
 	});
 	return true;
 };

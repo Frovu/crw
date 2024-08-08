@@ -311,7 +311,7 @@ const feidDefaultLayouts: LayoutPreset = {
 					solarTime: true
 				},
 				sunParams1: {
-					type: 'CME height'
+					type: 'CME Height'
 				},
 				sunParams2: {
 					type: 'X-Rays',
@@ -339,7 +339,7 @@ const feidDefaultLayouts: LayoutPreset = {
 					type: 'Erupt Src Table'
 				},
 				insertCtr: {
-					type: 'InsertControls'
+					type: 'Insert Controls'
 				},
 				cmes: {
 					type: 'CME Table'

@@ -57,18 +57,31 @@ export type TableParams = {
 	showIncludeMarkers?: boolean,
 };
 
-export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
+export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const
 export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;
-export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const;
+export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const
 export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
 	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
-	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const;
+	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const
 export const allPфффanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
 	
-	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const;
+	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const
 	
 export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
+
+export type FEIDRow = {
+	id: number,
+	time: Date,
+	duration: number,
+	onset_type: number | null,
+	s_type: number | null,
+	s_description: string | null,
+	s_confidence: string | null,
+	cme_time: Date | null,
+	flr_time: Date | null,
+	comment: string | null
+};
 
 export type ChangeLogEntry = {
 	time: number,
@@ -91,7 +104,7 @@ export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: 
 	chl?.events[eid]?.[cid]?.map(row =>
 		Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
 
-export type ChangeValue = { id: number, column: ColumnDef, value: Value, silent?: boolean };
+export type ChangeValue = { id: number, column: ColumnDef, value: Value, silent?: boolean, fast?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{

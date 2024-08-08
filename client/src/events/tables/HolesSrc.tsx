@@ -4,7 +4,7 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { linkSrcToEvent, timeInMargin, type CHS } from '../sources';
+import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
 import { apiPost } from '../../util';
 import { askConfirmation } from '../../Utility';
 
@@ -40,6 +40,8 @@ function Panel() {
 	const sourceCh = useSource(ENT);
 	const sources = useSources();
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
+
+	useTableQuery(ENT);
 
 	if (!data || !columns)
 		return <div className='Center'>LOADING..</div>;

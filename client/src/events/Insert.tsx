@@ -5,14 +5,14 @@ import CoverageControls from './CoverageControls';
 import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createdFeid } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { useQueryClient } from 'react-query';
-import { askProceed } from '../Utility';
+import { askProceed, ValidatedInput } from '../Utility';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Panel() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource } = useEventsState();
-	const { start, end, duration, id: feidId } = useFeidCursor();
+	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { columns } = useTable();
 	const sources = useSources();
 	const queryClient = useQueryClient();
@@ -27,8 +27,6 @@ function Panel() {
 	useTableQuery('sources_ch');
 
 	const srcs = useTable('feid_sources');
-	const inflColumn = srcs.columns?.find(c => c.id === 'cr_influence');
-	const inflOpts = inflColumn?.enum;
 
 	const escape = () => {
 		setModifySource(null);
@@ -56,7 +54,7 @@ function Panel() {
 		if (setStartAt && setEndAt) {
 			const dur = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
 			if (isMove) {
-				makeChange('feid', { column: startCol, id: feidId, value: setStartAt });
+				makeChange('feid', { column: startCol, id: feidId, value: setStartAt, fast: true });
 				makeChange('feid', { column: durCol, id: feidId, value: dur });
 				logSuccess(`Moved FEID #${feidId} to ${prettyDate(setStartAt)}`);
 			}
@@ -128,17 +126,23 @@ function Panel() {
 		setModifySource(nxt.source.id as number);
 	});
 
-	if (plotId == null)
-		return null;
-	if (!start)
+	if (plotId == null || feidId == null || !start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
 	const errNoPrimary = !sources.find(s => s.source.cr_influence === 'primary');
 
+	const cycle = (which: 'onset_type' | 's_confidence', dir: -1 | 1) => {
+		const column = columns.find(c => c.id === which)!;
+		const opts = column.enum!.concat(which === 'onset_type' ? [null] as any: []);
+		const value = opts[(opts.length + opts.indexOf(feid[which] as any) + dir) % opts.length];
+		makeChange('feid', { column, value, id: feidId, fast: true });
+	};
+
 	const cycleInfl = (src: typeof sources[number], dir: -1 | 1) => {
-		if (!inflColumn) return;
-		const value = inflOpts![(inflOpts!.length + inflOpts!.indexOf(src.source.cr_influence as any) + dir) % inflOpts!.length];
-		makeChange('feid_sources', { column: inflColumn, value, id: src.source.id as number });
+		const column = srcs.columns?.find(c => c.id === 'cr_influence')!;
+		const opts = column.enum!;
+		const value = opts[(opts.length + opts.indexOf(src.source.cr_influence as any) + dir) % opts.length];
+		makeChange('feid_sources', { column, value, id: src.source.id as number, fast: true });
 	};
 	const InflButton = ({ src }: { src: typeof sources[number] }) => {
 		const infl = src.source.cr_influence as string;
@@ -164,17 +168,47 @@ function Panel() {
 			
 		</div>
 		<div style={{ padding: '0 1px' }}>
-			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse' }}><tbody>		
-				<tr>
-					<td width={90}>MODE</td>
-					<td width={178}>start time</td>
-					<td width={48}>dur</td>
-				</tr>
-				<tr>
-					<td style={{ color: color(!isIdle ? 'magenta' : 'text') }}>
+			<table className='Table' style={{ overflow: 'none', borderCollapse: 'collapse', whiteSpace: 'nowrap' }}><tbody>		
+				<tr style={{ height: 23 }}>
+					<td width={64} style={{ color: color(!isIdle ? 'magenta' : 'text'), fontSize: 14 }}>
 						{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}</td>
-					<td>{prettyDate(start)}</td>
-					<td>{duration}</td>
+					<td title='Event onset time' colSpan={2} style={{ color: color('text-dark') }}>{prettyDate(start)}</td>
+					<td title='Event duration in hours' width={48} style={{ color: color('text-dark') }}>+{duration}</td>
+				</tr>
+				<tr style={{ height: 23 }}>
+					<td title='Event onset type' className='TextButton'
+						style={{ color: color(feid.onset_type == null ? 'text-dark' : 'text') }}
+						onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycle('onset_type', -1); }}
+						onClick={e => { e.stopPropagation(); cycle('onset_type', 1); }}
+						onWheel={e => cycle('onset_type', e.deltaY > 0 ? 1 : -1)}>
+						{feid.onset_type ? feid.onset_type : 'ons'}</td>
+					<td title='Source type number' width={64} style={{ padding: '0 4px' }}>
+						<span style={{ fontSize: 14, paddingRight: 4 }}>stype</span>
+						<ValidatedInput type='text' value={feid.s_type}
+							style={{ width: 36, padding: 0, background: color('input-bg', .5) }}
+							callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 's_type')!, value, fast: true })}/>
+						<span style={{ paddingLeft: 2, color: color('text-dark', .3) }}>(0)</span>
+					</td>
+					<td title='Source identification confidence' className='TextButton' colSpan={2}
+						style={{ minWidth: 84 }}
+						onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycle('s_confidence', -1); }}
+						onClick={e => { e.stopPropagation(); cycle('s_confidence', 1); }}
+						onWheel={e => cycle('s_confidence', e.deltaY > 0 ? 1 : -1)}>
+						<span style={{ fontSize: 14, paddingRight: 8 }}>conf</span>
+						<span style={{ color: color({ low: 'orange', avg: 'text', high: 'green' }[feid.s_confidence ?? ''] ?? 'red') }}>
+							{feid.s_confidence ? feid.s_confidence : 'N/A'}</span>
+						
+					</td>
+				</tr>
+				<tr style={{ height: 23 }} title='Source description'>
+					<td colSpan={4}><ValidatedInput type='text' value={feid.s_description}
+						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
+						callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 's_description')!, value, fast: true })}/></td>
+				</tr>
+				<tr style={{ height: 23 }} title='General notes'>
+					<td colSpan={4}><ValidatedInput type='text' value={feid.comment}
+						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
+						callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 'comment')!, value, fast: true })}/></td>
 				</tr>
 			</tbody></table>
 		</div>

@@ -49,8 +49,8 @@ export function NumberInput({ value, onChange, min, max, step, allowNull, style 
 		value={text} onChange={change}/>;
 }
 
-export function ValidatedInput({ type, value, callback, placeholder, allowEmpty }:
-{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean }) {
+export function ValidatedInput({ type, value, callback, placeholder, allowEmpty, style }:
+{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean, style?: CSSProperties }) {
 	const [valid, setValid] = useState(true);
 	const [input, setInput] = useState(value);
 	const ref = useRef<HTMLInputElement>(null);
@@ -74,8 +74,14 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 		setValid(true);
 	};
 
-	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
-		ref={ref} onChange={onChange} onBlur={() => valid && callback(input && parseInput(type, input))}></input>;
+	const onBlur = () => {
+		const val = parseInput(type, input);
+		if (valid && val !== value)
+			callback(val);
+	};
+
+	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }), ...style }} type='text'
+		value={input || ''} placeholder={placeholder} ref={ref} onChange={onChange} onBlur={onBlur}></input>;
 }
 	
 export function Confirmation({ children, callback, closeSelf }:

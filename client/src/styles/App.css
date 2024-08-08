@@ -91,6 +91,10 @@
 	padding: 1px 0 1px 0;
 }
 
+.TextButton {
+	cursor: pointer;
+}
+
 .ContextMenu label {
 	user-select: none;
 	cursor: pointer;
