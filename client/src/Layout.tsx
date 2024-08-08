@@ -1,4 +1,4 @@
-import { useRef, useState, useContext } from 'react';
+import { useRef, useState, useContext, useEffect } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { color, getApp, KEY_COMB, openContextMenu } from './app';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams,
@@ -263,6 +263,12 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	const size = useSize(container);
 
 	useEventListener('resetSettings', () => resetLayout());
+
+	useEffect(() => {
+		useLayoutsStore.setState(st => {
+			st.panels[getApp()] = Object.values(props.panels);
+		});
+	}, [props.panels]);
 
 	return <div id='layoutRoot' style={{ width: '100%', height: '100%' }} ref={setContainer}
 		onMouseLeave={() => startDrag(null)} onMouseUp={() => startDrag(null)}>

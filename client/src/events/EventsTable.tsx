@@ -2,7 +2,7 @@ import { useContext, useEffect, useMemo, useRef } from 'react';
 import { AuthContext, useContextMenu, openContextMenu } from '../app';
 import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
-import { type TableMenuDetails, statPanelOptions, useEventsSettings,  copyAverages, valueToString,
+import { type TableMenuDetails, useEventsSettings,  copyAverages, valueToString,
 	SampleContext, TableViewContext, findColumn, setStatColumn, type EventsSettings } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import ColumnsSelector from './Columns';
@@ -11,6 +11,7 @@ import SampleView from './Sample';
 import TableView from './tables/TableView';
 import { useQueryClient } from 'react-query';
 import { useEventsState, useTable } from './eventsState';
+import { eventsPanels } from './eventsPanels';
 
 const defaultParams = {
 	showChangelog: false,
@@ -120,7 +121,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 	const layout = useLayout();
 	const { addFilter } = useSampleState(); 
 
-	const statsPresent = Object.values(layout.items).some(p => statPanelOptions.includes(p?.type as any));
+	const statsPresent = Object.values(layout.items).some(node => Object.values(eventsPanels).find(p => p.name === node?.type)?.isStat);
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;

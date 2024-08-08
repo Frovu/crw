@@ -23,44 +23,6 @@ export type Layout<T> = {
 	items: { [key: string]: NodeParams<T> | undefined }
 };
 
-type LayoutsState = {
-	dragFrom: null | string,
-	dragTo: null | string,
-	apps: {
-		[app: string]: {
-			active: string,
-			list: { [name: string]: Layout<object> },
-		}
-	},
-	windows: {
-		[id: string]: {
-			x: number, 
-			y: number,
-			w: number,
-			h: number,
-			params: NodeParams<object>,
-			unique?: string,
-		}
-	}
-	updateRatio: (nodeId: string, ratio: number) => void,
-	startDrag: (nodeId: string | null) => void,
-	dragOver: (nodeId: string) => void,
-	finishDrag: () => void,
-	resetLayout: () => void,
-	copyLayout: (la: string) => void,
-	deleteLayout: (la: string) => void,
-	selectLayout: (la: string) => void,
-	renameLayout: (la: string, name: string) => void,
-	toggleCycling: (la: string, val: boolean) => void
-}; 
-
-const defaultState = {
-	dragFrom: null,
-	dragTo: null,
-	apps: defaultLayouts,
-	windows: {},
-};
-
 export type Panel<T> = {
 	name: string,
 	Panel: ComponentType,
@@ -84,6 +46,48 @@ export type LayoutContextType<T> = { id: string, size: Size, isWindow?: boolean,
 export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
 
 export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
+
+type LayoutsState = {
+	dragFrom: null | string,
+	dragTo: null | string,
+	apps: {
+		[app: string]: {
+			active: string,
+			list: { [name: string]: Layout<object> },
+		}
+	},
+	windows: {
+		[id: string]: {
+			x: number, 
+			y: number,
+			w: number,
+			h: number,
+			params: NodeParams<object>,
+			unique?: string,
+		}
+	},
+	panels: {
+		[app: string]: Panel<any>[]
+	},
+	updateRatio: (nodeId: string, ratio: number) => void,
+	startDrag: (nodeId: string | null) => void,
+	dragOver: (nodeId: string) => void,
+	finishDrag: () => void,
+	resetLayout: () => void,
+	copyLayout: (la: string) => void,
+	deleteLayout: (la: string) => void,
+	selectLayout: (la: string) => void,
+	renameLayout: (la: string, name: string) => void,
+	toggleCycling: (la: string, val: boolean) => void
+}; 
+
+const defaultState = {
+	dragFrom: null,
+	dragTo: null,
+	apps: defaultLayouts,
+	windows: {},
+	panels: {},
+};
 
 export const useLayoutsStore = create<LayoutsState>()(
 	persist(

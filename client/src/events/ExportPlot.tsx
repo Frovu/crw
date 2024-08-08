@@ -1,7 +1,7 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { plotPanelOptions, statPanelOptions, useEventsSettings, type EventsPanel } from './events';
+import { useEventsSettings, type EventsPanel } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -90,7 +90,9 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 }));
 
 function computePlotsLayout() {
-	const { active, list } = useLayoutsStore.getState().apps[getApp()];
+	const state = useLayoutsStore.getState();
+	const panels = state.panels[getApp()] as EventsPanel<any>[];
+	const { active, list } = state.apps[getApp()];
 	const { tree, items } = list[active];
 
 	const root = document.getElementById('layoutRoot')!;
@@ -98,8 +100,7 @@ function computePlotsLayout() {
 	const layout: { [k: string]: { x: number, y: number, w: number, h: number } } = {};
 	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
 		if (!tree[node]) {
-			if (plotPanelOptions.includes(items[node]?.type as any)
-			 || statPanelOptions.includes(items[node]?.type as any))
+			if (panels.find(p => p.name === items[node]?.type)?.isPlot)
 				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}

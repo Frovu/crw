@@ -56,16 +56,6 @@ export type TableParams = {
 	hideHeader?: boolean,
 	showIncludeMarkers?: boolean,
 };
-
-export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const
-export const solarPlotOptions = ['CME height', 'X-Rays', 'Particles'] as const;
-export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations', ...solarPlotOptions] as const
-export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	'FEID Table', 'Sun View', 'ExportPreview', 'ExportControls', 'ColorSettings', 'InsertControls', 
-	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const
-export const allPфффanelOptions = [ ...plotPanelOptions, ...statPanelOptions,
-	
-	'Erupt Src Table', 'Flares Table', 'CME Table', 'ICME Table', 'Holes Src Table', 'Solen Holes', 'Chimera Holes', 'Empty' ] as const
 	
 export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
@@ -197,10 +187,10 @@ export const setStatColumn = (col: ColumnDef, i: number) => {
 	const layout = list[active];
 	const key = (['column0', 'column1'] as const)[i];
 	for (const [id, iitem] of Object.entries(layout.items)) {
-		if (statPanelOptions.includes(iitem?.type as any)) {
+		if (typeof (iitem as any)?.[key] !== 'undefined') {
 			const item = iitem as any;
-			setNodeParams<any>(id, {
-				[key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
+			setNodeParams<any>(id,
+				{ [key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
 		}
 	}
 };
