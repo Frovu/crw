@@ -18,7 +18,7 @@ const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pret
 export default function ColumnsSelector() {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
-	const { shownColumns, setColumnOrder, setColumns } = useEventsSettings();
+	const { shownColumns, columnOrder, setColumnOrder, setColumns } = useEventsSettings();
 	const { samples } = useContext(SampleContext);
 	const { rels, columns, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
@@ -31,9 +31,14 @@ export default function ColumnsSelector() {
 	const { operation } = params;
 
 	useEffect(() => {
-		if (shownColumns) return;
-		setColumns(() => ['time', 'duration', 'magnitude', 'src info', 'V max', 'B max', 'Bz min', 'Dst min', 'Kp max']
-			.map(name => findColumn(columns, name)?.id).filter((c): c is string => c as any));
+		if (shownColumns && columnOrder) return;
+		const cols = ['time', 'duration', 'magnitude', 'src info', 'V max', 'B max', 'VmBm', 'Bz min',
+			'Dst min', 'dA0 min', 'Axy max', 'Az range', 'tm A0 min', 'Kp max', 'Ap max', 'ons type', 'src type', 'src conf' ]
+			.map(name => findColumn(columns, name)?.id).filter((c): c is string => c as any)
+		if (!shownColumns)
+			setColumns(() => cols);
+		if (!columnOrder)
+			setColumnOrder(cols);
 	}, [setColumns, columns, shownColumns]);
 
 	const newOrder = columns.map(c => c.id);
