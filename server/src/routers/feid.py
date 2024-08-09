@@ -1,19 +1,25 @@
 import json
 from time import time
+from datetime import datetime, timezone
+
 import numpy as np
 from flask import Blueprint, request, session
 from events.plots import epoch_collision
 from events.table import import_fds
 from events.generic_columns import upset_generic, remove_generic
 from events.other_columns import compute_all, compute_column
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
 import events.text_transforms as tts
 from events import samples
 from events import query
-from server import compress
 from routers.utils import route_shielded, require_role, msg
+from data import sun_images
 
-from events.source import r_c_icme
+from database import get_coverage
+from utility import OperationCache
+from server import compress
 
+op_cache = OperationCache()
 bp = Blueprint('events', __name__, url_prefix='/api/events')
 
 @bp.route('/epoch_collision', methods=['POST'])
@@ -31,13 +37,50 @@ def _epoch_collision():
 	offset, median, mean, std = [np.where(np.isnan(v), None, np.round(v, 3)).tolist() for v in res]
 	return { 'offset': offset, 'median': median, 'mean': mean, 'std': std }
 
+@bp.route('/coverage', methods=['GET'])
+@route_shielded
+def _coverage():
+	res = {}
+	for c in ['donki_flares', 'donki_cmes', 'solarsoft_flares', 
+		'solardemon_flares', 'solardemon_dimmings', 'lasco_cmes', 'r_c_icmes', 'solen_holes']:
+		res[c] = get_coverage(c)
+	return res
+
+def _fetch_source(progr, source, tstamp):
+	month = datetime.utcfromtimestamp(tstamp).replace(day=1, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+	if source in ['donki_flares', 'donki_cmes']:
+		donki.fetch(progr, source.split('_')[-1], month)
+	elif source in ['solarsoft_flares']:
+		solarsoft.fetch(progr, source.split('_')[-1], month)
+	elif source in ['solardemon_flares', 'solardemon_dimmings']:
+		solardemon.fetch(source.split('_')[-1], month)
+	elif source == 'lasco_cmes':
+		lasco_cme.fetch(progr, month)
+	elif source == 'r_c_icmes':
+		r_c_icme.fetch()
+	elif source == 'solen_holes':
+		solen_info.fetch()
+	else:
+		assert not 'reached'
+
+@bp.route('/fetch_source', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _get_fetch_source():
+	entity = request.json.get('entity')
+	timestamp = request.json.get('timestamp')
+	return op_cache.fetch(_fetch_source, (entity, timestamp))
+
 @bp.route('/', methods=['GET'])
 @route_shielded
 @compress.compressed()
 def list_events():
+	entity = request.args.get('entity')
+	if entity:
+		return query.select_events(entity)
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = query.select_events(uid, changelog=changelog)
+	res = query.select_feid(uid, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
 	if changelog and uid is not None:
 		result['changelog'] = res[2]
@@ -47,6 +90,71 @@ def list_events():
 @route_shielded
 def events_tables_info():
 	return query.render_table_info(session.get('uid'))
+
+@bp.route('/cme_heighttime', methods=['GET'])
+@route_shielded
+def _cme_ht():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	if t_to - t_from > 86400 * 16:
+		raise ValueError('Interval too large')
+	return lasco_cme.plot_height_time(t_from, t_to)
+
+
+@bp.route('/chimera', methods=['GET'])
+@route_shielded
+def _list_chimera():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	if t_to - t_from > 86400 * 7:
+		raise ValueError('Interval too large')
+	return chimera.fetch_list(t_from, t_to)
+
+@bp.route('/sun_images', methods=['GET'])
+@route_shielded
+def _list_sdo():
+	t_from = int(request.args.get('from'))
+	t_to = int(request.args.get('to'))
+	source = request.args.get('source', 'AIA 193')
+	if t_to - t_from > 86400 * 3:
+		raise ValueError('Interval too large')
+	lst = sun_images.fetch_list(t_from, t_to, source)
+	return { 'timestamps': lst }
+
+@bp.route('/enlil', methods=['GET'])
+@route_shielded
+def _resolve_enlil():
+	eid = int(request.args.get('id'))
+	fname = donki.resolve_enlil(eid)
+	return { 'filename': fname }
+
+@bp.route('/linkSource', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _create_src():
+	feid_id = request.json.get('feid_id')
+	entity = request.json.get('entity')
+	existsing_id = request.json.get('id')
+	return query.link_source(feid_id, entity, existsing_id)
+
+@bp.route('/delete', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _delete_evt():
+	eid = request.json.get('id')
+	entity = request.json.get('entity')
+	query.delete(session.get('uid'), eid, entity)
+	return msg('OK')
+
+@bp.route('/create', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _insert_evt():
+	entity = 'feid'
+	ttime = request.json.get('time')
+	duration = request.json.get('duration')
+	eid = query.create(session.get('uid'), entity, ttime, duration)
+	return { 'id': eid }
 
 @bp.route('/changes', methods=['POST'])
 @route_shielded
@@ -153,8 +261,9 @@ def _remove_generic():
 def _compute_generic():
 	name = request.json.get('id')
 	start = time()
-	if not compute_column(name):
-		return msg('Failed miserably'), 500
+	err = compute_column(name)
+	if err:
+		return msg(err), 500
 	return { 'time': round(time() - start, 2) }
 
 @bp.route('/compute_row', methods=['POST'])

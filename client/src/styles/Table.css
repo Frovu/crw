@@ -60,7 +60,7 @@
 
 .Cell {
 	cursor: pointer;
-	white-space: pre;
+	white-space: nowrap;
 	display: inline-block;
 	overflow: clip;
 }

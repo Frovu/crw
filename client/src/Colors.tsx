@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { color, colorKeys, getDefaultColor, themeOptions, useAppSettings } from './app';
 import { Sketch, hexToHsva, hexToRgba, rgbaToHexa } from '@uiw/react-color';
 
-export function ColorsSettings() {
+function Panel() {
 	const [picking, setPicking] = useState<string | null>(null);
 	const old = useMemo(() => picking && color(picking), [picking]);
 	const { theme, setTheme, setColor, resetColor, resetColors } = useAppSettings();
@@ -46,3 +46,8 @@ export function ColorsSettings() {
 		</div>}
 	</div> ;
 }
+
+export const ColorsSettings = {
+	name: 'Colors Settings',
+	Panel,
+};

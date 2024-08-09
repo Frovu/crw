@@ -246,7 +246,7 @@ export default function OmniApp() {
 							<span style={{ color: color(overwrite ? 'magenta' : 'cyan') }}> {overwrite ? 'true' : 'false'}</span>
 						</label></div>
 				</div>
-				{fetchTo && fetchFrom && <div style={{ paddingLeft: 16 }}>
+				{fetchTo != null && fetchFrom != null && <div style={{ paddingLeft: 16 }}>
 					<div style={{ color: color('cyan'), verticalAlign: 'top' }}>
 						[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
 						<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>

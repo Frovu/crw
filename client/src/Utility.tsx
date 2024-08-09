@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, type MouseEvent, createContext, useContext } from 'react';
+import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, createContext, useContext } from 'react';
 import { useEventListener } from './util';
 import { ErrorBoundary } from 'react-error-boundary';
-import { color } from './app';
+import { color, openConfirmation } from './app';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
@@ -49,8 +49,8 @@ export function NumberInput({ value, onChange, min, max, step, allowNull, style 
 		value={text} onChange={change}/>;
 }
 
-export function ValidatedInput({ type, value, callback, placeholder, allowEmpty }:
-{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean }) {
+export function ValidatedInput({ type, value, callback, placeholder, allowEmpty, style }:
+{ type: 'text' | 'time' | 'number', value: any, callback: (val: any) => void, placeholder?: string, allowEmpty?: boolean, style?: CSSProperties }) {
 	const [valid, setValid] = useState(true);
 	const [input, setInput] = useState(value);
 	const ref = useRef<HTMLInputElement>(null);
@@ -74,12 +74,19 @@ export function ValidatedInput({ type, value, callback, placeholder, allowEmpty 
 		setValid(true);
 	};
 
-	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }) }} type='text' value={input || ''} placeholder={placeholder}
-		ref={ref} onChange={onChange} onBlur={() => valid && callback(input && parseInput(type, input))}></input>;
+	const onBlur = () => {
+		const val = parseInput(type, input);
+		if (valid && val !== value)
+			callback(val);
+	};
+
+	return <input style={{ ...(!valid && { borderColor: 'var(--color-red)' }), ...style }} type='text'
+		value={input || ''} placeholder={placeholder} ref={ref} onChange={onChange} onBlur={onBlur}></input>;
 }
 	
 export function Confirmation({ children, callback, closeSelf }:
-{ children: ReactNode, closeSelf: () => void, callback: () => void }) {
+{ children: ReactNode, closeSelf: (positive?: boolean) => void, callback: () => void }) {
+
 	useEventListener('click', () => closeSelf());
 	useEventListener('escape', () => closeSelf());
 	useEventListener('keydown', (e) => {
@@ -89,14 +96,30 @@ export function Confirmation({ children, callback, closeSelf }:
 	});
 	return <>
 		<div className='PopupBackground'/>
-		<div className='Popup' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: '50vw' }} onClick={e => e.stopPropagation()}>
+		<div className='Popup Confirmation' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
 			{children}
 			<div style={{ marginTop: '1em' }}>
-				<button style={{ width: '8em' }} onClick={() => {callback(); closeSelf();}}>Confirm (Y)</button>
-				<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => closeSelf()}>Cancel (N)</button>
+				<button style={{ width: '8em' }}
+					onClick={() => {callback(); closeSelf(true);}}>Confirm (Y)</button>
+				<button style={{ width: '8em', marginLeft: '24px' }}
+					onClick={() => closeSelf()}>Cancel (N)</button>
 			</div>
 		</div>
 	</>;
+}
+
+export function askConfirmation(cntnt: ReactNode | string, callback: () => void) {
+	const content = typeof cntnt === 'string' ? <><h4>Confirm action</h4><p>{cntnt}</p></> : cntnt;
+	setTimeout(() => openConfirmation({ content, callback }), 20);
+}
+
+export function askProceed(content: ReactNode) {
+	return new Promise<boolean>(resolve => {
+		setTimeout(() => openConfirmation({ content,
+			callback: () => resolve(true),
+			onClose: () => resolve(false)
+		}), 20);
+	});
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -130,18 +153,6 @@ export function MonthInput({ interval, callback, monthLimit }:
 			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
 		/> month{count === 1 ? '' : 's'}
 	</div>;
-}
-
-export function useConfirmation(text: string, callback: () => void) {
-	const [open, setOpen] = useState(false);
-
-	return {
-		askConfirmation: (e?: MouseEvent) => { setOpen(true); e?.stopPropagation(); },
-		confirmation: !open ? null : <Confirmation {...{ callback, closeSelf: () => setOpen(false) }}>
-			<h4>Confirm action</h4>
-			<p>{text ?? 'Beware of irreversible consequences'}</p>
-		</Confirmation>
-	};
 }
 
 type SelectContextType = { value: string, onChange: (a: string) => void };

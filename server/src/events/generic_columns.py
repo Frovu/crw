@@ -5,8 +5,8 @@ from datetime import datetime
 from database import log, pool
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
-from events.table import table_columns, parse_column_id, ENTITY_SHORT
-from events.generic_core import GenericRefPoint, G_ENTITY, G_EVENT, G_SERIES, \
+from events.table_structure import FEID
+from events.generic_core import GenericRefPoint, G_TIME_SRC_WITH_END, G_TIME_SRC, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, compute_generic, default_window
 
@@ -16,16 +16,14 @@ def shift_indicator(shift):
 def find_column_info(rows, name):
 	try:
 		if not name.startswith('g__'):
-			entity, col = parse_column_id(name)
-			found = table_columns[entity][col]
-			return found.pretty_name or col, found.data_type, entity
-		# found = next((g for g in generics if g.name == name))
+			found = FEID[1][name]
+			return found.pretty_name or name, found.data_type, 'FE'
 
 		gen = next((GenericColumn.from_row(row, rows) for row in rows if str(row[0]) == name.replace('g__', '')))
-		return gen.pretty_name, gen.data_type, gen.entity
+		return gen.pretty_name, gen.data_type, gen.rel
 	except:
 		log.warning('Could not find generic target column: %s', name)
-		return '<DELETED>', 'real', 'forbush_effects'
+		return '<DELETED>', 'real', 'FE'
 
 @dataclass
 class GenericParams:
@@ -35,7 +33,7 @@ class GenericParams:
 	boundary: GenericRefPoint = None
 	column: str = None
 	other_column: str = None
-	entity_offset: int = None
+	events_offset: int = None
 
 	def as_dict(self):
 		data = asdict(self)
@@ -62,12 +60,12 @@ class GenericColumn:
 	id: int
 	created: datetime
 	last_computed: datetime
-	entity: str
 	owner: int
 	is_public: bool
 	params: GenericParams
 	nickname: str = None
 	description: str = None
+	rel: str = None # TODO:
 	pretty_name: str = None
 	desc: str = None
 	data_type: str = None
@@ -76,7 +74,7 @@ class GenericColumn:
 	def from_row(cls, row, gs=None):
 		self = cls(*row)
 		self.params = GenericParams.from_dict(self.params)
-		para, entity = self.params, self.entity
+		para = self.params
 		op = para.operation
 
 		self.data_type = 'real'
@@ -96,17 +94,17 @@ class GenericColumn:
 			pretty_name = f'|{name}|' if 'abs' in op else f'({name})'
 			description = f'Column values {"absolute " if "abs" in op else ""}difference: ' + pretty_name
 		elif op in G_OP_CLONE:
-			pretty, dtype, ent = find_column_info(gs, para.column)
+			pretty, dtype, r_rel = find_column_info(gs, para.column)
 			self.data_type = dtype
-			pretty_name = f"[{ENTITY_SHORT[entity].upper()}{shift_indicator(para.entity_offset)}" if para.entity_offset != 0 else '['
-			pretty_name += (f',{ENTITY_SHORT[ent].upper()}' if ent != entity else '') + f'] {pretty}'
-			description = f'Parameter cloned from {ent[:-1]} associated with {"other" if para.entity_offset != 0 else "this"} event'
+			pretty_name = f'[{r_rel if r_rel != "FEID" else "FE"}{shift_indicator(para.events_offset)}' if para.events_offset != 0 else '['
+			pretty_name += f'] {pretty}'
+			description = f'Parameter cloned from {r_rel} associated with {"other" if para.events_offset != 0 else "this"} event'
 		elif op in G_OP_VALUE:
-			is_default = all([a == b for a, b in zip(default_window(entity), (para.reference, para.boundary))])
+			is_default = all([a == b for a, b in zip(default_window(), (para.reference, para.boundary))])
 			def point(ref):
 				if ref.type == 'event':
-					txt = ENTITY_SHORT[ref.entity].upper() + \
-						('_e' if ref.end else '') + shift_indicator(ref.entity_offset)
+					txt = ref.time_src + \
+						('_e' if ref.end else '') + shift_indicator(ref.events_offset)
 				elif ref.type == 'extremum':
 					eop, ser = ref.operation, G_SERIES[ref.series][2]
 					txt = f"{eop.replace('abs_','')}({('|'+ser+'|') if 'abs' in eop else ser})"
@@ -155,20 +153,22 @@ class GenericColumn:
 		return f'g__{self.id}'
 
 def _create_column(conn, g: GenericColumn):
-	conn.execute(f'ALTER TABLE events.{g.entity} '+\
-		f'ADD COLUMN IF NOT EXISTS {g.name} {g.data_type}')
+	conn.execute(f'ALTER TABLE events.generic_data ADD COLUMN IF NOT EXISTS {g.name} {g.data_type}')
+
 def _init():
 	with pool.connection() as conn:
 		conn.execute('''CREATE TABLE IF NOT EXISTS events.generic_columns (
 			id serial primary key,
 			created timestamp with time zone not null default CURRENT_TIMESTAMP,
 			last_computed timestamp with time zone,
-			entity text not null,
 			owner int references users,
 			is_public boolean not null default 'f',
 			params json not null,
 			nickname text,
-			description text)''')
+			description text,
+			rel text)''')
+		conn.execute('CREATE TABLE IF NOT EXISTS events.generic_data ('+
+			'feid_id INTEGER NOT NULL UNIQUE REFERENCES events.feid ON DELETE CASCADE)')
 	generics = select_generics(select_all=True)
 	with pool.connection() as conn:
 		for generic in generics:
@@ -185,8 +185,8 @@ def select_generics(user_id=None, select_all=False):
 _init()
 
 def upset_generic(uid, json_body):
-	gid, entity, nickname, description, is_public = \
-		[json_body.get(i) for i in ('gid', 'entity', 'nickname', 'description', 'is_public')]
+	gid, nickname, description, is_public = \
+		[json_body.get(i) for i in ('gid', 'nickname', 'description', 'is_public')]
 	p = GenericParams.from_dict(json_body['params'])
 	op = p.operation
 	generics = select_generics(uid)
@@ -194,26 +194,23 @@ def upset_generic(uid, json_body):
 	def find_col(col):
 		if col.startswith('g__'):
 			return next((g for g in generics if g.name == col), None)
-		ent, c = parse_column_id(col)
-		return table_columns[ent].get(c)
+		return FEID[1].get(col)
 
-	if gid and not (found := next((g for g in generics if g.entity == entity and g.id == gid), None)):
+	if gid and not (found := next((g for g in generics if g.id == gid), None)):
 		raise ValueError('Trying to edit generic that does not exist')
 	if gid and found.owner != uid and get_role() != 'admin':
 		raise ValueError('Forbidden')
-	if not gid and (found := next((g for g in generics if g.entity == entity and g.params == p), None)):
+	if not gid and (found := next((g for g in generics if g.params == p), None)):
 		raise ValueError('Such column already exists: '+found.pretty_name)
 	if nickname is not None and len(nickname) > 24:
 		raise ValueError('Nickname too long')
 	if not gid and uid and get_role() not in ('operator', 'admin') \
 		and len([g for g in generics if g.owner == uid]) > 19:
 		raise ValueError('Limit reached, please delete some other columns first')
-	if entity not in G_ENTITY or not p.operation:
-		raise ValueError('Unknown entity')
 	if op in G_OP_CLONE:
 		if not find_col(p.column):
 			raise ValueError('Column not found')
-		if abs(int(p.entity_offset)) > 4:
+		if abs(int(p.events_offset)) > 4:
 			raise ValueError('Bad events offset')
 	elif op in G_OP_COMBINE:
 		if not (c1 := find_col(p.column)):
@@ -237,11 +234,11 @@ def upset_generic(uid, json_body):
 				if ref.structure not in PRETTY_SW_TYPES:
 					raise ValueError('Unknown SW structure: '+str(ref.structure))
 			elif ref.type == 'event':
-				if abs(int(ref.entity_offset)) > 4:
+				if abs(int(ref.events_offset)) > 4:
 					raise ValueError('Bad events offset')
-				if ref.entity not in G_EVENT:
-					raise ValueError('Not a valid entity: '+str(ref.entity))
-				if ref.end is not None and ref.entity not in G_ENTITY:
+				if ref.time_src not in G_TIME_SRC:
+					raise ValueError('Not a valid entity: '+str(ref.time_src))
+				if ref.end is not None and ref.time_src not in G_TIME_SRC_WITH_END:
 					raise ValueError('Entity does not have duration to set end')
 			else:
 				raise ValueError('Unknown ref point type: '+str(ref.type))
@@ -253,17 +250,17 @@ def upset_generic(uid, json_body):
 	with pool.connection() as conn:
 		if gid is None:
 			row = conn.execute('INSERT INTO events.generic_columns ' +\
-				'(entity, owner, is_public, params, nickname, description) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
-				[entity, uid, is_public, json.dumps(p.as_dict()), nickname, description]).fetchone()
+				'(owner, is_public, params, nickname, description, rel) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
+				[uid, is_public, json.dumps(p.as_dict()), nickname, description, 'FE']).fetchone()
 			generic = GenericColumn.from_row(row, generics)
 			_create_column(conn, generic)
-			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+			log.info(f'Generic created by user ({uid}): #{generic.id} {generic.pretty_name}')
 		else:
 			row = conn.execute('UPDATE events.generic_columns SET ' +\
 				'params=%s, is_public=%s, nickname=%s, description=%s WHERE id = %s RETURNING *',
 				[json.dumps(p.as_dict()), is_public, nickname, description, gid]).fetchone()
 			generic = GenericColumn.from_row(row, generics)
-			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+			log.info(f'Generic edited by user ({uid}): #{generic.id} {generic.pretty_name}')
 	if not gid or found.params != p:
 		compute_generic(generic)
 	return generic
@@ -277,5 +274,5 @@ def remove_generic(uid, gid):
 		if generic.owner != uid and get_role() != 'admin':
 			return ValueError('Forbidden')
 		conn.execute('DELETE FROM events.generic_columns WHERE id = %s', [gid])
-		conn.execute(f'ALTER TABLE events.{generic.entity} DROP COLUMN IF EXISTS {generic.name}')
-	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name} ({generic.entity})')
+		conn.execute(f'ALTER TABLE events.generic_data DROP COLUMN IF EXISTS {generic.name}')
+	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name}')

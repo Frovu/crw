@@ -1,20 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-import { createContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import type { Filter, Sample } from './sample';
-import type { CirclesParams } from '../plots/time/Circles';
-import type { GSMParams } from '../plots/time/GSM';
-import type { GeomagnParams } from '../plots/time/Geomagn';
-import type { IMFParams } from '../plots/time/IMF';
-import type { SWParams } from '../plots/time/SW';
-import type { GenericColumn } from './columns';
-import type { CorrelationParams } from '../plots/Correlate';
-import type { HistogramParams } from '../plots/Histogram';
-import type { CollisionOptions } from '../plots/EpochCollision';
-import type { HistoryOptions } from '../plots/EventsHistory';
-import { useLayoutsStore, type Layout, setNodeParams, type NodeParams } from '../layout';
+import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../layout';
 import { getApp } from '../app';
+import type { ColumnDef, Value, DataRow } from './columns';
+import type { BasicPlotParams } from '../plots/basicPlot';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -22,6 +13,7 @@ const defaultSettings = {
 	showIncludeMarkers: true,
 	showMagneticClouds: true,
 	plotOffset: [-24, 48],
+	plotOffsetSolar: [-12, 12],
 	plotUnlistedEvents: true,
 	showEventsEnds: false,
 	showGrid: true,
@@ -52,131 +44,95 @@ export const useEventsSettings = create<EventsSettings>()(
 	)
 );
 
+export type EventsPanel<T> = Panel<T> & {
+	isPlot?: boolean,
+	isStat?: boolean,
+	isSolar?: boolean
+};
+
 export type TableParams = {
 	showChangelog: boolean,
 	showAverages: boolean,
+	hideHeader?: boolean,
 	showIncludeMarkers?: boolean,
 };
-
-export type CommonPlotParams = Omit<GSMParams & SWParams & IMFParams & CirclesParams & GeomagnParams, 'interval'|'transformText'>;
-export const defaultPlotParams: CommonPlotParams = {
-	showMetaInfo: true,
-	showMetaLabels: true,
-	showTimeAxis: true,
-	showEventsEnds: false,
-	showGrid: true,
-	showMarkers: true,
-	showLegend: false,
-	useA0m: true,
-	subtractTrend: true,
-	showAz: true,
-	showAxy: true,
-	showAxyVector: false,
-	showBeta: true,
-	showDensity: true,
-	showPrecursorIndex: false,
-	maskGLE: true,
-	useAp: false,
-	showBz: true,
-	showBxBy: false,
-	useTemperatureIndex: true,
-	rsmExtended: false
-};
-
-export type ColumnDef = {
-	name: string,
-	fullName: string,
-	type: 'real' | 'integer' | 'text' | 'enum' | 'time',
-	description?: string,
-	enum?: string[],
-	nullable: boolean,
-	entity: string,
-	width: number,
-	id: string,
-	sqlName: string, // not unique across tables
-	hidden?: boolean,
-	isComputed: boolean,
-	generic?: GenericColumn,
-	parseName: null | string,
-	parseValue: null | { [key: string|number]: string|number|null }
-};
-
-export const statPanelOptions = [ 'Histogram', 'Correlation', 'Superposed epochs', 'Events history' ] as const;
-export const plotPanelOptions = [ 'Cosmic Rays', 'IMF + Speed', 'SW Plasma', 'SW Types', 'Geomagn', 'Ring of Stations' ] as const;
-export const allPanelOptions = [ ...plotPanelOptions, ...statPanelOptions, 'MainTable', 'ExportPreview', 'ExportControls', 'ColorSettings', 'Empty' ] as const;
-
-export type PanelParams = NodeParams<Partial<CommonPlotParams>
-& Partial<TableParams & CorrelationParams & HistogramParams & CollisionOptions & HistoryOptions>>;
-
-export type Onset = { time: Date, type: string | null, secondary?: boolean };
+	
+export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
+
+export type FEIDRow = {
+	id: number,
+	time: Date,
+	duration: number,
+	onset_type: number | null,
+	s_type: number | null,
+	s_description: string | null,
+	s_confidence: string | null,
+	cme_time: Date | null,
+	flr_time: Date | null,
+	comment: string | null
+};
+
+export type ChangeLogEntry = {
+	time: number,
+	author: string,
+	old: string,
+	new: string,
+	special: 'import' | null
+}[];
+
 export type ChangeLog = {
-	[id: string]: {
-		[col: string]: [
-			{
-				time: number,
-				author: string,
-				old: string,
-				new: string,
-				special: 'import' | null
-			}
-		]
+	fields: string[],
+	events: {
+		[id: string]: {
+			[col: string]: (number | null | string)[][]
+		}
 	}
 };
 
-export type Value = Date | string | number | null;
-export type DataRow = [number, ...Array<Value>];
-export type ChangeValue = { id: number, column: ColumnDef, value: Value };
-export type Sort = { column: string, direction: 1 | -1 };
-export type Cursor = { row: number, column: number, editing?: boolean };
+export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: string) =>
+	chl?.events[eid]?.[cid]?.map(row =>
+		Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
+
+export type ChangeValue = { id: number, column: ColumnDef, value: Value, silent?: boolean, fast?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
-export const MainTableContext = createContext<{ data: DataRow[], columns: ColumnDef[],
-	firstTable: string, tables: string[], series: {[s: string]: string},
-	changelog?: ChangeLog, changes: ChangeValue[], makeChange: (c: ChangeValue) => boolean }>({} as any);
+export const MainTableContext = createContext<{
+	columns: ColumnDef[],
+	columnIndex: { [col: string]: number },
+	structure: { [col: string]: ColumnDef[] },
+	rels: {[s: string]: string},
+	series: {[s: string]: string},
+	changelog?: ChangeLog
+}>({} as any);
 
 export const SampleContext = createContext<{ data: DataRow[], current: Sample | null, samples: Sample[]	}>({} as any);
 
 export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[],
 	markers: null | string[], includeMarkers: null | string[] }>({} as any);
 
-export const PlotContext = createContext<null | { interval: [Date, Date], onsets: Onset[], clouds: MagneticCloud[] }>({} as any);
-
-type ViewState = {
-	cursor: Cursor | null,
-	sort: Sort,
-	plotId: number | null,
-	setEditing: (val: boolean) => void,
-	setCursor: (cursor: ViewState['cursor']) => void,
-	toggleSort: (column: string, dir?: Sort['direction']) => void,
-	setPlotId: (setter: (a: ViewState['plotId']) => ViewState['plotId']) => void,
-	escapeCursor: () => void,
-};
-
-const defaultViewSate = {
-	cursor: null,
-	sort: { column: 'fe_time', direction: 1 } as const,
-	plotId: null,
-};
-
-export const useViewState = create<ViewState>()(
-	immer(
-		set => ({
-			...defaultViewSate,
-			setEditing: (val) => set(st => { if (st.cursor) st.cursor.editing = val; }),
-			setCursor: (cursor) => set(st => ({ ...st, cursor })),
-			toggleSort: (column, dir) => set(st => ({ ...st, sort: { column,
-				direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
-			setPlotId: (setter) => set(st => ({ ...st, plotId: setter(st.plotId) })),
-			escapeCursor: () => set(st => { st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null; })
-		})
-	)
-);
+export const PlotContext = createContext<{ interval: [Date, Date], onsets?: Onset[], clouds?: MagneticCloud[] }>({} as any);
 
 export type TableMenuDetails = {
 	header?: ColumnDef,
 	averages?: { averages: (number[] | null)[], label: string, row: number, column: number } ,
 	cell?: { id: number, column: ColumnDef, value: Value }
+};
+
+export const usePlotParams = <T>() => {
+	const { params } = useContext(LayoutContext)!;
+	const settings = useEventsSettings();
+	const plotContext = useContext(PlotContext);
+
+	return useMemo(() => {
+		return {
+			...settings,
+			...plotContext!,
+			...params,
+			...(!settings.showMagneticClouds && { clouds: [] }),
+			stretch: true,
+		};
+	}, [plotContext, settings, params]) as any as BasicPlotParams & T;
 };
 
 export function copyAverages({ averages, row, column }: Required<TableMenuDetails>['averages'], what: 'all' | 'row' | 'col') {
@@ -190,10 +146,7 @@ export function copyAverages({ averages, row, column }: Required<TableMenuDetail
 
 export const findColumn = (columns: ColumnDef[], name: string) => columns.find(c => c.fullName === name) ?? null;
 
-export const prettyTable = (str: string) => str.split('_').map((s: string) => s.charAt(0).toUpperCase()+s.slice(1)).join(' ');
-export const shortTable = (ent: string) => prettyTable(ent).replace(/([A-Z])[a-z ]+/g, '$1');
-
-export function equalValues(a: Value, b: Value) {
+export function equalValues(a?: any, b?: any) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date|null)?.getTime() : a === b;
 }
 
@@ -208,10 +161,10 @@ export function parseColumnValue(val: string, column: ColumnDef) {
 
 export function valueToString(v: Value) {
 	if (v instanceof Date)
-		return v.toISOString().replace(/(:00)?\..+/, '').replace('T', ' ');
+		return v.toISOString().replace(/:\d\d\..+/, '').replace('T', ' ');
 	if (typeof v !== 'number')
 		return v?.toString() ?? '';
-	if (v !== 0 && (Math.abs(v) < 0.01 || Math.abs(v) > 9999))
+	if (v !== 0 && (Math.abs(v) < 0.001 || Math.abs(v) > 99999))
 		return v.toExponential(0);
 	return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 }
@@ -234,160 +187,10 @@ export const setStatColumn = (col: ColumnDef, i: number) => {
 	const layout = list[active];
 	const key = (['column0', 'column1'] as const)[i];
 	for (const [id, iitem] of Object.entries(layout.items)) {
-		if (statPanelOptions.includes(iitem?.type as any)) {
-			const item = iitem as PanelParams;
-			setNodeParams<PanelParams>(id, {
-				[key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
-		}
-	}
-};
-
-export const defaultLayouts: { [name: string]: Layout<PanelParams> } = {
-	default: {
-		tree: {
-			root: {
-				split: 'row',
-				ratio: .4,
-				children: ['left', 'right']
-			},
-			right: {
-				split: 'column',
-				ratio: .5,
-				children: ['top', 'bottom']
-			},
-			top: {
-				split: 'column',
-				ratio: .6,
-				children: ['p1', 'p2']
-			},
-			bottom: {
-				split: 'column',
-				ratio: .7,
-				children: ['p3', 'p4']
-			},
-		},
-		items: {
-			left: {
-				type: 'MainTable',
-				showAverages: true,
-				showChangelog: false,
-			},
-			p1: {
-				type: 'IMF + Speed'
-			},
-			p2: {
-				type: 'SW Plasma',
-				showTimeAxis: false,
-			},
-			p3: {
-				type: 'Cosmic Rays'
-			},
-			p4: {
-				type: 'Geomagn',
-				showTimeAxis: false,
-			}
-		}
-	},
-	stats: {
-		tree: {
-			root: {
-				split: 'column',
-				ratio: .5,
-				children: ['top', 'bottom']
-			},
-			bottom: {
-				split: 'row',
-				ratio: .95,
-				children: ['row', 'empty']
-			},
-			row: {
-				split: 'row',
-				ratio: .5,
-				children: ['p1', 'p2']
-			},
-		},
-		items: {
-			top: {
-				type: 'MainTable',
-				showAverages: true,
-				showChangelog: false,
-			},
-			p1: {
-				type: 'Correlation'
-			},
-			p2: {
-				type: 'Histogram',
-			},
-			empty: {
-				type: 'Empty',
-			},
-		}
-	},
-	export: {
-		tree: {
-			root: {
-				split: 'row',
-				ratio: .5,
-				children: ['left', 'rightTwo']
-			},
-			left: {
-				split: 'row',
-				ratio: .5,
-				children: ['leftTwo', 'previewAnd']
-			},
-			previewAnd: {
-				split: 'column',
-				ratio: .7,
-				children: ['preview', 'colors']
-			},
-			leftTwo: {
-				split: 'column',
-				ratio: .4,
-				children: ['tbl', 'exp']
-			},
-			rightTwo: {
-				split: 'column',
-				ratio: .9,
-				children: ['right', 'empty']
-			},
-			right: {
-				split: 'column',
-				ratio: .4,
-				children: ['top', 'bottom']
-			},
-			bottom: {
-				split: 'column',
-				ratio: .7,
-				children: ['p3', 'p4']
-			},
-		},
-		items: {
-			tbl: {
-				type: 'MainTable'
-			},
-			exp: {
-				type: 'ExportControls'
-			},
-			colors: {
-				type: 'ColorSettings'
-			},
-			empty: {
-				type: 'Empty',
-			},
-			preview: {
-				type: 'ExportPreview'
-			},
-			top: {
-				type: 'IMF + Speed',
-				showTimeAxis: false,
-			},
-			p3: {
-				type: 'Cosmic Rays'
-			},
-			p4: {
-				type: 'Geomagn',
-				showTimeAxis: false,
-			}
+		if (typeof (iitem as any)?.[key] !== 'undefined') {
+			const item = iitem as any;
+			setNodeParams<any>(id,
+				{ [key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
 		}
 	}
 };

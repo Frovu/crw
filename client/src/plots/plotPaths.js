@@ -2,18 +2,26 @@ import uPlot from 'uplot';
 import { scaled } from './plotUtil';
 import { clamp } from '../util';
 
+export function circlesSizeComputer(u, params, data, minMaxMagn) {
+	const maxSize = u.height / 10 + (params.sizeShift ?? 0);
+	const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, data.map(Math.abs)));
+	return (v) => {
+		const sz = params.linearSize ?
+			(Math.abs(v) / maxMagn * maxSize) :
+			maxSize * (10 - Math.pow((Math.abs(v) + 38.7) / 50, -9)) / 10;
+		return Math.max(scaled(1.5), sz) * devicePixelRatio;
+	};
+}
+
 export function circlePaths(rectCallback, minMaxMagn, params) {
 	const strokeWidth = clamp(1.5, 8, scaled(devicePixelRatio) / 1.5);
-	const minSize = scaled(1.5);
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, datapeY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
 			const deg360 = 2 * Math.PI;
 			const d = u.data[seriesIdx];
 
 			const maxSize = u.height / 10 + (params.sizeShift ?? 0);
-			// console.time('circles');
-
-			const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, d[2].map(Math.abs)));
+			const sizeComp = circlesSizeComputer(u, params, d[2], minMaxMagn);
 
 			u.ctx.save();
 			u.ctx.beginPath();
@@ -31,11 +39,7 @@ export function circlePaths(rectCallback, minMaxMagn, params) {
 			for (let i = 0; i < d[0].length; i++) {
 				const xVal = d[0][i];
 				const yVal = d[1][i];
-				const v = Math.abs(d[2][i]);
-				const sz = params.linearSize ?
-					(v / maxMagn * maxSize) :
-					maxSize * (10 - Math.pow((v + 38.7) / 50, -9)) / 10;
-				const size = Math.max(minSize, sz) * devicePixelRatio;
+				const size = sizeComp(d[2][i]);
 
 				if (xVal >= filtLft && xVal <= filtRgt && yVal >= filtBtm && yVal <= filtTop) {
 					const cx = valToPosX(xVal, scaleX, xDim, xOff);
@@ -55,7 +59,6 @@ export function circlePaths(rectCallback, minMaxMagn, params) {
 					});
 				}
 			}
-			// console.timeEnd('circles');
 			u.ctx.restore();
 		});
 		return null;

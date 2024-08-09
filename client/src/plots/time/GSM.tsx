@@ -5,19 +5,24 @@ import { type CustomScale, type BasicPlotParams,
 import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
+import { usePlotParams, type EventsPanel } from '../../events/events';
+import type { ContextMenuProps } from '../../layout';
 
-export type GSMParams = BasicPlotParams & {
-	subtractTrend: boolean,
-	maskGLE: boolean,
-	useA0m: boolean,
-	showAxyVector: boolean,
-	showAxy: boolean,
-	showAz: boolean,
+const defaultParams = {
+	maskGLE: true,
+	useA0m: true,
+	subtractTrend: true,
+	showAz: true,
+	showAxy: true,
+	showAxyVector: false,
 };
+
+export type GSMParams = typeof defaultParams;
 
 type VectorCache = MutableRefObject<number[][] | undefined>;
 
-function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHandle, params: GSMParams, posCache: VectorCache): uPlot.Series.PathBuilder {
+function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHandle,
+	params: GSMParams & BasicPlotParams, posCache: VectorCache): uPlot.Series.PathBuilder {
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
 	const colorArrowMc = color('gold');
@@ -140,14 +145,28 @@ function tracePaths(scl: number, { size, position, defaultPos }: PlotOverlayHand
 	};
 }
 
-export default function PlotGSM({ params }: { params: GSMParams }) {
+function Menu({ Checkbox }: ContextMenuProps<GSMParams>) {
+	return <div className='Group'>
+		<div className='Row'>
+			<Checkbox text='Show Axy' k='showAxy'/>
+			<Checkbox text='Az' k='showAz'/>
+			<Checkbox text='vector' k='showAxyVector'/>
+		</div>
+		<Checkbox text='Use corrected A0m' k='useA0m'/>
+		<Checkbox text='Subtract trend' k='subtractTrend'/>
+		<Checkbox text='Mask GLE' k='maskGLE'/>
+	</div>;
+}
+
+function Panel() {
+	const params = usePlotParams<GSMParams>();
 	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
 
 	const vectorCache: VectorCache = useRef<number[][]>();
 	const vectorLegendHandle = usePlotOverlay(() => ({ x: 8, y: 8 }));
 
 	return (<BasicPlot {...{
-		queryKey: ['GSMani', interval, maskGLE, subtractTrend, useA0m],
+		queryKey: ['GSMani', maskGLE, subtractTrend, useA0m],
 		queryFn: async () => {
 			const data = await basicDataQuery('cream/gsm', interval, ['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'], {
 				mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
@@ -308,3 +327,11 @@ export default function PlotGSM({ params }: { params: GSMParams }) {
 		}]
 	}}/>);
 }
+
+export const GSMPlot: EventsPanel<GSMParams> = {
+	name: 'Cosmic Rays',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true
+};

@@ -1,10 +1,12 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
-import { type ColumnDef, parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
+import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from 'react-query';
-import { Option, Select, useConfirmation } from '../Utility';
+import { Option, Select, askConfirmation } from '../Utility';
+import type { ColumnDef } from './columns';
+import { useTable } from './eventsState';
 
 function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
 	if (!column)
@@ -94,7 +96,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter, disabled?
 
 const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
-	const { data: tableData, columns } = useContext(MainTableContext);
+	const { data: tableData, columns } = useTable();
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show,
@@ -103,12 +105,14 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const [nameInput, setNameInput] = useState<string | null>(null);
 	const toDelete = useRef<Sample>();
 
-	const { askConfirmation, confirmation } = useConfirmation('Sample deletion is irreversible. Proceed?',
-		() => mutate({ action: 'remove', ow: toDelete.current ?? sample! }, { onSuccess: () => {
-			logMessage('Sample deleted: ' + (toDelete.current ?? sample)?.name );
-			toDelete.current = undefined;
-			setSample(null);
-		} }));
+	const deleteSample = () => {
+		askConfirmation('Sample deletion is irreversible. Proceed?',
+			() => mutate({ action: 'remove', ow: toDelete.current ?? sample! }, { onSuccess: () => {
+				logMessage('Sample deleted: ' + (toDelete.current ?? sample)?.name );
+				toDelete.current = undefined;
+				setSample(null);
+			} }));
+	};
 	
 	const newName = (i: number=0, n?: string): string => {
 		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
@@ -172,7 +176,6 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		.find(col => col?.generic && !col.generic.is_public);
 
 	return (<div ref={ref} style={{ maxWidth: '46em' }}>
-		{confirmation}
 		<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
 			{nameInput != null && <input type='text' style={{ flex: '6 8em', padding: 0, minWidth: 0,
 				...(!nameValid && { borderColor: color('red') }) }}
@@ -198,7 +201,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						{authors.includes(login!) && <div className='CloseButton' onClick={e => {
 							e.stopPropagation();
 							toDelete.current = samples.find(s => s.id === id)!;
-							askConfirmation(e);
+							deleteSample();
 						}}/>}
 					</Option>)}
 			</Select>}
@@ -246,7 +249,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				onChange={e => set({ authors: e.target.value.trim().split(/[,\s]+/g).sort() })}/></>}
 			<button id='rename' style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }}
 				onClick={() => setNameInput(nameInput ? null : sample.name)}>Rename</button>
-			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={askConfirmation}>Delete</button>
+			<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={deleteSample}>Delete</button>
 			{show && allowEdit && <button disabled={!unsavedChanges} style={{ flex: '2 4em', minWidth: 'fit-content',
 				maxWidth: '12em', ...(unsavedChanges && { color: color('active') }) }}
 			onClick={() => mutate({ action: 'update' }, { onSuccess: () =>{ setShow(false);

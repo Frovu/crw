@@ -1,4 +1,4 @@
-import React, { type CSSProperties, createContext } from 'react';
+import React, { type CSSProperties, createContext, type ReactNode } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
@@ -17,6 +17,7 @@ export const KEY_COMB = {
 	'setX': '1',
 	'setY': '2',
 	'plot': 'P',
+	'cycleSource': 'S',
 	'plotPrev': 'BracketLeft%[',
 	'plotNext': 'BracketRight%]',
 	'plotPrevShown': 'Comma%<',
@@ -129,11 +130,17 @@ type ContextMenu = {
 		x: number, y: number,
 		type: keyof menuDetails,
 		detail?: menuDetails[keyof menuDetails]
+	},
+	confirmation: null | {
+		callback: () => void,
+		onClose?: () => void,
+		content: ReactNode
 	}
 };
 
 export const useContextMenu = create<ContextMenu>()(set => ({
-	menu: null
+	menu: null,
+	confirmation: null
 }));
 
 export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: menuDetails[T], force?: boolean) =>
@@ -142,7 +149,15 @@ export const openContextMenu = <T extends keyof menuDetails>(type: T, detail?: m
 		useContextMenu.setState(({ menu }) =>
 			({ menu: !force && menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
 	};
-export const closeContextMenu = () => useContextMenu.setState(state => state.menu ? { menu: null } : state);
+export const openConfirmation = (conf: ContextMenu['confirmation']) => useContextMenu.setState(s => {
+	s.confirmation?.onClose?.();
+	return { ...s, confirmation: conf };
+});
+export const closeContextMenu = () => useContextMenu.setState(s => ({ ...s, menu: null }));
+export const closeConfirmation = () => useContextMenu.setState(s => {
+	s.confirmation?.onClose?.();
+	return { ...s, confirmation: null };
+});
 
 export const roleOptions = ['admin', 'operator'] as const;
 export const AuthContext = createContext<{ login?: string, role?: typeof roleOptions[number], promptLogin: (a: any) => void }>({} as any);

@@ -1,5 +1,5 @@
-import type { Onset, MagneticCloud } from '../events/events';
-import { clamp, apiGet, prettyDate } from '../util';
+import type { Onset, MagneticCloud, EventsSettings } from '../events/events';
+import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import { getParam, font, scaled, type Shape, applyOverrides, withOverrides, getFontSize,
 	drawShape, measureDigit, color, drawMagneticClouds, drawOnsets, type PlotOverlayHandle } from './plotUtil';
 import type uPlot from 'uplot';
@@ -25,6 +25,12 @@ export type BasicPlotParams = {
 	showGrid: boolean,
 	showMarkers: boolean,
 	showLegend: boolean,
+};
+
+export const defaultPlotParams: Omit<BasicPlotParams, keyof EventsSettings | 'interval'> = {
+	showMetaInfo: true,
+	showMetaLabels: true,
+	showTimeAxis: true
 };
 
 export type CustomAxis = uPlot.Axis & {
@@ -245,10 +251,23 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 	}, captureOverrides);
 }
 
+export function paddedInterval(interv: [Date, Date]) {
+	return [
+		Math.floor(interv[0].getTime() / 864e5) * 86400,
+		 Math.ceil((interv[1].getTime() + 36e5) / 864e5) * 86400 ];
+}
+
+export function sliceData(data: (number | null)[][], interval: [Date, Date]) {
+	const sliceLft = data[0].findIndex(t => t != null && t >= interval[0].getTime() / 1000);
+	const sliceRgt = data[0].findLastIndex(t => t != null && t <= interval[1].getTime() / 1000);
+	return data.map(col => col.slice(sliceLft, sliceRgt));
+}
+
 export async function basicDataQuery(path: string, interval: [Date, Date], query: string[], params?: {}) {
+	const interv = paddedInterval(interval);
 	const body = await apiGet<{rows: (number | null)[][], fields: string[]}>(path, {
-		from: (interval[0].getTime() / 1000).toFixed(0),
-		to:   (interval[1].getTime() / 1000).toFixed(0),
+		from: interv[0].toFixed(0),
+		to:   interv[1].toFixed(0),
 		query: query.join(),
 		...params
 	});
@@ -295,8 +314,8 @@ export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }:
 		const isScatter = (u as any).mode === 2;
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
 		const val = isScatter ? (u.data as any)[sidx][1][dataIdx!] : u.data[sidx][dataIdx!] as number;
-		const value = typeof series.value == 'function'
-			? series.value(u, val, sidx, dataIdx) : Math.round(val / 100) * 100;
+		const valst = Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString()
+			: val.toExponential();
 		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
 
 		const top = u.valToPos(val, series.scale ?? 'y');
@@ -309,7 +328,7 @@ export function tooltipPlugin({ html, sidx: userSidx, didx: userDidx, onclick }:
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
 		tooltip.innerHTML = html ? html(u, sidx, dataIdx!)
-			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${value.toString()}`;
+			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
 	}
 
 	const tooltip = document.createElement('div');
@@ -456,6 +475,21 @@ export function labelsPlugin(para: Parameters<typeof drawCustomLabels>[0]): uPlo
 	return {
 		hooks: {
 			draw: [ drawCustomLabels(para) ]
+		}
+	};
+}
+
+export function actionsPlugin(): uPlot.Plugin {
+	return {
+		hooks: {
+			ready: [ u => {
+				u.over.addEventListener('mousedown', e => {
+					if (e.button !== 0)
+						return;
+					if (u.cursor?.left)
+						dispatchCustomEvent('plotClick', { timestamp: u.posToVal(u.cursor.left, 'x') });
+				});
+			} ]
 		}
 	};
 }

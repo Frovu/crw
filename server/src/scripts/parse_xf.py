@@ -34,7 +34,7 @@ def parse_xf():
 			time = datetime(*[int(a) for a in [y, m, d, h, u, s]], tzinfo=timezone.utc)
 			values = [float(line[s].strip()) if line[s].strip() else None for s in slices]
 			# xm !!!
-			values[0] *= 1e6
+			values[0] *= 1e7
 
 			data.append([*values, time])
 
@@ -44,3 +44,5 @@ def parse_xf():
 
 if __name__ == '__main__':
 	parse_xf()
+
+# update events.solar_flares set magnitude = COALESCE(magnitude, ((CASE WHEN m[1]='A' THEN .1 WHEN m[1]='B' THEN 1 WHEN m[1]='C' THEN 10 WHEN m[1]='M' THEN 100 WHEN m[1]='X' THEN 1000 END) * m[2]::real)::integer) from (select id as mid, regexp_matches(description, '([A-Z])_?(\d{1,2}.\d)') as m from events.solar_flares) where id = mid;

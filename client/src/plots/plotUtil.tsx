@@ -51,8 +51,10 @@ export function font(sz: number|null=null, scale: boolean=false, style: string='
 	return `${style} ${size}px ${famOv ? famOv + ', ' : ''} ${family}`;
 }
 
-export function superScript(digit: number) {
-	return ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][digit];
+export function superScript(num: number) {
+	const d = Math.abs(num);
+	const min = num < 0 ? '⁻' : '';
+	return min + ['⁰', '¹', '² ', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'][d];
 }
 
 export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.Axis {
@@ -67,7 +69,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 		space: height * 1.75,
 		size: (width * 3) + scl * 10,
 		gap: scl,
-		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2 },
+		grid: { show: grid ?? true, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		ticks: { size: scl * 8, stroke: color('grid'), width: scl * 2, ...(filter && { filter }) },
 		...(filter && { filter })
 	};
@@ -97,9 +99,12 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			return Array(limit).fill(1).map((a, i) => start + i * split);
 		},
 		values: (u, splits) => withOverrides(() => splits.map((v, i) => {
-			if (!show || v % 86400 !== 0)
+			const w = Math.ceil(((splits.at(-1) ?? 0) - splits[0]) / 3600);
+			if (!show || v % ((w > 40 ? 24 : 12) * 3600) !== 0)
 				return null;
 			const d = new Date(v * 1e3);
+			if (v % 86400 !== 0)
+				return applyTextTransform('  ' + d.toISOString().slice(11,16));
 			const month = String(d.getUTCMonth() + 1).padStart(2, '0');
 			const day = String(d.getUTCDate()).padStart(2, '0');
 			const showYear = (v - splits[0] < 86400) && String(d.getUTCFullYear());
@@ -113,7 +118,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 			size: scaled(6),
 			width: scaled(2),
 			stroke: color('grid'),
-			filter: (u, splits) => splits.map(s => s % 86400 === 0 ? s : null)
+			filter: (u, splits) => splits.map(s => s % (6 * 3600) === 0 ? s : null)
 		},
 		...(!show && { ticks: { show: false } }),
 		size: show ? height + scaled(6) + 1 : 0
@@ -189,11 +194,11 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 	return (u: uPlot) => withOverrides(() => {
 		const { height } = measureDigit();
 		if (!params.showMetaInfo || !params.onsets?.length) return;
-		for (const onset of params.onsets) {
-			const x = u.valToPos(onset.time.getTime() / 1e3, 'x', true);
+		for (const { time, secondary, insert, type } of params.onsets) {
+			const x = u.valToPos(time.getTime() / 1e3, 'x', true);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
-			const useColor = onset.secondary ? color('text', .6) : color('white');
+			const useColor = secondary ? color('text', .6) : insert ? color('active') : color('white');
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 			u.ctx.font = font(null, true);
@@ -206,27 +211,28 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 			const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 			u.ctx.moveTo(x, lineY);
 			u.ctx.lineTo(x, u.bbox.top + u.bbox.height + scaled(4));
-			label && u.ctx.fillText(onset.type || 'ons', x + scaled(2), lineY);
+			label && u.ctx.fillText(insert ? 'Ins' : (type || 'ons'), x + scaled(2), lineY);
 			u.ctx.stroke();
 			u.ctx.restore();
 		}
 
-		if (!params.showEventsEnds || !params.ends?.length) return;
+		if (!params.showEventsEnds && !params.ends?.find(e => e.insert))
+			return;
 
-		for (const { time, secondary } of params.ends) {
+		for (const { time, secondary, insert } of (params.ends ?? [])) {
 			const x = u.valToPos(time.getTime() / 1e3, 'x', true) - scaled(1);
 			if (x < u.bbox.left || x > u.bbox.left + u.bbox.width)
 				continue;
-			const useColor = secondary ? color('text', .6) : color('white');
+			const useColor = secondary ? color('text', .6) : insert ? color('active') : color('white');
 			u.ctx.save();
 			u.ctx.fillStyle = u.ctx.strokeStyle = useColor;
 			u.ctx.lineWidth = scaled(2 * devicePixelRatio);
 			u.ctx.beginPath();
 			const len = scaled(secondary ? 12 : 16);
 			const y = u.bbox.top + u.bbox.height + scaled(4);
-			u.ctx.moveTo(x - len * 2, y);
+			u.ctx.moveTo(x - len * (insert ? 3 : 2), y);
 			u.ctx.lineTo(x, y);
-			u.ctx.lineTo(x, y - len);
+			u.ctx.lineTo(x, y - len * (insert ? 3 : 1));
 			u.ctx.stroke();
 			u.ctx.restore();
 		}

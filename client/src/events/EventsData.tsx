@@ -1,15 +1,15 @@
 import { type ReactNode, useContext, useMemo, useState } from 'react';
-import type { ChangeLog, ChangeValue, ColumnDef, DataRow, Value } from './events';
-import { MainTableContext, SampleContext, TableViewContext, equalValues, useEventsSettings, valueToString } from './events';
+import type { ChangeLog } from './events';
+import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
-import { AuthContext, logError, logMessage, logSuccess } from '../app';
-import { G_ALL_OPS } from './columns';
+import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
+import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
+import { discardChange, resetChanges, setRawData, useEventsState } from './eventsState';
 
 export function ExportMenu() {
-	const { tables } = useContext(MainTableContext);
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
 
 	const columns = inc ? allColumns.concat({
@@ -53,7 +53,7 @@ export function ExportMenu() {
 			return navigator.clipboard.writeText(renderText(format));
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(new Blob([renderText(format)]));
-		a.download = `${tables[0]}.${format}`;
+		a.download = `feid.${format}`;
 		a.click();
 	};
 
@@ -75,7 +75,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// 								  MAIN TABLE STRUCTURE
 	// ************************************************************************************
 
-	const firstTable = 'forbush_effects'; // FIXME: actually this is weird stuff
 	const structureQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -86,30 +85,20 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				series: { [s: string]: string }
 			}>('events/info');
 
-			const columns = Object.entries(tables).flatMap(([table, cols]) => Object.entries(cols).map(([sqlName, desc]) => {
-				const width = (()=>{
-					switch (desc.type) {
-						case 'enum': return Math.max(5, ...(desc.enum!.map(el => el.length)));
-						case 'time': return 17;
-						case 'text': return 14;
-						default: return 6; 
-					}
-				})();
-				const shortTable = table.replace(/([a-z])[a-z ]+_?/gi, '$1');
-				const fullName = desc.name + (table !== firstTable ? ' of ' + shortTable.toUpperCase() : '');
-				return {
-					...desc, width, sqlName,
-					entity: table,
-					name: desc.name.length > 30 ? desc.name.slice(0, 30)+'..' : desc.name,
-					fullName: fullName.length > 30 ? fullName.slice(0, 30)+'..' : fullName,
-					description: desc.name.length > 20 ? (desc.description ? (fullName + '\n\n' + desc.description) : '') : desc.description
-				} as ColumnDef;
-			}) 	);
-			console.log('%cavailable columns:', 'color: #0f0' , columns);
+			const structure = Object.fromEntries(Object.entries(tables).map(([table, cols]) =>
+				[table, Object.values(cols).map(desc => fromDesc(desc))]));
+			const columns = structure.feid;
+			console.log('%cavailable columns:', 'color: #0f0' , structure);
 			return {
-				tables: Object.keys(tables),
-				columns: [ { id: 'id', hidden: true, entity: firstTable } as ColumnDef, ...columns],
-				series: series
+				rels: {
+					'FE': 'Forbush Effects',
+					'MC': 'Magnetic Clouds',
+					'FLR': 'Flares',
+					'CME': 'Coronal Mass Ejections',
+				},
+				structure,
+				columns,
+				series
 			};
 		}
 	});
@@ -119,8 +108,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// ************************************************************************************
 
 	const columnOrder = useEventsSettings(st => st.columnOrder);
-	const [showCommit, setShowCommit] = useState(false);
-	const [changes, setChanges] = useState<ChangeValue[]>([]);
 	const dataQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
@@ -129,9 +116,10 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true }),
 		onSuccess: () => logMessage('Events table loaded', 'debug')
 	});
-	const rawMainContext = useMemo(() => {
+	
+	const mainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
-		const { columns, tables, series } = structureQuery.data;
+		const { columns, rels, series, structure } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
 		const cols = columns.slice(1);
@@ -149,7 +137,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				return cols.sort((a, b) => index(a.id) - index(b.id));
 			}
 		})())
-			.sort((a, b) => tables.indexOf(a.entity) - tables.indexOf(b.entity))
+			.sort((a, b) => Object.keys(rels).indexOf(a.rel ?? '') - Object.keys(rels).indexOf(b.rel ?? ''))
 			.filter(c => fields.includes(c.id));
 
 		const indexes = filtered.map(c => fields.indexOf(c.id));
@@ -163,62 +151,49 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				}
 			}
 		}
-		console.log('%crendered table:', 'color: #0f0', fields, data, changelog);
+
+		const columnIndex = Object.fromEntries(filtered.map((c, i) => [c.id, i]));
+
+		setRawData('feid', data, filtered);
+
+		console.log('%crendered table:', 'color: #0f0', columns, fields, data, changelog);
 		return {
-			data,
+			
 			columns: filtered,
+			columnIndex,
+			structure: { ...structure, feid: filtered },
 			changelog,
-			firstTable,
-			tables: Array.from(tables),
+			rels,
 			series
 		} as const;
 	}, [columnOrder, dataQuery.data, structureQuery.data]);
 
 	// ************************************************************************************
-	// 						 	  MAIN TABLE DATA WITH CHANGES
+	// 										CHANGES
 	// ************************************************************************************
-
-	const mainContext = useMemo(() => {
-		if (!rawMainContext) return null;
-		const { data: rawData, columns } = rawMainContext;
-		const data = [...rawData.map(r => [...r])] as typeof rawData;
-		for (const { id, column, value } of changes) {
-			const row = data.find(r => r[0] === id);
-			const columnIdx = columns.findIndex(c => c.id === column.id);
-			if (row) row[columnIdx] = value;
-		}
-		const sortIdx = columns.findIndex(c => c.name === 'time');
-		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
-		
-		return {
-			...rawMainContext,
-			data,
-			changes,
-			makeChange: ({ id, column, value }: ChangeValue) => {
-				const row = rawData.find(r => r[0] === id);
-				// FIXME: create entity if not exists
-				const colIdx = columns.findIndex(c => c.id === column.id);
-				const entityExists = row && columns.some((c, i) => c.entity === column.entity && row[i] != null);
-				if (!entityExists) return false;
-
-				setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id ),
-					...(!equalValues(row[colIdx], value) ? [{ id, column, value }] : [])]);
-				return true;
-			}
-		};
-	}, [rawMainContext, changes]);
 	
-	useEventListener('action+commitChanges', () => setShowCommit(changes.length > 0));
-	useEventListener('action+discardChanges', () => setChanges([]));
+	const [showCommit, setShowCommit] = useState(false);
+	const changes = useEventsState(state => state.changes);
+	const data = useEventsState(state => state.data);
+	const rawData = useEventsState(state => state.rawData);
+	const columns = useEventsState(state => state.columns);
+	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
+
+	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
+	useEventListener('action+discardChanges', () => resetChanges(false));
 
 	const queryClient = useQueryClient();
-	const { mutate: doCommit } = useMutation(() => apiPost('events/changes', {
-		changes: changes.map(({ column, ...c }) => ({ ...c, entity: column.entity, column: column.sqlName }))
+	const { mutate: doCommit, error } = useMutation(() => apiPost('events/changes', {
+		changes: Object.fromEntries(Object.entries(changes).map(([tbl, chgs]) => 
+			[tbl, chgs.map(({ column, ...c }) => ({ ...c, column: column.id }))]))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {
 			queryClient.invalidateQueries('tableData');
-			logSuccess('Changes commited!'); setShowCommit(false); setChanges([]); }
+			logSuccess('Changes commited!');
+			setShowCommit(false);
+			resetChanges(true);
+		}
 	});
 
 	// ************************************************************************************
@@ -240,22 +215,23 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const sampleContext = useMemo(() => {
 		const samples = samplesQuery.data;
-		if (!mainContext || !samples) return null;
+		if (!data.feid || !columns.feid || !samples)
+			return null;
 		const isOwn = (s: Sample) => s.authors.includes(login as any) ? -1 : 1;
 		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime())
 			.sort((a, b) => isOwn(a) - isOwn(b));
-		const { columns, data } = mainContext;
-		const applied = isPicking ? data.map(row => [...row]) as typeof data : applySample(data, sample, columns, sorted);
-		const filterFn = renderFilters(filters, columns);
+		const dt = data.feid;
+		const applied = isPicking ? dt.map(row => [...row]) as typeof dt : applySample(dt, sample, columns.feid, sorted);
+		const filterFn = renderFilters(filters, columns.feid);
 		const filtered = applied.filter(row => filterFn(row));
 		return {
 			data: filtered, 
 			current: sample,
 			samples: sorted,
 		};
-	}, [filters, isPicking, mainContext, sample, login, samplesQuery.data]);
+	}, [samplesQuery.data, data.feid, columns.feid, isPicking, sample, filters, login]);
 
-	if (!mainContext || !sampleContext || !structureQuery.data || !dataQuery.data || !samplesQuery.data) {
+	if (!mainContext || !data || !sampleContext || !structureQuery.data || !samplesQuery.data) {
 		return <div style={{ padding: 8 }}>
 			<div>{structureQuery.isLoading && 'Loading tables..'}</div>
 			<div>{dataQuery.isLoading && 'Loading data...'}</div>
@@ -268,22 +244,26 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	return (
 		<MainTableContext.Provider value={mainContext}>
 			<SampleContext.Provider value={sampleContext}>
-				{rawMainContext && showCommit && <Confirmation
-					callback={() => doCommit()} closeSelf={() => setShowCommit(false)}>
-					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {changes.length} change{changes.length > 1 ? 's' : ''}</h4>
+				{mainContext && showCommit && <Confirmation
+					callback={() => doCommit()} closeSelf={(yes) => !yes && setShowCommit(false)}>
+					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
-						{changes.map(({ id, column, value }) => {
-							const row = rawMainContext.data.find(r => r[0] === id);
-							const colIdx = rawMainContext.columns.findIndex(c => c.id === column.id);
-							const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
-							const val1 = value == null ? 'null' : valueToString(value);
-							return (<div key={id+column.id+value}>
-								<span style={{ color: 'var(--color-text-dark)' }}>#{id}: </span>
-								<i style={{ color: 'var(--color-active)' }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
-								<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }} onClick={() => 
-									setChanges(cgs => [...cgs.filter(c => c.id !== id || column.id !== c.column.id)])}/>
-							</div>);})}
+						{Object.entries(changes).map(([tbl, chgs]) => <div key={tbl}>
+							{chgs.length > 0 && <div>{tbl}</div>}
+							{chgs.filter(ch => !ch.silent).map(({ id, column, value }) => {
+								const row = rawData[tbl as keyof typeof changes]!.find(r => r[0] === id);
+								const colIdx = columns[tbl as keyof typeof changes]!.findIndex(c => c.id === column.id);
+								const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
+								const val1 = value == null ? 'null' : valueToString(value);
+								return (<div key={id+column.id+value}>
+									<span style={{ color: color('text-dark') }}>#{id}: </span>
+									<i style={{ color: color('active') }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
+									<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
+										onClick={() => discardChange(tbl as any, { id, column, value })}/>
+								</div>);})}
+						</div>)}
 					</div>
+					{(error as any) && <div style={{ color: color('red') }}>{(error as any).toString()}</div>}
 				</Confirmation>}
 				{children}
 			</SampleContext.Provider>

@@ -3,18 +3,22 @@ import { useEventListener } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
 import { applySample, sampleEditingMarkers, useSampleState } from './sample';
-import { type MagneticCloud, MainTableContext, type Onset, PlotContext, SampleContext,
-	TableViewContext, useEventsSettings, useViewState,  defaultLayouts, allPanelOptions, statPanelOptions } from './events';
-import { EventsContextMenu, EventsLayoutContent } from './Events';
+import { type MagneticCloud, type Onset, PlotContext, SampleContext,
+	TableViewContext, useEventsSettings } from './events';
+import { useEventsState, useTable } from './eventsState';
+import { eventsPanels } from './eventsPanels';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
-	const { columns, data } = useContext(MainTableContext);
+	const { columns, data } = useTable();
 	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
 	const editingSample = useSampleState(state => state.isPicking);
-	const sort = useViewState(state => state.sort);
-	const plotId = useViewState(state => state.plotId);
-	
+	const sort = useEventsState(state => state.sort);
+	const plotId = useEventsState(state => state.plotId);
+	const modifyId = useEventsState(state => state.modifyId);
+	const setStartAt = useEventsState(state => state.setStartAt);
+	const setEndAt = useEventsState(state => state.setEndAt);
+
 	const dataCo = useMemo(() => {
 		console.time('compute table');
 		const cols = columns.filter(c => shownColumns?.includes(c.id));
@@ -56,20 +60,27 @@ function EventsView() {
 
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
-		if (idx == null || idx < 0) return null;
-		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['fe_time', 'fe_duration', 'fe_onset_type', 'mc_time', 'mc_duration']
+		if (idx == null || idx < 0)
+			return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
+		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['time', 'duration', 'onset_type', 'mc_time', 'mc_duration']
 			.map(c => columns.findIndex(cc => cc.id === c));
-		const plotDate = data[idx][timeIdx] as Date;
-		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
+		const plotDate = setStartAt || data[idx][timeIdx] as Date;
+		const hour = Math.floor(plotDate?.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 4), Math.min(data.length, idx + 4));
-		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]));
+		const events = allNeighbors.filter(r => plotUnlistedEvents || sampleData.find(sr => sr[0] === r[0]))
+			.filter(r => (!setStartAt && !setEndAt) || r[0] !== modifyId);
 		const [onsets, ends] = [0, 36e5].map(end => events.map(r =>
 			({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
-				type: r[onsIdx] || null, secondary: r[0] !== plotId }) as Onset));
+				type: r[onsIdx] || null, secondary: setStartAt || r[0] !== plotId }) as Onset));
+		if (setStartAt)
+			onsets.push({ time: setStartAt, type: null, insert: true });
+		if (setEndAt)
+			ends.push({ time: setEndAt, type: null, insert: true });
 		const clouds = allNeighbors.map(r => {
 			const time = (r[cloudTime] as Date|null)?.getTime(), dur = r[cloudDur] as number|null;
-			if (!time || !dur) return null;
+			if (!time || !dur)
+				return null;
 			return {
 				start: new Date(time),
 				end: new Date(time + dur * 36e5)
@@ -81,18 +92,12 @@ function EventsView() {
 			ends,
 			clouds
 		};
-	}, [plotId, data, plotOffset, columns, plotUnlistedEvents, sampleData]);
+	}, [plotId, data, setStartAt, plotOffset, setEndAt, columns, plotUnlistedEvents, sampleData, modifyId]);
 
 	return (
 		<TableViewContext.Provider value={dataContext}> 
 			<PlotContext.Provider value={plotContext}>
-				<AppLayout {...{
-					Content: EventsLayoutContent,
-					ContextMenu: EventsContextMenu,
-					panelOptions: allPanelOptions,
-					duplicatablePanels: statPanelOptions,
-					defaultLayouts,
-				}} Content={EventsLayoutContent} ContextMenu={EventsContextMenu}/>
+				<AppLayout panels={eventsPanels}/>
 			</PlotContext.Provider>
 		</TableViewContext.Provider>
 	);

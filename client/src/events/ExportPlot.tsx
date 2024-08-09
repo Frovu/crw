@@ -1,7 +1,7 @@
 import {  type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
 import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
 import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { plotPanelOptions, statPanelOptions, useEventsSettings, useViewState } from './events';
+import { useEventsSettings, type EventsPanel } from './events';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
@@ -11,6 +11,7 @@ import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../util';
 import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useEventsState } from './eventsState';
 
 type uOptions = Omit<uPlot.Options, 'width'|'height'>;
 type PlotEntryParams = {
@@ -89,7 +90,9 @@ export const usePlotExportSate = create<PlotExportState>()(persist(immer(set => 
 }));
 
 function computePlotsLayout() {
-	const { active, list } = useLayoutsStore.getState().apps[getApp()];
+	const state = useLayoutsStore.getState();
+	const panels = state.panels[getApp()] as EventsPanel<any>[];
+	const { active, list } = state.apps[getApp()];
 	const { tree, items } = list[active];
 
 	const root = document.getElementById('layoutRoot')!;
@@ -97,8 +100,7 @@ function computePlotsLayout() {
 	const layout: { [k: string]: { x: number, y: number, w: number, h: number } } = {};
 	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
 		if (!tree[node]) {
-			if (plotPanelOptions.includes(items[node]?.type as any)
-			 || statPanelOptions.includes(items[node]?.type as any))
+			if (panels.find(p => p.name === items[node]?.type)?.isPlot)
 				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}
@@ -195,7 +197,7 @@ async function doRenderPlots() {
 	return canvas;
 }
 
-export function ExportPreview() {
+function PreviewPanel() {
 	const expState = usePlotExportSate();
 	const { overrides: { scale } } = expState;
 	const context = useContext(LayoutContext)!;
@@ -370,11 +372,11 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	</div>;
 }
 
-export function ExportControls() {
+function ControlsPanel() {
 	const { overrides: { scale, fontSize, fontFamily, textTransform, scalesParams },
 		plots, inches, perPlotScales, setInches, set, setTransform, swapTransforms,
 		addScale, setScale, removeScale, setPerPlotMode, restoreScales } = usePlotExportSate();
-	const plotId = useViewState(state => state.plotId);
+	const plotId = useEventsState(state => state.plotId);
 	const { width, height } = computePlotsLayout();
 	const [useCm, setUseCm] = useState(true);
 	const [dragging, setDragging] = useState<number | null>(null);
@@ -498,15 +500,34 @@ export function ExportControls() {
 	</div>;
 }
 
-export function PlotIntervalInput({ step: alterStep }: { step?: number }) {
-	const { plotOffset, set } = useEventsSettings();
-	const [left, right] = plotOffset;
-	const step = alterStep ?? 24;
+export function PlotIntervalInput({ step: alterStep, solar }: { step?: number, solar?: boolean }) {
+	const { plotOffset, plotOffsetSolar, set } = useEventsSettings();
+	const target = solar ? 'plotOffsetSolar' : 'plotOffset';
+	const [left, right] = solar ? plotOffsetSolar : plotOffset;
+	const step = alterStep ?? (solar ? 6 : 24);
 
 	return <div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title='Plot time interval, as hours offset from event onset'>
 		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-240' max='0' step={step} defaultValue={left}
-			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [e.target.valueAsNumber, right])}/>
+			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [e.target.valueAsNumber, right])}/>
 		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='240' step={step} defaultValue={right}
-			onChange={e => !isNaN(e.target.valueAsNumber) && set('plotOffset', [left, e.target.valueAsNumber])}/> h
+			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [left, e.target.valueAsNumber])}/> h
 	</div>;
 }
+
+function ControlsMenu() {
+	return <>
+		<button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save replaces</button>
+		<button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load replaces</button>
+	</>;
+}
+
+export const ExportPreview: EventsPanel<{}> = {
+	name: 'Export Preview',
+	Panel: PreviewPanel
+};
+
+export const ExportControls: EventsPanel<{}> = {
+	name: 'Export Controls',
+	Panel: ControlsPanel,
+	Menu: ControlsMenu
+};

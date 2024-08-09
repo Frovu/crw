@@ -1,9 +1,10 @@
-import { createContext, type ComponentType } from 'react';
+import { createContext, type ComponentType, type ReactElement } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { getApp, logMessage } from './app';
 import type { Size } from './util';
+import { defaultLayouts } from './defaultLayouts';
 
 export const gapSize = 2;
 
@@ -17,20 +18,57 @@ export type NodeParams<T> = { type: string | null } & T;
 export type ParamsSetter<T> = (para: Partial<NodeParams<T>>) => void;
 
 export type Layout<T> = {
+	ignoreWhenCycling?: boolean,
 	tree: { [key: string]: LayoutTreeNode | null },
 	items: { [key: string]: NodeParams<T> | undefined }
 };
 
+export type Panel<T> = {
+	name: string,
+	Panel: ComponentType,
+	Menu?: ComponentType<ContextMenuProps<T>>,
+	defaultParams?: T,
+	isDuplicatable?: boolean
+};
+
+export type LayoutsMenuDetails = { nodeId: string, window?: NodeParams<{}>};
+
+export type ContextMenuProps<T> = {
+	params: NodeParams<T>,
+	setParams: ParamsSetter<T>,
+	Checkbox: ({ text, k }: { text: string, k: keyof T }) => ReactElement };
+
+export type AppLayoutProps<T> = {
+	panels: { [name: string]: Panel<T> }
+};
+
+export type LayoutContextType<T> = { id: string, size: Size, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
+export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
+
+export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
+
 type LayoutsState = {
 	dragFrom: null | string,
 	dragTo: null | string,
-	appsDefaults: { [app: string]: { [name: string]: Layout<object> } },
 	apps: {
 		[app: string]: {
 			active: string,
 			list: { [name: string]: Layout<object> },
 		}
-	}
+	},
+	windows: {
+		[id: string]: {
+			x: number, 
+			y: number,
+			w: number,
+			h: number,
+			params: NodeParams<object>,
+			unique?: string,
+		}
+	},
+	panels: {
+		[app: string]: Panel<any>[]
+	},
 	updateRatio: (nodeId: string, ratio: number) => void,
 	startDrag: (nodeId: string | null) => void,
 	dragOver: (nodeId: string) => void,
@@ -40,31 +78,16 @@ type LayoutsState = {
 	deleteLayout: (la: string) => void,
 	selectLayout: (la: string) => void,
 	renameLayout: (la: string, name: string) => void,
+	toggleCycling: (la: string, val: boolean) => void
 }; 
 
 const defaultState = {
 	dragFrom: null,
 	dragTo: null,
-	appsDefaults: {},
-	apps: {}
+	apps: defaultLayouts,
+	windows: {},
+	panels: {},
 };
-
-export type LayoutsMenuDetails = { nodeId: string };
-
-export type ContextMenuProps<T> = { params: NodeParams<T>, setParams: ParamsSetter<T> };
-
-export type AppLayoutProps<T> = {
-	Content: ComponentType,
-	ContextMenu: ComponentType<ContextMenuProps<T>>,
-	defaultLayouts: { [name: string]: Layout<T> },
-	panelOptions: readonly string[],
-	duplicatablePanels?: readonly string[]
-};
-
-export type LayoutContextType<T> = { id: string, size: Size, params: NodeParams<T>, setParams: ParamsSetter<T> };
-export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
-
-export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
 
 export const useLayoutsStore = create<LayoutsState>()(
 	persist(
@@ -85,7 +108,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 				const { list, active } = state.apps[app];
 				list[active].tree[nodeId]!.ratio = ratio;
 			}),
-			selectLayout: layout => set(({ apps }) => {
+			selectLayout: layout => set(({ apps, ...st }) => {
+				st.windows = {};
 				const app = getApp();
 				if (apps[app].list[layout])
 					apps[app].active = layout;
@@ -95,7 +119,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 				logMessage('layout removed: ' + layout);
 				delete apps[app].list[layout];
 				if (apps[app].active === layout)
-					apps[app].active = 'default';
+					apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].active;
 			}),
 			copyLayout: layout => set(({ apps }) => {
 				const app = getApp();
@@ -115,13 +139,18 @@ export const useLayoutsStore = create<LayoutsState>()(
 				if (apps[app].active === layout)
 					apps[app].active = name;
 			}),
-			resetLayout: () => set(({ apps, appsDefaults }) => {
-				const app = getApp();
+			resetLayout: () => set(({ apps, ...st }) => {
+				st.windows = {};
+				const app = getApp() as keyof typeof defaultLayouts;
 				const { list, active } = apps[app];
-				if (!appsDefaults[app]?.[active])
+				if (!defaultLayouts[app].list[active])
 					return;
 				logMessage('layout reset: ' + active);
-				list[active] = appsDefaults[app][active];
+				list[active] = defaultLayouts[app].list[active];
+			}),
+			toggleCycling: (layout, value) => set(({ apps }) => {
+				const { list } = apps[getApp()];
+				list[layout].ignoreWhenCycling = value;
 			}),
 		})),
 		{
@@ -140,6 +169,36 @@ export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =
 	});
 
 export const resetLayout = () => useLayoutsStore.setState(defaultState);
+
+export const setWindowParams = <T>(id: string, para: Partial<NodeParams<T>>) =>
+	useLayoutsStore.setState(({ windows }) => {
+		if (windows[id])
+			windows[id].params = Object.assign(windows[id].params, para);;
+	});
+
+export const openWindow = (para: LayoutsState['windows'][string]) =>
+	useLayoutsStore.setState(({ windows }) => {
+		if (para.unique) {
+			const old = Object.keys(windows).find(w => windows[w].unique === para.unique);
+			if (old) {
+				windows[old] = { ...para, params: { ...windows[old].params, ...para.params } };
+				return;
+			}
+		}
+		const id = Date.now().toString() + para.params.type;
+		windows[id] = para;
+	});
+
+export const closeWindow = (id: string) =>
+	useLayoutsStore.setState(state => {
+		delete state.windows[id];
+	});
+
+export const moveWindow = (id: string, move: { x?: number, y?: number, w?: number, h?: number }) =>
+	useLayoutsStore.setState(({ windows }) => {
+		if (windows[id])
+			windows[id] = Object.assign(windows[id], move);
+	});
 
 export const relinquishNode = (nodeId: string) => useLayoutsStore.setState(state => {
 	const { list, active } = state.apps[getApp()];
@@ -185,3 +244,8 @@ export const useLayout = () => ({
 		return { ...st, items: { ...st.items, [dragFrom]: st.items[dragTo], [dragTo]: st.items[dragFrom] } };
 	})
 });
+
+export const useNodeExists = (type: string) => {
+	const { items } = useLayout();
+	return !!Object.values(items).find(p => p?.type === type);
+};

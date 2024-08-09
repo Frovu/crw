@@ -5,7 +5,7 @@ import { usePlotOverlay, axisDefaults, customTimeSplits,
 import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale,
-	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin } from './basicPlot';
+	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin, paddedInterval, sliceData, actionsPlugin } from './basicPlot';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
@@ -15,7 +15,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 	tooltipParams?: Partial<Parameters<typeof tooltipPlugin>[0]>,
 	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
 	const query = useQuery({
-		queryKey,
+		queryKey: [paddedInterval(params.interval), ...queryKey],
 		queryFn
 	});
 
@@ -38,7 +38,7 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			...uopts,
 			scales: Object.fromEntries(axes?.map(ax => [ax.label, {
 				distr: ax.distr ?? 1,
-				...(ax.distr !== 3 && { range: (u, dmin, dmax) => {
+				...(ax.distr !== 3 ? { range: (u, dmin, dmax) => {
 					const override = scaleOverrides?.[ax.label];
 					const [fmin, fmax] = ax.minMax ?? [null, null];
 					const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - .0001;
@@ -54,7 +54,12 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 						min - resultingH * bottom    - (!override && (dmin <= (fmin ?? dmin) && bottom === 0) ? margin : 0),
 						max + resultingH * (1 - top) + (!override && (dmax >= (fmax ?? dmax) && top === 1) ? margin : 0)
 					];
-				} })
+				} } : ax.minMax ? {
+					range: (u, dmin, dmax) => [
+						Math.min(dmin, ax.minMax?.[0] ?? dmin),
+						Math.max(dmax, ax.minMax?.[1] ?? dmax),
+					]
+				} : {})
 			} as uPlot.Scale]) ?? []),
 			axes: [{
 				...axisDefaults(params.showGrid),
@@ -88,8 +93,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 				metainfoPlugin({ params, ...metaParams }),
 				legendPlugin({ params, overlayHandle }),
 				labelsPlugin({ params }),
-				tooltipPlugin({ ...tooltipParams })
-			]
+				tooltipPlugin({ ...tooltipParams }),
+				actionsPlugin(),
+				...(uopts?.plugins ?? [])
+			],
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
 	
@@ -97,11 +104,11 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 		return <div className='Center'>LOADING...</div>;
 	if (query.isError)
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
-	if (!query.data?.[0].length)
+	if (!query.data?.[0]?.length)
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }}>
-		<ExportableUplot {...{ size: calcSize, options, data: query.data }}/>
+		<ExportableUplot {...{ size: calcSize, options, data: sliceData(query.data, params.interval) }}/>
 	</div>);
 
 }

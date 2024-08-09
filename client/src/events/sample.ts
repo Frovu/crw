@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { type ColumnDef, type DataRow, type Value, parseColumnValue } from './events';
+import { parseColumnValue } from './events';
 import { immer } from 'zustand/middleware/immer';
+import type { ColumnDef, Value, DataRow } from './columns';
 
 export const FILTER_OPS = ['>=' , '<=' , '==', '<>' , 'is null', 'not null' , 'regexp'] as const;
 export type Filter = {

@@ -1,11 +1,15 @@
 import uPlot from 'uplot';
-import { type BasicPlotParams, basicDataQuery } from '../basicPlot';
+import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
+import type { ContextMenuProps } from '../../layout';
+import { usePlotParams, type EventsPanel } from '../../events/events';
 
-export type GeomagnParams = BasicPlotParams & {
-	useAp: boolean,
+const defaultParams = {
+	useAp: false
 };
+
+export type GeomagnParams = typeof defaultParams;
 
 const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
 	const colors = [color('green'), color('yellow'), color('orange'), color('red')];
@@ -40,9 +44,16 @@ const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesId
 	})(upl, seriesIdx, i0, i1);
 };
 
-export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
+function Menu({ Checkbox }: ContextMenuProps<GeomagnParams>) {
+	return <div className='Group'>
+		<Checkbox text='Use Ap index' k='useAp'/>
+	</div>;
+}
+
+function Panel() {
+	const params = usePlotParams<GeomagnParams>();
 	return (<BasicPlot {...{
-		queryKey: ['geomagn', params.interval],
+		queryKey: ['geomagn'],
 		queryFn: () => basicDataQuery('omni', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 		params,
 		axes: () => [
@@ -57,7 +68,7 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 			},
 			{
 				label: 'Dst',
-				fullLabel: 'Dst index',
+				fullLabel: 'Dst, nT',
 				position: [2/5, 1],
 				minMax: [null, 0],
 				side: 1,
@@ -95,3 +106,11 @@ export default function PlotGeoMagn({ params }: { params: GeomagnParams }) {
 		]
 	}}/>);
 }
+
+export const GeomagnPlot: EventsPanel<GeomagnParams> = {
+	name: 'Geomagn',
+	Menu,
+	Panel,
+	defaultParams,
+	isPlot: true
+};

@@ -11,6 +11,22 @@ if (!Array.prototype.toSpliced) {
 	};
 }
 
+export type OpState<T = string> = {
+	status: 'working',
+	started: number,
+	progress: number,
+} | {
+	status: 'done',
+	started: number,
+	finished: number,
+	data: T,
+} | {
+	status: 'error',
+	started: number,
+	finished: number,
+	error: string,
+}; 
+
 export type Size = { width: number, height: number };
 
 export function prettyDate(inp: Date | number | null, short=false) {

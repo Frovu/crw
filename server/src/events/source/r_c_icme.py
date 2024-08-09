@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 import re, requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many
-from events.table import ColumnDef as Col
+from database import pool, log, upsert_many, upsert_coverage
+from events.table_structure import ColumnDef as Col
 
 TABLE = 'r_c_icmes'
 URL = 'https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm'
@@ -29,8 +29,8 @@ COLS = [
 		pretty_name='MC',
 		description='2: MC reported; 1: ICME shows evidence of a rotation in field direction; 0: No MC reported'),
 	Col(TABLE, 'cmes_time',
-		not_null=True, data_type='timestamptz[]',
-		pretty_name='DONKI time',
+		not_null=True, data_type='time[]', sql='cmes_time timestamptz[]',
+		pretty_name='CME time',
 		description='Probable CMEs associated with the ICME from LASCO catlogue and/or CCMC DONKI')
 ]
 
@@ -44,7 +44,7 @@ _init()
 def parse_date(s):
 	return datetime.strptime(s[:15], '%Y/%m/%d %H%M').replace(tzinfo=timezone.utc)
 
-def scrape():
+def fetch():
 	res = requests.get(URL, timeout=10)
 
 	if res.status_code != 200:
@@ -75,3 +75,4 @@ def scrape():
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
 	upsert_many('events.'+TABLE, [c.name for c in COLS], data)
+	upsert_coverage(TABLE, data[0][0], data[-1][0], single=True)

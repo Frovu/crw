@@ -60,6 +60,7 @@
 .ContextMenu {
 	z-index: 5;
 	width: max-content;
+	font-size: 14px;
 	position: fixed;
 	padding: 8px;
 	background-color: var(--color-bg);
@@ -88,6 +89,10 @@
 .ContextMenu button, .ContextMenu input, .TextButton {
 	border: none;
 	padding: 1px 0 1px 0;
+}
+
+.TextButton {
+	cursor: pointer;
 }
 
 .ContextMenu label {
@@ -247,4 +252,8 @@ button:hover:enabled, select:hover:enabled {
 .SelectOption:hover {
 	padding: 1px 4px 1px 12px;
 	background-color: var(--color-area);
+}
+
+.Confirmation h4 {
+	margin: 1em 1em;
 }
