@@ -31,5 +31,7 @@ def normalize_variation(data, with_trend=False, to_avg=False):
 			if trend[0] > 0 and data[-1] > data[0]:
 				ys = np.poly1d(trend)(xs)
 				data = data - ys + ys[0]
+	if not len(data):
+		return data
 	d_max = np.nanmean(data) if to_avg else np.nanmax(data)
 	return (data - d_max) / (1 + d_max / 100)

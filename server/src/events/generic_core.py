@@ -298,8 +298,8 @@ def recompute_generics(generics):
 	if not isinstance(generics, list):
 		generics = [generics]
 	with pool.connection() as conn:
-		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time LIMIT 1').fetchone()[0]
-		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.forbush_effects ORDER BY time DESC LIMIT 1').fetchone()[0]
+		first = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.feid ORDER BY time LIMIT 1').fetchone()[0]
+		last = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer FROM events.feid ORDER BY time DESC LIMIT 1').fetchone()[0]
 	omni.ensure_prepared([first - MAX_DURATION_S, last + 2 * MAX_DURATION_S])
 	with ThreadPoolExecutor(max_workers=4) as executor:
 		res = executor.map(compute_generic, generics)

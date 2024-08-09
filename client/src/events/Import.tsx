@@ -77,7 +77,7 @@ export default function ImportMenu() {
 			changes: [] as [number, Date, { entity: string, column: string, before: typeof rows[number][number], after: typeof rows[number][number] }[]][]
 		};
 		const timeIdx = allColumns.findIndex(c => c.fullName === 'time');
-		const targetData = currentData.filter(r => interval[0] <= (r[timeIdx] as Date) && (r[timeIdx] as Date) <= interval[1]);
+		const targetData = (currentData as Date[][]).filter(r => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1]) as any[];
 		const lost = targetData.slice() as (typeof rows[number][number][]|null)[];
 		const added = [];
 		for (const row of rows) {
