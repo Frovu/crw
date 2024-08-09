@@ -100,7 +100,7 @@ function computePlotsLayout() {
 	const layout: { [k: string]: { x: number, y: number, w: number, h: number } } = {};
 	const walk = (x: number, y: number, w: number, h: number, node: string='root') => {
 		if (!tree[node]) {
-			if (panels.find(p => p.name === items[node]?.type)?.isPlot)
+			if (panels?.find(p => p.name === items[node]?.type)?.isPlot)
 				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}

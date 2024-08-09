@@ -68,6 +68,7 @@ export type FEIDRow = {
 	s_type: number | null,
 	s_description: string | null,
 	s_confidence: string | null,
+	mc_time: Date | null,
 	cme_time: Date | null,
 	flr_time: Date | null,
 	comment: string | null

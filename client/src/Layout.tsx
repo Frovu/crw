@@ -207,7 +207,7 @@ export function LayoutNav() {
 	const [open, setOpen] = useState(false);
 	const layouts = Object.keys(list);
 
-	const cycleLayouts = (idx: number) => {
+	const cycleLayouts = (idx: number): any => {
 		const next = (idx + 1) % layouts.length;
 		if (!list[layouts[next]].ignoreWhenCycling || layouts[next] === active) {
 			return selectLayout(layouts[next]);
