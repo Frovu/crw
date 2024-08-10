@@ -96,7 +96,7 @@ export function Confirmation({ children, callback, closeSelf }:
 	});
 	return <>
 		<div className='PopupBackground'/>
-		<div className='Popup Confirmation' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+		<div className='Popup Confirmation' style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 560 }} onClick={e => e.stopPropagation()}>
 			{children}
 			<div style={{ marginTop: '1em' }}>
 				<button style={{ width: '8em' }}

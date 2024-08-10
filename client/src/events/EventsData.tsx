@@ -1,13 +1,13 @@
 import { type ReactNode, useContext, useMemo, useState } from 'react';
 import type { ChangeLog } from './events';
 import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, valueToString } from './events';
-import { apiGet, apiPost, useEventListener } from '../util';
+import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
-import { discardChange, resetChanges, setRawData, useEventsState } from './eventsState';
+import { discardChange, discardCreated, discardDeleted, resetChanges, rowAsDict, setRawData, useEventsState, type TableName } from './eventsState';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
@@ -179,22 +179,25 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const data    = useEventsState(state => state.data);
 	const rawData = useEventsState(state => state.rawData);
 	const columns = useEventsState(state => state.columns);
-	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
+	const totalChanges = [changes, created, deleted]
+		.flatMap(Object.values).reduce((a, b) => a + b.length, 0);
 
 	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
 	useEventListener('action+discardChanges', () => resetChanges(false));
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit, error } = useMutation(() => apiPost('events/changes', {
-		enities: (Object.keys(changes) as (keyof typeof changes)[]).map(tbl =>
-			({ changes: changes[tbl], created: created[tbl], deleted: deleted[tbl] }))
+		entities: Object.fromEntries((Object.keys(changes) as TableName[]).map(tbl =>
+			[tbl, { changes: changes[tbl], created: created[tbl].map(r => rowAsDict(r, columns[tbl]!)), deleted: deleted[tbl] }]))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {
+
+			console.log('reset')
+			resetChanges(true);
 			queryClient.invalidateQueries('tableData');
 			logSuccess('Changes commited!');
 			setShowCommit(false);
-			resetChanges(true);
 		}
 	});
 
@@ -251,7 +254,18 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 					<h4 style={{ margin: '1em 0 0 0' }}>About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}</h4>
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 						{Object.entries(changes).map(([tbl, chgs]) => <div key={tbl}>
-							{chgs.length > 0 && <div>{tbl}</div>}
+							{chgs.length + created[tbl as TableName].length + deleted[tbl as TableName].length > 0 &&
+								<div><b>{tbl.replace('feid', 'FEID')}</b></div>}
+							{created[tbl as TableName].map(row => <div key={row[0]} style={{ color: color('cyan') }}>
+								+ {tbl === 'feid' ? prettyDate(row[1] as Date) : ('#' + row[0])}
+								<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
+									onClick={() => discardCreated(tbl as any, row[0])}/>
+							</div>)}
+							{deleted[tbl as TableName].map(id => <div key={id} style={{ color: color('magenta') }}>
+								- {tbl === 'feid' ? prettyDate(rawData[tbl as TableName]?.find(r => r[0] === id)?.[1] as Date ?? null) : ('#' + id)}
+								<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
+									onClick={() => discardDeleted(tbl as any, id)}/>
+							</div>)}
 							{chgs.filter(ch => !ch.silent).map(({ id, column: cId, value }) => {
 								const column = columns[tbl as keyof typeof columns]?.find(c => c.id === cId);
 								const row = rawData[tbl as keyof typeof changes]!.find(r => r[0] === id);

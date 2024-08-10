@@ -1,11 +1,10 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { chIdIdx, cmeLinks, deleteEvent, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, makeChange,
+import { chIdIdx, cmeLinks, deleteEvent, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, linkSource, makeChange,
 	makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
-import { apiPost } from '../util';
 import { create } from 'zustand';
 
 type EruptEnt = 'flare' | 'cme' | 'icme';
@@ -52,13 +51,12 @@ export const timeInMargin = (t: any, of: any, margin: number, right?: number) =>
 	of?.getTime() - margin <= t?.getTime() && t?.getTime() <= of?.getTime() + (right ?? margin);
 
 export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict) {
-	const { modifySource, data, columns } = useEventsState.getState();
+	const { modifySource, data } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_erupt)
 		return logMessage('Source not selected');
 	const eruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx] as number | null;
 	const linkColId = getSourceLink(which, event.src)[0];
-	const linkCol = columns.sources_erupt!.find(col => col.id === linkColId);
-	if (!eruptId || !linkCol)
+	if (eruptId == null)
 		return logError('Source not found');
 
 	if (!await askProceed(<>
@@ -66,7 +64,7 @@ export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict)
 		<p>Remove {which} from eruption #{eruptId}?</p>
 	</>))
 		return;
-	makeChange('sources_erupt', { column: linkCol, value: null, id: eruptId });
+	makeChange('sources_erupt', { column: linkColId, value: null, id: eruptId });
 }
 
 export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId: number) {
@@ -88,9 +86,9 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 			<p>Unlink this {which} from eruption #{linkedToOther[0]} first!</p>
 		</>);
 		
-	const actuallyLink = async (eruptId: number, createdSrc?: number) => {
-		const row = createdSrc ? [eruptId, ...columns.sources_erupt!.slice(1).map(a => null)] :
-			data.sources_erupt!.find(rw => rw[0] === eruptId);
+	const actuallyLink = async (eruptId: number) => {
+		const { data: newData } = useEventsState.getState();
+		const row = newData.sources_erupt!.find(rw => rw[0] === eruptId);
 		if (!row)
 			return logError('Eruption not found: '+eruptId.toString());
 		const erupt = rowAsDict(row as any, columns.sources_erupt!);
@@ -117,7 +115,7 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 				assignCMEToErupt(erupt, event);
 		}
 
-		makeSourceChanges('sources_erupt', erupt, feidId, createdSrc);
+		makeSourceChanges('sources_erupt', erupt);
 		logMessage(`Linked ${event.src} ${which} to FE/ID #${feidId}`);
 	};
 
@@ -127,19 +125,14 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 	askConfirmation(<>
 		<h4>Create new entry</h4>
 		<p>No source is selected, create a new one linked to current event?</p>
-	</>, async () => {
-		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/linkSource',
-				{ entity: 'sources_erupt', feid_id: feidId });
-			actuallyLink(res.id, res.source_id);
-		} catch (e) {
-			logError(e?.toString());
-		}
+	</>, () => {
+		const srcId = linkSource('sources_erupt', feidId);
+		actuallyLink(srcId);
 	});
 }
 
 export async function unlinkHoleSourceEvent(which: HoleEnt) {
-	const { modifySource, data, columns } = useEventsState.getState();
+	const { modifySource, data } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_ch)
 		return logMessage('Source not selected');
 	const chId = data.feid_sources.find(row => row[0] === modifySource)?.[chIdIdx] as number | null;
@@ -152,8 +145,7 @@ export async function unlinkHoleSourceEvent(which: HoleEnt) {
 	</>))
 		return;
 	
-	const resetCols = (which === 'solen' ? ['tag'] : ['chimera_id', 'chimera_time']).map(cid =>
-		columns.sources_ch?.find(c => c.id === cid)!);
+	const resetCols = which === 'solen' ? ['tag'] : ['chimera_id', 'chimera_time'];
 	for (const column of resetCols)
 		makeChange('sources_ch', { column, value: null, id: chId });
 }
@@ -174,9 +166,9 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 			<p>Unlink this {which} from CHS #{linkedToOther[0]} first!</p>
 		</>);
 		
-	const actuallyLink = async (chId: number, createdSrc?: number) => {
-		const row = createdSrc ? [chId, ...columns.sources_ch!.slice(1).map(a => null)] :
-			data.sources_ch!.find(rw => rw[0] === chId);
+	const actuallyLink = async (chId: number) => {
+		const { data: newData } = useEventsState.getState();
+		const row = newData.sources_ch!.find(rw => rw[0] === chId);
 		if (!row)
 			return logError('CHS not found: '+chId.toString());
 		const chs = rowAsDict(row as any, columns.sources_ch!) as CHS;
@@ -211,8 +203,8 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 			chs.width = tch.width;
 		}
 
-		makeSourceChanges('sources_ch', chs, feidId, createdSrc);
-		logMessage(`Linked ${which} CH to FE/ID #${feidId}`);
+		makeSourceChanges('sources_ch', chs);
+		logMessage(`Linked ${which} CH to FEID #${feidId}`);
 	};
 
 	if (modifyingChId != null)
@@ -221,14 +213,9 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 	askConfirmation(<>
 		<h4>Create new entry</h4>
 		<p>No source is selected, create a new one linked to current event?</p>
-	</>, async () => {
-		try {
-			const res = await apiPost<{ id: number, source_id: number }>('events/linkSource',
-				{ entity: 'sources_ch', feid_id: feidId });
-			actuallyLink(res.id, res.source_id);
-		} catch (e) {
-			logError(e?.toString());
-		}
+	</>, () => {
+		const srcId = linkSource('sources_ch', feidId);
+		actuallyLink(srcId);
 	});
 }
 
@@ -247,8 +234,7 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 		</>);
 
 	try {
-		await apiPost<{ id: number, source_id: number }>('events/linkSource',
-			{ entity, feid_id: feidId, id: srcId });
+		linkSource(entity, feidId, srcId);
 		logMessage(`Linked ${isCh ? 'CHS' : 'Erupt'} #${srcId} to FE/ID #${feidId}`);
 	} catch (e) {
 		logError(e?.toString());
@@ -257,7 +243,6 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 
 export async function deleteSrcEvent(entity: 'feid_sources' | 'sources_ch' | 'sources_erupt', id: number) {
 	try {
-		await apiPost('events/delete', { entity, id });
 		deleteEvent(entity, id);
 		logMessage(`Deleted ${{ feid_sources: 'SRC', sources_ch: 'SCH', sources_erupt: 'Erupt' }[entity]} #${id}`);
 	} catch(e) {

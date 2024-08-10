@@ -58,7 +58,6 @@
       ],
       "no-use-before-define": "off",
       "@typescript-eslint/no-use-before-define": [
-        1,
         "error"
       ],
       "@typescript-eslint/semi": [

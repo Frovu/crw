@@ -1,11 +1,10 @@
 import { type MouseEvent } from 'react';
-import { color, logError, logSuccess } from '../app';
-import { apiPost, prettyDate, useEventListener } from '../util';
+import { color, logSuccess } from '../app';
+import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid } from './eventsState';
+import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
-import { useQueryClient } from 'react-query';
-import { askProceed, ValidatedInput } from '../Utility';
+import { ValidatedInput } from '../Utility';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
@@ -15,7 +14,6 @@ function Panel() {
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { columns } = useTable();
 	const sources = useSources();
-	const queryClient = useQueryClient();
 
 	const isLink = modifySource;
 	const isMove = !isLink && modifyId != null;
@@ -50,15 +48,15 @@ function Panel() {
 	const handleEnter = () => {
 		if (!end || !columns || !feidId) return;
 		if (setStartAt && setEndAt) {
-			const duration = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
+			const dur = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
 			if (isMove) {
 				makeChange('feid', { column: 'time', id: feidId, value: setStartAt, fast: true });
-				makeChange('feid', { column: 'duration', id: feidId, value: duration });
+				makeChange('feid', { column: 'duration', id: feidId, value: dur });
 				logSuccess(`Moved FEID #${feidId} to ${prettyDate(setStartAt)}`);
 			}
 			if (isInsert) {
-				const feidId = createFeid({ time: setStartAt, duration });
-				setPlotId(() => feidId);
+				const createdId = createFeid({ time: setStartAt, duration: dur });
+				setPlotId(() => createdId);
 			}
 			return escape();
 		}
@@ -68,17 +66,9 @@ function Panel() {
 		}
 	};
 
-	const deleteFeid = async () => {
-		if (!await askProceed(<>
-			<h4>Delete FEID?</h4>
-			<p>Remove FEID #{feidId} at {start && prettyDate(start)}? Action is irreversible.</p>
-		</>))
-			return;
-		if (!feidId) return;
-		apiPost<{ id: number }>('events/delete', { entity: 'feid', id: feidId }).then(() => {
-			queryClient.invalidateQueries('tableData');
-			logSuccess(`Deleted FEID #${feidId}`);
-		}).catch(e => logError(e?.toString()));
+	const deleteFeid = () => {
+		if (feidId)
+			deleteEvent('feid', feidId);
 	};
 
 	useEventListener('escape', escape);

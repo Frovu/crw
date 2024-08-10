@@ -23,7 +23,7 @@ export function CellInput({ id, column, value, table, options, change }:
 	const { escapeCursor } = useEventsState();
 
 	return useMemo(() => {
-		const doChange = (v: any) => change ? change(v) : makeChange(table, { id, column, value: v });
+		const doChange = (v: any) => change ? change(v) : makeChange(table, { id, column: column.id, value: v });
 
 		const onChange = (e: ChangeEvent<HTMLInputElement|HTMLSelectElement>, save: boolean=false) => {
 			const str = e.target.value.trim();
@@ -232,8 +232,8 @@ export default function TableView({ size, averages, entity }: {
 	const { changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
-	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, changes, modifyId,
-		toggleSort, setPlotId } = viewState;
+	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, modifyId,
+		changes, created, deleted, toggleSort, setPlotId } = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
@@ -249,7 +249,8 @@ export default function TableView({ size, averages, entity }: {
 		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map(c => ({ column: col, ...c })))
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
-	const changeCount = Object.values(changes).reduce((a, b) => a + b.length, 0);
+	const changeCount = [changes, created, deleted]
+		.flatMap(Object.values).reduce((a, b) => a + b.length, 0);
 
 	useEffect(() => {
 		if (changeCount === 0)

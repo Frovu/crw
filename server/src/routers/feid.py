@@ -128,24 +128,6 @@ def _resolve_enlil():
 	fname = donki.resolve_enlil(eid)
 	return { 'filename': fname }
 
-@bp.route('/linkSource', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def _create_src():
-	feid_id = request.json.get('feid_id')
-	entity = request.json.get('entity')
-	existsing_id = request.json.get('id')
-	return query.link_source(feid_id, entity, existsing_id)
-
-@bp.route('/delete', methods=['POST'])
-@route_shielded
-@require_role('operator')
-def _delete_evt():
-	eid = request.json.get('id')
-	entity = request.json.get('entity')
-	query.delete(session.get('uid'), eid, entity)
-	return msg('OK')
-
 @bp.route('/create', methods=['POST'])
 @route_shielded
 @require_role('operator')
@@ -160,11 +142,11 @@ def _insert_evt():
 @route_shielded
 @require_role('operator')
 def _submit_changes():
-	changes = request.json.get('changes')
+	entities = request.json.get('entities')
 	uid = session.get('uid')
-	if not changes or len(changes) < 1:
+	if not entities:
 		raise ValueError('Empty request')
-	query.submit_changes(uid, changes)
+	query.submit_changes(uid, entities)
 	return msg('OK')
 
 @bp.route('/samples', methods=['GET'])
