@@ -181,7 +181,6 @@ export const useSource = (tbl: 'sources_ch' | 'sources_erupt', soft=false) => {
 
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
 	useEventsState.setState(state => {
-		console.log('apply new')
 		state.columns[tbl] = cols;
 		state.rawData[tbl] = rdata;
 		state.data[tbl] = applyChanges(state, tbl);

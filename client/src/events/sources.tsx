@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { chIdIdx, cmeLinks, deleteEvent, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, linkSource, makeChange,
+import { chIdIdx, cmeLinks, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, linkSource, makeChange,
 	makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
@@ -241,15 +241,6 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 	}
 }
 
-export async function deleteSrcEvent(entity: 'feid_sources' | 'sources_ch' | 'sources_erupt', id: number) {
-	try {
-		deleteEvent(entity, id);
-		logMessage(`Deleted ${{ feid_sources: 'SRC', sources_ch: 'SCH', sources_erupt: 'Erupt' }[entity]} #${id}`);
-	} catch(e) {
-		logError(e?.toString());
-	}
-}
-
 export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
 	erupt.cme_source = cme.src;
 	erupt.cme_time = cme.time;
@@ -362,7 +353,7 @@ export function useTableQuery(tbl: TableName) {
 	const data = useEventsState(st => st.data[tbl]);
 
 	const query = useQuery({
-		queryKey: [tbl],
+		queryKey: ['tableData', tbl],
 		staleTime: Infinity,
 		queryFn: async () => {
 			const { columns, data: dt } = await fetchTable(tbl);

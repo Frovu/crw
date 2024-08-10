@@ -140,7 +140,7 @@ def submit_changes(uid, entities):
 					log.info(f'Event created by user #{uid}: {entity}#{inserted_id} {created.get('time', '')}')
 
 				for deleted in entities[entity]['deleted']:
-					conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', deleted)
+					conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [deleted])
 					log.info(f'Event delted by user #{uid}: {entity}#{deleted}')
 
 				for change in entities[entity]['changes']:

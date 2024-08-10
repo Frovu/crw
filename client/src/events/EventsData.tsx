@@ -111,14 +111,15 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const dataQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
-		keepPreviousData: true,
-		queryKey: ['tableData'], 
+		structuralSharing: false,
+		queryKey: ['tableData', 'feid'], 
 		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true }),
 		onSuccess: () => logMessage('Events table loaded', 'debug')
 	});
 	
 	const mainContext = useMemo(() => {
-		if (!dataQuery.data || !structureQuery.data) return null;
+		if (!dataQuery.data || !structureQuery.data)
+			return null;
 		const { columns, rels, series, structure } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
@@ -127,10 +128,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			if (columnOrder == null) {
 				const sorted = cols.sort((a, b) => a.generic ? a.name?.localeCompare(b.name) : 0)
 					.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any));
-				const magnIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'magnitude');
-				const insIdx = sorted.findIndex(col => col.entity === 'forbush_effects' && col.name === 'ons type');
-				if (magnIdx > 0)
-					sorted.splice(insIdx + 1, 0, sorted.splice(magnIdx, 1)[0]);
 				return sorted;
 			} else {  // place new columns at the end
 				const index = (id: string) => { const idx = columnOrder.indexOf(id); return idx < 0 ? 9999 : idx; };
@@ -158,7 +155,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 		console.log('%crendered table:', 'color: #0f0', columns, fields, data, changelog);
 		return {
-			
 			columns: filtered,
 			columnIndex,
 			structure: { ...structure, feid: filtered },
@@ -192,8 +188,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {
-
-			console.log('reset')
 			resetChanges(true);
 			queryClient.invalidateQueries('tableData');
 			logSuccess('Changes commited!');
