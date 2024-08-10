@@ -7,6 +7,7 @@ Developed and used at IZMIRAN
 
 ## FEID
 
+- Debounce SDO
 - Autolink
 - Generics v3
 - Superposed epochs with solar params 
