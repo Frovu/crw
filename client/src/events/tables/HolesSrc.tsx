@@ -4,30 +4,29 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
+import { deleteSrcEvent, linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
 import { apiPost } from '../../util';
 import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_ch';
 
 function deleteHole(id: number) {
-	askConfirmation(<><h4>Delete CHS event?</h4><p>Action is irreversible</p></>, async () => {
-		try {
-			await apiPost('events/delete', { entity: ENT, id });
-			deleteEvent(ENT, id);
-		} catch(e) {
-			logError(e?.toString());
-		}
-	});
+	askConfirmation(<><h4>Delete CHS event?</h4><p>Action is irreversible</p></>,
+		() => deleteSrcEvent(ENT, id));
 }
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
 	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
+	const sources = useSources();
 	const chsId = detail?.ch?.id;
+	const isLinked = sources.find(s => s.ch?.id === chsId)
 
 	return chsId && <>
-		{feidId && <button className='TextButton' onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>Link CHS</button>}
+		{feidId && !isLinked && <button className='TextButton'
+			onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>Link CHS</button>}
+		{feidId && isLinked && <button className='TextButton'
+			onClick={() => deleteSrcEvent(ENT, chsId)}>Unlink CHS</button>}
 		<button className='TextButton' onClick={() => deleteHole(chsId)}>Delete row</button>
 	</>;
 }
@@ -72,14 +71,7 @@ function Panel() {
 						const width = 'tag' === column.id ? 7.5 : 
 							['b', 'phi', 'lat', 'area', 'width'].includes(column.id) ? 4.5 : column.width;
 						return <td key={column.id} title={(cidx === 1 ? `id = ${row[0]}; ` : '') + `${column.fullName} = ${value}`}
-							onClick={e => {
-								if (cidx === 0) {
-									// if (feidId)
-									// 	linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
-									// return;
-								}
-								onClick(idx, cidx);
-							}}
+							onClick={e => onClick(idx, cidx)}
 							onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
 							style={{ borderColor: color(curs ? 'active' : 'border') }}>
 							<span className='Cell' style={{

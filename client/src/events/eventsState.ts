@@ -211,9 +211,8 @@ export function deleteEvent(tbl: TableName, id: number) {
 			st.data.feid_sources?.filter(r => r[idIdx] === id).forEach(sRow => {
 				st.deleted.feid_sources = [...st.deleted.feid_sources, sRow[0]];
 			});
-
 		}
-		st.data[tbl] = applyChanges(st, tbl);
+		st.data[tbl] = st.data[tbl]?.filter(r => r[0] !== id);
 	});
 }
 

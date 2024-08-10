@@ -1,6 +1,6 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
-import { chIdIdx, cmeLinks, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, makeChange,
+import { chIdIdx, cmeLinks, deleteEvent, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, makeChange,
 	makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
 import { equalValues } from './events';
 import { askConfirmation, askProceed } from '../Utility';
@@ -232,8 +232,8 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 	});
 }
 
-export async function linkSrcToEvent(which: 'sources_ch' | 'soruces_erupt', srcId: number, feidId: number) {
-	const isCh = which === 'sources_ch';
+export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', srcId: number, feidId: number) {
+	const isCh = entity === 'sources_ch';
 	const { data, setStartAt, setEndAt } = useEventsState.getState();
 
 	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_ch)
@@ -248,9 +248,19 @@ export async function linkSrcToEvent(which: 'sources_ch' | 'soruces_erupt', srcI
 
 	try {
 		await apiPost<{ id: number, source_id: number }>('events/linkSource',
-			{ entity: 'sources_ch', feid_id: feidId, id: srcId });
+			{ entity, feid_id: feidId, id: srcId });
 		logMessage(`Linked ${isCh ? 'CHS' : 'Erupt'} #${srcId} to FE/ID #${feidId}`);
 	} catch (e) {
+		logError(e?.toString());
+	}
+}
+
+export async function deleteSrcEvent(entity: 'feid_sources' | 'sources_ch' | 'sources_erupt', id: number) {
+	try {
+		await apiPost('events/delete', { entity, id });
+		deleteEvent(entity, id);
+		logMessage(`Deleted ${{ feid_sources: 'SRC', sources_ch: 'SCH', sources_erupt: 'Erupt' }[entity]} #${id}`);
+	} catch(e) {
 		logError(e?.toString());
 	}
 }

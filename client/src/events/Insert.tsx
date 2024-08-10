@@ -259,11 +259,11 @@ function Panel() {
 					onClick={() => setModifySource(isActive ? null : srcId)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
 						<tr>
-							<td width={40} style={{ color: color('text-dark') }}>
-								CH{i+1}</td>
+							<td width={64} style={{ color: color('text-dark') }}>
+								{src.ch?.tag as string ?? `CH#${i+1}`}</td>
 							<InflButton src={src}/>
-							<td width={72} style={clr('solen' )}>SOLEN</td>
-							<td width={72} style={clr('chimera')}>CHIMERA</td>
+							<td width={60} style={clr('solen' )}>SOLEN</td>
+							<td width={60} style={clr('chimera')}>CHIMR</td>
 						</tr>
 					</tbody></table>
 				</div>;
