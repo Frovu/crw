@@ -121,7 +121,7 @@ export function TableWithCursor({ entity, data, columns, focusIdx, headSize, all
 					return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
 				return vidx;
 			});
-	}, [plotId, cursor, data, viewSize, entity]);
+	}, [plotId, cursor, viewSize, entity]); // eslint-disable-line
 
 	const hasHead = headCallback !== null;
 	useEffect(() => {
