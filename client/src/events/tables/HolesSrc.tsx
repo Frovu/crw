@@ -1,18 +1,17 @@
 import { useContext } from 'react';
-import { color, logError, openContextMenu, useContextMenu } from '../../app';
+import { color, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { deleteSrcEvent, linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
-import { apiPost } from '../../util';
+import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
 import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_ch';
 
 function deleteHole(id: number) {
 	askConfirmation(<><h4>Delete CHS event?</h4><p>Action is irreversible</p></>,
-		() => deleteSrcEvent(ENT, id));
+		() => deleteEvent(ENT, id));
 }
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
@@ -20,13 +19,13 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
 	const sources = useSources();
 	const chsId = detail?.ch?.id;
-	const isLinked = sources.find(s => s.ch?.id === chsId)
+	const isLinked = sources.find(s => s.ch?.id === chsId);
 
 	return chsId && <>
 		{feidId && !isLinked && <button className='TextButton'
 			onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>Link CHS</button>}
 		{feidId && isLinked && <button className='TextButton'
-			onClick={() => deleteSrcEvent(ENT, chsId)}>Unlink CHS</button>}
+			onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>Unlink CHS</button>}
 		<button className='TextButton' onClick={() => deleteHole(chsId)}>Delete row</button>
 	</>;
 }

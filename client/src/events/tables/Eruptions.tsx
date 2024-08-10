@@ -2,10 +2,9 @@ import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type TableMenuDetails } from '../events';
-import { color, logError, logMessage, openContextMenu, useContextMenu } from '../../app';
+import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
 import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
-import { assignCMEToErupt, assignFlareToErupt, deleteSrcEvent, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
-import { apiPost } from '../../util';
+import { assignCMEToErupt, assignFlareToErupt, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
 import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_erupt';
@@ -21,7 +20,7 @@ const flare_columns = {
 
 function deleteEruption(id: number) {
 	askConfirmation(<><h4>Delete eruption event?</h4><p>Action is irreversible</p></>,
-		() => deleteSrcEvent(ENT, id));
+		() => deleteEvent(ENT, id));
 }
 
 function switchMainFlare(erupt: RowDict, flare: RowDict) {
@@ -52,13 +51,13 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const sources = useSources();
 	const detail = useContextMenu(state => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
-	const isLinked = sources.find(s => s.erupt?.id === eruptId)
+	const isLinked = sources.find(s => s.erupt?.id === eruptId);
 
 	return eruptId && <>
 		{feidId && !isLinked && <button className='TextButton'
 			onClick={() => linkSrcToEvent(ENT, eruptId, feidId)}>Link Erupt</button>}
 		{feidId && isLinked && <button className='TextButton'
-			onClick={() => deleteSrcEvent(ENT, eruptId)}>Unlink Erupt</button>}
+			onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>Unlink Erupt</button>}
 		<button className='TextButton' onClick={() => deleteEruption(eruptId)}>Delete row</button>
 	</>;
 }

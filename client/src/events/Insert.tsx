@@ -1,17 +1,27 @@
-import { type MouseEvent } from 'react';
-import { color, logSuccess } from '../app';
+import { useContext, type MouseEvent } from 'react';
+import { color, logSuccess, openContextMenu, useContextMenu } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
 import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { ValidatedInput } from '../Utility';
+import { LayoutContext } from '../layout';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
+
+function Menu() {
+	const detail = useContextMenu(state => state.menu?.detail) as { source: { id: number, feid_id: number } } | undefined;
+
+	return detail?.source && <div>
+		<button className='TextButton' onClick={() => deleteEvent('feid_sources', detail.source.id as number)}>Delete source</button>
+	</div>;
+}
 
 function Panel() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
 		setStart, setEnd, setModify, setModifySource, setPlotId } = useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
+	const { id: nodeId } = useContext(LayoutContext)!;
 	const { columns } = useTable();
 	const sources = useSources();
 
@@ -207,7 +217,8 @@ function Panel() {
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
 
-				return <div key={srcId}
+				return <div key={srcId} title={'id='+src.source.id}
+					onContextMenu={openContextMenu('events', { nodeId, ...src })}
 					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
 					onClick={() => setModifySource(isActive ? null : srcId)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
@@ -239,7 +250,8 @@ function Panel() {
 					return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', .2) : 'unset' };
 				};
 
-				return <div key={srcId}
+				return <div key={srcId} title={'id='+src.source.id}
+					onContextMenu={openContextMenu('events', { nodeId, ...src })}
 					style={{ border: '1px solid '+color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
 					onClick={() => setModifySource(isActive ? null : srcId)}>
 					<table className='Table' style={{ borderCollapse: 'collapse' }}><tbody>		
@@ -268,5 +280,6 @@ function Panel() {
 
 export const InsertControls = {
 	name: 'Insert Controls',
+	Menu,
 	Panel,
 };
