@@ -64,5 +64,6 @@ export const XraysPlot: EventsPanel<SatXraysParams> = {
 	Menu,
 	Panel,
 	defaultParams,
-	isPlot: true
+	isPlot: true,
+	isSolar: true,
 };

@@ -60,7 +60,7 @@ function Panel() {
 	const { interval: sInterv } = useSolarPlotContext();
 	const size = useContext(LayoutContext)?.size;
 	if (solarTime)
-		params.interval = sInterv;
+		para.interval = sInterv;
 
 	if (!solarTime && params.stretch && size?.width) {
 		const padRight = 30;
