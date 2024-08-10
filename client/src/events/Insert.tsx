@@ -195,6 +195,12 @@ function Panel() {
 						
 					</td>
 				</tr>
+				<tr style={{ fontSize: 12 }}><td colSpan={4}>
+					<div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
+						{feid.flr_time && <div>flr {prettyDate(feid.flr_time).slice(5, 16)}</div>}
+						{feid.cme_time && <div>cme {prettyDate(feid.cme_time).slice(5, 16)}</div>}
+					</div>
+				</td></tr>
 				<tr style={{ height: 23 }} title='Source description'>
 					<td colSpan={4}><ValidatedInput type='text' value={feid.s_description}
 						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
