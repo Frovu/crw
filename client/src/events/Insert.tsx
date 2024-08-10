@@ -2,7 +2,7 @@ import { type MouseEvent } from 'react';
 import { color, logError, logSuccess } from '../app';
 import { apiPost, prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createdFeid } from './eventsState';
+import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { useQueryClient } from 'react-query';
 import { askProceed, ValidatedInput } from '../Utility';
@@ -11,7 +11,7 @@ const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Panel() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySource,
-		setStart, setEnd, setModify, setModifySource } = useEventsState();
+		setStart, setEnd, setModify, setModifySource, setPlotId } = useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { columns } = useTable();
 	const sources = useSources();
@@ -49,21 +49,16 @@ function Panel() {
 
 	const handleEnter = () => {
 		if (!end || !columns || !feidId) return;
-		const startCol = columns.find(c => c.id === 'time')!;
-		const durCol = columns.find(c => c.id === 'duration')!;
 		if (setStartAt && setEndAt) {
-			const dur = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
+			const duration = (setEndAt.getTime() - setStartAt.getTime()) / 36e5;
 			if (isMove) {
-				makeChange('feid', { column: startCol, id: feidId, value: setStartAt, fast: true });
-				makeChange('feid', { column: durCol, id: feidId, value: dur });
+				makeChange('feid', { column: 'time', id: feidId, value: setStartAt, fast: true });
+				makeChange('feid', { column: 'duration', id: feidId, value: duration });
 				logSuccess(`Moved FEID #${feidId} to ${prettyDate(setStartAt)}`);
 			}
 			if (isInsert) {
-				apiPost<{ id: number }>('events/create', { time: setStartAt, duration: dur }).then(({ id }) => {
-					queryClient.invalidateQueries('tableData');
-					createdFeid(id, setStartAt, dur);
-					logSuccess(`Created FEID #${id}`);
-				}).catch(e => logError(e?.toString()));
+				const feidId = createFeid({ time: setStartAt, duration });
+				setPlotId(() => feidId);
 			}
 			return escape();
 		}
@@ -135,14 +130,14 @@ function Panel() {
 		const column = columns.find(c => c.id === which)!;
 		const opts = column.enum!.concat(which === 'onset_type' ? [null] as any: []);
 		const value = opts[(opts.length + opts.indexOf(feid[which] as any) + dir) % opts.length];
-		makeChange('feid', { column, value, id: feidId, fast: true });
+		makeChange('feid', { column: column.id, value, id: feidId, fast: true });
 	};
 
 	const cycleInfl = (src: typeof sources[number], dir: -1 | 1) => {
 		const column = srcs.columns?.find(c => c.id === 'cr_influence')!;
 		const opts = column.enum!;
 		const value = opts[(opts.length + opts.indexOf(src.source.cr_influence as any) + dir) % opts.length];
-		makeChange('feid_sources', { column, value, id: src.source.id as number, fast: true });
+		makeChange('feid_sources', { column: column.id, value, id: src.source.id as number, fast: true });
 	};
 	const InflButton = ({ src }: { src: typeof sources[number] }) => {
 		const infl = src.source.cr_influence as string;
@@ -186,7 +181,7 @@ function Panel() {
 						<span style={{ fontSize: 14, paddingRight: 4 }}>stype</span>
 						<ValidatedInput type='text' value={feid.s_type}
 							style={{ width: 36, padding: 0, background: color('input-bg', .5) }}
-							callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 's_type')!, value, fast: true })}/>
+							callback={value => makeChange('feid', { id: feidId, column: 's_type', value, fast: true })}/>
 						<span style={{ paddingLeft: 2, color: color('text-dark', .3) }}>(0)</span>
 					</td>
 					<td title='Source identification confidence' className='TextButton' colSpan={2}
@@ -203,12 +198,12 @@ function Panel() {
 				<tr style={{ height: 23 }} title='Source description'>
 					<td colSpan={4}><ValidatedInput type='text' value={feid.s_description}
 						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
-						callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 's_description')!, value, fast: true })}/></td>
+						callback={value => makeChange('feid', { id: feidId, column: 's_description', value, fast: true })}/></td>
 				</tr>
 				<tr style={{ height: 23 }} title='General notes'>
 					<td colSpan={4}><ValidatedInput type='text' value={feid.comment}
 						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
-						callback={value => makeChange('feid', { id: feidId, column: columns.find(c => c.id === 'comment')!, value, fast: true })}/></td>
+						callback={value => makeChange('feid', { id: feidId, column: 'comment', value, fast: true })}/></td>
 				</tr>
 			</tbody></table>
 		</div>

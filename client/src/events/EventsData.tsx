@@ -173,8 +173,10 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// ************************************************************************************
 	
 	const [showCommit, setShowCommit] = useState(false);
+	const created = useEventsState(state => state.created);
+	const deleted = useEventsState(state => state.deleted);
 	const changes = useEventsState(state => state.changes);
-	const data = useEventsState(state => state.data);
+	const data    = useEventsState(state => state.data);
 	const rawData = useEventsState(state => state.rawData);
 	const columns = useEventsState(state => state.columns);
 	const totalChanges = Object.values(changes).reduce((a, b) => a + b.length, 0);
@@ -184,8 +186,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const queryClient = useQueryClient();
 	const { mutate: doCommit, error } = useMutation(() => apiPost('events/changes', {
-		changes: Object.fromEntries(Object.entries(changes).map(([tbl, chgs]) => 
-			[tbl, chgs.map(({ column, ...c }) => ({ ...c, column: column.id }))]))
+		enities: (Object.keys(changes) as (keyof typeof changes)[]).map(tbl =>
+			({ changes: changes[tbl], created: created[tbl], deleted: deleted[tbl] }))
 	}), {
 		onError: e => { logError('Failed submiting: '+e?.toString()); },
 		onSuccess: () => {
@@ -250,16 +252,17 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 					<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={e => e.stopPropagation()}>
 						{Object.entries(changes).map(([tbl, chgs]) => <div key={tbl}>
 							{chgs.length > 0 && <div>{tbl}</div>}
-							{chgs.filter(ch => !ch.silent).map(({ id, column, value }) => {
+							{chgs.filter(ch => !ch.silent).map(({ id, column: cId, value }) => {
+								const column = columns[tbl as keyof typeof columns]?.find(c => c.id === cId);
 								const row = rawData[tbl as keyof typeof changes]!.find(r => r[0] === id);
-								const colIdx = columns[tbl as keyof typeof changes]!.findIndex(c => c.id === column.id);
+								const colIdx = columns[tbl as keyof typeof changes]!.findIndex(c => c.id === cId);
 								const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 								const val1 = value == null ? 'null' : valueToString(value);
-								return (<div key={id+column.id+value}>
+								return (<div key={id+cId+value}>
 									<span style={{ color: color('text-dark') }}>#{id}: </span>
-									<i style={{ color: color('active') }}>{column.fullName}</i> {val0} -&gt; <b>{val1}</b>
+									<i style={{ color: color('active') }}>{column?.fullName}</i> {val0} -&gt; <b>{val1}</b>
 									<div className='CloseButton' style={{ transform: 'translate(4px, 2px)' }}
-										onClick={() => discardChange(tbl as any, { id, column, value })}/>
+										onClick={() => discardChange(tbl as any, { id, column: cId, value })}/>
 								</div>);})}
 						</div>)}
 					</div>

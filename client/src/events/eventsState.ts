@@ -37,7 +37,7 @@ const defaultSate = {
 	setEndAt: null as Date | null,
 
 	changes: Object.fromEntries(tables.map(t => [t, [] as ChangeValue[]])) as { [t in TableName]: ChangeValue[] },
-	created: Object.fromEntries(tables.map(t => [t, [] as number[]])) as { [t in TableName]: number[] },
+	created: Object.fromEntries(tables.map(t => [t, [] as DataRow[]])) as { [t in TableName]: DataRow[] },
 	deleted: Object.fromEntries(tables.map(t => [t, [] as number[]])) as { [t in TableName]: number[] },
 	columns: {} as { [t in TableName]?: ColumnDef[] },
 	rawData: {} as { [t in TableName]?: DataRow[] },
@@ -103,7 +103,7 @@ const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
 	].filter(r => !deleted.includes(r[0] as number)) as typeof rawData;
 	for (const { id, column, value } of changes) {
 		const row = data.find(r => r[0] === id);
-		const columnIdx = columns.findIndex(c => c.id === column.id);
+		const columnIdx = columns.findIndex(c => c.id === column);
 		if (row) row[columnIdx] = value;
 	}
 	if (tbl === 'sources_erupt') {
@@ -188,7 +188,7 @@ export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) 
 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
 	useEventsState.setState(state => {
-		state.changes[tbl] = state.changes[tbl].filter(c => c.id !== id || column.id !== c.column.id);
+		state.changes[tbl] = state.changes[tbl].filter(c => c.id !== id || column !== c.column);
 		state.data[tbl] = applyChanges(state, tbl);
 	});
 
@@ -216,62 +216,62 @@ export function deleteEvent(tbl: TableName, id: number) {
 	});
 }
 
-export function makeChange(tbl: TableName, { column, value, id, fast }: ChangeValue) {
-	const { rawData, columns } = useEventsState.getState();
-	const rawRow = rawData[tbl]!.find(r => r[0] === id);
-	const colIdx = columns[tbl]!.findIndex(c => c.id === column.id);
+export function makeChange(tbl: TableName, chgs: ChangeValue | ChangeValue[]) {
+	const changes = typeof chgs === 'object' ? chgs as ChangeValue[] : [chgs];
 
 	useEventsState.setState(st => {
-		st.changes[tbl] = [
-			...st.changes[tbl].filter(c => c.id !== id || column.id !== c.column.id ),
-			...(!equalValues(rawRow?.[colIdx] ?? null, value) ? [{ id, column, value }] : [])];
-		if (fast) {
-			const row = st.data[tbl]!.find(r => r[0] === id);
-			if (row) row[colIdx] = value;
-		} else {
-			st.data[tbl] = applyChanges(st, tbl);
+		const { rawData, columns } = st;
+		for (const [i, { id, value, column, fast }] of changes.entries()) {
+			const rawRow = rawData[tbl]!.find(r => r[0] === id);
+			const colIdx = columns[tbl]!.findIndex(c => c.id === column);
+
+			st.changes[tbl] = [
+				...st.changes[tbl].filter(c => c.id !== id || column !== c.column ),
+				...(!equalValues(rawRow?.[colIdx] ?? null, value) ? [{ id, column, value }] : [])];
+
+			if (fast || i < changes.length - 1) {
+				const row = st.data[tbl]!.find(r => r[0] === id);
+				if (row) row[colIdx] = value;
+			} else {
+				console.log('rendering', tbl);
+				st.data[tbl] = applyChanges(st, tbl);
+			}
 		}
 	});
-	return true;
 };
 
-export function createdFeid(id: number, time: Date, duration: number) {
+export function createFeid(row: { time: Date, duration: number }) {
+	const id = Date.now() % 1e7;
 	useEventsState.setState(state => {
 		const { columns, data, created } = state;
-		created.feid = [id, ...created.feid];
-		const newRow = columns.feid!.map(col => col.id === 'time' ? time : col.id === 'duration' ? duration : null);
-		data.feid = [...data.feid!, newRow as any];
+		const newRow = [id, ...columns.feid!.slice(1).map(col => row[col.id as keyof typeof row] ?? null)];
+		created.feid = [newRow as any, ...created.feid];
+		data.feid = applyChanges(state, 'feid');
 	});
+	return id;
 }
 
-export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict, feidId?: number, createdSrc?: number) {
+export function createSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number) {
+	const srcId = Date.now() % 1e7 + 1e7;
+	const id = Date.now() % 1e7;
 	useEventsState.setState(state => {
-		const id = row.id as number;
-		const { changes, created, columns, rawData, data } = state;
-		if (createdSrc && !created.feid_sources.includes(createdSrc))
-			created.feid_sources = [createdSrc, ...created.feid_sources];
-		if (createdSrc && !created[tbl].includes(id))
-			created[tbl] = [id, ...created[tbl]];
-		if (createdSrc) {
-			state.modifySource = createdSrc;
-			const sLinkIdx = tbl === 'sources_ch' ? 2 : 3;
-			changes.feid_sources = [...changes.feid_sources,
-				{ id: createdSrc, column: columns.feid_sources![1], value: feidId!, silent: true },
-				{ id: createdSrc, column: columns.feid_sources![sLinkIdx], value: id, silent: true }
-			];
-		}
-		const rawRow = rowAsDict(createdSrc ? [id] : rawData[tbl]!.find(r => r[0] === id)!, columns[tbl]!);
+		const { columns, data, created } = state;
+		const newRow = [id, ...columns[tbl]!.slice(1).map(c => null)] as DataRow;
+		const targetIdCol = tbl === 'sources_ch' ? 'ch_id' : 'erupt_id';
+		const feidSrcRow = [srcId, ...columns.feid_sources!.map(c =>
+			({ [targetIdCol]: id, feid_id: feidId }[c.id] ?? null))] as DataRow;
 
-		for (const [colId, value] of Object.entries(row)) {
-			const column = columns[tbl]!.find(c => c.id === colId)!;
-			const silent = !linkIds.includes(colId) && !colId.endsWith('source');
-			changes[tbl] = [
-				...changes[tbl].filter(chg => chg.id !== id || colId !== chg.column.id ),
-				...(!equalValues(rawRow[colId], value) ? [{ id, column, value: value ?? null, silent }] : [])];
+		created[tbl] = [...created[tbl], newRow];
+		data[tbl] = [...created[tbl], newRow];
+		created.feid_sources = [...created.feid_sources, feidSrcRow];
+		data.feid_sources = [...created[tbl], feidSrcRow];
 
-		}
-		for (const tb of [tbl, 'feid_sources'] as TableName[])
-			data[tb] = applyChanges(state, tb);
+		state.modifySource = srcId;
 	});
+	return id;
+}
 
+export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict) {
+	makeChange(tbl, Object.entries(row).map(([column, value]) =>
+		({ id: row.id as number, column, value: value ?? null })))
 };

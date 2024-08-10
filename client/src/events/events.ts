@@ -95,7 +95,7 @@ export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: 
 	chl?.events[eid]?.[cid]?.map(row =>
 		Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
 
-export type ChangeValue = { id: number, column: ColumnDef, value: Value, silent?: boolean, fast?: boolean };
+export type ChangeValue = { id: number, column: string, value: Value, silent?: boolean, fast?: boolean };
 export type FiltersCollection = { filter: Filter, id: number }[];
 
 export const MainTableContext = createContext<{

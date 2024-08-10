@@ -73,6 +73,7 @@ FEID = ['feid', { c.name: c for c in [
 		description='Event onset time',
 		parse_name='Time'),
 	C_FE('duration',
+		not_null=True,
 		computed=True,
 		data_type='integer',
 		description='Effective event duration, hours',
