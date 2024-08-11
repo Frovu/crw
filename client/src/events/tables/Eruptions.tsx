@@ -1,11 +1,10 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultHead, TableWithCursor } from './TableView';
-import { equalValues, valueToString, type TableMenuDetails } from '../events';
+import { equalValues, valueToString, type SrcEruptRow, type TableMenuDetails } from '../events';
 import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
-import { deleteEvent, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
+import { deleteEvent, eruptIdIdx, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
 import { assignCMEToErupt, assignFlareToErupt, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
-import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_erupt';
 const flare_columns = {
@@ -18,12 +17,7 @@ const flare_columns = {
 	lon: 'lon'
 } as { [k: string]: string };
 
-function deleteEruption(id: number) {
-	askConfirmation(<><h4>Delete eruption event?</h4><p>Action is irreversible</p></>,
-		() => deleteEvent(ENT, id));
-}
-
-function switchMainFlare(erupt: RowDict, flare: RowDict) {
+function switchMainFlare(erupt: SrcEruptRow, flare: RowDict) {
 	logMessage(`FLR: ${erupt.flr_source} -> ${flare.src} in ERUPT #${erupt.id}`);
 	const ar = erupt.active_region;
 	assignFlareToErupt(erupt, flare);
@@ -31,13 +25,13 @@ function switchMainFlare(erupt: RowDict, flare: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchMainCME(erupt: RowDict, cme: RowDict) {
+function switchMainCME(erupt: SrcEruptRow, cme: RowDict) {
 	logMessage(`CME: ${erupt.cme_source} -> ${cme.src} in ERUPT #${erupt.id}`);
 	assignCMEToErupt(erupt, cme);
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchCoordsSrc(erupt: RowDict, opt: string, sth?: RowDict) {
+function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: RowDict) {
 	if (opt !== 'MNL') {
 		erupt.lat = sth?.lat;
 		erupt.lon = sth?.lon;
@@ -58,13 +52,14 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 			onClick={() => linkSrcToEvent(ENT, eruptId, feidId)}>Link Erupt</button>}
 		{feidId && isLinked && <button className='TextButton'
 			onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>Unlink Erupt</button>}
-		<button className='TextButton' onClick={() => deleteEruption(eruptId)}>Delete row</button>
+		<button className='TextButton' onClick={() => deleteEvent(ENT, eruptId)}>Delete row</button>
 	</>;
 }
 
 function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const { data, columns } = useTable(ENT);
+	const feidSrc = useTable('feid_sources');
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const sources = useSources();
@@ -98,6 +93,7 @@ function Panel() {
 				const flr = erupt[linkColId] && flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
 				return flr ? rowAsDict(flr, flares.columns) : null;
 			})();
+			const orphan = !feidSrc.data.find(r => r[eruptIdIdx] === row[0]);
 			return <tr key={row[0]}
 				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.slice(1).map((column, scidx) => {
@@ -166,7 +162,7 @@ function Panel() {
 								return !!obj;
 							} : undefined
 						}}/> : <span className='Cell' style={{ width: width + 'ch',
-							color: color(cyan ? 'cyan' : dark ? 'text-dark' : 'text')  }}>
+							color: color(orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text')  }}>
 							<div className='TdOver'/>
 							{value}
 							{isLinkedModified && <span className='ModifiedMarker'/>}

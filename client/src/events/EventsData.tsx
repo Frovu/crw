@@ -111,6 +111,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	const dataQuery = useQuery({
 		cacheTime: 60 * 60 * 1000,
 		staleTime: Infinity,
+		keepPreviousData: true,
 		structuralSharing: false,
 		queryKey: ['tableData', 'feid'], 
 		queryFn: () => apiGet<{ data: Value[][], fields: string[], changelog?: ChangeLog }>('events', { changelog: true }),
