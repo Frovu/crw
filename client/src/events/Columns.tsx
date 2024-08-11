@@ -34,12 +34,12 @@ export default function ColumnsSelector() {
 		if (shownColumns && columnOrder) return;
 		const cols = ['time', 'duration', 'magnitude', 'src info', 'V max', 'B max', 'VmBm', 'Bz min',
 			'Dst min', 'dA0 min', 'Axy max', 'Az range', 'tm A0 min', 'Kp max', 'Ap max', 'ons type', 'src type', 'src conf' ]
-			.map(name => findColumn(columns, name)?.id).filter((c): c is string => c as any)
+			.map(name => findColumn(columns, name)?.id).filter((c): c is string => c as any);
 		if (!shownColumns)
 			setColumns(() => cols);
 		if (!columnOrder)
 			setColumnOrder(cols);
-	}, [setColumns, columns, shownColumns]);
+	}, [setColumns, columns, shownColumns, columnOrder, setColumnOrder]);
 
 	const newOrder = columns.map(c => c.id);
 	if (dragging)

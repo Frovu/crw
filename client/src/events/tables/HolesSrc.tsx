@@ -3,7 +3,7 @@ import { color, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
-import { deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
+import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
 import { askConfirmation } from '../../Utility';
 
@@ -35,6 +35,7 @@ function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid } = useFeidCursor();
 	const { data, columns } = useTable(ENT);
+	const feidSrc = useTable('feid_sources');
 	const sourceCh = useSource(ENT);
 	const sources = useSources();
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
@@ -58,8 +59,9 @@ function Panel() {
 				const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
 				const linkedToThisFEID = sources.find(s => equalValues(s.ch?.tag, ch.tag));
 				
+				const orphan = !feidSrc.data.find(r => r[chIdIdx] === row[0]);
 				const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-				const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
+				const dark = !orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 			
 				return <tr key={row[0]}
 					style={{ height: 23 + padRow, fontSize: 15 }}>
@@ -75,7 +77,7 @@ function Panel() {
 							style={{ borderColor: color(curs ? 'active' : 'border') }}>
 							<span className='Cell' style={{
 								width: width + 'ch',
-								color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
+								color: color(orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
 								<div className='TdOver'/>
 								{value}
 							</span>

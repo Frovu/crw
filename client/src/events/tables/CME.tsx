@@ -1,17 +1,17 @@
 import { useContext } from 'react';
 import { useContextMenu, openContextMenu, color } from '../../app';
-import { LayoutContext, openWindow, type ContextMenuProps } from '../../layout';
+import { LayoutContext, openWindow } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { equalValues, valueToString } from '../events';
-import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
+import { equalValues, valueToString, type CME, type ICME } from '../events';
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
-function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
-	const detail = useContextMenu(state => state.menu?.detail) as { cme: RowDict } | undefined;
+function Menu() {
+	const detail = useContextMenu(state => state.menu?.detail) as { cme: CME } | undefined;
 	const { id } = useFeidCursor();
 	const cme = detail?.cme;
 	const erupt = useSource('sources_erupt');
-	const src = cme?.src as string;
+	const src = cme?.src;
 	const [linkColId, idColId] = getSourceLink('cme', src);
 	const isLinked = cme && equalValues(cme[idColId], erupt?.[linkColId]);
 
@@ -43,11 +43,11 @@ function Panel() {
 		return <div className='Center'>LOADING..</div>;
 
 	const icmeTimeIdx = icmes.columns.findIndex(c => c.name === 'time');
-	const eruptIcme = erupt?.rc_icme_time &&
-		rowAsDict(icmes.data.find(r => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])), icmes.columns);
-	const icmeCmeTimes = (eruptIcme as any)?.cmes_time?.at(0) as null | string;
-	const icmeCmeTime = icmeCmeTimes && new Date(icmeCmeTimes.slice(0, 19) + 'Z') as null | Date;
-	const focusTime = ((erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start) as Date)?.getTime()
+	const eruptIcme = erupt?.rc_icme_time == null ? null :
+		rowAsDict(icmes.data.find(r => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])), icmes.columns) as ICME;
+	const icmeCmeTimes = eruptIcme?.cmes_time?.at(0);
+	const icmeCmeTime = icmeCmeTimes == null ? null : new Date(icmeCmeTimes.slice(0, 19) + 'Z');
+	const focusTime = ((erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start))?.getTime()
 		?? (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length :
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
@@ -58,17 +58,17 @@ function Panel() {
 		entity: 'CMEs',
 		data, columns, size, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
-				return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns));
+				return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row], columns) as CME);
 			if (cursor && ['+', '='].includes(e.key))
-				return feidId && linkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row] as any, columns), feidId);
+				return feidId && linkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row], columns) as CME, feidId);
 		},
 		row: (row, idx, onClick, padRow) => {
-			const cme = rowAsDict(row as any, columns);
-			const time = (cme.time as any)?.getTime();
+			const cme = rowAsDict(row, columns) as CME;
+			const time = cme.time.getTime();
 			const [linkColId, idColId] = getSourceLink('cme', cme.src);
-			const isLinked = equalValues(cme[idColId], linked?.[cme.src as any]);
+			const isLinked = equalValues(cme[idColId], linked?.[cme.src]);
 			const isPrime = isLinked && erupt?.cme_source === cme.src;
-			const otherLinked = !isLinked && linked?.[cme.src as any];
+			const otherLinked = !isLinked && linked?.[cme.src];
 			const darkk = (otherLinked || (!erupt?.cme_time ?
 				time > focusTime! + 864e5    || time < focusTime! - 3 * 864e5 : 
 				time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4));
@@ -79,7 +79,7 @@ function Panel() {
 			const orange = !dark && (() => {
 				if (timeInMargin(cme.time, erupt?.cme_time, 6e5))
 					return true;
-				if (cme.linked_events && (cme.linked_events as any as string[]).find(lnk =>
+				if (cme.linked_events?.find(lnk =>
 					(lnk.includes('GST') || lnk.includes('IPS')) &&
 					timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)))
 					return true;
@@ -89,8 +89,8 @@ function Panel() {
 				}
 				const anyEruptIcme = sources.find(s => s.erupt?.rc_icme_time)?.erupt?.rc_icme_time;
 				if (anyEruptIcme) {
-					const icme = rowAsDict(icmes.data.find(r => equalValues(anyEruptIcme, r[icmeTimeIdx])), icmes.columns);
-					for (const meTime of (icme.cmes_time ?? []) as any as string[])
+					const icme = rowAsDict(icmes.data.find(r => equalValues(anyEruptIcme, r[icmeTimeIdx])), icmes.columns) as ICME;
+					for (const meTime of icme.cmes_time ?? [])
 						if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5))
 							return true;
 				}
@@ -105,7 +105,7 @@ function Panel() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								feidId && linkEruptiveSourceEvent('cme', rowAsDict(row as any, columns), feidId);
+								feidId && linkEruptiveSourceEvent('cme', rowAsDict(row, columns) as CME, feidId);
 								return;
 							}
 							onClick(idx, cidx);

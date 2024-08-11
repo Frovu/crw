@@ -1,8 +1,8 @@
 import { useQuery } from 'react-query';
 import { fetchTable, type ColumnDef } from './columns';
 import { chIdIdx, cmeLinks, eruptIdIdx, fIdIdx, flaresLinks, icmeLinks, linkSource, makeChange,
-	makeSourceChanges, rowAsDict, setRawData, useEventsState, type RowDict, type TableName } from './eventsState';
-import { equalValues } from './events';
+	makeSourceChanges, rowAsDict, setRawData, useEventsState, type TableName } from './eventsState';
+import { equalValues, type CME, type Flare, type ICME, type SrcEruptRow } from './events';
 import { askConfirmation, askProceed } from '../Utility';
 import { logError, logMessage } from '../app';
 import { create } from 'zustand';
@@ -15,6 +15,7 @@ export type CHS = { id: number, tag: string, time: Date, lat: number, width: num
 export type SolenCH = { tag: string, time: Date, location: string | null };
 export type ChimeraCH = { id: number, area_percent: number, xcen: number, ycen: number,
 	lat: number, lon: number, width: number, area: number, b: number, phi: number, chimera_time: Date };
+type EruptiveEvent = Flare | CME | ICME;
 
 export const columnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
@@ -42,15 +43,16 @@ export const useHolesViewState = create<{
 	setCatched: catched => set(s => ({ ...s, catched }))
 }));
 
-export function getSourceLink(which: EruptEnt, src: any) {
+export function getSourceLink<T extends EruptEnt>(which: T, src: any) {
 	const links = { flare: flaresLinks, cme: cmeLinks, icme: icmeLinks }[which];
-	return links?.[src as keyof typeof links] as [string, string] ?? [null, null];
+	return links?.[src as keyof typeof links] as [keyof SrcEruptRow, (T extends 'icme' ? 'time' : 'id') |
+	(T extends 'flare' ? 'start_time' : 'time')] ?? [null, null];
 }
 
 export const timeInMargin = (t: any, of: any, margin: number, right?: number) =>
 	of?.getTime() - margin <= t?.getTime() && t?.getTime() <= of?.getTime() + (right ?? margin);
 
-export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict) {
+export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent) {
 	const { modifySource, data } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_erupt)
 		return logMessage('Source not selected');
@@ -60,14 +62,14 @@ export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: RowDict)
 		return logError('Source not found');
 
 	if (!await askProceed(<>
-		<h4>Ulink {event.src as string} {which}?</h4>
+		<h4>Ulink {event.src} {which}?</h4>
 		<p>Remove {which} from eruption #{eruptId}?</p>
 	</>))
 		return;
 	makeChange('sources_erupt', { column: linkColId, value: null, id: eruptId });
 }
 
-export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId: number) {
+export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, feidId: number) {
 	const { data, columns, modifySource, setStartAt, setEndAt } = useEventsState.getState();
 
 	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_erupt)
@@ -78,7 +80,7 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 	const linkColIdx = columns.sources_erupt!.findIndex(c => c.id === linkColId);
 
 	const linkedToOther = which !== 'icme' &&
-		data.sources_erupt.find(row => equalValues(row[linkColIdx], event[idColId]));
+		data.sources_erupt.find(row => equalValues(row[linkColIdx], (event as any)[idColId]));
 	
 	if (linkedToOther)
 		return askProceed(<>
@@ -91,28 +93,28 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: RowDict, feidId:
 		const row = newData.sources_erupt!.find(rw => rw[0] === eruptId);
 		if (!row)
 			return logError('Eruption not found: '+eruptId.toString());
-		const erupt = rowAsDict(row as any, columns.sources_erupt!);
+		const erupt = rowAsDict(row, columns.sources_erupt!) as SrcEruptRow;
 		const alreadyLinked = erupt[linkColId];
 		if (alreadyLinked) {
 			if (!await askProceed(<>
-				<h4>Replace {event.src as string} {which}?</h4>
-				<p>{which} from {event.src as string} list is already linked to this eruption, replace?</p>
+				<h4>Replace {event.src} {which}?</h4>
+				<p>{which} from {event.src} list is already linked to this eruption, replace?</p>
 			</>))
 				return;
 		}
 
-		erupt[linkColId] = event[idColId];
+		(erupt as any)[linkColId] = (event as any)[idColId];
 
 		if (which === 'flare') {
 			if (erupt.flr_source == null || (alreadyLinked && erupt.flr_source === event.src))
-				assignFlareToErupt(erupt, event);
+				assignFlareToErupt(erupt, event as Flare);
 			else
-				erupt.active_region = erupt.active_region ?? event.active_region;
+				erupt.active_region = erupt.active_region ?? (event as Flare).active_region ?? null;
 
 		}
 		if (which === 'cme') {
 			if (erupt.cme_source == null || (alreadyLinked && erupt.cme_source === event.src))
-				assignCMEToErupt(erupt, event);
+				assignCMEToErupt(erupt, event as CME);
 		}
 
 		makeSourceChanges('sources_erupt', erupt);
@@ -241,7 +243,7 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 	}
 }
 
-export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
+export function assignCMEToErupt(erupt: SrcEruptRow, cme: CME) {
 	erupt.cme_source = cme.src;
 	erupt.cme_time = cme.time;
 	erupt.cme_speed = cme.speed;
@@ -254,7 +256,7 @@ export function assignCMEToErupt(erupt: RowDict, cme: RowDict) {
 	}
 }
 
-export function assignFlareToErupt(erupt: RowDict, flare: RowDict) {
+export function assignFlareToErupt(erupt: SrcEruptRow, flare: Flare) {
 	erupt.flr_source = flare.src;
 
 	erupt.lat = flare.lat;

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { equalValues, type ChangeValue, type FEIDRow } from './events';
+import { equalValues, type ChangeValue, type FeidRow, type FeidSrcRow, type SrcCHRow, type SrcEruptRow } from './events';
 import type { ColumnDef, DataRow, Value } from './columns';
 
 export const flaresLinks = {
@@ -130,9 +130,9 @@ export const useFeidCursor = () => {
 
 	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const targetIdx = data.findIndex(r => r[0] === targetId);
-	const row = rowAsDict(data[targetIdx], columns) as FEIDRow;
-	const duration = row.duration as number | undefined;
-	const start = row.time as Date | undefined;
+	const row = rowAsDict(data[targetIdx], columns) as FeidRow;
+	const duration = row.duration;
+	const start = row.time;
 	const end = row.duration == null ? undefined : start &&
 		new Date(start?.getTime() + duration! * 36e5);
 	return { duration, start, end, id: targetId, row }; 
@@ -152,19 +152,20 @@ export const useSources = () => {
 	if (!src.data || !erupt.data || !ch.data)
 		return [];
 	return src.data.filter(row => row[fIdIdx] === targetId).map(row => {
-		const source = rowAsDict(row, src.columns);
+		const source = rowAsDict(row, src.columns) as FeidSrcRow;
 		if (row[chIdIdx]) {
 			const found = ch.data.find(r => r[0] === row[chIdIdx]);
-			return { source, ch: found && rowAsDict(found, ch.columns) };
+			return { source, ch: found && rowAsDict(found, ch.columns) as SrcCHRow };
 		} else if (row[eruptIdIdx]) {
 			const found = erupt.data.find(r => r[0] === row[eruptIdIdx]);
-			return { source, erupt: found && rowAsDict(found, erupt.columns) };
+			return { source, erupt: found && rowAsDict(found, erupt.columns) as SrcEruptRow };
 		}
 		return { source };
 	}).filter(a => !!a); 
 };
 
-export const useSource = (tbl: 'sources_ch' | 'sources_erupt', soft=false) => {
+export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft=false):
+(T extends 'sources_ch' ? SrcCHRow : SrcEruptRow) | null => {
 	const plotId = useEventsState(st => st.plotId);
 	const cursor = useEventsState(st => st.cursor);
 	const feidId = cursor?.entity !== 'feid' ? plotId : cursor.id;
@@ -176,7 +177,7 @@ export const useSource = (tbl: 'sources_ch' | 'sources_erupt', soft=false) => {
 		cursor?.entity === tbl ? cursor.id! : !soft ? null :
 			src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId && r[inflIdIdx] === 'primary')?.[idIdx]
 				?? src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId)?.[idIdx];
-	return !data || targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns);
+	return !data || targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns) as any;
 };
 
 export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) => queueMicrotask(() =>
@@ -286,9 +287,9 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 	return id;
 }
 
-export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: RowDict) {
+export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: SrcEruptRow | SrcCHRow) {
 	makeChange(tbl, Object.entries(row).filter(e => e[0] !== 'id').map(([column, value]) =>
-		({ id: row.id as number,
+		({ id: row.id,
 			column,
 			value: value ?? null,
 			silent: !linkIds.includes(column) && !column.endsWith('source') })));

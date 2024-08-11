@@ -1,9 +1,9 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultHead, TableWithCursor } from './TableView';
-import { equalValues, valueToString, type SrcEruptRow, type TableMenuDetails } from '../events';
+import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../events';
 import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
-import { deleteEvent, eruptIdIdx, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable, type RowDict } from '../eventsState';
+import { deleteEvent, eruptIdIdx, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { assignCMEToErupt, assignFlareToErupt, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
 
 const ENT = 'sources_erupt';
@@ -15,9 +15,9 @@ const flare_columns = {
 	active_region: 'active_region',
 	lat: 'lat',
 	lon: 'lon'
-} as { [k: string]: string };
+} as { [k: string]: keyof Flare } ;
 
-function switchMainFlare(erupt: SrcEruptRow, flare: RowDict) {
+function switchMainFlare(erupt: SrcEruptRow, flare: Flare) {
 	logMessage(`FLR: ${erupt.flr_source} -> ${flare.src} in ERUPT #${erupt.id}`);
 	const ar = erupt.active_region;
 	assignFlareToErupt(erupt, flare);
@@ -25,16 +25,16 @@ function switchMainFlare(erupt: SrcEruptRow, flare: RowDict) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchMainCME(erupt: SrcEruptRow, cme: RowDict) {
+function switchMainCME(erupt: SrcEruptRow, cme: CME) {
 	logMessage(`CME: ${erupt.cme_source} -> ${cme.src} in ERUPT #${erupt.id}`);
 	assignCMEToErupt(erupt, cme);
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: RowDict) {
+function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: CME | Flare) {
 	if (opt !== 'MNL') {
-		erupt.lat = sth?.lat;
-		erupt.lon = sth?.lon;
+		erupt.lat = sth?.lat ?? null;
+		erupt.lon = sth?.lon ?? null;
 	}
 	erupt.coords_source = opt;
 	makeSourceChanges('sources_erupt', erupt);
@@ -83,7 +83,7 @@ function Panel() {
 		allowEdit: true,
 		head: (cols, padHeader) => <DefaultHead {...{ columns: cols.slice(1), padHeader }}/>,
 		row: (row, idx, onClick, padRow) => {
-			const erupt = rowAsDict(row, columns);
+			const erupt = rowAsDict(row, columns) as SrcEruptRow;
 			const cyan = erupt.id === selectedErupt?.id;
 			const dark = !sources.find(src => src.erupt?.id === erupt.id);
 			// FIXME: do this for all eruptions at load
@@ -91,7 +91,7 @@ function Panel() {
 				const [linkColId, idColId] = getSourceLink('flare', erupt.flr_source);
 				const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 				const flr = erupt[linkColId] && flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
-				return flr ? rowAsDict(flr, flares.columns) : null;
+				return flr ? rowAsDict(flr, flares.columns) as Flare: null;
 			})();
 			const orphan = !feidSrc.data.find(r => r[eruptIdIdx] === row[0]);
 			return <tr key={row[0]}
@@ -106,7 +106,7 @@ function Panel() {
 						if (!flare)
 							return !flares.data;
 						const val = cid === 'flr_flux'
-							? flare.flux ?? parseFlareFlux(flare.class as any)
+							? flare.flux ?? parseFlareFlux(flare.class)
 							: flare[flare_columns[cid]];
 						return !equalValues(val, row[cidx]);
 					})() : null;
@@ -115,14 +115,14 @@ function Panel() {
 						const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 						const flr = erupt[linkColId] && flares.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
-						return flr ? rowAsDict(flr, flares.columns!) : null;
+						return flr ? rowAsDict(flr, flares.columns!) as Flare : null;
 					}).filter(s => s) : [];
 					const cmeOpts = (curs && ['cme_source', 'coords_source'].includes(cid)) ? sourceLabels.cme.map(cmeSrc => {
 						const [linkColId, idColId] = getSourceLink('cme', cmeSrc);
 						const idColIdx = cmes.columns?.findIndex(col => col.id === idColId);
 						const cme = erupt[linkColId] && cmes.data?.find(r =>
 							equalValues(r[idColIdx], erupt[linkColId]));
-						return cme ? rowAsDict(cme, cmes.columns!) : null;
+						return cme ? rowAsDict(cme, cmes.columns!) as CME : null;
 					}).filter(s => s) : [];
 					let value = valueToString(row[cidx]);
 					if (['XF peak', 'XF end'].includes(column.name))

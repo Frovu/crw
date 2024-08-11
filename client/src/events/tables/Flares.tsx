@@ -1,23 +1,23 @@
 import { useContext } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../../layout';
+import { LayoutContext } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { equalValues, valueToString } from '../events';
+import { equalValues, valueToString, type Flare } from '../events';
 import { color, openContextMenu, useContextMenu } from '../../app';
-import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, type RowDict, flaresLinks, useSources } from '../eventsState';
+import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
-function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
-	const detail = useContextMenu(state => state.menu?.detail) as { flare: RowDict } | undefined;
+function Menu() {
+	const detail = useContextMenu(state => state.menu?.detail) as { flare: Flare } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
 	const erupt = useSource('sources_erupt');
 	const [linkColId, idColId] = getSourceLink('flare', flare?.src);
-	const isLinked = flare && equalValues(flare[idColId], erupt?.[linkColId]);
+	const isLinked = flare && equalValues(flare[idColId as 'start_time'], erupt?.[linkColId]);
 
 	return !flare ? null : <>
 		<button className='TextButton' style={{ color: color(erupt?.[linkColId] ? 'text-dark' : 'text') }}
 			onClick={() => id && linkEruptiveSourceEvent('flare', flare, id)}>
-				Link {flare.src as string} flare</button>
+				Link {flare.src} flare</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('flare', flare)}>Unlink {flare.src as string} flare</button>}
 	</>;
 }
@@ -36,8 +36,8 @@ function Panel() {
 		return <div className='Center'>LOADING..</div>;
 
 	const [timeIdx] = ['start'].map(what => columns.findIndex(c => c.name === what));
-	const focusTime = erupt?.flr_start ? (erupt?.flr_start as Date).getTime()
-		: erupt?.cme_time ? (erupt?.cme_time as Date).getTime()
+	const focusTime = erupt?.flr_start ? erupt?.flr_start.getTime()
+		: erupt?.cme_time ? erupt?.cme_time.getTime()
 			: (cursorTime && (cursorTime.getTime() - 2 * 864e5));
 	const focusIdx = focusTime == null ? data.length : data.findIndex(r =>
 		(r[timeIdx] as Date)?.getTime() > focusTime);
@@ -47,23 +47,23 @@ function Panel() {
 		entity: 'flares',
 		data, columns, size, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
-				return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns));
+				return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare);
 			if (cursor && ['+', '='].includes(e.key))
-				return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row] as any, columns), feidId);
+				return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare, feidId);
 		},
 		row: (row, idx, onClick, padRow) => {
-			const flare = rowAsDict(row as any, columns);
-			const stime = (flare.start_time as any)?.getTime();
+			const flare = rowAsDict(row, columns) as Flare;
+			const stime = flare.start_time.getTime();
 			const [linkColId, idColId] = getSourceLink('flare', flare.src);
-			const isLinked = equalValues(flare[idColId], linked?.[flare.src as any]);
+			const isLinked = equalValues(flare[idColId], linked?.[flare.src]);
 			const isPrime = isLinked && erupt?.flr_source === flare.src;
-			const otherLinked = !isLinked && linked?.[flare.src as any];
+			const otherLinked = !isLinked && linked?.[flare.src];
 			const linkedToAnyErupt = sources.find(s => equalValues(s.erupt?.[linkColId], flare[idColId]));
 
 			const orange = !isLinked && !otherLinked && !linkedToAnyErupt && (() => {
 				if (timeInMargin(flare.start_time, erupt?.flr_start, 6e5))
 					return true;
-				if (flare.linked_events && erupt?.cme_time && (flare.linked_events as any as string[]).find(lnk =>
+				if (flare.linked_events && erupt?.cme_time && flare.linked_events.find(lnk =>
 					lnk.includes('CME') && timeInMargin(erupt?.cme_time, new Date(lnk.slice(0, 19) + 'Z'), 6e5)))
 					return true;
 				if (feid.flr_time && timeInMargin(flare.start_time, feid.flr_time, 6e5))
@@ -80,7 +80,7 @@ function Panel() {
 			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
 				equalValues(flare[idColId], eru[eruptLinkIdx])));
 		
-			return <tr key={row[0]+stime+(flare.end_time as any)?.getTime()}
+			return <tr key={row[0]+stime+flare.end_time.getTime()}
 				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
@@ -90,7 +90,7 @@ function Panel() {
 					return <td key={column.id} title={`${column.fullName} = ${value}`}
 						onClick={e => {
 							if (cidx === 0) {
-								feidId && linkEruptiveSourceEvent('flare', rowAsDict(row as any, columns), feidId);
+								feidId && linkEruptiveSourceEvent('flare', rowAsDict(row, columns) as Flare, feidId);
 								return;
 							}
 							onClick(idx, cidx);

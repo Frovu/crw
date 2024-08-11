@@ -60,7 +60,7 @@ export type TableParams = {
 export type Onset = { time: Date, type: string | null, secondary?: boolean, insert?: boolean };
 export type MagneticCloud = { start: Date, end: Date };
 
-export type FEIDRow = {
+export type FeidRow = {
 	id: number,
 	time: Date,
 	duration: number,
@@ -72,6 +72,86 @@ export type FEIDRow = {
 	cme_time: Date | null,
 	flr_time: Date | null,
 	comment: string | null
+};
+
+export type FeidSrcRow = {
+	id: number,
+	feid_id: number,
+	erupt_id: number,
+	cr_influence: string | null,
+} | {
+	id: number,
+	feid_id: number,
+	ch_id: number,
+	cr_influence: string | null,
+};
+
+export type SrcEruptRow = {
+	id: number,
+	flr_start: Date | null,
+	flr_peak: Date | null,
+	flr_end: Date | null,
+	flr_flux: number | null,
+	flr_source: string | null,
+	active_region: number | null,
+	lat: number | null,
+	lon: number | null,
+	coords_source: string | null,
+	cme_time: Date | null,
+	cme_speed: number | null,
+	cme_source: string | null,
+	note: string | null,
+
+	solarsoft_flr_start: Date | null,
+	noaa_flr_start: Date | null,
+	donki_flr_id: number | null,
+	solardemon_flr_id: number | null,
+	donki_cme_id: number | null,
+	lasco_cme_time: Date | null,
+	rc_icme_time: Date | null,
+};
+
+export type SrcCHRow = {
+	id: number,
+	tag: string | null,
+	chimera_time: Date | null,
+	chimera_id: number | null,
+	time: Date | null,
+	lat: number | null,
+	area: number | null,
+	b: number | null,
+	phi: number | null,
+	width: number | null,
+};
+
+export type Flare = {
+	src: string,
+	class: string | null,
+	lat: number,
+	lon: number,
+	start_time: Date,
+	peak_time: Date,
+	end_time: Date,
+	active_region: number | null,
+	id: number | null,
+	flux: number | null,
+	linked_events: null | string[],
+};
+
+export type CME = {
+	src: string,
+	time: Date,
+	lat: number | null,
+	lon: number | null,
+	speed: number | null,
+	id: number | null,
+	linked_events: null | string[],
+};
+
+export type ICME = {
+	src: string,
+	time: Date,
+	cmes_time: null | string[],
 };
 
 export type ChangeLogEntry = {

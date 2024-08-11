@@ -2,12 +2,12 @@ import { useContext } from 'react';
 import { useContextMenu, openContextMenu, color } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { TableWithCursor } from './TableView';
-import { equalValues, valueToString } from '../events';
-import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from '../eventsState';
+import { equalValues, valueToString, type ICME } from '../events';
+import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
-	const detail = useContextMenu(state => state.menu?.detail) as { icme: RowDict } | undefined;
+	const detail = useContextMenu(state => state.menu?.detail) as { icme: ICME } | undefined;
 	const { id } = useFeidCursor();
 	const icme = detail?.icme;
 	const erupt = useSource('sources_erupt');
@@ -48,9 +48,9 @@ function Panel() {
 		entity: 'ICMEs',
 		data, columns, size, focusIdx, onKeydown: e => {
 			if (cursor && erupt && e.key === '-')
-				return unlinkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns));
+				return unlinkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME);
 			if (cursor && ['+', '='].includes(e.key))
-				return feidId && linkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns), feidId);
+				return feidId && linkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME, feidId);
 		},
 		row: (row, idx, onClick, padRow) => {
 			const icme = rowAsDict(row as any, columns);
@@ -72,7 +72,7 @@ function Panel() {
 						onClick={e => {
 							if (cidx === 0) {
 								if (feidId)
-									linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns), feidId);
+									linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns) as ICME, feidId);
 								return;
 							}
 							onClick(idx, cidx);

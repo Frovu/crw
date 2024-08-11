@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useEventsSettings } from '../../events/events';
+import { useEventsSettings, type Flare } from '../../events/events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../../events/eventsState';
 import { serializeCoords, useCompoundTable } from '../../events/sources';
 import type uPlot from 'uplot';
@@ -7,7 +7,7 @@ import { color } from '../../app';
 import { font, scaled } from '../plotUtil';
 import type { BasicPlotParams } from '../basicPlot';
 
-type FlareOnset = { time: Date, sources: string[], flare: { class: string, lat: number, lon: number, src: string, peak_time: Date } };
+type FlareOnset = { time: Date, sources: string[], flare: Flare };
 
 export function flaresOnsetsPlugin({ params, flares, focusTime }:
 { params: BasicPlotParams, flares: FlareOnset[], focusTime: Date }): uPlot.Plugin {

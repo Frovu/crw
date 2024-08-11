@@ -6,14 +6,15 @@ import { useFeidCursor, useEventsState, useSources, useTable, makeChange, create
 import { getSourceLink, useTableQuery } from './sources';
 import { ValidatedInput } from '../Utility';
 import { LayoutContext } from '../layout';
+import type { FeidSrcRow } from './events';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Menu() {
-	const detail = useContextMenu(state => state.menu?.detail) as { source: { id: number, feid_id: number } } | undefined;
+	const detail = useContextMenu(state => state.menu?.detail) as { source: FeidSrcRow } | undefined;
 
 	return detail?.source && <div>
-		<button className='TextButton' onClick={() => deleteEvent('feid_sources', detail.source.id as number)}>Delete source</button>
+		<button className='TextButton' onClick={() => deleteEvent('feid_sources', detail.source.id)}>Delete source</button>
 	</div>;
 }
 
@@ -116,9 +117,9 @@ function Panel() {
 		const modSrc = useEventsState.getState().modifySource;
 		const idx = sources.findIndex(s => s.source.id === modSrc);
 		if (idx < 0)
-			return setModifySource(sources.at(0)?.source.id as number || null);
+			return setModifySource(sources.at(0)?.source.id || null);
 		const nxt = sources[(idx + 1) % sources.length];
-		setModifySource(nxt.source.id as number);
+		setModifySource(nxt.source.id);
 	});
 
 	if (plotId == null || feidId == null || !start)
@@ -137,10 +138,10 @@ function Panel() {
 		const column = srcs.columns?.find(c => c.id === 'cr_influence')!;
 		const opts = column.enum!;
 		const value = opts[(opts.length + opts.indexOf(src.source.cr_influence as any) + dir) % opts.length];
-		makeChange('feid_sources', { column: column.id, value, id: src.source.id as number, fast: true });
+		makeChange('feid_sources', { column: column.id, value, id: src.source.id, fast: true });
 	};
 	const InflButton = ({ src }: { src: typeof sources[number] }) => {
-		const infl = src.source.cr_influence as string;
+		const infl = src.source.cr_influence;
 		return <td className='TextButton' height={10} width={84}
 			style={{ minWidth: 80, color: color({ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ??  'red'), whiteSpace: 'nowrap' }}
 			onContextMenu={e => {e.stopPropagation(); e.preventDefault(); cycleInfl(src, -1); }}
@@ -195,12 +196,14 @@ function Panel() {
 						
 					</td>
 				</tr>
-				<tr style={{ fontSize: 12 }}><td colSpan={4}>
+				{(feid.flr_time || feid.cme_time) &&  <tr style={{ fontSize: 12 }}><td colSpan={4}>
 					<div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
-						{feid.flr_time && <div>flr {prettyDate(feid.flr_time).slice(5, 16)}</div>}
-						{feid.cme_time && <div>cme {prettyDate(feid.cme_time).slice(5, 16)}</div>}
+						{feid.flr_time && <div style={{ color: color(sources.find(s => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime()) ? 'green' : 'red') }}>
+							flr {prettyDate(feid.flr_time).slice(5, 16)}</div>}
+						{feid.cme_time && <div style={{ color: color(sources.find(s => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime()) ? 'green' : 'red') }}>
+							cme {prettyDate(feid.cme_time).slice(5, 16)}</div>}
 					</div>
-				</td></tr>
+				</td></tr>}
 				<tr style={{ height: 23 }} title='Source description'>
 					<td colSpan={4}><ValidatedInput type='text' value={feid.s_description}
 						style={{ width: '100%', padding: 0, background: color('input-bg', .5) }}
@@ -248,7 +251,7 @@ function Panel() {
 					</tbody></table>
 				</div>;})}
 			{sources.filter(s => s.ch).map((src, i) => {
-				const srcId = src.source.id as number;
+				const srcId = src.source.id;
 				const isActive = srcId === modifySource;
 
 				const clr = (which: 'solen' | 'chimera') => {
