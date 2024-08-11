@@ -24,7 +24,7 @@ const defaultParams = {
 };
 type Params = Partial<typeof defaultParams>;
 
-const useSunViewState = create<{
+export const useSunViewState = create<{
 	time: number,
 	setTime: (a: number) => void
 }>()(set => ({
@@ -357,7 +357,7 @@ function Panel() {
 			lon: activeErupt?.lon as number,
 			time: start,
 			start: start - 3600 * 2,
-			end: start + 3600 * 5,
+			end: start + 3600 * 6,
 			title: 'CME',
 			src: activeErupt.coords_source as string
 		}}/>;

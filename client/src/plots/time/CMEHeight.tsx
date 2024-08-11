@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from 'react-query';
 import { apiGet } from '../../util';
 import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
@@ -7,6 +7,7 @@ import { ExportableUplot } from '../../events/ExportPlot';
 import { color } from '../../app';
 import { useSolarPlotContext } from './solar';
 import { usePlotParams, type EventsPanel } from '../../events/events';
+import { SolarPlotOverlay } from '../BasicPlot';
 
 const colors = {
 	north: 'green',
@@ -20,6 +21,8 @@ function Panel() {
 	const { showGrid } = params;
 	const { interval } = useSolarPlotContext();
 	const [from, to] = interval.map(d => Math.floor(d.getTime() / 1e3));
+
+	const [upl, setUpl] = useState<uPlot | null>(null);
 
 	const query = useQuery(['CMEHT', from, to], () =>
 		apiGet<{ time: number, speed: number, width: number, mpa: number, ht: [number, number][] }[]>('events/cme_heighttime',
@@ -98,7 +101,7 @@ function Panel() {
 				]
 			} as Omit<uPlot.Options, 'width'|'height'>;
 		};
-		return <ExportableUplot {...{ options, data: null as any }}/>;
+		return <ExportableUplot {...{ options, data: null as any, onCreate: setUpl }}/>;
 	}, [query.isLoading, query.data, showGrid, params, from, to]);
 	
 	if (query.isError)
@@ -109,6 +112,7 @@ function Panel() {
 		return <div className='Center'>NO LASCO CMEs</div>;
 	return <div>
 		{plot}
+		{upl && <SolarPlotOverlay upl={upl}/>}
 	</div>;
 }
 

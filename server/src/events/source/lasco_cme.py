@@ -72,7 +72,7 @@ def scrape_halo():
 		if 'ackside' in loc or loc.endswith('b'):
 			lat, lon = None, None
 		else:
-			lat, lon = parse_coords(loc)
+			lat, lon = parse_coords(loc) if '--' not in loc else (None, None)
 		strs = [None if '--' in v else v for v in vals[7:9]]
 		res = [time, *numbers, *strs, lat, lon]
 		data.append(res)

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useContext, useMemo, useState } from 'react';
 import { useQuery } from 'react-query';
 import { usePlotOverlay, axisDefaults, customTimeSplits, 
 	markersPaths, color, type Size, scaled, getParam, getFontSize } from './plotUtil';
@@ -6,6 +6,8 @@ import uPlot from 'uplot';
 import { ExportableUplot } from '../events/ExportPlot';
 import { type BasicPlotParams, type CustomAxis, type CustomSeries, type CustomScale,
 	tooltipPlugin, metainfoPlugin, legendPlugin, labelsPlugin, paddedInterval, sliceData, actionsPlugin } from './basicPlot';
+import { useSunViewState } from '../events/SunView';
+import { LayoutContext } from '../layout';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 
@@ -14,6 +16,10 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 	metaParams?: Partial<Parameters<typeof metainfoPlugin>[0]>,
 	tooltipParams?: Partial<Parameters<typeof tooltipPlugin>[0]>,
 	options?: () => Partial<uPlot.Options>, axes: () => CustomAxis[], series: () => CustomSeries[] }) {
+
+	const [upl, setUpl] = useState<uPlot | null>(null);
+	const layoutContext = useContext(LayoutContext);
+
 	const query = useQuery({
 		queryKey: [paddedInterval(params.interval), ...queryKey],
 		queryFn
@@ -99,6 +105,12 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 			],
 		} as uPlot.Options;
 	}, [params, query.data]); // eslint-disable-line
+
+	const data = useMemo(() => {
+		if (!query.data)
+			return null;
+		return sliceData(query.data, params.interval);
+	}, [query.data, params.interval]);
 	
 	if (query.isLoading)
 		return <div className='Center'>LOADING...</div>;
@@ -108,7 +120,15 @@ export default function BasicPlot({ queryKey, queryFn, options: userOptions, axe
 		return <div className='Center'>NO DATA</div>;
 
 	return (<div style={{ position: 'absolute' }}>
-		<ExportableUplot {...{ size: calcSize, options, data: sliceData(query.data, params.interval) }}/>
+		<ExportableUplot {...{ size: calcSize, options, data: data!, onCreate: setUpl }}/>
+		{(layoutContext?.panel as any)?.isSolar && upl && <SolarPlotOverlay upl={upl}/>} 
 	</div>);
+}
 
+export function SolarPlotOverlay({ upl }: { upl: uPlot}) {
+	const { time } = useSunViewState();
+
+	const x = upl.valToPos(time, 'x', true);
+
+	return <div style={{ position: 'absolute', top: 0, left: x, height: '100%', width: 2, background: color('text', .5) }}/>;
 }
