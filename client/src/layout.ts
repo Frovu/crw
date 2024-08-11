@@ -42,7 +42,7 @@ export type AppLayoutProps<T> = {
 	panels: { [name: string]: Panel<T> }
 };
 
-export type LayoutContextType<T> = { id: string, size: Size, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
+export type LayoutContextType<T> = { id: string, size: Size, panel: Panel<unknown>, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
 export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
 
 export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);

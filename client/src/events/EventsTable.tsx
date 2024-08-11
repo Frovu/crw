@@ -1,9 +1,9 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
 import { AuthContext, useContextMenu, openContextMenu } from '../app';
-import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
+import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType, AppLayoutContext } from '../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import { type TableMenuDetails, useEventsSettings,  copyAverages, valueToString,
-	SampleContext, TableViewContext, findColumn, setStatColumn, type EventsSettings } from './events';
+	SampleContext, TableViewContext, findColumn, setStatColumn, type EventsSettings, type EventsPanel } from './events';
 import { useSampleState, defaultFilterOp } from './sample';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
@@ -11,7 +11,6 @@ import SampleView from './Sample';
 import TableView from './tables/TableView';
 import { useQueryClient } from 'react-query';
 import { useEventsState, useTable } from './eventsState';
-import { eventsPanels } from './eventsPanels';
 
 const defaultParams = {
 	showChangelog: false,
@@ -118,10 +117,11 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 	const { role } = useContext(AuthContext);
 	const details = (useContextMenu(state => state.menu?.detail) || null) as LayoutsMenuDetails & TableMenuDetails | null;
 	const { toggleSort, setPlotId } = useEventsState();
+	const panels = Object.values(useContext(AppLayoutContext).panels) as EventsPanel<unknown>[];
 	const layout = useLayout();
 	const { addFilter } = useSampleState(); 
 
-	const statsPresent = Object.values(layout.items).some(node => Object.values(eventsPanels).find(p => p.name === node?.type)?.isStat);
+	const statsPresent = Object.values(layout.items).some(node => panels.find(p => p.name === node?.type)?.isStat);
 	const column = details?.cell?.column ?? details?.header;
 	const value = details?.cell?.value;
 	const rowId = details?.cell?.id;

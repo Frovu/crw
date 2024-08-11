@@ -61,7 +61,7 @@ function Window({ id }: { id: string}) {
 	onDoubleClick={() => closeWindow(id)}
 	onMouseDown={e => { drag.current = { pos, x: e.clientX, y: e.clientY }; }}
 	onContextMenu={openContextMenu('layout', { nodeId: id, window: { ...params } })}>
-		<LayoutContext.Provider value={{ id, size, params, isWindow: true,
+		<LayoutContext.Provider value={{ id, size, params, panel, isWindow: true,
 			setParams: (para) => setWindowParams(id, para) }}>
 			<CatchErrors>
 				<panel.Panel/>
@@ -97,7 +97,7 @@ function Item({ id, size }: { id: string, size: Size }) {
 		onMouseDown={e => e.ctrlKey && startDrag(id)}
 		onMouseEnter={() => dragOver(id)}
 		onMouseUp={() => finishDrag()}>
-		{panel && <LayoutContext.Provider value={{ id, size, params,
+		{panel && <LayoutContext.Provider value={{ id, size, params, panel,
 			setParams: (para) => setNodeParams(id, para) }}>
 			<CatchErrors>
 				<panel.Panel/>
@@ -264,7 +264,7 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 
 	useEventListener('resetSettings', () => resetLayout());
 
-	useEffect(() => {
+	useEffect(() => { // FIXME: but idk how
 		useLayoutsStore.setState(st => {
 			st.panels[getApp()] = Object.values(props.panels);
 		});
