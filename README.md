@@ -13,3 +13,5 @@ Developed and used at IZMIRAN
 - Superposed epochs with solar params 
 - Favorite samples
 - Distinguish samples in list
+
+- FIX: commit message clips outside the screen when too many changes

@@ -129,7 +129,7 @@ function Panel() {
 		onError: (err) => logError(err?.toString())
 	});
 
-	const framesTotal = query.data?.frames.length ?? 1;
+	const framesTotal = query.data?.frames.length ?? 0;
 
 	useEffect(() => {
 		const tst = query.data?.frames[frame]?.timestamp;
@@ -168,6 +168,8 @@ function Panel() {
 		return <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>;
 	if (!query.data)
 		return <div className='Center'>LOADING..</div>;
+	if (framesTotal <= 0)
+		return <div className='Center'>NO CHIMERA DATA</div>;
 
 	const { columns, holes, frames } = query.data;
 	const { timestamp, url, holesTimestamp } = frames[frame < frames.length ? frame : 0];

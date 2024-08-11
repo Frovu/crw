@@ -72,7 +72,8 @@ function Panel() {
 		data.findIndex(r => (r[1] as Date)?.getTime() > focusTime);
 
 	const dtTarget = cursor ? cursorCh.time : anySourceCh ? anySourceCh.time : focusTime == null ? null : new Date(focusTime);
-	const dt = chimeraRules ? new Date((Math.round(stateTime / 86400) - 1) * 864e5)
+	const dt = chimeraRules && Math.abs(stateTime * 1e3 - (dtTarget?.getTime() ?? stateTime)) < 3 * 864e5
+		? new Date((Math.round(stateTime / 86400) - 1) * 864e5)
 		: dtTarget && new Date(dtTarget?.getTime() + (frame - Math.ceil(framesTotal / 2)) * 864e5);
 	const ext = (dt && dt >= SOLEN_PNG_SINCE) ? 'png' : 'jpg';
 	const y = dt?.getUTCFullYear(), m = dt?.getUTCMonth(), d = dt?.getUTCDate();

@@ -41,7 +41,7 @@ def parse_xf():
 			xclass = None
 			for ch, u in classes[::-1]:
 				if flux >= u:
-					xclass = f'{ch}{(flux / u):.1f}'
+					xclass = f'{ch}{(flux / u):.1f}'[:4]
 					break
 			row = {
 				'start_time': time,

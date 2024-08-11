@@ -98,8 +98,8 @@ def _scrape_flares(progr, dt_start, dt_end):
 			stop = datetime.combine(stop_date, stop)
 			peak = datetime.combine(peak_date, peak)
 
-			coords = re.search(r'(S|N)[\dWE]{4,6}', pos)[0]
-			lat, lon = parse_coords(coords)
+			coords = re.search(r'(S|N)[\dWE]{4,6}', pos)
+			lat, lon = parse_coords(coords[0]) if coords else (None, None)
 			m = re.search(r'region=(\d+)', pos)
 			ar = None if '(  )' in pos else m and int(m[1])
 

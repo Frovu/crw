@@ -173,7 +173,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 
 	if (window)
 		return <CatchErrors>
-			{panel.Menu && <panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }}/>}
+			{panel?.Menu && <panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }}/>}
 		</CatchErrors>;
 
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));

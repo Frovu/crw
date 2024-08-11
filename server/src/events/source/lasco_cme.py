@@ -122,7 +122,7 @@ def fetch(progr, month):
 	progr[0] = 1
 	scrape_month(prev_month)
 
-def fetch_height_time(time, width: int, spd: int, mpa: int):
+def fetch_height_time(time, width: int, spd: int, mpa: int, retry_with_s=False):
 	with pool.connection() as conn:
 		ht = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, height FROM events.{TABLE_HT} '+\
 			'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
@@ -131,11 +131,15 @@ def fetch_height_time(time, width: int, spd: int, mpa: int):
 	y, m, d = time.year, time.month, time.day
 	hh, mm, ss = time.hour, time.minute, time.second
 	letter = 'h' if width >= 360 else 'p' if width > 120 else 'n'
-	url = f'{URL}{y}_{m:02}/yht/{y}{m:02}{d:02}.{hh:02}{mm:02}{ss:02}.w{width:03}{letter}.v{spd:04}.p{mpa:03}g.yht'
+	other_letter = 's' if retry_with_s else 'g'
+	url = f'{URL}{y}_{m:02}/yht/{y}{m:02}{d:02}.{hh:02}{mm:02}{ss:02}.w{width:03}{letter}.v{spd:04}.p{mpa:03}{other_letter}.yht'
 	log.debug('Obtaining LASCO CME height-time for %s %s/%s', time, spd, mpa)
 	try:
 		res = requests.get(url, timeout=5)
 		if res.status_code != 200:
+			if not retry_with_s and res.status_code == 404:
+				log.debug('Retrying with s')
+				return fetch_height_time(time, width, spd, mpa, retry_with_s=True)
 			raise Exception('HTTP: '+str(res.status_code))
 		result = []
 		for line in res.text.splitlines():
