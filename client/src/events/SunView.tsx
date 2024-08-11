@@ -19,10 +19,11 @@ const defaultParams = {
 	prefer: 'ANY' as typeof PREFER_FLR[number],
 	src: 'AIA 193' as typeof SDO_SRC[number],
 	enlilVar: 'density' as typeof SDO_SRC[number],
-	frameTime: 50,
+	frameTime: 40,
+	cadence: 4,
 	slave: false,
 };
-type Params = Partial<typeof defaultParams>;
+type Params = typeof defaultParams;
 
 export const useSunViewState = create<{
 	time: number,
@@ -38,7 +39,7 @@ const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
 function Menu({ params, setParams }: ContextMenuProps<Params>) {
 	const para = { ...defaultParams, ...params };
-	const { mode, slave, frameTime } = para;
+	const { mode, slave, frameTime, cadence } = para;
 	const Select = ({ k , opts }: { k: 'mode'|'prefer'|'src'|'enlilVar', opts: readonly string[] }) => <select
 		className='Borderless' value={para[k]} onChange={e => setParams({ [k]: e.target.value as any })}>
 		{opts.map(m => <option key={m} value={m}>{m}</option>)}
@@ -50,8 +51,147 @@ function Menu({ params, setParams }: ContextMenuProps<Params>) {
 		{mode === 'SDO' && <div>Src: <Select k={'src'} opts={SDO_SRC}/></div>}
 		{mode === 'SDO' && <div>Frame time:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
 			min={20} max={1000} value={frameTime} onChange={val => setParams({ frameTime: val ?? 40 })}/></div>}
+		{mode === 'SDO' && <div>Cadence:<NumberInput style={{ width: '4em', margin: '0 2px', padding: 0 }}
+			min={1} max={10} value={cadence} onChange={val => setParams({ cadence: val ? Math.floor(val) : defaultParams.cadence })}/></div>}
 		{mode === 'SDO' && <label>Time slave<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={slave} onChange={e => setParams({ slave: e.target.checked })}/></label>}
+	</div>;
+}
+
+export function SDO({ time: refTime, start, end, lat, lon, title, src }:
+{ time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
+	const { size: nodeSize, params, isWindow, id: nodeId } = useContext(LayoutContext)! as LayoutContextType<Params>;
+	const { src: source, slave, frameTime, cadence } = params;
+	const { time: masterTime, setTime } = useSunViewState();
+	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const size = Math.min(nodeSize.width, nodeSize.height);
+	const [frame, setFrame] = useState(0);
+	const isLsc = source.startsWith('LASCO');
+		
+	const query = useQuery({
+		staleTime: Infinity,
+		queryKey: ['sdo', source, start, end, cadence],
+		queryFn: async () => {
+			if (!start || !end)
+				return [];
+			const res = await apiGet<{ timestamps: number[] }>('events/sun_images',
+				{ from: start, to: end, source });
+		
+			setFrame(0);
+		
+			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end).map(timestamp => {
+				const dir = isLsc ? 'soho/lasco' :
+					((source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1]);
+				const time = new Date(timestamp * 1000);
+				const year = time.getUTCFullYear();
+				const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
+				const day = time.getUTCDate().toString().padStart(2, '0');
+				const hour = time.getUTCHours().toString().padStart(2, '0');
+				const min = time.getUTCMinutes().toString().padStart(2, '0');
+				const sec = time.getUTCSeconds().toString().padStart(2, '0');
+				const fname = `${year}${mon}${day}_${hour}${min}${sec}_` +
+							(isLsc ? `lasc${source.at(-1)}rdf.png` : `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
+				const url = IMG_URL + `${dir}/${year}/${mon}/${day}/${fname}`;
+		
+				const img = new Image();
+				img.src = url;
+				const entry = { timestamp, url, img, loaded: false };
+				img.onload = img.onerror = () => { entry.loaded = true; };
+				setTimeout(() => { entry.loaded = true; }, 5000);
+		
+				return entry;
+			});
+		}
+	});
+		
+	useEffect(() => {
+		if (!query.data || slave)
+			return;
+		const inter = setInterval(() => {
+			if (frame >= query.data.length)
+				return setFrame(0);
+			if (query.data[frame].loaded) {
+				setTime(query.data[frame].timestamp);
+				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
+			}
+		}, frameTime);
+		return () => clearInterval(inter);
+	}, [frame, frameTime, query.data, setTime, slave]);
+		
+	useEffect(() => {
+		if (!query.data || !slave)
+			return;
+		const foundIdx = query.data.findIndex(e => e.timestamp > masterTime);
+		if (foundIdx < 0)
+			setFrame(0);
+		else
+			setFrame(foundIdx);
+	}, [masterTime, query.data, slave]);
+		
+	useEffect(() => {
+		const time = query.data?.[frame]?.timestamp;
+		if (!canvasRef.current)
+			return;
+		const { PI, sin, cos } = Math;
+		const canvas = canvasRef.current;
+		canvas.width = canvas.height = size;
+		const ctx = canvasRef.current.getContext('2d')!;
+		ctx.clearRect(0, 0, size, size);
+		if (!time || isLsc)
+			return;
+		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
+		const aphDoy = 186;
+		const ascDoy = 356;
+		ctx.lineWidth = 1.5;
+		ctx.font = font(10);
+		ctx.setLineDash([8, 18]);
+		ctx.strokeStyle = color('green');
+		ctx.fillStyle = 'white';
+		const scl = size / 512;
+		const x0 = 256.5 * scl;
+		const y0 = 243.5 * scl;
+		const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
+		const rs = (205 - dist * 7) * scl;
+		ctx.arc(x0, y0, rs, 0, 2 * PI);
+		ctx.stroke();
+		ctx.beginPath();
+		if (!lon || Math.abs(lon) < 90)
+			ctx.setLineDash(Math.abs(time - refTime) < 600 ? [8, 8] : []);
+		
+		if (lat != null && lon != null) {
+			const sunRotation = 360 / 27.27 / 86400; // kinda
+			const rot = (time - refTime) * sunRotation;
+			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
+			const flat = lat + decl;
+			const flon = lon + rot;
+			const x = x0 + rs * sin(flon / 180 * PI) * cos(flat / 180 * PI);
+			const y = y0 + rs * -sin(flat / 180 * PI);
+			ctx.arc(x, y, 20, 0, 2 * PI);
+			ctx.fillText(`DOY=${doy.toFixed(1)}`, 4, 14);
+			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
+			ctx.fillText(`rot=${rot.toFixed(2).padStart(5)}`, 4, 38);
+			ctx.fillText(`dist=${dist.toFixed(2)}`, 4, 50);
+		}
+		ctx.stroke();
+		
+	}, [frame, size, query.data, lat, lon, refTime, isLsc]);
+		
+	const isLoaded = query.data && query.data.length > 0;
+		
+	return <div>
+		{query.isLoading && <div className='Center'>LOADING..</div>}
+		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
+		{!isLoaded && query.isSuccess && <div className='Center'>NO SDO DATA</div>}
+		{!isLsc && isLoaded && <div style={{ position: 'absolute', zIndex: 2, color: 'white',
+			top: size - size * 18 / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
+			<b>{src ?? ''}<br/>{title ?? ''}<br/>{serializeCoords({ lat, lon })}</b>
+			<br/>{prettyDate(refTime)}</div>}
+		{isLoaded && <div style={{ position: 'absolute', color: 'white',
+			top: isLsc ? 0 : (size - 18), right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
+		<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }}
+			onClick={e => !isWindow && openWindow({ x: e.clientX - 256, y: e.clientY - 256,
+				w: 512, h: 516, params: { ...params, slave: true } as any, unique: nodeId })}/>
+		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
 }
 
@@ -139,144 +279,6 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 			width={imgSize * (1 + 2 * clip / 512) - 2} alt='' src={src}
 			onError={() =>setState('error')}/>
 		</div>
-	</div>;
-}
-
-function SDO({ time: refTime, start, end, lat, lon, title, src }:
-{ time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
-	const { size: nodeSize, params, isWindow, id: nodeId } = useContext(LayoutContext)! as LayoutContextType<Params>;
-	const { src: source, slave, frameTime } = { ...defaultParams, ...params };
-	const { time: masterTime, setTime } = useSunViewState();
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const size = Math.min(nodeSize.width, nodeSize.height);
-	const [frame, setFrame] = useState(0);
-	const cadence = 2;
-	const isLsc = source.startsWith('LASCO');
-
-	const query = useQuery({
-		staleTime: Infinity,
-		queryKey: ['sdo', source, start, end, cadence],
-		queryFn: async () => {
-			if (!start || !end)
-				return [];
-			const res = await apiGet<{ timestamps: number[] }>('events/sun_images',
-				{ from: start, to: end, source });
-
-			setFrame(0);
-
-			return res.timestamps.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end).map(timestamp => {
-				const dir = isLsc ? 'soho/lasco' :
-					((source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1]);
-				const time = new Date(timestamp * 1000);
-				const year = time.getUTCFullYear();
-				const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
-				const day = time.getUTCDate().toString().padStart(2, '0');
-				const hour = time.getUTCHours().toString().padStart(2, '0');
-				const min = time.getUTCMinutes().toString().padStart(2, '0');
-				const sec = time.getUTCSeconds().toString().padStart(2, '0');
-				const fname = `${year}${mon}${day}_${hour}${min}${sec}_` +
-					(isLsc ? `lasc${source.at(-1)}rdf.png` : `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
-				const url = IMG_URL + `${dir}/${year}/${mon}/${day}/${fname}`;
-
-				const img = new Image();
-				img.src = url;
-				const entry = { timestamp, url, img, loaded: false };
-				img.onload = img.onerror = () => { entry.loaded = true; };
-				setTimeout(() => { entry.loaded = true; }, 5000);
-
-				return entry;
-			});
-		}
-	});
-
-	useEffect(() => {
-		if (!query.data || slave)
-			return;
-		const inter = setInterval(() => {
-			if (frame >= query.data.length)
-				return setFrame(0);
-			if (query.data[frame].loaded) {
-				setTime(query.data[frame].timestamp);
-				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
-			}
-		}, frameTime);
-		return () => clearInterval(inter);
-	}, [frame, frameTime, query.data, setTime, slave]);
-
-	useEffect(() => {
-		if (!query.data || !slave)
-			return;
-		const foundIdx = query.data.findIndex(e => e.timestamp > masterTime);
-		if (foundIdx < 0)
-			setFrame(0);
-		else
-			setFrame(foundIdx);
-	}, [masterTime, query.data, slave]);
-
-	useEffect(() => {
-		const time = query.data?.[frame]?.timestamp;
-		if (!canvasRef.current)
-			return;
-		const { PI, sin, cos } = Math;
-		const canvas = canvasRef.current;
-		canvas.width = canvas.height = size;
-		const ctx = canvasRef.current.getContext('2d')!;
-		ctx.clearRect(0, 0, size, size);
-		if (!time || isLsc)
-			return;
-		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
-		const aphDoy = 186;
-		const ascDoy = 356;
-		ctx.lineWidth = 1.5;
-		ctx.font = font(10);
-		ctx.setLineDash([8, 18]);
-		ctx.strokeStyle = color('green');
-		ctx.fillStyle = 'white';
-		const scl = size / 512;
-		const x0 = 256.5 * scl;
-		const y0 = 243.5 * scl;
-		const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
-		const rs = (205 - dist * 7) * scl;
-		ctx.arc(x0, y0, rs, 0, 2 * PI);
-		ctx.stroke();
-		ctx.beginPath();
-		if (!lon || Math.abs(lon) < 90)
-			ctx.setLineDash(Math.abs(time - refTime) < 600 ? [8, 8] : []);
-
-		if (lat != null && lon != null) {
-			const sunRotation = 360 / 27.27 / 86400; // kinda
-			const rot = (time - refTime) * sunRotation;
-			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
-			const flat = lat + decl;
-			const flon = lon + rot;
-			const x = x0 + rs * sin(flon / 180 * PI) * cos(flat / 180 * PI);
-			const y = y0 + rs * -sin(flat / 180 * PI);
-			ctx.arc(x, y, 20, 0, 2 * PI);
-			ctx.fillText(`DOY=${doy.toFixed(1)}`, 4, 14);
-			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
-			ctx.fillText(`rot=${rot.toFixed(2).padStart(5)}`, 4, 38);
-			ctx.fillText(`dist=${dist.toFixed(2)}`, 4, 50);
-		}
-		ctx.stroke();
-
-	}, [frame, size, query.data, lat, lon, refTime, isLsc]);
-
-	const isLoaded = query.data && query.data.length > 0;
-
-	return <div>
-		{query.isLoading && <div className='Center'>LOADING..</div>}
-		{query.isError && <div className='Center' style={{ color: color('red') }}>FAILED TO LOAD</div>}
-		{!isLoaded && query.isSuccess && <div className='Center'>NO SDO DATA</div>}
-		{!isLsc && isLoaded && <div style={{ position: 'absolute', zIndex: 2, color: 'white',
-			top: size - size * 18 / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
-			<b>{src ?? ''}<br/>{title ?? ''}<br/>{serializeCoords({ lat, lon })}</b>
-			<br/>{prettyDate(refTime)}</div>}
-		{!isLsc && isLoaded && <div style={{ position: 'absolute', color: 'white',
-			top: size - 18, right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
-		<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }}
-			onClick={e => !isWindow && openWindow({ x: e.clientX - 256, y: e.clientY - 256,
-				w: 512, h: 516, params: { ...params, slave: true } as any, unique: nodeId })}/>
-		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
 }
 

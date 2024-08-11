@@ -163,11 +163,11 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string, detail?:
 		return null;
 
 	const item = items[id];
-	const type = item?.type ?? null;
+	const type = (window ? window.type : item?.type) ?? null;
 	const panel: Panel<object> | undefined = panels[type ?? ''];
-	const params: NodeParams<{ [k: string]: any }> = { type, ...panel?.defaultParams, ...item };
+	const params: NodeParams<{ [k: string]: any }> = { type, ...panel?.defaultParams, ...(window ?? item) };
 
-	const Checkbox =   ({ text, k }: { text: string, k: string }) => 
+	const Checkbox = ({ text, k }: { text: string, k: string }) => 
 		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
 			checked={params[k] as boolean} onChange={e => setNodeParams(id, { [k]: e.target.checked })}/></label>;
 

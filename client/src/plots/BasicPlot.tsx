@@ -129,6 +129,8 @@ export function SolarPlotOverlay({ upl }: { upl: uPlot}) {
 	const { time } = useSunViewState();
 
 	const x = upl.valToPos(time, 'x', true);
+	const out = x < upl.bbox.left || x > upl.bbox.left + upl.bbox.width;
 
-	return <div style={{ position: 'absolute', top: 0, left: x, height: '100%', width: 2, background: color('text', .5) }}/>;
+	return out ? null : <div style={{ position: 'absolute',
+		top: 0, left: x, height: '100%', width: 2, background: color('text', .5) }}/>;
 }

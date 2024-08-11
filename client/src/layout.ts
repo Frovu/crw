@@ -42,10 +42,10 @@ export type AppLayoutProps<T> = {
 	panels: { [name: string]: Panel<T> }
 };
 
-export type LayoutContextType<T> = { id: string, size: Size, panel: Panel<unknown>, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
-export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
+export type LayoutContextType<T> = { id: string, size: Size, panel: Panel<{}>, isWindow?: boolean, params: NodeParams<T>, setParams: ParamsSetter<T> };
+export const LayoutContext = createContext<LayoutContextType<{}> | null>(null);
 
-export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
+export const AppLayoutContext = createContext<AppLayoutProps<{}>>({} as any);
 
 type LayoutsState = {
 	dragFrom: null | string,
@@ -53,7 +53,7 @@ type LayoutsState = {
 	apps: {
 		[app: string]: {
 			active: string,
-			list: { [name: string]: Layout<object> },
+			list: { [name: string]: Layout<{}> },
 		}
 	},
 	windows: {
@@ -62,7 +62,7 @@ type LayoutsState = {
 			y: number,
 			w: number,
 			h: number,
-			params: NodeParams<object>,
+			params: NodeParams<{}>,
 			unique?: string,
 		}
 	},

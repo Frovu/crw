@@ -5,7 +5,7 @@ import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled } from '../plotUtil';
 import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
 
-export const defaultParams = {
+const defaultParams = {
 	showShortXrays: true
 };
 

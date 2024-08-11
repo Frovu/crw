@@ -272,30 +272,25 @@ const feidDefaultLayouts: LayoutPreset = {
 			items: {
 				sdo0: {
 					type: 'Sun View',
-					slave: true,
 					src: 'AIA 193',
-					frameTime: 50
 				},
 				sdo1: {
 					type: 'Sun View',
 					src: 'AIA 094',
-					frameTime: 50
+					slave: true,
+					frameTime: 50,
+					cadence: 8,
 				},
 				sdo2: {
 					type: 'Sun View',
-					showMetaLabels: false,
-					showTimeAxis: false,
-					mode: 'SDO',
-					prefer: 'ANY',
 					src: 'LASCO C2',
 					slave: true
 				},
 				sdo3: {
 					type: 'Sun View',
-					slave: true,
 					src: 'AIA 171',
-					mode: 'SDO',
-					frameTime: 60
+					slave: true,
+					cadence: 8,
 				},
 				sunParams0: {
 					type: 'Particles',
@@ -370,7 +365,6 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 				plot3: {
 					type: 'Cosmic Rays',
-					showMetaLabels: true,
 					showAxyVector: true
 				}
 			}
