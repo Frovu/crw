@@ -155,7 +155,12 @@ export const useLayoutsStore = create<LayoutsState>()(
 		})),
 		{
 			name: 'crwAppLayouts',
-			partialize: ({ apps }) => ({ apps })
+			partialize: ({ apps }) => ({ apps }),
+			version: 1,
+			migrate: (persistedState, version) => {
+			  return defaultState;
+			},
+	  
 		}
 	)
 );
