@@ -158,7 +158,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 			partialize: ({ apps }) => ({ apps }),
 			version: 1,
 			migrate: (persistedState, version) => {
-			  return defaultState;
+			  return { ...(persistedState as any), ...defaultState };
 			},
 	  
 		}
