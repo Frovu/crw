@@ -66,9 +66,10 @@ def default_window():
 		GenericRefPoint('event', 0, time_src='FE', events_offset=0, end=True),
 	]
 
-def _select(for_rows, query):
-	columns = ','.join([f'EXTRACT(EPOCH FROM {c})::integer'
-		if 'time' in c else c for c in query])
+def _select(for_rows, query, rel='FE'):
+	relp = '' if rel == 'FE' else (rel.lower() + '_')
+	columns = ','.join([f'EXTRACT(EPOCH FROM {relp}{c})::integer'
+		if 'time' in c else (relp + c) for c in query])
 	select_query = f'SELECT {columns}\nFROM {SELECT_FEID} '
 	if for_rows is not None:
 		select_query += 'WHERE id = ANY(%s) '
@@ -105,7 +106,7 @@ def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds dow
 		has_dur = ref.time_src in G_TIME_SRC_WITH_END
 		assert ref.time_src == 'FE' # FIXME
 		res = cache.get(ref.time_src) or \
-			_select(for_rows, [(ref.time_src, a) for a in ('time',) + (('duration',) if has_dur else ())])
+			_select(for_rows, ('time',) + (('duration',) if has_dur else ()), ref.time_src)
 		cache[ref.time_src] = res
 		e_start, e_dur = res if has_dur else (res, [])
 		e_start, e_dur = [apply_shift(a, ref.events_offset) for a in (e_start, e_dur)]
