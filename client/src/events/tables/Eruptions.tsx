@@ -71,7 +71,7 @@ function Panel() {
 	useTableQuery(ENT);
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	if (!data || !columns)
+	if (!data || !feidSrc.data || !columns)
 		return <div className='Center'>LOADING..</div>;
 	
 	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);

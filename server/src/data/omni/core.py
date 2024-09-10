@@ -137,7 +137,7 @@ def _obtain_izmiran(source, columns, interval):
 
 def _obtain_yermolaev(interv):
 	batches = [obtain_yermolaev_types(y) for y in range(interv[0].year, interv[1].year + 1)]
-	return [d for dt in batches for d in dt]
+	return [d for dt in batches for d in dt or []]
 
 def _cols(group, source='omniweb', do_remove=False):
 	if 'yermolaev' in [source, group]:

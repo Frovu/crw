@@ -147,11 +147,12 @@ export function MonthInput({ interval, callback, monthLimit }:
 		<select onWheel={e => set('month', Math.max(0, Math.min(month + Math.sign(e.deltaY), 11)))}
 			value={monthNames[month]} onChange={e => set('month', monthNames.indexOf(e.target.value))}>
 			{monthNames.map(mon => <option key={mon} id={mon}>{mon}</option>)}
-		</select> <input style={{ width: 68 }} type='number' min='1957' max={new Date().getFullYear()}
-			value={year} onChange={e => !isNaN(e.target.valueAsNumber) && set('year', e.target.valueAsNumber)}
-		/> + <input style={{ width: 48, textAlign: 'center' }} type='number' min='1' max={monthLimit}
+		</select> <NumberInput style={{ width: 56 }} min={1957} max={new Date().getFullYear()}
+			value={year} onChange={v => v && !isNaN(v) && set('year', v)}/>
+		<span style={{ padding: '0 4px' }}>+</span>
+		<input style={{ width: 48, textAlign: 'center', marginRight: 4 }} type='number' min='1' max={monthLimit}
 			value={count} onChange={e => !isNaN(e.target.valueAsNumber) && set('count', e.target.valueAsNumber)}
-		/> month{count === 1 ? '' : 's'}
+		/>month{count === 1 ? '' : 's'}
 	</div>;
 }
 
