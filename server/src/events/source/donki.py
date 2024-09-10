@@ -69,7 +69,9 @@ def next_month(m_start):
 	return end - timedelta(days=end.day - 1)
 
 def parse_time(txt):
-	return datetime.strptime(txt, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
+	tm = datetime.strptime(txt, '%Y-%m-%dT%H:%MZ').replace(tzinfo=timezone.utc)
+	# https://kauai.ccmc.gsfc.nasa.gov/DONKI/view/FLR/18563/2 had 0021-12-16 in date
+	return tm.replace(year=tm.year + 2000) if tm.year < 100 else tm
 
 def _obtain_month(what, month_start: datetime):
 	month_next = next_month(month_start)
@@ -94,7 +96,7 @@ def _obtain_month(what, month_start: datetime):
 			aid, note = cme['activityID'], cme['note']
 			linked = [e['activityID'] for e in cme['linkedEvents'] or []]
 
-			an = next((a for a in cme['cmeAnalyses'] if a['isMostAccurate']), None)
+			an = next((a for a in cme['cmeAnalyses'] or [] if a['isMostAccurate']), None)
 			if not an:
 				log.debug('DONKI CME without analysis: %s', cme['link'])
 				continue

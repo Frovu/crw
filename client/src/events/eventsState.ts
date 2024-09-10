@@ -125,17 +125,15 @@ export const useTable = (tbl: TableName='feid') => ({
 
 export const useFeidCursor = () => {
 	const { data, columns } = useTable();
-	const cursor = useEventsState(st => st.cursor);
 	const plotId = useEventsState(st => st.plotId);
 
-	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
-	const targetIdx = data.findIndex(r => r[0] === targetId);
+	const targetIdx = data.findIndex(r => r[0] === plotId);
 	const row = rowAsDict(data[targetIdx], columns) as FeidRow;
 	const duration = row.duration;
 	const start = row.time;
 	const end = row.duration == null ? undefined : start &&
 		new Date(start?.getTime() + duration! * 36e5);
-	return { duration, start, end, id: targetId, row }; 
+	return { duration, start, end, id: plotId, row }; 
 };
 
 export type RowDict = { [k: string] : Value | undefined };
@@ -143,15 +141,13 @@ export const rowAsDict = (row: any[] | undefined, columns: ColumnDef[]): RowDict
 	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
 
 export const useSources = () => {
-	const cursor = useEventsState(st => st.cursor);
 	const plotId = useEventsState(st => st.plotId);
-	const targetId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const src = useTable('feid_sources');
 	const erupt = useTable('sources_erupt');
 	const ch = useTable('sources_ch');
 	if (!src.data || !erupt.data || !ch.data)
 		return [];
-	return src.data.filter(row => row[fIdIdx] === targetId).map(row => {
+	return src.data.filter(row => row[fIdIdx] === plotId).map(row => {
 		const source = rowAsDict(row, src.columns) as FeidSrcRow;
 		if (row[chIdIdx]) {
 			const found = ch.data.find(r => r[0] === row[chIdIdx]);
@@ -168,15 +164,14 @@ export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft
 (T extends 'sources_ch' ? SrcCHRow : SrcEruptRow) | null => {
 	const plotId = useEventsState(st => st.plotId);
 	const cursor = useEventsState(st => st.cursor);
-	const feidId = cursor?.entity !== 'feid' ? plotId : cursor.id;
 	const modifySource = useEventsState(st => st.modifySource);
 	const src = useTable('feid_sources');
 	const { data, columns } = useTable(tbl);
 	const idIdx = 'sources_erupt' === tbl ? eruptIdIdx : chIdIdx;
 	const targetId = modifySource ? src.data?.find(row => row[0] === modifySource)?.[idIdx] as number :
 		cursor?.entity === tbl ? cursor.id! : !soft ? null :
-			src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId && r[inflIdIdx] === 'primary')?.[idIdx]
-				?? src.data?.find(r => r[idIdx] && r[fIdIdx] === feidId)?.[idIdx];
+			src.data?.find(r => r[idIdx] && r[fIdIdx] === plotId && r[inflIdIdx] === 'primary')?.[idIdx]
+				?? src.data?.find(r => r[idIdx] && r[fIdIdx] === plotId)?.[idIdx];
 	return !data || targetId == null ? null : rowAsDict(data.find(row => row[0] === targetId)!, columns) as any;
 };
 

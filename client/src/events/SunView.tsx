@@ -110,10 +110,8 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src }:
 		const inter = setInterval(() => {
 			if (frame >= query.data.length)
 				return setFrame(0);
-			if (query.data[frame].loaded) {
-				setTime(query.data[frame].timestamp);
-				setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
-			}
+			setTime(query.data[frame].timestamp);
+			setFrame(f => f + 1 >= query.data.length ? 0 : f + 1);
 		}, frameTime);
 		return () => clearInterval(inter);
 	}, [frame, frameTime, query.data, setTime, slave]);

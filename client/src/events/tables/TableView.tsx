@@ -4,7 +4,7 @@ import { clamp, useEventListener, type Size } from '../../util';
 import { TableViewContext, valueToString, parseColumnValue, isValidColumnValue, 
 	MainTableContext, type TableParams, getChangelogEntry, type ChangeLogEntry } from '../events';
 import { pickEventForSample } from '../sample';
-import { openContextMenu } from '../../app';
+import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import type { ColumnDef } from '../columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from '../eventsState';
@@ -33,8 +33,8 @@ export function CellInput({ id, column, value, table, options, change }:
 			setInvalid(!isOk);
 		};
 	
-		const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: 'var(--color-bg)',
-			boxShadow: column.type !== 'enum' ? (' 0 0 16px 4px ' + (invalid ? 'var(--color-red)' : 'var(--color-active)')) : 'unest' };
+		const inpStype = { width: '100%', borderWidth: 0, padding: 0, backgroundColor: color('bg'),
+			boxShadow: column.type !== 'enum' ? (' 0 0 16px 4px ' + (invalid ? color('red') : color('active'))) : 'unest' };
 
 		return <>
 			{column.type === 'enum' && <select autoFocus style={inpStype!}
@@ -312,11 +312,11 @@ export default function TableView({ size, averages, entity }: {
 				return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 			});
 			return <tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15,
-				...(plotId === row[0] && { backgroundColor: 'var(--color-area)' }) }}>
+				...(plotId === row[0] && { color: color('active'), background: color('area') }) }}>
 				{marker && <td title='f: filtered; + whitelisted; - blacklisted'
 					onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}>
-					<span className='Cell' style={{ color: marker.endsWith('+') ? 'var(--color-cyan)' :
-						marker.endsWith('-') ? 'var(--color-magenta)' : 'unset' }}>{marker}</span>
+					<span className='Cell' style={{ color: marker.endsWith('+') ? color('cyan') :
+						marker.endsWith('-') ? color('magenta') : 'unset' }}>{marker}</span>
 				</td>}
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
@@ -329,7 +329,7 @@ export default function TableView({ size, averages, entity }: {
 							if (e.ctrlKey)
 								setPlotId(() => row[0]); }}
 						onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx+1], column } })}
-						style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}>
+						style={{ borderColor: curs ? color('active') : color('border') }}>
 						{curs?.editing ? <CellInput {...{
 							table: entity as any,
 							id: row[0],
@@ -353,7 +353,7 @@ export default function TableView({ size, averages, entity }: {
 				{averages?.map((avgs, i) => {
 					const isLabel = columns[i].type === 'time';
 					const val = avgs?.[ari];
-					return <td key={columns[i].id} style={{ borderColor: 'var(--color-grid)',
+					return <td key={columns[i].id} style={{ borderColor: color('grid'),
 						textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
 					onContextMenu={openContextMenu('events', { nodeId, averages: {
 						averages, label, row: ari, column: i } })}
@@ -371,17 +371,17 @@ export default function TableView({ size, averages, entity }: {
 					str == null ? 'null' : column.type === 'time' ? new Date(parseInt(str)*1e3).toISOString().replace(/\..*|T/g, ' ') : str;
 				return (<div key={JSON.stringify(change)} style={{ margin: '0' }}>
 					<i style={{ color: 'var(--color-text-dark)' }}>[{time.toISOString().replace(/\..*|T/g, ' ').slice(0,-4)}] @{change.author} </i>
-					<i style={{ color: columns[cursor!.column].id === column.id ? 'var(--color-active)' : 'unset' }}> <b>{column.fullName}</b></i>
+					<i style={{ color: columns[cursor!.column].id === column.id ? color('active') : 'unset' }}> <b>{column.fullName}</b></i>
 					: {val(change.old)} -&gt; <b>{val(change.new)}</b>
 					{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
 				</div>);}) : <div className='Center' style={{ color: 'var(--color-text-dark)' }}>NO CHANGES</div>}
 		</div>}
 		<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between', alignContent: 'bottom' }}>
 			<span style={{ color: 'var(--color-text-dark)', fontSize: 14, overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
-				<span style={{ color: 'var(--color-active)' }}> [{data.length}]</span>
+				<span style={{ color: color('active') }}> [{data.length}]</span>
 				{changeCount > 0 && <div style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
 					onClick={e => e.stopPropagation()} onMouseEnter={() => setChangesHovered(true)} onMouseLeave={() => setChangesHovered(false)}>
-					{!changesHovered && <span style={{ color: 'var(--color-red)', fontSize: 14 }}>
+					{!changesHovered && <span style={{ color: color('red'), fontSize: 14 }}>
 						&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;
 					</span>}
 					{changesHovered && <>
