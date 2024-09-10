@@ -308,7 +308,7 @@ export function useSolenHolesQuery() {
 
 export function useCompoundTable(which: EruptEnt) {
 	return useQuery({
-		queryKey: ['erupts:' + which],
+		queryKey: ['events:' + which],
 		staleTime: Infinity,
 		keepPreviousData: true,
 		queryFn: async () => {

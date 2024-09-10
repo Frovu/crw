@@ -40,10 +40,9 @@ function CoverageEntry({ entity, entShort, isSingle, d1, d2, date }:
 				if (state.status === 'done') {
 					queryClient.refetchQueries('events_coverage');
 					queryClient.refetchQueries(entity);
-					if (entity.includes('flares'))
-						queryClient.refetchQueries('flares');
-					if (entity.includes('cme'))
-						queryClient.refetchQueries('CMEs');
+					for (const ent of ['flare', 'cme', 'icme'])
+						if (entity.includes(`_${ent}s`))
+							queryClient.refetchQueries(`events:${ent}`);
 					logSuccess('Updated ' + entShort);
 				} else {
 					logError('Failed to update: ' + state.error);
