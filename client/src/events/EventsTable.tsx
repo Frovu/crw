@@ -171,6 +171,5 @@ export const FeidTable = {
 	name: 'FEID Table',
 	Menu,
 	Panel,
-	defaultParams,
-	isPlot: true
+	defaultParams
 };

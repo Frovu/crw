@@ -2,7 +2,7 @@ import { useRef, useState, useContext, useEffect } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
 import { color, getApp, KEY_COMB, openContextMenu } from './app';
 import { useLayoutsStore, useLayout, relinquishNode, LayoutContext, setNodeParams,
-	gapSize, type LayoutsMenuDetails, splitNode, resetLayout, AppLayoutContext, type AppLayoutProps, 
+	gapSize, type LayoutsMenuDetails, splitNode, resetLayoutsState, AppLayoutContext, type AppLayoutProps, 
 	setWindowParams, closeWindow, moveWindow, type Panel, type NodeParams } from './layout';
 import { CatchErrors } from './Utility';
 import ContextMenu from './ContextMenu';
@@ -262,7 +262,7 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container);
 
-	useEventListener('resetSettings', () => resetLayout());
+	useEventListener('resetSettings', () => resetLayoutsState());
 
 	useEffect(() => { // FIXME: but idk how
 		useLayoutsStore.setState(st => {

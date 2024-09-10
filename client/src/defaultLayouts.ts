@@ -417,7 +417,7 @@ const feidDefaultLayouts: LayoutPreset = {
 					type: 'Export Controls'
 				},
 				colors: {
-					type: 'Color Settings'
+					type: 'Colors Settings'
 				},
 				empty: {
 					type: 'Empty',

@@ -168,7 +168,8 @@ export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =
 		items[nodeId] = Object.assign(items[nodeId]!, para);
 	});
 
-export const resetLayout = () => useLayoutsStore.setState(defaultState);
+export const resetLayoutsState = () =>
+	useLayoutsStore.setState(st => ({ ...defaultState, panels: st.panels }));
 
 export const setWindowParams = <T>(id: string, para: Partial<NodeParams<T>>) =>
 	useLayoutsStore.setState(({ windows }) => {

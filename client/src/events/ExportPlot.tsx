@@ -137,7 +137,10 @@ export function renderOne(nodeId: string) {
 	const { active, list } = useLayoutsStore.getState().apps[getApp()];
 	const { overrides: { scalesParams, textTransform } } = usePlotExportSate.getState();
 	const { layout } = computePlotsLayout();
-	if (!layout[nodeId] || !plots[nodeId]) return;
+
+	if (!layout[nodeId] || !plots[nodeId])
+		return;
+
 	const { options, data } = plots[nodeId];
 	const { w, h } = layout[nodeId];
 	const scl = w < 600 ? 6 : 4;
@@ -153,7 +156,9 @@ export function renderOne(nodeId: string) {
 			...(controlsPresent && { scalesParams, textTransform: textTransform?.filter(tr => tr.enabled) })
 		}),
 		width: Math.round(w * scl),
-		height: Math.round(h * scl), };
+		height: Math.round(h * scl)
+	};
+
 	new uPlot(opts, data as any, (u, init) => {
 		init();
 		queueMicrotask(() => {
