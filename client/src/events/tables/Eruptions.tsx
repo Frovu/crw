@@ -90,10 +90,12 @@ function Panel() {
 			const flare = erupt.flr_source === 'MNL' ? null : (() => {
 				const [linkColId, idColId] = getSourceLink('flare', erupt.flr_source);
 				const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
-				const flr = erupt[linkColId] && flares.data?.find(r => equalValues(r[idColIdx], erupt[linkColId]));
+				const flr = erupt[linkColId] && flares.data?.find(r =>
+					equalValues(r[idColIdx], erupt[linkColId]) && r[0] === erupt.flr_source);
 				return flr ? rowAsDict(flr, flares.columns) as Flare: null;
 			})();
 			const orphan = !feidSrc.data.find(r => r[eruptIdIdx] === row[0]);
+		
 			return <tr key={row[0]}
 				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.slice(1).map((column, scidx) => {
@@ -114,7 +116,7 @@ function Panel() {
 						const [linkColId, idColId] = getSourceLink('flare', flrSrc);
 						const idColIdx = flares.columns?.findIndex(col => col.id === idColId);
 						const flr = erupt[linkColId] && flares.data?.find(r =>
-							equalValues(r[idColIdx], erupt[linkColId]));
+							r[0] === flrSrc && equalValues(r[idColIdx], erupt[linkColId]));
 						return flr ? rowAsDict(flr, flares.columns!) as Flare : null;
 					}).filter(s => s) : [];
 					const cmeOpts = (curs && ['cme_source', 'coords_source'].includes(cid)) ? sourceLabels.cme.map(cmeSrc => {

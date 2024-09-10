@@ -58,6 +58,7 @@ function Panel() {
 			return current; }
 		if (current == null)
 			return null;
+		queueMicrotask(() => setCursor(null));
 		if (plotUnlistedEvents && global)
 			return allData[clamp(0, allData.length - 1, allData.findIndex(r => r[0] === current) + dir)][0];
 		const found = shownData.findIndex(r => r[0] === current);
