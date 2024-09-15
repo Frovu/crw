@@ -73,10 +73,13 @@ export function useSolarPlotContext() {
 	const { plotOffsetSolar } = useEventsSettings();
 	const erupt = useSource('sources_erupt', true);
 	const flr = useCompoundTable('flare');
+	const cme = useCompoundTable('cme');
 
 	const focusTime = cursor?.entity === 'flares' ?
-		rowAsDict(flr.data[cursor.row], flr.columns).start_time as Date
-		: (erupt?.flr_start ?? erupt?.cme_time) as Date
+		rowAsDict(flr.data[cursor.row], flr.columns).start_time as Date :
+		cursor?.entity === 'CMEs' ?
+			rowAsDict(cme.data[cursor.row], cme.columns).time as Date
+			: (erupt?.flr_start ?? erupt?.cme_time) as Date
 		?? new Date((feidTime?.getTime() ?? 0) - 3 * 864e5);
 	const interval = plotOffsetSolar.map(o =>
 		new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
