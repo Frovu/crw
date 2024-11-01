@@ -267,7 +267,7 @@ def compute_generic(g, for_row=None):
 	try:
 		t_start = time()
 		if for_row is not None:
-			ids = _select(None, [('forbush_effects', 'id')])[0].astype(int)
+			ids = _select(None, ('id',))[0].astype(int)
 			idx = np.where(ids == for_row)[0][0]
 			margin = 3
 			target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
