@@ -95,7 +95,7 @@ def _select_series(t_1, t_2, series):
 	arr = np.array(res, dtype='object' if series == 'sw_type' else 'f8')
 	if len(arr) < 1:
 		return arr, arr
-	if len(arr) - (arr[-1,0] - arr[0,0]) // HOUR > 1: # FIXME: data may shift by 1 hour ??
+	if (arr[-1,0] - arr[0,0]) // HOUR - len(arr) > 1: # FIXME: data may shift by 1 hour ??
 		log.error('Data is not continous for %s', series)
 		raise BaseException('Data is not continous')
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
@@ -104,7 +104,7 @@ def _select_series(t_1, t_2, series):
 def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds down
 	if ref.type == 'event':
 		has_dur = ref.time_src in G_TIME_SRC_WITH_END
-		assert ref.time_src == 'FE' # FIXME
+		# assert ref.time_src == 'FE' # FIXME
 		res = cache.get(ref.time_src) or \
 			_select(for_rows, ('time',) + (('duration',) if has_dur else ()), ref.time_src)
 		cache[ref.time_src] = res
@@ -284,6 +284,7 @@ def compute_generic(g, for_row=None):
 			result /= 10
 		result = np.where(~np.isfinite(result), None, np.round(result, 2))
 		data = np.column_stack((target_id, result)).tolist()
+		print(g.pretty_name, data)
 		upsert_many('events.generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
 		with pool.connection() as conn:
 			apply_changes(conn, g.name)
