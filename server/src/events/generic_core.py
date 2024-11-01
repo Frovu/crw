@@ -284,7 +284,6 @@ def compute_generic(g, for_row=None):
 			result /= 10
 		result = np.where(~np.isfinite(result), None, np.round(result, 2))
 		data = np.column_stack((target_id, result)).tolist()
-		print(g.pretty_name, data)
 		upsert_many('events.generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
 		with pool.connection() as conn:
 			apply_changes(conn, g.name)
