@@ -30,7 +30,7 @@ def _epoch_collision():
 	series = request.json.get('series')
 	if not times or not interval or not series:
 		raise ValueError('malformed request')
-	if interval[1] - interval[0] <= 0 or int(interval[1]) - int(interval[0]) > 600:
+	if interval[1] - interval[0] <= 0 or int(interval[1]) - int(interval[0]) > 1200:
 		raise ValueError('interval too large')
 
 	res = epoch_collision(times, interval, series)
