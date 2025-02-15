@@ -1,5 +1,5 @@
 ## Dpendencies
-`Flask flask-session flask-bcrypt "psycopg[binary,pool]" pymysql numpy scipy`
+`Flask flask-session flask-bcrypt flask-compress "psycopg[binary,pool]" pymysql numpy scipy netcdf4 statsmodels`
 
 ## .env
 
