@@ -1,5 +1,5 @@
 import { useQuery } from 'react-query';
-import { color, axisDefaults, seriesDefaults } from '../../plots/plotUtil';
+import { color, axisDefaults, seriesDefaults, customTimeSplits } from '../../plots/plotUtil';
 import { apiGet, clamp, useMonthInput, useSize } from '../../util';
 import { useEffect, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
@@ -24,6 +24,7 @@ function plotOptions(): Omit<uPlot.Options,'width'|'height'> {
 		axes: [
 			{
 				...axisDefaults(true),
+				...customTimeSplits()
 			}, {
 				...axisDefaults(true),
 				scale: 't'

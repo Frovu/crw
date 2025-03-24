@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost, prettyDate, useMonthInput } from '../../util';
-import { axisDefaults, seriesDefaults, color, ScatterPlot } from '../../plots/plotUtil';
+import { axisDefaults, seriesDefaults, color, ScatterPlot, customTimeSplits } from '../../plots/plotUtil';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import regression from 'regression';
 import uPlot from 'uplot';
@@ -70,6 +70,7 @@ function options(): Omit<uPlot.Options, 'width'|'height'> {
 			{
 				
 				...axisDefaults(true),
+				...customTimeSplits()
 			}, {
 				...axisDefaults(true, filter(-1)),
 				scale: 'variation',
