@@ -113,6 +113,12 @@ FEID = ['feid', { c.name: c for c in [
 		computed=True,
 		pretty_name='VmBm',
 		description='Vmax / 400 * Bmax / 5'),
+	C_FE('pre_increase',
+		pretty_name='pre incr',
+		description='0 - no pre-increse, 1 - questionable, 2 - confident'),
+	C_FE('pre_decrease',
+		pretty_name='pre decr',
+		description='0 - no pre-decrese, 1 - questionable, 2 - confident'),
 	C_FE('comment', data_type='text', description='Additional information'),
 
 	C_MC('time', data_type='time', parse_name='MCStartTime'),
