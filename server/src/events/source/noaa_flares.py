@@ -3,7 +3,7 @@ from events.table_structure import ColumnDef
 
 TABLE = 'legacy_noaa_flares'
 
-Col = lambda *args, **kwargs: ColumnDef(TABLE, *args, **kwargs)
+Col = lambda *args, **kwargs: ColumnDef(TABLE, *args, **kwargs, rel='FLR')
 
 COLS =[
 	Col('start_time', not_null=True, sql='start_time timestamptz PRIMARY KEY', data_type='time', pretty_name='start'),

@@ -1,9 +1,10 @@
+from calendar import c
 from datetime import datetime, timezone
 from database import pool, log
 from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
 from events.generic_columns import select_generics
 from events.generic_core import G_SERIES, G_DERIVED
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
+from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info, noaa_flares
 
 TABLES = {
 	donki.FLR_TABLE: donki.FLR_COLS,
@@ -34,6 +35,8 @@ def render_table_info(uid):
 	for tbl in [FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT]:
 		table, columns = tbl
 		info[table] = { name: col.as_dict() for name, col in columns.items() }
+	for col in noaa_flares.COLS:
+		info['feid'][col.name] = col.as_dict()
 	for g in generics:
 		info['feid'][g.name] = {
 			'id': g.name,
@@ -55,14 +58,14 @@ def select_events(entity):
 	with pool.connection() as conn:
 		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
 		time_col = next((c for c in cols if 'time' in c.name), None)
-		data = conn.execute(f'SELECT {cl} FROM events.{entity} '+\
-			f'ORDER BY {time_col.name if time_col else "id"}').fetchall()
+		q = f'SELECT {cl} FROM events.{entity} ORDER BY {time_col.name if time_col else "id"}'
+		data = conn.execute(q).fetchall()
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
 def select_feid(uid=None, changelog=False):
 	generics = select_generics(uid)
 	columns = []
-	for col in list(FEID[1].values()) + generics:
+	for col in list(FEID[1].values()) + noaa_flares.COLS + generics:
 		value = f'EXTRACT(EPOCH FROM {col.name})::integer' if col.data_type == 'time' else col.name
 		columns.append(f'{value} as {col.name}')
 	select_query = f'SELECT {", ".join(columns)} FROM {SELECT_FEID} ORDER BY time'
@@ -133,9 +136,9 @@ def submit_changes(uid, entities):
 					cols = list(created.keys())
 					inserted_id = conn.execute(f'INSERT INTO events.{entity} ({",".join(cols)}) ' +\
 						f'VALUES ({",".join(['%s' for c in cols])}) RETURNING id', list(created.values())).fetchone()[0]
-					
+
 					inserted_ids[create_id] = inserted_id
-									
+
 					conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, special) '+\
 						'VALUES (%s,%s,%s,%s)', [uid, inserted_id, entity, 'create'])
 					log.info(f'Event created by user #{uid}: {entity}#{inserted_id} {created.get('time', '')}')
@@ -167,7 +170,7 @@ def submit_changes(uid, entities):
 							raise ValueError(f'Bad enum value for {found_column.pretty_name}: {value}')
 					table = 'generic_data' if found_generic else entity
 					id_col = 'feid_id' if found_generic else 'id'
-					
+
 					if change_id not in inserted_ids:
 						res = conn.execute(f'SELECT {column} FROM events.{table} WHERE {id_col} = %s', [target_id]).fetchone()
 						if not res or target_id in entities[entity]['deleted']:

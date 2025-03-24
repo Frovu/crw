@@ -512,9 +512,9 @@ export function PlotIntervalInput({ step: alterStep, solar }: { step?: number, s
 	const step = alterStep ?? (solar ? 6 : 24);
 
 	return <div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title='Plot time interval, as hours offset from event onset'>
-		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-240' max='0' step={step} defaultValue={left}
+		Interval: <input style={{ width: 54, height: '1.25em' }} type='number' min='-360' max='0' step={step} defaultValue={left}
 			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [e.target.valueAsNumber, right])}/>
-		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='240' step={step} defaultValue={right}
+		/ <input style={{ width: 54, height: '1.25em' }} type='number' min={step} max='360' step={step} defaultValue={right}
 			onChange={e => !isNaN(e.target.valueAsNumber) && set(target, [left, e.target.valueAsNumber])}/> h
 	</div>;
 }

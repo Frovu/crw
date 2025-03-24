@@ -24,7 +24,7 @@ class ColumnDef:
 	def __post_init__(self):
 		if self.sql:
 			return
-		
+
 		dtype = self.data_type
 		if dtype == 'time':
 			dtype = 'timestamptz'
@@ -62,7 +62,7 @@ C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], pre
 C_CME = lambda *args, **kwargs: ColumnDef('feid', 'cme_'+args[0], *args[1:], **kwargs, rel='CME')
 C_FLR = lambda *args, **kwargs: ColumnDef('feid', 'flr_'+args[0], *args[1:], **kwargs, rel='FLR')
 
-SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id'
+SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = flr_time'
 
 FEID = ['feid', { c.name: c for c in [
 	C_FE('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
