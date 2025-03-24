@@ -130,8 +130,10 @@ def submit_changes(uid, entities):
 					if entity == 'feid_sources':
 						for f in created:
 							created[f] = inserted_ids.get(created[f], created[f])
-							if created[f] is None:
-								del created[f]
+					
+					for f in list(created.keys()):
+						if created[f] is None:
+							del created[f]
 
 					cols = list(created.keys())
 					inserted_id = conn.execute(f'INSERT INTO events.{entity} ({",".join(cols)}) ' +\
