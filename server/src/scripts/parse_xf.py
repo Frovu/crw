@@ -7,7 +7,7 @@ from events.source.noaa_flares import TABLE, COLS
 PATH = 'tmp/XF_table.txt'
 
 COLUMNS = {
-	'flux': slice(27, 37), # !
+	'flux': slice(26, 37), # !
 	'dt': slice(37, 42),
 	'dt1': slice(42, 47),
 	'lat': slice(90, 94),
@@ -56,11 +56,11 @@ def parse_xf():
 				'class': xclass,
 				'active_region': int(values['active_region']) if values['active_region'] > 0 else None
 			}
-		
 			data.append([row[c] if c in row else values[c] for c in columns])
 
 	print('parsed', len(data))
 	upsert_many('events.'+TABLE, columns, data, conflict_constraint='start_time', write_nulls=True)
+	print('inserted')
 
 if __name__ == '__main__':
 	parse_xf()

@@ -113,6 +113,11 @@ FEID = ['feid', { c.name: c for c in [
 		computed=True,
 		pretty_name='VmBm',
 		description='Vmax / 400 * Bmax / 5'),
+
+	C_FE('base_period',
+	  	data_type='time',
+		pretty_name='base',
+		description='24-h base period start'),
 	C_FE('pre_increase',
 		pretty_name='pre incr',
 		description='0 - no pre-increse, 1 - questionable, 2 - confident'),
