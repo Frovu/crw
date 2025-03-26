@@ -2,7 +2,7 @@ from calendar import c
 from datetime import datetime, timezone
 from database import pool, log
 from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
-from events.generic_columns import select_generics
+from events.generic_columns import select_generics, GenericColumn
 from events.generic_core import G_SERIES, G_DERIVED
 from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info, noaa_flares
 
@@ -51,10 +51,11 @@ def render_table_info(uid):
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
 	return { 'tables': info, 'series': series }
 
-def select_events(entity):
+def select_events(entity, include):
 	if entity not in TABLES:
 		raise ValueError('Unknown entity: '+entity)
 	cols = TABLES[entity]
+	cols = cols if include is None else [c for c in cols if c.name in include]
 	with pool.connection() as conn:
 		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
 		time_col = next((c for c in cols if 'time' in c.name), None)
@@ -62,10 +63,12 @@ def select_events(entity):
 		data = conn.execute(q).fetchall()
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
-def select_feid(uid=None, changelog=False):
+def select_feid(uid=None, include=None, changelog=False):
 	generics = select_generics(uid)
 	columns = []
 	for col in list(FEID[1].values()) + noaa_flares.COLS + generics:
+		if include and (col.name not in include and (type(col) == GenericColumn and col.nickname) not in include):
+			continue
 		value = f'EXTRACT(EPOCH FROM {col.name})::integer' if col.data_type == 'time' else col.name
 		columns.append(f'{value} as {col.name}')
 	select_query = f'SELECT {", ".join(columns)} FROM {SELECT_FEID} ORDER BY time'

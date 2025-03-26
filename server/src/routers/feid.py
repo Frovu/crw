@@ -76,11 +76,13 @@ def _get_fetch_source():
 @compress.compressed()
 def list_events():
 	entity = request.args.get('entity')
+	include = request.args.get('include')
+	include = include and include.split(',')
 	if entity:
-		return query.select_events(entity)
+		return query.select_events(entity, include)
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = query.select_feid(uid, changelog=changelog)
+	res = query.select_feid(uid, include, changelog=changelog)
 	result = { 'fields': res[1], 'data': res[0] }
 	if changelog and uid is not None:
 		result['changelog'] = res[2]
