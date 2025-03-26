@@ -767,7 +767,11 @@ export function PlotCirclesStandalone() {
 
 function Panel() {
 	const params = usePlotParams<CirclesPlotParams>();
-	return <PlotCircles params={params}/>;
+	return <>
+		<PlotCircles params={params}/>
+		<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}
+					href='./ros' target='_blank' onClick={() => window.localStorage.setItem('plotRefParams', JSON.stringify(params))}>link</a>
+	</>;
 }
 
 export const RSMPlot = {
