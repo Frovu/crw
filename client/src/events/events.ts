@@ -192,7 +192,7 @@ export const SampleContext = createContext<{ data: DataRow[], current: Sample | 
 export const TableViewContext = createContext<{ data: DataRow[], columns: ColumnDef[],
 	markers: null | string[], includeMarkers: null | string[] }>({} as any);
 
-export const PlotContext = createContext<{ interval: [Date, Date], onsets?: Onset[], clouds?: MagneticCloud[] }>({} as any);
+export const PlotContext = createContext<{ interval: [Date, Date], base?: Date, onsets?: Onset[], clouds?: MagneticCloud[] }>({} as any);
 
 export type TableMenuDetails = {
 	header?: ColumnDef,

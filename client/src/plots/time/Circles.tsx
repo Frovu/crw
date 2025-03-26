@@ -178,6 +178,9 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 
 	const [ idxEnabled, setIdxEnabled ] = useState(true);
 	const [ base, setBase ] = useState(params.base);
+
+	useEffect(() => { setBase(params.base) }, [params.base])
+
 	const [ moment, setMoment ] = useState<number | null>(null);
 	
 	const query = useQuery({
@@ -709,6 +712,8 @@ export function PlotCirclesStandalone() {
 		const filtered: Partial<BasicPlotParams> = {};
 		if (referred)
 			filtered.interval = referred.interval.map((d: any) => new Date(d));
+		// if (referred.base)
+		// 	filtered.base = referred.base
 		if (referred?.onsets)
 			filtered.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
 		if (referred?.clouds)
@@ -767,6 +772,7 @@ export function PlotCirclesStandalone() {
 
 function Panel() {
 	const params = usePlotParams<CirclesPlotParams>();
+
 	return <>
 		<PlotCircles params={params}/>
 		<a style={{ backgroundColor: 'var(--color-bg)', position: 'absolute', top: 0, right: 4 }}

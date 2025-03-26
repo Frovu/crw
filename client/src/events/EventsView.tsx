@@ -62,9 +62,10 @@ function EventsView() {
 		const idx = plotId && data.findIndex(r => r[0] === plotId);
 		if (idx == null || idx < 0)
 			return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
-		const [timeIdx, durIdx, onsIdx, cloudTime, cloudDur] = ['time', 'duration', 'onset_type', 'mc_time', 'mc_duration']
+		const [timeIdx, durIdx, onsIdx, baseIdx, cloudTime, cloudDur] = ['time', 'duration', 'onset_type', 'base_period', 'mc_time', 'mc_duration']
 			.map(c => columns.findIndex(cc => cc.id === c));
 		const plotDate = setStartAt || data[idx][timeIdx] as Date;
+		const baseDate = data[idx][baseIdx] as Date;
 		const hour = Math.floor(plotDate?.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map(h => new Date(hour + h * 36e5));
 		const allNeighbors = data.slice(Math.max(0, idx - 16), Math.min(data.length, idx + 16));
@@ -88,6 +89,7 @@ function EventsView() {
 		}).filter((v): v is MagneticCloud => v != null);
 		return {
 			interval: interval as [Date, Date],
+			base: baseDate,
 			onsets,
 			ends,
 			clouds
