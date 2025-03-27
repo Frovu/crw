@@ -709,11 +709,13 @@ export function PlotCirclesStandalone() {
 		const stored = window.localStorage.getItem('plotRefParams');
 		setTimeout(() => window.localStorage.removeItem('plotRefParams'));
 		const referred = stored && JSON.parse(stored);
-		const filtered: Partial<BasicPlotParams> = {};
+		const filtered: Partial<BasicPlotParams> = {
+			showMetaInfo: referred?.showMetaInfo,
+			showMetaLabels: referred?.showMetaLabels,
+			showEventsEnds: referred?.showEventsEnds,
+		};
 		if (referred)
 			filtered.interval = referred.interval.map((d: any) => new Date(d));
-		// if (referred.base)
-		// 	filtered.base = referred.base
 		if (referred?.onsets)
 			filtered.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
 		if (referred?.clouds)
