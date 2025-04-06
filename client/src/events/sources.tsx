@@ -53,10 +53,13 @@ export const timeInMargin = (t: any, of: any, margin: number, right?: number) =>
 	of?.getTime() - margin <= t?.getTime() && t?.getTime() <= of?.getTime() + (right ?? margin);
 
 export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent) {
-	const { modifySource, data } = useEventsState.getState();
+	const { modifySource, data, columns } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_erupt)
 		return logMessage('Source not selected');
 	const eruptId = data.feid_sources.find(row => row[0] === modifySource)?.[eruptIdIdx] as number | null;
+	const row = data.sources_erupt!.find(rw => rw[0] === eruptId);
+	const erupt = rowAsDict(row, columns.sources_erupt!) as SrcEruptRow;
+
 	const linkColId = getSourceLink(which, event.src)[0];
 	if (eruptId == null)
 		return logError('Source not found');
@@ -66,7 +69,12 @@ export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: Eruptive
 		<p>Remove {which} from eruption #{eruptId}?</p>
 	</>))
 		return;
+
 	makeChange('sources_erupt', { column: linkColId, value: null, id: eruptId });
+	if (which === 'flare' && erupt.flr_source === event.src)
+		makeChange('sources_erupt', { column: 'flr_source', value: null, id: eruptId });
+	if (which === 'cme' && erupt.cme_source === event.src)
+		makeChange('sources_erupt', { column: 'cme_source', value: null, id: eruptId });
 }
 
 export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, feidId: number) {
