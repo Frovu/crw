@@ -58,8 +58,8 @@ function Menu({ params, setParams }: ContextMenuProps<Params>) {
 	</div>;
 }
 
-export function SDO({ time: refTime, start, end, lat, lon, title, src }:
-{ time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string }) {
+export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
+{ time: number, start: number, end: number, lat: number | null, lon: number | null, title: string, src: string, cme?: RowDict | null}) {
 	const { size: nodeSize, params, isWindow, id: nodeId } = useContext(LayoutContext)! as LayoutContextType<Params>;
 	const { src: source, slave, frameTime, cadence } = params;
 	const { time: masterTime, setTime } = useSunViewState();
@@ -67,7 +67,10 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src }:
 	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
 	const isLsc = source.startsWith('LASCO');
-		
+	const cmeIsLsc = isLsc && cme && cme?.src === 'LSC';
+	const cmeAngle = cmeIsLsc ? (cme?.central_angle ?? cme?.measurement_angle) as number | null : null;
+	const cmeWidth = cmeIsLsc ? (cme?.angular_width) as number | null : null;
+
 	const query = useQuery({
 		staleTime: Infinity,
 		queryKey: ['sdo', source, start, end, cadence],
@@ -135,6 +138,44 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src }:
 		canvas.width = canvas.height = size;
 		const ctx = canvasRef.current.getContext('2d')!;
 		ctx.clearRect(0, 0, size, size);
+
+		if (time && cmeAngle != null && cmeWidth != null) {
+			ctx.lineWidth = 1.5;
+			ctx.font = font(10);
+			
+			ctx.strokeStyle = color('green', time < refTime ? .5 : 1);
+			ctx.fillStyle = 'white';
+			const scl = size / 512;
+			const x0 = 256.5 * scl;
+			const y0 = 243.5 * scl;
+			const rs = (source.includes('C3') ? 35 : 90) * scl;
+			const rview = (source.includes('C3') ? 265 : 400) * scl;
+			const angle0 = 270 - cmeAngle - cmeWidth / 2;
+			const angle1 = 270 - cmeAngle + cmeWidth / 2;
+			ctx.arc(x0, y0, rs, angle0 / 180 * PI, angle1 / 180 * PI);
+			ctx.stroke();
+			ctx.beginPath();
+
+			const a0 = cmeAngle;
+			const a1 = cmeAngle - cmeWidth / 2;
+			const a2 = cmeAngle + cmeWidth / 2;
+
+			const lines = cmeWidth === 360 ? [a0] : [a1, a2];
+
+			for (const ang of lines) {
+				const xr = x0 + rs *sin(PI + ang / 180 * PI);
+				const yr = y0 + rs * cos(PI + ang / 180 * PI);
+				const xb = x0 + rview *sin(PI + ang / 180 * PI);
+				const yb = y0 + rview * cos(PI + ang / 180 * PI);
+				ctx.moveTo(xr, yr);
+				ctx.lineTo(xb, yb);
+			}
+			
+			ctx.fillText(`width=${cmeWidth}`, 4, 12);
+			ctx.fillText(`angle=${cmeAngle}`, 4, 26);
+			ctx.stroke();
+		}
+
 		if (!time || isLsc)
 			return;
 		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
@@ -172,7 +213,7 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src }:
 		}
 		ctx.stroke();
 		
-	}, [frame, size, query.data, lat, lon, refTime, isLsc]);
+	}, [frame, size, query.data, lat, lon, refTime, isLsc, cmeAngle, cmeWidth, source]);
 		
 	const isLoaded = query.data && query.data.length > 0;
 		
@@ -290,17 +331,20 @@ function Panel() {
 	const activeErupt = useSource('sources_erupt', true);
 	const { start: feidTime, row: feid } = useFeidCursor();
 
-	if (mode === 'WSA-ENLIL') {
-		if (cursor?.entity === 'CMEs') {
-			const cme = rowAsDict(cmes.data[cursor.row], cmes.columns);
-			return <EnlilView id={cme.enlil_id as number | null}/>;
-		}
+	const cme = (() => {
+		if (cursor?.entity === 'CMEs')
+			return rowAsDict(cmes.data[cursor.row], cmes.columns);
 		const erupt = activeErupt ?? sources.find(s => s.erupt)?.erupt;
-		const [linkColId, idColId] = getSourceLink('cme', 'DKI');
+		if (!erupt) return null;
+		const src = mode === 'WSA-ENLIL' ? 'DKI' : 'LSC';
+		const [linkColId, idColId] = getSourceLink('cme', src);
 		const idColIdx = cmes.columns.findIndex(c => c.id === idColId);
-		const found = erupt && cmes.data.find(row => row[0] === 'DKI' && equalValues(row[idColIdx], erupt[linkColId]));
-		const id = found ? rowAsDict(found, cmes.columns).enlil_id as number : null;
-		return <EnlilView id={id}/>;
+		const found = erupt && cmes.data.find(row => row[0] === src && equalValues(row[idColIdx], erupt[linkColId]));
+		return found ? rowAsDict(found, cmes.columns) : null;
+	})();
+
+	if (mode === 'WSA-ENLIL') {
+		return <EnlilView id={cme?.enlil_id as number | null}/>;
 	}
 
 	const flare = (() => {
@@ -324,10 +368,10 @@ function Panel() {
 			return <SFTFLare flare={flare}/>;
 		return null;
 	}
-	if (cursor?.entity === 'CMEs') {
-		const cme = rowAsDict(cmes.data[cursor.row], cmes.columns);
+	if (cme && cursor?.entity === 'CMEs') {
 		const time = (cme.time as Date).getTime() / 1000;
 		return <SDO {...{
+			cme,
 			lat: cme.lat as number,
 			lon: cme.lon as number,
 			time,
@@ -341,6 +385,7 @@ function Panel() {
 		const start = (flare.start_time as Date).getTime() / 1000;
 		const end = (flare.start_time as Date ?? flare.start_time as Date).getTime() / 1000;
 		return <SDO {...{
+			cme,
 			lat: flare?.lat as number,
 			lon: flare?.lon as number,
 			time: start,
