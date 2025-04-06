@@ -39,7 +39,7 @@ export function CellInput({ id, column, value, table, options, change }:
 		return <>
 			{column.type === 'enum' && <select autoFocus style={inpStype!}
 				value={value} onChange={e => { onChange(e, true); escapeCursor(); }}>
-				{!options && <option value=''></option>}
+				{column.nullable && <option value=''>&lt;null&gt;</option>}
 				{(options ?? column.enum)?.map(val => <option key={val} value={val}>{val}</option>)}
 			</select>}
 			{column.type !== 'enum' &&  <input type='text' autoFocus style={inpStype!}
