@@ -135,7 +135,7 @@ def submit_changes(uid, entities):
 							created[f] = inserted_ids.get(created[f], created[f])
 					
 					for f in list(created.keys()):
-						if created[f] is None:
+						if entity == 'feid' and created[f] is None:
 							del created[f]
 
 					cols = list(created.keys())

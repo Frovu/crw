@@ -8,7 +8,7 @@ PATH = 'tmp/A0A1.txt'
 
 # Presumes file contains
 # Date hour t A0 A10m Ax Ay Az Axy 
-series = ['a10m', 'ax', 'ay', 'az', 'axy', 'phi_axy']
+series = ['a10', 'a10m', 'ax', 'ay', 'az', 'axy', 'phi_axy']
 
 def parse():
 	print(f'Reading file: {PATH}')
@@ -32,7 +32,7 @@ def parse():
 				return
 	print(f'Parsed [{len(data)}] from {data[0][0]} to {data[-1][0]}')
 	print('Inserting...', end='', flush=True)
-	upsert_many('gsm_result', ['time'] + series, data, do_nothing=True)
+	upsert_many('gsm_result', ['time'] + series, data)
 	print('done!')
 
 if __name__ == '__main__':
