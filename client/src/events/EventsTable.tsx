@@ -39,6 +39,13 @@ function Panel() {
 	useSize(ref.current);
 
 	const cursor = sCursor?.entity === 'feid' ? sCursor : null;
+
+	useEffect(() => {
+		if (plotId != null && !allData.find(r => r[0] === plotId)) {
+			const maxId = Math.max(...allData.map(r => r[0]));
+			setPlotId(() => maxId);
+		}
+	}, [allData, plotId, setPlotId]);
 	// always plot something
 	useEffect(() => {
 		const magn = shownColumns.findIndex(c => c.fullName === 'magnitude') + 1; // +1 for id col
