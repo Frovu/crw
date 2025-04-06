@@ -2,7 +2,7 @@ import { useContext, type MouseEvent } from 'react';
 import { color, logSuccess, openContextMenu, useContextMenu } from '../app';
 import { prettyDate, useEventListener } from '../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent } from './eventsState';
+import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent, linkSource } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { ValidatedInput } from '../Utility';
 import { LayoutContext } from '../layout';
@@ -11,11 +11,21 @@ import type { FeidSrcRow } from './events';
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Menu() {
+	const { id: feidId } = useFeidCursor();
 	const detail = useContextMenu(state => state.menu?.detail) as { source: FeidSrcRow } | undefined;
 
-	return detail?.source && <div>
-		<button className='TextButton' onClick={() => deleteEvent('feid_sources', detail.source.id)}>Delete source</button>
-	</div>;
+	return <>
+		{detail?.source && <div>
+			<button className='TextButton' onClick={() => deleteEvent('feid_sources', detail.source.id)}>Delete source</button></div>}
+		{feidId && <div>
+			<button className='TextButton' onClick={() => {
+				const srcId = linkSource('sources_erupt', feidId);
+				setTimeout(() => {
+					const { setCursor, data } = useEventsState.getState();
+					setCursor({ entity: 'sources_erupt', column: 2, row: data.sources_erupt!.findIndex(r => r[0] === srcId), id: srcId });
+				}, 100);
+			}}>Add new eruption</button></div>}
+	</>;
 }
 
 function Panel() {
