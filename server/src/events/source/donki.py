@@ -1,9 +1,15 @@
 from datetime import datetime, timezone, timedelta
 
-import re, requests
+import re, os, requests
 
 from database import pool, log, upsert_coverage, upsert_many
 from events.table_structure import ColumnDef as Col
+
+proxy = os.environ.get('DONKI_PROXY')
+proxies = {
+	"http": proxy,
+	"https": proxy
+} if proxy else { }
 
 URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/'
 CME_TABLE = T1 = 'donki_cmes'
@@ -80,7 +86,7 @@ def _obtain_month(what, month_start: datetime):
 
 	url = f'{URL}WS/get/{what}?startDate={s_str}&endDate={e_str}'
 	log.debug('Loading DONKI %ss for %s', what, s_str)
-	res = requests.get(url, timeout=10)
+	res = requests.get(url, timeout=10, proxies=proxies)
 
 	if res.status_code != 200:
 		log.error('Failed loading %s: HTTP %s', url, res.status_code)
@@ -141,7 +147,7 @@ def resolve_enlil(eid: int):
 		return res[0]
 	log.debug('Resolving WSA-ENLIL #%s', eid)
 	url = URL + f'view/WSA-ENLIL/{eid}/-1'
-	res = requests.get(url, timeout=10)
+	res = requests.get(url, timeout=10, proxies=proxies)
 
 	if res.status_code != 200:
 		log.error('Failed loading %s: HTTP %s', url, res.status_code)
