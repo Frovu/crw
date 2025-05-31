@@ -236,7 +236,7 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 	if (setStartAt || setEndAt || !data.feid_sources || !data.sources_ch)
 		return;
 
-	const isLinked = data.feid_sources.find(row => row[fIdIdx] === feidId && row[isCh ? chIdIdx : eruptIdIdx]);
+	const isLinked = data.feid_sources.find(row => row[fIdIdx] === feidId && row[isCh ? chIdIdx : eruptIdIdx] === srcId);
 	if (isLinked)
 		return askProceed(<>
 			<h4>Already linked</h4>
