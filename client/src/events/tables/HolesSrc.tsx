@@ -46,8 +46,9 @@ function Panel() {
 		return <div className='Center'>LOADING..</div>;
 
 	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
-	const focusIdx = sources.map(src => data.findIndex(r => src.ch?.id === r[0])).find(i => i > 0) ||
+	const focusIdxFound = sources.map(src => data.findIndex(r => src.ch?.id === r[0])).find(i => i > 0) ||
 	  (focusTime == null ? data.length : data.findIndex(r => (r[1] as Date)?.getTime() > focusTime));
+	const focusIdx = focusIdxFound < 0 ? data.length - 1 : focusIdxFound;
 
 	return <div>
 		{<TableWithCursor {...{

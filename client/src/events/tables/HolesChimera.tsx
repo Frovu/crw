@@ -49,7 +49,7 @@ function Panel() {
 	const { id: nodeId, size, isWindow, params } = useContext(LayoutContext)!;
 	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
 	const { time: stateTime, catched, setTime, setCatched } = useHolesViewState();
-	const [frame, setFrame] = useState(4);
+	const [frame, setFrame] = useState(1);
 	const { cursor: sCursor, setCursor } = useEventsState();
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
@@ -129,7 +129,7 @@ function Panel() {
 		onError: (err) => logError(err?.toString())
 	});
 
-	const framesTotal = query.data?.frames.length ?? 0;
+	const framesTotal = query.data?.frames.length ?? 1;
 
 	useEffect(() => {
 		const tst = query.data?.frames[frame]?.timestamp;
@@ -202,7 +202,7 @@ function Panel() {
 	return <div>
 		{!isWindow && <div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 			{<TableWithCursor {...{
-				entity: 'chimera_holes', hideBorder: true, focusIdx: 0,
+				entity: 'chimera_holes', hideBorder: true, focusIdx: 1,
 				data, columns, size: { height: size.height - imgSize, width: size.width - 3 }, onKeydown: e => {
 					const cycle = e.altKey && { 'ArrowLeft': -1, 'ArrowRight': 1 }[e.code];
 					if (cycle)
