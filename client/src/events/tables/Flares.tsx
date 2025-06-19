@@ -80,7 +80,7 @@ function Panel() {
 			const dark = darkk || (eruptLinkIdx && eruptions.data?.find(eru =>
 				equalValues(flare[idColId], eru[eruptLinkIdx])));
 		
-			return <tr key={row[0]+stime+flare.end_time.getTime()}
+			return <tr key={row[0]+stime+flare.end_time?.getTime()}
 				style={{ height: 23 + padRow, fontSize: 15 }}>
 				{columns.map((column, cidx) => {
 					const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
