@@ -3,6 +3,7 @@ import { equalValues, valueToString } from './events';
 import { apiPost, useEventListener, useMutationHandler } from '../util';
 import type { Value } from './columns';
 import { useTable } from './eventsState';
+import { color } from '../app';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -14,6 +15,7 @@ export default function ImportMenu() {
 	const { columns: allColumns, data: currentData } = useTable();
 	const [fileText, setFileText] = useState<string>();
 	const [open, setOpen] = useState(false);
+	const [importColumn, setImportColumn] = useState<string | null>(null);
 
 	useEventListener('escape', () => setOpen(false));
 	useEventListener('action+openImportMenu', () => setOpen(o => !o));
@@ -89,6 +91,8 @@ export default function ImportMenu() {
 				lost[foundIdx] = null;
 				const changes: typeof diff.changes[number][2] = [];
 				for (const [ci, { id, entity }] of columns.entries()) {
+					if (importColumn && id !== importColumn)
+						continue
 					const oldVal = found[allColumns.findIndex(c => c.id === id)];
 					const newVal = row[ci];
 					if (id === 'duration' && (newVal === -99 || newVal as any > (oldVal as any))) // FIXME !!
@@ -110,11 +114,13 @@ export default function ImportMenu() {
 				if (changes.length && notAllNull)
 					diff.changes.push([found[0], time, changes]);
 			} else {
-				added.push(row);
-				diff.added.push(time);
+				if (importColumn == null) {
+					added.push(row);
+					diff.added.push(time);
+				}
 			}
 		}
-		const actuallyLost = lost.filter(l => !!l);
+		const actuallyLost = importColumn ? [] : lost.filter(l => !!l);
 		diff.deleted = actuallyLost.map(l => l![timeIdx] as Date);
 
 		console.timeEnd('parseFDs');
@@ -128,7 +134,7 @@ export default function ImportMenu() {
 			columns: columns.map(c => c.id)
 		} };
 
-	}, [allColumns, currentData, fileText, open]);
+	}, [allColumns, currentData, importColumn, fileText, open]);
 
 	const { report, mutate, isLoading } = useMutationHandler(({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
 		apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) })
@@ -140,6 +146,16 @@ export default function ImportMenu() {
 			<h4 style={{ marginTop: 0 }}>Import FDs_fulltable</h4>
 			<div style={{ margin: 8 }}>
 				File: <input type='file' onChange={async (e) => setFileText(await e.target.files?.[0]?.text())}/>
+			</div>
+			<div style={{ color: color(importColumn ? 'text' : 'text-dark') }}>
+				Only one column:
+				<select style={{ maxWidth: 200, marginLeft: 8 }}
+					value={importColumn ?? '<no>'}
+					onChange={e => setImportColumn(e.target.value === '<no>' ? null : e.target.value)}>
+						<option value="<no>">&lt;no&gt;</option>
+						{allColumns.filter(c => c.id !== 'time' && c.parseName).map(col =>
+							<option value={col.id} key={col.id}>{col.fullName} &lt;- {col.parseName}</option>)}
+				</select>
 			</div>
 			{parsed?.error && <div style={{ maxWidth: 800, color: 'var(--color-red)' }}>Error: {parsed.error}</div> }
 			{parsed?.parsed && (()=>{
