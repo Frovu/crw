@@ -62,7 +62,7 @@ function Panel() {
 			feidId && setModify(feidId);
 		if (what === 'link') 
 			return;
-		const at = what === 'insert' ? roundHour(start.getTime()) + 36e5 : start.getTime();
+		const at = what === 'insert' ? roundHour(end?.getTime() ?? start.getTime()) : start.getTime();
 		setStart(new Date(at));
 	};
 
