@@ -3,8 +3,9 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultHead, TableWithCursor } from './TableView';
 import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../events';
 import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
-import { deleteEvent, eruptIdIdx, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
+import { deleteEvent, eruptIdIdx, makeChange, makeSourceChanges, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { assignCMEToErupt, assignFlareToErupt, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
+import { useEventListener } from '../../util';
 
 const ENT = 'sources_erupt';
 const flare_columns = {
@@ -69,6 +70,16 @@ function Panel() {
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
 	useTableQuery(ENT);
+
+	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {
+		if (!selectedErupt) return;
+		makeChange('sources_erupt', [['lat', lat], ['lon', lon], ['cme_time', time], ['coords_source', 'MNL']]
+			.map(([column, val]) => ({
+				id: selectedErupt.id,
+				column,
+				value: val
+			})));
+	});
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	if (!data || !feidSrc.data || !columns)
