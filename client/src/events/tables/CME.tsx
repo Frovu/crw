@@ -21,7 +21,7 @@ function Menu() {
 				Link {src} CME</button>
 		{isLinked && <button className='TextButton' onClick={() => unlinkEruptiveSourceEvent('cme', cme)}>Unlink {src} CME</button>}
 		<button  className='TextButton' onClick={e => openWindow({
-			x: e.clientX, y: e.clientY, w: 400, h: 200, params: { type: 'Sun View', mode: 'WSA-ENLIL' } as any, unique: 'enlil-view'
+			x: e.clientX - 200, y: e.clientY - 200, w: 800, h: 400, params: { type: 'Sun View', mode: 'WSA-ENLIL' } as any, unique: 'enlil-view'
 		})}>Open ENLIL view</button>
 		<div className='separator'/>
 		<a className='Row' href="https://cdaw.gsfc.nasa.gov/CME_list/" target='_blank' rel='noreferrer'>LASCO Catalogue</a>

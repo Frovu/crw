@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
@@ -24,6 +24,23 @@ const defaultParams = {
 	slave: false,
 };
 type Params = typeof defaultParams;
+
+function computeSolarNumbers(time: number, size: number) {
+	const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
+	const aphDoy = 186;
+	const ascDoy = 356;
+
+	const scl = size / 512;
+	const x0 = 256.5 * scl;
+	const y0 = 243.5 * scl;
+	const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
+	const rs = (205 - dist * 7) * scl;
+	
+	const sunRotation = 360 / 27.27 / 86400; // kinda
+	const decl = 7.155 * Math.sin((doy - ascDoy) / 365.256 * 2 * Math.PI);
+
+	return { x0, y0, rs, decl }
+}
 
 export const useSunViewState = create<{
 	time: number,
@@ -216,6 +233,20 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
 	}, [frame, size, query.data, lat, lon, refTime, isLsc, cmeAngle, cmeWidth, source]);
 		
 	const isLoaded = query.data && query.data.length > 0;
+
+	const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
+		if (!e.ctrlKey && !isWindow) {
+			return openWindow({
+				x: e.clientX - 256, y: e.clientY - 256,
+				w: 512, h: 516,
+				params: { ...params, slave: true } as any, unique: nodeId });
+		}
+		if (!e.ctrlKey) return;
+		const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+		const x = e.clientX - rect.x;
+		const y = e.clientY - rect.y;
+		console.log(x, y)
+	}
 		
 	return <div>
 		{query.isLoading && <div className='Center'>LOADING..</div>}
@@ -228,8 +259,7 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
 		{isLoaded && <div style={{ position: 'absolute', color: 'white',
 			top: isLsc ? 0 : (size - 18), right: 6, fontSize: 12 }}>{frame} / {query.data.length}</div>}
 		<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }}
-			onClick={e => !isWindow && openWindow({ x: e.clientX - 256, y: e.clientY - 256,
-				w: 512, h: 516, params: { ...params, slave: true } as any, unique: nodeId })}/>
+			onClick={onClick}/>
 		{isLoaded && <img alt='' src={query.data[frame]?.url} width={size}></img>}
 	</div>;
 }
