@@ -53,7 +53,7 @@ function Panel() {
 		},
 		row: (row, idx, onClick, padRow) => {
 			const flare = rowAsDict(row, columns) as Flare;
-			const stime = flare.start_time.getTime();
+			const stime = flare.start_time?.getTime();
 			const [linkColId, idColId] = getSourceLink('flare', flare.src);
 			const isLinked = equalValues(flare[idColId], linked?.[flare.src]);
 			const isPrime = isLinked && erupt?.flr_source === flare.src;

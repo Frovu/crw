@@ -3,7 +3,7 @@ import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextTyp
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
 import { equalValues, type EventsPanel } from './events';
-import { apiGet, prettyDate } from '../util';
+import { apiGet, dispatchCustomEvent, prettyDate } from '../util';
 import { color } from '../app';
 import { useQuery } from 'react-query';
 import { font } from '../plots/plotUtil';
@@ -36,10 +36,9 @@ function computeSolarNumbers(time: number, size: number) {
 	const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
 	const rs = (205 - dist * 7) * scl;
 	
-	const sunRotation = 360 / 27.27 / 86400; // kinda
 	const decl = 7.155 * Math.sin((doy - ascDoy) / 365.256 * 2 * Math.PI);
 
-	return { x0, y0, rs, decl }
+	return { x0, y0, rs, decl };
 }
 
 export const useSunViewState = create<{
@@ -195,38 +194,28 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
 
 		if (!time || isLsc)
 			return;
-		const doy = (time * 1000 - Date.UTC(new Date(time).getUTCFullYear(), 0, 0)) / 864e5 % 365.256;
-		const aphDoy = 186;
-		const ascDoy = 356;
 		ctx.lineWidth = 1.5;
 		ctx.font = font(10);
 		ctx.setLineDash([8, 18]);
 		ctx.strokeStyle = color('green');
 		ctx.fillStyle = 'white';
-		const scl = size / 512;
-		const x0 = 256.5 * scl;
-		const y0 = 243.5 * scl;
-		const dist = 1 - 2 * Math.abs(aphDoy - doy) / 365.256;
-		const rs = (205 - dist * 7) * scl;
+		const { x0, y0, rs, decl } = computeSolarNumbers(time, size);
 		ctx.arc(x0, y0, rs, 0, 2 * PI);
 		ctx.stroke();
 		ctx.beginPath();
 		if (!lon || Math.abs(lon) < 90)
-			ctx.setLineDash(Math.abs(time - refTime) < 600 ? [8, 8] : []);
+			ctx.setLineDash(Math.abs(time - refTime) < 1500 ? [6, 6] : []);
 		
 		if (lat != null && lon != null) {
 			const sunRotation = 360 / 27.27 / 86400; // kinda
 			const rot = (time - refTime) * sunRotation;
-			const decl = 7.155 * sin((doy - ascDoy) / 365.256 * 2 * PI);
 			const flat = lat + decl;
 			const flon = lon + rot;
 			const x = x0 + rs * sin(flon / 180 * PI) * cos(flat / 180 * PI);
 			const y = y0 + rs * -sin(flat / 180 * PI);
 			ctx.arc(x, y, 20, 0, 2 * PI);
-			ctx.fillText(`DOY=${doy.toFixed(1)}`, 4, 14);
 			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
 			ctx.fillText(`rot=${rot.toFixed(2).padStart(5)}`, 4, 38);
-			ctx.fillText(`dist=${dist.toFixed(2)}`, 4, 50);
 		}
 		ctx.stroke();
 		
@@ -241,12 +230,20 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
 				w: 512, h: 516,
 				params: { ...params, slave: true } as any, unique: nodeId });
 		}
-		if (!e.ctrlKey) return;
+		const time = query.data?.[frame]?.timestamp;
+		if (!e.ctrlKey || !time) return;
 		const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-		const x = e.clientX - rect.x;
-		const y = e.clientY - rect.y;
-		console.log(x, y)
-	}
+		const { x0, y0, rs, decl } = computeSolarNumbers(time, size);
+		const { cos, asin, round, PI } = Math;
+		const x = x0 - (e.clientX - rect.x);
+		const y = y0 - (e.clientY - rect.y);
+		const xr = x / rs;
+		const yr = y / rs;
+		const nlat = asin(yr) * 180 / PI - decl;
+		const nlon = -asin(xr / cos(nlat / 180 * PI)) * 180 / PI;
+		
+		dispatchCustomEvent('setSolarCoordinates', { time: new Date(round(time - 3000) * 1e3), lat: round(nlat), lon: round(nlon) });
+	};
 		
 	return <div>
 		{query.isLoading && <div className='Center'>LOADING..</div>}
@@ -405,7 +402,7 @@ function Panel() {
 			lat: cme.lat as number,
 			lon: cme.lon as number,
 			time,
-			start: time - 3600 * 2,
+			start: time - 3600 * 4,
 			end: time + 3600 * 6,
 			title: 'CME',
 			src: cme.src as string
@@ -420,7 +417,7 @@ function Panel() {
 			lon: flare?.lon as number,
 			time: start,
 			start: start - 3600 * 2,
-			end: end + 3600 * 3,
+			end: end + 3600 * 4,
 			title: flare.class as string,
 			src: flare.src as string
 		}}/>;
@@ -431,7 +428,7 @@ function Panel() {
 			lat: activeErupt?.lat as number,
 			lon: activeErupt?.lon as number,
 			time: start,
-			start: start - 3600 * 2,
+			start: start - 3600 * 4,
 			end: start + 3600 * 6,
 			title: 'CME',
 			src: activeErupt.coords_source as string
