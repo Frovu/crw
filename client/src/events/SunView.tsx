@@ -214,8 +214,7 @@ export function SDO({ time: refTime, start, end, lat, lon, title, src, cme }:
 			const x = x0 + rs * sin(flon / 180 * PI) * cos(flat / 180 * PI);
 			const y = y0 + rs * -sin(flat / 180 * PI);
 			ctx.arc(x, y, 20, 0, 2 * PI);
-			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 26);
-			ctx.fillText(`rot=${rot.toFixed(2).padStart(5)}`, 4, 38);
+			ctx.fillText(`incl=${decl.toFixed(2)}`, 4, 12);
 		}
 		ctx.stroke();
 		
