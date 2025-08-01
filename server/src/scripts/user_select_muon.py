@@ -27,5 +27,5 @@ def select_muon_corrected(dt_from, dt_to, experiment='Moscow-pioneer', query=['r
         return None
     body = json.loads(res.text)
     data = np.array(body.get('rows'), dtype='object')
-    data[:,0] = [datetime.utcfromtimestamp(d) for d in data[:,0]]
+    data[:,0] = [datetime.fromtimestamp(d, tz=timezone.utc) for d in data[:,0]]
     return data
