@@ -107,7 +107,8 @@ def _obtain_month(what, month_start: datetime):
 				log.debug('DONKI CME without analysis: %s', cme['link'])
 				continue
 			
-			vals = (an[k] for k in ['time21_5', 'latitude', 'longitude', 'halfAngle', 'speed', 'type', 'levelOfData'])
+			vals = [an[k] for k in ['time21_5', 'latitude', 'longitude', 'halfAngle', 'speed', 'type', 'levelOfData']]
+			vals[0] = ('20' + vals[0][2:]) if vals[0].startswith('00') else vals[0] # time21_5 0011-09-22T14:00Z fix
 			enlil = next((m for m in (an['enlilList'] or [])[::-1] if m['au'] == 2), None)
 			e_shock = enlil and enlil['estimatedShockArrivalTime']
 			e_id = enlil and int(enlil['link'].split('/')[-2])
