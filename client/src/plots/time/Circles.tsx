@@ -17,6 +17,7 @@ import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/ExportPlot';
 import { ValidatedInput } from '../../Utility';
 import type { ContextMenuProps } from '../../layout';
+import { Helmet } from 'react-helmet';
 
 const defaultParams = {
 	rsmExtended: false,
@@ -756,6 +757,10 @@ export function PlotCirclesStandalone() {
 	});
 	return (
 		<div style={{ position: 'relative', height: '98vh', width: '100vw' }}>
+			<Helmet>
+				<title>Ring of Stations method</title>
+				<meta name="description" content="Realtime plot of Ring of Stations method based on NMDB data" />
+			</Helmet>
 			{settingsOpen && <CirclesParamsInput {...{ params, setParams }}/>}
 			<PlotCircles {...{ params, settingsOpen }}/>
 			<button className='Button' style={{ bottom: 0, lineHeight: 1, left: 10, ...(settingsOpen && { color: 'var(--color-active)' }) }}

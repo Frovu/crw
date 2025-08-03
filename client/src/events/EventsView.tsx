@@ -7,6 +7,7 @@ import { type MagneticCloud, type Onset, PlotContext, SampleContext,
 	TableViewContext, useEventsSettings } from './events';
 import { useEventsState, useTable } from './eventsState';
 import { eventsPanels } from './eventsPanels';
+import { Helmet } from 'react-helmet';
 
 function EventsView() {
 	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
@@ -110,6 +111,10 @@ export default function EventsApp() {
 	useEventListener('resetSettings', reset);
 
 	return <EventsDataProvider>
+			<Helmet>
+				<title>FEID - Forbush Effects and Interplanetary Disturbances database</title>
+				<meta name="description" content="Multifunctional online interface to the Forbush Effects and Interplanetary Disturbances database" />
+			</Helmet>
 		<EventsView/>
 	</EventsDataProvider>;
 }

@@ -15,6 +15,7 @@ import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, u
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
 import { CatchErrors, Confirmation } from './Utility';
+import { Helmet } from 'react-helmet';
 
 const theQueryClient = new QueryClient();
 
@@ -61,14 +62,6 @@ function App() {
 
 		const icon = document.head.querySelector("link[rel~='icon']") as HTMLAnchorElement;
 		icon.href = app === 'feid' ? './feid.png' : './favicon.png';
-		document.title = !app ? 'Swan & Crow' : {
-			meteo: 'Crow: meteo',
-			neutron: 'CREAM: NM',
-			muon: 'CREAM: MT',
-			omni: 'Crow: Omni',
-			ros: 'RoS',
-			feid: 'FEID',
-		}[app]!;
 	}, [app, setApp]);
 
 	const selectApp = (a: typeof APPS[number]) => {
@@ -88,6 +81,10 @@ function App() {
 
 	if (app === null)
 		return <div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }} className='AppSelect'>
+			<Helmet>
+				<title>Cosmic Rays Research Workstation - IZMIRAN</title>
+				<meta name="description" content="A set of publicly available data applications used for research in IZMIRAN cosmic rays department" />
+			</Helmet>
 			<h2>Select an application:</h2>
 			<button className='TextButton' onClick={() => selectApp('feid')}>- Forbush Effects and Interplanetary Disturbances catalogue</button>
 			<button className='TextButton' onClick={() => selectApp('ros')}>- Ring of Stations method</button>
