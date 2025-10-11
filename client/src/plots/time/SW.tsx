@@ -82,7 +82,7 @@ function Panel() {
 				legend: useTemperatureIndex ? 'Temperature index' : 'Proton temperature',
 				scale: 'Tp',
 				marker: 'diamond',
-				stroke: color('cyan'),
+				stroke: color(useTemperatureIndex ? 'cyan' : 'green'),
 				width: 2,
 			},
 			{
