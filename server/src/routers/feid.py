@@ -14,6 +14,7 @@ from events import samples
 from events import query
 from routers.utils import route_shielded, require_role, msg
 from data import sun_images
+from data.swpc import swpc
 
 from database import get_coverage
 from utility import OperationCache
@@ -129,6 +130,19 @@ def _resolve_enlil():
 	eid = int(request.args.get('id'))
 	fname = donki.resolve_enlil(eid)
 	return { 'filename': fname }
+
+@bp.route('/swpc_summary', methods=['POST'])
+@route_shielded
+@require_role('operator')
+def _import_swpc():
+	swpc.import_summary(request.json)
+	return msg('OK')
+
+@bp.route('/swpc_summary', methods=['GET'])
+@route_shielded
+@require_role('operator')
+def _fetch_swpc():
+	return swpc.fetch_summary()
 
 @bp.route('/create', methods=['POST'])
 @route_shielded
@@ -267,7 +281,7 @@ def _compute_everything():
 @route_shielded
 @require_role('operator')
 def _import_table():
-	uid = session.get('uid')
+	uid = session.get('uid') 
 	body = request.json
 	import_fds(uid, body['columns'], body['add'], body['remove'], body['changes'])
 	return msg('OK')
