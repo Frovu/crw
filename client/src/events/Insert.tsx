@@ -5,7 +5,7 @@ import CoverageControls from './CoverageControls';
 import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent, linkSource } from './eventsState';
 import { getSourceLink, useTableQuery } from './sources';
 import { ValidatedInput } from '../Utility';
-import { LayoutContext } from '../layout';
+import { LayoutContext, openWindow } from '../layout';
 import type { FeidSrcRow } from './events';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
@@ -25,6 +25,10 @@ function Menu() {
 					setCursor({ entity: 'sources_erupt', column: 2, row: data.sources_erupt!.findIndex(r => r[0] === srcId), id: srcId });
 				}, 100);
 			}}>Add new eruption</button></div>}
+		<div className="separator"/>
+		<button  className='TextButton' onClick={e => openWindow({
+			x: e.clientX, y: e.clientY - 200, w: 200, h: 120, params: { type: 'SWPC Hint' } as any, unique: 'swpc-hint'
+		})}>Open SWPC hint</button>
 	</>;
 }
 

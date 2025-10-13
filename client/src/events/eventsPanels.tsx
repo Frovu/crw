@@ -28,6 +28,7 @@ import { Correlation } from '../plots/Correlate';
 import { Histogram } from '../plots/Histogram';
 import { SuperposedEpochs } from '../plots/SuperposedEpochs';
 import { EventsHistory } from '../plots/EventsHistory';
+import { SWPCHint } from './SWPC';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -56,6 +57,7 @@ const panels: EventsPanel<any>[] = [
 	ICMETable,
 	ChimeraHoles,
 	SolenHoles,
+	SWPCHint,
 	{
 		name: 'Empty',
 		Panel: () => null
