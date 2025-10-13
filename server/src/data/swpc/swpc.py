@@ -14,6 +14,6 @@ def import_summary(data):
 
 def fetch_summary():
 	with pool.connection() as conn:
-		data = conn.execute('SELECT EXTRACT(EPOCH FROM time), disturbance_observed, disturbance_arrival '+\
+		data = conn.execute('SELECT EXTRACT(EPOCH FROM time)::integer, disturbance_observed, disturbance_arrival '+\
 			'FROM swpc.daily_summary ORDER BY time').fetchall()
 	return data 

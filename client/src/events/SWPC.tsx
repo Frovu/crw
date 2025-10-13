@@ -1,9 +1,13 @@
-import { useState, type MouseEvent } from 'react';
+import { useContext, useState, type MouseEvent } from 'react';
 import { read, utils } from 'xlsx';
-import { apiPost } from '../util';
-import { useMutation, useQueryClient } from 'react-query';
-import { logError, logSuccess } from '../app';
+import { apiGet, apiPost, prettyDate } from '../util';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { color, logError, logSuccess } from '../app';
+import { useSolarPlotContext } from '../plots/time/solar';
+import { useFeidCursor } from './eventsState';
+import { LayoutContext } from '../layout';
 
+type ApiData = [number, string, string][];
 type Data = (string | null)[][];
 type XLSRow = {
 	Date: string;
@@ -64,7 +68,61 @@ function Menu() {
 }
 
 function Panel() {
-	return <div>test</div>;
+	const { data } = useQuery(['swpcSummary'], () => apiGet<ApiData>('events/swpc_summary'));
+	const {
+		size: { width, height },
+	} = useContext(LayoutContext)!;
+	const { focusTime: timeSolar } = useSolarPlotContext();
+	const { start: timeEarth } = useFeidCursor();
+	const dates = [timeSolar, timeEarth].map((date) => Math.floor(date?.getTime() / 864e5) * 86400);
+
+	if (!data) return <div className="center">LOADING</div>;
+
+	const vertical = height / width > 1;
+
+	return (
+		<div style={{ height: '100%', display: 'grid', [vertical ? 'gridTemplateRows' : 'gridTemplateColumns']: '3fr 2fr' }}>
+			{[0, 1].map((side) => (
+				<div style={{ maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+					{[-1, 0, 1].map((offset) => {
+						const tstmp = dates[side] + 86400 * offset;
+						const date = new Date(tstmp * 1e3);
+						const text = data.find((r) => r[0] === tstmp)?.[side + 1];
+						return (
+							<div
+								title={`${prettyDate(date, true)} ${side ? 'expected' : 'observed'}: ${text}`}
+								style={{
+									color: color('text', offset === 0 ? 1 : 0.8),
+									flexGrow: '1',
+									flexBasis: 0,
+									minHeight: 0,
+									overflow: 'clip',
+									borderTop: offset >= 0 || (vertical && side === 1) ? '1px solid ' + color('border') : 'none',
+									borderLeft: !vertical && side === 1 ? '1px solid ' + color('border') : 'none',
+									display: 'flex',
+									lineHeight: 1,
+								}}
+							>
+								<div
+									style={{
+										fontSize: 11,
+										borderRight: '1px solid ' + color('border'),
+										width: 24,
+										height: '100%',
+										padding: '2px',
+										textAlign: 'center',
+									}}
+								>
+									{date.getDate()}
+								</div>
+								<div style={{ fontSize: 11, flexGrow: '1', flexBasis: 0, padding: '0 2px' }}>{text}</div>
+							</div>
+						);
+					})}
+				</div>
+			))}
+		</div>
+	);
 }
 
 export const SWPCHint = {
