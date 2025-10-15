@@ -8,7 +8,7 @@
 	--color-blue: rgb(0, 140, 255);
 	--color-purple: rgb(128, 0, 255);
 	--color-peach: rgb(255, 99, 72);
-	--color-white: rgb(255,255,255);
+	--color-white: rgb(255, 255, 255);
 	--color-acid: rgb(217, 255, 0);
 	--color-gold: rgb(255, 230, 0);
 
@@ -18,20 +18,20 @@
 	--color-red: rgb(255, 22, 22);
 	--color-crimson: rgb(148, 0, 37);
 
-	--color-bg: rgb(0,0,0);
+	--color-bg: rgb(0, 0, 0);
 	--color-input-bg: rgb(25, 25, 25);
-	--color-text: rgb(190,190,190);
-	--color-text-dark: rgb(99,99,99);
-	--color-border: rgb(77,77,77);
-	--color-grid: rgb(33,33,33);
-  	--color-active: var(--color-gold);
+	--color-text: rgb(190, 190, 190);
+	--color-text-dark: rgb(99, 99, 99);
+	--color-border: rgb(77, 77, 77);
+	--color-grid: rgb(33, 33, 33);
+	--color-active: var(--color-gold);
 	--color-area: rgba(95, 0, 175, 0.17);
 	--color-area2: rgba(0, 104, 86, 0.5);
 
 	color-scheme: dark;
 }
 
-[main-theme="Bright"] {
+[main-theme='Bright'] {
 	--color-magenta: rgb(231, 37, 111);
 	--color-magenta2: rgba(255, 85, 136, 0.7);
 	--color-cyan: rgb(0, 204, 204);
@@ -43,7 +43,7 @@
 	--color-skyblue: rgb(122, 160, 221);
 	--color-blue: rgb(0, 153, 153);
 	--color-purple: rgb(128, 0, 255);
-	--color-white: rgb(44,44,44);
+	--color-white: rgb(44, 44, 44);
 
 	--color-green: rgb(0, 200, 0);
 	--color-yellow: rgb(255, 255, 0);
@@ -51,11 +51,11 @@
 	--color-red: rgb(255, 24, 24);
 	--color-crimson: rgb(165, 0, 22);
 
-	--color-bg: rgb(255,255,255);
+	--color-bg: rgb(255, 255, 255);
 	--color-input-bg: rgb(200, 200, 200);
-	--color-text: rgb(22,22,22);
-	--color-text-dark: rgb(77,77,77);
-	--color-border: rgb(88,88,88);
+	--color-text: rgb(22, 22, 22);
+	--color-text-dark: rgb(77, 77, 77);
+	--color-border: rgb(88, 88, 88);
 	--color-grid: rgb(222, 222, 222);
 	--color-active: rgb(228, 0, 106);
 	--color-area: rgba(168, 61, 255, 0.2);
@@ -64,10 +64,10 @@
 	color-scheme: light;
 }
 
-[main-theme="Monochrome"] {
+[main-theme='Monochrome'] {
 	--color-crimson: rgb(0, 0, 0);
 	--color-magenta: rgb(44, 44, 44);
-	--color-magenta2: rgb(88, 88, 88, .9);
+	--color-magenta2: rgb(88, 88, 88, 0.9);
 	--color-red: rgb(33, 33, 33);
 	--color-orange: rgb(55, 55, 55);
 	--color-peach: rgb(77, 77, 77);
@@ -79,16 +79,16 @@
 	--color-cyan2: rgba(145, 145, 145, 0.6);
 	--color-blue: rgb(0, 0, 0);
 	--color-purple: rgb(77, 77, 77);
-	--color-white: rgb(33,33,33);
+	--color-white: rgb(33, 33, 33);
 	--color-yellow: rgb(32, 32, 32);
 
-	--color-bg: rgb(255,255,255);
+	--color-bg: rgb(255, 255, 255);
 	--color-input-bg: rgb(200, 200, 200);
-	--color-text: rgb(0,0,0);
-	--color-text-dark: rgb(77,77,77);
-	--color-border: rgb(66,66,66);
-	--color-grid: rgb(222,222,222);
-  	--color-active: rgb(228, 0, 106);
+	--color-text: rgb(0, 0, 0);
+	--color-text-dark: rgb(77, 77, 77);
+	--color-border: rgb(66, 66, 66);
+	--color-grid: rgb(222, 222, 222);
+	--color-active: rgb(228, 0, 106);
 	--color-area: rgba(111, 111, 111, 0.27);
 	--color-area2: rgba(111, 111, 111, 0.3);
 

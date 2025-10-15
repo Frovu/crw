@@ -86,7 +86,9 @@
 	gap: 8px;
 }
 
-.ContextMenu button, .ContextMenu input, .TextButton {
+.ContextMenu button,
+.ContextMenu input,
+.TextButton {
 	border: none;
 	padding: 1px 0 1px 0;
 }
@@ -100,7 +102,9 @@
 	cursor: pointer;
 }
 
-.ContextMenu > button:hover, .ContextMenu label:hover, .TextButton:hover {
+.ContextMenu > button:hover,
+.ContextMenu label:hover,
+.TextButton:hover {
 	color: var(--color-active) !important;
 	text-decoration: underline;
 }
@@ -139,22 +143,28 @@ div.separator {
 	text-decoration: underline;
 }
 
-button, select {
+button,
+select {
 	text-align: center;
 	border: 1px var(--color-border) solid;
 }
 
-input:not([type='checkbox']), label > select, select.Borderless {
+input:not([type='checkbox']),
+label > select,
+select.Borderless {
 	text-align: center;
 	background-color: var(--color-input-bg);
 	border: 1px transparent solid;
 }
 
-input:not([type='checkbox']):disabled, label > select:disabled, label > select.Borderless:disabled {
-	opacity: .7;
+input:not([type='checkbox']):disabled,
+label > select:disabled,
+label > select.Borderless:disabled {
+	opacity: 0.7;
 }
 
-label > select, select.Borderless {
+label > select,
+select.Borderless {
 	border: 1px transparent solid;
 }
 
@@ -164,15 +174,20 @@ label:has(input[type='checkbox']):hover {
 	text-decoration: underline;
 }
 
-input:focus-visible, button:focus-visible, select:focus-visible {
+input:focus-visible,
+button:focus-visible,
+select:focus-visible {
 	border-color: var(--color-active);
 }
 
-input:disabled, button:disabled, select:disabled {
+input:disabled,
+button:disabled,
+select:disabled {
 	color: var(--color-text-dark);
 }
 
-button:hover:enabled, select:hover:enabled {
+button:hover:enabled,
+select:hover:enabled {
 	border-color: var(--color-active) !important;
 }
 
@@ -213,7 +228,6 @@ button:hover:enabled, select:hover:enabled {
 	position: relative;
 	padding: 1px 24px 1px 8px;
 	border: 1px var(--color-border) solid;
-
 }
 
 .Select::after {
@@ -223,7 +237,7 @@ button:hover:enabled, select:hover:enabled {
 	right: 3px;
 	position: absolute;
 	font-size: 24px;
-	content: "⌄";
+	content: '⌄';
 }
 
 .Select:hover {

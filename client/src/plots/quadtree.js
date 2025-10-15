@@ -3,7 +3,7 @@ export function pointWithin(px, py, rlft, rtop, rrgt, rbtm) {
 }
 
 const MAX_OBJECTS = 10;
-const MAX_LEVELS  = 4;
+const MAX_LEVELS = 4;
 
 export class Quadtree {
 	constructor(x, y, w, h, l) {
@@ -28,11 +28,11 @@ export class Quadtree {
 
 		t.q = [
 			// top right
-			new Quadtree(x + w, y,     w, h, l),
+			new Quadtree(x + w, y, w, h, l),
 			// top left
-			new Quadtree(x,     y,     w, h, l),
+			new Quadtree(x, y, w, h, l),
 			// bottom left
-			new Quadtree(x,     y + h, w, h, l),
+			new Quadtree(x, y + h, w, h, l),
 			// bottom right
 			new Quadtree(x + w, y + h, w, h, l),
 		];
@@ -40,14 +40,14 @@ export class Quadtree {
 
 	// invokes callback with index of each overlapping quad
 	quads(x, y, w, h, cb) {
-		const t            = this,
-			q            = t.q,
-			hzMid        = t.x + t.w / 2,
-			vtMid        = t.y + t.h / 2,
-			startIsNorth = y     < vtMid,
-			startIsWest  = x     < hzMid,
-			endIsEast    = x + w > hzMid,
-			endIsSouth   = y + h > vtMid;
+		const t = this,
+			q = t.q,
+			hzMid = t.x + t.w / 2,
+			vtMid = t.y + t.h / 2,
+			startIsNorth = y < vtMid,
+			startIsWest = x < hzMid,
+			endIsEast = x + w > hzMid,
+			endIsSouth = y + h > vtMid;
 
 		// top-right quad
 		startIsNorth && endIsEast && cb(q[0]);
@@ -63,11 +63,10 @@ export class Quadtree {
 		const t = this;
 
 		if (t.q != null) {
-			t.quads(o.x, o.y, o.w, o.h, q => {
+			t.quads(o.x, o.y, o.w, o.h, (q) => {
 				q.add(o);
 			});
-		}
-		else {
+		} else {
 			const os = t.o;
 
 			os.push(o);
@@ -78,7 +77,7 @@ export class Quadtree {
 				for (let i = 0; i < os.length; i++) {
 					const oi = os[i];
 
-					t.quads(oi.x, oi.y, oi.w, oi.h, q => {
+					t.quads(oi.x, oi.y, oi.w, oi.h, (q) => {
 						q.add(oi);
 					});
 				}
@@ -92,11 +91,10 @@ export class Quadtree {
 		const t = this;
 		const os = t.o;
 
-		for (let i = 0; i < os.length; i++)
-			cb(os[i]);
+		for (let i = 0; i < os.length; i++) cb(os[i]);
 
 		if (t.q != null) {
-			t.quads(x, y, w, h, q => {
+			t.quads(x, y, w, h, (q) => {
 				q.get(x, y, w, h, cb);
 			});
 		}
@@ -104,7 +102,7 @@ export class Quadtree {
 
 	hover(cx, cy, cb) {
 		let dist = Infinity;
-		this.get(cx, cy, 1, 1, o => {
+		this.get(cx, cy, 1, 1, (o) => {
 			if (pointWithin(cx, cy, o.x, o.y, o.x + o.w, o.y + o.h)) {
 				const ocx = o.x + o.w / 2;
 				const ocy = o.y + o.h / 2;
@@ -130,4 +128,4 @@ export class Quadtree {
 		this.o.length = 0;
 		this.q = null;
 	}
-};
+}

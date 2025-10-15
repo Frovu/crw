@@ -10,24 +10,41 @@ import { askConfirmation } from '../../Utility';
 const ENT = 'sources_ch';
 
 function deleteHole(id: number) {
-	askConfirmation(<><h4>Delete CHS event?</h4><p>Action is irreversible</p></>,
-		() => deleteEvent(ENT, id));
+	askConfirmation(
+		<>
+			<h4>Delete CHS event?</h4>
+			<p>Action is irreversible</p>
+		</>,
+		() => deleteEvent(ENT, id),
+	);
 }
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
-	const detail = useContextMenu(state => state.menu?.detail) as { ch: CHS } | undefined;
+	const detail = useContextMenu((state) => state.menu?.detail) as { ch: CHS } | undefined;
 	const sources = useSources();
 	const chsId = detail?.ch?.id;
-	const isLinked = sources.find(s => s.ch?.id === chsId);
+	const isLinked = sources.find((s) => s.ch?.id === chsId);
 
-	return chsId && <>
-		{feidId && !isLinked && <button className='TextButton'
-			onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>Link CHS</button>}
-		{feidId && isLinked && <button className='TextButton'
-			onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>Unlink CHS</button>}
-		<button className='TextButton' onClick={() => deleteHole(chsId)}>Delete row</button>
-	</>;
+	return (
+		chsId && (
+			<>
+				{feidId && !isLinked && (
+					<button className="TextButton" onClick={() => linkSrcToEvent(ENT, chsId, feidId)}>
+						Link CHS
+					</button>
+				)}
+				{feidId && isLinked && (
+					<button className="TextButton" onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>
+						Unlink CHS
+					</button>
+				)}
+				<button className="TextButton" onClick={() => deleteHole(chsId)}>
+					Delete row
+				</button>
+			</>
+		)
+	);
 }
 
 function Panel() {
@@ -42,55 +59,76 @@ function Panel() {
 
 	useTableQuery(ENT);
 
-	if (!data || !feidSrc.data || !columns)
-		return <div className='Center'>LOADING..</div>;
+	if (!data || !feidSrc.data || !columns) return <div className="Center">LOADING..</div>;
 
-	const focusTime = cursorTime && (cursorTime.getTime() - 2 * 864e5);
-	const focusIdxFound = sources.map(src => data.findIndex(r => src.ch?.id === r[0])).find(i => i > 0) ||
-	  (focusTime == null ? data.length : data.findIndex(r => (r[1] as Date)?.getTime() > focusTime));
+	const focusTime = cursorTime && cursorTime.getTime() - 2 * 864e5;
+	const focusIdxFound =
+		sources.map((src) => data.findIndex((r) => src.ch?.id === r[0])).find((i) => i > 0) ||
+		(focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime));
 	const focusIdx = focusIdxFound < 0 ? data.length - 1 : focusIdxFound;
 
-	return <div>
-		{<TableWithCursor {...{
-			entity: ENT,
-			data, columns, size, focusIdx,
-			head: (cols, padHeader) => <DefaultHead {...{ columns: cols.slice(1), padHeader }}/>,
-			row: (row, idx, onClick, padRow) => {
-				const ch = rowAsDict(row as any, columns) as CHS;
-				const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
-				const linkedToThisFEID = sources.find(s => equalValues(s.ch?.tag, ch.tag));
-				
-				const orphan = !feidSrc.data.find(r => r[chIdIdx] === row[0]);
-				const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-				const dark = !orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
-			
-				return <tr key={row[0]}
-					style={{ height: 23 + padRow, fontSize: 15 }}>
-					{columns.slice(1).map((column, scidx) => {
-						const cidx = scidx + 1;
-						const curs = (cursor?.row === idx && cidx === cursor?.column) ? cursor : null;
-						const value = valueToString(row[cidx]);
-						const width = 'tag' === column.id ? 7.5 : 
-							['b', 'phi', 'lat', 'area', 'width'].includes(column.id) ? 4.5 : column.width;
-						return <td key={column.id} title={(cidx === 1 ? `id = ${row[0]}; ` : '') + `${column.fullName} = ${value}`}
-							onClick={e => onClick(idx, cidx)}
-							onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
-							style={{ borderColor: color(curs ? 'active' : 'border') }}>
-							<span className='Cell' style={{
-								width: width + 'ch',
-								color: color(orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text') }}>
-								<div className='TdOver'/>
-								{value}
-							</span>
-						</td>;
-					})}
-				</tr>;}
-		}}/>}
-	</div>;
+	return (
+		<div>
+			{
+				<TableWithCursor
+					{...{
+						entity: ENT,
+						data,
+						columns,
+						size,
+						focusIdx,
+						head: (cols, padHeader) => <DefaultHead {...{ columns: cols.slice(1), padHeader }} />,
+						row: (row, idx, onClick, padRow) => {
+							const ch = rowAsDict(row as any, columns) as CHS;
+							const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
+							const linkedToThisFEID = sources.find((s) => equalValues(s.ch?.tag, ch.tag));
+
+							const orphan = !feidSrc.data.find((r) => r[chIdIdx] === row[0]);
+							const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
+							const dark = !orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
+
+							return (
+								<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
+									{columns.slice(1).map((column, scidx) => {
+										const cidx = scidx + 1;
+										const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
+										const value = valueToString(row[cidx]);
+										const width = 'tag' === column.id ? 7.5 : ['b', 'phi', 'lat', 'area', 'width'].includes(column.id) ? 4.5 : column.width;
+										return (
+											<td
+												key={column.id}
+												title={(cidx === 1 ? `id = ${row[0]}; ` : '') + `${column.fullName} = ${value}`}
+												onClick={(e) => onClick(idx, cidx)}
+												onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
+												style={{ borderColor: color(curs ? 'active' : 'border') }}
+											>
+												<span
+													className="Cell"
+													style={{
+														width: width + 'ch',
+														color: color(
+															orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text',
+														),
+													}}
+												>
+													<div className="TdOver" />
+													{value}
+												</span>
+											</td>
+										);
+									})}
+								</tr>
+							);
+						},
+					}}
+				/>
+			}
+		</div>
+	);
 }
 
 export const HolesTable = {
 	name: 'Holes Src Table',
 	Panel,
-	Menu
+	Menu,
 };

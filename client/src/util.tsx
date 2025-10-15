@@ -1,5 +1,5 @@
-import React, { type SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement, type Reducer } from 'react';
-import { useMutation, useQueryClient } from 'react-query';
+import React, { type SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 if (!Array.prototype.toSpliced) {
 	// eslint-disable-next-line no-extend-native
@@ -12,21 +12,21 @@ if (!Array.prototype.toSpliced) {
 
 export type OpState<T = string> =
 	| {
-		status: 'working';
-		started: number;
-		progress: number;
+			status: 'working';
+			started: number;
+			progress: number;
 	  }
 	| {
-		status: 'done';
-		started: number;
-		finished: number;
-		data: T;
+			status: 'done';
+			started: number;
+			finished: number;
+			data: T;
 	  }
 	| {
-		status: 'error';
-		started: number;
-		finished: number;
-		error: string;
+			status: 'error';
+			started: number;
+			finished: number;
+			error: string;
 	  };
 
 export type Size = { width: number; height: number };
@@ -37,9 +37,9 @@ export function prettyDate(inp: Date | number | null, short = false) {
 	return isNaN(date.getTime())
 		? 'Invalid'
 		: date
-			.toISOString()
-			.replace('T', ' ')
-			.replace(short ? /\s.*/ : /(:00)?\..*/, '');
+				.toISOString()
+				.replace('T', ' ')
+				.replace(short ? /\s.*/ : /(:00)?\..*/, '');
 }
 
 export const clamp = (min: number, max: number, val: number, minFirst: boolean = false) =>
@@ -79,7 +79,7 @@ export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
 
-export function useEventListener(eventName: string, callback: (e: any) => any | (() => any), elementRef?: React.RefObject<HTMLElement>) {
+export function useEventListener(eventName: string, callback: (e: any) => any | (() => any), elementRef?: React.RefObject<HTMLElement | null>) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
 
@@ -110,7 +110,7 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, (
 				window.localStorage.setItem(key, JSON.stringify(value));
 				return value;
 			}),
-		[key]
+		[key],
 	);
 
 	return [state, setter];
@@ -148,11 +148,12 @@ export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn:
 	const queryClient = useQueryClient();
 	const [report, setReport] = useState<{ success?: string; error?: string } | null>(null);
 	type V = Parameters<F>[number];
-	const mutation = useMutation<Awaited<ReturnType<F>>, Error, [V] extends [never] ? any : V>(fn, {
+	const mutation = useMutation<Awaited<ReturnType<F>>, Error, [V] extends [never] ? any : V>({
+		mutationFn: fn,
 		onError: (e: Error) => setReport({ error: e.message }),
 		onSuccess: (res: Awaited<ReturnType<F>>) => {
 			setReport({ success: res.message?.toString() });
-			if (invalidate) invalidate.forEach((key) => queryClient.invalidateQueries([key]));
+			if (invalidate) invalidate.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
 		},
 	});
 
@@ -165,15 +166,16 @@ export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn:
 		...mutation,
 		report,
 		setReport,
-		color: mutation.isLoading ? 'var(--color-text)' : report?.success ? 'var(--color-green)' : report?.error ? 'var(--color-red)' : 'var(--color-text)',
+		color: mutation.isPending ? 'var(--color-text)' : report?.success ? 'var(--color-green)' : report?.error ? 'var(--color-red)' : 'var(--color-text)',
 	};
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?: number) {
-	type R = Reducer<{ year: number; month: number; count: number; interval: number[] }, { action: 'month' | 'year' | 'count'; value: number }>;
+	type S = { year: number; month: number; count: number; interval: number[] };
+	type A = [{ action: 'month' | 'year' | 'count'; value: number }];
 	const init = initial ?? new Date();
-	const [{ year, month, count, interval }, dispatch] = useReducer<R>(
+	const [{ year, month, count, interval }, dispatch] = useReducer<S, A>(
 		(state, { action, value }) => {
 			const st = { ...state, [action]: value };
 			st.interval = [0, st.count].map((inc) => new Date(Date.UTC(st.year, st.month + inc)).getTime() / 1e3);
@@ -184,7 +186,7 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			month: init.getMonth(),
 			count: initialMonths ?? 1,
 			interval: [0, initialMonths ?? 1].map((inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3),
-		}
+		},
 	);
 	const set = (action: 'month' | 'year' | 'count', value: number) => dispatch({ action, value });
 

@@ -1,7 +1,7 @@
 import { useContext, useState, type MouseEvent } from 'react';
 import { read, utils } from 'xlsx';
 import { apiGet, apiPost, prettyDate } from '../util';
-import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { color, logError, logSuccess } from '../app';
 import { useSolarPlotContext } from '../plots/time/solar';
 import { useFeidCursor } from './eventsState';
@@ -19,12 +19,12 @@ function Menu() {
 	const [data, setData] = useState<Data | null>(null);
 
 	const queryClient = useQueryClient();
-	const { mutate, isLoading } = useMutation({
+	const { mutate, isPending } = useMutation({
 		mutationFn: () => apiPost('events/swpc_summary', data!),
 		onError: () => logError('Failed to import swpc data'),
 		onSuccess: () => {
 			logSuccess('Imported swpc data');
-			queryClient.invalidateQueries(['swpcSummary']);
+			queryClient.invalidateQueries({ queryKey: ['swpcSummary'] });
 		},
 	});
 
@@ -60,7 +60,7 @@ function Menu() {
 						.catch(() => {})
 				}
 			/>
-			<button className="TextButton" disabled={!data || isLoading} onClick={onClick}>
+			<button className="TextButton" disabled={!data || isPending} onClick={onClick}>
 				Import SWPC data
 			</button>
 		</>
@@ -68,7 +68,10 @@ function Menu() {
 }
 
 function Panel() {
-	const { data } = useQuery(['swpcSummary'], () => apiGet<ApiData>('events/swpc_summary'));
+	const { data } = useQuery({
+		queryKey: ['swpcSummary'],
+		queryFn: () => apiGet<ApiData>('events/swpc_summary'),
+	});
 	const {
 		size: { width, height },
 	} = useContext(LayoutContext)!;

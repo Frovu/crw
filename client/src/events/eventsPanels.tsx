@@ -60,64 +60,83 @@ const panels: EventsPanel<any>[] = [
 	SWPCHint,
 	{
 		name: 'Empty',
-		Panel: () => null
-	}
+		Panel: () => null,
+	},
 ];
 
 function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
-	return <div style={{ height: '100%', userSelect: 'none',
-		overflow: 'clip', border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid' }}>
-		<panel.Panel/>
-	</div>;
+	return (
+		<div
+			style={{ height: '100%', userSelect: 'none', overflow: 'clip', border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid' }}
+		>
+			<panel.Panel />
+		</div>
+	);
 }
 
-function MenuWrapper<T>({ panel, params, setParams, Checkbox }:
-{ panel: EventsPanel<T> } & ContextMenuProps<any>) {
-	const details = useContextMenu(state => state.menu?.detail) as LayoutsMenuDetails | null ?? null;
+function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
+	const details = (useContextMenu((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
-	return <>
-		{isPlot && <>
-			<div className='Row'>
-				<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)}/>
-				{type === 'Particles' && <Checkbox text='solar' k='solarTime'/>}
-			</div>
-			<div className='separator'/>
-			<div className='Row'>
-				<EventsCheckbox text='grid' k='showGrid'/>
-				{(!isStat || type === 'Events history')
-					&& <EventsCheckbox text='markers' k='showMarkers'/>}
-				<EventsCheckbox text='legend' k='showLegend'/>
-				{(type === 'Correlation')
-					&& <EventsCheckbox text='title' k='showTitle'/>}
-			</div>
-		</>}
-		{isPlot && !isStat && <>
-			<div className='separator'/>
-			<div className='Row'>
-				<Checkbox text='time axis' k='showTimeAxis'/>
-				<Checkbox text='meta' k='showMetaInfo'/>
-				<Checkbox text='label' k='showMetaLabels'/>
-			</div>
-			{(!isSolar || (type === 'Particles' && params.solarTime === false)) && <><div className='Row'>
-				<EventsCheckbox text='show unlisted' k='plotUnlistedEvents'/>
-				<EventsCheckbox text='MCs' k='showMagneticClouds'/>
-				<EventsCheckbox text='ends' k='showEventsEnds'/>
-			</div></>}
-			{Menu && <div className='separator'/>}
-		</>}
-		{Menu && <>
-			<Menu {...{ params, setParams, Checkbox }}/>
-		</>}
-		{isPlot && <>
- 			<div className='separator'/>
- 			{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
- 		</>}
-	</>;
+	return (
+		<>
+			{isPlot && (
+				<>
+					<div className="Row">
+						<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)} />
+						{type === 'Particles' && <Checkbox text="solar" k="solarTime" />}
+					</div>
+					<div className="separator" />
+					<div className="Row">
+						<EventsCheckbox text="grid" k="showGrid" />
+						{(!isStat || type === 'Events history') && <EventsCheckbox text="markers" k="showMarkers" />}
+						<EventsCheckbox text="legend" k="showLegend" />
+						{type === 'Correlation' && <EventsCheckbox text="title" k="showTitle" />}
+					</div>
+				</>
+			)}
+			{isPlot && !isStat && (
+				<>
+					<div className="separator" />
+					<div className="Row">
+						<Checkbox text="time axis" k="showTimeAxis" />
+						<Checkbox text="meta" k="showMetaInfo" />
+						<Checkbox text="label" k="showMetaLabels" />
+					</div>
+					{(!isSolar || (type === 'Particles' && params.solarTime === false)) && (
+						<>
+							<div className="Row">
+								<EventsCheckbox text="show unlisted" k="plotUnlistedEvents" />
+								<EventsCheckbox text="MCs" k="showMagneticClouds" />
+								<EventsCheckbox text="ends" k="showEventsEnds" />
+							</div>
+						</>
+					)}
+					{Menu && <div className="separator" />}
+				</>
+			)}
+			{Menu && (
+				<>
+					<Menu {...{ params, setParams, Checkbox }} />
+				</>
+			)}
+			{isPlot && (
+				<>
+					<div className="separator" />
+					{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
+				</>
+			)}
+		</>
+	);
 }
 
-export const eventsPanels = Object.fromEntries(panels.map(p => [p.name, {
-	...p,
-	defaultParams: { ...defaultPlotParams, ...p.defaultParams },
-	Panel: () => <PanelWrapper panel={p as any}/>,
-	Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props}/>
-}]));
+export const eventsPanels = Object.fromEntries(
+	panels.map((p) => [
+		p.name,
+		{
+			...p,
+			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
+			Panel: () => <PanelWrapper panel={p as any} />,
+			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
+		},
+	]),
+);

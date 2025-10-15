@@ -1,7 +1,7 @@
 .Table {
 	overflow-x: scroll;
 	overflow-y: clip;
-	-ms-overflow-style: none;  /* IE and Edge */
+	-ms-overflow-style: none; /* IE and Edge */
 	scrollbar-width: none; /* Firefox */
 }
 
@@ -114,5 +114,5 @@
 
 .keyComb {
 	margin-left: 1em;
-	color: var(--color-text-dark)
+	color: var(--color-text-dark);
 }

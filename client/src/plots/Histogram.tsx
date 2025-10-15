@@ -16,20 +16,20 @@ const columnKeys = ['column0', 'column1', 'column2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 
 export type HistogramParams = {
-	binCount: number,
-	forceMin: number | null,
-	forceMax: number | null,
-	drawMean: boolean,
-	drawMedian: boolean,
-	showYLabel: boolean,
-	showResiduals: boolean,
-	yScale: typeof yScaleOptions[number],
-	sample0: string,
-	column0: string | null,
-	sample1: string,
-	column1: string | null,
-	sample2: string,
-	column2: string | null,
+	binCount: number;
+	forceMin: number | null;
+	forceMax: number | null;
+	drawMean: boolean;
+	drawMedian: boolean;
+	showYLabel: boolean;
+	showResiduals: boolean;
+	yScale: (typeof yScaleOptions)[number];
+	sample0: string;
+	column0: string | null;
+	sample1: string;
+	column1: string | null;
+	sample2: string;
+	column2: string | null;
 };
 
 const defaultParams: HistogramParams = {
@@ -46,71 +46,141 @@ const defaultParams: HistogramParams = {
 	column1: null,
 	column2: null,
 	drawMean: true,
-	drawMedian: false
+	drawMedian: false,
 };
 
 function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 	const { columns } = useContext(MainTableContext);
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
-	const columnOpts = columns.filter(c => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id))
-		|| (['column0', 'column1', 'column2'] as const).some(p => params[p] === c.id));
+	const columnOpts = columns.filter(
+		(c) =>
+			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
+			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id),
+	);
 
-	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) =>
-		setParams({ [k]: val });
-	const Checkbox = ({ text, k }: { text: string, k: keyof HistogramParams }) =>
-		<label>{text}<input type='checkbox' style={{ paddingLeft: 4 }}
-			checked={params[k] as boolean} onChange={e => set(k, e.target.checked)}/></label>;
+	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
+	const Checkbox = ({ text, k }: { text: string; k: keyof HistogramParams }) => (
+		<label>
+			{text}
+			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => set(k, e.target.checked)} />
+		</label>
+	);
 
-	return <div className='Group'>
-		{([0, 1, 2] as const).map(i => <div key={i} className='Row' style={{ paddingRight: 4 }}>
-			<span title='Reset' style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
-				onClick={() => {set(columnKeys[i], null); set(sampleKeys[i], '<current>');}}>#{i}</span>
-			<div><select title='Column' className='Borderless' style={{ width: '10em',
-				color: params[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
-			value={params[columnKeys[i]] ?? '__none'} onChange={e => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}>
-				<option value='__none'>&lt;none&gt;</option>
-				{columnOpts.map(({ id, fullName }) => <option key={id} value={id}>{fullName}</option>)}
-			</select>:
-			<select title='Sample (none = all events)' className='Borderless' style={{ width: '7em', marginLeft: 1,
-				color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
-			value={params[sampleKeys[i]]} onChange={e => set(sampleKeys[i], e.target.value)}>
-				<option value='<none>'>&lt;none&gt;</option>
-				<option value='<current>'>&lt;current&gt;</option>
-				{samples.map(({ id, name }) => <option key={id} value={id.toString()}>{name}</option>)}
-			</select></div>
-		</div>)}
-		<div className='Row'>
-			<div>Y:<select className='Borderless' style={{ width: '5em', marginLeft: 4, padding: 0 }}
-				value={params.yScale} onChange={e => set('yScale', e.target.value as any)}>
-				{yScaleOptions.map(o => <option key={o} value={o}>{o}</option>)}
-			</select></div>
-			<div style={{ paddingLeft: 4 }}>Bin count:<input type='number' min='2' max='9999'
-				style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={params.binCount} onChange={e => set('binCount', e.target.valueAsNumber)}/></div>
+	return (
+		<div className="Group">
+			{([0, 1, 2] as const).map((i) => (
+				<div key={i} className="Row" style={{ paddingRight: 4 }}>
+					<span
+						title="Reset"
+						style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
+						onClick={() => {
+							set(columnKeys[i], null);
+							set(sampleKeys[i], '<current>');
+						}}
+					>
+						#{i}
+					</span>
+					<div>
+						<select
+							title="Column"
+							className="Borderless"
+							style={{ width: '10em', color: params[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
+							value={params[columnKeys[i]] ?? '__none'}
+							onChange={(e) => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}
+						>
+							<option value="__none">&lt;none&gt;</option>
+							{columnOpts.map(({ id, fullName }) => (
+								<option key={id} value={id}>
+									{fullName}
+								</option>
+							))}
+						</select>
+						:
+						<select
+							title="Sample (none = all events)"
+							className="Borderless"
+							style={{ width: '7em', marginLeft: 1, color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+							value={params[sampleKeys[i]]}
+							onChange={(e) => set(sampleKeys[i], e.target.value)}
+						>
+							<option value="<none>">&lt;none&gt;</option>
+							<option value="<current>">&lt;current&gt;</option>
+							{samples.map(({ id, name }) => (
+								<option key={id} value={id.toString()}>
+									{name}
+								</option>
+							))}
+						</select>
+					</div>
+				</div>
+			))}
+			<div className="Row">
+				<div>
+					Y:
+					<select
+						className="Borderless"
+						style={{ width: '5em', marginLeft: 4, padding: 0 }}
+						value={params.yScale}
+						onChange={(e) => set('yScale', e.target.value as any)}
+					>
+						{yScaleOptions.map((o) => (
+							<option key={o} value={o}>
+								{o}
+							</option>
+						))}
+					</select>
+				</div>
+				<div style={{ paddingLeft: 4 }}>
+					Bin count:
+					<input
+						type="number"
+						min="2"
+						max="9999"
+						style={{ width: '4em', margin: '0 4px', padding: 0 }}
+						value={params.binCount}
+						onChange={(e) => set('binCount', e.target.valueAsNumber)}
+					/>
+				</div>
+			</div>
+			<div style={{ textAlign: 'right' }}>
+				<span
+					className="TextButton"
+					title="Reset"
+					style={{ userSelect: 'none', cursor: 'pointer' }}
+					onClick={() => setParams({ forceMin: null, forceMax: null })}
+				>
+					Limits:
+				</span>
+				<NumberInput
+					style={{ width: '4em', margin: '0 4px', padding: 0 }}
+					value={params.forceMin}
+					onChange={(val) => set('forceMin', val)}
+					allowNull={true}
+				/>
+				&lt;= X &lt;
+				<NumberInput
+					style={{ width: '4em', margin: '0 4px', padding: 0 }}
+					value={params.forceMax}
+					onChange={(val) => set('forceMax', val)}
+					allowNull={true}
+				/>
+			</div>
+			<div className="Row">
+				<Checkbox text="Show Y label" k="showYLabel" />
+				<Checkbox text=" mean" k="drawMean" />
+				<Checkbox text=" median" k="drawMedian" />
+			</div>
+			<div className="Row">
+				<Checkbox text="Show residual counts" k="showResiduals" />
+			</div>
 		</div>
-		<div style={{ textAlign: 'right' }}>
-			<span className='TextButton' title='Reset' style={{ userSelect: 'none', cursor: 'pointer' }}
-				onClick={() => setParams({ forceMin: null, forceMax: null })}>Limits:</span>
-			<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={params.forceMin} onChange={val => set('forceMin', val)} allowNull={true}/>
-			&lt;= X &lt;<NumberInput style={{ width: '4em', margin: '0 4px', padding: 0 }}
-				value={params.forceMax} onChange={val => set('forceMax', val)} allowNull={true}/>
-		</div>
-		<div className='Row'>
-			<Checkbox text='Show Y label' k='showYLabel'/>
-			<Checkbox text=' mean' k='drawMean'/>
-			<Checkbox text=' median' k='drawMedian'/>
-		</div>
-		<div className='Row'>
-			<Checkbox text='Show residual counts' k='showResiduals'/>
-		</div>
-	</div>;
+	);
 }
 
 function drawResiduals(params: HistogramParams, samples: number[][], min: number, max: number) {
-	const left  = samples.map(smp => smp.filter(v => v <  min).length);
-	const right = samples.map(smp => smp.filter(v => v >= max).length);
+	const left = samples.map((smp) => smp.filter((v) => v < min).length);
+	const right = samples.map((smp) => smp.filter((v) => v >= max).length);
 
 	const scale = scaled(1);
 	const ch = measureDigit().width;
@@ -118,19 +188,27 @@ function drawResiduals(params: HistogramParams, samples: number[][], min: number
 	const px = (a: number) => scale * a * devicePixelRatio;
 
 	return (u: uPlot) => {
-		if (!params.showResiduals)
-			return;
-		for (const [which, values] of [['left', left], ['right', right]] as const) {
-			if (!values.find(v => v > 0))
-				continue;
-			const vals = params.yScale === '%' ?
-				values.map((v, i) => Math.round(v / samples[i].length * 1000) / 10) : values;
+		if (!params.showResiduals) return;
+		for (const [which, values] of [
+			['left', left],
+			['right', right],
+		] as const) {
+			if (!values.find((v) => v > 0)) continue;
+			const vals = params.yScale === '%' ? values.map((v, i) => Math.round((v / samples[i].length) * 1000) / 10) : values;
 
-			const height = px(5) + values.filter(v => v > 0).length * lh * devicePixelRatio;
-			const width = px(6) + (Math.max.apply(null, vals.map(v => v.toString().length)) * ch + ch) * devicePixelRatio;
+			const height = px(5) + values.filter((v) => v > 0).length * lh * devicePixelRatio;
+			const width =
+				px(6) +
+				(Math.max.apply(
+					null,
+					vals.map((v) => v.toString().length),
+				) *
+					ch +
+					ch) *
+					devicePixelRatio;
 
 			const x0 = u.bbox.left + (which === 'right' ? u.bbox.width - width : 0);
-			const y0 = u.bbox.top + u.height * 1 / 3 - height;
+			const y0 = u.bbox.top + (u.height * 1) / 3 - height;
 
 			u.ctx.save();
 			u.ctx.lineWidth = px(1);
@@ -145,8 +223,7 @@ function drawResiduals(params: HistogramParams, samples: number[][], min: number
 			const x = x0 + px(2);
 			let y = y0 + px(3);
 			for (const [i, val] of values.entries()) {
-				if (val <= 0)
-					continue;
+				if (val <= 0) continue;
 
 				u.ctx.fillStyle = color(colors[i]);
 				u.ctx.fillText('+' + val.toString(), x, y);
@@ -162,12 +239,15 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 	const fnt = font(14, true);
 	const px = (a: number) => scale * a * devicePixelRatio;
 	const averages = {
-		mean: params.drawMean && samples.map(smpl => smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null),
-		median: params.drawMedian && samples.map(smpl => {
-			const s = smpl.sort((a: any, b: any) => a - b) as any, mid = Math.floor(smpl.length / 2);
-			return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
-		})
-	} as {[key: string]: (number | null)[]};
+		mean: params.drawMean && samples.map((smpl) => (smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null)),
+		median:
+			params.drawMedian &&
+			samples.map((smpl) => {
+				const s = smpl.sort((a: any, b: any) => a - b) as any,
+					mid = Math.floor(smpl.length / 2);
+				return s.length % 2 === 0 ? s[mid] : (s[mid] + s[mid + 1]) / 2;
+			}),
+	} as { [key: string]: (number | null)[] };
 
 	return (u: uPlot) => {
 		for (const what in averages) {
@@ -178,7 +258,7 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 				const margin = px(what === 'mean' ? -10 : 1);
 				const text = what === 'mean' ? 'a' : 'm';
 				u.ctx.save();
-				u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : .8);
+				u.ctx.fillStyle = u.ctx.strokeStyle = color(colors[i], what === 'mean' ? 1 : 0.8);
 				u.ctx.font = fnt;
 				u.ctx.textBaseline = 'top';
 				u.ctx.textAlign = 'left';
@@ -192,9 +272,10 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 				u.ctx.stroke();
 				u.ctx.fillText(text, x - scale * 3, u.bbox.top + margin);
 				u.ctx.restore();
-			} }
+			}
+		}
 	};
-} 
+}
 
 function Panel() {
 	const { data: allData, columns } = useTable();
@@ -203,159 +284,177 @@ function Panel() {
 	const params = usePlotParams<HistogramParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
-		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6, 
-		y: 3
+		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,
+		y: 3,
 	}));
 
 	const hist = useMemo(() => {
 		const { yScale } = params;
 
-		const cols = [0, 1, 2].map(i => columns.findIndex(c => c.id === params['column'+i as keyof HistogramParams]));
-		const allSamples = [0, 1, 2].map(i => {
-			const sampleId = params['sample'+i as 'sample0'|'sample1'|'sample2'];
+		const cols = [0, 1, 2].map((i) => columns.findIndex((c) => c.id === params[('column' + i) as keyof HistogramParams]));
+		const allSamples = [0, 1, 2].map((i) => {
+			const sampleId = params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'];
 			const colIdx = cols[i];
 			if (!sampleId || colIdx < 0) return [];
 			const column = columns[colIdx];
-			const data = sampleId === '<current>' ? sampleData : sampleId === '<none>' ? allData :
-				applySample(allData, samplesList.find(s => s.id.toString() === sampleId) ?? null, columns, samplesList);
-			return data.map(row => row[colIdx]).filter(val => val != null || column.type === 'enum');
+			const data =
+				sampleId === '<current>'
+					? sampleData
+					: sampleId === '<none>'
+						? allData
+						: applySample(allData, samplesList.find((s) => s.id.toString() === sampleId) ?? null, columns, samplesList);
+			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum');
 		});
-		const firstIdx = allSamples.findIndex(s => s.length);
+		const firstIdx = allSamples.findIndex((s) => s.length);
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
 		const enumMode = !!column.enum;
-		const samples = enumMode ? [allSamples[firstIdx].map(v => !v ? 0 : (column.enum!.indexOf(v as any) + 1))] : allSamples;
+		const samples = enumMode ? [allSamples[firstIdx].map((v) => (!v ? 0 : column.enum!.indexOf(v as any) + 1))] : allSamples;
 
 		const everything = samples.flat() as number[];
 		const min = params.forceMin ?? Math.min.apply(null, everything);
 		let max = params.forceMax ?? Math.max.apply(null, everything) + 1;
 		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : params.binCount;
 		if (params.forceMax == null) {
-			const countMax = everything.reduce((a, b) => b === max ? a + 1 : a, 0);
-			if (countMax > 1) // workaround for inclusive intervals
+			const countMax = everything.reduce((a, b) => (b === max ? a + 1 : a), 0);
+			if (countMax > 1)
+				// workaround for inclusive intervals
 				max += (max - min) / (binCount - 1);
 		}
 		const binSize = (max - min) / binCount;
 		if (min === max || !binCount) return null;
-		const samplesBins = samples.map(sample => {
+		const samplesBins = samples.map((sample) => {
 			if (!sample.length) return null;
 			const bins = Array(binCount).fill(0);
 			for (const val of sample) {
 				const bin = Math.floor(((val as number) - min) / binSize);
-				if (bin >= 0 && bin < binCount)
-					++bins[bin];
+				if (bin >= 0 && bin < binCount) ++bins[bin];
 			}
 			return bins as number[];
 		});
-		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0)); 
-		const transformed = samplesBins.map((bins, i) => yScale === '%' ? bins?.map(b => b / samples[i].length)! : bins!).filter(b => b);
-		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : .5)) * binSize) || [];
+		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
+		const transformed = samplesBins.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!)).filter((b) => b);
+		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : 0.5)) * binSize) || [];
 
-		const colNames = [0, 1, 2].map(i => params['column'+i as keyof HistogramParams])
-			.map(c => columns.find(cc => cc.id === c)?.fullName);
-		const sampleNames = [0, 1, 2].map(i => params['sample'+i as 'sample0'|'sample1'|'sample2'])
-			.map(id => ['<current>', '<none>'].includes(id) ? '' : 
-				(' of ' + (samplesList.find(s => s.id.toString() === id)?.name ?? 'UNKNOWN')));
+		const colNames = [0, 1, 2].map((i) => params[('column' + i) as keyof HistogramParams]).map((c) => columns.find((cc) => cc.id === c)?.fullName);
+		const sampleNames = [0, 1, 2]
+			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
+			.map((id) => (['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')));
 
 		// try to prevent short bars from disappearing
 		const highest = Math.max.apply(null, transformed.flat());
-		const elevated = transformed.map(smp => smp.map(c => c === 0 ? 0 : Math.max(c, highest / 256)));
+		const elevated = transformed.map((smp) => smp.map((c) => (c === 0 ? 0 : Math.max(c, highest / 256))));
 
-		const yLabel = yScale === 'log' ? 'log( events count )'
-					 : yScale === '%' ? 'events fraction, %' : 'events count';
+		const yLabel = yScale === 'log' ? 'log( events count )' : yScale === '%' ? 'events fraction, %' : 'events count';
 		return {
 			options: () => {
 				const scale = scaled(1);
 				const ch = measureDigit().width;
 				return {
-					padding: [12, 14 + (max > 999 ? 4 : 0), 0, 0].map(p => scaled(p)) as any,
+					padding: [12, 14 + (max > 999 ? 4 : 0), 0, 0].map((p) => scaled(p)) as any,
 					legend: { show: false },
-					focus: { alpha: .5 },
+					focus: { alpha: 0.5 },
 					cursor: { focus: { prox: 64 }, drag: { x: false, y: false, setScale: false }, points: { show: false } },
 					hooks: {
-						draw: [
-							drawAverages(params, samples),
-							enumMode ? () => {} : drawResiduals(params, samples as any, min, max),
-						]
+						draw: [drawAverages(params, samples), enumMode ? () => {} : drawResiduals(params, samples as any, min, max)],
 					},
 					plugins: [
 						tooltipPlugin({
-							html: (u, sidx, i) => 
-								`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round(binSize / 2 * 100) / 100};`
-							+ `<span style="color: ${(u.series[sidx].stroke as any)()}"> `
-							+ (Math.round(u.data[sidx][i]! * 100) / (yScale === '%' ? 1 : 100)).toString() + (yScale === '%' ? ' %' : ' events') + '</span>'
+							html: (u, sidx, i) =>
+								`${Math.round(u.data[0][i] * 100) / 100} ± ${Math.round((binSize / 2) * 100) / 100};` +
+								`<span style="color: ${(u.series[sidx].stroke as any)()}"> ` +
+								(Math.round(u.data[sidx][i]! * 100) / (yScale === '%' ? 1 : 100)).toString() +
+								(yScale === '%' ? ' %' : ' events') +
+								'</span>',
 						}),
 						legendPlugin({ params: { showLegend }, overlayHandle }),
-						labelsPlugin({ params: { showLegend } })
+						labelsPlugin({ params: { showLegend } }),
 					],
-					axes: [ {
-						...axisDefaults(showGrid),
-						size: scaled(12) + getFontSize(),
-						space: getFontSize() * 3,
-						labelSize: getFontSize(),
-						fullLabel: colNames.filter(a => a && a.length > 0).join(', '),
-						label: '',
-						gap: scaled(2),
-						values: (u, vals) => vals.map(v => v),
-						...(enumMode && {
-							values: (u, vals) => vals.map(v => (v != null && v % 1 === 0) ? ['N/A', ...column.enum!][v] : '')
-						}),
-					}, {
-						...axisDefaults(showGrid),
-						values: (u, vals) => vals.map(v => v && (yScale === '%' ?
-							(v*100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())),
-						gap: scaled(2),
-						fullLabel: params.showYLabel ? yLabel : '',
-						label: params.showYLabel ? '' : undefined,
-						labelSize: getFontSize() + scaled(3),
-						size: (u, values) => scale * 12 + ch *
-							(values ? Math.max.apply(null, values.map(v => v?.toString().length ?? 0)) : 4),
-						space: getFontSize() * 3
-					} as CustomAxis, ],
+					axes: [
+						{
+							...axisDefaults(showGrid),
+							size: scaled(12) + getFontSize(),
+							space: getFontSize() * 3,
+							labelSize: getFontSize(),
+							fullLabel: colNames.filter((a) => a && a.length > 0).join(', '),
+							label: '',
+							gap: scaled(2),
+							values: (u, vals) => vals.map((v) => v),
+							...(enumMode && {
+								values: (u, vals) => vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')),
+							}),
+						},
+						{
+							...axisDefaults(showGrid),
+							values: (u, vals) => vals.map((v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())),
+							gap: scaled(2),
+							fullLabel: params.showYLabel ? yLabel : '',
+							label: params.showYLabel ? '' : undefined,
+							labelSize: getFontSize() + scaled(3),
+							size: (u, values) =>
+								scale * 12 +
+								ch *
+									(values
+										? Math.max.apply(
+												null,
+												values.map((v) => v?.toString().length ?? 0),
+											)
+										: 4),
+							space: getFontSize() * 3,
+						} as CustomAxis,
+					],
 					scales: {
 						x: {
 							time: false,
-							range: () => !enumMode ? [min, max] : [min-binSize/2, max + binSize/2 * (enumMode ? -1 : 1) ]
-						}, y: {
-							distr: yScale === 'log' ? 3 : 1
-						} },
+							range: () => (!enumMode ? [min, max] : [min - binSize / 2, max + (binSize / 2) * (enumMode ? -1 : 1)]),
+						},
+						y: {
+							distr: yScale === 'log' ? 3 : 1,
+						},
+					},
 					series: [
-						{}, ...[{
-							bars: true,
-							label: colNames[0],
-							legend: `${colNames[0]}${sampleNames[0]}`,
-							stroke: color(colors[0]),
-							fill: color(colors[0], .8),
-							width: 0,
-							points: { show: false },
-							paths: uPlot.paths.bars!({ size: [.8, scaled(64)] })
-						}, {
-							bars: true,
-							label: colNames[1],
-							legend: `${colNames[1]}${sampleNames[1]}`,
-							stroke: color(colors[1]),
-							fill: color(colors[1]),
-							width: 0,
-							points: { show: false },
-							paths: uPlot.paths.bars!({ size: [.5, scaled(64)] })
-						}, {
-							bars: true,
-							label: colNames[2],
-							legend: `${colNames[2]}${sampleNames[2]}`,
-							stroke: color(colors[2]),
-							fill: color(colors[2]),
-							width: 0,
-							points: { show: false },
-							paths: uPlot.paths.bars!({ size: [.25, scaled(64)] })
-						}].filter((ser, i) => samplesBins[i])
-					]
-				} as Omit<uPlot.Options, 'width'|'height'>; },
-			data: [binsValues, ...elevated] as any
+						{},
+						...[
+							{
+								bars: true,
+								label: colNames[0],
+								legend: `${colNames[0]}${sampleNames[0]}`,
+								stroke: color(colors[0]),
+								fill: color(colors[0], 0.8),
+								width: 0,
+								points: { show: false },
+								paths: uPlot.paths.bars!({ size: [0.8, scaled(64)] }),
+							},
+							{
+								bars: true,
+								label: colNames[1],
+								legend: `${colNames[1]}${sampleNames[1]}`,
+								stroke: color(colors[1]),
+								fill: color(colors[1]),
+								width: 0,
+								points: { show: false },
+								paths: uPlot.paths.bars!({ size: [0.5, scaled(64)] }),
+							},
+							{
+								bars: true,
+								label: colNames[2],
+								legend: `${colNames[2]}${sampleNames[2]}`,
+								stroke: color(colors[2]),
+								fill: color(colors[2]),
+								width: 0,
+								points: { show: false },
+								paths: uPlot.paths.bars!({ size: [0.25, scaled(64)] }),
+							},
+						].filter((ser, i) => samplesBins[i]),
+					],
+				} as Omit<uPlot.Options, 'width' | 'height'>;
+			},
+			data: [binsValues, ...elevated] as any,
 		};
 	}, [params, columns, sampleData, allData, samplesList, showLegend, overlayHandle, showGrid]);
 
-	if (!hist) return <div className='Center'>NOT ENOUGH DATA</div>;
-	return <ExportableUplot {...{ ...hist }}/>;
+	if (!hist) return <div className="Center">NOT ENOUGH DATA</div>;
+	return <ExportableUplot {...{ ...hist }} />;
 }
 
 export const Histogram = {
@@ -364,5 +463,5 @@ export const Histogram = {
 	Menu,
 	defaultParams,
 	isPlot: true,
-	isStat: true
+	isStat: true,
 };

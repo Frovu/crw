@@ -14,15 +14,17 @@
 * {
 	-ms-box-sizing: border-box;
 	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-	-moz-box-sizing: border-box;    /* Firefox, other Gecko */
-	box-sizing: border-box;         /* Opera/IE 8+ */
+	-moz-box-sizing: border-box; /* Firefox, other Gecko */
+	box-sizing: border-box; /* Opera/IE 8+ */
 }
 
 body {
 	margin: 0;
 }
 
-input, button, select {
+input,
+button,
+select {
 	background-color: var(--color-bg);
 	font-family: inherit;
 	font-size: inherit;
@@ -32,7 +34,9 @@ input, button, select {
 option {
 	color: var(--color-text);
 }
-input[type='checkbox'], select, button {
+input[type='checkbox'],
+select,
+button {
 	cursor: pointer;
 }
 
@@ -86,7 +90,9 @@ input[type='checkbox'], select, button {
 	color: var(--color-active) !important;
 }
 
-.u-series, .u-value, .u-title {
+.u-series,
+.u-value,
+.u-title {
 	font-family: var(--font);
 }
 
