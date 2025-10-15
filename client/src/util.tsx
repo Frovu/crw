@@ -1,5 +1,11 @@
 import React, { type SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export const cn = (...inputs: ClassValue[]): string => {
+	return twMerge(clsx(inputs));
+};
 
 if (!Array.prototype.toSpliced) {
 	// eslint-disable-next-line no-extend-native
@@ -110,7 +116,7 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, (
 				window.localStorage.setItem(key, JSON.stringify(value));
 				return value;
 			}),
-		[key],
+		[key]
 	);
 
 	return [state, setter];
@@ -186,7 +192,7 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			month: init.getMonth(),
 			count: initialMonths ?? 1,
 			interval: [0, initialMonths ?? 1].map((inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3),
-		},
+		}
 	);
 	const set = (action: 'month' | 'year' | 'count', value: number) => dispatch({ action, value });
 

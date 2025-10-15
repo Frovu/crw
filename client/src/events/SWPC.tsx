@@ -1,8 +1,8 @@
 import { useContext, useState, type MouseEvent } from 'react';
 import { read, utils } from 'xlsx';
-import { apiGet, apiPost, prettyDate } from '../util';
+import { apiGet, apiPost, cn, prettyDate } from '../util';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { color, logError, logSuccess } from '../app';
+import { logError, logSuccess } from '../app';
 import { useSolarPlotContext } from '../plots/time/solar';
 import { useFeidCursor } from './eventsState';
 import { LayoutContext } from '../layout';
@@ -84,9 +84,9 @@ function Panel() {
 	const vertical = height / width > 1;
 
 	return (
-		<div style={{ height: '100%', display: 'grid', [vertical ? 'gridTemplateRows' : 'gridTemplateColumns']: '3fr 2fr' }}>
+		<div className={cn('h-full grid', vertical ? 'grid-rows-2' : 'grid-cols-5')}>
 			{[0, 1].map((side) => (
-				<div style={{ maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+				<div className={cn('flex flex-col', side ? 'col-span-2' : 'col-span-3')}>
 					{[-1, 0, 1].map((offset) => {
 						const tstmp = dates[side] + 86400 * offset;
 						const date = new Date(tstmp * 1e3);
@@ -94,31 +94,17 @@ function Panel() {
 						return (
 							<div
 								title={`${prettyDate(date, true)} ${side ? 'expected' : 'observed'}: ${text}`}
-								style={{
-									color: color('text', offset === 0 ? 1 : 0.8),
-									flexGrow: '1',
-									flexBasis: 0,
-									minHeight: 0,
-									overflow: 'clip',
-									borderTop: offset >= 0 || (vertical && side === 1) ? '1px solid ' + color('border') : 'none',
-									borderLeft: !vertical && side === 1 ? '1px solid ' + color('border') : 'none',
-									display: 'flex',
-									lineHeight: 1,
-								}}
+								className={cn(
+									'flex grow basis-0 min-h-0 overflow-clip text-[11px]',
+									offset !== 0 && 'text-text/80',
+									(offset >= 0 || (vertical && side === 1)) && 'border-t-1',
+									!vertical && side === 1 && 'border-l-1'
+								)}
 							>
-								<div
-									style={{
-										fontSize: 11,
-										borderRight: '1px solid ' + color('border'),
-										width: 24,
-										height: '100%',
-										padding: '2px',
-										textAlign: 'center',
-									}}
-								>
+								<div className="border-r-1 w-5 text-center pt-[2px]" style={{}}>
 									{date.getDate()}
 								</div>
-								<div style={{ fontSize: 11, flexGrow: '1', flexBasis: 0, padding: '0 2px' }}>{text}</div>
+								<div className="grow basis-0 p-[2px] leading-none">{text}</div>
 							</div>
 						);
 					})}

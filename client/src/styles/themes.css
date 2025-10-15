@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
 	--color-magenta: rgb(255, 0, 110);
 	--color-magenta2: rgba(201, 0, 77, 0.75);
@@ -30,6 +32,7 @@
 
 	color-scheme: dark;
 }
+
 
 [main-theme='Bright'] {
 	--color-magenta: rgb(231, 37, 111);
@@ -93,4 +96,41 @@
 	--color-area2: rgba(111, 111, 111, 0.3);
 
 	color-scheme: light;
+}
+
+@theme inline {
+	--color-crimson: var(--color-crimson);
+	--color-magenta: var(--color-magenta);
+	--color-magenta2: var(--color-magenta2);
+	--color-red: var(--color-red);
+	--color-orange: var(--color-orange);
+	--color-peach: var(--color-peach);
+	--color-gold: var(--color-gold);
+	--color-acid: var(--color-acid);
+	--color-green: var(--color-green);
+	--color-skyblue: var(--color-skyblue);
+	--color-cyan: var(--color-cyan);
+	--color-cyan2: var(--color-cyan2);
+	--color-blue: var(--color-blue);
+	--color-purple: var(--color-purple);
+	--color-white: var(--color-white);
+	--color-yellow: var(--color-yellow);
+
+	--color-bg: var(--color-bg);
+	--color-input-bg: var(--color-input-bg);
+	--color-text: var(--color-text);
+	--color-text-dark: var(--color-text-dark);
+	--color-border: var(--color-border);
+	--color-grid: var(--color-grid);
+	--color-active: var(--color-active);
+	--color-area: var(--color-area);
+	--color-area2: var(--color-area2);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    @apply border-border;
+  }
 }
