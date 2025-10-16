@@ -29,14 +29,17 @@ export default function ImportMenu() {
 		const headerIdx = allLines.findIndex((l) => l.includes('Date Time'));
 		if (headerIdx < 0) return { error: 'columns index not found' };
 		const colsIndex = allLines[headerIdx].trim().split(/\s+/);
-		const columns = allColumns.filter((c) => colsIndex.includes(c.parseName!)).map((c) => ({ ...c, idx: colsIndex.indexOf(c.parseName!) }));
+		const columns = allColumns
+			.filter((c) => colsIndex.includes(c.parseName!))
+			.map((c) => ({ ...c, idx: colsIndex.indexOf(c.parseName!) }));
 		const lines = allLines.slice(headerIdx + 1).filter((l) => l.length > 0);
 		const rows = [...Array(lines.length)].map((r) => Array(columns.length)) as Value[][];
 
 		for (const [ri, line] of lines.entries()) {
 			try {
 				const split = line.trim().split(/\s+/);
-				if (split.length < colsIndex.length) return { error: `column count does not match (${split.length} != ${colsIndex.length}): ${line}` };
+				if (split.length < colsIndex.length)
+					return { error: `column count does not match (${split.length} != ${colsIndex.length}): ${line}` };
 				for (const [ci, { name, idx, type, parseValue }] of columns.entries()) {
 					const str = split[idx];
 					if (parseValue) {
@@ -70,7 +73,11 @@ export default function ImportMenu() {
 			found: 0,
 			added: [] as Date[],
 			deleted: [] as Date[],
-			changes: [] as [number, Date, { entity: string; column: string; before: (typeof rows)[number][number]; after: (typeof rows)[number][number] }[]][],
+			changes: [] as [
+				number,
+				Date,
+				{ entity: string; column: string; before: (typeof rows)[number][number]; after: (typeof rows)[number][number] }[]
+			][],
 		};
 		const timeIdx = allColumns.findIndex((c) => c.fullName === 'time');
 		const targetData = (currentData as Date[][]).filter((r) => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1]) as any[];
@@ -88,9 +95,7 @@ export default function ImportMenu() {
 					if (importColumn && id !== importColumn) continue;
 					const oldVal = found[allColumns.findIndex((c) => c.id === id)];
 					const newVal = row[ci];
-					if (id === 'duration' && (newVal === -99 || (newVal as any) > (oldVal as any)))
-						// FIXME !!
-						continue;
+					if (id === 'duration' && newVal === -99) continue;
 					if (equalValues(oldVal, newVal) || (oldVal == null && [-999, -99, -99.9, 0, -1].includes(newVal as number))) continue;
 					changes.push({
 						entity,
@@ -102,7 +107,10 @@ export default function ImportMenu() {
 
 				const notAllNull = changes.find(
 					({ entity, before, after }) =>
-						entity === 'forbush_effects' || before != null || typeof after != 'number' || ![-999, -99, -99.9, 0, 1, -1].includes(after),
+						entity === 'forbush_effects' ||
+						before != null ||
+						typeof after != 'number' ||
+						![-999, -99, -99.9, 0, 1, -1].includes(after)
 				);
 
 				if (changes.length && notAllNull) diff.changes.push([found[0], time, changes]);
@@ -133,7 +141,7 @@ export default function ImportMenu() {
 	const { report, mutate, isPending } = useMutationHandler(
 		({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
 			apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) }),
-		['tableData'],
+		['tableData']
 	);
 
 	return !open ? null : (
@@ -198,7 +206,15 @@ export default function ImportMenu() {
 										Added: <b>{added.length}</b>
 									</div>
 									{added.length > 0 && (
-										<div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-cyan)' }}>
+										<div
+											style={{
+												maxHeight: 64,
+												padding: 4,
+												overflowY: 'scroll',
+												fontSize: 14,
+												color: 'var(--color-cyan)',
+											}}
+										>
 											{added.map((dt) => (
 												<div key={dt.getTime()}>+ {valueToString(dt)}</div>
 											))}
@@ -210,7 +226,15 @@ export default function ImportMenu() {
 										&nbsp;Lost: <b>{deleted.length}</b>
 									</div>
 									{deleted.length > 0 && (
-										<div style={{ maxHeight: 64, padding: 4, overflowY: 'scroll', fontSize: 14, color: 'var(--color-magenta)' }}>
+										<div
+											style={{
+												maxHeight: 64,
+												padding: 4,
+												overflowY: 'scroll',
+												fontSize: 14,
+												color: 'var(--color-magenta)',
+											}}
+										>
 											{deleted.map((dt) => (
 												<div key={dt.getTime()}>- {valueToString(dt)}</div>
 											))}
@@ -227,7 +251,8 @@ export default function ImportMenu() {
 												<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
 												{list.map(({ entity, column, before, after }) => (
 													<div style={{ marginLeft: 16 }} key={entity + column}>
-														[{entity.replace(/([a-z])[a-z]+_?/gi, '$1')}.{column}] {before == null ? nihil : valueToString(before)}
+														[{entity.replace(/([a-z])[a-z]+_?/gi, '$1')}.{column}]{' '}
+														{before == null ? nihil : valueToString(before)}
 														&nbsp;-&gt;&nbsp;<b>{after == null ? nihil : valueToString(after)}</b>
 													</div>
 												))}
