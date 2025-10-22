@@ -1,5 +1,16 @@
-import { useState, useRef, useContext, useLayoutEffect, useEffect, type ChangeEvent, type ReactNode, type KeyboardEvent, useCallback, useMemo } from 'react';
-import { clamp, useEventListener, type Size } from '../../util';
+import {
+	useState,
+	useRef,
+	useContext,
+	useLayoutEffect,
+	useEffect,
+	type ChangeEvent,
+	type ReactNode,
+	type KeyboardEvent,
+	useCallback,
+	useMemo,
+} from 'react';
+import { clamp, cn, useEventListener, type Size } from '../../util';
 import {
 	TableViewContext,
 	valueToString,
@@ -141,14 +152,14 @@ export function TableWithCursor({
 	const ref = useRef<HTMLDivElement | null>(null);
 
 	const rowsHeight = size.height - (headSize ?? 28);
-	const rowH = devicePixelRatio < 1 ? 24 + 2 / devicePixelRatio : 25;
+	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const padRow = hRem > viewSize ? 1 : 0;
-	const padHeader = hRem - viewSize * padRow;
+	const padHeader = hRem - (viewSize / 2) * padRow;
 
 	const [viewIndex, setViewIndex] = useState(
-		focusIdx == null ? Math.max(0, data.length - viewSize) : clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2)),
+		focusIdx == null ? Math.max(0, data.length - viewSize) : clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2))
 	);
 
 	const updateViewIndex = useCallback(
@@ -158,7 +169,7 @@ export function TableWithCursor({
 
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			}),
-		[data.length, viewSize],
+		[data.length, viewSize]
 	);
 
 	useEventListener('escape', escapeCursor);
@@ -259,25 +270,22 @@ export function TableWithCursor({
 
 	const onClick = useCallback(
 		(idx: number, cidx: number) => {
-			const cur = { entity, row: idx, column: cidx, id: data[idx]?.[0], editing: allowEdit && cursor?.column === cidx && cursor?.row === idx };
+			const cur = {
+				entity,
+				row: idx,
+				column: cidx,
+				id: data[idx]?.[0],
+				editing: allowEdit && cursor?.column === cidx && cursor?.row === idx,
+			};
 			setCursor(cur);
 			updateViewIndex(cur);
 		},
-		[allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex],
+		[allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]
 	);
 
 	return (
-		<div
-			style={{
-				position: 'absolute',
-				top: `calc(100% - ${size.height - (hideBorder ? 1 : 0)}px)`,
-				border: hideBorder ? undefined : '1px var(--color-border) solid',
-				maxHeight: size.height,
-				maxWidth: size.width,
-				overflow: 'clip',
-			}}
-		>
-			<div className="Table" style={{ position: 'relative' }} ref={ref}>
+		<div className={cn('absolute p-[2px]', !hideBorder && 'border-1')} style={{ ...size }}>
+			<div className="Table" ref={ref}>
 				<table
 					onWheel={(e) =>
 						setViewIndex((idx) => {
@@ -287,8 +295,14 @@ export function TableWithCursor({
 						})
 					}
 				>
-					{headCallback !== null && <thead>{headCallback?.(columns, padHeader) ?? <DefaultHead {...{ columns, padHeader }} />}</thead>}
-					<tbody>{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}</tbody>
+					{headCallback !== null && (
+						<thead>{headCallback?.(columns, padHeader) ?? <DefaultHead {...{ columns, padHeader }} />}</thead>
+					)}
+					<tbody>
+						{data
+							.slice(viewIndex, Math.max(0, viewIndex + viewSize))
+							.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}
+					</tbody>
 					{tfoot && <tfoot>{tfoot}</tfoot>}
 				</table>
 			</div>
@@ -315,8 +329,8 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 			16,
 			Math.max.apply(
 				null,
-				includeMarkers.map((m) => m?.length),
-			),
+				includeMarkers.map((m) => m?.length)
+			)
 		);
 
 	const cursCol = cursor && columns[cursor?.column]?.id;
@@ -339,16 +353,18 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 
 	const onKeydown = useCallback(
 		(e: KeyboardEvent) => {
-			if (cursor && ['-', '+', '='].includes(e.key)) return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+			if (cursor && ['-', '+', '='].includes(e.key))
+				return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 		},
-		[cursor, data],
+		[cursor, data]
 	);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (setStartAt || setEndAt || modifyId) return;
 		if (cursor?.editing) return;
 
-		if (cursor && ['-', '+', '='].includes(e.key)) return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+		if (cursor && ['-', '+', '='].includes(e.key))
+			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 	});
 
 	const simulateKey =
@@ -368,7 +384,7 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 				entity,
 				allowEdit: true,
 				size,
-				headSize: (hideHeader ? 0 : 93) + (showAverages ? 107 : 0) + (!hideHeader && showChangelog ? 54 : 0),
+				headSize: (hideHeader ? 0 : 90) + (showAverages ? 98 : 0) + (!hideHeader && showChangelog ? 54 : 0),
 				head: hideHeader
 					? null
 					: (cols, padH) => {
@@ -397,7 +413,12 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 											</td>
 										))}
 										{includeMarkers && (
-											<td rowSpan={2} title="Event included from samples:" className="ColumnHeader" style={{ minWidth: '3.5ch' }}>
+											<td
+												rowSpan={2}
+												title="Event included from samples:"
+												className="ColumnHeader"
+												style={{ minWidth: '3.5ch' }}
+											>
 												#S
 											</td>
 										)}
@@ -414,7 +435,10 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 												<div style={{ height: columnH, lineHeight: 1 }}>
 													<span>{col.name}</span>
 													{sort.column === col.id && (
-														<div className="SortShadow" style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }} />
+														<div
+															className="SortShadow"
+															style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}
+														/>
 													)}
 												</div>
 											</td>
@@ -422,7 +446,7 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 									</tr>
 								</>
 							);
-						},
+					  },
 				row: (row, idx, onClick, padRow) => {
 					const marker = markers?.[idx];
 					const isCompModified = columns.map((c) => {
@@ -434,7 +458,11 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 					return (
 						<tr
 							key={row[0]}
-							style={{ height: 23 + padRow, fontSize: 15, ...(plotId === row[0] && { color: color('active'), background: color('area') }) }}
+							style={{
+								height: 23 + padRow,
+								fontSize: 15,
+								...(plotId === row[0] && { color: color('active'), background: color('area') }),
+							}}
 						>
 							{marker && (
 								<td
@@ -443,7 +471,9 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 								>
 									<span
 										className="Cell"
-										style={{ color: marker.endsWith('+') ? color('cyan') : marker.endsWith('-') ? color('magenta') : 'unset' }}
+										style={{
+											color: marker.endsWith('+') ? color('cyan') : marker.endsWith('-') ? color('magenta') : 'unset',
+										}}
 									>
 										{marker}
 									</span>
@@ -461,7 +491,10 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 											onClick(idx, cidx);
 											if (e.ctrlKey) setPlotId(() => row[0]);
 										}}
-										onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0], value: row[cidx + 1], column } })}
+										onContextMenu={openContextMenu('events', {
+											nodeId,
+											cell: { id: row[0], value: row[cidx + 1], column },
+										})}
 										style={{ borderColor: curs ? color('active') : color('border') }}
 									>
 										{curs?.editing ? (
@@ -495,8 +528,8 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 				},
 				tfoot: showAverages && (
 					<>
-						<tr style={{ height: 0 }}>
-							<td colSpan={columns.length} style={{ height: 1, borderTop: 'none' }}></td>
+						<tr style={{ height: 2 }}>
+							<td colSpan={columns.length} style={{ height: 1, borderTop: 'none', borderColor: color('grid') }}></td>
 						</tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => (
 							<tr key={label} style={{ height: 24, fontSize: 15 }}>
@@ -507,7 +540,11 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 									return (
 										<td
 											key={columns[i].id}
-											style={{ borderColor: color('grid'), textAlign: isLabel ? 'right' : 'unset', padding: isLabel ? '0 6px' : 0 }}
+											style={{
+												borderColor: color('grid'),
+												textAlign: isLabel ? 'right' : 'unset',
+												padding: isLabel ? '0 6px' : 0,
+											}}
 											onContextMenu={openContextMenu('events', {
 												nodeId,
 												averages: {
@@ -535,12 +572,12 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 									position: 'relative',
 									display: 'flex',
 									flexDirection: 'column-reverse',
-									fontSize: 14,
+									fontSize: 12,
 									border: '1px var(--color-border) solid',
 									height: 52,
 									padding: 2,
-									margin: 2,
-									marginTop: 0,
+									margin: 0,
+									marginTop: 2,
 									overflowY: 'scroll',
 								}}
 							>
@@ -552,8 +589,8 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 											str == null
 												? 'null'
 												: column.type === 'time'
-													? new Date(parseInt(str) * 1e3).toISOString().replace(/\..*|T/g, ' ')
-													: str;
+												? new Date(parseInt(str) * 1e3).toISOString().replace(/\..*|T/g, ' ')
+												: str;
 										return (
 											<div key={JSON.stringify(change)} style={{ margin: '0' }}>
 												<i style={{ color: 'var(--color-text-dark)' }}>
@@ -580,8 +617,23 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 								)}
 							</div>
 						)}
-						<div style={{ padding: '0 2px 2px 4px', display: 'flex', justifyContent: 'space-between', alignContent: 'bottom' }}>
-							<span style={{ color: 'var(--color-text-dark)', fontSize: 14, overflow: 'clip', whiteSpace: 'nowrap', minWidth: 0 }}>
+						<div
+							style={{
+								padding: '2px 0 2px 0',
+								display: 'flex',
+								justifyContent: 'space-between',
+								alignContent: 'bottom',
+							}}
+						>
+							<span
+								style={{
+									color: 'var(--color-text-dark)',
+									fontSize: 14,
+									overflow: 'clip',
+									whiteSpace: 'nowrap',
+									minWidth: 0,
+								}}
+							>
 								<span style={{ color: color('active') }}> [{data.length}]</span>
 								{changeCount > 0 && (
 									<div
@@ -591,14 +643,24 @@ export default function TableView({ size, averages, entity }: { size: Size; enti
 										onMouseLeave={() => setChangesHovered(false)}
 									>
 										{!changesHovered && (
-											<span style={{ color: color('red'), fontSize: 14 }}>&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;</span>
+											<span style={{ color: color('red'), fontSize: 14 }}>
+												&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;
+											</span>
 										)}
 										{changesHovered && (
 											<>
-												<button className="TextButton" style={{ lineHeight: 1 }} onClick={simulateKey('KeyS', true)}>
+												<button
+													className="TextButton"
+													style={{ lineHeight: 1 }}
+													onClick={simulateKey('KeyS', true)}
+												>
 													save
 												</button>
-												<button className="TextButton" style={{ lineHeight: 1 }} onClick={simulateKey('KeyX', true)}>
+												<button
+													className="TextButton"
+													style={{ lineHeight: 1 }}
+													onClick={simulateKey('KeyX', true)}
+												>
 													discard
 												</button>
 											</>

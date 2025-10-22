@@ -155,7 +155,7 @@ function Item({ id, size }: { id: string; size: Size }) {
 	return (
 		item && (
 			<div
-				style={{ ...size, position: 'relative' }}
+				style={{ ...size, position: 'relative', overflow: 'clip' }}
 				onContextMenu={openContextMenu('layout', { nodeId: id })}
 				onMouseDown={(e) => e.ctrlKey && startDrag(id)}
 				onMouseEnter={() => dragOver(id)}
@@ -251,14 +251,21 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 	const Checkbox = ({ text, k }: { text: string; k: string }) => (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => setNodeParams(id, { [k]: e.target.checked })} />
+			<input
+				type="checkbox"
+				style={{ marginLeft: 4 }}
+				checked={params[k] as boolean}
+				onChange={(e) => setNodeParams(id, { [k]: e.target.checked })}
+			/>
 		</label>
 	);
 
 	if (window)
 		return (
 			<CatchErrors>
-				{panel?.Menu && <panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }} />}
+				{panel?.Menu && (
+					<panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }} />
+				)}
 			</CatchErrors>
 		);
 
@@ -291,7 +298,9 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 			{(!item || type) && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
 			{!item && <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
 			{(!item || type) && <button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>}
-			{item && id !== 'root' && !(item.type && isFirstInRoot) && <button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>}
+			{item && id !== 'root' && !(item.type && isFirstInRoot) && (
+				<button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>
+			)}
 		</CatchErrors>
 	);
 }
@@ -325,9 +334,17 @@ export function LayoutNav() {
 	const defaultL = defaultLayouts[getApp() as keyof typeof defaultLayouts]?.list;
 
 	return (
-		<div style={{ padding: '2px 0 2px 4px', position: 'relative' }} onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}>
+		<div
+			style={{ padding: '2px 0 2px 4px', position: 'relative' }}
+			onMouseEnter={() => setHovered(1)}
+			onMouseLeave={() => setHovered(0)}
+		>
 			{open && (
-				<div className="ContextMenu" style={{ position: 'absolute', left: -1, bottom: 'calc(100%)' }} onClick={(e) => e.stopPropagation()}>
+				<div
+					className="ContextMenu"
+					style={{ position: 'absolute', left: -1, bottom: 'calc(100%)' }}
+					onClick={(e) => e.stopPropagation()}
+				>
 					{layouts.map((layout) => {
 						const isUsers = defaultL[layout],
 							isActive = active === layout;
@@ -336,7 +353,13 @@ export function LayoutNav() {
 								{renaming?.layout === layout ? (
 									<input
 										type="text"
-										style={{ width: renaming.input.length + 1 + 'ch', maxWidth: '20em', height: '1.25em', flex: 1, color: color('text') }}
+										style={{
+											width: renaming.input.length + 1 + 'ch',
+											maxWidth: '20em',
+											height: '1.25em',
+											flex: 1,
+											color: color('text'),
+										}}
 										autoFocus
 										onFocus={(e) => e.target.select()}
 										onKeyDown={(e) => ['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()}
@@ -349,7 +372,11 @@ export function LayoutNav() {
 									/>
 								) : (
 									<span
-										style={{ flex: 1, cursor: 'pointer', color: isActive ? color('active') : isUsers ? color('text') : 'unset' }}
+										style={{
+											flex: 1,
+											cursor: 'pointer',
+											color: isActive ? color('active') : isUsers ? color('text') : 'unset',
+										}}
 										onClick={() => selectLayout(layout)}
 									>
 										{layout}
@@ -370,7 +397,11 @@ export function LayoutNav() {
 										onChange={(e) => toggleCycling(layout, !e.target.checked)}
 									/>
 								</label>
-								{isUsers ? <div className="CloseButton" onClick={() => deleteLayout(layout)} /> : <div style={{ minWidth: '1em' }} />}
+								{isUsers ? (
+									<div className="CloseButton" onClick={() => deleteLayout(layout)} />
+								) : (
+									<div style={{ minWidth: '1em' }} />
+								)}
 							</div>
 						);
 					})}

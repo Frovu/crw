@@ -5,7 +5,15 @@ import { TableWithCursor } from './TableView';
 import { type ColumnDef, type DataRow } from '../columns';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../eventsState';
-import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState, useSolenHolesQuery, type CHS, type ChimeraCH, type SolenCH } from '../sources';
+import {
+	linkHoleSourceEvent,
+	unlinkHoleSourceEvent,
+	useHolesViewState,
+	useSolenHolesQuery,
+	type CHS,
+	type ChimeraCH,
+	type SolenCH,
+} from '../sources';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';
@@ -60,7 +68,12 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 			</div>
 			<label>
 				Animation
-				<input type="checkbox" style={{ paddingLeft: 4 }} checked={holesAnimation} onChange={(e) => setParams({ holesAnimation: e.target.checked })} />
+				<input
+					type="checkbox"
+					style={{ paddingLeft: 4 }}
+					checked={holesAnimation}
+					onChange={(e) => setParams({ holesAnimation: e.target.checked })}
+				/>
 			</label>
 		</>
 	);
@@ -160,7 +173,10 @@ function Panel() {
 					delete holes[tst];
 					continue;
 				}
-				holes[tst] = holes[tst].map((row) => [...reorder.slice(0, -1).map((idx) => row[idx]), new Date(parseInt(tst) * 1e3)]) as any;
+				holes[tst] = holes[tst].map((row) => [
+					...reorder.slice(0, -1).map((idx) => row[idx]),
+					new Date(parseInt(tst) * 1e3),
+				]) as any;
 			}
 			console.log('chimera => ', holes);
 			return { holes, frames, columns };
@@ -215,7 +231,7 @@ function Panel() {
 	const cursorCh = cursor ? (rowAsDict(data[cursor.row], columns) as ChimeraCH) : null;
 
 	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 104));
-	const targetImgWidth = imgSize * (1 + 430 / 1200) - 2;
+	const targetImgWidth = imgSize * (1 + 430 / 1200) - 4;
 
 	const clipX = (264 * imgSize) / 1200;
 	const clipY = (206 * imgSize) / 1200;
@@ -260,7 +276,8 @@ function Panel() {
 								onKeydown: (e) => {
 									const cycle = e.altKey && { ArrowLeft: -1, ArrowRight: 1 }[e.code];
 									if (cycle) cycleHoles(cycle as any);
-									if (cursor && cursorCh && ['+', '='].includes(e.key)) return feidId && linkHoleSourceEvent('chimera', cursorCh, feidId);
+									if (cursor && cursorCh && ['+', '='].includes(e.key))
+										return feidId && linkHoleSourceEvent('chimera', cursorCh, feidId);
 									if (cursor && e.key === '-') return unlinkHoleSourceEvent('chimera');
 								},
 								row: (row, idx, onClick, padRow) => {
@@ -284,9 +301,12 @@ function Panel() {
 														title={`${column.name} = ${value}`}
 														onClick={(e) => {
 															if (start && end) setCatched({ start, end, solenHole });
-															setFrame(query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0);
+															setFrame(
+																query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0
+															);
 
-															if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('chimera', ch, feidId);
+															if (cidx === 0 && feidId !== null)
+																return linkHoleSourceEvent('chimera', ch, feidId);
 															onClick(idx, cidx);
 														}}
 														onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
@@ -315,7 +335,10 @@ function Panel() {
 			)}
 			<div
 				style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
-				onClick={(e) => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Chimera Holes' }, unique: nodeId })}
+				onClick={(e) =>
+					!isWindow &&
+					openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Chimera Holes' }, unique: nodeId })
+				}
 			>
 				<div style={{ position: 'absolute', maxWidth: imgSize, maxHeight: imgSize, overflow: 'clip' }}>
 					<img
@@ -323,9 +346,9 @@ function Panel() {
 						src={url}
 						draggable={false}
 						style={{
+							maxWidth: targetImgWidth,
 							transform: `translate(${-clipX}px, ${-clipY}px)`,
 						}}
-						width={targetImgWidth}
 					></img>
 				</div>
 				<div style={{ ...textStyle, bottom: isWindow ? 6 : 0, right: 0 }}>

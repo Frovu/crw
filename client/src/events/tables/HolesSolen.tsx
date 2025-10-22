@@ -4,7 +4,15 @@ import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from 
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { linkHoleSourceEvent, timeInMargin, unlinkHoleSourceEvent, useHolesViewState, useSolenHolesQuery, type CHS, type SolenCH } from '../sources';
+import {
+	linkHoleSourceEvent,
+	timeInMargin,
+	unlinkHoleSourceEvent,
+	useHolesViewState,
+	useSolenHolesQuery,
+	type CHS,
+	type SolenCH,
+} from '../sources';
 import { prettyDate } from '../../util';
 
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
@@ -112,7 +120,8 @@ function Panel() {
 								size: { height: size.height - imgSize, width: size.width - 3 },
 								focusIdx,
 								onKeydown: (e) => {
-									if (cursor && cursorCh && ['+', '='].includes(e.key)) return feidId && linkHoleSourceEvent('solen', cursorCh, feidId);
+									if (cursor && cursorCh && ['+', '='].includes(e.key))
+										return feidId && linkHoleSourceEvent('solen', cursorCh, feidId);
 									if (cursor && e.key === '-') return unlinkHoleSourceEvent('solen');
 								},
 								row: (row, idx, onClick, padRow) => {
@@ -121,20 +130,27 @@ function Panel() {
 									const linkedToThisFEID = sources.find((s) => equalValues(s.ch?.tag, ch.tag));
 
 									const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-									const dark = !orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
+									const dark =
+										!orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
 
 									return (
 										<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
 											{columns.map((column, cidx) => {
 												const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
 												const value = valueToString(row[cidx]);
-												const val = column.id === 'tag' ? value.slice(2) : column.id === 'time' ? value.slice(5, 10) : value;
+												const val =
+													column.id === 'tag'
+														? value.slice(2)
+														: column.id === 'time'
+														? value.slice(5, 10)
+														: value;
 												return (
 													<td
 														key={column.id}
 														title={`${column.fullName} = ${value}`}
 														onClick={() => {
-															if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('solen', ch, feidId);
+															if (cidx === 0 && feidId !== null)
+																return linkHoleSourceEvent('solen', ch, feidId);
 															onClick(idx, cidx);
 														}}
 														onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
@@ -144,7 +160,15 @@ function Panel() {
 															className="Cell"
 															style={{
 																width: column.width + 'ch',
-																color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text'),
+																color: color(
+																	linkedToThisCH
+																		? 'cyan'
+																		: dark
+																		? 'text-dark'
+																		: orange
+																		? 'orange'
+																		: 'text'
+																),
 															}}
 														>
 															<div className="TdOver" />
@@ -164,16 +188,19 @@ function Panel() {
 			{imgUrl && (
 				<div
 					style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
-					onClick={(e) => !isWindow && openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Solen Holes' }, unique: nodeId })}
+					onClick={(e) =>
+						!isWindow &&
+						openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Solen Holes' }, unique: nodeId })
+					}
 				>
 					<img
 						alt=""
 						src={imgUrl}
 						draggable={false}
 						style={{
+							maxWidth: imgSize * (1 + (2 * clip) / 512) - 2,
 							transform: `translate(${move}px, ${moveY}px)`,
 						}}
-						width={imgSize * (1 + (2 * clip) / 512) - 2}
 					></img>
 					<a
 						target="_blank"
