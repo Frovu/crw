@@ -1,6 +1,13 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
 import { AuthContext, useContextMenu, openContextMenu } from '../app';
-import { type LayoutsMenuDetails, useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType, AppLayoutContext } from '../layout';
+import {
+	type LayoutsMenuDetails,
+	useLayout,
+	LayoutContext,
+	type ContextMenuProps,
+	type LayoutContextType,
+	AppLayoutContext,
+} from '../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
 import {
 	type TableMenuDetails,
@@ -18,9 +25,9 @@ import { useSampleState, defaultFilterOp } from './sample';
 import ColumnsSelector from './Columns';
 import ImportMenu from './Import';
 import SampleView from './Sample';
-import TableView from './tables/TableView';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEventsState, useTable } from './eventsState';
+import FeidTableView from './tables/FeidTable';
 
 const defaultParams = {
 	showChangelog: false,
@@ -36,7 +43,12 @@ export function EventsCheckbox({ text, k }: { text: string; k: keyof EventsSetti
 	return (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={settings[k] as boolean} onChange={(e) => settings.set(k, e.target.checked)} />
+			<input
+				type="checkbox"
+				style={{ paddingLeft: 4 }}
+				checked={settings[k] as boolean}
+				onChange={(e) => settings.set(k, e.target.checked)}
+			/>
 		</label>
 	);
 }
@@ -79,7 +91,8 @@ function Panel() {
 			}
 			if (current == null) return null;
 			queueMicrotask(() => setCursor(null));
-			if (plotUnlistedEvents && global) return allData[clamp(0, allData.length - 1, allData.findIndex((r) => r[0] === current) + dir)][0];
+			if (plotUnlistedEvents && global)
+				return allData[clamp(0, allData.length - 1, allData.findIndex((r) => r[0] === current) + dir)][0];
 			const found = shownData.findIndex((r) => r[0] === current);
 			if (found >= 0) return shownData[clamp(0, shownData.length - 1, found + dir)][0];
 			const aIdx = allData.findIndex((r) => r[0] === current);
@@ -104,8 +117,8 @@ function Panel() {
 						const std = Math.sqrt(sorted.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
 						const sem = std / Math.sqrt(n);
 						return [median, mean, std, sem];
-					}),
-		[shownColumns, shownData, params.showAverages],
+				  }),
+		[shownColumns, shownData, params.showAverages]
 	);
 
 	useEventListener('action+plot', plotMove(0));
@@ -120,7 +133,9 @@ function Panel() {
 	useEventListener('action+addFilter', () => {
 		const column = cursor
 			? shownColumns[cursor.column]
-			: (findColumn(shownColumns, 'magnitude') ?? shownColumns.find((c) => c.type === 'real') ?? columns.find((c) => c.type === 'real')!);
+			: findColumn(shownColumns, 'magnitude') ??
+			  shownColumns.find((c) => c.type === 'real') ??
+			  columns.find((c) => c.type === 'real')!;
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;
 		addFilter(column, val);
 	});
@@ -130,7 +145,7 @@ function Panel() {
 			<ImportMenu />
 			<ColumnsSelector />
 			<SampleView ref={ref} />
-			<TableView averages={averages} entity="feid" size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
+			<FeidTableView averages={averages} entity="feid" size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
 		</>
 	);
 }
@@ -179,8 +194,12 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 			)}
 			{column && (
 				<>
-					{role && rowId != null && <button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>}
-					{column.isComputed && role && <button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>}
+					{role && rowId != null && (
+						<button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>
+					)}
+					{column.isComputed && role && (
+						<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>
+					)}
 					<button onClick={() => toggleSort(column.id, 1)}>Sort ascending</button>
 					<button onClick={() => toggleSort(column.id, -1)}>Sort descening</button>
 					{statsPresent && (

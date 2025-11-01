@@ -1,10 +1,17 @@
 import { useContext } from 'react';
 import { useContextMenu, openContextMenu, color } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { TableWithCursor } from './TableView';
+import { TableWithCursor } from './Table';
 import { equalValues, valueToString, type ICME } from '../events';
 import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
+import {
+	getSourceLink,
+	linkEruptiveSourceEvent,
+	sourceLabels,
+	timeInMargin,
+	unlinkEruptiveSourceEvent,
+	useCompoundTable,
+} from '../sources';
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { icme: ICME } | undefined;
@@ -62,7 +69,8 @@ function Panel() {
 				size,
 				focusIdx,
 				onKeydown: (e) => {
-					if (cursor && erupt && e.key === '-') return unlinkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME);
+					if (cursor && erupt && e.key === '-')
+						return unlinkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME);
 					if (cursor && ['+', '='].includes(e.key))
 						return feidId && linkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME, feidId);
 				},

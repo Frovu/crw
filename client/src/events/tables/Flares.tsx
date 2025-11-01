@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../../layout';
-import { TableWithCursor } from './TableView';
+import { TableWithCursor } from './Table';
 import { equalValues, valueToString, type Flare } from '../events';
 import { color, openContextMenu, useContextMenu } from '../../app';
 import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../eventsState';
@@ -48,8 +48,8 @@ function Panel() {
 	const focusTime = erupt?.flr_start
 		? erupt?.flr_start.getTime()
 		: erupt?.cme_time
-			? erupt?.cme_time.getTime()
-			: cursorTime && cursorTime.getTime() - 2 * 864e5;
+		? erupt?.cme_time.getTime()
+		: cursorTime && cursorTime.getTime() - 2 * 864e5;
 	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[timeIdx] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(Object.entries(flaresLinks).map(([src, lnk]) => [src, erupt[lnk[0]]]));
 
@@ -62,7 +62,8 @@ function Panel() {
 				size,
 				focusIdx,
 				onKeydown: (e) => {
-					if (cursor && erupt && e.key === '-') return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare);
+					if (cursor && erupt && e.key === '-')
+						return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare);
 					if (cursor && ['+', '='].includes(e.key))
 						return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare, feidId);
 				},
@@ -84,7 +85,9 @@ function Panel() {
 							if (
 								flare.linked_events &&
 								erupt?.cme_time &&
-								flare.linked_events.find((lnk) => lnk.includes('CME') && timeInMargin(erupt?.cme_time, new Date(lnk.slice(0, 19) + 'Z'), 6e5))
+								flare.linked_events.find(
+									(lnk) => lnk.includes('CME') && timeInMargin(erupt?.cme_time, new Date(lnk.slice(0, 19) + 'Z'), 6e5)
+								)
 							)
 								return true;
 							if (feid.flr_time && timeInMargin(flare.start_time, feid.flr_time, 6e5)) return true;

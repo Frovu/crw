@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { color, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { DefaultHead, TableWithCursor } from './TableView';
+import { DefaultHead, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../events';
 import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
@@ -15,7 +15,7 @@ function deleteHole(id: number) {
 			<h4>Delete CHS event?</h4>
 			<p>Action is irreversible</p>
 		</>,
-		() => deleteEvent(ENT, id),
+		() => deleteEvent(ENT, id)
 	);
 }
 
@@ -85,7 +85,8 @@ function Panel() {
 
 							const orphan = !feidSrc.data.find((r) => r[chIdIdx] === row[0]);
 							const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-							const dark = !orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
+							const dark =
+								!orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 
 							return (
 								<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
@@ -93,7 +94,12 @@ function Panel() {
 										const cidx = scidx + 1;
 										const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
 										const value = valueToString(row[cidx]);
-										const width = 'tag' === column.id ? 7.5 : ['b', 'phi', 'lat', 'area', 'width'].includes(column.id) ? 4.5 : column.width;
+										const width =
+											'tag' === column.id
+												? 7.5
+												: ['b', 'phi', 'lat', 'area', 'width'].includes(column.id)
+												? 4.5
+												: column.width;
 										return (
 											<td
 												key={column.id}
@@ -107,7 +113,15 @@ function Panel() {
 													style={{
 														width: width + 'ch',
 														color: color(
-															orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text',
+															orphan
+																? 'red'
+																: linkedToThisCH
+																? 'cyan'
+																: dark
+																? 'text-dark'
+																: orange
+																? 'orange'
+																: 'text'
 														),
 													}}
 												>

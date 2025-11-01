@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, openContextMenu, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
-import { TableWithCursor } from './TableView';
+import { TableWithCursor } from './Table';
 import { type ColumnDef, type DataRow } from '../columns';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../eventsState';

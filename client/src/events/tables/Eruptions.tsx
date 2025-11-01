@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { CellInput, DefaultHead, TableWithCursor } from './TableView';
+import { CellInput, DefaultHead, TableWithCursor } from './Table';
 import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../events';
 import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
 import {
@@ -15,7 +15,16 @@ import {
 	useSources,
 	useTable,
 } from '../eventsState';
-import { assignCMEToErupt, assignFlareToErupt, getSourceLink, linkSrcToEvent, parseFlareFlux, sourceLabels, useCompoundTable, useTableQuery } from '../sources';
+import {
+	assignCMEToErupt,
+	assignFlareToErupt,
+	getSourceLink,
+	linkSrcToEvent,
+	parseFlareFlux,
+	sourceLabels,
+	useCompoundTable,
+	useTableQuery,
+} from '../sources';
 import { useEventListener } from '../../util';
 
 const ENT = 'sources_erupt';
@@ -107,7 +116,7 @@ function Panel() {
 				id: selectedErupt.id,
 				column,
 				value: val,
-			})),
+			}))
 		);
 	});
 
@@ -141,9 +150,10 @@ function Panel() {
 									const [linkColId, idColId] = getSourceLink('flare', erupt.flr_source);
 									const idColIdx = flares.columns?.findIndex((col) => col.id === idColId);
 									const flr =
-										erupt[linkColId] && flares.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]) && r[0] === erupt.flr_source);
+										erupt[linkColId] &&
+										flares.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]) && r[0] === erupt.flr_source);
 									return flr ? (rowAsDict(flr, flares.columns) as Flare) : null;
-								})();
+							  })();
 					const orphan = !feidSrc.data.find((r) => r[eruptIdIdx] === row[0]);
 
 					return (
@@ -156,9 +166,10 @@ function Panel() {
 									? (() => {
 											if (['lat', 'lon'].includes(cid) && erupt.coords_source !== 'FLR') return false; // FIXME
 											if (!flare) return !flares.data;
-											const val = cid === 'flr_flux' ? (flare.flux ?? parseFlareFlux(flare.class)) : flare[flare_columns[cid]];
+											const val =
+												cid === 'flr_flux' ? flare.flux ?? parseFlareFlux(flare.class) : flare[flare_columns[cid]];
 											return !equalValues(val, row[cidx]);
-										})()
+									  })()
 									: null;
 								const flrOpts =
 									curs && ['flr_source', 'coords_source'].includes(cid)
@@ -168,7 +179,9 @@ function Panel() {
 													const idColIdx = flares.columns?.findIndex((col) => col.id === idColId);
 													const flr =
 														erupt[linkColId] &&
-														flares.data?.find((r) => r[0] === flrSrc && equalValues(r[idColIdx], erupt[linkColId]));
+														flares.data?.find(
+															(r) => r[0] === flrSrc && equalValues(r[idColIdx], erupt[linkColId])
+														);
 													return flr ? (rowAsDict(flr, flares.columns!) as Flare) : null;
 												})
 												.filter((s) => s)
@@ -179,14 +192,20 @@ function Panel() {
 												.map((cmeSrc) => {
 													const [linkColId, idColId] = getSourceLink('cme', cmeSrc);
 													const idColIdx = cmes.columns?.findIndex((col) => col.id === idColId);
-													const cme = erupt[linkColId] && cmes.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]));
+													const cme =
+														erupt[linkColId] &&
+														cmes.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]));
 													return cme ? (rowAsDict(cme, cmes.columns!) as CME) : null;
 												})
 												.filter((s) => s)
 										: [];
 								let value = valueToString(row[cidx]);
 								if (['XF peak', 'XF end'].includes(column.name)) value = value.split(' ')[1];
-								const width = ['XF peak', 'XF end'].includes(column.name) ? 6 : ['lat', 'lon'].includes(column.name) ? 4.5 : column.width;
+								const width = ['XF peak', 'XF end'].includes(column.name)
+									? 6
+									: ['lat', 'lon'].includes(column.name)
+									? 4.5
+									: column.width;
 								return (
 									<td
 										key={cid}
@@ -201,7 +220,9 @@ function Panel() {
 													table: ENT,
 													options:
 														cid === 'coords_source'
-															? [...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(cmeOpts.map((c) => c!.src as string))
+															? [...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(
+																	cmeOpts.map((c) => c!.src as string)
+															  )
 															: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map((a) => a!.src as string),
 													id: row[0],
 													column,
@@ -212,33 +233,36 @@ function Panel() {
 																	const flr = flrOpts.find((fl) => fl!.src === val);
 																	if (flr) switchMainFlare(erupt, flr);
 																	return !!flr;
-																}
+															  }
 															: cid === 'cme_source'
-																? (val: any) => {
-																		const cme = cmeOpts.find((fl) => fl!.src === val);
-																		if (cme) switchMainCME(erupt, cme);
-																		return !!cme;
+															? (val: any) => {
+																	const cme = cmeOpts.find((fl) => fl!.src === val);
+																	if (cme) switchMainCME(erupt, cme);
+																	return !!cme;
+															  }
+															: cid === 'coords_source'
+															? (val: any) => {
+																	if (val === 'MNL') {
+																		switchCoordsSrc(erupt, val);
+																		return true;
 																	}
-																: cid === 'coords_source'
-																	? (val: any) => {
-																			if (val === 'MNL') {
-																				switchCoordsSrc(erupt, val);
-																				return true;
-																			}
-																			const obj =
-																				val === 'FLR'
-																					? flrOpts.find((fl) => fl!.src === erupt.flr_source)
-																					: cmeOpts.find((fl) => fl!.src === val);
-																			if (obj) switchCoordsSrc(erupt, val, obj);
-																			return !!obj;
-																		}
-																	: undefined,
+																	const obj =
+																		val === 'FLR'
+																			? flrOpts.find((fl) => fl!.src === erupt.flr_source)
+																			: cmeOpts.find((fl) => fl!.src === val);
+																	if (obj) switchCoordsSrc(erupt, val, obj);
+																	return !!obj;
+															  }
+															: undefined,
 												}}
 											/>
 										) : (
 											<span
 												className="Cell"
-												style={{ width: width + 'ch', color: color(orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text') }}
+												style={{
+													width: width + 'ch',
+													color: color(orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text'),
+												}}
 											>
 												<div className="TdOver" />
 												{value}

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useContextMenu, openContextMenu, color } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
-import { TableWithCursor } from './TableView';
+import { TableWithCursor } from './Table';
 import { equalValues, valueToString, type CME, type ICME } from '../events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import {
