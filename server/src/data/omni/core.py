@@ -10,6 +10,12 @@ from database import log, pool, upsert_many
 from data.omni.derived import compute_derived
 from data.omni.sw_types import obtain_yermolaev_types, derive_from_sw_type, SW_TYPE_DERIVED_SERIES
 
+proxy = os.environ.get('NASA_PROXY')
+proxies = {
+	"http": proxy,
+	"https": proxy
+} if proxy else { }
+
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
 SPACECRAFT_ID = {
@@ -73,7 +79,7 @@ def _obtain_omniweb(columns, interval):
 		'start_date': dstart,
 		'end_date': dend,
 		'vars': [c.omniweb_id for c in columns]
-	}, timeout=5000)
+	}, timeout=5000, proxies=proxies)
 	if r.status_code != 200:
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
 
@@ -160,7 +166,7 @@ def _cols(group, source='omniweb', do_remove=False):
 			if source == 'omniweb' or do_remove else []) + imf_cols
 	}[group]
 
-def obtain(source: str, interval: [int, int], group: str='all', overwrite=False):
+def obtain(source: str, interval: list[int], group: str='all', overwrite=False):
 	interval = [
 		floor(interval[0] / PERIOD) * PERIOD,
 		 ceil(interval[1] / PERIOD) * PERIOD ]
@@ -202,7 +208,7 @@ def obtain(source: str, interval: [int, int], group: str='all', overwrite=False)
 
 	return len(data)
 
-def remove(interval: [int, int], group):
+def remove(interval: list[int], group):
 	cols = [c.name for c in _cols(group, do_remove=True)]
 	with pool.connection() as conn:
 		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
@@ -217,7 +223,7 @@ def insert(var, data):
 	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
 	upsert_many('omni', ['time', var], data)
 
-def select(interval: [int, int], query=None, epoch=True):
+def select(interval: list[int], query=None, epoch=True):
 	all_series = all_column_names + SW_TYPE_DERIVED_SERIES
 	columns = [c for c in query if c in all_column_names] if query else all_column_names
 	any_sw_type_dervied = query and next((q for q in query if q in SW_TYPE_DERIVED_SERIES), None)
@@ -229,7 +235,7 @@ def select(interval: [int, int], query=None, epoch=True):
 		data, fields = np.array(curs.fetchall(), dtype='object'), [desc[0] for desc in curs.description]
 	return derive_from_sw_type(data, fields, [c for c in query if c in all_series]) if any_sw_type_dervied else (data, fields)
 
-def ensure_prepared(interval: [int, int], trust=False):
+def ensure_prepared(interval: list[int], trust=False):
 	global dump_info
 	with omni_mutex:
 		if not trust:

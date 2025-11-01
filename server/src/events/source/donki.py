@@ -5,7 +5,7 @@ import re, os, requests
 from database import pool, log, upsert_coverage, upsert_many
 from events.table_structure import ColumnDef as Col
 
-proxy = os.environ.get('DONKI_PROXY')
+proxy = os.environ.get('NASA_PROXY')
 proxies = {
 	"http": proxy,
 	"https": proxy

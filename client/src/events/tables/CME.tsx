@@ -4,7 +4,14 @@ import { LayoutContext, openWindow } from '../../layout';
 import { TableWithCursor } from './TableView';
 import { equalValues, valueToString, type CME, type ICME } from '../events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, sourceLabels, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
+import {
+	getSourceLink,
+	linkEruptiveSourceEvent,
+	sourceLabels,
+	timeInMargin,
+	unlinkEruptiveSourceEvent,
+	useCompoundTable,
+} from '../sources';
 
 function Menu() {
 	const detail = useContextMenu((state) => state.menu?.detail) as { cme: CME } | undefined;
@@ -71,8 +78,8 @@ function Panel() {
 			? null
 			: (rowAsDict(
 					icmes.data.find((r) => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])),
-					icmes.columns,
-				) as ICME);
+					icmes.columns
+			  ) as ICME);
 	const icmeCmeTimes = eruptIcme?.cmes_time?.at(0);
 	const icmeCmeTime = icmeCmeTimes == null ? null : new Date(icmeCmeTimes.slice(0, 19) + 'Z');
 	const focusTime = (erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start)?.getTime() ?? (cursorTime && cursorTime.getTime() - 2 * 864e5);
@@ -88,7 +95,8 @@ function Panel() {
 				size,
 				focusIdx,
 				onKeydown: (e) => {
-					if (cursor && erupt && e.key === '-') return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row], columns) as CME);
+					if (cursor && erupt && e.key === '-')
+						return unlinkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row], columns) as CME);
 					if (cursor && ['+', '='].includes(e.key))
 						return feidId && linkEruptiveSourceEvent('cme', rowAsDict(data[cursor.row], columns) as CME, feidId);
 				},
@@ -114,7 +122,8 @@ function Panel() {
 							if (
 								cme.linked_events?.find(
 									(lnk) =>
-										(lnk.includes('GST') || lnk.includes('IPS')) && timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5),
+										(lnk.includes('GST') || lnk.includes('IPS')) &&
+										timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)
 								)
 							)
 								return true;
@@ -125,9 +134,10 @@ function Panel() {
 							if (anyEruptIcme) {
 								const icme = rowAsDict(
 									icmes.data.find((r) => equalValues(anyEruptIcme, r[icmeTimeIdx])),
-									icmes.columns,
+									icmes.columns
 								) as ICME;
-								for (const meTime of icme.cmes_time ?? []) if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5)) return true;
+								for (const meTime of icme.cmes_time ?? [])
+									if (timeInMargin(cme.time, new Date(meTime.slice(0, 19) + 'Z'), 6e5)) return true;
 							}
 							return false;
 						})();
