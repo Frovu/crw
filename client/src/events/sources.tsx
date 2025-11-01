@@ -80,10 +80,10 @@ export const useHolesViewState = create<{
 export function getSourceLink<T extends EruptEnt>(which: T, src: any) {
 	const links = { flare: flaresLinks, cme: cmeLinks, icme: icmeLinks }[which];
 	return (
-		(links?.[src as keyof typeof links] as [keyof SrcEruptRow, (T extends 'icme' ? 'time' : 'id') | (T extends 'flare' ? 'start_time' : 'time')]) ?? [
-			null,
-			null,
-		]
+		(links?.[src as keyof typeof links] as [
+			keyof SrcEruptRow,
+			(T extends 'icme' ? 'time' : 'id') | (T extends 'flare' ? 'start_time' : 'time')
+		]) ?? [null, null]
 	);
 }
 
@@ -109,13 +109,14 @@ export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: Eruptive
 				<p>
 					Remove {which} from eruption #{eruptId}?
 				</p>
-			</>,
+			</>
 		))
 	)
 		return;
 
 	makeChange('sources_erupt', { column: linkColId, value: null, id: eruptId });
-	if (which === 'flare' && erupt.flr_source === event.src) makeChange('sources_erupt', { column: 'flr_source', value: null, id: eruptId });
+	if (which === 'flare' && erupt.flr_source === event.src)
+		makeChange('sources_erupt', { column: 'flr_source', value: null, id: eruptId });
 	if (which === 'cme' && erupt.cme_source === event.src) makeChange('sources_erupt', { column: 'cme_source', value: null, id: eruptId });
 }
 
@@ -137,7 +138,7 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, f
 				<p>
 					Unlink this {which} from eruption #{linkedToOther[0]} first!
 				</p>
-			</>,
+			</>
 		);
 
 	const actuallyLink = async (eruptId: number) => {
@@ -156,7 +157,7 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, f
 						<p>
 							{which} from {event.src} list is already linked to this eruption, replace?
 						</p>
-					</>,
+					</>
 				))
 			)
 				return;
@@ -186,7 +187,7 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, f
 		() => {
 			const srcId = linkSource('sources_erupt', feidId);
 			actuallyLink(srcId);
-		},
+		}
 	);
 }
 
@@ -203,7 +204,7 @@ export async function unlinkHoleSourceEvent(which: HoleEnt) {
 				<p>
 					Remove {which} CH info from CHS #{chId}?
 				</p>
-			</>,
+			</>
 		))
 	)
 		return;
@@ -227,7 +228,7 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 				<p>
 					Unlink this {which} from CHS #{linkedToOther[0]} first!
 				</p>
-			</>,
+			</>
 		);
 
 	const actuallyLink = async (chId: number) => {
@@ -242,7 +243,7 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 					<>
 						<h4>Replace {which} CH?</h4>
 						<p>{which} CH seems to be linked to this event already, replace?</p>
-					</>,
+					</>
 				))
 			)
 				return;
@@ -282,7 +283,7 @@ export function linkHoleSourceEvent(which: HoleEnt, event: SolenCH | ChimeraCH, 
 		() => {
 			const srcId = linkSource('sources_ch', feidId);
 			actuallyLink(srcId);
-		},
+		}
 	);
 }
 
@@ -298,7 +299,7 @@ export async function linkSrcToEvent(entity: 'sources_ch' | 'sources_erupt', src
 			<>
 				<h4>Already linked</h4>
 				<p>This {isCh ? 'CHS' : 'Erupt'} is already linked to this FEID event.</p>
-			</>,
+			</>
 		);
 
 	try {
@@ -399,7 +400,7 @@ export function useCompoundTable(which: EruptEnt) {
 				const columns = [...new Map([...(columnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as ColumnDef[];
 				const indexes = sourceLabels[which].map((src, srci) => columns.map((c) => sCols[srci].findIndex((sc) => sc.id === c?.id)));
 				const data = sData.flatMap((rows, srci) =>
-					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))]),
+					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))])
 				);
 				const tIdx = columns.findIndex((c) => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
 				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
@@ -431,10 +432,19 @@ export function useTableQuery(tbl: TableName) {
 				return dt;
 			}
 			const cols = [...new Set(['id', ...order, ...columns.map((c) => c.id)])];
+
+			for (const col of columns) {
+				if (tbl === 'sources_ch') {
+					col.width = 'tag' === col.id ? 7.5 : ['b', 'phi', 'lat', 'area', 'width'].includes(col.id) ? 4.5 : col.width;
+				} else if (tbl === 'sources_erupt') {
+					col.width = ['XF peak', 'XF end'].includes(col.name) ? 6 : ['lat', 'lon'].includes(col.name) ? 4.5 : col.width;
+				}
+			}
+
 			const idxs = cols.map((cid) => columns.findIndex((c) => c.id === cid));
 			const dat = dt.map((row) => idxs.map((i) => row[i]));
-			const col = idxs.map((i) => columns[i]);
-			setRawData(tbl, dat as any, col);
+			const cl = idxs.map((i) => columns[i]);
+			setRawData(tbl, dat as any, cl);
 			return dat;
 		},
 	});

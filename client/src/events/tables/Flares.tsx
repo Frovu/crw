@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../../layout';
-import { TableWithCursor } from './Table';
+import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type Flare } from '../events';
-import { color, openContextMenu, useContextMenu } from '../../app';
+import { color, useContextMenu } from '../../app';
 import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
 
@@ -104,41 +104,25 @@ function Panel() {
 					const eruptLinkIdx = !darkk && eruptions.columns?.findIndex((col) => col.id === linkColId);
 					const dark = darkk || (eruptLinkIdx && eruptions.data?.find((eru) => equalValues(flare[idColId], eru[eruptLinkIdx])));
 
+					const textColor = isLinked ? (isPrime ? 'cyan' : 'cyan/80') : orange ? 'orange' : dark ? 'text-dark' : 'text';
+
 					return (
-						<tr key={row[0] + stime + flare.end_time?.getTime()} style={{ height: 23 + padRow, fontSize: 15 }}>
-							{columns.map((column, cidx) => {
-								const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
+						<DefaultRow
+							key={row[0] + stime + flare.end_time?.getTime()}
+							{...{ row, idx, columns, cursor, textColor, padRow }}
+							onClick={(e, cidx) => {
+								if (cidx === 0 && feidId !== null)
+									return linkEruptiveSourceEvent('flare', rowAsDict(row, columns) as Flare, feidId);
+								onClick(idx, cidx);
+							}}
+							contextMenuData={() => ({ nodeId, flare })}
+						>
+							{({ column, cidx }) => {
 								let value = valueToString(row[cidx]);
 								if (['peak', 'end'].includes(column.name)) value = value.split(' ')[1];
-								return (
-									<td
-										key={column.id}
-										title={`${column.fullName} = ${value}`}
-										onClick={(e) => {
-											if (cidx === 0) {
-												feidId && linkEruptiveSourceEvent('flare', rowAsDict(row, columns) as Flare, feidId);
-												return;
-											}
-											onClick(idx, cidx);
-										}}
-										onContextMenu={openContextMenu('events', { nodeId, flare } as any)}
-										style={{ borderColor: color(curs ? 'active' : 'border') }}
-									>
-										<span
-											className="Cell"
-											style={{
-												width: column.width + 'ch',
-												color: color(isLinked ? 'cyan' : orange ? 'orange' : dark ? 'text-dark' : 'text'),
-												fontWeight: isPrime ? 'bold' : 'unset',
-											}}
-										>
-											<div className="TdOver" />
-											{value}
-										</span>
-									</td>
-								);
-							})}
-						</tr>
+								return <DefaultCell column={column}>{value}</DefaultCell>;
+							}}
+						</DefaultRow>
 					);
 				},
 			}}

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, openContextMenu, useContextMenu } from '../../app';
+import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
-import { TableWithCursor } from './Table';
+import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { type ColumnDef, type DataRow } from '../columns';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../eventsState';
@@ -290,42 +290,32 @@ function Panel() {
 										(solenHole?.location === 'northern' && ch.lat <= 10) ||
 										(solenHole?.location === 'southern' && ch.lat >= -10);
 
-									return (
-										<tr key={holesTimestamp + row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
-											{columns.map((column, cidx) => {
-												const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
-												const value = valueToString(row[cidx]);
-												return (
-													<td
-														key={column.id}
-														title={`${column.name} = ${value}`}
-														onClick={(e) => {
-															if (start && end) setCatched({ start, end, solenHole });
-															setFrame(
-																query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0
-															);
+									const textColor = linkedToThisCH ? 'cyan' : dark ? 'text-dark' : 'text';
 
-															if (cidx === 0 && feidId !== null)
-																return linkHoleSourceEvent('chimera', ch, feidId);
-															onClick(idx, cidx);
-														}}
-														onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
-														style={{ borderColor: color(curs ? 'active' : 'border') }}
-													>
-														<span
-															className="Cell"
-															style={{
-																width: column.width + 'ch',
-																color: color(linkedToThisCH ? 'cyan' : dark ? 'text-dark' : 'text'),
-															}}
-														>
-															<div className="TdOver" />
-															{value}
-														</span>
-													</td>
-												);
-											})}
-										</tr>
+									return (
+										<DefaultRow
+											key={holesTimestamp + row[0]}
+											{...{ row, idx, columns, cursor, textColor, padRow }}
+											onClick={(e, cidx) => {
+												if (start && end) setCatched({ start, end, solenHole });
+												setFrame(query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0);
+
+												if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('chimera', ch, feidId);
+												onClick(idx, cidx);
+											}}
+											contextMenuData={() => ({ nodeId, ch })}
+										>
+											{({ column, cidx }) => {
+												const value = valueToString(row[cidx]);
+												const val =
+													column.id === 'tag'
+														? value.slice(2)
+														: column.id === 'time'
+														? value.slice(5, 10)
+														: value;
+												return <DefaultCell column={column}>{val}</DefaultCell>;
+											}}
+										</DefaultRow>
 									);
 								},
 							}}

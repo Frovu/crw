@@ -35,15 +35,31 @@ type DefaultRowParams = {
 	textColor: string;
 	padRow: number;
 	cursor: Cursor | null;
+	before?: ReactNode;
+	after?: ReactNode;
 	title?: (cidx: number) => string;
 	onClick: (e: MouseEvent, cidx: number) => void;
 	contextMenuData: (cidx: number) => any;
 	children: (cell: { column: ColumnDef; cidx: number; curs: Cursor | null }) => ReactNode;
 };
 
-export function DefaultRow({ row, idx, columns, textColor, cursor, padRow, title, onClick, contextMenuData, children }: DefaultRowParams) {
+export function DefaultRow({
+	row,
+	idx,
+	columns,
+	textColor,
+	cursor,
+	padRow,
+	before,
+	after,
+	title,
+	onClick,
+	contextMenuData,
+	children,
+}: DefaultRowParams) {
 	return (
 		<tr style={{ height: 23 + padRow, fontSize: 15 }}>
+			{before}
 			{columns.map((column, cidx) => {
 				const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
 				return (
@@ -58,6 +74,7 @@ export function DefaultRow({ row, idx, columns, textColor, cursor, padRow, title
 					</td>
 				);
 			})}
+			{after}
 		</tr>
 	);
 }

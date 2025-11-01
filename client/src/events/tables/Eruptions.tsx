@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { CellInput, DefaultHead, TableWithCursor } from './Table';
+import { CellInput, DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../events';
-import { color, logMessage, openContextMenu, useContextMenu } from '../../app';
+import { logMessage, useContextMenu } from '../../app';
 import {
 	deleteEvent,
 	eruptIdIdx,
@@ -123,10 +123,11 @@ function Panel() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	if (!data || !feidSrc.data || !columns) return <div className="Center">LOADING..</div>;
 
-	const focusTime = cursorTime && cursorTime.getTime() - 2 * 864e5;
-	const focusIdx =
+	const focusTime = cursorTime && cursorTime.getTime() - 3 * 864e5;
+	const focusIdxx =
 		sources.map((src) => data.findIndex((r) => src.erupt?.id === r[0])).find((i) => i > 0) ||
 		(focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime));
+	const focusIdx = focusIdxx < 0 ? data.length : focusIdxx;
 
 	return (
 		<TableWithCursor
@@ -156,12 +157,22 @@ function Panel() {
 							  })();
 					const orphan = !feidSrc.data.find((r) => r[eruptIdIdx] === row[0]);
 
+					const textColor = orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text';
+
 					return (
-						<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
-							{columns.slice(1).map((column, scidx) => {
+						<DefaultRow
+							key={row[0]}
+							{...{ row, idx, columns: columns.slice(1), cursor, textColor, padRow }}
+							onClick={(e, cidx) => onClick(idx, cidx)}
+							contextMenuData={() => ({ nodeId, cell: { id: row[0] } })}
+							title={(cidx) =>
+								(cidx === 1 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+							}
+						>
+							{({ column, cidx: scidx, curs }) => {
 								const cidx = scidx + 1;
 								const cid = column.id;
-								const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
+
 								const isLinkedModified = flare_columns[cid]
 									? (() => {
 											if (['lat', 'lon'].includes(cid) && erupt.coords_source !== 'FLR') return false; // FIXME
@@ -199,80 +210,63 @@ function Panel() {
 												})
 												.filter((s) => s)
 										: [];
+
 								let value = valueToString(row[cidx]);
 								if (['XF peak', 'XF end'].includes(column.name)) value = value.split(' ')[1];
-								const width = ['XF peak', 'XF end'].includes(column.name)
-									? 6
-									: ['lat', 'lon'].includes(column.name)
-									? 4.5
-									: column.width;
+
+								if (!curs?.editing && (!curs || column.type !== 'enum'))
+									return (
+										<DefaultCell column={column}>
+											{value}
+											{isLinkedModified && <span className="ModifiedMarker" />}
+										</DefaultCell>
+									);
+
 								return (
-									<td
-										key={cid}
-										title={cidx === 1 ? `id = ${row[0]}` : `${column.fullName} = ${value}`}
-										onClick={(e) => onClick(idx, cidx)}
-										onContextMenu={openContextMenu('events', { nodeId, cell: { id: row[0] } as any })}
-										style={{ borderColor: curs ? 'var(--color-active)' : 'var(--color-border)' }}
-									>
-										{curs?.editing || (curs && column.type === 'enum') ? (
-											<CellInput
-												{...{
-													table: ENT,
-													options:
-														cid === 'coords_source'
-															? [...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(
-																	cmeOpts.map((c) => c!.src as string)
-															  )
-															: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map((a) => a!.src as string),
-													id: row[0],
-													column,
-													value,
-													change:
-														cid === 'flr_source'
-															? (val: any) => {
-																	const flr = flrOpts.find((fl) => fl!.src === val);
-																	if (flr) switchMainFlare(erupt, flr);
-																	return !!flr;
-															  }
-															: cid === 'cme_source'
-															? (val: any) => {
-																	const cme = cmeOpts.find((fl) => fl!.src === val);
-																	if (cme) switchMainCME(erupt, cme);
-																	return !!cme;
-															  }
-															: cid === 'coords_source'
-															? (val: any) => {
-																	if (val === 'MNL') {
-																		switchCoordsSrc(erupt, val);
-																		return true;
-																	}
-																	const obj =
-																		val === 'FLR'
-																			? flrOpts.find((fl) => fl!.src === erupt.flr_source)
-																			: cmeOpts.find((fl) => fl!.src === val);
-																	if (obj) switchCoordsSrc(erupt, val, obj);
-																	return !!obj;
-															  }
-															: undefined,
-												}}
-											/>
-										) : (
-											<span
-												className="Cell"
-												style={{
-													width: width + 'ch',
-													color: color(orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text'),
-												}}
-											>
-												<div className="TdOver" />
-												{value}
-												{isLinkedModified && <span className="ModifiedMarker" />}
-											</span>
-										)}
-									</td>
+									<CellInput
+										{...{
+											table: ENT,
+											options:
+												cid === 'coords_source'
+													? [...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(
+															cmeOpts.map((c) => c!.src as string)
+													  )
+													: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map((a) => a!.src as string),
+											id: row[0],
+											column,
+											value,
+											change:
+												cid === 'flr_source'
+													? (val: any) => {
+															const flr = flrOpts.find((fl) => fl!.src === val);
+															if (flr) switchMainFlare(erupt, flr);
+															return !!flr;
+													  }
+													: cid === 'cme_source'
+													? (val: any) => {
+															const cme = cmeOpts.find((fl) => fl!.src === val);
+															if (cme) switchMainCME(erupt, cme);
+															return !!cme;
+													  }
+													: cid === 'coords_source'
+													? (val: any) => {
+															if (val === 'MNL') {
+																switchCoordsSrc(erupt, val);
+																return true;
+															}
+															const obj =
+																val === 'FLR'
+																	? flrOpts.find((fl) => fl!.src === erupt.flr_source)
+																	: cmeOpts.find((fl) => fl!.src === val);
+															if (obj) switchCoordsSrc(erupt, val, obj);
+															return !!obj;
+													  }
+													: undefined,
+										}}
+									/>
 								);
-							})}
-						</tr>
+							}}
+						</DefaultRow>
 					);
 				},
 			}}

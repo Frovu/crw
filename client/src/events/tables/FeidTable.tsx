@@ -1,12 +1,12 @@
 import { useContext, useState, useEffect, useCallback, type KeyboardEvent } from 'react';
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
-import { type Size, useEventListener, cn } from '../../util';
+import { type Size, useEventListener } from '../../util';
 import type { ColumnDef } from '../columns';
 import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, type ChangeLogEntry, valueToString } from '../events';
 import { useEventsState } from '../eventsState';
 import { pickEventForSample } from '../sample';
-import { TableWithCursor, CellInput } from './Table';
+import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
 
 export default function FeidTableView({ size, averages, entity }: { size: Size; entity: string; averages?: (null | number[])[] }) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
@@ -152,75 +152,74 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 						if (!chgs?.length) return false;
 						return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 					});
+
+					const textColor = plotId === row[0] ? 'cyan' : 'text';
+
 					return (
-						<tr
+						<DefaultRow
 							key={row[0]}
-							style={{
-								height: 23 + padRow,
-								fontSize: 15,
-								...(plotId === row[0] && { color: color('active') }),
+							{...{ row, idx, columns, cursor, textColor, padRow }}
+							onClick={(e, cidx) => {
+								if (setEndAt || setEndAt || modifyId) return;
+								onClick(idx, cidx);
+								if (e.ctrlKey) setPlotId(() => row[0]);
 							}}
-						>
-							{marker && (
-								<td
-									title="f: filtered; + whitelisted; - blacklisted"
-									onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
-								>
-									<span
-										className="Cell"
-										style={{
-											color: marker.endsWith('+') ? color('cyan') : marker.endsWith('-') ? color('magenta') : 'unset',
-										}}
-									>
-										{marker}
-									</span>
-								</td>
-							)}
-							{columns.map((column, cidx) => {
-								const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
-								const value = valueToString(row[cidx + 1]);
-								return (
+							contextMenuData={(cidx) => ({ nodeId, cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] } })}
+							title={(cidx) =>
+								(cidx === 1 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+							}
+							before={
+								marker && (
 									<td
-										className={cn(curs && 'outline-active outline-1')}
-										key={column.id}
-										title={cidx === 0 && column.name === 'time' ? `id = ${row[0]}` : `${column.fullName} = ${value}`}
-										onClick={(e) => {
-											if (setEndAt || setEndAt || modifyId) return;
-											onClick(idx, cidx);
-											if (e.ctrlKey) setPlotId(() => row[0]);
-										}}
-										onContextMenu={openContextMenu('events', {
-											nodeId,
-											cell: { id: row[0], value: row[cidx + 1], column },
-										})}
+										title="f: filtered; + whitelisted; - blacklisted"
+										onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
 									>
-										{curs?.editing ? (
-											<CellInput
-												{...{
-													table: entity as any,
-													id: row[0],
-													column,
-													value,
-												}}
-											/>
-										) : (
-											<span className="Cell" style={{ width: column.width + 'ch' }}>
-												<div className="TdOver" />
-												{value}
-												{isCompModified?.[cidx] && <span className="ModifiedMarker" />}
-											</span>
-										)}
+										<span
+											className="Cell"
+											style={{
+												color: marker.endsWith('+')
+													? color('cyan')
+													: marker.endsWith('-')
+													? color('magenta')
+													: 'unset',
+											}}
+										>
+											{marker}
+										</span>
 									</td>
+								)
+							}
+							after={
+								includeMarkers?.[idx] && (
+									<td title="Included in these samples">
+										<span style={{ width: incMarkWidth! + 2 + 'ch' }} className="Cell">
+											{includeMarkers?.[idx]}
+										</span>
+									</td>
+								)
+							}
+						>
+							{({ column, cidx: scidx, curs }) => {
+								const cidx = scidx + 1;
+								const value = valueToString(row[cidx]);
+
+								return !curs?.editing ? (
+									<DefaultCell column={column}>
+										{value}
+										{isCompModified?.[cidx] && <span className="ModifiedMarker" />}
+									</DefaultCell>
+								) : (
+									<CellInput
+										{...{
+											table: entity as any,
+											id: row[0],
+											column,
+											value,
+										}}
+									/>
 								);
-							})}
-							{includeMarkers?.[idx] && (
-								<td title="Included in these samples">
-									<span style={{ width: incMarkWidth! + 2 + 'ch' }} className="Cell">
-										{includeMarkers?.[idx]}
-									</span>
-								</td>
-							)}
-						</tr>
+							}}
+						</DefaultRow>
 					);
 				},
 				tfoot: showAverages && (

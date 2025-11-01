@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, openContextMenu, useContextMenu } from '../../app';
+import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
-import { TableWithCursor } from './TableView';
+import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../events';
 import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
 import {
@@ -133,10 +133,19 @@ function Panel() {
 									const dark =
 										!orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
 
+									const textColor = linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text';
+
 									return (
-										<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
-											{columns.map((column, cidx) => {
-												const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
+										<DefaultRow
+											key={row[0]}
+											{...{ row, idx, columns, cursor, textColor, padRow }}
+											onClick={(e, cidx) => {
+												if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('solen', ch, feidId);
+												onClick(idx, cidx);
+											}}
+											contextMenuData={() => ({ nodeId, ch })}
+										>
+											{({ column, cidx }) => {
 												const value = valueToString(row[cidx]);
 												const val =
 													column.id === 'tag'
@@ -144,40 +153,9 @@ function Panel() {
 														: column.id === 'time'
 														? value.slice(5, 10)
 														: value;
-												return (
-													<td
-														key={column.id}
-														title={`${column.fullName} = ${value}`}
-														onClick={() => {
-															if (cidx === 0 && feidId !== null)
-																return linkHoleSourceEvent('solen', ch, feidId);
-															onClick(idx, cidx);
-														}}
-														onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
-														style={{ borderColor: color(curs ? 'active' : 'border') }}
-													>
-														<span
-															className="Cell"
-															style={{
-																width: column.width + 'ch',
-																color: color(
-																	linkedToThisCH
-																		? 'cyan'
-																		: dark
-																		? 'text-dark'
-																		: orange
-																		? 'orange'
-																		: 'text'
-																),
-															}}
-														>
-															<div className="TdOver" />
-															{val}
-														</span>
-													</td>
-												);
-											})}
-										</tr>
+												return <DefaultCell column={column}>{val}</DefaultCell>;
+											}}
+										</DefaultRow>
 									);
 								},
 							}}

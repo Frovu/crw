@@ -1,7 +1,7 @@
 import { useContext } from 'react';
-import { color, openContextMenu, useContextMenu } from '../../app';
+import { useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { DefaultHead, TableWithCursor } from './Table';
+import { DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../events';
 import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
@@ -88,50 +88,21 @@ function Panel() {
 							const dark =
 								!orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 
+							const textColor = orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text';
+
 							return (
-								<tr key={row[0]} style={{ height: 23 + padRow, fontSize: 15 }}>
-									{columns.slice(1).map((column, scidx) => {
-										const cidx = scidx + 1;
-										const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
-										const value = valueToString(row[cidx]);
-										const width =
-											'tag' === column.id
-												? 7.5
-												: ['b', 'phi', 'lat', 'area', 'width'].includes(column.id)
-												? 4.5
-												: column.width;
-										return (
-											<td
-												key={column.id}
-												title={(cidx === 1 ? `id = ${row[0]}; ` : '') + `${column.fullName} = ${value}`}
-												onClick={(e) => onClick(idx, cidx)}
-												onContextMenu={openContextMenu('events', { nodeId, ch } as any)}
-												style={{ borderColor: color(curs ? 'active' : 'border') }}
-											>
-												<span
-													className="Cell"
-													style={{
-														width: width + 'ch',
-														color: color(
-															orphan
-																? 'red'
-																: linkedToThisCH
-																? 'cyan'
-																: dark
-																? 'text-dark'
-																: orange
-																? 'orange'
-																: 'text'
-														),
-													}}
-												>
-													<div className="TdOver" />
-													{value}
-												</span>
-											</td>
-										);
-									})}
-								</tr>
+								<DefaultRow
+									key={row[0]}
+									{...{ row, idx, columns: columns.slice(1), cursor, textColor, padRow }}
+									onClick={(e, cidx) => onClick(idx, cidx)}
+									contextMenuData={() => ({ nodeId, ch })}
+									title={(cidx) =>
+										(cidx === 1 ? `id = ${row[0]}; ` : '') +
+										`${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+									}
+								>
+									{({ column, cidx }) => <DefaultCell column={column}>{valueToString(row[cidx + 1])}</DefaultCell>}
+								</DefaultRow>
 							);
 						},
 					}}

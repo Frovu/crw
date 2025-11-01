@@ -1,7 +1,7 @@
 import { useContext } from 'react';
-import { useContextMenu, openContextMenu, color } from '../../app';
+import { useContextMenu, color } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
-import { TableWithCursor } from './Table';
+import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type CME, type ICME } from '../events';
 import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
 import {
@@ -142,40 +142,21 @@ function Panel() {
 							return false;
 						})();
 
+					const textColor = isLinked ? (isPrime ? 'cyan' : 'cyan/80') : orange ? 'orange' : dark ? 'text-dark' : 'text';
+
 					return (
-						<tr key={row[0] + time + row[2] + row[4]} style={{ height: 23 + padRow, fontSize: 15 }}>
-							{columns.map((column, cidx) => {
-								const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
-								const value = valueToString(row[cidx]);
-								return (
-									<td
-										key={column.id}
-										title={`${column.fullName} = ${value}`}
-										onClick={(e) => {
-											if (cidx === 0) {
-												feidId && linkEruptiveSourceEvent('cme', rowAsDict(row, columns) as CME, feidId);
-												return;
-											}
-											onClick(idx, cidx);
-										}}
-										onContextMenu={openContextMenu('events', { nodeId, cme } as any)}
-										style={{ borderColor: color(curs ? 'active' : 'border') }}
-									>
-										<span
-											className="Cell"
-											style={{
-												width: column.width + 'ch',
-												color: color(isLinked ? 'cyan' : orange ? 'orange' : dark ? 'text-dark' : 'text'),
-												fontWeight: isPrime ? 'bold' : 'unset',
-											}}
-										>
-											<div className="TdOver" />
-											{value}
-										</span>
-									</td>
-								);
-							})}
-						</tr>
+						<DefaultRow
+							key={row[0] + time + row[2] + row[4]}
+							{...{ row, idx, columns, cursor, textColor, padRow }}
+							onClick={(e, cidx) => {
+								if (cidx === 0 && feidId !== null)
+									return linkEruptiveSourceEvent('cme', rowAsDict(row, columns) as CME, feidId);
+								onClick(idx, cidx);
+							}}
+							contextMenuData={() => ({ nodeId, cme })}
+						>
+							{({ column, cidx }) => <DefaultCell column={column}>{valueToString(row[cidx])}</DefaultCell>}
+						</DefaultRow>
 					);
 				},
 			}}
