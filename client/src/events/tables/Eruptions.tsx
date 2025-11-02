@@ -6,7 +6,6 @@ import { logMessage, useContextMenu } from '../../app';
 import {
 	deleteEvent,
 	eruptIdIdx,
-	makeChange,
 	makeSourceChanges,
 	rowAsDict,
 	useEventsState,
@@ -19,6 +18,7 @@ import {
 	assignCMEToErupt,
 	assignFlareToErupt,
 	getSourceLink,
+	inputEruptionManually,
 	linkSrcToEvent,
 	parseFlareFlux,
 	sourceLabels,
@@ -97,27 +97,14 @@ function Panel() {
 	const cmes = useCompoundTable('cme');
 	const sources = useSources();
 	const selectedErupt = useSource('sources_erupt');
-	const { start: cursorTime } = useFeidCursor();
+	const { start: cursorTime, id: feidId } = useFeidCursor();
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
 	useTableQuery(ENT);
 
 	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {
-		if (!selectedErupt) return;
-		makeChange(
-			'sources_erupt',
-			[
-				['lat', lat],
-				['lon', lon],
-				['cme_time', time],
-				['coords_source', 'MNL'],
-			].map(([column, val]) => ({
-				id: selectedErupt.id,
-				column,
-				value: val,
-			}))
-		);
+		feidId && inputEruptionManually({ lat, lon, time }, feidId, selectedErupt?.id ?? null);
 	});
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;

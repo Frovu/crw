@@ -191,6 +191,43 @@ export function linkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent, f
 	);
 }
 
+export function inputEruptionManually(
+	{ lat, lon, time }: { lat: number; lon: number; time: Date },
+	feidId: number,
+	modifyingEruptId: number | null
+) {
+	const makeChanges = (eruptId: number) =>
+		makeChange(
+			'sources_erupt',
+			[
+				['lat', lat],
+				['lon', lon],
+				['cme_time', time],
+				['coords_source', 'MNL'],
+			].map(
+				([column, val]) =>
+					({
+						id: eruptId,
+						column,
+						value: val,
+					} as any)
+			)
+		);
+
+	if (modifyingEruptId != null) return makeChanges(modifyingEruptId);
+
+	askConfirmation(
+		<>
+			<h4>Create new eruption</h4>
+			<p>No eruption is selected, create a new one with specified coordinates?</p>
+		</>,
+		() => {
+			const srcId = linkSource('sources_erupt', feidId);
+			makeChanges(srcId);
+		}
+	);
+}
+
 export async function unlinkHoleSourceEvent(which: HoleEnt) {
 	const { modifySource, data } = useEventsState.getState();
 	if (!modifySource || !data.feid_sources || !data.sources_ch) return logMessage('Source not selected');
