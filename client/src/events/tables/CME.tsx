@@ -100,11 +100,14 @@ function Panel() {
 					const isLinked = equalValues(cme[idColId], linked?.[cme.src]);
 					const isPrime = isLinked && erupt?.cme_source === cme.src;
 					const otherLinked = !isLinked && linked?.[cme.src];
-					const darkk =
-						otherLinked ||
-						(!erupt?.cme_time
-							? time > focusTime! + 864e5 || time < focusTime! - 3 * 864e5
-							: time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4);
+					const darkk = otherLinked;
+
+					// TODO: addd expected time estimation
+					//  || (!erupt?.cme_time
+					// 		? time > focusTime! + 864e5 || time < focusTime! - 3 * 864e5
+					// 		: time > focusTime! + 36e5 * 4 || time < focusTime! - 36e5 * 4);
+
+					// FIXME: this is probably slow
 					const eruptLinkIdx = !darkk && eruptions.columns?.findIndex((col) => col.id === linkColId);
 					const dark = darkk || (eruptLinkIdx && eruptions.data?.find((eru) => equalValues(cme[idColId], eru[eruptLinkIdx])));
 

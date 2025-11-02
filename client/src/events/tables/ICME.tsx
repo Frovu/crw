@@ -49,7 +49,6 @@ function Panel() {
 	const cursor = sCursor?.entity === 'ICMEs' ? sCursor : null;
 	const erupt = useSource('sources_erupt');
 	const sources = useSources();
-	// const eruptions = useTable('sources_erupt');
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('icme');

@@ -5,6 +5,7 @@ import { equalValues, valueToString, type Flare } from '../events';
 import { color, useContextMenu } from '../../app';
 import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
+import { useSolarPlotContext } from '../../plots/time/solar';
 
 function Menu() {
 	const detail = useContextMenu((state) => state.menu?.detail) as { flare: Flare } | undefined;
@@ -38,19 +39,15 @@ function Panel() {
 	const erupt = useSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
 	const sources = useSources();
+	const { focusTime } = useSolarPlotContext();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('flare');
-	const { start: cursorTime, id: feidId, row: feid } = useFeidCursor();
+	const { id: feidId, row: feid } = useFeidCursor();
 	if (!data.length) return <div className="Center">LOADING..</div>;
 
 	const [timeIdx] = ['start'].map((what) => columns.findIndex((c) => c.name === what));
-	const focusTime = erupt?.flr_start
-		? erupt?.flr_start.getTime()
-		: erupt?.cme_time
-		? erupt?.cme_time.getTime()
-		: cursorTime && cursorTime.getTime() - 2 * 864e5;
-	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[timeIdx] as Date)?.getTime() > focusTime);
+	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[timeIdx] as Date)?.getTime() > focusTime.getTime());
 	const linked = erupt && Object.fromEntries(Object.entries(flaresLinks).map(([src, lnk]) => [src, erupt[lnk[0]]]));
 
 	return (
@@ -94,11 +91,12 @@ function Panel() {
 							return false;
 						})();
 
-					const darkk =
-						otherLinked ||
-						(!erupt?.flr_start
-							? stime > focusTime! + 2 * 864e5 || stime < focusTime! - 3 * 864e5
-							: stime > focusTime! + 36e5 * 4 || stime < focusTime! - 36e5 * 4);
+					const darkk = otherLinked;
+					// TODO:
+					// otherLinked ||
+					// (!erupt?.flr_start
+					// 	? stime > focusTime! + 2 * 864e5 || stime < focusTime! - 3 * 864e5
+					// 	: stime > focusTime! + 36e5 * 4 || stime < focusTime! - 36e5 * 4);
 
 					// FIXME: this is probably slow
 					const eruptLinkIdx = !darkk && eruptions.columns?.findIndex((col) => col.id === linkColId);
