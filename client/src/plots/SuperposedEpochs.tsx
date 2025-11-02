@@ -69,7 +69,11 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 						<select
 							title="Sample (none = all events)"
 							className="Borderless"
-							style={{ width: '7.5em', marginLeft: 1, color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+							style={{
+								width: '7.5em',
+								marginLeft: 1,
+								color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset',
+							}}
 							value={params[sampleKeys[i]]}
 							onChange={(e) => set(sampleKeys[i], e.target.value)}
 						>
@@ -115,13 +119,23 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 				</label>
 				<label>
 					std error
-					<input type="checkbox" style={{ paddingLeft: 4 }} checked={params.showEpochStd} onChange={(e) => set('showEpochStd', e.target.checked)} />
+					<input
+						type="checkbox"
+						style={{ paddingLeft: 4 }}
+						checked={params.showEpochStd}
+						onChange={(e) => set('showEpochStd', e.target.checked)}
+					/>
 				</label>
 			</div>
 			<div>
 				<label>
 					Show X label
-					<input type="checkbox" style={{ paddingLeft: 4 }} checked={params.showXLabel} onChange={(e) => set('showXLabel', e.target.checked)} />
+					<input
+						type="checkbox"
+						style={{ paddingLeft: 4 }}
+						checked={params.showXLabel}
+						onChange={(e) => set('showXLabel', e.target.checked)}
+					/>
 				</label>
 			</div>
 		</div>
@@ -146,7 +160,7 @@ function Panel() {
 				const found = samplesList.find((s) => s.id.toString() === name);
 				return found ? applySample(allData, found, columns, samplesList) : null;
 			}),
-		[sample0, sample1, sample2, currentData, allData, samplesList, columns],
+		[sample0, sample1, sample2, currentData, allData, samplesList, columns]
 	);
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -154,14 +168,12 @@ function Panel() {
 		y: u.bbox.top / scaled(1) + 8,
 	}));
 
-	const queryHandler = async (qi: number) => {
+	const queryHandler = async (qi: number, timeColIdx: number) => {
 		const sample = samples[qi];
-		const colIdx = columns.findIndex((c) => c.id === timeColumn);
-		if (!sample || series[qi] == null || !sample.length || colIdx < 0) return;
 		const interval = plotOffset,
 			uri = 'events/epoch_collision';
-		const times = sample
-			.map((row) => row[colIdx])
+		const times = sample!
+			.map((row) => row[timeColIdx])
 			.filter((t): t is Date => t as any)
 			.map((t) => Math.floor(t.getTime() / 36e5) * 3600);
 
@@ -178,12 +190,28 @@ function Panel() {
 	};
 
 	const qk = ['epochCollision', ...plotOffset, timeColumn];
+	const timeColIdx = columns.findIndex((c) => c.id === timeColumn);
 	const queries = useQueries({
 		queries: [
 			// yes, query keys are cursed
-			{ queryKey: [...qk, samples[0]?.length, samples[0]?.at(0), samples[0]?.at(-1), series[0]], queryFn: () => queryHandler(0), staleTime: Infinity },
-			{ queryKey: [...qk, samples[1]?.length, samples[1]?.at(0), samples[1]?.at(-1), series[1]], queryFn: () => queryHandler(1), staleTime: Infinity },
-			{ queryKey: [...qk, samples[2]?.length, samples[2]?.at(0), samples[2]?.at(-1), series[2]], queryFn: () => queryHandler(2), staleTime: Infinity },
+			{
+				enabled: !!series[0] && !!samples[0]?.length && timeColIdx >= 0,
+				queryKey: [...qk, samples[0]?.length, samples[0]?.at(0), samples[0]?.at(-1), series[0]],
+				queryFn: () => queryHandler(0, timeColIdx),
+				staleTime: Infinity,
+			},
+			{
+				enabled: !!series[1] && !!samples[1]?.length && timeColIdx >= 1,
+				queryKey: [...qk, samples[1]?.length, samples[1]?.at(0), samples[1]?.at(-1), series[1]],
+				queryFn: () => queryHandler(1, timeColIdx),
+				staleTime: Infinity,
+			},
+			{
+				enabled: !!series[2] && !!samples[2]?.length && timeColIdx >= 2,
+				queryKey: [...qk, samples[2]?.length, samples[2]?.at(0), samples[2]?.at(-1), series[2]],
+				queryFn: () => queryHandler(2, timeColIdx),
+				staleTime: Infinity,
+			},
 		],
 	});
 
@@ -192,7 +220,7 @@ function Panel() {
 		const time = queries.find((q) => q.data)?.data?.[0];
 		const timeShifted = time?.map((t) => t + (time[1] - time[0]) / 2);
 		const sampleNames = [sample0, sample1, sample2].map((id) =>
-			['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
+			['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
 		);
 		return {
 			data: [
@@ -214,7 +242,11 @@ function Panel() {
 					padding: [scaled(10), scaled(4), 0, 0],
 					focus: { alpha: 1 },
 					cursor: { focus: { prox: 24 }, drag: { x: false, y: false, setScale: false } },
-					plugins: [tooltipPlugin(), legendPlugin({ params: { showLegend }, overlayHandle }), labelsPlugin({ params: { showLegend } })],
+					plugins: [
+						tooltipPlugin(),
+						legendPlugin({ params: { showLegend }, overlayHandle }),
+						labelsPlugin({ params: { showLegend } }),
+					],
 					axes: [
 						{
 							...axisDefaults(showGrid),
@@ -232,7 +264,7 @@ function Panel() {
 								ch *
 									Math.max.apply(
 										null,
-										vals?.map((v) => v.length),
+										vals?.map((v) => v.length)
 									) +
 								scale * 12,
 							values: (u, vals) => vals.map((v) => v.toString()),
@@ -267,7 +299,7 @@ function Panel() {
 										];
 									},
 								} as CustomScale,
-							]),
+							])
 						),
 					},
 					series: [
@@ -309,7 +341,7 @@ function Panel() {
 											width: scaled(0.9),
 											points: { show: false },
 										},
-									] as uPlot.Series[],
+									] as uPlot.Series[]
 							)
 							.flat(),
 					],
@@ -317,7 +349,17 @@ function Panel() {
 			},
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [params.showEpochMedian, params.showEpochStd, params.showXLabel, queries[0].data, queries[1].data, queries[2].data, samples, showGrid, showLegend]);
+	}, [
+		params.showEpochMedian,
+		params.showEpochStd,
+		params.showXLabel,
+		queries[0].data, // eslint-disable-line react-hooks/exhaustive-deps
+		queries[1].data, // eslint-disable-line react-hooks/exhaustive-deps
+		queries[2].data, // eslint-disable-line react-hooks/exhaustive-deps
+		samples,
+		showGrid,
+		showLegend,
+	]);
 
 	if (queries.some((q) => q.isError))
 		return (
@@ -338,7 +380,7 @@ function Panel() {
 								<span key={sampleKeys[i]} style={{ color: color(colors[i]) }}>
 									{q.data.at(-1)?.length}
 								</span>
-							),
+							)
 					)
 					.filter((a) => a)
 					.reduce((a, b) => [a, '/', b] as any)}
