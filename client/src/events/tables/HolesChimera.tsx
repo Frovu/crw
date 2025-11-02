@@ -290,12 +290,12 @@ function Panel() {
 										(solenHole?.location === 'northern' && ch.lat <= 10) ||
 										(solenHole?.location === 'southern' && ch.lat >= -10);
 
-									const textColor = linkedToThisCH ? 'cyan' : dark ? 'text-dark' : 'text';
+									const className = linkedToThisCH ? 'text-cyan' : dark ? 'text-text-dark' : 'text-text';
 
 									return (
 										<DefaultRow
 											key={holesTimestamp + row[0]}
-											{...{ row, idx, columns, cursor, textColor, padRow }}
+											{...{ row, idx, columns, cursor, className, padRow }}
 											onClick={(e, cidx) => {
 												if (start && end) setCatched({ start, end, solenHole });
 												setFrame(query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0);

@@ -104,12 +104,20 @@ function Panel() {
 					const eruptLinkIdx = !darkk && eruptions.columns?.findIndex((col) => col.id === linkColId);
 					const dark = darkk || (eruptLinkIdx && eruptions.data?.find((eru) => equalValues(flare[idColId], eru[eruptLinkIdx])));
 
-					const textColor = isLinked ? (isPrime ? 'cyan' : 'cyan/80') : orange ? 'orange' : dark ? 'text-dark' : 'text';
+					const className = isLinked
+						? isPrime
+							? 'text-cyan font-bold'
+							: 'text-cyan/90'
+						: orange
+						? 'text-orange'
+						: dark
+						? 'text-text-dark'
+						: 'text-text';
 
 					return (
 						<DefaultRow
 							key={row[0] + stime + flare.end_time?.getTime()}
-							{...{ row, idx, columns, cursor, textColor, padRow }}
+							{...{ row, idx, columns, cursor, className, padRow }}
 							onClick={(e, cidx) => {
 								if (cidx === 0 && feidId !== null)
 									return linkEruptiveSourceEvent('flare', rowAsDict(row, columns) as Flare, feidId);

@@ -86,12 +86,12 @@ function Panel() {
 						(timeInMargin(icme.time, cursorTime, 36e5) || (feid.mc_time && timeInMargin(icme.body_start, feid.mc_time, 36e5)));
 					const dark = linkedToAnyErupt || (!orange && !timeInMargin(icme.time, cursorTime, 24 * 36e5));
 
-					const textColor = isLinked ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text';
+					const className = isLinked ? 'text-cyan' : dark ? 'text-text-dark' : orange ? 'text-orange' : 'text-text';
 
 					return (
 						<DefaultRow
 							key={row[0] + time + row[2]}
-							{...{ row, idx, columns, cursor, textColor, padRow }}
+							{...{ row, idx, columns, cursor, className, padRow }}
 							onClick={(e, cidx) => {
 								if (cidx === 0 && feidId !== null)
 									return linkEruptiveSourceEvent('icme', rowAsDict(row as any, columns) as ICME, feidId);

@@ -157,12 +157,12 @@ function Panel() {
 							  })();
 					const orphan = !feidSrc.data.find((r) => r[eruptIdIdx] === row[0]);
 
-					const textColor = orphan ? 'red' : cyan ? 'cyan' : dark ? 'text-dark' : 'text';
+					const className = orphan ? 'text-red' : cyan ? 'text-cyan' : dark ? 'text-text-dark' : 'text-text';
 
 					return (
 						<DefaultRow
 							key={row[0]}
-							{...{ row, idx, columns: columns.slice(1), cursor, textColor, padRow }}
+							{...{ row, idx, columns: columns.slice(1), cursor, className, padRow }}
 							onClick={(e, cidx) => onClick(idx, cidx)}
 							contextMenuData={() => ({ nodeId, cell: { id: row[0] } })}
 							title={(cidx) =>

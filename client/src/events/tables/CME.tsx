@@ -12,6 +12,7 @@ import {
 	unlinkEruptiveSourceEvent,
 	useCompoundTable,
 } from '../sources';
+import { useSolarPlotContext } from '../../plots/time/solar';
 
 function Menu() {
 	const detail = useContextMenu((state) => state.menu?.detail) as { cme: CME } | undefined;
@@ -66,23 +67,15 @@ function Panel() {
 	const eruptions = useTable('sources_erupt');
 	const icmes = useCompoundTable('icme');
 	const sources = useSources();
+	const solar = useSolarPlotContext();
+	const focusTime = solar.focusTime.getTime();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('cme');
-	const { start: cursorTime, id: feidId, row: feid } = useFeidCursor();
+	const { id: feidId, row: feid } = useFeidCursor();
 	if (!data.length) return <div className="Center">LOADING..</div>;
 
 	const icmeTimeIdx = icmes.columns.findIndex((c) => c.name === 'time');
-	const eruptIcme =
-		erupt?.rc_icme_time == null
-			? null
-			: (rowAsDict(
-					icmes.data.find((r) => equalValues(erupt.rc_icme_time, r[icmeTimeIdx])),
-					icmes.columns
-			  ) as ICME);
-	const icmeCmeTimes = eruptIcme?.cmes_time?.at(0);
-	const icmeCmeTime = icmeCmeTimes == null ? null : new Date(icmeCmeTimes.slice(0, 19) + 'Z');
-	const focusTime = (erupt?.cme_time ?? icmeCmeTime ?? erupt?.flr_start)?.getTime() ?? (cursorTime && cursorTime.getTime() - 2 * 864e5);
 	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime);
 	const linked = erupt && Object.fromEntries(sourceLabels.cme.map((src) => [src, erupt[cmeLinks[src][0]]]));
 
@@ -142,12 +135,20 @@ function Panel() {
 							return false;
 						})();
 
-					const textColor = isLinked ? (isPrime ? 'cyan' : 'cyan/80') : orange ? 'orange' : dark ? 'text-dark' : 'text';
+					const className = isLinked
+						? isPrime
+							? 'text-cyan font-bold'
+							: 'text-cyan/90'
+						: orange
+						? 'text-orange'
+						: dark
+						? 'text-text-dark'
+						: 'text-text';
 
 					return (
 						<DefaultRow
 							key={row[0] + time + row[2] + row[4]}
-							{...{ row, idx, columns, cursor, textColor, padRow }}
+							{...{ row, idx, columns, cursor, className, padRow }}
 							onClick={(e, cidx) => {
 								if (cidx === 0 && feidId !== null)
 									return linkEruptiveSourceEvent('cme', rowAsDict(row, columns) as CME, feidId);

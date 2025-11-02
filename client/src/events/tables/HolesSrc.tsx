@@ -88,12 +88,20 @@ function Panel() {
 							const dark =
 								!orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 
-							const textColor = orphan ? 'red' : linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text';
+							const className = orphan
+								? 'text-red'
+								: linkedToThisCH
+								? 'text-cyan'
+								: dark
+								? 'text-text-dark'
+								: orange
+								? 'text-orange'
+								: 'text-text';
 
 							return (
 								<DefaultRow
 									key={row[0]}
-									{...{ row, idx, columns: columns.slice(1), cursor, textColor, padRow }}
+									{...{ row, idx, columns: columns.slice(1), cursor, className, padRow }}
 									onClick={(e, cidx) => onClick(idx, cidx)}
 									contextMenuData={() => ({ nodeId, ch })}
 									title={(cidx) =>

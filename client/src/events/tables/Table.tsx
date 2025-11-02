@@ -32,7 +32,7 @@ type DefaultRowParams = {
 	row: any[];
 	idx: number;
 	columns: ColumnDef[];
-	textColor: string;
+	className: string;
 	padRow: number;
 	cursor: Cursor | null;
 	before?: ReactNode;
@@ -47,7 +47,7 @@ export function DefaultRow({
 	row,
 	idx,
 	columns,
-	textColor,
+	className,
 	cursor,
 	padRow,
 	before,
@@ -64,7 +64,7 @@ export function DefaultRow({
 				const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
 				return (
 					<td
-						className={cn(curs && 'outline-active outline-1', `text-${textColor}`)}
+						className={cn(curs && 'outline-active outline-1', className)}
 						key={column.id}
 						title={title?.(cidx) ?? `${column.fullName} = ${valueToString(row[cidx])}`}
 						onClick={(e) => onClick(e, cidx)}

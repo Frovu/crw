@@ -133,12 +133,18 @@ function Panel() {
 									const dark =
 										!orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
 
-									const textColor = linkedToThisCH ? 'cyan' : dark ? 'text-dark' : orange ? 'orange' : 'text';
+									const className = linkedToThisCH
+										? 'text-cyan'
+										: dark
+										? 'text-text-dark'
+										: orange
+										? 'text-orange'
+										: 'text-text';
 
 									return (
 										<DefaultRow
 											key={row[0]}
-											{...{ row, idx, columns, cursor, textColor, padRow }}
+											{...{ row, idx, columns, cursor, className, padRow }}
 											onClick={(e, cidx) => {
 												if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('solen', ch, feidId);
 												onClick(idx, cidx);

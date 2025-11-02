@@ -146,6 +146,7 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 					  },
 				row: (row, idx, onClick, padRow) => {
 					const marker = markers?.[idx];
+					const markerColor = marker && (marker.endsWith('+') ? 'cyan' : marker.endsWith('-') ? 'magenta' : 'text');
 					const isCompModified = columns.map((c) => {
 						if (!c.isComputed) return false;
 						const chgs = getChangelogEntry(wholeChangelog, row[0], c.id)?.sort((a, b) => b.time - a.time);
@@ -153,12 +154,12 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 						return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 					});
 
-					const textColor = plotId === row[0] ? 'cyan' : 'text';
+					const className = plotId === row[0] ? 'text-cyan' : 'text-text';
 
 					return (
 						<DefaultRow
 							key={row[0]}
-							{...{ row, idx, columns, cursor, textColor, padRow }}
+							{...{ row, idx, columns, cursor, className, padRow }}
 							onClick={(e, cidx) => {
 								if (setEndAt || setEndAt || modifyId) return;
 								onClick(idx, cidx);
@@ -174,16 +175,7 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 										title="f: filtered; + whitelisted; - blacklisted"
 										onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
 									>
-										<span
-											className="Cell"
-											style={{
-												color: marker.endsWith('+')
-													? color('cyan')
-													: marker.endsWith('-')
-													? color('magenta')
-													: 'unset',
-											}}
-										>
+										<span className="Cell" style={{ color: color(markerColor!) }}>
 											{marker}
 										</span>
 									</td>
