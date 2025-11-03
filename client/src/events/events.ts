@@ -41,8 +41,8 @@ export const useEventsSettings = create<EventsSettings>()(
 		}),
 		{
 			name: 'eventsAppSettings',
-		},
-	),
+		}
+	)
 );
 
 export type EventsPanel<T> = Panel<T> & {
@@ -111,6 +111,7 @@ export type SrcEruptRow = {
 	solardemon_flr_id: number | null;
 	donki_cme_id: number | null;
 	lasco_cme_time: Date | null;
+	cactus_cme_time: Date | null;
 	rc_icme_time: Date | null;
 };
 
@@ -191,7 +192,12 @@ export const MainTableContext = createContext<{
 
 export const SampleContext = createContext<{ data: DataRow[]; current: Sample | null; samples: Sample[] }>({} as any);
 
-export const TableViewContext = createContext<{ data: DataRow[]; columns: ColumnDef[]; markers: null | string[]; includeMarkers: null | string[] }>({} as any);
+export const TableViewContext = createContext<{
+	data: DataRow[];
+	columns: ColumnDef[];
+	markers: null | string[];
+	includeMarkers: null | string[];
+}>({} as any);
 
 export const PlotContext = createContext<{ interval: [Date, Date]; base?: Date; onsets?: Onset[]; clouds?: MagneticCloud[] }>({} as any);
 

@@ -425,8 +425,9 @@ export function useCompoundTable(which: EruptEnt) {
 			staleTime: Infinity,
 			placeholderData: keepPreviousData,
 			queryFn: async () => {
+				console.log('useCompoundTable', which);
 				const tables = {
-					cme: ['lasco_cmes', 'donki_cmes'],
+					cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
 					icme: ['r_c_icmes'],
 					flare: ['solarsoft_flares', 'donki_flares', 'solardemon_flares'],
 				}[which];
@@ -436,18 +437,22 @@ export function useCompoundTable(which: EruptEnt) {
 				const pairs = Object.values(sCols).flatMap((cols) => cols.map((c) => [c.id, c]));
 				const columns = [...new Map([...(columnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as ColumnDef[];
 				const indexes = sourceLabels[which].map((src, srci) => columns.map((c) => sCols[srci].findIndex((sc) => sc.id === c?.id)));
+				console.log(222);
 				const data = sData.flatMap((rows, srci) =>
 					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))])
 				);
+				console.log(333);
 				const tIdx = columns.findIndex((c) => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
 				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
 
+				console.log(444);
 				for (const col of columns) {
 					if (col.name.includes('class')) col.width = 5.5;
 					if (['lat', 'lon'].includes(col.name)) col.width = 4.5;
 					if (which === 'flare' && ['end', 'peak'].includes(col.name)) col.width = 6;
 					if (['type', 'level'].includes(col.name)) col.width = 3;
 				}
+				console.log(tables, data);
 
 				return { data, columns: [{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef, ...columns] };
 			},

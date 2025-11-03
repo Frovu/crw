@@ -192,7 +192,10 @@ function Panel() {
 													const idColIdx = cmes.columns?.findIndex((col) => col.id === idColId);
 													const cme =
 														erupt[linkColId] &&
-														cmes.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]));
+														cmes.data?.find(
+															(r) => r[0] === cmeSrc && equalValues(r[idColIdx], erupt[linkColId])
+														);
+													console.log(linkColId, idColId, cme);
 													return cme ? (rowAsDict(cme, cmes.columns!) as CME) : null;
 												})
 												.filter((s) => s)

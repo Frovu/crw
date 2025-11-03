@@ -10,7 +10,7 @@ const ENTS = {
 	donki_flares: ['DONKI FLR', false],
 	solarsoft_flares: ['SSOFT FLR', false],
 	solardemon_flares: ['DEMON FLR', true],
-	// solardemon_dimmings: ['DEMON DIM', true],
+	cactus_cmes: ['CACTs CME', true],
 	r_c_icmes: ['R&C ICME', true],
 	solen_holes: ['SOLEN CH', true],
 } as const;
@@ -91,7 +91,12 @@ function CoverageEntry({
 	};
 
 	return (
-		<tr style={{ cursor: 'pointer' }} onClick={() => mutate()} onMouseOut={() => setHovered(false)} onMouseOver={() => setHovered(true)}>
+		<tr
+			style={{ cursor: 'pointer' }}
+			onClick={() => mutate()}
+			onMouseOut={() => setHovered(false)}
+			onMouseOver={() => setHovered(true)}
+		>
 			<td style={{ textAlign: 'right', paddingRight: 6 }}>{entShort}</td>
 			{!isWorking && hovered && (
 				<td colSpan={2} style={{ ...border, color: color('active') }}>
@@ -129,7 +134,7 @@ export default function CoverageControls({ date }: { date: Date }) {
 
 	const coverageQuery = useQuery({
 		queryKey: ['events_coverage'],
-		queryFn: () => apiGet<{ [ent: string]: string[][] }>('events/coverage'),
+		queryFn: () => apiGet<{ [ent: string]: string[][] | undefined }>('events/coverage'),
 	});
 
 	const [data, month1, month2] = useMemo(() => {
@@ -140,7 +145,9 @@ export default function CoverageControls({ date }: { date: Date }) {
 		return [
 			Object.entries(ENTS).map(([entity, [entShort, isSingle]]) => {
 				const coverage = coverageQuery.data[entity];
-				if (coverage.length < 1) return { entity, entShort, isSingle, d1: null, d2: null };
+				if (!coverage || coverage.length < 1) {
+					return { entity, entShort, isSingle, d1: null, d2: null };
+				}
 
 				const [d1, d2] = (() => {
 					if (isSingle) {
@@ -170,8 +177,8 @@ export default function CoverageControls({ date }: { date: Date }) {
 		? 0
 		: Math.max.apply(
 				null,
-				data.flatMap(({ d1, d2 }) => [d1!, d2!]),
-			);
+				data.flatMap(({ d1, d2 }) => [d1!, d2!])
+		  );
 	const colour = gaps ? 'red' : oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
 
 	return (
@@ -211,7 +218,12 @@ export default function CoverageControls({ date }: { date: Date }) {
 							</td>
 						)}
 						{!minified && hovered && (
-							<td colSpan={2} style={{ width: 112 }} className="TextButton" onClick={() => dispatchCustomEvent('fetchAllSources')}>
+							<td
+								colSpan={2}
+								style={{ width: 112 }}
+								className="TextButton"
+								onClick={() => dispatchCustomEvent('fetchAllSources')}
+							>
 								update all
 							</td>
 						)}

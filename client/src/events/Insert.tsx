@@ -31,7 +31,12 @@ function Menu() {
 							const srcId = linkSource('sources_erupt', feidId);
 							setTimeout(() => {
 								const { setCursor, data } = useEventsState.getState();
-								setCursor({ entity: 'sources_erupt', column: 2, row: data.sources_erupt!.findIndex((r) => r[0] === srcId), id: srcId });
+								setCursor({
+									entity: 'sources_erupt',
+									column: 2,
+									row: data.sources_erupt!.findIndex((r) => r[0] === srcId),
+									id: srcId,
+								});
 							}, 100);
 						}}
 					>
@@ -60,7 +65,8 @@ function Menu() {
 }
 
 function Panel() {
-	const { modifyId, setStartAt, setEndAt, plotId, modifySource, setStart, setEnd, setModify, setModifySource, setPlotId } = useEventsState();
+	const { modifyId, setStartAt, setEndAt, plotId, modifySource, setStart, setEnd, setModify, setModifySource, setPlotId } =
+		useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { id: nodeId } = useContext(LayoutContext)!;
 	const { columns } = useTable();
@@ -195,7 +201,17 @@ function Panel() {
 	};
 
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', padding: 1, fontSize: 15, height: '100%', overflowY: 'scroll', textAlign: 'center' }}>
+		<div
+			style={{
+				display: 'flex',
+				flexDirection: 'column',
+				padding: 1,
+				fontSize: 15,
+				height: '100%',
+				overflowY: 'scroll',
+				textAlign: 'center',
+			}}
+		>
 			<div style={{ display: 'flex', flexWrap: 'wrap', padding: '1px 1px 0 0' }}>
 				<div style={{ alignSelf: 'start', position: 'relative', width: 154, height: 26, paddingTop: 1 }}>
 					<CoverageControls date={start} />
@@ -277,7 +293,11 @@ function Panel() {
 								onWheel={(e) => cycle('s_confidence', e.deltaY > 0 ? 1 : -1)}
 							>
 								<span style={{ fontSize: 14, paddingRight: 8 }}>conf</span>
-								<span style={{ color: color({ low: 'orange', avg: 'text', high: 'green' }[feid.s_confidence ?? ''] ?? 'red') }}>
+								<span
+									style={{
+										color: color({ low: 'orange', avg: 'text', high: 'green' }[feid.s_confidence ?? ''] ?? 'red'),
+									}}
+								>
 									{feid.s_confidence ? feid.s_confidence : 'N/A'}
 								</span>
 							</td>
@@ -290,7 +310,9 @@ function Panel() {
 											<div
 												style={{
 													color: color(
-														sources.find((s) => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime()) ? 'green' : 'red',
+														sources.find((s) => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime())
+															? 'green'
+															: 'red'
 													),
 												}}
 											>
@@ -301,7 +323,9 @@ function Panel() {
 											<div
 												style={{
 													color: color(
-														sources.find((s) => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime()) ? 'green' : 'red',
+														sources.find((s) => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime())
+															? 'green'
+															: 'red'
 													),
 												}}
 											>
@@ -352,7 +376,11 @@ function Panel() {
 								key={srcId}
 								title={'id=' + src.source.id}
 								onContextMenu={openContextMenu('events', { nodeId, ...src })}
-								style={{ border: '1px solid ' + color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
+								style={{
+									border: '1px solid ' + color(isActive ? 'active' : 'bg'),
+									width: 'fit-content',
+									cursor: 'pointer',
+								}}
 								onClick={() => setModifySource(isActive ? null : srcId)}
 							>
 								<table className="Table" style={{ borderCollapse: 'collapse' }}>
@@ -361,7 +389,10 @@ function Panel() {
 											<td width={84} style={{ color: color('text-dark') }}>
 												ERU{i + 1}
 											</td>
-											<td width={40} style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}>
+											<td
+												width={40}
+												style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}
+											>
 												FLR:
 											</td>
 											<td width={36} style={clr('flare', 'SFT')}>
@@ -381,10 +412,9 @@ function Panel() {
 											<InflButton src={src} />
 
 											<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
+											<td style={clr('cme', 'LSC')}>LSC</td>
 											<td style={clr('cme', 'DKI')}>DKI</td>
-											<td style={clr('cme', 'LSC')} colSpan={2}>
-												LASCO
-											</td>
+											<td style={clr('cme', 'CCT')}>CCT</td>
 											<td style={clr('icme', 'R&C')}>R&C</td>
 										</tr>
 									</tbody>
@@ -408,7 +438,11 @@ function Panel() {
 								key={srcId}
 								title={'id=' + src.source.id}
 								onContextMenu={openContextMenu('events', { nodeId, ...src })}
-								style={{ border: '1px solid ' + color(isActive ? 'active' : 'bg'), width: 'fit-content', cursor: 'pointer' }}
+								style={{
+									border: '1px solid ' + color(isActive ? 'active' : 'bg'),
+									width: 'fit-content',
+									cursor: 'pointer',
+								}}
 								onClick={() => setModifySource(isActive ? null : srcId)}
 							>
 								<table className="Table" style={{ borderCollapse: 'collapse' }}>

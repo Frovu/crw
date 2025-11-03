@@ -4,12 +4,13 @@ from database import pool, log
 from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
 from events.generic_columns import select_generics, GenericColumn
 from events.generic_core import G_SERIES, G_DERIVED
-from events.source import donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info, noaa_flares
+from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, noaa_flares
 
 TABLES = {
 	donki.FLR_TABLE: donki.FLR_COLS,
 	donki.CME_TABLE: donki.CME_COLS,
 	lasco_cme.TABLE: lasco_cme.COLS,
+	cactus_cme.TABLE: cactus_cme.COLS,
 	r_c_icme.TABLE: r_c_icme.COLS,
 	solardemon.DIM_TABLE: solardemon.DIM_COLS,
 	solardemon.FLR_TABLE: solardemon.FLR_COLS,

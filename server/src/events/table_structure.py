@@ -217,7 +217,7 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('cme_source',
 		pretty_name='CME src',
 		data_type='enum',
-		enum=['LSC', 'DKI', 'MNL']),
+		enum=['LSC', 'DKI', 'CCT']),
 	C_ER('note', data_type='text'),
 
 	C_ER('solarsoft_flr_start', data_type='time', pretty_name='SFT FLR start'),
@@ -226,6 +226,7 @@ SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('solardemon_flr_id', data_type='integer', pretty_name='dMN FLR'),
 	C_ER('donki_cme_id', data_type='integer', pretty_name='DKI CME'),
 	C_ER('lasco_cme_time', data_type='time', pretty_name='LASCO CME'),
+	C_ER('cactus_cme_time', data_type='time', pretty_name='CACTs CME'),
 	C_ER('rc_icme_time', data_type='time', pretty_name='R&C ICME'),
 ]}]
 

@@ -13,6 +13,7 @@ export const flaresLinks = {
 export const cmeLinks = {
 	LSC: ['lasco_cme_time', 'time'],
 	DKI: ['donki_cme_id', 'id'],
+	CCT: ['cactus_cme_time', 'time'],
 } as const;
 
 export const icmeLinks = {
@@ -99,12 +100,13 @@ export const useEventsState = create<EventsState>()(
 				st.plotId = setter(st.plotId);
 				st.modifySource = null;
 			}),
-		toggleSort: (column, dir) => set((st) => ({ ...st, sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
+		toggleSort: (column, dir) =>
+			set((st) => ({ ...st, sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
 		escapeCursor: () =>
 			set((st) => {
 				st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null;
 			}),
-	})),
+	}))
 );
 
 const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
@@ -114,7 +116,9 @@ const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
 	const columns = state.columns[tbl]!;
 	const changes = state.changes[tbl];
 	if (!rawData) return [];
-	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter((r) => !deleted.includes(r[0] as number)) as typeof rawData;
+	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter(
+		(r) => !deleted.includes(r[0] as number)
+	) as typeof rawData;
 	for (const { id, column, value } of changes) {
 		const row = data.find((r) => r[0] === id);
 		const columnIdx = columns.findIndex((c) => c.id === column);
@@ -148,7 +152,8 @@ export const useFeidCursor = () => {
 };
 
 export type RowDict = { [k: string]: Value | undefined };
-export const rowAsDict = (row: any[] | undefined, columns: ColumnDef[]): RowDict => Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
+export const rowAsDict = (row: any[] | undefined, columns: ColumnDef[]): RowDict =>
+	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
 
 export const useSources = () => {
 	const plotId = useEventsState((st) => st.plotId);
@@ -172,7 +177,10 @@ export const useSources = () => {
 		.filter((a) => !!a);
 };
 
-export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): (T extends 'sources_ch' ? SrcCHRow : SrcEruptRow) | null => {
+export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(
+	tbl: T,
+	soft = false
+): (T extends 'sources_ch' ? SrcCHRow : SrcEruptRow) | null => {
 	const plotId = useEventsState((st) => st.plotId);
 	const cursor = useEventsState((st) => st.cursor);
 	const modifySource = useEventsState((st) => st.modifySource);
@@ -182,11 +190,11 @@ export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft
 	const targetId = modifySource
 		? (src.data?.find((row) => row[0] === modifySource)?.[idIdx] as number)
 		: cursor?.entity === tbl
-			? cursor.id!
-			: !soft
-				? null
-				: (src.data?.find((r) => r[idIdx] && r[fIdIdx] === plotId && r[inflIdIdx] === 'primary')?.[idIdx] ??
-					src.data?.find((r) => r[idIdx] && r[fIdIdx] === plotId)?.[idIdx]);
+		? cursor.id!
+		: !soft
+		? null
+		: src.data?.find((r) => r[idIdx] && r[fIdIdx] === plotId && r[inflIdIdx] === 'primary')?.[idIdx] ??
+		  src.data?.find((r) => r[idIdx] && r[fIdIdx] === plotId)?.[idIdx];
 	return !data || targetId == null ? null : (rowAsDict(data.find((row) => row[0] === targetId)!, columns) as any);
 };
 
@@ -196,7 +204,7 @@ export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) 
 			state.columns[tbl] = cols;
 			state.rawData[tbl] = rdata;
 			state.data[tbl] = applyChanges(state, tbl);
-		}),
+		})
 	);
 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
@@ -291,7 +299,10 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		}
 
 		const targetIdCol = tbl === 'sources_ch' ? 'ch_id' : 'erupt_id';
-		const feidSrcRow = [feidSrcId, ...columns.feid_sources!.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId })[c.id] ?? null)] as DataRow;
+		const feidSrcRow = [
+			feidSrcId,
+			...columns.feid_sources!.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId }[c.id] ?? null)),
+		] as DataRow;
 		created.feid_sources = [...created.feid_sources, feidSrcRow];
 		data.feid_sources = [...data.feid_sources!, feidSrcRow];
 
@@ -305,6 +316,11 @@ export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: SrcE
 		tbl,
 		Object.entries(row)
 			.filter((e) => e[0] !== 'id')
-			.map(([column, value]) => ({ id: row.id, column, value: value ?? null, silent: !linkIds.includes(column) && !column.endsWith('source') })),
+			.map(([column, value]) => ({
+				id: row.id,
+				column,
+				value: value ?? null,
+				silent: !linkIds.includes(column) && !column.endsWith('source'),
+			}))
 	);
 }
