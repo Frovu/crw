@@ -16,7 +16,7 @@ HALO_URL = 'https://cdaw.gsfc.nasa.gov/CME_list/halo/halo.html'
 EPOCH = (1996, 1)
 COLS = [ # ORDERED !!!
 	Col(TABLE, 'time', not_null=True, data_type='time', description='First LASCO/C2 appearance'),
-	Col(TABLE, 'central_angle', pretty_name='CPA', description='Central Position Angle, deg'),
+	Col(TABLE, 'central_angle', pretty_name='angle', description='Central Position Angle, deg'),
 	Col(TABLE, 'angular_width', pretty_name='width', description='Angular Width, deg'),
 	Col(TABLE, 'speed', pretty_name='speed linear', description='Linear Speed, km/s'),
 	Col(TABLE, 'speed_2', pretty_name='speed 2', description='2nd-order Speed at final height, km/s'),

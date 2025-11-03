@@ -14,7 +14,7 @@ COLS = [ # ORDERED !!!
 	Col(TABLE, 'time', not_null=True, data_type='time', description='Onset time, earliest indication of liftoff'),
 	Col(TABLE, 'cactus_id', not_null=True, data_type='integer', description='CACTus CME id within month'),
 	Col(TABLE, 'dt0', pretty_name='t lift', description='Duration of liftoff (hours)'),
-	Col(TABLE, 'central_angle', pretty_name='CPA', description='Principal angle, counterclockwise from North (degrees)'),
+	Col(TABLE, 'central_angle', pretty_name='angle', description='Principal angle, counterclockwise from North (degrees)'),
 	Col(TABLE, 'angular_width', pretty_name='width', description='Angular Wwidth, deg'),
 	Col(TABLE, 'speed', description='Median velocity, km/s'),
 	Col(TABLE, 'dv', description='Variation (1 sigma) of velocity over the width of the CME'),

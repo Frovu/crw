@@ -28,7 +28,7 @@ CME_COLS = [
 	Col(T1, 'data_level', data_type='integer', pretty_name='level', description='0=real-time, 1=real-time and checked by supervising forecaster, 2=retrospective science level data analysis'),
 	Col(T1, 'note', data_type='text'),
 	Col(T1, 'linked_events', data_type='text[]'),
-	Col(T1, 'enlil_id', data_type='integer'),
+	Col(T1, 'enlil_id', pretty_name='enlil', data_type='integer'),
 	Col(T1, 'enlil_est_shock', pretty_name='est impact', data_type='time', description='Estimated Earth arrival time'),
 	Col(T1, 'enlil_filename', data_type='text'),
 ]

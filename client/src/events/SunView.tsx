@@ -112,7 +112,12 @@ function Menu({ params, setParams }: ContextMenuProps<Params>) {
 			{mode === 'SDO' && (
 				<label>
 					Time slave
-					<input type="checkbox" style={{ paddingLeft: 4 }} checked={slave} onChange={(e) => setParams({ slave: e.target.checked })} />
+					<input
+						type="checkbox"
+						style={{ paddingLeft: 4 }}
+						checked={slave}
+						onChange={(e) => setParams({ slave: e.target.checked })}
+					/>
 				</label>
 			)}
 		</div>
@@ -145,9 +150,9 @@ export function SDO({
 	const size = Math.min(nodeSize.width, nodeSize.height);
 	const [frame, setFrame] = useState(0);
 	const isLsc = source.startsWith('LASCO');
-	const cmeIsLsc = isLsc && cme && cme?.src === 'LSC';
-	const cmeAngle = cmeIsLsc ? ((cme?.central_angle ?? cme?.measurement_angle) as number | null) : null;
-	const cmeWidth = cmeIsLsc ? (cme?.angular_width as number | null) : null;
+	const cmeWithAngle = isLsc && cme && ['LSC', 'CCT'].includes(cme?.src as any);
+	const cmeAngle = cmeWithAngle ? ((cme?.central_angle ?? cme?.measurement_angle) as number | null) : null;
+	const cmeWidth = cmeWithAngle ? (cme?.angular_width as number | null) : null;
 
 	const query = useQuery({
 		staleTime: Infinity,
@@ -161,7 +166,9 @@ export function SDO({
 			return res.timestamps
 				.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end)
 				.map((timestamp) => {
-					const dir = isLsc ? 'soho/lasco' : (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1];
+					const dir = isLsc
+						? 'soho/lasco'
+						: (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1];
 					const time = new Date(timestamp * 1000);
 					const year = time.getUTCFullYear();
 					const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -315,7 +322,17 @@ export function SDO({
 			)}
 			{!isLoaded && query.isSuccess && <div className="Center">NO SDO DATA</div>}
 			{!isLsc && isLoaded && (
-				<div style={{ position: 'absolute', zIndex: 2, color: 'white', top: size - (size * 18) / 512 - 58, left: 4, fontSize: 12, lineHeight: 1.1 }}>
+				<div
+					style={{
+						position: 'absolute',
+						zIndex: 2,
+						color: 'white',
+						top: size - (size * 18) / 512 - 58,
+						left: 4,
+						fontSize: 12,
+						lineHeight: 1.1,
+					}}
+				>
 					<b>
 						{src ?? ''}
 						<br />
@@ -461,7 +478,10 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 			src
 			<div style={{ position: 'absolute', top: 2, left: 2, maxWidth: imgSize - 2, maxHeight: imgSize - 2, overflow: 'clip' }}>
 				<img
-					style={{ transform: `translate(${move}px, ${move}px)`, visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden' }}
+					style={{
+						transform: `translate(${move}px, ${move}px)`,
+						visibility: ['done', 'init'].includes(state) ? 'visible' : 'hidden',
+					}}
 					width={imgSize * (1 + (2 * clip) / 512) - 2}
 					alt=""
 					src={src}

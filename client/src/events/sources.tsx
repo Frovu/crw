@@ -53,7 +53,7 @@ type EruptiveEvent = Flare | CME | ICME;
 
 export const columnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
-	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'enlil_id', 'note', 'central_angle'],
+	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'central_angle', 'enlil_id', 'note'],
 	icme: ['time'],
 	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
 	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
@@ -437,22 +437,18 @@ export function useCompoundTable(which: EruptEnt) {
 				const pairs = Object.values(sCols).flatMap((cols) => cols.map((c) => [c.id, c]));
 				const columns = [...new Map([...(columnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as ColumnDef[];
 				const indexes = sourceLabels[which].map((src, srci) => columns.map((c) => sCols[srci].findIndex((sc) => sc.id === c?.id)));
-				console.log(222);
 				const data = sData.flatMap((rows, srci) =>
 					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))])
 				);
-				console.log(333);
 				const tIdx = columns.findIndex((c) => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
 				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
 
-				console.log(444);
 				for (const col of columns) {
 					if (col.name.includes('class')) col.width = 5.5;
 					if (['lat', 'lon'].includes(col.name)) col.width = 4.5;
 					if (which === 'flare' && ['end', 'peak'].includes(col.name)) col.width = 6;
 					if (['type', 'level'].includes(col.name)) col.width = 3;
 				}
-				console.log(tables, data);
 
 				return { data, columns: [{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef, ...columns] };
 			},
