@@ -191,9 +191,8 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 								)
 							}
 						>
-							{({ column, cidx: scidx, curs }) => {
-								const cidx = scidx + 1;
-								const value = valueToString(row[cidx]);
+							{({ column, cidx, curs }) => {
+								const value = valueToString(row[cidx + 1]);
 
 								return !curs?.editing ? (
 									<DefaultCell column={column}>
