@@ -7,7 +7,7 @@ export const flaresLinks = {
 	SFT: ['solarsoft_flr_start', 'start_time'],
 	// NOA: ['noaa_flare_start', 'start_time'],
 	DKI: ['donki_flr_id', 'id'],
-	dMN: ['solardemon_flr_id', 'id'],
+	// dMN: ['solardemon_flr_id', 'id'],
 } as const;
 
 export const cmeLinks = {

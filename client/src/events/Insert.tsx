@@ -404,9 +404,7 @@ function Panel() {
 											<td width={36} style={clr('flare', 'NOA')}>
 												NOA
 											</td>
-											<td width={36} style={clr('flare', 'dMN')}>
-												dMN
-											</td>
+											<td width={36}></td>
 										</tr>
 										<tr>
 											<InflButton src={src} />

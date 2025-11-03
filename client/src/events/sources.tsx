@@ -429,7 +429,7 @@ export function useCompoundTable(which: EruptEnt) {
 				const tables = {
 					cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
 					icme: ['r_c_icmes'],
-					flare: ['solarsoft_flares', 'donki_flares', 'solardemon_flares'],
+					flare: ['solarsoft_flares', 'donki_flares'],
 				}[which];
 				const results = await Promise.all(tables.map((t) => fetchTable(t)));
 				const sCols = results.map((q) => q.columns);
