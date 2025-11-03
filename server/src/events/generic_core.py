@@ -7,6 +7,7 @@ from database import log, pool, upsert_many
 from events.table_structure import SELECT_FEID
 import data.omni.core as omni
 from cream import gsm
+import data.particles_and_xrays as sat
 
 @dataclass
 class GenericRefPoint:
@@ -20,7 +21,7 @@ class GenericRefPoint:
 	end: bool = None
 
 HOUR = 3600
-MAX_DURATION_H = 72
+MAX_DURATION_H = 240
 MAX_DURATION_S = MAX_DURATION_H * HOUR
 
 # Read columns.ts for g params reference
@@ -60,6 +61,9 @@ G_SERIES = { # order matters (no it does not)
 }
 G_SERIES = {**G_SERIES, **{'$d_'+s: [d[0], d[1], f'δ({d[2]})'] for s, d in G_SERIES.items() }}
 
+G_SERIES = {**G_SERIES, **{s: ['sat', s, s[0]+' '+d] for s, d in sat.PARTICLES.items() }}
+G_SERIES = {**G_SERIES, **{s: ['sat', s, 'xrays '+d] for s, d in sat.XRAYS.items() }}
+
 def default_window(): 
 	return [
 		GenericRefPoint('event', 0, time_src='FE', events_offset=0),
@@ -90,6 +94,8 @@ def _select_series(t_1, t_2, series):
 		source, name, _ = G_SERIES[actual_series]
 	if source == 'omni':
 		res = omni.select(interval, [name])[0]
+	elif source == 'sat':
+		res = sat.select_hourly_averaged(interval, name)
 	else:
 		res = gsm.select(interval, [name])
 	arr = np.array(res, dtype='object' if series == 'sw_type' else 'f8')

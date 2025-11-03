@@ -83,3 +83,15 @@ def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 
 	_obtain_goes(which, t_from, t_to)
 	return fetch(which, t_from, t_to, query, obtain=False)
+
+def select_hourly_averaged(interval: list[int], column: str):
+	xra = column in ['s', 'l']
+	table = T_XRAY if xra else T_PART
+
+	query = f'SELECT EXTRACT(EPOCH FROM hour)::integer, AVG({column}) ' +\
+	'FROM generate_series(to_timestamp(%s), to_timestamp(%s), \'1 hour\'::interval) hour ' +\
+	f'LEFT JOIN {table} t ON hour <= t.time AND t.time <= hour + \'1 hour\'::interval ' +\
+	'GROUP BY hour ORDER BY hour'
+
+	with pool.connection() as conn:
+		return conn.execute(query, interval).fetchall()
