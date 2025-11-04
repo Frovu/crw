@@ -71,7 +71,7 @@ def default_window():
 		GenericRefPoint('event', 0, time_src='FE', events_offset=0, end=True),
 	]
 
-def _select(for_rows, query, rel='FE'):
+def _select(for_rows, query, rel='FE', dtype='f8'):
 	relp = '' if rel == 'FE' else (rel.lower() + '_')
 	columns = ','.join([f'EXTRACT(EPOCH FROM {relp}{c})::integer'
 		if 'time' in c else (relp + c) for c in query])
@@ -80,7 +80,7 @@ def _select(for_rows, query, rel='FE'):
 		select_query += 'WHERE id = ANY(%s) '
 	with pool.connection() as conn:
 		curs = conn.execute(select_query + 'ORDER BY time', [] if for_rows is None else [for_rows])
-		res = np.array(curs.fetchall(), dtype='f8')
+		res = np.array(curs.fetchall(), dtype=dtype)
 	return [res[:,i] for i in range(len(query))]
 
 def _select_series(t_1, t_2, series):
@@ -212,7 +212,7 @@ def _do_compute(generic, for_rows=None):
 	op = para.operation
 
 	if op in G_OP_CLONE:
-		target_id, target_value = _select(for_rows, ['id', para.column])
+		target_id, target_value = _select(for_rows, ['id', para.column], dtype='object')
 		return target_id, apply_shift(target_value, para.events_offset, stub=None)
 
 	if op in G_OP_COMBINE:
@@ -226,7 +226,7 @@ def _do_compute(generic, for_rows=None):
 		return target_id, result
 	
 	if op in G_OP_SRC:
-		target_id = _select(for_rows, ['id'])
+		target_id = _select(for_rows, ['id'])[0]
 		return target_id, compute_src_generic(target_id, para)
 
 	assert op in G_OP_VALUE
@@ -272,6 +272,8 @@ def _do_compute(generic, for_rows=None):
 		
 		else:
 			assert not 'reached'
+
+	result = np.where(~np.isfinite(result), None, np.round(result, 2))
 	return target_id, result
 
 def compute_generic(g, for_row=None):
@@ -293,11 +295,11 @@ def compute_generic(g, for_row=None):
 		target_id = target_id.astype('i8')
 		if g.params.series == 'kp':
 			result /= 10
-		result = np.where(~np.isfinite(result), None, np.round(result, 2))
+
 		data = np.column_stack((target_id, result)).tolist()
 		upsert_many('events.generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
 		with pool.connection() as conn:
-			apply_changes(conn, g.name)
+			apply_changes(conn, g.name, dtype=g.sql_data_type)
 			if for_row is None:
 				conn.execute('UPDATE events.generic_columns SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [g.id])
 			

@@ -16,6 +16,10 @@ import {
 	type GenericParams,
 	defaultRefPoint,
 	type RefPointEvent,
+	G_OP_SRC,
+	G_SRC_ENTITY_NAME,
+	INFLUENCE_OPTIONS,
+	G_SRC_ORDER_OPTIONS,
 } from './columns';
 import { Confirmation } from '../Utility';
 import { SW_TYPES } from '../plots/time/SWTypes';
@@ -31,7 +35,7 @@ export default function ColumnsSelector() {
 	const { role } = useContext(AuthContext);
 	const { shownColumns, columnOrder, setColumnOrder, setColumns } = useEventsSettings();
 	const { samples } = useContext(SampleContext);
-	const { rels, columns, series: seriesOpts } = useContext(MainTableContext);
+	const { rels, columns, structure, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
 	const [dragging, setDragging] = useState<null | { y: number; id: string; pos: number }>(null);
 	const [open, setOpen] = useState(false);
@@ -106,14 +110,25 @@ export default function ColumnsSelector() {
 	const original = oriColumn && oriColumn.generic;
 	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
 	const smhChanged =
-		original && (paramsChanged || genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
+		original &&
+		(paramsChanged || genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
 	const withDuration = ['FE', 'MC'];
 	const isClone = operation === 'clone_column',
 		isCombine = G_COMBINE_OP.includes(operation as any),
 		isValue = G_VALUE_OP.includes(operation as any);
 	const isTime = operation?.startsWith('time_offset');
-	const isValid = (isClone && params.column) || (isCombine && params.column && params.other_column) || (isValue && (params.series || isTime));
+	const isSrcCol = G_OP_SRC.includes(operation as any);
+	const isSrcCount = operation === 'source_count';
+
+	const isValid =
+		(isClone && params.column) ||
+		(isCombine && params.column && params.other_column) ||
+		(isValue && (params.series || isTime)) ||
+		(isSrcCol && params.target_entity && params.influence?.length && (params.target_column || isSrcCount));
+
 	const columnOpts = !isClone && !isCombine ? null : columns.filter((c) => !c.hidden).map(({ id, fullName }) => [id, fullName]);
+
+	const srcColTargetOpts = operation === 'source_value' && structure[params.target_entity as any]?.map((col) => [col.id, col.name]);
 
 	useEventListener('escape', () => setOpen(false));
 	useEventListener('action+openColumnsSelector', () => setOpen((o) => !o));
@@ -214,8 +229,14 @@ export default function ColumnsSelector() {
 	});
 	const isLoading = loadingCompute || loadingDelete || loadingMutate;
 
-	const Select = <T extends GenericParams>({ txt, k, opts }: { txt: string; k: T extends T ? keyof T : never; opts: string[][] }) => (
-		<div>
+	type SelectProps<T> = {
+		txt: string;
+		title?: string;
+		k: T extends T ? keyof T : never;
+		opts: string[][];
+	};
+	const Select = <T extends GenericParams>({ txt, k, opts, title }: SelectProps<T>) => (
+		<div title={title}>
 			{txt}:
 			<select
 				className="Borderless"
@@ -260,9 +281,9 @@ export default function ColumnsSelector() {
 						.flatMap((rel, i) =>
 							(i > 0 ? [0] : [0, -1, 1]).flatMap((events_offset) =>
 								(i === 0 || withDuration.includes(rel) ? [false, true] : [undefined]).map((end) =>
-									[false, true].map((p) => refToStr({ time_src: rel, events_offset, end }, p)),
-								),
-							),
+									[false, true].map((p) => refToStr({ time_src: rel, events_offset, end }, p))
+								)
+							)
 						)
 						.map(([str, pretty]) => (
 							<option key={str} value={str}>
@@ -276,7 +297,12 @@ export default function ColumnsSelector() {
 					))}
 				</select>
 				{st?.type === 'extremum' && (
-					<select className="Borderless" style={{ width: '10ch' }} value={st.series} onChange={(e) => setPointSeries(k, e.target.value)}>
+					<select
+						className="Borderless"
+						style={{ width: '10ch' }}
+						value={st.series}
+						onChange={(e) => setPointSeries(k, e.target.value)}
+					>
 						{Object.entries(seriesOpts).map(([ser, pretty]) => (
 							<option key={ser} value={ser}>
 								{pretty}
@@ -285,7 +311,12 @@ export default function ColumnsSelector() {
 					</select>
 				)}
 				{st?.type === 'sw_structure' && (
-					<select className="Borderless" style={{ width: '7.5ch' }} value={st.structure} onChange={(e) => setPointStruct(k, e.target.value)}>
+					<select
+						className="Borderless"
+						style={{ width: '7.5ch' }}
+						value={st.structure}
+						onChange={(e) => setPointStruct(k, e.target.value)}
+					>
 						{SW_TYPES.map((typ) => (
 							<option key={typ} value={typ}>
 								{typ}
@@ -358,7 +389,10 @@ export default function ColumnsSelector() {
 							.map(({ id, name, description, generic }) => (
 								<div
 									key={id}
-									style={{ color: generic && !generic?.is_public ? color('text-dark') : color('text'), cursor: 'pointer' }}
+									style={{
+										color: generic && !generic?.is_public ? color('text-dark') : color('text'),
+										cursor: 'pointer',
+									}}
 									title={description}
 								>
 									<button
@@ -370,7 +404,8 @@ export default function ColumnsSelector() {
 										}}
 										onMouseDown={(e) => {
 											if (e.button !== 0) return role && generic && setGeneric(generic);
-											if (!e.shiftKey && !e.ctrlKey) return setDragging({ y: e.clientY, id, pos: newOrder.indexOf(id) });
+											if (!e.shiftKey && !e.ctrlKey)
+												return setDragging({ y: e.clientY, id, pos: newOrder.indexOf(id) });
 											const chk = !shownColumns?.includes(id);
 											setAction(chk);
 											check(id, chk);
@@ -403,6 +438,7 @@ export default function ColumnsSelector() {
 											className="CloseButton"
 											onClick={(e) => {
 												const dep = samples.filter((smpl) => smpl.filters?.find(({ column }) => column === id));
+												console.log('dependent samples', dep);
 												e.stopPropagation();
 												if (dep.length > 0) setSamplesDepend(dep.map((s) => s.name));
 												else deleteGeneric(generic.id);
@@ -472,10 +508,51 @@ export default function ColumnsSelector() {
 								</div>
 							</>
 						)}
+						{isSrcCol && <Select txt="Entity" k="target_entity" opts={Object.entries(G_SRC_ENTITY_NAME)} />}
+						{srcColTargetOpts && <Select txt="Column" k="target_column" opts={srcColTargetOpts} />}
+						{isSrcCol && !isSrcCount && (
+							<Select
+								txt="Order"
+								title="How to order sources of each event to select the desired one"
+								k="order_by"
+								opts={G_SRC_ORDER_OPTIONS.map((op) => [op, op])}
+							/>
+						)}
+						{isSrcCol && (
+							<div className="flex flex-col !items-end">
+								{INFLUENCE_OPTIONS.map((infl) => (
+									<label
+										key={infl}
+										title={'Include sources with cr_influence=' + infl}
+										className={!params.influence?.includes(infl) ? 'text-text-dark' : ''}
+									>
+										{infl}
+										<input
+											className="ml-1"
+											type="checkbox"
+											checked={!!params.influence?.includes(infl)}
+											onChange={(e) =>
+												setParam(
+													'influence',
+													e.target.checked
+														? [...new Set([...(params.influence ?? []), infl])]
+														: params.influence?.filter((i) => i !== infl) ?? []
+												)
+											}
+										/>
+									</label>
+								))}
+							</div>
+						)}
 						{(original || isValid) && (
 							<label title="Should other users be able to see this column?">
 								public column
-								<input type="checkbox" checked={!!genericSate.is_public} onChange={(e) => set('is_public', e.target.checked)} />
+								<input
+									className="ml-1 h-6"
+									type="checkbox"
+									checked={!!genericSate.is_public}
+									onChange={(e) => set('is_public', e.target.checked)}
+								/>
 							</label>
 						)}
 						{oriColumn && !paramsChanged && (
@@ -500,12 +577,18 @@ export default function ColumnsSelector() {
 							</div>
 						)}
 						{report.error && (
-							<div style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }} onClick={() => setReport({})}>
+							<div
+								style={{ color: color('red'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
+								onClick={() => setReport({})}
+							>
 								{report.error}
 							</div>
 						)}
 						{report.success && (
-							<div style={{ color: color('green'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }} onClick={() => setReport({})}>
+							<div
+								style={{ color: color('green'), paddingLeft: 8, justifyContent: 'left', paddingTop: 4 }}
+								onClick={() => setReport({})}
+							>
 								{report.success}
 							</div>
 						)}

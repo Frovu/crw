@@ -7,7 +7,16 @@ import { type Sample, applySample, renderFilters, useSampleState } from './sampl
 import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
 import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
-import { discardChange, discardCreated, discardDeleted, resetChanges, rowAsDict, setRawData, useEventsState, type TableName } from './eventsState';
+import {
+	discardChange,
+	discardCreated,
+	discardDeleted,
+	resetChanges,
+	rowAsDict,
+	setRawData,
+	useEventsState,
+	type TableName,
+} from './eventsState';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
@@ -18,7 +27,7 @@ export function ExportMenu() {
 				type: 'text',
 				description: 'Included in these samples (separated by ;)',
 				width: 16,
-			} as any)
+		  } as any)
 		: allColumns;
 
 	const renderText = (format: 'json' | 'csv' | 'txt') => {
@@ -99,9 +108,11 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			const { tables, series } = await apiGet<{
 				tables: { [name: string]: { [name: string]: ColumnDef } };
 				series: { [s: string]: string };
-			}>('events/info');
+			}>('events/table_structure');
 
-			const structure = Object.fromEntries(Object.entries(tables).map(([table, cols]) => [table, Object.values(cols).map((desc) => fromDesc(desc))]));
+			const structure = Object.fromEntries(
+				Object.entries(tables).map(([table, cols]) => [table, Object.values(cols).map((desc) => fromDesc(desc))])
+			);
 			const columns = structure.feid;
 			console.log('%cavailable columns:', 'color: #0f0', structure);
 			return {
@@ -147,7 +158,11 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 					if (columnOrder == null) {
 						const sorted = cols
 							.sort((a, b) => (a.generic ? a.name?.localeCompare(b.name) : 0))
-							.sort((a, b) => G_ALL_OPS.indexOf(a.generic?.params.operation as any) - G_ALL_OPS.indexOf(b.generic?.params.operation as any));
+							.sort(
+								(a, b) =>
+									G_ALL_OPS.indexOf(a.generic?.params.operation as any) -
+									G_ALL_OPS.indexOf(b.generic?.params.operation as any)
+							);
 						return sorted;
 					} else {
 						// place new columns at the end
@@ -157,7 +172,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 						};
 						return cols.sort((a, b) => index(a.id) - index(b.id));
 					}
-				})(),
+				})()
 			)
 			.sort((a, b) => Object.keys(rels).indexOf(a.rel ?? '') - Object.keys(rels).indexOf(b.rel ?? ''))
 			.filter((c) => fields.includes(c.id));
@@ -168,6 +183,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			if (col.type === 'time') {
 				for (const row of data) {
 					if (row[i] === null) continue;
+					if (col.name.startsWith('flr')) console.log(row[i]);
 					const date = new Date((row[i] as number) * 1e3);
 					row[i] = isNaN(date.getTime()) ? null : date;
 				}
@@ -213,7 +229,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 					(Object.keys(changes) as TableName[]).map((tbl) => [
 						tbl,
 						{ changes: changes[tbl], created: created[tbl].map((r) => rowAsDict(r, columns[tbl]!)), deleted: deleted[tbl] },
-					]),
+					])
 				),
 			}),
 		onError: (e) => {
@@ -302,7 +318,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 									{deleted[tbl as TableName].map((id) => (
 										<div key={id} style={{ color: color('magenta') }}>
 											-{' '}
-											{tbl === 'feid' ? prettyDate((rawData[tbl as TableName]?.find((r) => r[0] === id)?.[1] as Date) ?? null) : '#' + id}
+											{tbl === 'feid'
+												? prettyDate((rawData[tbl as TableName]?.find((r) => r[0] === id)?.[1] as Date) ?? null)
+												: '#' + id}
 											<div
 												className="CloseButton"
 												style={{ transform: 'translate(4px, 2px)' }}

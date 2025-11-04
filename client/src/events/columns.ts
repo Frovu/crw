@@ -6,8 +6,24 @@ import { apiGet, prettyDate } from '../util';
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 export const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
 export const G_VALUE_OP = ['time_offset', 'time_offset_%', ...EXTREMUM_OP, 'mean', 'median', 'range', 'coverage'] as const;
-export const G_OP_SRC = ['source_value', 'source_count'];
+export const G_OP_SRC = ['source_value', 'source_count'] as const;
 export const G_ALL_OPS = [...G_VALUE_OP, ...G_OP_SRC, ...G_COMBINE_OP, 'clone_column'];
+
+export const G_SRC_ENTITY_NAME = {
+	sources_erupt: 'Eruption',
+	sources_ch: 'Coronal Hole',
+	lasco_cmes: 'LASCO CME',
+	donki_cmes: 'DONKI CME',
+	cactus_cmes: 'CACTus CME',
+	solarsoft_flares: 'SFT FLR',
+	donki_flares: 'DONKI FLR',
+	r_c_icmes: 'R&C ICME',
+	solen_holes: 'solen.info CH',
+} as const;
+
+export const G_SRC_ENTITY_CH = ['sources_ch', 'solen_holes'];
+export const INFLUENCE_OPTIONS = ['primary', 'secondary', 'residual'] as const;
+export const G_SRC_ORDER_OPTIONS = ['time', 'position', 'cme_speed', 'time_desc', 'position_desc', 'cme_speed_desc'] as const;
 
 export type RefPointExtremum = {
 	type: 'extremum';
@@ -48,15 +64,15 @@ export type GenericParamsValue = {
 };
 export type GenericParamsSourceValue = {
 	operation: 'source_value';
-	influence: ('primary' | 'secondary' | 'residual')[];
-	number: number;
-	order_by: 'time' | 'position' | 'cme_speed' | 'time_desc' | 'position_desc' | 'cme_speed_desc'; // only for eruptive
+	influence: (typeof INFLUENCE_OPTIONS)[number][];
+	order_by: (typeof G_SRC_ORDER_OPTIONS)[number]; // only for eruptive
+	number_in_order: number;
 	target_entity: string;
-	target_column_id: string;
+	target_column: string;
 };
 export type GenericParamsSourceCount = {
 	operation: 'source_count';
-	influence: ('primary' | 'secondary' | 'residual')[];
+	influence: (typeof INFLUENCE_OPTIONS)[number][];
 	target_entity: string;
 };
 
@@ -153,6 +169,8 @@ export const useGenericState = create<GenericState>()(
 							? 'time'
 							: G_VALUE_OP.includes(op)
 							? 'value'
+							: G_OP_SRC.includes(op)
+							? 'src'
 							: 'combine';
 					const typeChanged = type(inp?.operation) !== type(val);
 					state.params = inp = { ...(!typeChanged && inp), [k]: val };
@@ -160,6 +178,10 @@ export const useGenericState = create<GenericState>()(
 					if (typeChanged && G_VALUE_OP.includes(val as any)) {
 						inp.reference = { ...defaultRefPoint };
 						inp.boundary = { ...inp.reference, end: true };
+					}
+					if (typeChanged && G_OP_SRC.includes(val as any)) {
+						inp.influence = ['primary'];
+						inp.order_by = 'time';
 					}
 				} else {
 					inp[k] = val;

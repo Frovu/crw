@@ -91,7 +91,7 @@ def list_events():
 		result['changelog'] = res[2]
 	return result
 
-@bp.route('/info/', methods=['GET'])
+@bp.route('/table_structure/', methods=['GET'])
 @route_shielded
 def events_tables_info():
 	return query.render_table_info(session.get('uid'))

@@ -184,7 +184,7 @@ export type FiltersCollection = { filter: Filter; id: number }[];
 export const MainTableContext = createContext<{
 	columns: ColumnDef[];
 	columnIndex: { [col: string]: number };
-	structure: { [col: string]: ColumnDef[] };
+	structure: { [tbl: string]: ColumnDef[] };
 	rels: { [s: string]: string };
 	series: { [s: string]: string };
 	changelog?: ChangeLog;

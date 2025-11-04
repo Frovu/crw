@@ -93,7 +93,7 @@ export function ValidatedInput({
 			if (e.code === 'Escape') ref.current?.blur();
 			if (['NumpadEnter', 'Enter'].includes(e.code)) valid && callback(input && parseInput(type, input));
 		},
-		ref,
+		ref
 	);
 
 	const onChange = (e: any) => {
@@ -122,7 +122,15 @@ export function ValidatedInput({
 	);
 }
 
-export function Confirmation({ children, callback, closeSelf }: { children: ReactNode; closeSelf: (positive?: boolean) => void; callback: () => void }) {
+export function Confirmation({
+	children,
+	callback,
+	closeSelf,
+}: {
+	children: ReactNode;
+	closeSelf: (positive?: boolean) => void;
+	callback: () => void;
+}) {
 	useEventListener('click', () => closeSelf());
 	useEventListener('escape', () => closeSelf());
 	useEventListener('keydown', (e) => {
@@ -132,7 +140,11 @@ export function Confirmation({ children, callback, closeSelf }: { children: Reac
 	return (
 		<>
 			<div className="PopupBackground" />
-			<div className="Popup Confirmation" style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+			<div
+				className="Popup Confirmation"
+				style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 560 }}
+				onClick={(e) => e.stopPropagation()}
+			>
 				{children}
 				<div style={{ marginTop: '1em' }}>
 					<button
@@ -173,7 +185,15 @@ export function askProceed(content: ReactNode) {
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-export function MonthInput({ interval, callback, monthLimit }: { interval: [number, number]; callback: (a: [number, number]) => void; monthLimit?: number }) {
+export function MonthInput({
+	interval,
+	callback,
+	monthLimit,
+}: {
+	interval: [number, number];
+	callback: (a: [number, number]) => void;
+	monthLimit?: number;
+}) {
 	const date = new Date(interval[0] * 1e3);
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth();
@@ -204,7 +224,13 @@ export function MonthInput({ interval, callback, monthLimit }: { interval: [numb
 					</option>
 				))}
 			</select>{' '}
-			<NumberInput style={{ width: 56 }} min={1957} max={new Date().getFullYear()} value={year} onChange={(v) => v && !isNaN(v) && set('year', v)} />
+			<NumberInput
+				style={{ width: 56 }}
+				min={1957}
+				max={new Date().getFullYear()}
+				value={year}
+				onChange={(v) => v && !isNaN(v) && set('year', v)}
+			/>
 			<span style={{ padding: '0 4px' }}>+</span>
 			<input
 				style={{ width: 48, textAlign: 'center', marginRight: 4 }}
@@ -244,7 +270,12 @@ export function Select({
 
 	return (
 		<SelectContext.Provider value={{ value, onChange }}>
-			<div ref={selRef} className="Select" style={{ ...(isOpen && { borderColor: color('active') }), ...style }} onClick={() => setOpen((o) => !o)}>
+			<div
+				ref={selRef}
+				className="Select"
+				style={{ ...(isOpen && { borderColor: color('active') }), ...style }}
+				onClick={() => setOpen((o) => !o)}
+			>
 				{content}
 				{isOpen && (
 					<div ref={dropdownRef} className="SelectDropdown" title={title}>

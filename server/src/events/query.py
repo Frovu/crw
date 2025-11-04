@@ -9,9 +9,8 @@ from events.source import noaa_flares
 def render_table_info(uid):
 	generics = select_generics(uid)
 	info = {}
-	for tbl in [FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT]:
-		table, columns = tbl
-		info[table] = { name: col.as_dict() for name, col in columns.items() }
+	for table, columns in ALL_TABLES.items():
+		info[table] = { col.name: col.as_dict() for col in columns }
 	for col in noaa_flares.COLS:
 		info['feid'][col.name] = col.as_dict()
 	for g in generics:
@@ -26,7 +25,7 @@ def render_table_info(uid):
 			'rel': g.rel
 		}
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
-	return { 'ALL_TABLES': info, 'series': series }
+	return { 'tables': info, 'series': series }
 
 def select_events(entity, include):
 	if entity not in ALL_TABLES:
@@ -38,7 +37,7 @@ def select_events(entity, include):
 		time_col = next((c for c in cols if 'time' in c.name), None)
 		q = f'SELECT {cl} FROM events.{entity} ORDER BY {time_col.name if time_col else "id"}'
 		data = conn.execute(q).fetchall()
-	return { 'columns': [c.as_dict() for c in cols], 'data': data }
+	return { 'columns': [c.as_dict() for c in cols], 'data': data } # TODO: remove redundant column def sending (they are all in table_structure now)
 
 def select_feid(uid=None, include=None, changelog=False):
 	generics = select_generics(uid)

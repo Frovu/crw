@@ -101,6 +101,7 @@ function Panel() {
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
+	useTableQuery('feid_sources');
 	useTableQuery(ENT);
 
 	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {

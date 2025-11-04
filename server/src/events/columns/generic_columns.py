@@ -3,7 +3,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from database import log, pool
-from events.columns.generic_sources import G_OP_SRC, generate_src_col_name_and_desc, validate_src_col_params
+from events.columns.generic_sources import G_OP_SRC, init_src_col, validate_src_col_params
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
 from events.table_structure import FEID
@@ -35,7 +35,10 @@ class GenericParams:
 	column: str = None
 	other_column: str = None
 	events_offset: int = None
-	# FIXME: add src col, and use the class in funcitons
+	influence: list[str] = None
+	target_entity: str = None
+	target_column: str = None
+	order_by: str = None
 
 	def as_dict(self):
 		data = asdict(self)
@@ -71,6 +74,7 @@ class GenericColumn:
 	pretty_name: str = None
 	desc: str = None
 	data_type: str = None
+	sql_data_type: str = None
 
 	@classmethod
 	def from_row(cls, row, gs=None):
@@ -97,7 +101,7 @@ class GenericColumn:
 			description = f'Column values {"absolute " if "abs" in op else ""}difference: ' + pretty_name
 		elif op in G_OP_CLONE:
 			pretty, dtype, r_rel = find_column_info(gs, para.column)
-			self.data_type = dtype
+			self.data_type = 'text' if dtype == 'enum' else dtype
 			pretty_name = f'[{r_rel if r_rel != "FEID" else "FE"}{shift_indicator(para.events_offset)}' if para.events_offset != 0 else '['
 			pretty_name += f'] {pretty}'
 			description = f'Parameter cloned from {r_rel} associated with {"other" if para.events_offset != 0 else "this"} event'
@@ -138,9 +142,16 @@ class GenericColumn:
 			description += f' between {point(para.reference)} and {point(para.boundary)}'
 
 		elif op in G_OP_SRC:
-			pretty_name, description = generate_src_col_name_and_desc(para)
+			pretty_name, description, dtype = init_src_col(para)
+			self.data_type = dtype
 		else:
 			assert not 'reached'
+
+		self.sql_data_type = self.data_type
+		if self.data_type == 'enum':
+			self.sql_data_type = 'text'
+		if self.data_type == 'time':
+			self.sql_data_type = 'timestamptz'
 		
 		self.pretty_name = self.nickname or pretty_name
 		self.desc = self.description or description
@@ -158,7 +169,7 @@ class GenericColumn:
 		return f'g__{self.id}'
 
 def _create_column(conn, g: GenericColumn):
-	conn.execute(f'ALTER TABLE events.generic_data ADD COLUMN IF NOT EXISTS {g.name} {g.data_type}')
+	conn.execute(f'ALTER TABLE events.generic_data ADD COLUMN IF NOT EXISTS {g.name} {g.sql_data_type}')
 
 def _init():
 	with pool.connection() as conn:
@@ -250,7 +261,7 @@ def upset_generic(uid, json_body):
 			if abs(int(ref.hours_offset)) > MAX_DURATION_H:
 				raise ValueError(f'Max offset is {MAX_DURATION_H} h')
 	elif op in G_OP_SRC:
-		validate_src_col_params()
+		validate_src_col_params(p)
 	else:
 		raise ValueError('Unknown operation')
 
