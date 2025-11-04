@@ -24,7 +24,7 @@ def init_src_col(para):
 	return name, desc, dtype
 
 def validate_src_col_params(para):
-	pass
+	pass # TODO:
 
 def _select_src_entity(feid_ids: list[int], params):
 	t_entity = params.target_entity
@@ -40,12 +40,15 @@ def _select_src_entity(feid_ids: list[int], params):
 	is_end_src = t_entity not in [ENTITY_S_CH, ENTITY_S_ERUPT]
 	target_prefix = ('tgt.' if is_end_src else 'src.')
 	prefixed_col = t_column and (target_prefix + t_column)
-	target_val = 'COUNT(*)' if is_count else prefixed_col
 
 	join_end_src = ''
 	if is_end_src:
 		link_id_col, targ_id_col = SOURCES_LINKS[t_entity]
 		join_end_src = f'LEFT JOIN events.{t_entity} tgt ON src.{link_id_col} = tgt.{targ_id_col}'
+	else:
+		targ_id_col = 'id'
+
+	target_val = f'COUNT({target_prefix}{targ_id_col})' if is_count else prefixed_col
 
 	order_by = '' 
 	if not is_count:
