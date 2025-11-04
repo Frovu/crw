@@ -9,13 +9,13 @@ const ENTS = {
 	donki_cmes: ['DONKI CME', false],
 	donki_flares: ['DONKI FLR', false],
 	solarsoft_flares: ['SSOFT FLR', false],
-	solardemon_flares: ['DEMON FLR', true],
+	// solardemon_flares: ['DEMON FLR', true],
 	cactus_cmes: ['CACTs CME', true],
 	r_c_icmes: ['R&C ICME', true],
 	solen_holes: ['SOLEN CH', true],
 } as const;
 
-const ORANGE_THRESHOLD = 30;
+const ORANGE_THRESHOLD = 180;
 
 function CoverageEntry({
 	entity,
