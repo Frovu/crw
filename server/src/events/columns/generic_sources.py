@@ -21,6 +21,7 @@ def init_src_col(para):
 		name = f'{para.target_column} [{ent_short}|{short_infl}|{para.order_by}]'
 		desc = f'{para.target_column} value of {ent_short} event associated with FEID with {" or ".join(para.influence)} influence selected as ordered by {para.order_by}\n\n{tgt_col.description}'
 		dtype = tgt_col.data_type
+		dtype = 'text' if dtype == 'enum' else dtype
 	return name, desc, dtype
 
 def validate_src_col_params(para):
