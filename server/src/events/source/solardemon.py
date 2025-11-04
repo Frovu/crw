@@ -4,7 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_coverage, get_coverage, upsert_many
-from events.table_structure import ColumnDef as Col
+from events.columns.column_def import ColumnDef as Col
 
 URL = 'https://www.sidc.be/solardemon/science/'
 

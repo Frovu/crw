@@ -11,7 +11,7 @@ def _init():
 		is_gle BOOL NOT NULL DEFAULT 'f')''')
 _init()
 
-def select(interval: [int, int], what=['A0m'], mask_gle=True, with_fields=False):
+def select(interval: list[int], what=['A0m'], mask_gle=True, with_fields=False):
 	what = [s for s in what if s.lower().replace('a0', 'a10') in series]
 	if len(what) < 1:
 		return ([], []) if with_fields else []

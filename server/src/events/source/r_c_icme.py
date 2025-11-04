@@ -4,7 +4,7 @@ import re, requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_many, upsert_coverage
-from events.table_structure import ColumnDef as Col
+from events.columns.column_def import ColumnDef as Col
 
 TABLE = 'r_c_icmes'
 URL = 'https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm'

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import requests
 
 from database import pool, log, upsert_many, get_coverage, upsert_coverage
-from events.table_structure import ColumnDef as Col
+from events.columns.column_def import ColumnDef as Col
 from events.source.donki import parse_coords
 
 TABLE = 'cactus_cmes'

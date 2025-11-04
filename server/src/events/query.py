@@ -1,34 +1,10 @@
-from calendar import c
 from datetime import datetime, timezone
 from database import pool, log
-from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
-from events.generic_columns import select_generics, GenericColumn
-from events.generic_core import G_SERIES, G_DERIVED
-from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, noaa_flares
+from events.table_structure import ALL_TABLES, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
+from events.columns.generic_columns import select_generics, GenericColumn
+from events.columns.generic_core import G_SERIES, G_DERIVED
+from events.source import noaa_flares
 
-TABLES = {
-	donki.FLR_TABLE: donki.FLR_COLS,
-	donki.CME_TABLE: donki.CME_COLS,
-	lasco_cme.TABLE: lasco_cme.COLS,
-	cactus_cme.TABLE: cactus_cme.COLS,
-	r_c_icme.TABLE: r_c_icme.COLS,
-	solardemon.DIM_TABLE: solardemon.DIM_COLS,
-	solardemon.FLR_TABLE: solardemon.FLR_COLS,
-	solarsoft.TABLE: solarsoft.COLS,
-	solen_info.TABLE: solen_info.COLS,
-	FEID[0]: list(FEID[1].values()),
-	FEID_SOURCE[0]: list(FEID_SOURCE[1].values()),
-	SOURCE_CH[0]: list(SOURCE_CH[1].values()),
-	SOURCE_ERUPT[0]: list(SOURCE_ERUPT[1].values())
-}
-
-TABLES_EDITABLE = {
-	solen_info.TABLE: { c.name: c for c in solen_info.COLS },
-	FEID[0]: FEID[1],
-	SOURCE_CH[0]: SOURCE_CH[1],
-	SOURCE_ERUPT[0]: SOURCE_ERUPT[1],
-	FEID_SOURCE[0]: FEID_SOURCE[1],
-}
 
 def render_table_info(uid):
 	generics = select_generics(uid)
@@ -50,12 +26,12 @@ def render_table_info(uid):
 			'rel': g.rel
 		}
 	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
-	return { 'tables': info, 'series': series }
+	return { 'ALL_TABLES': info, 'series': series }
 
 def select_events(entity, include):
-	if entity not in TABLES:
+	if entity not in ALL_TABLES:
 		raise ValueError('Unknown entity: '+entity)
-	cols = TABLES[entity]
+	cols = ALL_TABLES[entity]
 	cols = cols if include is None else [c for c in cols if c.name in include]
 	with pool.connection() as conn:
 		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
@@ -67,7 +43,7 @@ def select_events(entity, include):
 def select_feid(uid=None, include=None, changelog=False):
 	generics = select_generics(uid)
 	columns = []
-	for col in list(FEID[1].values()) + noaa_flares.COLS + generics:
+	for col in list(FEID[1].values()) + noaa_flares.COLS + generics: # FIXME: remove explicit noaa flares
 		if include and (col.name not in include and (type(col) == GenericColumn and col.nickname) not in include):
 			continue
 		value = f'EXTRACT(EPOCH FROM {col.name})::integer' if col.data_type == 'time' else col.name
@@ -107,13 +83,13 @@ def link_source(feid_id, entity, existing_id = None):
 	return { 'id': se_id, 'source_id': src_id }
 
 def delete(uid, eid, entity):
-	assert entity in TABLES
+	assert entity in ALL_TABLES
 	with pool.connection() as conn:
 		conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [eid])
 	log.info('user #%s deleted %s #%s', uid, entity, eid)
 
 def create(uid, entity, time, duration):
-	assert entity in TABLES
+	assert entity in ALL_TABLES
 	with pool.connection() as conn:
 		eid = conn.execute(f'INSERT INTO events.{entity} (time, duration) '+\
 			' VALUES (%s, %s) RETURNING id', [time, duration]).fetchone()[0]
@@ -124,7 +100,7 @@ def submit_changes(uid, entities):
 	with pool.connection() as conn:
 		try:
 			inserted_ids = {}
-			for entity in TABLES_EDITABLE:
+			for entity in EDITABLE_TABLES:
 				if entity not in entities:
 					continue
 
@@ -156,7 +132,7 @@ def submit_changes(uid, entities):
 				for change in entities[entity]['changes']:
 					change_id, column, value, silent = [change.get(w) for w in ['id', 'column', 'value', 'silent']]
 					target_id = inserted_ids.get(change_id, change_id)
-					found_column = TABLES_EDITABLE[entity].get(column)
+					found_column = EDITABLE_TABLES[entity].get(column)
 					generics = not found_column and select_generics(uid)
 					found_generic = generics and next((g for g in generics if g.name == column), False)
 					if not found_column and not found_generic:

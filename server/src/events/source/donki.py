@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 import re, os, requests
 
 from database import pool, log, upsert_coverage, upsert_many
-from events.table_structure import ColumnDef as Col
+from events.columns.column_def import ColumnDef as Col
 
 proxy = os.environ.get('NASA_PROXY')
 proxies = {

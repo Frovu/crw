@@ -4,7 +4,7 @@ import re, requests
 from database import log
 from concurrent.futures import ThreadPoolExecutor
 
-from events.table_structure import ColumnDef as Col
+from events.columns.column_def import ColumnDef as Col
 from events.source.donki import parse_coords
 
 cache = {}

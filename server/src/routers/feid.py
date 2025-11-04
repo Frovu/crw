@@ -4,12 +4,12 @@ from datetime import datetime, timezone
 
 import numpy as np
 from flask import Blueprint, request, session
-from events.plots import epoch_collision
+from events.misc.plots import epoch_collision
 from events.table import import_fds
-from events.generic_columns import upset_generic, remove_generic
-from events.other_columns import compute_all, compute_column
+from events.columns.generic_columns import upset_generic, remove_generic
+from events.columns.other_columns import compute_all, compute_column
 from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
-import events.text_transforms as tts
+import events.misc.text_transforms as tts
 from events import samples
 from events import query
 from routers.utils import route_shielded, require_role, msg

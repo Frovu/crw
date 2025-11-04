@@ -1,10 +1,10 @@
 from datetime import timedelta
 import numpy as np
 from database import pool
-from events.generic_core import G_SERIES
+from events.columns.generic_core import G_SERIES
 from cream.gsm import normalize_variation
 
-def epoch_collision(times: list[int], interval: [int, int], series: str):
+def epoch_collision(times: list[int], interval: list[int], series: str):
 	if series not in G_SERIES:
 		raise ValueError('series not found')
 	src, ser, _ = G_SERIES[series]

@@ -1,5 +1,5 @@
 from database import pool
-from events.table_structure import ColumnDef
+from events.columns.column_def import ColumnDef
 
 TABLE = 'legacy_noaa_flares'
 

@@ -1,61 +1,6 @@
 
-from dataclasses import dataclass
-
-@dataclass
-class ColumnDef:
-	entity: str
-	name: str   # sql column name
-	computed: bool=False
-	not_null: bool=False
-	generic: dict=None       # generic column description
-	pretty_name: str=None     # name visible by user
-	data_type: str='real' # time|integer|real|text|enum
-	enum: list=None
-	description: str=None
-	parse_name: str=None
-	parse_value: str=None
-	parse_stub: str=None
-	sql: str=None
-	rel: str=None
-
-	def enum_name(self):
-		return f'enum_{self.entity}_{self.name}'
-
-	def __post_init__(self):
-		if self.sql:
-			return
-
-		dtype = self.data_type
-		if dtype == 'time':
-			dtype = 'timestamptz'
-		if dtype == 'enum':
-			dtype = 'text'
-		if self.not_null:
-			dtype += ' NOT NULL'
-		if self.enum:
-			dtype += f' REFERENCES events.{self.enum_name()} ON UPDATE CASCADE'
-		self.sql = self.name + ' ' + dtype
-
-		if self.generic:
-			self.computed = True
-
-	def as_dict(self):
-		col = {
-			'id': self.name,
-			'entity': self.entity,
-			'parseName': self.parse_name,
-			'parseValue': self.parse_value,
-			'nullable': not self.not_null,
-			'name': self.pretty_name or self.name,
-			'type': self.data_type,
-			'isComputed': self.computed,
-			'rel': self.rel
-		}
-		if self.enum:
-			col['enum'] = self.enum
-		if self.description:
-			col['description'] = self.description
-		return col
+from events.source import cactus_cme, donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
+from events.columns.column_def import ColumnDef
 
 C_FE  = lambda *args, **kwargs: ColumnDef('feid', *args, **kwargs, rel='FE')
 C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], pretty_name=args[0], **kwargs, rel='MC')
@@ -195,6 +140,9 @@ FEID_SOURCE = ['feid_sources', { c.name: c for c in [
 	C_SRC('cr_influence', data_type='enum', enum=['primary', 'secondary', 'residual']),
 ]}]
 
+ENTITY_ERUPT = ['solarsoft_flares', 'donki_flares', 'legacy_noaa_flares', 'lasco_cmes', 'cactus_cmes', 'donki_cmes', 'r_c_icmes']
+ENTITY_CH = ['solen_holes']
+
 SOURCE_ERUPT = ['sources_erupt', { c.name: c for c in [
 	C_ER('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
 	C_ER('flr_start', pretty_name='XF start', data_type='time'),
@@ -245,3 +193,27 @@ SOURCE_CH = ['sources_ch', { c.name: c for c in [
 	C_CH('phi', pretty_name='Φ', description='Φ, Mx * 1e20'),
 	C_CH('width', description='Longitudinal width, °'),
 ]}]
+
+ALL_TABLES = {
+	donki.FLR_TABLE: donki.FLR_COLS,
+	donki.CME_TABLE: donki.CME_COLS,
+	lasco_cme.TABLE: lasco_cme.COLS,
+	cactus_cme.TABLE: cactus_cme.COLS,
+	r_c_icme.TABLE: r_c_icme.COLS,
+	solardemon.DIM_TABLE: solardemon.DIM_COLS,
+	solardemon.FLR_TABLE: solardemon.FLR_COLS,
+	solarsoft.TABLE: solarsoft.COLS,
+	solen_info.TABLE: solen_info.COLS,
+	FEID[0]: list(FEID[1].values()),
+	FEID_SOURCE[0]: list(FEID_SOURCE[1].values()),
+	SOURCE_CH[0]: list(SOURCE_CH[1].values()),
+	SOURCE_ERUPT[0]: list(SOURCE_ERUPT[1].values())
+}
+
+EDITABLE_TABLES = {
+	solen_info.TABLE: { c.name: c for c in solen_info.COLS },
+	FEID[0]: FEID[1],
+	SOURCE_CH[0]: SOURCE_CH[1],
+	SOURCE_ERUPT[0]: SOURCE_ERUPT[1],
+	FEID_SOURCE[0]: FEID_SOURCE[1],
+}

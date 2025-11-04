@@ -6,7 +6,7 @@ from database import log, pool
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
 from events.table_structure import FEID
-from events.generic_core import GenericRefPoint, G_TIME_SRC_WITH_END, G_TIME_SRC, G_SERIES, \
+from events.columns.generic_core import GenericRefPoint, G_TIME_SRC_WITH_END, G_TIME_SRC, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, compute_generic, default_window
 
@@ -177,7 +177,7 @@ def _init():
 def select_generics(user_id=None, select_all=False):
 	with pool.connection() as conn:
 		where = ' WHERE is_public' + ('' if user_id is None else ' OR %s = owner')
-		rows = conn.execute('SELECT * FROM events.generic_columns' + ('' if select_all else where),
+		rows = conn.execute('SELECT * from events.generic_columns' + ('' if select_all else where),
 			[] if user_id is None else [user_id]).fetchall()
 	# FIXME: whole initialization process feels weird
 	result = [GenericColumn.from_row(row, rows) for row in rows]
@@ -267,12 +267,12 @@ def upset_generic(uid, json_body):
 
 def remove_generic(uid, gid):
 	with pool.connection() as conn:
-		row = conn.execute('SELECT * FROM events.generic_columns WHERE id = %s', [gid]).fetchone()
+		row = conn.execute('SELECT * from events.generic_columns WHERE id = %s', [gid]).fetchone()
 		if not row:
 			return ValueError('Not found')
 		generic = GenericColumn.from_row(row)
 		if generic.owner != uid and get_role() != 'admin':
 			return ValueError('Forbidden')
-		conn.execute('DELETE FROM events.generic_columns WHERE id = %s', [gid])
+		conn.execute('DELETE from events.generic_columns WHERE id = %s', [gid])
 		conn.execute(f'ALTER TABLE events.generic_data DROP COLUMN IF EXISTS {generic.name}')
 	log.info(f'Generic removed by user ({uid}): #{generic.id} {generic.pretty_name}')

@@ -36,7 +36,7 @@ def get_users():
 @require_role('admin')
 def get_generics():
 	with pool.connection() as conn:
-		rows = conn.execute('SELECT * FROM events.generic_columns ORDER BY last_computed').fetchall()
+		rows = conn.execute('SELECT * from events.generic_columns ORDER BY last_computed').fetchall()
 		text = ''
 		for gid, created, last_comp, ent, users, gtype, series, poi, shift in rows:
 			text += f'[{str(created)[:19]} / {str(last_comp)[:19]}] #{gid} @{users} {ent} {gtype} {series} {poi} {shift}\r\n'
