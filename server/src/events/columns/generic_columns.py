@@ -3,6 +3,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from database import log, pool
+from events.columns.generic_sources import G_OP_SRC, generate_src_col_name_and_desc, validate_src_col_params
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
 from events.table_structure import FEID
@@ -34,6 +35,7 @@ class GenericParams:
 	column: str = None
 	other_column: str = None
 	events_offset: int = None
+	# FIXME: add src col, and use the class in funcitons
 
 	def as_dict(self):
 		data = asdict(self)
@@ -134,6 +136,9 @@ class GenericColumn:
 						name = next((n for n in ['Maximum', 'Minimum', 'Mean', 'Median'] if aop in n.lower()))
 						description = name + (' absolute' if 'abs' in op else '') + f' value of {ser}'
 			description += f' between {point(para.reference)} and {point(para.boundary)}'
+
+		elif op in G_OP_SRC:
+			pretty_name, description = generate_src_col_name_and_desc(para)
 		else:
 			assert not 'reached'
 		
@@ -244,6 +249,8 @@ def upset_generic(uid, json_body):
 				raise ValueError('Unknown ref point type: '+str(ref.type))
 			if abs(int(ref.hours_offset)) > MAX_DURATION_H:
 				raise ValueError(f'Max offset is {MAX_DURATION_H} h')
+	elif op in G_OP_SRC:
+		validate_src_col_params()
 	else:
 		raise ValueError('Unknown operation')
 

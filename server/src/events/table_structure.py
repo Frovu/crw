@@ -1,5 +1,5 @@
 
-from events.source import cactus_cme, donki, lasco_cme, r_c_icme, solardemon, solarsoft, solen_info
+from events.source import cactus_cme, donki, lasco_cme, noaa_flares, r_c_icme, solardemon, solarsoft, solen_info
 from events.columns.column_def import ColumnDef
 
 C_FE  = lambda *args, **kwargs: ColumnDef('feid', *args, **kwargs, rel='FE')
@@ -7,6 +7,7 @@ C_MC  = lambda *args, **kwargs: ColumnDef('feid', 'mc_' +args[0], *args[1:], pre
 C_CME = lambda *args, **kwargs: ColumnDef('feid', 'cme_'+args[0], *args[1:], **kwargs, rel='CME')
 C_FLR = lambda *args, **kwargs: ColumnDef('feid', 'flr_'+args[0], *args[1:], **kwargs, rel='FLR')
 
+# FIXME: remove noaa flares
 SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = flr_time'
 
 FEID = ['feid', { c.name: c for c in [
@@ -193,6 +194,17 @@ SOURCE_CH = ['sources_ch', { c.name: c for c in [
 	C_CH('phi', pretty_name='Φ', description='Φ, Mx * 1e20'),
 	C_CH('width', description='Longitudinal width, °'),
 ]}]
+
+SOURCES_LINKS = {
+	donki.FLR_TABLE: ['donki_flr_id', 'id'],
+	donki.CME_TABLE: ['donki_cme_id', 'id'],
+	lasco_cme.TABLE: ['lasco_cme_time', 'time'],
+	cactus_cme.TABLE: ['cactus_cme_time', 'time'],
+	r_c_icme.TABLE: ['rc_icme_time', 'time'],
+	solarsoft.TABLE: ['solarsoft_flr_start', 'start_time'],
+	noaa_flares.TABLE: ['noaa_flr_start', 'start_time'],
+	solen_info.TABLE: ['tag', 'tag'],
+}
 
 ALL_TABLES = {
 	donki.FLR_TABLE: donki.FLR_COLS,

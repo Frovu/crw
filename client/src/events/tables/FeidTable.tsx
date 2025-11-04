@@ -167,7 +167,7 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 							}}
 							contextMenuData={(cidx) => ({ nodeId, cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] } })}
 							title={(cidx) =>
-								(cidx === 1 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+								(cidx === 0 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
 							}
 							before={
 								marker && (

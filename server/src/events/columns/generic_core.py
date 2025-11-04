@@ -8,6 +8,7 @@ from events.table_structure import SELECT_FEID
 import data.omni.core as omni
 from cream import gsm
 import data.particles_and_xrays as sat
+from events.columns.generic_sources import G_OP_SRC, compute_src_generic
 
 @dataclass
 class GenericRefPoint:
@@ -223,6 +224,10 @@ def _do_compute(generic, for_rows=None):
 		if 'abs' in op:
 			result = np.abs(result)
 		return target_id, result
+	
+	if op in G_OP_SRC:
+		target_id = _select(for_rows, ['id'])
+		return target_id, compute_src_generic(target_id, para)
 
 	assert op in G_OP_VALUE
 	

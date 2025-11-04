@@ -6,7 +6,8 @@ import { apiGet, prettyDate } from '../util';
 export const EXTREMUM_OP = ['min', 'max', 'abs_min', 'abs_max'] as const;
 export const G_COMBINE_OP = ['diff', 'abs_diff'] as const;
 export const G_VALUE_OP = ['time_offset', 'time_offset_%', ...EXTREMUM_OP, 'mean', 'median', 'range', 'coverage'] as const;
-export const G_ALL_OPS = [...G_VALUE_OP, ...G_COMBINE_OP, 'clone_column'];
+export const G_OP_SRC = ['source_value', 'source_count'];
+export const G_ALL_OPS = [...G_VALUE_OP, ...G_OP_SRC, ...G_COMBINE_OP, 'clone_column'];
 
 export type RefPointExtremum = {
 	type: 'extremum';
@@ -45,10 +46,31 @@ export type GenericParamsValue = {
 	boundary: ReferencePoint;
 	series?: string; // if not time_offset
 };
-export type GenericParams = GenericParamsClone | GenericParamsCombine | GenericParamsValue;
+export type GenericParamsSourceValue = {
+	operation: 'source_value';
+	influence: ('primary' | 'secondary' | 'residual')[];
+	number: number;
+	order_by: 'time' | 'position' | 'cme_speed' | 'time_desc' | 'position_desc' | 'cme_speed_desc'; // only for eruptive
+	target_entity: string;
+	target_column_id: string;
+};
+export type GenericParamsSourceCount = {
+	operation: 'source_count';
+	influence: ('primary' | 'secondary' | 'residual')[];
+	target_entity: string;
+};
+
+export type GenericParams =
+	| GenericParamsClone
+	| GenericParamsCombine
+	| GenericParamsValue
+	| GenericParamsSourceValue
+	| GenericParamsSourceCount;
 export type GenericParamsOptions = { operation: (typeof G_ALL_OPS)[number] } & Omit<GenericParamsClone, 'operation'> &
 	Omit<GenericParamsCombine, 'operation'> &
-	Omit<GenericParamsValue, 'operation'>;
+	Omit<GenericParamsValue, 'operation'> &
+	Omit<GenericParamsSourceValue, 'operation'> &
+	Omit<GenericParamsSourceCount, 'operation'>;
 
 export type GenericColumn = {
 	id: number;
@@ -125,7 +147,13 @@ export const useGenericState = create<GenericState>()(
 				let inp = state.params;
 				if (k === 'operation') {
 					const type = (op?: any) =>
-						op === 'clone_column' ? 'clone' : op?.startsWith('time_offset') ? 'time' : G_VALUE_OP.includes(op) ? 'value' : 'combine';
+						op === 'clone_column'
+							? 'clone'
+							: op?.startsWith('time_offset')
+							? 'time'
+							: G_VALUE_OP.includes(op)
+							? 'value'
+							: 'combine';
 					const typeChanged = type(inp?.operation) !== type(val);
 					state.params = inp = { ...(!typeChanged && inp), [k]: val };
 					if (typeChanged && val === 'clone_column') inp.events_offset = 0;
@@ -168,7 +196,7 @@ export const useGenericState = create<GenericState>()(
 			set(({ params: { [k]: point } }) => {
 				if (point?.type === 'sw_structure') point.structure = val as any;
 			}),
-	})),
+	}))
 );
 
 export function fromDesc(desc: ColumnDef) {
