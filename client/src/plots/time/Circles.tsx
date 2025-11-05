@@ -173,7 +173,10 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) 
 					value={params.variationShift?.toFixed(2) ?? ''}
 					placeholder="shift"
 					onChange={(e) =>
-						setParams({ variationShift: isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber })
+						setParams({
+							variationShift:
+								isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber,
+						})
 					}
 				></input>
 				<input
@@ -185,7 +188,9 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) 
 					value={params.sizeShift?.toFixed(0) ?? ''}
 					placeholder="size"
 					onChange={(e) =>
-						setParams({ sizeShift: isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber })
+						setParams({
+							sizeShift: isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber,
+						})
 					}
 				></input>
 			</div>
@@ -216,7 +221,10 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 		const targetHourWidth = (pwidth - padRight) / len;
 		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
 		padRight = padRight % targetHourWidth;
-		params.interval = [new Date(initialInterval[0].getTime() + 36e5 * (1 - even)), new Date(initialInterval[1].getTime() + 36e5 * addHoursRight)];
+		params.interval = [
+			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
+			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight),
+		];
 	}
 
 	const [idxEnabled, setIdxEnabled] = useState(true);
@@ -249,7 +257,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 			...(unknown ? size : sz),
 			height: (unknown ? size : sz).height * (twoPlots ? (i > 0 ? 0.3 : 0.7) : 1) - (interactive ? LEGEND_H : 0),
 		}),
-		[interactive, twoPlots, size],
+		[interactive, twoPlots, size]
 	);
 
 	useLayoutEffect(() => {
@@ -380,7 +388,11 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 						u.over.addEventListener('mouseup', (e) => {
 							if (currentBase !== data.base) {
 								setBase(new Date(currentBase * 1e3));
-							} else if (interactive && (u.cursor.left ?? 0) > 0 && Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30) {
+							} else if (
+								interactive &&
+								(u.cursor.left ?? 0) > 0 &&
+								Math.abs(e.offsetX - clickX!) + Math.abs(e.offsetY - clickY!) < 30
+							) {
 								const detailsIdx = u.posToIdx(u.cursor.left!);
 								if (detailsIdx != null) setMoment(data.time[detailsIdx]);
 							}
@@ -460,7 +472,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 								value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
 								paths: linePaths(scaled(1.75)),
 							} as uPlot.Series,
-						]
+					  ]
 					: []),
 			],
 		});
@@ -568,7 +580,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 							{query.isFetching
 								? 'Fetching...'
 								: (query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
-									(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')}
+								  (query.data.filtered ? ' Filtered: ' + query.data.filtered : '')}
 						</div>
 					)}
 				</div>
@@ -730,7 +742,12 @@ function PlotCirclesMoment({
 	const plot = useMemo(() => {
 		if (!query.data?.time) return null;
 		const options = circlesMomentPlotOptions(params, allData, query.data);
-		const data = [[], [query.data.x, query.data.y], [query.data.fnx ?? [], query.data.fny ?? []], [query.data.fnx ?? [], query.data.fny2 ?? []]] as any;
+		const data = [
+			[],
+			[query.data.x, query.data.y],
+			[query.data.fnx ?? [], query.data.fny ?? []],
+			[query.data.fnx ?? [], query.data.fny2 ?? []],
+		] as any;
 		return <UplotReact {...{ options, data }} />;
 	}, [params, allData, query.data]);
 
@@ -793,13 +810,22 @@ function CirclesParamsInput({ params, setParams }: { params: CirclesPlotParams; 
 				allowEmpty={true}
 			/>
 			<br /> Days count:
-			<ValidatedInput type="number" value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)} callback={callback('days')} />
+			<ValidatedInput
+				type="number"
+				value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
+				callback={callback('days')}
+			/>
 			<br /> Exclude stations:
 			<ValidatedInput type="text" value={params.exclude?.join()} callback={callback('exclude')} placeholder="KIEL2,IRKT" />
 			<br /> Idx window (h):
 			<ValidatedInput type="number" value={params.window} callback={callback('window')} />
 			<br /> Draw onset:
-			<ValidatedInput type="time" value={params.onsets?.[0] && showDate(params.onsets[0].time)} callback={callback('onset')} allowEmpty={true} />
+			<ValidatedInput
+				type="time"
+				value={params.onsets?.[0] && showDate(params.onsets[0].time)}
+				callback={callback('onset')}
+				allowEmpty={true}
+			/>
 			<br /> Theme:{' '}
 			<select value={params.theme || 'Dark'} onChange={(e) => callback('theme')(e.target.value)}>
 				{themeOptions.map((opt) => (
@@ -845,10 +871,13 @@ export function PlotCirclesStandalone() {
 			...(referred
 				? filtered
 				: {
-						interval: [new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5), new Date(Math.floor(Date.now() / 36e5) * 36e5)],
+						interval: [
+							new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
+							new Date(Math.floor(Date.now() / 36e5) * 36e5),
+						],
 						realtime: true,
 						window: 3,
-					}),
+				  }),
 		} as CirclesPlotParams;
 	});
 

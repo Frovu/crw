@@ -6,7 +6,7 @@ import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { LayoutContext, gapSize, useLayout, useLayoutsStore } from '../layout';
+import { LayoutContext, gapSize, useLayoutsStore, useNodeExists } from '../layout';
 import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../util';
 import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
@@ -107,8 +107,8 @@ export const usePlotExportSate = create<PlotExportState>()(
 		{
 			name: 'plotsExportState',
 			partialize: ({ overrides, inches }) => ({ overrides, inches }),
-		},
-	),
+		}
+	)
 );
 
 function computePlotsLayout() {
@@ -138,14 +138,14 @@ function computePlotsLayout() {
 	const [minX, minY] = (['x', 'y'] as const).map((d) =>
 		Math.min.apply(
 			null,
-			Object.values(layout).map((pos) => pos[d]),
-		),
+			Object.values(layout).map((pos) => pos[d])
+		)
 	);
 	const [maxX, maxY] = (['x', 'y'] as const).map((d) =>
 		Math.max.apply(
 			null,
-			Object.values(layout).map((pos) => pos[d] + pos[d === 'x' ? 'w' : 'h']),
-		),
+			Object.values(layout).map((pos) => pos[d] + pos[d === 'x' ? 'w' : 'h'])
+		)
 	);
 
 	for (const node in layout) {
@@ -181,7 +181,10 @@ export function renderOne(nodeId: string) {
 	ctx.fillRect(0, 0, canvas.width, canvas.height);
 	const controlsPresent = !!Object.values(list[active]?.items).find((i) => i?.type === 'ExportControls');
 	const opts = {
-		...withOverrides(options, { scale: scl, ...(controlsPresent && { scalesParams, textTransform: textTransform?.filter((tr) => tr.enabled) }) }),
+		...withOverrides(options, {
+			scale: scl,
+			...(controlsPresent && { scalesParams, textTransform: textTransform?.filter((tr) => tr.enabled) }),
+		}),
 		width: Math.round(w * scl),
 		height: Math.round(h * scl),
 	};
@@ -224,7 +227,7 @@ async function doRenderPlots() {
 				new uPlot(opts, data as any, (u, init) => {
 					init();
 					resolve(u);
-				}),
+				})
 		);
 		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
 		upl.destroy();
@@ -258,11 +261,17 @@ function PreviewPanel() {
 				preview plots (may be slow) <input type="checkbox" checked={show} readOnly />
 			</span>
 			{show && renderTime && (
-				<div style={{ position: 'absolute', fontSize: 14, color: color('text-dark'), bottom: 4, right: 4 }}>Rendered in {renderTime.toFixed()} ms</div>
+				<div style={{ position: 'absolute', fontSize: 14, color: color('text-dark'), bottom: 4, right: 4 }}>
+					Rendered in {renderTime.toFixed()} ms
+				</div>
 			)}
 			<div
 				ref={setContainer}
-				style={{ display: !show ? 'none' : 'block', transform: `scale(${(context.size.width - 4) / width / scale})`, transformOrigin: 'top left' }}
+				style={{
+					display: !show ? 'none' : 'block',
+					transform: `scale(${(context.size.width - 4) / width / scale})`,
+					transformOrigin: 'top left',
+				}}
 			/>
 		</div>
 	);
@@ -282,8 +291,8 @@ export function ExportableUplot({
 	const layout = useContext(LayoutContext);
 	const { theme, colors } = useAppSettings();
 	const { scalesParams, textTransform } = usePlotExportSate((st) => st.overrides);
-	const { items } = useLayout();
-	const controlsPresent = !!Object.values(items).find((i) => i?.type === 'ExportControls');
+	const controlsPresent = useNodeExists('Export Controls');
+	console.log(controlsPresent);
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };
@@ -294,7 +303,9 @@ export function ExportableUplot({
 	}, [upl, sz.height, sz.width]); // eslint-disable-line
 
 	const plot = useMemo(() => {
-		const opts = !controlsPresent ? options() : withOverrides(options, { scalesParams, textTransform: textTransform?.filter((tr) => tr.enabled) });
+		const opts = !controlsPresent
+			? options()
+			: withOverrides(options, { scalesParams, textTransform: textTransform?.filter((tr) => tr.enabled) });
 		return (
 			<UplotReact
 				{...{
@@ -307,9 +318,10 @@ export function ExportableUplot({
 									state.plots[layout.id] = { options, data, scales: {} };
 									for (const scl in u.scales) {
 										const { positionValue, scaleValue }: CustomScale = u.scales[scl];
-										if (positionValue && scaleValue) state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
+										if (positionValue && scaleValue)
+											state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
 									}
-								}),
+								})
 							);
 						setUpl(u);
 						onCreate?.(u);
@@ -405,10 +417,18 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 								key={id}
 								className="SelectOption"
 								style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}
-								title={`Author: ${author}\nCreated: ${prettyDate(new Date(created))}\nModified: ${prettyDate(new Date(modified))}`}
+								title={`Author: ${author}\nCreated: ${prettyDate(new Date(created))}\nModified: ${prettyDate(
+									new Date(modified)
+								)}`}
 							>
 								<div
-									style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', cursor: 'pointer', flex: 1 }}
+									style={{
+										whiteSpace: 'nowrap',
+										textOverflow: 'ellipsis',
+										overflow: 'hidden',
+										cursor: 'pointer',
+										flex: 1,
+									}}
 									onClick={load(transforms)}
 								>
 									{name}
@@ -429,7 +449,9 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 
 	return (
 		<div className="Group">
-			<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2, fontSize: 14 }}>Only enabled replaces are saved!</div>
+			<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2, fontSize: 14 }}>
+				Only enabled replaces are saved!
+			</div>
 			<div>
 				Save as:
 				<select
@@ -471,7 +493,9 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 			)}
 			<div className="separator" />
 			<div className="Row">
-				<div style={{ color: color(upsertMut.isError ? 'red' : 'green') }}>{upsertMut.isSuccess ? 'OK' : upsertMut.isError ? 'ERROR' : ''}</div>
+				<div style={{ color: color(upsertMut.isError ? 'red' : 'green') }}>
+					{upsertMut.isSuccess ? 'OK' : upsertMut.isError ? 'ERROR' : ''}
+				</div>
 				<div style={{ flex: 1 }} />
 				<button className="TextButton" disabled={!!nameInvalid} style={{ textAlign: 'right' }} onClick={upsert}>
 					Save preset
@@ -586,7 +610,11 @@ function ControlsPanel() {
 						</label>
 						,
 						<label style={{ paddingLeft: 4 }} title="Approximate resolution when shrinked to specified size">
-							<select style={{ marginLeft: 2, marginRight: 2, width: 86 }} value={scale} onChange={(e) => set('scale', parseInt(e.target.value))}>
+							<select
+								style={{ marginLeft: 2, marginRight: 2, width: 86 }}
+								value={scale}
+								onChange={(e) => set('scale', parseInt(e.target.value))}
+							>
 								{[2, 3, 4, 6, 8, 10, 16].map((scl) => (
 									<option key={scl} value={scl}>
 										{((width * scl) / inches).toFixed()} ppi
@@ -630,7 +658,8 @@ function ControlsPanel() {
 									key={scl}
 									style={{ cursor: 'pointer', color: !active ? color('text-dark') : 'unset' }}
 									onClick={(e) =>
-										!(e.target instanceof HTMLInputElement) && (active ? removeScale(plotId, scl) : addScale(plotId, scl, scales[scl]))
+										!(e.target instanceof HTMLInputElement) &&
+										(active ? removeScale(plotId, scl) : addScale(plotId, scl, scales[scl]))
 									}
 								>
 									<span style={{ textDecoration: !active ? 'unset' : 'underline' }}>{scl}</span>
@@ -681,7 +710,16 @@ function ControlsPanel() {
 					onMouseUp={() => setDragging(null)}
 					onMouseLeave={() => setDragging(null)}
 				>
-					<div style={{ textAlign: 'right', marginTop: -8, padding: '0 8px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+					<div
+						style={{
+							textAlign: 'right',
+							marginTop: -8,
+							padding: '0 8px',
+							display: 'flex',
+							flexWrap: 'wrap',
+							justifyContent: 'space-between',
+						}}
+					>
 						<button
 							title="Load saved or public transforms (replace current)"
 							className="TextButton"
@@ -719,7 +757,7 @@ function ControlsPanel() {
 											enabled: true,
 											id: Date.now(),
 										},
-									].concat(textTransform ?? []),
+									].concat(textTransform ?? [])
 								)
 							}
 						>
@@ -729,7 +767,13 @@ function ControlsPanel() {
 					{textTransform?.map(({ search, replace, id, enabled }) => (
 						<div
 							key={id}
-							style={{ color: !enabled ? color('text-dark') : 'unset', display: 'flex', gap: 4, flexFlow: 'row wrap', alignItems: 'center' }}
+							style={{
+								color: !enabled ? color('text-dark') : 'unset',
+								display: 'flex',
+								gap: 4,
+								flexFlow: 'row wrap',
+								alignItems: 'center',
+							}}
 							title="Drag to change replacement order"
 							onMouseOver={(e) => {
 								if (dragging && dragging !== id) swapTransforms(dragging, id);
@@ -737,7 +781,11 @@ function ControlsPanel() {
 							onMouseDown={(e) => !(e instanceof HTMLInputElement) && setDragging(id)}
 						>
 							<label style={{ minWidth: 'max-content' }}>
-								<input type="checkbox" checked={!!enabled} onChange={(e) => setTransform(id, { enabled: e.target.checked })} />
+								<input
+									type="checkbox"
+									checked={!!enabled}
+									onChange={(e) => setTransform(id, { enabled: e.target.checked })}
+								/>
 								RegEx
 							</label>
 							<input
@@ -749,7 +797,16 @@ function ControlsPanel() {
 								value={search}
 								onChange={(e) => setTransform(id, { search: e.target.value })}
 							/>
-							<div style={{ flex: '2 10em', gap: 4, alignItems: 'center', minWidth: 'min(10em, 50%)', maxWidth: '20em', display: 'flex' }}>
+							<div
+								style={{
+									flex: '2 10em',
+									gap: 4,
+									alignItems: 'center',
+									minWidth: 'min(10em, 50%)',
+									maxWidth: '20em',
+									display: 'flex',
+								}}
+							>
 								<span style={{ cursor: 'grab' }}>-&gt;</span>
 								<input
 									disabled={!enabled}
@@ -766,7 +823,7 @@ function ControlsPanel() {
 									onClick={() =>
 										set(
 											'textTransform',
-											textTransform.filter((t) => t.id !== id),
+											textTransform.filter((t) => t.id !== id)
 										)
 									}
 								></span>

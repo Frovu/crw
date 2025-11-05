@@ -43,7 +43,14 @@ export type AppLayoutProps<T> = {
 	panels: { [name: string]: Panel<T> };
 };
 
-export type LayoutContextType<T> = { id: string; size: Size; panel: Panel<{}>; isWindow?: boolean; params: NodeParams<T>; setParams: ParamsSetter<T> };
+export type LayoutContextType<T> = {
+	id: string;
+	size: Size;
+	panel: Panel<{}>;
+	isWindow?: boolean;
+	params: NodeParams<T>;
+	setParams: ParamsSetter<T>;
+};
 export const LayoutContext = createContext<LayoutContextType<{}> | null>(null);
 
 export const AppLayoutContext = createContext<AppLayoutProps<{}>>({} as any);
@@ -95,7 +102,9 @@ export const useLayoutsStore = create<LayoutsState>()(
 		immer((set, get) => ({
 			...defaultState,
 			startDrag: (nodeId) =>
-				set((state) => (state.dragFrom === nodeId ? state : { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo })),
+				set((state) =>
+					state.dragFrom === nodeId ? state : { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo }
+				),
 			dragOver: (nodeId) => set((state) => (state.dragFrom ? { ...state, dragTo: nodeId } : state)),
 			finishDrag: () =>
 				set(({ apps, dragFrom, dragTo }) => {
@@ -161,8 +170,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 		{
 			name: 'crwAppLayouts2',
 			partialize: ({ apps }) => ({ apps }),
-		},
-	),
+		}
+	)
 );
 
 export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =>
@@ -246,6 +255,9 @@ export const useLayout = () => ({
 });
 
 export const useNodeExists = (type: string) => {
-	const { items } = useLayout();
-	return !!Object.values(items).find((p) => p?.type === type);
+	const layouts = useLayoutsStore((state) => state.apps[getApp()]);
+	if (!layouts) return false;
+	const { list, active } = layouts;
+	const st = list[active] ?? list.default;
+	return !!Object.values(st.items).find((p) => p?.type === type);
 };
