@@ -1,0 +1,14 @@
+min($A0m)
+col("MC time") + col("MC duration")
+@mc_start
+@start - col("time", -1)
+max($V) / 400 * max($B) / 5
+tmin($Dst, @start + 2, @end) - @start
+@mc_start - @start
+coverage($V, @mc_start, @mc_end)
+(tmax($B, @mc_start, @mc_end) - @mc_start) / @mc_duration * 100
+mean($V, !start - 6, !start - 2) - mean($V, tmin($A0m) - 1, tmin($A0m) + 1)
+abs(tmax($B) - tmin($A0m))
+pow(pow(scol("erupt", "lat", "time", "p,s"), 2) + pow(scol("erupt", "lon", "time", "p,s"), 2), 0.5)
+scnt("DKI FLR", "p")
+tmax($e1000 + $e2000, tmax($V) + 24, tmax($V) + 124) - @start
