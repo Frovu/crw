@@ -1,11 +1,11 @@
 from lark import Lark, Transformer, v_args
 
-from events.computable_columns.functions import math, column
-from events.computable_columns.functions.common import str_literal, num_literal, Value
+from events.columns.functions import math, select
+from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
 	**math.functions,
-	**column.functions
+	**select.functions
 }
 
 helpers = {

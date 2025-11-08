@@ -134,9 +134,9 @@ C_ER  = lambda *args, **kwargs: ColumnDef('sources_erupt', *args, **kwargs)
 
 FEID_SOURCE = ['feid_sources', { c.name: c for c in [
 	C_SRC('id', data_type='integer', sql='id SERIAL PRIMARY KEY'),
-	C_SRC('feid_id',  data_type='integer', sql='feid_id integer NOT NULL REFERENCES events.feid ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
-	C_SRC('ch_id',    data_type='integer', sql='ch_id integer REFERENCES events.sources_ch ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
-	C_SRC('erupt_id', data_type='integer', sql='erupt_id integer REFERENCES events.sources_erupt ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
+	C_SRC('feid_id',  data_type='integer', sql='integer NOT NULL REFERENCES events.feid ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
+	C_SRC('ch_id',    data_type='integer', sql='integer REFERENCES events.sources_ch ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
+	C_SRC('erupt_id', data_type='integer', sql='integer REFERENCES events.sources_erupt ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
 
 	C_SRC('cr_influence', data_type='enum', enum=['primary', 'secondary', 'residual']),
 ]}]
