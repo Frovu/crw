@@ -1,6 +1,6 @@
 
 from operator import add, sub, mul, truediv as div
-from events.computable_columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
+from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 
 class MathOperation(Function):
 	def __init__(self, name: str, fn) -> None:

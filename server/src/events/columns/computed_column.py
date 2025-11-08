@@ -23,10 +23,11 @@ class ComputedColumn(Column):
 	def from_sql_row(cls, row):
 		row['entity'] = DATA_TABLE
 		row['sql_name'] = f'c_{row['id']}'
+		row['is_computed'] = True
 		return cls(**row)
 
 def _init_column(conn, col: ComputedColumn):
-	conn.execute(f'ALTER TABLE events.{DATA_TABLE} ADD COLUMN IF NOT EXISTS {col.sql_name} {col.sql_type}')
+	conn.execute(f'ALTER TABLE events.{DATA_TABLE} ADD COLUMN IF NOT EXISTS {col.sql_name} {col.sql_def}')
 
 def _sql_init():
 	with pool.connection() as conn:
