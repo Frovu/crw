@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import Literal, LiteralString
-from psycopg.sql import SQL, Identifier, Composed
+from psycopg.sql import SQL, Identifier, Composable
 import ts_type
 
 DTYPE = Literal['real', 'integer', 'time', 'text', 'enum']
@@ -12,7 +12,7 @@ class Column:
 	sql_name: str
 	name: str = ''
 	description: str = ''
-	sql_def: Composed | LiteralString = ''
+	sql_def: Composable | LiteralString = ''
 	is_computed: bool = False
 	not_null: bool = False
 	dtype: DTYPE = 'real'
@@ -25,7 +25,9 @@ class Column:
 		if not self.name:
 			self.name = self.sql_name
 
-		if not self.sql_def:
+		if self.sql_def:
+			self.sql_def = SQL(self.sql_def) if isinstance(self.sql_def, str) else self.sql_def
+		else:
 			dtype = self.dtype
 			if dtype == 'time':
 				dtype = 'timestamptz'
@@ -33,7 +35,7 @@ class Column:
 				dtype = 'text'
 
 			self.sql_def = SQL(' ').join(filter(None, [
-				Identifier(dtype),
+				SQL(dtype),
 				self.not_null and SQL('NOT NULL'),
 				self.enum and SQL('REFERENCES events.{} ON UPDATE CASCADE').format(Identifier(self.enum_table()))
 			]))

@@ -1,22 +1,33 @@
 from datetime import datetime
 import numpy as np
-from database import pool, log
-from events.table_structure import FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT
+from database import create_table, pool, log
+from events.table_structure import ALL_TABLES, E_FEID, E_FEID_SOURCE, E_SOURCE_CH, E_SOURCE_ERUPT
+from psycopg.sql import SQL, Identifier
 
 def _init():
 	with pool.connection() as conn:
 		conn.execute('CREATE SCHEMA IF NOT EXISTS events')
-		for tbl in [FEID, SOURCE_CH, SOURCE_ERUPT, FEID_SOURCE]:
-			table, columns = tbl
-			for column in columns.values():
+		for tbl in [E_FEID, E_FEID_SOURCE, E_SOURCE_CH, E_SOURCE_ERUPT]:
+			columns = ALL_TABLES[tbl]
+			create_table(tbl, columns)
+			
+			for column in columns:
 				if enum := column.enum:
-					conn.execute(f'CREATE TABLE IF NOT EXISTS events.{column.enum_name()} (value TEXT PRIMARY KEY)')
-					conn.execute(f'INSERT INTO events.{column.enum_name()} VALUES {",".join(["(%s)" for i in enum])} '+\
-						'ON CONFLICT DO NOTHING', enum)
-				conn.execute(f'ALTER TABLE IF EXISTS events.{table} ADD COLUMN IF NOT EXISTS {column.sql}')
-			create_columns = ',\n\t'.join([c.sql for c in columns.values()])
-			create_table = f'CREATE TABLE IF NOT EXISTS events.{table} (\n\t{create_columns})'
-			conn.execute(create_table)
+					ienum = Identifier(column.enum_table())
+					conn.execute(SQL('CREATE TABLE IF NOT EXISTS events.{} (value TEXT PRIMARY KEY)').format(ienum))
+					vals = SQL(',').join([SQL('(%s)') for _ in enum])
+					conn.execute(SQL('INSERT INTO events.{} VALUES {} ON CONFLICT DO NOTHING').format(ienum, vals), enum)
+
+				itable = Identifier(tbl)
+				iname = Identifier(column.sql_name)
+				itype = SQL(column.sql_def.as_string().split(' ')[0]) # type: ignore
+				
+				if column.sql_name != 'id':
+					conn.execute(SQL('ALTER TABLE events.{} ADD COLUMN IF NOT EXISTS {}').format(itable, column.sql_col_def()))
+					conn.execute(SQL('ALTER TABLE events.{} ALTER COLUMN {} TYPE {}').format(itable, iname, itype))
+
+					not_null = SQL('SET' if column.not_null else 'DROP')
+					conn.execute(SQL('ALTER TABLE events.{} ALTER COLUMN {} {} NOT NULL').format(itable, iname, not_null))
 
 		conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (
 			id SERIAL PRIMARY KEY,
@@ -31,6 +42,7 @@ def _init():
 _init()
 
 def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_changes):
+	raise NotImplementedError('FIXME: import fds be broke')
 	log.info('Starting table import')
 	rows = np.array(rows_to_add)
 	with pool.connection() as conn, conn.cursor() as curs:

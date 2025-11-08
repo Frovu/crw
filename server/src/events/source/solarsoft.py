@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 
 import os, re, requests
 
-from database import pool, log, upsert_coverage, upsert_many
+from database import log, create_table, upsert_coverage, upsert_many
 from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
@@ -21,10 +21,7 @@ COLS = [
 ]
 
 def _init():
-	with pool.connection() as conn:
-		cols = ',\n'.join([c.sql for c in COLS])
-		query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols})'
-		conn.execute(query)
+	create_table(TABLE, COLS)
 _init()
 
 last_fetched = None
@@ -107,7 +104,7 @@ def _scrape_flares(progr, dt_start, dt_end):
 		progr[0] += 100 / len(links)
 	
 	log.info('Upserting [%s] solarsoft FLRs from %s', len(data), str(dt_start).split()[0])
-	psert_many(TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
+	upsert_many(TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
 	upsert_coverage(TABLE, dt_start)
 
 def fetch(progr, entity, month):

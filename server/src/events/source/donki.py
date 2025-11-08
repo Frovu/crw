@@ -1,11 +1,10 @@
 from datetime import datetime, timezone, timedelta
 
 import re, os, requests
+from typing import Literal
 
-from database import pool, log, upsert_coverage, upsert_many
+from database import create_table, pool, log, upsert_coverage, upsert_many
 from events.columns.column import Column as Col
-
-from psycopg.sql
 
 proxy = os.environ.get('NASA_PROXY')
 proxies = {
@@ -50,11 +49,8 @@ FLR_COLS = [
 ]
 
 def _init():
-	with pool.connection() as conn:
-		for col, tbl in [(CME_COLS, CME_TABLE), (FLR_COLS, FLR_TABLE)]:
-			cols = SQL(',\n').join([c.sql_col_def() for c in col if c])
-			query = SQL('CREATE TABLE IF NOT EXISTS {} (\n{})').format('events.'+tbl, )
-			conn.execute(query)
+	create_table(CME_TABLE, CME_COLS)
+	create_table(FLR_TABLE, FLR_COLS)
 _init()
 
 coords_re = re.compile(r'(N|S)(\d{1,2})(W|E)(\d{1,3})')
@@ -81,7 +77,7 @@ def parse_time(txt):
 	# https://kauai.ccmc.gsfc.nasa.gov/DONKI/view/FLR/18563/2 had 0021-12-16 in date
 	return tm.replace(year=tm.year + 2000) if tm.year < 100 else tm
 
-def _obtain_month(what, month_start: datetime):
+def _obtain_month(what: Literal['CME', 'FLR'], month_start: datetime):
 	month_next = next_month(month_start)
 	s_str = month_start.strftime('%Y-%m-%d')
 	e_str = (month_next - timedelta(days=1)).strftime('%Y-%m-%d')
@@ -117,6 +113,7 @@ def _obtain_month(what, month_start: datetime):
 			e_fname = None
 			
 			data.append([iid, aid, time, *vals, note, linked, e_id, e_shock, e_fname])
+			
 	elif what == 'FLR':
 		table, cols = FLR_TABLE, FLR_COLS
 		for flr in res.json():
@@ -127,17 +124,15 @@ def _obtain_month(what, month_start: datetime):
 			linked = [e['activityID'] for e in flr['linkedEvents'] or []]
 
 			data.append([iid, eid, *times, ctype, lat, lon, ar, note, linked])
-	else:
-		assert not 'reached'
 	
 	log.info('Upserting [%s] DONKI %ss for %s', len(data), what, s_str)
-	psert_many(table, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_many(table, [c.name for c in cols], data, conflict_constraint='id')
 	upsert_coverage(table, month_start)
 
 def fetch(progr, entity, month):
 	prev_month = (month - timedelta(days=1)).replace(day=1)
 
-	what = { 'flares': 'FLR', 'cmes': 'CME' }[entity]
+	what = 'CME' if entity == 'cmes' else 'FLR'
 	progr[1] = 2
 	_obtain_month(what, month)
 	progr[0] = 1

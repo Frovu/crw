@@ -1,11 +1,9 @@
 from datetime import datetime, timezone
 
 import requests
-from psycopg.sql import SQL
 
-from database import pool, log, upsert_many, get_coverage, upsert_coverage
+from database import pool, log, create_table, upsert_coverage, upsert_many
 from events.columns.column import Column as Col
-from events.source.donki import parse_coords
 
 TABLE = 'cactus_cmes'
 LZ_URL = 'https://www.sidc.be/cactus/catalog/LASCO/2_5_0/cme_lz.txt'
@@ -24,12 +22,7 @@ COLS = [ # ORDERED !!!
 ]
 
 def _init():
-	cols = SQL(',\n').join([c.sql_col_def() for c in COLS if c])
-	query = SQL(f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{{}}, '+
-		'UNIQUE NULLS NOT DISTINCT(time, cactus_id))').format(cols)
-	
-	with pool.connection() as conn:
-		conn.execute(query)
+	create_table(TABLE, COLS, constraint='UNIQUE NULLS NOT DISTINCT(time, cactus_id)')
 _init()
 
 def scrape_cactus(which: str, cutoff: datetime|None=None):
@@ -76,8 +69,8 @@ def fetch(progr):
 		conn.execute(f'DELETE FROM events.{TABLE}')
 	progr[0] = 3
 
-	psert_many(TABLE, [c.name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
+	upsert_many(TABLE, [c.name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
 	progr[0] = 4
-	psert_many(TABLE, [c.name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
+	upsert_many(TABLE, [c.name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
 	progr[0] = 5
 	upsert_coverage(TABLE, lz_data[0][0], qkl_data[-1][0], single=True)

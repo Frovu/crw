@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many, get_coverage, upsert_coverage
+from database import create_table, pool, log, upsert_many, get_coverage, upsert_coverage
 from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
@@ -36,18 +36,16 @@ TABLE_COLS = ['time', 'central_angle', 'angular_width', 'speed', 'speed_2', 'spe
 	'acceleration', 'mass', 'kinetic_energy', 'measurement_angle', 'note']
 HALO_COLS = ['time', 'speed', 'space_speed', 'acceleration', 'measurement_angle',
 	'flare_class', 'flare_onset', 'lat', 'lon']
-assert all(c.name in (TABLE_COLS + HALO_COLS) for c in COLS)
+assert all(c.sql_name in (TABLE_COLS + HALO_COLS) for c in COLS)
 
 def _init():
-	cols = ',\n'.join([c.sql for c in COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols}, '+\
-		' UNIQUE NULLS NOT DISTINCT(time, speed, measurement_angle))'
-	query2 = f'CREATE TABLE IF NOT EXISTS events.{TABLE_HT} (\n' +\
-		'cme_time timestamptz, cme_mpa real, time timestamptz, height real)'
+	create_table(TABLE, COLS, constraint='UNIQUE NULLS NOT DISTINCT(time, speed, measurement_angle)')
 	
+	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE_HT} (\n' +\
+		'cme_time timestamptz, cme_mpa real, time timestamptz, height real)'
+
 	with pool.connection() as conn:
 		conn.execute(query)
-		conn.execute(query2)
 _init()
 
 def scrape_halo():
@@ -78,7 +76,7 @@ def scrape_halo():
 		data.append(res)
 
 	log.info('Upserting [%s] LASCO HALO CMEs', len(data))
-	psert_many(TABLE, HALO_COLS, data, conflict_constraint='time, speed, measurement_angle')
+	upsert_many(TABLE, HALO_COLS, data, conflict_constraint='time, speed, measurement_angle')
 	upsert_coverage(HALO_ENT, data[0][0], data[-1][0], single=True)
 
 def scrape_month(month: datetime):
@@ -107,7 +105,7 @@ def scrape_month(month: datetime):
 		data.append(res)
 
 	log.info('Upserting [%s] LASCO CMEs for %s', len(data), mon)
-	psert_many(TABLE, TABLE_COLS, data, conflict_constraint='time, speed, measurement_angle')
+	upsert_many(TABLE, TABLE_COLS, data, conflict_constraint='time, speed, measurement_angle')
 	upsert_coverage(TABLE, month)
 
 	halo_covg = get_coverage(HALO_ENT)

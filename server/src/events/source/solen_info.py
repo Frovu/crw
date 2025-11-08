@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 import re, requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many, upsert_coverage
+from database import create_table, pool, log, upsert_many, upsert_coverage
 from events.columns.column import Column as Col
 
 CH_URL = 'https://solen.info/solar/coronal_holes.html'
@@ -31,10 +31,7 @@ COLS = [
 date_re = re.compile(r'([12]\d{3})\.(\d\d)\.(\d\d)')
 
 def _init():
-	cols = ',\n'.join([c.sql for c in COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols})'
-	with pool.connection() as conn:
-		conn.execute(query)
+	create_table(TABLE, COLS)
 _init()
 
 def parse_date_interv(s):
@@ -68,5 +65,5 @@ def fetch():
 		data.append((tag, time, pol, loc, comm, est))
 
 	log.info('Upserting [%s] solen CHs', len(data))
-	psert_many(TABLE, [c.name for c in COLS], data, conflict_constraint='tag')
+	upsert_many(TABLE, [c.name for c in COLS], data, conflict_constraint='tag')
 	upsert_coverage(TABLE, data[-1][1], data[0][1], single=True)

@@ -1,8 +1,10 @@
 import os, logging
 from psycopg_pool import ConnectionPool
-from psycopg.sql import SQL, Identifier
+from psycopg.sql import SQL, Identifier, Placeholder
 
 from typing import LiteralString, Iterable, Sequence, Any
+
+from events.columns.column import Column
 
 log = logging.getLogger('crw')
 pool = ConnectionPool(kwargs = {
@@ -67,9 +69,16 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 				.format(SQL(conflict_constraint), SQL(',').join(items))
 			
 		col_names = SQL(',').join(icolumns)
-		col_values = SQL(',').join([*[SQL('%s,') for _ in constants], val_columns])
+		col_values = SQL(',').join([*map(Placeholder, constants), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
 			
 		cur.execute(query, constants)
 
-def create_table()
+def create_table(name: str, columns: list[Column], constraint: LiteralString='', schema='events'):
+	table = SQL('.').join([Identifier(schema), Identifier(name)]) if schema else Identifier(name)
+	cols = SQL(',\n').join([c.sql_col_def() for c in columns if c])
+	col_def = SQL(',\n').join([cols, SQL(constraint)]) if constraint else cols
+	query = SQL('CREATE TABLE IF NOT EXISTS {} (\n{})').format(table, col_def)
+	
+	with pool.connection() as conn:
+		conn.execute(query)

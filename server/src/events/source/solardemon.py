@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 import requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_coverage, get_coverage, upsert_many
+from database import create_table, pool, log, upsert_coverage, get_coverage, upsert_many
 from events.columns.column import Column as Col
 
 URL = 'https://www.sidc.be/solardemon/science/'
@@ -11,7 +11,7 @@ URL = 'https://www.sidc.be/solardemon/science/'
 FLR_TABLE = T1 = 'solardemon_flares'
 DIM_TABLE = T2 = 'solardemon_dimmings'
 FLR_COLS = [
-	Col(T1, 'id', sql='id integer PRIMARY KEY', dtype='integer'),
+	Col(T1, 'id', sql_def='integer PRIMARY KEY', dtype='integer'),
 	Col(T1, 'dimming_id', dtype='integer'),
 	Col(T1, 'start_time', not_null=True, dtype='time', name='start'),
 	Col(T1, 'peak_time', not_null=True, dtype='time', name='peak'),
@@ -27,7 +27,7 @@ FLR_COLS = [
 	Col(T1, 'detection_number', name='detections'),
 ]
 DIM_COLS = [
-	Col(T2, 'id', sql='id integer PRIMARY KEY', dtype='integer'),
+	Col(T2, 'id', sql_def='integer PRIMARY KEY', dtype='integer'),
 	Col(T2, 'flare_id', dtype='integer'),
 	Col(T2, 'start_time', not_null=True, dtype='time', name='start'),
 	Col(T2, 'peak_time', not_null=True, dtype='time', name='peak'),
@@ -42,11 +42,8 @@ DIM_COLS = [
 ]
 
 def _init():
-	with pool.connection() as conn:
-		for col, tbl in [(DIM_COLS, DIM_TABLE), (FLR_COLS, FLR_TABLE)]:
-			cols = ',\n'.join([c.sql for c in col if c])
-			query = f'CREATE TABLE IF NOT EXISTS events.{tbl} (\n{cols})'
-			conn.execute(query)
+	create_table(FLR_TABLE, FLR_COLS)
+	create_table(DIM_TABLE, DIM_COLS)
 _init()
 
 def scrape_solardemon(what, days):
@@ -108,7 +105,7 @@ def scrape_solardemon(what, days):
 	
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
-	psert_many(tbl, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_many(tbl, [c.name for c in cols], data, conflict_constraint='id')
 
 	cov = get_coverage(tbl)
 	cov_start = cov[0][0] if len(cov) else None

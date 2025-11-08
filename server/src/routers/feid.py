@@ -5,9 +5,9 @@ from datetime import datetime, timezone
 import numpy as np
 from flask import Blueprint, request, session
 from events.misc.plots import epoch_collision
-from events.table import import_fds
+from events.table_init import import_fds
 from events.columns_old.generic_columns import upset_generic, remove_generic
-from events.columns.other_columns import compute_all, compute_column
+from events.columns_old.other_columns import compute_all, compute_column
 from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
 import events.misc.text_transforms as tts
 from events import samples

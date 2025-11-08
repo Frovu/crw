@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import re, requests
 from bs4 import BeautifulSoup
 
-from database import pool, log, upsert_many, upsert_coverage
+from database import log, create_table, upsert_many, upsert_coverage
 from events.columns.column import Column as Col
 
 TABLE = 'r_c_icmes'
@@ -29,16 +29,13 @@ COLS = [
 		name='MC',
 		description='2: MC reported; 1: ICME shows evidence of a rotation in field direction; 0: No MC reported'),
 	Col(TABLE, 'cmes_time',
-		not_null=True, dtype='time[]', sql='cmes_time timestamptz[]',
+		not_null=True, dtype='text', # FIXME: time[] -> text
 		name='CME time',
 		description='Probable CMEs associated with the ICME from LASCO catlogue and/or CCMC DONKI')
 ]
 
 def _init():
-	cols = ',\n'.join([c.sql for c in COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols}, UNIQUE(time))'
-	with pool.connection() as conn:
-		conn.execute(query)
+	create_table(TABLE, COLS)
 _init()
 
 def parse_date(s):
@@ -74,5 +71,5 @@ def fetch():
 		data.append((ons, start, end, qual, mc, cmes))
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
-	psert_many(TABLE, [c.name for c in COLS], data)
+	upsert_many(TABLE, [c.name for c in COLS], data)
 	upsert_coverage(TABLE, data[0][0], data[-1][0], single=True)
