@@ -1,5 +1,8 @@
 import os, logging
 from psycopg_pool import ConnectionPool
+from psycopg.sql import SQL, Identifier
+
+from typing import LiteralString, Iterable, Sequence, Any
 
 log = logging.getLogger('crw')
 pool = ConnectionPool(kwargs = {
@@ -30,21 +33,41 @@ def upsert_coverage(entity, start, end=None, single=False):
 		conn.execute('INSERT INTO coverage_info (entity, start, i_end, at) VALUES (%s, %s, %s, now()) ' +\
 			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
 
-def upsert_many(table, columns, data, constants=[], conflict_constraint='time', do_nothing=False, write_nulls=False, write_values=True):
+def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], constants: list[Any]=[], conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
-		tmpname = table.split('.')[-1] + '_tmp'
-		cur.execute(f'DROP TABLE IF EXISTS {tmpname}')
-		cur.execute(f'CREATE TEMP TABLE {tmpname} (LIKE {table} INCLUDING DEFAULTS) ON COMMIT DROP')
-		for col in columns[:len(constants)]:
-			cur.execute(f'ALTER TABLE {tmpname} DROP COLUMN {col}')
-		with cur.copy(f'COPY {tmpname}({",".join(columns[len(constants):])}) FROM STDIN') as copy:
+		tmpname = Identifier(table.split('.')[-1] + '_tmp')
+		itable = Identifier(table)
+		icolumns = [Identifier(c) for c in columns]
+
+		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
+		cur.execute(SQL('CREATE TEMP TABLE {} (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP').format(tmpname, itable))
+		for col in icolumns[:len(constants)]:
+			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(itable, col))
+
+		val_columns = SQL(',').join(icolumns[len(constants):])
+		with cur.copy(SQL('COPY {}({}) FROM STDIN').format(tmpname, val_columns)) as copy:
 			for row in data:
 				copy.write_row(row)
-		placeholders = (','.join(['%s' for c in constants]) + ',') if constants else ''
-		cur.execute(f'INSERT INTO {table}({",".join(columns)}) SELECT ' +
-			f'{placeholders}{",".join(columns[len(constants):])} FROM {tmpname} ' +
-			('ON CONFLICT DO NOTHING' if do_nothing else
-			f'ON CONFLICT ({conflict_constraint}) DO UPDATE SET ' +
-				','.join([f'{c} = EXCLUDED.{c}' if write_nulls else f'{c} = COALESCE(EXCLUDED.{c}, {table}.{c})' if write_values
-					else f'{c} = COALESCE({table}.{c}, EXCLUDED.{c})'
-					for c in columns if c not in conflict_constraint])), constants)
+				
+		if do_nothing:
+			on_conflict = SQL('ON CONFLICT DO NOTHING')
+		else:
+			items = []
+			for c in icolumns:
+				if c.as_string() in conflict_constraint:
+					continue
+				if write_nulls:
+					items.append(SQL('{0} = EXCLUDED.{0}').format(c)) 
+				elif write_values:
+					items.append(SQL('{0} = COALESCE(EXCLUDED.{0}, {1}.{0})').format(c, itable))
+				else:
+					items.append(SQL('{0} = COALESCE({1}.{0}, EXCLUDED.{0})').format(c, itable))
+	
+			on_conflict = SQL('ON CONFLICT ({}) DO UPDATE SET {}')\
+				.format(SQL(conflict_constraint), SQL(',').join(items))
+			
+		col_names = SQL(',').join(icolumns)
+		col_values = SQL(',').join([*[SQL('%s,') for _ in constants], val_columns])
+		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
+			
+		cur.execute(query, constants)
