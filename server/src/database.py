@@ -33,10 +33,10 @@ def upsert_coverage(entity, start, end=None, single=False):
 		conn.execute('INSERT INTO coverage_info (entity, start, i_end, at) VALUES (%s, %s, %s, now()) ' +\
 			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
 
-def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], constants: list[Any]=[], conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
+def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: list[Any]=[], conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		tmpname = Identifier(table.split('.')[-1] + '_tmp')
-		itable = Identifier(table)
+		itable = SQL('.').join([Identifier(schema), Identifier(table)])
 		icolumns = [Identifier(c) for c in columns]
 
 		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
@@ -71,3 +71,5 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], c
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
 			
 		cur.execute(query, constants)
+
+def create_table()

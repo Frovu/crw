@@ -4,20 +4,20 @@ from datetime import datetime, timezone, timedelta
 import os, re, requests
 
 from database import pool, log, upsert_coverage, upsert_many
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
 URL = 'https://www.lmsal.com/solarsoft/'
 
 TABLE = 'solarsoft_flares'
 COLS = [
-	Col(TABLE, 'start_time', not_null=True, sql='start_time timestamptz PRIMARY KEY', data_type='time', pretty_name='start'),
-	Col(TABLE, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
-	Col(TABLE, 'end_time', not_null=True, data_type='time', pretty_name='end'),
-	Col(TABLE, 'class', data_type='text'),
+	Col(TABLE, 'start_time', not_null=True, sql_def='timestamptz PRIMARY KEY', dtype='time', name='start'),
+	Col(TABLE, 'peak_time', not_null=True, dtype='time', name='peak'),
+	Col(TABLE, 'end_time', not_null=True, dtype='time', name='end'),
+	Col(TABLE, 'class', dtype='text'),
 	Col(TABLE, 'lat'),
 	Col(TABLE, 'lon'),
-	Col(TABLE, 'active_region', data_type='integer', pretty_name='AR')
+	Col(TABLE, 'active_region', dtype='integer', name='AR')
 ]
 
 def _init():
@@ -107,7 +107,7 @@ def _scrape_flares(progr, dt_start, dt_end):
 		progr[0] += 100 / len(links)
 	
 	log.info('Upserting [%s] solarsoft FLRs from %s', len(data), str(dt_start).split()[0])
-	upsert_many('events.'+TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
+	psert_many(TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
 	upsert_coverage(TABLE, dt_start)
 
 def fetch(progr, entity, month):

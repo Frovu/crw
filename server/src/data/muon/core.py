@@ -64,21 +64,21 @@ def _do_obtain_all(t_from, t_to, experiment, partial):
 				t_m = result[:,1]
 				times = np.array([datetime.utcfromtimestamp(t) for t in result[:,0]])
 				data = np.column_stack((times, np.where(np.isnan(t_m), None, t_m))).tolist()
-				upsert_many('muon.conditions_data', ['experiment', 'time', 't_mass_average'],
-					data, constants=[exp_id], conflict_constraint='time,experiment')
+				upsert_many('conditions_data', ['experiment', 'time', 't_mass_average'],
+					data, constants=[exp_id], conflict_constraint='time,experiment', schema='muon')
 			
 			obtain_status['message'] = 'obtaining pressure..'
 			data = obtain_raw(t_from, t_to, experiment, 'pressure')
-			upsert_many('muon.conditions_data', ['experiment', 'time', 'pressure'],
-				data, constants=[exp_id], conflict_constraint='time, experiment')
+			upsert_many('conditions_data', ['experiment', 'time', 'pressure'],
+				data, constants=[exp_id], conflict_constraint='time, experiment', schema='muon')
 			
 			obtain_status['message'] = 'obtaining counts..'
 			channels = conn.execute('SELECT id, name FROM muon.channels WHERE experiment = %s', [experiment]).fetchall()
 			for ch_id, ch_name in channels:
 				obtain_status['message'] = 'obtaining counts: ' + ch_name
 				data = obtain_raw(t_from, t_to, experiment, ch_name)
-				upsert_many('muon.counts_data', ['channel', 'time', 'original'],
-					data, constants=[ch_id], conflict_constraint='time, channel')
+				upsert_many('counts_data', ['channel', 'time', 'original'],
+					data, constants=[ch_id], conflict_constraint='time, channel', schema='muon')
 
 			obtain_status = { 'status': 'ok' }
 

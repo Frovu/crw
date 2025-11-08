@@ -5,7 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_many, get_coverage, upsert_coverage
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
 TABLE = 'lasco_cmes'
@@ -15,22 +15,22 @@ URL = 'https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL_ver2/'
 HALO_URL = 'https://cdaw.gsfc.nasa.gov/CME_list/halo/halo.html'
 EPOCH = (1996, 1)
 COLS = [ # ORDERED !!!
-	Col(TABLE, 'time', not_null=True, data_type='time', description='First LASCO/C2 appearance'),
-	Col(TABLE, 'central_angle', pretty_name='angle', description='Central Position Angle, deg'),
-	Col(TABLE, 'angular_width', pretty_name='width', description='Angular Width, deg'),
-	Col(TABLE, 'speed', pretty_name='speed linear', description='Linear Speed, km/s'),
-	Col(TABLE, 'speed_2', pretty_name='speed 2', description='2nd-order Speed at final height, km/s'),
-	Col(TABLE, 'speed_2_20rs', pretty_name='speed 2 20r', description='2nd-order Speed at 20 Rs, km/s'),
-	Col(TABLE, 'acceleration', pretty_name='accel', description='Acceleration, m/s^2'),
+	Col(TABLE, 'time', not_null=True, dtype='time', description='First LASCO/C2 appearance'),
+	Col(TABLE, 'central_angle', name='angle', description='Central Position Angle, deg'),
+	Col(TABLE, 'angular_width', name='width', description='Angular Width, deg'),
+	Col(TABLE, 'speed', name='speed linear', description='Linear Speed, km/s'),
+	Col(TABLE, 'speed_2', name='speed 2', description='2nd-order Speed at final height, km/s'),
+	Col(TABLE, 'speed_2_20rs', name='speed 2 20r', description='2nd-order Speed at 20 Rs, km/s'),
+	Col(TABLE, 'acceleration', name='accel', description='Acceleration, m/s^2'),
 	Col(TABLE, 'mass', description='Mass, gram'),
-	Col(TABLE, 'kinetic_energy', pretty_name='E', description='Kinetic Energy, erg'),
-	Col(TABLE, 'measurement_angle', pretty_name='MPA', description='Measurement Position Angle, deg'),
-	Col(TABLE, 'note', data_type='text'),
-	Col(TABLE, 'space_speed', pretty_name='space speed'),
+	Col(TABLE, 'kinetic_energy', name='E', description='Kinetic Energy, erg'),
+	Col(TABLE, 'measurement_angle', name='MPA', description='Measurement Position Angle, deg'),
+	Col(TABLE, 'note', dtype='text'),
+	Col(TABLE, 'space_speed', name='space speed'),
 	Col(TABLE, 'lat'),
 	Col(TABLE, 'lon'),
-	Col(TABLE, 'flare_class', data_type='text'),
-	Col(TABLE, 'flare_onset', data_type='text'),
+	Col(TABLE, 'flare_class', dtype='text'),
+	Col(TABLE, 'flare_onset', dtype='text'),
 ]
 TABLE_COLS = ['time', 'central_angle', 'angular_width', 'speed', 'speed_2', 'speed_2_20rs',
 	'acceleration', 'mass', 'kinetic_energy', 'measurement_angle', 'note']
@@ -78,7 +78,7 @@ def scrape_halo():
 		data.append(res)
 
 	log.info('Upserting [%s] LASCO HALO CMEs', len(data))
-	upsert_many('events.'+TABLE, HALO_COLS, data, conflict_constraint='time, speed, measurement_angle')
+	psert_many(TABLE, HALO_COLS, data, conflict_constraint='time, speed, measurement_angle')
 	upsert_coverage(HALO_ENT, data[0][0], data[-1][0], single=True)
 
 def scrape_month(month: datetime):
@@ -107,7 +107,7 @@ def scrape_month(month: datetime):
 		data.append(res)
 
 	log.info('Upserting [%s] LASCO CMEs for %s', len(data), mon)
-	upsert_many('events.'+TABLE, TABLE_COLS, data, conflict_constraint='time, speed, measurement_angle')
+	psert_many(TABLE, TABLE_COLS, data, conflict_constraint='time, speed, measurement_angle')
 	upsert_coverage(TABLE, month)
 
 	halo_covg = get_coverage(HALO_ENT)
@@ -149,7 +149,7 @@ def fetch_height_time(time, width: int, spd: int, mpa: int, retry_with_s=False):
 			tstmp = datetime.strptime(dt+tm, '%Y/%m/%d%H:%M:%S').replace(tzinfo=timezone.utc)
 			result.append((tstmp, float(h)))
 		
-		upsert_many(f'events.{TABLE_HT}', ['cme_time', 'cme_mpa', 'time', 'height'], result, constants=[time, mpa], do_nothing=True)
+		upsert_many(TABLE_HT, ['cme_time', 'cme_mpa', 'time', 'height'], result, constants=[time, mpa], do_nothing=True)
 		return [(t.timestamp(), h) for t, h in result]
 	except Exception as e:
 		log.error('Failed to obtain LASCO CME HT: %s', str(e))

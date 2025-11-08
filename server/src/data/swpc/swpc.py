@@ -10,7 +10,7 @@ _init()
 
 def import_summary(data):
 	log.info('Importing swpc daily summary')
-	upsert_many('swpc.daily_summary', ['time', 'disturbance_observed', 'disturbance_arrival'], data)
+	upsert_many('daily_summary', ['time', 'disturbance_observed', 'disturbance_arrival'], data, schema='swpc')
 
 def fetch_summary():
 	with pool.connection() as conn:

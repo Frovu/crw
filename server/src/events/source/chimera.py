@@ -4,7 +4,7 @@ import re, requests
 from database import log
 from concurrent.futures import ThreadPoolExecutor
 
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
 cache = {}
@@ -14,23 +14,23 @@ img_re = re.compile(r'href="saia_chimr_ch_(\d{8}_\d{6})\.png"')
 
 TABLE = 'chimera'
 COLS = [
-	Col(TABLE, 'id', data_type='integer', description='CHIMERA number'),
+	Col(TABLE, 'id', dtype='integer', description='CHIMERA number'),
 	Col(TABLE, 'xcen'),
 	Col(TABLE, 'ycen'),
 	Col(TABLE, 'lat'),
 	Col(TABLE, 'lon'),
-	Col(TABLE, 'width_text', data_type='text', pretty_name='width'),
+	Col(TABLE, 'width_text', dtype='text', name='width'),
 	Col(TABLE, 'width'),
 	Col(TABLE, 'area'),
-	Col(TABLE, 'area_percent', pretty_name='area', description='Area in % of solar disc'),
-	Col(TABLE, 'b', pretty_name='B'),
+	Col(TABLE, 'area_percent', name='area', description='Area in % of solar disc'),
+	Col(TABLE, 'b', name='B'),
 	Col(TABLE, 'b_plus'),
 	Col(TABLE, 'b_minus'),
 	Col(TABLE, 'b_max'),
 	Col(TABLE, 'b_min'),
 	Col(TABLE, 'tot_b_plus'),
 	Col(TABLE, 'tot_b_minus'),
-	Col(TABLE, 'phi', pretty_name='Φ', description='Φ, Mx * 1e20'),
+	Col(TABLE, 'phi', name='Φ', description='Φ, Mx * 1e20'),
 	Col(TABLE, 'phi_plus'),
 	Col(TABLE, 'phi_minus'),
 ]
@@ -42,7 +42,7 @@ def scrape_chimera_images(dt):
 		return []
 	if res.status_code != 200:
 		log.error('Failed to fetch images list (%s): %s', res.status_code, url)
-		raise ValueError('HTTP '+res.status_code)
+		raise ValueError(f'HTTP {res.status_code}')
 	result = []
 	for match in img_re.findall(res.text):
 		adt = datetime.strptime(match, '%Y%m%d_%H%M%S')
@@ -63,7 +63,7 @@ def scrape_chimera_holes(dt):
 		return []
 	if res.status_code != 200:
 		log.error('Failed to fetch info (%s): %s', res.status_code, url)
-		raise ValueError('HTTP '+res.status_code)
+		raise ValueError(f'HTTP {res.status_code}')
 	result = []
 	for line in res.text.splitlines()[2:]:
 		l = [line[:3].strip()] + [line[i:i+11].strip() for i in range(3, len(line), 11)]

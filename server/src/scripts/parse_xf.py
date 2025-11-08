@@ -59,7 +59,7 @@ def parse_xf():
 			data.append([row[c] if c in row else values[c] for c in columns])
 
 	print('parsed', len(data))
-	upsert_many('events.'+TABLE, columns, data, conflict_constraint='start_time', write_nulls=True)
+	psert_many(TABLE, columns, data, conflict_constraint='start_time', write_nulls=True)
 	print('inserted')
 
 if __name__ == '__main__':

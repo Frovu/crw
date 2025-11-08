@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 
 import requests
+from psycopg.sql import SQL
 
 from database import pool, log, upsert_many, get_coverage, upsert_coverage
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 from events.source.donki import parse_coords
 
 TABLE = 'cactus_cmes'
@@ -11,11 +12,11 @@ LZ_URL = 'https://www.sidc.be/cactus/catalog/LASCO/2_5_0/cme_lz.txt'
 QKL_URL = 'https://www.sidc.be/cactus/catalog/LASCO/2_5_0/cme_qkl.txt'
 
 COLS = [ # ORDERED !!!
-	Col(TABLE, 'time', not_null=True, data_type='time', description='Onset time, earliest indication of liftoff'),
-	Col(TABLE, 'cactus_id', not_null=True, data_type='integer', description='CACTus CME id within month'),
-	Col(TABLE, 'dt0', pretty_name='t lift', description='Duration of liftoff (hours)'),
-	Col(TABLE, 'central_angle', pretty_name='angle', description='Principal angle, counterclockwise from North (degrees)'),
-	Col(TABLE, 'angular_width', pretty_name='width', description='Angular Wwidth, deg'),
+	Col(TABLE, 'time', not_null=True, dtype='time', description='Onset time, earliest indication of liftoff'),
+	Col(TABLE, 'cactus_id', not_null=True, dtype='integer', description='CACTus CME id within month'),
+	Col(TABLE, 'dt0', name='t lift', description='Duration of liftoff (hours)'),
+	Col(TABLE, 'central_angle', name='angle', description='Principal angle, counterclockwise from North (degrees)'),
+	Col(TABLE, 'angular_width', name='width', description='Angular Wwidth, deg'),
 	Col(TABLE, 'speed', description='Median velocity, km/s'),
 	Col(TABLE, 'dv', description='Variation (1 sigma) of velocity over the width of the CME'),
 	Col(TABLE, 'minv', description='Lowest velocity detected within the CME'),
@@ -23,15 +24,15 @@ COLS = [ # ORDERED !!!
 ]
 
 def _init():
-	cols = ',\n'.join([c.sql for c in COLS if c])
-	query = f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{cols}, '+\
-		' UNIQUE NULLS NOT DISTINCT(time, cactus_id))'
+	cols = SQL(',\n').join([c.sql_col_def() for c in COLS if c])
+	query = SQL(f'CREATE TABLE IF NOT EXISTS events.{TABLE} (\n{{}}, '+
+		'UNIQUE NULLS NOT DISTINCT(time, cactus_id))').format(cols)
 	
 	with pool.connection() as conn:
 		conn.execute(query)
 _init()
 
-def scrape_cactus(which: str, cutoff: datetime=None):
+def scrape_cactus(which: str, cutoff: datetime|None=None):
 	log.debug(f'Loading CACTUS {which} CMEs')
 	res = requests.get(LZ_URL if which == 'lz' else QKL_URL, timeout=10)
 
@@ -75,8 +76,8 @@ def fetch(progr):
 		conn.execute(f'DELETE FROM events.{TABLE}')
 	progr[0] = 3
 
-	upsert_many('events.'+TABLE, [c.name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
+	psert_many(TABLE, [c.name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
 	progr[0] = 4
-	upsert_many('events.'+TABLE, [c.name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
+	psert_many(TABLE, [c.name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
 	progr[0] = 5
 	upsert_coverage(TABLE, lz_data[0][0], qkl_data[-1][0], single=True)

@@ -3,11 +3,11 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from database import log, pool
-from events.columns.generic_sources import G_OP_SRC, init_src_col, validate_src_col_params
+from events.columns_old.generic_sources import G_OP_SRC, init_src_col, validate_src_col_params
 from routers.utils import get_role
 from data.omni.sw_types import PRETTY_SW_TYPES
 from events.table_structure import FEID
-from events.columns.generic_core import GenericRefPoint, G_TIME_SRC_WITH_END, G_TIME_SRC, G_SERIES, \
+from events.columns_old.generic_core import GenericRefPoint, G_TIME_SRC_WITH_END, G_TIME_SRC, G_SERIES, \
 	G_EXTREMUM, G_OP_CLONE, G_OP_COMBINE, G_OP_TIME, G_OP_VALUE, \
 	MAX_DURATION_H, compute_generic, default_window
 

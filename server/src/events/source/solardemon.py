@@ -4,41 +4,41 @@ import requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_coverage, get_coverage, upsert_many
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 
 URL = 'https://www.sidc.be/solardemon/science/'
 
 FLR_TABLE = T1 = 'solardemon_flares'
 DIM_TABLE = T2 = 'solardemon_dimmings'
 FLR_COLS = [
-	Col(T1, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
-	Col(T1, 'dimming_id', data_type='integer'),
-	Col(T1, 'start_time', not_null=True, data_type='time', pretty_name='start'),
-	Col(T1, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
-	Col(T1, 'end_time', not_null=True, data_type='time', pretty_name='end'),
-	Col(T1, 'est_class', data_type='text', pretty_name='est. class'),
+	Col(T1, 'id', sql='id integer PRIMARY KEY', dtype='integer'),
+	Col(T1, 'dimming_id', dtype='integer'),
+	Col(T1, 'start_time', not_null=True, dtype='time', name='start'),
+	Col(T1, 'peak_time', not_null=True, dtype='time', name='peak'),
+	Col(T1, 'end_time', not_null=True, dtype='time', name='end'),
+	Col(T1, 'est_class', dtype='text', name='est. class'),
 	Col(T1, 'lat'),
 	Col(T1, 'lon'),
 	Col(T1, 'dist', description='dist, R☉'),
-	Col(T1, 'active_region', data_type='integer', pretty_name='AR'),
-	Col(T1, 'est_flux', pretty_name='est. flux'),
-	Col(T1, 'goes_flux', pretty_name='GOES flux'),
-	Col(T1, 'goes_peak_time', data_type='time', pretty_name='GOES peak'),
-	Col(T1, 'detection_number', pretty_name='detections'),
+	Col(T1, 'active_region', dtype='integer', name='AR'),
+	Col(T1, 'est_flux', name='est. flux'),
+	Col(T1, 'goes_flux', name='GOES flux'),
+	Col(T1, 'goes_peak_time', dtype='time', name='GOES peak'),
+	Col(T1, 'detection_number', name='detections'),
 ]
 DIM_COLS = [
-	Col(T2, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
-	Col(T2, 'flare_id', data_type='integer'),
-	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
-	Col(T2, 'peak_time', not_null=True, data_type='time', pretty_name='peak'),
-	Col(T2, 'end_time', not_null=True, data_type='time', pretty_name='end'),
+	Col(T2, 'id', sql='id integer PRIMARY KEY', dtype='integer'),
+	Col(T2, 'flare_id', dtype='integer'),
+	Col(T2, 'start_time', not_null=True, dtype='time', name='start'),
+	Col(T2, 'peak_time', not_null=True, dtype='time', name='peak'),
+	Col(T2, 'end_time', not_null=True, dtype='time', name='end'),
 	Col(T2, 'intensity'),
 	Col(T2, 'max_drop'),
 	Col(T2, 'lat'),
 	Col(T2, 'lon'),
 	Col(T2, 'dist', description='dist, R☉'),
-	Col(T2, 'active_region', data_type='integer', pretty_name='AR'),
-	Col(T2, 'image_count', pretty_name='count'),
+	Col(T2, 'active_region', dtype='integer', name='AR'),
+	Col(T2, 'image_count', name='count'),
 ]
 
 def _init():
@@ -108,7 +108,7 @@ def scrape_solardemon(what, days):
 	
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
-	upsert_many('events.'+tbl, [c.name for c in cols], data, conflict_constraint='id')
+	psert_many(tbl, [c.name for c in cols], data, conflict_constraint='id')
 
 	cov = get_coverage(tbl)
 	cov_start = cov[0][0] if len(cov) else None

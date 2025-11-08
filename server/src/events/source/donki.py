@@ -3,7 +3,9 @@ from datetime import datetime, timezone, timedelta
 import re, os, requests
 
 from database import pool, log, upsert_coverage, upsert_many
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
+
+from psycopg.sql
 
 proxy = os.environ.get('NASA_PROXY')
 proxies = {
@@ -16,42 +18,42 @@ CME_TABLE = T1 = 'donki_cmes'
 FLR_TABLE = T2 = 'donki_flares'
 
 CME_COLS = [
-	Col(T1, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
-	Col(T1, 'event_id', data_type='text'),
-	Col(T1, 'time', not_null=True, data_type='time', description='CME start time'),
-	Col(T1, 'time_21_5', pretty_name='time 21.5', data_type='time'),
+	Col(T1, 'id', sql_def='integer PRIMARY KEY', dtype='integer'),
+	Col(T1, 'event_id', dtype='text'),
+	Col(T1, 'time', not_null=True, dtype='time', description='CME start time'),
+	Col(T1, 'time_21_5', name='time 21.5', dtype='time'),
 	Col(T1, 'lat'),
 	Col(T1, 'lon'),
-	Col(T1, 'half_width', pretty_name='width/2'),
+	Col(T1, 'half_width', name='width/2'),
 	Col(T1, 'speed'),
-	Col(T1, 'type', data_type='text'),
-	Col(T1, 'data_level', data_type='integer', pretty_name='level', description='0=real-time, 1=real-time and checked by supervising forecaster, 2=retrospective science level data analysis'),
-	Col(T1, 'note', data_type='text'),
-	Col(T1, 'linked_events', data_type='text[]'),
-	Col(T1, 'enlil_id', pretty_name='enlil', data_type='integer'),
-	Col(T1, 'enlil_est_shock', pretty_name='est impact', data_type='time', description='Estimated Earth arrival time'),
-	Col(T1, 'enlil_filename', data_type='text'),
+	Col(T1, 'type', dtype='text'),
+	Col(T1, 'data_level', dtype='integer', name='level', description='0=real-time, 1=real-time and checked by supervising forecaster, 2=retrospective science level data analysis'),
+	Col(T1, 'note', dtype='text'),
+	Col(T1, 'linked_events', dtype='text'), # FIXME: this was text[]
+	Col(T1, 'enlil_id', name='enlil', dtype='integer'),
+	Col(T1, 'enlil_est_shock', name='est impact', dtype='time', description='Estimated Earth arrival time'),
+	Col(T1, 'enlil_filename', dtype='text'),
 ]
 
 FLR_COLS = [
-	Col(T2, 'id', sql='id integer PRIMARY KEY', data_type='integer'),
-	Col(T2, 'event_id', data_type='text'),
-	Col(T2, 'start_time', not_null=True, data_type='time', pretty_name='start'),
-	Col(T2, 'peak_time', data_type='time', pretty_name='peak'),
-	Col(T2, 'end_time', data_type='time', pretty_name='end'),
-	Col(T2, 'class', data_type='text'),
+	Col(T2, 'id', sql_def='integer PRIMARY KEY', dtype='integer'),
+	Col(T2, 'event_id', dtype='text'),
+	Col(T2, 'start_time', not_null=True, dtype='time', name='start'),
+	Col(T2, 'peak_time', dtype='time', name='peak'),
+	Col(T2, 'end_time', dtype='time', name='end'),
+	Col(T2, 'class', dtype='text'),
 	Col(T2, 'lat'),
 	Col(T2, 'lon'),
-	Col(T2, 'active_region', data_type='integer', pretty_name='AR'),
-	Col(T2, 'note', data_type='text'),
-	Col(T2, 'linked_events', data_type='text[]'),
+	Col(T2, 'active_region', dtype='integer', name='AR'),
+	Col(T2, 'note', dtype='text'),
+	Col(T2, 'linked_events', dtype='text'), # FIXME: this was text[]
 ]
 
 def _init():
 	with pool.connection() as conn:
 		for col, tbl in [(CME_COLS, CME_TABLE), (FLR_COLS, FLR_TABLE)]:
-			cols = ',\n'.join([c.sql for c in col if c])
-			query = f'CREATE TABLE IF NOT EXISTS events.{tbl} (\n{cols})'
+			cols = SQL(',\n').join([c.sql_col_def() for c in col if c])
+			query = SQL('CREATE TABLE IF NOT EXISTS {} (\n{})').format('events.'+tbl, )
 			conn.execute(query)
 _init()
 
@@ -129,7 +131,7 @@ def _obtain_month(what, month_start: datetime):
 		assert not 'reached'
 	
 	log.info('Upserting [%s] DONKI %ss for %s', len(data), what, s_str)
-	upsert_many('events.'+table, [c.name for c in cols], data, conflict_constraint='id')
+	psert_many(table, [c.name for c in cols], data, conflict_constraint='id')
 	upsert_coverage(table, month_start)
 
 def fetch(progr, entity, month):

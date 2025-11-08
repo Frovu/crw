@@ -3,8 +3,8 @@ from time import time
 from threading import Thread, Lock
 import numpy as np
 from database import pool, log
-from events.columns.generic_columns import select_generics
-from events.columns.generic_core import apply_changes, recompute_for_row, recompute_generics, G_DERIVED, SELECT_FEID
+from events.columns_old.generic_columns import select_generics
+from events.columns_old.generic_core import apply_changes, recompute_for_row, recompute_generics, G_DERIVED, SELECT_FEID
 
 DEFAULT_DURATION = 72
 

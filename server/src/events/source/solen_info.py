@@ -4,27 +4,27 @@ import re, requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_many, upsert_coverage
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 
 CH_URL = 'https://solen.info/solar/coronal_holes.html'
 
 TABLE = 'solen_holes'
 COLS = [
-	Col(TABLE, 'tag', sql='tag text PRIMARY KEY', data_type='text',
+	Col(TABLE, 'tag', sql_def='text PRIMARY KEY', dtype='text',
 		description='STAR Coronal hole tag'),
 	Col(TABLE, 'time',
-		not_null=True, data_type='time',
+		not_null=True, dtype='time',
 		description='Earth facing position date'),
 	Col(TABLE, 'polarity',
-		not_null=True, data_type='text'),
+		not_null=True, dtype='text'),
 	Col(TABLE, 'location',
-		not_null=True, data_type='text',
-		pretty_name='loc'),
+		not_null=True, dtype='text',
+		name='loc'),
 	Col(TABLE, 'comment',
-		not_null=True, data_type='text'),
+		not_null=True, dtype='text'),
 	Col(TABLE, 'disturbance_time',
-		data_type='time',
-		pretty_name='est. disturb',
+		dtype='time',
+		name='est. disturb',
 		description='Estimated geomagnetic disturbance date'),
 ]
 
@@ -68,5 +68,5 @@ def fetch():
 		data.append((tag, time, pol, loc, comm, est))
 
 	log.info('Upserting [%s] solen CHs', len(data))
-	upsert_many('events.'+TABLE, [c.name for c in COLS], data, conflict_constraint='tag')
+	psert_many(TABLE, [c.name for c in COLS], data, conflict_constraint='tag')
 	upsert_coverage(TABLE, data[-1][1], data[0][1], single=True)

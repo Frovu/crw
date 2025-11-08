@@ -8,7 +8,7 @@ from events.table_structure import SELECT_FEID
 import data.omni.core as omni
 from cream import gsm
 import data.particles_and_xrays as sat
-from events.columns.generic_sources import G_OP_SRC, compute_src_generic
+from events.columns_old.generic_sources import G_OP_SRC, compute_src_generic
 
 @dataclass
 class GenericRefPoint:
@@ -297,7 +297,7 @@ def compute_generic(g, for_row=None):
 			result /= 10
 
 		data = np.column_stack((target_id, result)).tolist()
-		upsert_many('events.generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
+		upsert_many('generic_data', ['feid_id', g.name], data, conflict_constraint='feid_id')
 		with pool.connection() as conn:
 			apply_changes(conn, g.name, dtype=g.sql_data_type)
 			if for_row is None:

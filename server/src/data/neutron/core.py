@@ -101,11 +101,11 @@ def _obtain_similar(interval, stations, source):
 	log.debug(f'Neutron: obtained {source} [{len(data)} * {len(stations)}] {res_dt_interval[0]} to {res_dt_interval[1]}')
 	with pool.connection() as conn:
 		for i, station in enumerate(stations):
-			upsert_many(f'nm.{station}_1h', ['time', 'corrected'],
-				np.column_stack((data[:,0], data[:,1+i])).tolist(), write_nulls=True) # FIXME: should we really write_nulls?
+			upsert_many(f'{station}_1h', ['time', 'corrected'],
+				np.column_stack((data[:,0], data[:,1+i])).tolist(), schema='nm', write_nulls=True) # FIXME: should we really write_nulls?
 			if src_res == 60:
-				upsert_many(f'nm.{station}_1min', ['time', 'corrected'],
-					np.column_stack((src_data[:,0], src_data[:,1+i])).tolist())
+				upsert_many(f'{station}_1min', ['time', 'corrected'],
+					np.column_stack((src_data[:,0], src_data[:,1+i])).tolist(), schema='nm')
 			else:
 				assert src_res == HOUR
 			update_result_table(conn, station, res_dt_interval)

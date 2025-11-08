@@ -4,33 +4,33 @@ import re, requests
 from bs4 import BeautifulSoup
 
 from database import pool, log, upsert_many, upsert_coverage
-from events.columns.column_def import ColumnDef as Col
+from events.columns.column import Column as Col
 
 TABLE = 'r_c_icmes'
 URL = 'https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm'
 COLS = [
 	Col(TABLE, 'time',
-		not_null=True, data_type='time',
+		not_null=True, dtype='time',
 		description='Disturbance onset: SSC or IPS or estimated time'),
 	Col(TABLE, 'body_start',
-		not_null=True, data_type='time',
-		pretty_name='start',
+		not_null=True, dtype='time',
+		name='start',
 		description='Estimated start time based on plasma and magnetic field observations'),
 	Col(TABLE, 'body_end',
-		not_null=True, data_type='time',
-		pretty_name='end',
+		not_null=True, dtype='time',
+		name='end',
 		description='Estimated end time based on plasma and magnetic field observations'),
 	Col(TABLE, 'quality',
-		not_null=True, data_type='integer',
-		pretty_name='qual',
+		not_null=True, dtype='integer',
+		name='qual',
 		description='The "quality" of the boundary times (1 indicating the most reliable)'),
 	Col(TABLE, 'mc_index',
-		not_null=True, data_type='integer',
-		pretty_name='MC',
+		not_null=True, dtype='integer',
+		name='MC',
 		description='2: MC reported; 1: ICME shows evidence of a rotation in field direction; 0: No MC reported'),
 	Col(TABLE, 'cmes_time',
-		not_null=True, data_type='time[]', sql='cmes_time timestamptz[]',
-		pretty_name='CME time',
+		not_null=True, dtype='time[]', sql='cmes_time timestamptz[]',
+		name='CME time',
 		description='Probable CMEs associated with the ICME from LASCO catlogue and/or CCMC DONKI')
 ]
 
@@ -74,5 +74,5 @@ def fetch():
 		data.append((ons, start, end, qual, mc, cmes))
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
-	upsert_many('events.'+TABLE, [c.name for c in COLS], data)
+	psert_many(TABLE, [c.name for c in COLS], data)
 	upsert_coverage(TABLE, data[0][0], data[-1][0], single=True)

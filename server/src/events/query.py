@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from database import pool, log
 from events.table_structure import ALL_TABLES, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
-from events.columns.generic_columns import select_generics, GenericColumn
-from events.columns.generic_core import G_SERIES, G_DERIVED
+from events.columns_old.generic_columns import select_generics, GenericColumn
+from events.columns_old.generic_core import G_SERIES, G_DERIVED
 from events.source import noaa_flares
 
 
