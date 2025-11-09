@@ -20,7 +20,7 @@ def _init():
 
 				itable = Identifier(tbl)
 				iname = Identifier(column.sql_name)
-				itype = SQL(column.sql_def.as_string().split(' ')[0]) # type: ignore
+				itype = column.sql_type()
 				
 				if column.sql_name != 'id':
 					conn.execute(SQL('ALTER TABLE events.{} ADD COLUMN IF NOT EXISTS {}').format(itable, column.sql_col_def()))
@@ -28,17 +28,6 @@ def _init():
 
 					not_null = SQL('SET' if column.not_null else 'DROP')
 					conn.execute(SQL('ALTER TABLE events.{} ALTER COLUMN {} {} NOT NULL').format(itable, iname, not_null))
-
-		conn.execute('''CREATE TABLE IF NOT EXISTS events.changes_log (
-			id SERIAL PRIMARY KEY,
-			author integer references users on delete set null,
-			time timestamptz not null default CURRENT_TIMESTAMP,
-			special text,
-			event_id integer,
-			entity_name text,
-			column_name text,
-			old_value text,
-			new_value text)''')
 _init()
 
 def import_fds(uid, import_columns, rows_to_add, ids_to_remove, precomputed_changes):

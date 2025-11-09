@@ -1,11 +1,13 @@
 from dataclasses import dataclass, asdict
 from typing import Literal
 from data import particles_and_xrays as sat
+import ts_type
 
 import numpy as np
 
 SSOURCE = Literal['omni', 'gsm', 'sat']
 
+@ts_type.gen_type
 @dataclass
 class Series:
 	source: SSOURCE

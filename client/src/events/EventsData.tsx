@@ -1,11 +1,10 @@
 import { type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import type { ChangeLog } from './events';
 import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
 import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
-import { G_ALL_OPS, fromDesc, type ColumnDef, type DataRow, type Value } from './columns';
+import { type DataRow, type Value } from './columns';
 import { Confirmation } from '../Utility';
 import {
 	discardChange,
@@ -17,83 +16,7 @@ import {
 	useEventsState,
 	type TableName,
 } from './eventsState';
-
-export function ExportMenu() {
-	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
-
-	const columns = inc
-		? allColumns.concat({
-				fullName: 'SAMPLE',
-				type: 'text',
-				description: 'Included in these samples (separated by ;)',
-				width: 16,
-		  } as any)
-		: allColumns;
-
-	const renderText = (format: 'json' | 'csv' | 'txt') => {
-		const data = shownData.map((row, i) => (!inc ? row.slice(1) : row.slice(1).concat(inc[i])));
-		const cols = columns.map(({ fullName, type, description, enum: aenum }, i) => ({
-			name: fullName,
-			type,
-			description,
-			enum: aenum,
-		}));
-		if (format === 'json') {
-			return JSON.stringify({ columns: cols, data }, null, 2);
-		} else if (format === 'txt') {
-			let text =
-				'Note: plaintext export option has limitations and one should consider using JSON instead' +
-				'\r\nAll whitespace in values is replaced by _, missing values are marked as N/A\r\n';
-			text += columns.map((col) => col.fullName.replace(/\s/g, '_').padStart(col.width, ' '.repeat(col.width))).join(' ') + '\r\n';
-			for (const row of data) {
-				for (const [i, col] of columns.entries()) {
-					const v = row[i];
-					const val = v instanceof Date ? v?.toISOString().replace(/\..+/, 'Z') : v;
-					text +=
-						(val == null ? 'N/A' : val)
-							.toString()
-							.replace(/\s/g, '_')
-							.padStart(col.width + (i === 0 ? 0 : 4), ' '.repeat(col.width)) + ' ';
-				}
-				text += '\r\n';
-			}
-			return text;
-		} else if (format === 'csv') {
-			const head = columns.map((col) => col.fullName).join(',');
-			return [head].concat(data.map((row) => row.map((v) => valueToString(v)).join(','))).join('\r\n');
-		}
-		return '';
-	};
-
-	const doExport = (format: 'json' | 'csv' | 'txt', copy?: boolean) => () => {
-		if (copy) return navigator.clipboard.writeText(renderText(format));
-		const a = document.createElement('a');
-		a.href = URL.createObjectURL(new Blob([renderText(format)]));
-		a.download = `feid.${format}`;
-		a.click();
-	};
-
-	return (
-		<div style={{ maxWidth: 240, padding: '2px 8px' }}>
-			<button className="TextButton" onClick={doExport('json')}>
-				Download json
-			</button>
-			<button className="TextButton" onClick={doExport('txt')}>
-				Download txt
-			</button>
-			<button className="TextButton" onClick={doExport('csv')}>
-				Download csv
-			</button>
-			<button className="TextButton" onClick={doExport('csv', true)}>
-				Copy csv to clipboard
-			</button>
-			<div className="separator" style={{ margin: '6px 0' }}></div>
-			<div style={{ color: 'var(--color-text-dark)', fontSize: 12 }}>
-				Note that table is exported as it is currently visible: respecting selected sample, filters and enabled columns
-			</div>
-		</div>
-	);
-}
+import type { ChangelogResponse, Column } from '../api';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
 	const { login } = useContext(AuthContext);
@@ -106,7 +29,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		queryKey: ['tableStructure'],
 		queryFn: async () => {
 			const { tables, series } = await apiGet<{
-				tables: { [name: string]: { [name: string]: ColumnDef } };
+				tables: { [name: string]: { [name: string]: Column } };
 				series: { [s: string]: string };
 			}>('events/table_structure');
 
@@ -139,7 +62,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		placeholderData: keepPreviousData,
 		structuralSharing: false,
 		queryKey: ['tableData', 'feid'],
-		queryFn: () => apiGet<{ data: Value[][]; fields: string[]; changelog?: ChangeLog }>('events', { changelog: true }),
+		queryFn: () => apiGet<{ data: Value[][]; fields: string[]; changelog?: ChangelogResponse }>('events', { changelog: true }),
 	});
 
 	useEffect(() => {
@@ -156,13 +79,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			.concat(
 				(() => {
 					if (columnOrder == null) {
-						const sorted = cols
-							.sort((a, b) => (a.generic ? a.name?.localeCompare(b.name) : 0))
-							.sort(
-								(a, b) =>
-									G_ALL_OPS.indexOf(a.generic?.params.operation as any) -
-									G_ALL_OPS.indexOf(b.generic?.params.operation as any)
-							);
+						const sorted = cols.sort((a, b) => (a.generic ? a.name?.localeCompare(b.name) : 0));
 						return sorted;
 					} else {
 						// place new columns at the end

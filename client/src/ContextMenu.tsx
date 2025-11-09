@@ -1,10 +1,10 @@
 import { useContext, useState } from 'react';
 import { LayoutContextMenu } from './Layout';
 import { AuthContext, useContextMenu, closeContextMenu } from './app';
-import { ExportMenu } from './events/EventsData';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
 import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/ExportPlot';
+import { ExportMenu } from './events/ExportTable';
 
 export default function ContextMenu() {
 	const { resetLayout } = useLayoutsStore();

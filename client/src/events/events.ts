@@ -4,8 +4,9 @@ import { createContext, useContext, useMemo } from 'react';
 import type { Filter, Sample } from './sample';
 import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../layout';
 import { getApp } from '../app';
-import type { ColumnDef, Value, DataRow } from './columns';
+import type { Value, DataRow } from './columns';
 import type { BasicPlotParams } from '../plots/basicPlot';
+import type { ChangelogEntry, ChangelogResponse, Column } from '../api';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -61,140 +62,26 @@ export type TableParams = {
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 export type MagneticCloud = { start: Date; end: Date };
 
-export type FeidRow = {
-	id: number;
-	time: Date;
-	duration: number;
-	onset_type: number | null;
-	s_type: number | null;
-	s_description: string | null;
-	s_confidence: string | null;
-	mc_time: Date | null;
-	cme_time: Date | null;
-	flr_time: Date | null;
-	comment: string | null;
-};
-
-export type FeidSrcRow =
-	| {
-			id: number;
-			feid_id: number;
-			erupt_id: number;
-			cr_influence: string | null;
-	  }
-	| {
-			id: number;
-			feid_id: number;
-			ch_id: number;
-			cr_influence: string | null;
-	  };
-
-export type SrcEruptRow = {
-	id: number;
-	flr_start: Date | null;
-	flr_peak: Date | null;
-	flr_end: Date | null;
-	flr_flux: number | null;
-	flr_source: string | null;
-	active_region: number | null;
-	lat: number | null;
-	lon: number | null;
-	coords_source: string | null;
-	cme_time: Date | null;
-	cme_speed: number | null;
-	cme_source: string | null;
-	note: string | null;
-
-	solarsoft_flr_start: Date | null;
-	noaa_flr_start: Date | null;
-	donki_flr_id: number | null;
-	solardemon_flr_id: number | null;
-	donki_cme_id: number | null;
-	lasco_cme_time: Date | null;
-	cactus_cme_time: Date | null;
-	rc_icme_time: Date | null;
-};
-
-export type SrcCHRow = {
-	id: number;
-	tag: string | null;
-	chimera_time: Date | null;
-	chimera_id: number | null;
-	time: Date | null;
-	lat: number | null;
-	area: number | null;
-	b: number | null;
-	phi: number | null;
-	width: number | null;
-};
-
-export type Flare = {
-	src: string;
-	class: string | null;
-	lat: number;
-	lon: number;
-	start_time: Date;
-	peak_time: Date;
-	end_time: Date;
-	active_region: number | null;
-	id: number | null;
-	flux: number | null;
-	linked_events: null | string[];
-};
-
-export type CME = {
-	src: string;
-	time: Date;
-	lat: number | null;
-	lon: number | null;
-	speed: number | null;
-	id: number | null;
-	linked_events: null | string[];
-};
-
-export type ICME = {
-	src: string;
-	time: Date;
-	cmes_time: null | string[];
-};
-
-export type ChangeLogEntry = {
-	time: number;
-	author: string;
-	old: string;
-	new: string;
-	special: 'import' | null;
-}[];
-
-export type ChangeLog = {
-	fields: string[];
-	events: {
-		[id: string]: {
-			[col: string]: (number | null | string)[][];
-		};
-	};
-};
-
-export const getChangelogEntry = (chl: ChangeLog | undefined, eid: number, cid: string) =>
-	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangeLogEntry | undefined;
+export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
+	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry | undefined;
 
 export type ChangeValue = { id: number; column: string; value: Value; silent?: boolean; fast?: boolean };
 export type FiltersCollection = { filter: Filter; id: number }[];
 
 export const MainTableContext = createContext<{
-	columns: ColumnDef[];
+	columns: Column[];
 	columnIndex: { [col: string]: number };
-	structure: { [tbl: string]: ColumnDef[] };
+	structure: { [tbl: string]: Column[] };
 	rels: { [s: string]: string };
 	series: { [s: string]: string };
-	changelog?: ChangeLog;
+	changelog?: ChangelogResponse;
 }>({} as any);
 
 export const SampleContext = createContext<{ data: DataRow[]; current: Sample | null; samples: Sample[] }>({} as any);
 
 export const TableViewContext = createContext<{
 	data: DataRow[];
-	columns: ColumnDef[];
+	columns: Column[];
 	markers: null | string[];
 	includeMarkers: null | string[];
 }>({} as any);
@@ -202,9 +89,9 @@ export const TableViewContext = createContext<{
 export const PlotContext = createContext<{ interval: [Date, Date]; base?: Date; onsets?: Onset[]; clouds?: MagneticCloud[] }>({} as any);
 
 export type TableMenuDetails = {
-	header?: ColumnDef;
+	header?: Column;
 	averages?: { averages: (number[] | null)[]; label: string; row: number; column: number };
-	cell?: { id: number; column: ColumnDef; value: Value };
+	cell?: { id: number; column: Column; value: Value };
 };
 
 export const usePlotParams = <T>() => {
@@ -231,14 +118,14 @@ export function copyAverages({ averages, row, column }: Required<TableMenuDetail
 	navigator.clipboard.writeText(text);
 }
 
-export const findColumn = (columns: ColumnDef[], name: string) => columns.find((c) => c.fullName === name) ?? null;
+export const findColumn = (columns: Column[], name: string) => columns.find((c) => c.name === name) ?? null;
 
 export function equalValues(a?: any, b?: any) {
 	return a instanceof Date ? (a as Date).getTime() === (b as Date | null)?.getTime() : a === b;
 }
 
-export function parseColumnValue(val: string, column: ColumnDef) {
-	switch (column.type) {
+export function parseColumnValue(val: string, column: Column) {
+	switch (column.dtype) {
 		case 'time':
 			return new Date(val.includes(' ') ? val.replace(' ', 'T') + 'Z' : val);
 		case 'real':
@@ -261,9 +148,10 @@ export function valueToString(v: Value) {
 	return parseFloat(v.toFixed(Math.max(0, 3 - v.toFixed(0).length))).toString();
 }
 
-export function isValidColumnValue(val: Value, column: ColumnDef) {
-	if (val == null) return column.nullable;
-	switch (column.type) {
+export function isValidColumnValue(val: Value, column: Column) {
+	if (val == null) return !column.not_null;
+
+	switch (column.dtype) {
 		case 'time':
 			return val instanceof Date && !isNaN(val.getTime());
 		case 'real':
@@ -276,14 +164,14 @@ export function isValidColumnValue(val: Value, column: ColumnDef) {
 	}
 }
 
-export const setStatColumn = (col: ColumnDef, i: number) => {
+export const setStatColumn = (col: Column, i: number) => {
 	const { list, active } = useLayoutsStore.getState().apps[getApp()];
 	const layout = list[active];
 	const key = (['column0', 'column1'] as const)[i];
 	for (const [id, iitem] of Object.entries(layout.items)) {
 		if (typeof (iitem as any)?.[key] !== 'undefined') {
 			const item = iitem as any;
-			setNodeParams<any>(id, { [key]: item.type === 'Histogram' && item[key] === col.id ? null : col.id });
+			setNodeParams<any>(id, { [key]: item.type === 'Histogram' && item[key] === col.name ? null : col.name });
 		}
 	}
 };
