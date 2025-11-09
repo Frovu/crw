@@ -6,18 +6,17 @@ from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FE
 from events.columns.computed_column import select_computed_columns, DATA_TABLE as CC_TABLE
 from events.columns.series import SERIES
 
-def render_table_structure(uid):
+def render_table_structure(uid: int):
 	structure = {
 		table: { col.name: col.as_dict() for col in columns } for table, columns in ALL_TABLES.items()
 	}
-	
 	for col in select_computed_columns(uid):
 		structure[E_FEID][col.name] = col.as_dict()
 		
 	series = { ser.name: ser.as_dict() for ser in SERIES }
 	return { 'tables': structure, 'series': series }
 
-def select_events(entity, include):
+def select_events(entity: str, include: list[str]|None=None):
 	if entity not in ALL_TABLES:
 		raise NameError(f'Unknown entity: \'{entity}\'')
 	
@@ -25,8 +24,8 @@ def select_events(entity, include):
 	cols = cols if include is None else [c for c in cols if c.name in include]
 
 	col_q = SQL(',').join([c.sql_val() for c in cols])
-	time_col = next((c for c in cols if 'time' in c.name), None)
-	order = Identifier(time_col.name if time_col else 'id')
+	time_col = next((c for c in cols if 'time' in c.sql_name), None)
+	order = Identifier(time_col.sql_name if time_col else 'id')
 	query = SQL('SELECT {} FROM events.{} ORDER BY {}').format(col_q, Identifier(entity), order)
 
 	with pool.connection() as conn:
@@ -34,17 +33,19 @@ def select_events(entity, include):
 
 	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
-def select_feid(uid=None, include=None, changelog=False):
-	columns = [FEID, select_computed_columns(uid)]
+def select_feid(uid: int|None=None, include: list[str]|None=None, changelog=False):
+	columns = [*FEID, *select_computed_columns(uid)]
 	if include:
 		columns = [c for c in columns if c.name in include]
 	
 	col_q = SQL(',').join([c.sql_val() for c in columns])
-	select = SQL(f'SELECT {{}} FROM events.{E_FEID} LEFT JOIN events.{CC_TABLE} ORDER BY time').format(col_q)
+	select = SQL(f'SELECT {{}} FROM events.{E_FEID} '+\
+		f'LEFT JOIN events.{CC_TABLE} ON id = feid_id ORDER BY time').format(col_q)
 
 	with pool.connection() as conn:
 		curs = conn.execute(select)
 		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description or []]
+		resp = { 'fields': fields, 'data': rows }
 
 		changes = None
 		if changelog: # TODO: optimization
@@ -62,9 +63,11 @@ def select_feid(uid=None, include=None, changelog=False):
 				if column not in per_event[eid]:
 					per_event[eid][column] = []
 				per_event[eid][column].append([made_at, author, old_val, new_val, special])
+			
+			resp['changelog'] = changes # type: ignore
 
-		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
-		return rows, fields, changes
+	log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
+	return resp
 
 def link_source(feid_id, entity, existing_id = None):
 	with pool.connection() as conn:

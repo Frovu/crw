@@ -43,11 +43,8 @@ app = Flask('crw')
 app.config["COMPRESS_REGISTER"] = False  # disable default compression of all eligible requests
 compress = Compress()
 compress.init_app(app)
-if hasattr(app, 'json'):
-	app.json.sort_keys = False
-	app.json.indent = 0
-else:
-	app.config['JSON_SORT_KEYS'] = False
+
+app.config['JSON_SORT_KEYS'] = False
 
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_THRESHOLD'] = 256
@@ -65,11 +62,11 @@ def after_request(response):
 		response.headers['Access-Control-Allow-Credentials'] = 'true'
 	return response
 
-from routers import admin, auth, cream, feid, meteo, muon, neutron, omni
+from routers import admin, auth, cream, events, meteo, muon, neutron, omni
 app.register_blueprint(admin.bp)
 app.register_blueprint(auth.bp)
 app.register_blueprint(cream.bp)
-app.register_blueprint(feid.bp)
+app.register_blueprint(events.bp)
 app.register_blueprint(meteo.bp)
 app.register_blueprint(muon.bp)
 app.register_blueprint(neutron.bp)

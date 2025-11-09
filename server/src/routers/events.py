@@ -1,3 +1,4 @@
+# type: ignore
 import json
 from time import time
 from datetime import datetime, timezone
@@ -15,8 +16,6 @@ from events import query
 from routers.utils import route_shielded, require_role, msg
 from data import sun_images
 from data.swpc import swpc
-
-import events.columns.parser
 
 from database import get_coverage
 from utility import OperationCache
@@ -82,21 +81,18 @@ def _get_fetch_source():
 def list_events():
 	entity = request.args.get('entity')
 	include = request.args.get('include')
-	include = include and include.split(',')
+	include = include.split(',') if include else None
 	if entity:
 		return query.select_events(entity, include)
+	
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
 	uid = session.get('uid')
-	res = query.select_feid(uid, include, changelog=changelog)
-	result = { 'fields': res[1], 'data': res[0] }
-	if changelog and uid is not None:
-		result['changelog'] = res[2]
-	return result
+	return query.select_feid(uid, include, changelog=changelog)
 
 @bp.route('/table_structure/', methods=['GET'])
 @route_shielded
 def events_tables_info():
-	return query.render_table_info(session.get('uid'))
+	return query.render_table_structure(session.get('uid'))
 
 @bp.route('/cme_heighttime', methods=['GET'])
 @route_shielded

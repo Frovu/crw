@@ -51,4 +51,6 @@ class Column:
 		return f'enum_{self.entity}_{self.name}'
 
 	def as_dict(self):
-		return asdict(self)
+		res = asdict(self)
+		res['sql_def'] = self.sql_def.as_string() # type: ignore
+		return res
