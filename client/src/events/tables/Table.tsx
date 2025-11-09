@@ -13,14 +13,14 @@ import {
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../events';
 import { color, openContextMenu } from '../../app';
-import type { ColumnDef } from '../columns';
 import { makeChange, useEventsState, type Cursor, type TableName } from '../eventsState';
+import type { Column } from '../../api';
 
-export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: ColumnDef[] }) {
+export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {
 	return (
 		<tr>
 			{columns.map((col) => (
-				<td key={col.id} title={`[${col.name}] ${col.description ?? ''}`} className="ColumnHeader" style={{ cursor: 'auto' }}>
+				<td key={col.sql_name} title={`[${col.name}] ${col.description ?? ''}`} className="ColumnHeader" style={{ cursor: 'auto' }}>
 					<div style={{ height: 20 + padHeader, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
 				</td>
 			))}
@@ -31,7 +31,7 @@ export function DefaultHead({ columns, padHeader }: { padHeader: number; columns
 type DefaultRowParams = {
 	row: any[];
 	idx: number;
-	columns: ColumnDef[];
+	columns: Column[];
 	className: string;
 	padRow: number;
 	cursor: Cursor | null;
@@ -40,7 +40,7 @@ type DefaultRowParams = {
 	title?: (cidx: number) => string;
 	onClick: (e: MouseEvent, cidx: number) => void;
 	contextMenuData: (cidx: number) => any;
-	children: (cell: { column: ColumnDef; cidx: number; curs: Cursor | null }) => ReactNode;
+	children: (cell: { column: Column; cidx: number; curs: Cursor | null }) => ReactNode;
 };
 
 export function DefaultRow({
@@ -65,8 +65,8 @@ export function DefaultRow({
 				return (
 					<td
 						className={cn(curs && 'outline-active outline-1', className)}
-						key={column.id}
-						title={title?.(cidx) ?? `${column.fullName} = ${valueToString(row[cidx])}`}
+						key={column.sql_name}
+						title={title?.(cidx) ?? `${column.name} = ${valueToString(row[cidx])}`}
 						onClick={(e) => onClick(e, cidx)}
 						onContextMenu={openContextMenu('events', contextMenuData(cidx))}
 					>
@@ -79,9 +79,9 @@ export function DefaultRow({
 	);
 }
 
-export function DefaultCell({ column, children }: { column: ColumnDef; children: ReactNode }) {
+export function DefaultCell({ column, children }: { column: Column; children: ReactNode }) {
 	return (
-		<span className="Cell" style={{ width: column.width + 'ch' }}>
+		<span className="Cell">
 			<div className="TdOver" />
 			{children}
 		</span>
@@ -97,7 +97,7 @@ export function CellInput({
 	change,
 }: {
 	id: number;
-	column: ColumnDef;
+	column: Column;
 	value: string;
 	table: TableName;
 	options?: string[];
@@ -107,7 +107,7 @@ export function CellInput({
 	const { escapeCursor } = useEventsState();
 
 	return useMemo(() => {
-		const doChange = (v: any) => (change ? change(v) : makeChange(table, { id, column: column.id, value: v }));
+		const doChange = (v: any) => (change ? change(v) : makeChange(table, { id, column: column.sql_name, value: v }));
 
 		const onChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>, save: boolean = false) => {
 			const str = e.target.value.trim();
@@ -122,12 +122,12 @@ export function CellInput({
 			borderWidth: 0,
 			padding: 0,
 			backgroundColor: color('bg'),
-			boxShadow: column.type !== 'enum' ? ' 0 0 16px 4px ' + (invalid ? color('red') : color('active')) : 'unest',
+			boxShadow: column.dtype !== 'enum' ? ' 0 0 16px 4px ' + (invalid ? color('red') : color('active')) : 'unest',
 		};
 
 		return (
 			<>
-				{column.type === 'enum' && (
+				{column.dtype === 'enum' && (
 					<select
 						autoFocus
 						style={inpStype!}
@@ -137,15 +137,16 @@ export function CellInput({
 							escapeCursor();
 						}}
 					>
-						{column.nullable && <option value="">&lt;null&gt;</option>}
-						{(options ?? column.enum)?.map((val) => (
-							<option key={val} value={val}>
-								{val}
-							</option>
-						))}
+						{column.type === 'static' && !column.not_null && <option value="">&lt;null&gt;</option>}
+						{column.type === 'static' &&
+							(options ?? column.enum)?.map((val) => (
+								<option key={val} value={val}>
+									{val}
+								</option>
+							))}
 					</select>
 				)}
-				{column.type !== 'enum' && (
+				{column.dtype !== 'enum' && (
 					<input
 						type="text"
 						autoFocus
@@ -164,7 +165,7 @@ export function CellInput({
 }
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void, padding: number) => ReactNode;
-type HeadConstructor = (columns: ColumnDef[], padding: number) => ReactNode;
+type HeadConstructor = (columns: Column[], padding: number) => ReactNode;
 
 export function TableWithCursor({
 	entity,
@@ -185,7 +186,7 @@ export function TableWithCursor({
 	entity: string;
 	data: any[][];
 	focusIdx?: number;
-	columns: ColumnDef[];
+	columns: Column[];
 	headSize?: number;
 	head?: HeadConstructor | null;
 	row: RowConstructor;
@@ -266,7 +267,7 @@ export function TableWithCursor({
 			return setEditing(!cursor?.editing);
 		}
 		if (cursor?.editing) return;
-		if ((!cursor || columns[cursor.column].type !== 'enum') && isInput) return;
+		if ((!cursor || columns[cursor.column].dtype !== 'enum') && isInput) return;
 
 		const set = (crs: Omit<Cursor, 'id'>) => {
 			const curs = { ...crs, id: data[crs.row]?.[0] };
@@ -301,7 +302,7 @@ export function TableWithCursor({
 
 		if (e.ctrlKey && deltaRow !== 0) {
 			let cur = clamp(0, data.length - 1, row + deltaRow);
-			if (columns[column].type === 'time') {
+			if (columns[column].dtype === 'time') {
 				const curYear = (data[cur][column + 1] as Date).getUTCFullYear();
 
 				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear && cur > 0 && cur < data.length - 1) cur += deltaRow;

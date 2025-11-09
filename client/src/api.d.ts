@@ -1,4 +1,6 @@
-export type Column = {
+export type Column = StaticColumn | ComputedColumn;
+
+export type StaticColumn = {
     entity: string;
     sql_name: string;
     name: string;
@@ -11,6 +13,7 @@ export type Column = {
     parse_name: string | null;
     parse_value: {[key: string]: string | null} | null;
     parse_stub: string | null;
+    type: 'static';
 };
 
 export type ComputedColumn = {
@@ -25,6 +28,7 @@ export type ComputedColumn = {
     owner_id: number;
     is_public: boolean;
     definition: string;
+    type: 'computed';
 };
 
 export type Series = {
@@ -48,9 +52,9 @@ export type ChangelogResponse = {
     events: {[key: string]: {[key: string]: (number | null | string)[][]}};
 };
 
-export interface tables {
+export interface tableStructure {
 	donki_flares: {
-		id: number | null;
+		id: number;
 		event_id: string | null;
 		start_time: Date;
 		peak_time: Date | null;
@@ -64,7 +68,7 @@ export interface tables {
 	},
 
 	donki_cmes: {
-		id: number | null;
+		id: number;
 		event_id: string | null;
 		time: Date;
 		time_21_5: Date | null;
@@ -122,7 +126,7 @@ export interface tables {
 	},
 
 	solardemon_dimmings: {
-		id: number | null;
+		id: number;
 		flare_id: number | null;
 		start_time: Date;
 		peak_time: Date;
@@ -137,7 +141,7 @@ export interface tables {
 	},
 
 	solardemon_flares: {
-		id: number | null;
+		id: number;
 		dimming_id: number | null;
 		start_time: Date;
 		peak_time: Date;
@@ -164,7 +168,7 @@ export interface tables {
 	},
 
 	solen_holes: {
-		tag: string | null;
+		tag: string;
 		time: Date;
 		polarity: string;
 		location: string;
@@ -173,7 +177,7 @@ export interface tables {
 	},
 
 	feid: {
-		id: number | null;
+		id: number;
 		time: Date;
 		duration: number;
 		onset_type: string | null;
@@ -205,15 +209,15 @@ export interface tables {
 	},
 
 	feid_sources: {
-		id: number | null;
-		feid_id: number | null;
+		id: number;
+		feid_id: number;
 		ch_id: number | null;
 		erupt_id: number | null;
 		cr_influence: string | null;
 	},
 
 	sources_ch: {
-		id: number | null;
+		id: number;
 		tag: string | null;
 		chimera_time: Date | null;
 		chimera_id: number | null;
@@ -226,7 +230,7 @@ export interface tables {
 	},
 
 	sources_erupt: {
-		id: number | null;
+		id: number;
 		flr_start: Date | null;
 		flr_peak: Date | null;
 		flr_end: Date | null;

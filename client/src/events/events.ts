@@ -6,7 +6,7 @@ import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../la
 import { getApp } from '../app';
 import type { Value, DataRow } from './columns';
 import type { BasicPlotParams } from '../plots/basicPlot';
-import type { ChangelogEntry, ChangelogResponse, Column } from '../api';
+import type { ChangelogEntry, ChangelogResponse, Column, Series } from '../api';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -63,17 +63,15 @@ export type Onset = { time: Date; type: string | null; secondary?: boolean; inse
 export type MagneticCloud = { start: Date; end: Date };
 
 export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
-	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry | undefined;
+	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry[] | undefined;
 
 export type ChangeValue = { id: number; column: string; value: Value; silent?: boolean; fast?: boolean };
 export type FiltersCollection = { filter: Filter; id: number }[];
 
 export const MainTableContext = createContext<{
 	columns: Column[];
-	columnIndex: { [col: string]: number };
-	structure: { [tbl: string]: Column[] };
-	rels: { [s: string]: string };
-	series: { [s: string]: string };
+	tables: { [table: string]: Column[] };
+	series: Series[];
 	changelog?: ChangelogResponse;
 }>({} as any);
 
@@ -149,7 +147,7 @@ export function valueToString(v: Value) {
 }
 
 export function isValidColumnValue(val: Value, column: Column) {
-	if (val == null) return !column.not_null;
+	if (val == null) return column.type !== 'static' || !column.not_null;
 
 	switch (column.dtype) {
 		case 'time':
@@ -158,7 +156,7 @@ export function isValidColumnValue(val: Value, column: Column) {
 		case 'integer':
 			return typeof val == 'number' && !isNaN(val);
 		case 'enum':
-			return column.enum?.includes(val as string);
+			return column.type === 'static' && column.enum?.includes(val as string);
 		default:
 			return val !== '';
 	}

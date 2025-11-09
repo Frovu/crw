@@ -36,15 +36,17 @@ def generate_table_type(tbl: str, cols: list[Column], write):
 rendered = ts.generator.render(Builder)
 
 with open(TARGET, 'w') as f:
+	f.write('export type Column = StaticColumn | ComputedColumn;\n\n')
 	for text in rendered.values():
 		text = re.sub(r'export type[^;]+;', '', text)
 		text = re.sub(r'.*_([a-zA-Z]+) = \{', r'export type \1 = {', text)
 		text = text.replace('\n\n', '').replace(';exp', ';\n\nexp')
+		text = text.replace(' Column =', ' StaticColumn =')
 		text = re.sub(r'"([a-z_]+)":', r'\1:', text) 
 		text = re.sub(r'"([a-z_]+)"', r"'\1'", text) 
 		f.write(text + '\n\n')
 
-	f.write('export interface tables {\n')
+	f.write('export interface tableStructure {\n')
 	for tbl, cols in ALL_TABLES.items():
 		generate_table_type(tbl, cols, f.write)
 	f.write('}\n')

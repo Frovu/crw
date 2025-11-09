@@ -37,6 +37,11 @@ class Column(BaseColumn):
 	parse_name: str | None = None
 	parse_value: dict[str, str | None] | None = None
 	parse_stub: str | None = None
+	type: Literal['static'] = 'static'
+
+	def __post_init__(self):
+		if 'not null' in self.sql_def.lower() or 'primary key' in self.sql_def.lower():
+			self.not_null = True
 
 	def sql_type_def(self):
 		if self.sql_def:

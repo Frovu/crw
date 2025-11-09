@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { equalValues, type ChangeValue, type FeidRow, type FeidSrcRow, type SrcCHRow, type SrcEruptRow } from './events';
-import type { ColumnDef, DataRow, Value } from './columns';
+import { equalValues, type ChangeValue } from './events';
+import type { DataRow } from './columns';
+import type { Column, tableStructure } from '../api';
 
 export const flaresLinks = {
 	SFT: ['solarsoft_flr_start', 'start_time'],
@@ -22,7 +23,7 @@ export const icmeLinks = {
 
 export type Sort = { column: string; direction: 1 | -1 };
 export type Cursor = { row: number; column: number; entity: string; editing?: boolean; id: number };
-const tables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
+const tables: readonly (keyof tableStructure)[] = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'];
 export type TableName = (typeof tables)[number];
 const linkIds = [flaresLinks, cmeLinks, icmeLinks].flatMap((lnk) => Object.values(lnk).map((l) => l[0])) as string[];
 
@@ -40,7 +41,7 @@ const defaultSate = {
 	changes: Object.fromEntries(tables.map((t) => [t, [] as ChangeValue[]])) as { [t in TableName]: ChangeValue[] },
 	created: Object.fromEntries(tables.map((t) => [t, [] as DataRow[]])) as { [t in TableName]: DataRow[] },
 	deleted: Object.fromEntries(tables.map((t) => [t, [] as number[]])) as { [t in TableName]: number[] },
-	columns: {} as { [t in TableName]?: ColumnDef[] },
+	columns: {} as { [t in TableName]?: Column[] },
 	rawData: {} as { [t in TableName]?: DataRow[] },
 	data: {} as { [t in TableName]?: DataRow[] },
 };
@@ -121,14 +122,14 @@ const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
 	) as typeof rawData;
 	for (const { id, column, value } of changes) {
 		const row = data.find((r) => r[0] === id);
-		const columnIdx = columns.findIndex((c) => c.id === column);
+		const columnIdx = columns.findIndex((c) => c.sql_name === column);
 		if (row) row[columnIdx] = value;
 	}
 	if (tbl === 'sources_erupt') {
-		const [i1, i2, i3] = ['flr_start', 'cme_time', 'rc_icme_time'].map((cid) => columns.findIndex((c) => c.id === cid));
+		const [i1, i2, i3] = ['flr_start', 'cme_time', 'rc_icme_time'].map((cid) => columns.findIndex((c) => c.sql_name === cid));
 		data.sort((a: any, b: any) => (a[i1] ?? a[i2] ?? a[i3]) - (b[i1] ?? b[i2] ?? b[i3]));
 	} else {
-		const sortIdx = columns.findIndex((c) => c.type === 'time');
+		const sortIdx = columns.findIndex((c) => c.dtype === 'time');
 		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
 	}
 	return data;
@@ -144,16 +145,15 @@ export const useFeidCursor = () => {
 	const plotId = useEventsState((st) => st.plotId);
 
 	const targetIdx = data.findIndex((r) => r[0] === plotId);
-	const row = rowAsDict(data[targetIdx], columns) as FeidRow;
+	const row = rowAsDict<'feid'>(data[targetIdx], columns);
 	const duration = row.duration;
 	const start = row.time;
 	const end = row.duration == null ? undefined : start && new Date(start?.getTime() + duration! * 36e5);
 	return { duration, start, end, id: plotId, row };
 };
 
-export type RowDict = { [k: string]: Value | undefined };
-export const rowAsDict = (row: any[] | undefined, columns: ColumnDef[]): RowDict =>
-	Object.fromEntries(columns.map((c, i) => [c.id, row?.[i] ?? null]));
+export const rowAsDict = <T extends keyof tableStructure = never>(row: any[] | undefined, columns: Column[]) =>
+	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as tableStructure[T];
 
 export const useSources = () => {
 	const plotId = useEventsState((st) => st.plotId);
@@ -164,23 +164,20 @@ export const useSources = () => {
 	return src.data
 		.filter((row) => row[fIdIdx] === plotId)
 		.map((row) => {
-			const source = rowAsDict(row, src.columns) as FeidSrcRow;
+			const source = rowAsDict<'feid_sources'>(row, src.columns);
 			if (row[chIdIdx]) {
 				const found = ch.data.find((r) => r[0] === row[chIdIdx]);
-				return { source, ch: found && (rowAsDict(found, ch.columns) as SrcCHRow) };
+				return { source, ch: found && rowAsDict<'sources_ch'>(found, ch.columns) };
 			} else if (row[eruptIdIdx]) {
 				const found = erupt.data.find((r) => r[0] === row[eruptIdIdx]);
-				return { source, erupt: found && (rowAsDict(found, erupt.columns) as SrcEruptRow) };
+				return { source, erupt: found && rowAsDict<'sources_erupt'>(found, erupt.columns) };
 			}
 			return { source };
 		})
 		.filter((a) => !!a);
 };
 
-export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(
-	tbl: T,
-	soft = false
-): (T extends 'sources_ch' ? SrcCHRow : SrcEruptRow) | null => {
+export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): tableStructure[T] | null => {
 	const plotId = useEventsState((st) => st.plotId);
 	const cursor = useEventsState((st) => st.cursor);
 	const modifySource = useEventsState((st) => st.modifySource);
@@ -198,7 +195,7 @@ export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(
 	return !data || targetId == null ? null : (rowAsDict(data.find((row) => row[0] === targetId)!, columns) as any);
 };
 
-export const setRawData = (tbl: TableName, rdata: DataRow[], cols: ColumnDef[]) =>
+export const setRawData = (tbl: TableName, rdata: DataRow[], cols: Column[]) =>
 	queueMicrotask(() =>
 		useEventsState.setState((state) => {
 			state.columns[tbl] = cols;
@@ -257,7 +254,7 @@ export function makeChange(tbl: TableName, chgs: ChangeValue | ChangeValue[]) {
 		const { rawData, columns } = st;
 		for (const [i, { id, value, column, fast, silent }] of changes.entries()) {
 			const rawRow = rawData[tbl]!.find((r) => r[0] === id);
-			const colIdx = columns[tbl]!.findIndex((c) => c.id === column);
+			const colIdx = columns[tbl]!.findIndex((c) => c.sql_name === column);
 
 			st.changes[tbl] = [
 				...st.changes[tbl].filter((c) => c.id !== id || column !== c.column),
@@ -279,7 +276,7 @@ export function createFeid(row: { time: Date; duration: number }) {
 	const id = Date.now() % 1e6;
 	useEventsState.setState((state) => {
 		const { columns, data, created } = state;
-		const newRow = [id, ...columns.feid!.slice(1).map((col) => row[col.id as keyof typeof row] ?? null)];
+		const newRow = [id, ...columns.feid!.slice(1).map((col) => row[col.sql_name as keyof typeof row] ?? null)];
 		created.feid = [newRow as any, ...created.feid];
 		data.feid = applyChanges(state, 'feid');
 	});
@@ -301,7 +298,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		const targetIdCol = tbl === 'sources_ch' ? 'ch_id' : 'erupt_id';
 		const feidSrcRow = [
 			feidSrcId,
-			...columns.feid_sources!.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId }[c.id] ?? null)),
+			...columns.feid_sources!.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId }[c.sql_name] ?? null)),
 		] as DataRow;
 		created.feid_sources = [...created.feid_sources, feidSrcRow];
 		data.feid_sources = [...data.feid_sources!, feidSrcRow];
@@ -311,7 +308,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 	return id;
 }
 
-export function makeSourceChanges(tbl: 'sources_ch' | 'sources_erupt', row: SrcEruptRow | SrcCHRow) {
+export function makeSourceChanges<T extends 'sources_ch' | 'sources_erupt'>(tbl: T, row: tableStructure[T]) {
 	makeChange(
 		tbl,
 		Object.entries(row)

@@ -5,10 +5,10 @@ import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, 
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Option, Select, askConfirmation } from '../Utility';
-import type { ColumnDef } from './columns';
 import { useTable } from './eventsState';
+import type { Column } from '../api';
 
-function isFilterInvalid({ operation, value }: Filter, column?: ColumnDef) {
+function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;
 	if (['is null', 'not null'].includes(operation)) return false;
 	if ('regexp' === operation) {
@@ -132,7 +132,13 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?
 				<input
 					type="text"
 					disabled={disabled}
-					style={{ textAlign: 'center', flex: '2', minWidth: 0, maxWidth: '8em', ...(isInvalid && { borderColor: color('red') }) }}
+					style={{
+						textAlign: 'center',
+						flex: '2',
+						minWidth: 0,
+						maxWidth: '8em',
+						...(isInvalid && { borderColor: color('red') }),
+					}}
 					value={value}
 					onChange={set('value')}
 				/>
@@ -171,8 +177,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						toDelete.current = null;
 						setSample(null);
 					},
-				},
-			),
+				}
+			)
 		);
 	};
 
@@ -180,7 +186,10 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
 		return samples.find((s) => s.name === name) ? newName(i + 1, n) : name;
 	};
-	const stripFilters = sample && { ...sample, filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [] };
+	const stripFilters = sample && {
+		...sample,
+		filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [],
+	};
 	const { mutate, isPending } = useMutation({
 		mutationFn: async ({ action, ow }: { action: 'create' | 'remove' | 'update' | 'copy'; ow?: Sample }) =>
 			apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(
@@ -200,9 +209,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						case 'remove':
 							return { id: ow?.id ?? sample?.id };
 						case 'update':
-							return ow ? ow : (stripFilters ?? {});
+							return ow ? ow : stripFilters ?? {};
 					}
-				})(),
+				})()
 			),
 		onSuccess: () => queryClient.refetchQueries({ queryKey: ['samples'] }),
 		onError: logError,
@@ -220,7 +229,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					clearFilters();
 					setSample({ ...smpl, filters: [] });
 				},
-			},
+			}
 		);
 	const copySample = () =>
 		mutate(
@@ -235,7 +244,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					setSample(newSample);
 					mutate({ action: 'update', ow: newSample }, {});
 				},
-			},
+			}
 		);
 
 	const unsavedChanges = show && sample && JSON.stringify(samples.find((s) => s.id === sample.id)) !== JSON.stringify(stripFilters);
@@ -268,7 +277,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	}, [columns, sample, samples, tableData]);
 
 	const publicIssue =
-		sample?.public && sample.filters?.map(({ column }) => columns.find((c) => c.id === column)).find((col) => col?.generic && !col.generic.is_public);
+		sample?.public &&
+		sample.filters?.map(({ column }) => columns.find((c) => c.id === column)).find((col) => col?.generic && !col.generic.is_public);
 
 	return (
 		<div ref={ref} style={{ maxWidth: '46em' }}>
@@ -295,13 +305,19 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						style={{ color: color('white'), flex: '6 8em', minWidth: 0 }}
 						value={sample?.id?.toString() ?? '_none'}
 						content={sample?.name ?? '-- All events --'}
-						onChange={(val) => (val === '_create' ? createSample() : setSample(samples.find((s) => s.id.toString() === val) ?? null))}
+						onChange={(val) =>
+							val === '_create' ? createSample() : setSample(samples.find((s) => s.id.toString() === val) ?? null)
+						}
 					>
 						<Option value="_create">-- Create sample --</Option>
 						<div className="separator" />
 						<Option value="_none">-- All events --</Option>
 						{samples.map(({ id, name, authors }) => (
-							<Option key={id} value={id.toString()} style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}>
+							<Option
+								key={id}
+								value={id.toString()}
+								style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}
+							>
 								{sample?.id === id ? sample.name : name}
 								<div style={{ flex: 1 }} />
 								{authors.includes(login!) && (
@@ -386,7 +402,10 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						</button>
 					</div>
 					{publicIssue && (
-						<div title="Other users will not be able to use this sample, please make all required columns public" style={{ color: color('red') }}>
+						<div
+							title="Other users will not be able to use this sample, please make all required columns public"
+							style={{ color: color('red') }}
+						>
 							! Public sample depends on a private column: {publicIssue.fullName}
 						</div>
 					)}
@@ -438,7 +457,12 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						{show && allowEdit && (
 							<button
 								disabled={!unsavedChanges}
-								style={{ flex: '2 4em', minWidth: 'fit-content', maxWidth: '12em', ...(unsavedChanges && { color: color('active') }) }}
+								style={{
+									flex: '2 4em',
+									minWidth: 'fit-content',
+									maxWidth: '12em',
+									...(unsavedChanges && { color: color('active') }),
+								}}
 								onClick={() =>
 									mutate(
 										{ action: 'update' },
@@ -448,7 +472,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 												logMessage('Sample edited: ' + sample.name);
 												setHoverAuthors(0);
 											},
-										},
+										}
 									)
 								}
 							>

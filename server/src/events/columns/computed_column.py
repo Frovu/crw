@@ -1,5 +1,6 @@
 from datetime import datetime
 from dataclasses import dataclass, field
+from typing import Literal
 import ts_type
 
 from psycopg import Connection, rows, sql
@@ -18,6 +19,7 @@ class ComputedColumn(BaseColumn):
 	owner_id: int = field(kw_only=True)
 	is_public: bool = field(kw_only=True)
 	definition: str = field(kw_only=True)
+	type: Literal['computed'] = 'computed'
 
 	@classmethod
 	def from_sql_row(cls, row):

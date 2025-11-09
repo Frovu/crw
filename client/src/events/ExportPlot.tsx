@@ -292,7 +292,6 @@ export function ExportableUplot({
 	const { theme, colors } = useAppSettings();
 	const { scalesParams, textTransform } = usePlotExportSate((st) => st.overrides);
 	const controlsPresent = useNodeExists('Export Controls');
-	console.log(controlsPresent);
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };

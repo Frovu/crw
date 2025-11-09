@@ -7,14 +7,13 @@ from events.columns.computed_column import select_computed_columns, DATA_TABLE a
 from events.columns.series import SERIES
 
 def render_table_structure(uid: int):
-	structure = {
-		table: { col.name: col.as_dict() for col in columns } for table, columns in ALL_TABLES.items()
+	tables = {
+		table: [col.as_dict() for col in columns] for table, columns in ALL_TABLES.items()
 	}
-	for col in select_computed_columns(uid):
-		structure[E_FEID][col.name] = col.as_dict()
+	ccs = [c.as_dict() for c in select_computed_columns(uid)]
 		
 	series = { ser.name: ser.as_dict() for ser in SERIES }
-	return { 'tables': structure, 'series': series }
+	return { 'tables': tables, 'series': series, 'computed_columns': ccs }
 
 def select_events(entity: str, include: list[str]|None=None):
 	if entity not in ALL_TABLES:

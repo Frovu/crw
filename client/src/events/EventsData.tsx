@@ -1,5 +1,5 @@
 import { type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { MainTableContext, SampleContext, TableViewContext, useEventsSettings, valueToString } from './events';
+import { MainTableContext, SampleContext, useEventsSettings, valueToString } from './events';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Sample, applySample, renderFilters, useSampleState } from './sample';
@@ -16,7 +16,7 @@ import {
 	useEventsState,
 	type TableName,
 } from './eventsState';
-import type { ChangelogResponse, Column } from '../api';
+import type { ChangelogResponse, Column, ComputedColumn, Series } from '../api';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
 	const { login } = useContext(AuthContext);
@@ -28,27 +28,14 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		staleTime: Infinity,
 		queryKey: ['tableStructure'],
 		queryFn: async () => {
-			const { tables, series } = await apiGet<{
-				tables: { [name: string]: { [name: string]: Column } };
-				series: { [s: string]: string };
+			const res = await apiGet<{
+				tables: { [table: string]: Column[] };
+				computed_columns: ComputedColumn[];
+				series: Series[];
 			}>('events/table_structure');
 
-			const structure = Object.fromEntries(
-				Object.entries(tables).map(([table, cols]) => [table, Object.values(cols).map((desc) => fromDesc(desc))])
-			);
-			const columns = structure.feid;
-			console.log('%cavailable columns:', 'color: #0f0', structure);
-			return {
-				rels: {
-					FE: 'Forbush Effects',
-					MC: 'Magnetic Clouds',
-					FLR: 'Flares',
-					CME: 'Coronal Mass Ejections',
-				},
-				structure,
-				columns,
-				series,
-			};
+			console.log('%ctable structure:', 'color: #0f0', res);
+			return res;
 		},
 	});
 
@@ -71,33 +58,30 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const mainContext = useMemo(() => {
 		if (!dataQuery.data || !structureQuery.data) return null;
-		const { columns, rels, series, structure } = structureQuery.data;
+		const { series, tables, computed_columns } = structureQuery.data;
 		const { data: rawData, fields, changelog } = dataQuery.data;
 
-		const cols = columns.slice(1);
-		const filtered = [columns[0]]
-			.concat(
-				(() => {
-					if (columnOrder == null) {
-						const sorted = cols.sort((a, b) => (a.generic ? a.name?.localeCompare(b.name) : 0));
-						return sorted;
-					} else {
-						// place new columns at the end
-						const index = (id: string) => {
-							const idx = columnOrder.indexOf(id);
-							return idx < 0 ? 9999 : idx;
-						};
-						return cols.sort((a, b) => index(a.id) - index(b.id));
-					}
-				})()
-			)
-			.sort((a, b) => Object.keys(rels).indexOf(a.rel ?? '') - Object.keys(rels).indexOf(b.rel ?? ''))
-			.filter((c) => fields.includes(c.id));
+		const cols = [...tables.feid.slice(1), ...computed_columns];
+		const filtered = [
+			tables.feid[0],
+			...(() => {
+				if (columnOrder == null) {
+					return cols.sort((a, b) => a.name?.localeCompare(b.name));
+				} else {
+					// place new columns at the end
+					const index = (id: string) => {
+						const idx = columnOrder.indexOf(id);
+						return idx < 0 ? 9999 : idx;
+					};
+					return cols.sort((a, b) => index(a.name) - index(b.name));
+				}
+			})(),
+		].filter((c) => fields.includes(c.sql_name));
 
-		const indexes = filtered.map((c) => fields.indexOf(c.id));
+		const indexes = filtered.map((c) => fields.indexOf(c.sql_name));
 		const data = rawData.map((row: Value[]) => indexes.map((i) => row[i])) as DataRow[];
 		for (const [i, col] of Object.values(filtered).entries()) {
-			if (col.type === 'time') {
+			if (col.dtype === 'time') {
 				for (const row of data) {
 					if (row[i] === null) continue;
 					if (col.name.startsWith('flr')) console.log(row[i]);
@@ -107,17 +91,13 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			}
 		}
 
-		const columnIndex = Object.fromEntries(filtered.map((c, i) => [c.id, i]));
-
 		setRawData('feid', data, filtered);
 
-		console.log('%crendered table:', 'color: #0f0', columns, fields, data, changelog);
+		console.log('%crendered table:', 'color: #0f0', filtered, fields, data, changelog);
 		return {
 			columns: filtered,
-			columnIndex,
-			structure: { ...structure, feid: filtered },
+			tables: { ...tables, feid: filtered },
 			changelog,
-			rels,
 			series,
 		} as const;
 	}, [columnOrder, dataQuery.data, structureQuery.data]);
@@ -248,15 +228,15 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 									{chgs
 										.filter((ch) => !ch.silent)
 										.map(({ id, column: cId, value }) => {
-											const column = columns[tbl as keyof typeof columns]?.find((c) => c.id === cId);
+											const column = columns[tbl as keyof typeof columns]?.find((c) => c.sql_name === cId);
 											const row = rawData[tbl as keyof typeof changes]!.find((r) => r[0] === id);
-											const colIdx = columns[tbl as keyof typeof changes]!.findIndex((c) => c.id === cId);
+											const colIdx = columns[tbl as keyof typeof changes]!.findIndex((c) => c.sql_name === cId);
 											const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 											const val1 = value == null ? 'null' : valueToString(value);
 											return (
 												<div key={id + cId + value}>
 													<span style={{ color: color('text-dark') }}>#{id}: </span>
-													<i style={{ color: color('active') }}>{column?.fullName}</i> {val0} -&gt; <b>{val1}</b>
+													<i style={{ color: color('active') }}>{column?.name}</i> {val0} -&gt; <b>{val1}</b>
 													<div
 														className="CloseButton"
 														style={{ transform: 'translate(4px, 2px)' }}

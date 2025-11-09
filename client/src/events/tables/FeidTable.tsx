@@ -2,15 +2,15 @@ import { useContext, useState, useEffect, useCallback, type KeyboardEvent } from
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size, useEventListener } from '../../util';
-import type { ColumnDef } from '../columns';
-import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, type ChangeLogEntry, valueToString } from '../events';
+import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, valueToString } from '../events';
 import { useEventsState } from '../eventsState';
 import { pickEventForSample } from '../sample';
 import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
+import type { ChangelogEntry } from '../../api';
 
 export default function FeidTableView({ size, averages, entity }: { size: Size; entity: string; averages?: (null | number[])[] }) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changelog: wholeChangelog, rels: relsNames } = useContext(MainTableContext);
+	const { changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
 	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, modifyId, changes, created, deleted, toggleSort, setPlotId } = viewState;
@@ -30,16 +30,16 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 			)
 		);
 
-	const cursCol = cursor && columns[cursor?.column]?.id;
+	const cursCol = cursor && columns[cursor?.column]?.sql_name;
 	const changelogCols =
 		(showChangelog || null) &&
 		cursor &&
 		wholeChangelog &&
 		data[cursor.row] &&
-		columns.map((c) => [c.id, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.id)]);
+		columns.map((c) => [c.sql_name, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.sql_name)]);
 	const changelog = changelogCols
 		?.filter((c) => !!c[1])
-		.flatMap(([col, chgs]) => (chgs as ChangeLogEntry).map((c) => ({ column: col, ...c })))
+		.flatMap(([col, chgs]) => (chgs as ChangelogEntry[]).map((c) => ({ column: col, ...c })))
 		.sort((a, b) => b.time - a.time)
 		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 	const changeCount = [changes, created, deleted].flatMap(Object.values).reduce((a, b) => a + b.length, 0);
@@ -69,9 +69,6 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 		() =>
 			document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 
-	const rels = new Map<any, ColumnDef[]>();
-	columns.forEach((col) => (rels.has(col.rel) ? rels.get(col.rel)?.push(col) : rels.set(col.rel, [col])));
-
 	return (
 		<TableWithCursor
 			{...{
@@ -92,7 +89,6 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 									<tr style={{ fontSize: 15 }}>
 										{markers && (
 											<td
-												rowSpan={2}
 												title="f is for filter, + is whitelist, - is blacklist"
 												className="ColumnHeader"
 												style={{ minWidth: '3.5ch' }}
@@ -104,34 +100,17 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 												)}
 											</td>
 										)}
-										{[...rels].map(([rel, cls]) => (
-											<td className="ColumnHeader" key={rel} style={{ clipPath: 'none' }} colSpan={cls.length}>
-												<div style={{ height: 22 + padTableH }}>{cls.length > 1 ? relsNames[rel] : rel}</div>
-											</td>
-										))}
-										{includeMarkers && (
-											<td
-												rowSpan={2}
-												title="Event included from samples:"
-												className="ColumnHeader"
-												style={{ minWidth: '3.5ch' }}
-											>
-												#S
-											</td>
-										)}
-									</tr>
-									<tr style={{ fontSize: 15 }}>
 										{columns.map((col) => (
 											<td
-												key={col.id}
+												key={col.sql_name}
 												title={`[${col.name}] ${col.description ?? ''}`}
 												className="ColumnHeader"
-												onClick={() => toggleSort(col.id)}
+												onClick={() => toggleSort(col.name)}
 												onContextMenu={openContextMenu('events', { nodeId, header: col })}
 											>
 												<div style={{ height: columnH, lineHeight: 1 }}>
 													<span>{col.name}</span>
-													{sort.column === col.id && (
+													{sort.column === col.name && (
 														<div
 															className="SortShadow"
 															style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}
@@ -140,6 +119,11 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 												</div>
 											</td>
 										))}
+										{includeMarkers && (
+											<td title="Event included from samples:" className="ColumnHeader" style={{ minWidth: '3.5ch' }}>
+												#S
+											</td>
+										)}
 									</tr>
 								</>
 							);
@@ -147,9 +131,9 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 				row: (row, idx, onClick, padRow) => {
 					const marker = markers?.[idx];
 					const markerColor = marker && (marker.endsWith('+') ? 'cyan' : marker.endsWith('-') ? 'magenta' : 'text');
-					const isCompModified = columns.map((c) => {
-						if (!c.isComputed) return false;
-						const chgs = getChangelogEntry(wholeChangelog, row[0], c.id)?.sort((a, b) => b.time - a.time);
+					const isCompModified = columns.map((col) => {
+						if (col.type !== 'computed') return false;
+						const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort((a, b) => b.time - a.time);
 						if (!chgs?.length) return false;
 						return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
 					});
@@ -167,7 +151,7 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 							}}
 							contextMenuData={(cidx) => ({ nodeId, cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] } })}
 							title={(cidx) =>
-								(cidx === 0 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+								(cidx === 0 ? `id = ${row[0]}; ` : '') + `${columns[cidx].name} = ${valueToString(row[cidx + 1])}`
 							}
 							before={
 								marker && (
@@ -222,11 +206,11 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 							<tr key={label} style={{ height: 24, fontSize: 15 }}>
 								{markers && <td style={{ borderColor: 'transparent' }} />}
 								{averages?.map((avgs, i) => {
-									const isLabel = columns[i].type === 'time';
+									const isLabel = columns[i].dtype === 'time';
 									const val = avgs?.[ari];
 									return (
 										<td
-											key={columns[i].id}
+											key={columns[i].sql_name}
 											style={{
 												borderColor: color('grid'),
 												textAlign: isLabel ? 'right' : 'unset',
@@ -270,12 +254,12 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 							>
 								{changelog?.length ? (
 									changelog.map((change) => {
-										const column = columns.find((c) => c.id === change.column)!;
+										const column = columns.find((c) => c.sql_name === change.column)!;
 										const time = new Date(change.time * 1e3);
 										const val = (str: string | null) =>
 											str == null
 												? 'null'
-												: column.type === 'time'
+												: column.dtype === 'time'
 												? new Date(parseInt(str) * 1e3).toISOString().replace(/\..*|T/g, ' ')
 												: str;
 										return (
@@ -288,9 +272,16 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 														.slice(0, -4)}
 													] @{change.author}{' '}
 												</i>
-												<i style={{ color: columns[cursor!.column].id === column.id ? color('active') : 'unset' }}>
+												<i
+													style={{
+														color:
+															columns[cursor!.column].sql_name === column.sql_name
+																? color('active')
+																: 'unset',
+													}}
+												>
 													{' '}
-													<b>{column.fullName}</b>
+													<b>{column.name}</b>
 												</i>
 												: {val(change.old)} -&gt; <b>{val(change.new)}</b>
 												{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}

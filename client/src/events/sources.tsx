@@ -425,7 +425,6 @@ export function useCompoundTable(which: EruptEnt) {
 			staleTime: Infinity,
 			placeholderData: keepPreviousData,
 			queryFn: async () => {
-				console.log('useCompoundTable', which);
 				const tables = {
 					cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
 					icme: ['r_c_icmes'],

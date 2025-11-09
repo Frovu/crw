@@ -4,33 +4,11 @@ import { MainTableContext, SampleContext, findColumn, useEventsSettings } from '
 import { color } from '../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../app';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-	EXTREMUM_OP,
-	G_ALL_OPS,
-	G_COMBINE_OP,
-	G_VALUE_OP,
-	useGenericState,
-	type ColumnDef,
-	type ReferencePoint,
-	type GenericColumn,
-	type GenericParams,
-	defaultRefPoint,
-	type RefPointEvent,
-	G_OP_SRC,
-	G_SRC_ENTITY_NAME,
-	INFLUENCE_OPTIONS,
-	G_SRC_ORDER_OPTIONS,
-} from './columns';
 import { Confirmation } from '../Utility';
 import { SW_TYPES } from '../plots/time/SWTypes';
 
-const swRefToStr = (ref: Partial<Extract<ReferencePoint, { type: 'sw_structure' }>>, pretty?: boolean) =>
-	pretty ? 'SWS ' + (ref.end ? 'End' : 'Start') : (ref.end ? 'end+' : '') + 'sws';
-const refToStr = (ref: Partial<Extract<ReferencePoint, { type: 'event' }>>, pretty?: boolean) =>
-	(pretty ? ['Prev ', '', 'Next '] : ['prev+', '', 'next+'])[(ref?.events_offset ?? 0) + 1] +
-	(pretty ? (ref.time_src ?? '') + (ref.end == null ? '' : ref.end ? ' End' : ' Start') : (ref.end ? 'end+' : '') + ref.time_src);
-
 export default function ColumnsSelector() {
+	return null;
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const { shownColumns, columnOrder, setColumnOrder, setColumns } = useEventsSettings();
