@@ -1,65 +1,60 @@
 from datetime import datetime, timezone
 from database import pool, log
-from events.table_structure import ALL_TABLES, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
-from events.columns_old.generic_columns import select_generics, GenericColumn
-from events.columns_old.generic_core import G_SERIES, G_DERIVED
-from events.source import noaa_flares
+from psycopg.sql import SQL, Identifier
 
+from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
+from events.columns.computed_column import select_computed_columns, DATA_TABLE as CC_TABLE
+from events.columns.series import SERIES
 
-def render_table_info(uid):
-	generics = select_generics(uid)
-	info = {}
-	for table, columns in ALL_TABLES.items():
-		info[table] = { col.name: col.as_dict() for col in columns }
-	for col in noaa_flares.COLS:
-		info['feid'][col.name] = col.as_dict()
-	for g in generics:
-		info['feid'][g.name] = {
-			'id': g.name,
-			'name': g.pretty_name or g.name,
-			'type': g.data_type,
-			'description': g.desc,
-			'isComputed': True,
-			'entity': 'feid',
-			'generic': g.as_dict(uid),
-			'rel': g.rel
-		}
-	series = { ser: G_SERIES[ser][2] for ser in G_SERIES }
-	return { 'tables': info, 'series': series }
+def render_table_structure(uid):
+	structure = {
+		table: { col.name: col.as_dict() for col in columns } for table, columns in ALL_TABLES.items()
+	}
+	
+	for col in select_computed_columns(uid):
+		structure[E_FEID][col.name] = col.as_dict()
+		
+	series = { ser.name: ser.as_dict() for ser in SERIES }
+	return { 'tables': structure, 'series': series }
 
 def select_events(entity, include):
 	if entity not in ALL_TABLES:
-		raise ValueError('Unknown entity: '+entity)
+		raise NameError(f'Unknown entity: \'{entity}\'')
+	
 	cols = ALL_TABLES[entity]
 	cols = cols if include is None else [c for c in cols if c.name in include]
+
+	col_q = SQL(',').join([c.sql_val() for c in cols])
+	time_col = next((c for c in cols if 'time' in c.name), None)
+	order = Identifier(time_col.name if time_col else 'id')
+	query = SQL('SELECT {} FROM events.{} ORDER BY {}').format(col_q, Identifier(entity), order)
+
 	with pool.connection() as conn:
-		cl = ','.join(f'EXTRACT(EPOCH FROM {c.name})::integer' if c.data_type == 'time' else c.name for c in cols)
-		time_col = next((c for c in cols if 'time' in c.name), None)
-		q = f'SELECT {cl} FROM events.{entity} ORDER BY {time_col.name if time_col else "id"}'
-		data = conn.execute(q).fetchall()
-	return { 'columns': [c.as_dict() for c in cols], 'data': data } # TODO: remove redundant column def sending (they are all in table_structure now)
+		data = conn.execute(query).fetchall()
+
+	return { 'columns': [c.as_dict() for c in cols], 'data': data }
 
 def select_feid(uid=None, include=None, changelog=False):
-	generics = select_generics(uid)
-	columns = []
-	for col in list(FEID[1].values()) + noaa_flares.COLS + generics: # FIXME: remove explicit noaa flares
-		if include and (col.name not in include and (type(col) == GenericColumn and col.nickname) not in include):
-			continue
-		value = f'EXTRACT(EPOCH FROM {col.name})::integer' if col.data_type == 'time' else col.name
-		columns.append(f'{value} as {col.name}')
-	select_query = f'SELECT {", ".join(columns)} FROM {SELECT_FEID} ORDER BY time'
+	columns = [FEID, select_computed_columns(uid)]
+	if include:
+		columns = [c for c in columns if c.name in include]
+	
+	col_q = SQL(',').join([c.sql_val() for c in columns])
+	select = SQL(f'SELECT {{}} FROM events.{E_FEID} LEFT JOIN events.{CC_TABLE} ORDER BY time').format(col_q)
+
 	with pool.connection() as conn:
-		curs = conn.execute(select_query)
-		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
-		if changelog:
+		curs = conn.execute(select)
+		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description or []]
+
+		changes = None
+		if changelog: # TODO: optimization
 			changes = { 'fields': ['time', 'author', 'old', 'new', 'special'], 'events': {} }
 			query = '''SELECT event_id, column_name, special, old_value, new_value,
 				EXTRACT (EPOCH FROM changes_log.time)::integer,
 				(select login from users where uid = author) as author
 				FROM events.changes_log WHERE
-					event_id is not null AND entity_name=\'feid\' AND
-					(column_name NOT LIKE \'g\\_\\_%%\' OR column_name = ANY(%s))'''
-			res = conn.execute(query, [[g.name for g in generics]]).fetchall()
+					event_id is not null AND entity_name=\'feid\' AND column_name = ANY(%s)'''
+			res = conn.execute(query, [[c.sql_name for c in columns]]).fetchall()
 			per_event = changes['events']
 			for eid, column, special, old_val, new_val, made_at, author in res:
 				if eid not in per_event:
@@ -67,8 +62,9 @@ def select_feid(uid=None, include=None, changelog=False):
 				if column not in per_event[eid]:
 					per_event[eid][column] = []
 				per_event[eid][column].append([made_at, author, old_val, new_val, special])
+
 		log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
-		return rows, fields, changes if changelog else None
+		return rows, fields, changes
 
 def link_source(feid_id, entity, existing_id = None):
 	with pool.connection() as conn:

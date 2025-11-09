@@ -16,6 +16,8 @@ from routers.utils import route_shielded, require_role, msg
 from data import sun_images
 from data.swpc import swpc
 
+import events.columns.parser
+
 from database import get_coverage
 from utility import OperationCache
 from server import compress
