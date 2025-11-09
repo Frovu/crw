@@ -40,7 +40,7 @@ def _sql_init():
 			owner_id int references users,
 			is_public boolean not null default 'f',
 			definition text)''')
-		conn.execute('CREATE TABLE IF NOT EXISTS events.{DATA_TABLE} ('+
+		conn.execute(f'CREATE TABLE IF NOT EXISTS events.{DATA_TABLE} ('+
 			'feid_id INTEGER NOT NULL UNIQUE REFERENCES events.feid ON DELETE CASCADE)')
 		
 	cols = select_computed_columns(select_all=True)

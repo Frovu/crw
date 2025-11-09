@@ -3,17 +3,17 @@ from events.source import cactus_cme, donki, lasco_cme, noaa_flares, r_c_icme, s
 from events.columns.column import Column as Col
 
 # FIXME: remove noaa flares
-SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = flr_time'
+SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = f.flr_time'
 
 E_FEID = 'feid'
 FEID = [
 	Col(E_FEID, 'id', dtype='integer', sql_def='SERIAL PRIMARY KEY'),
-	Col(E_FEID, 'time', 'Event onset time',
+	Col(E_FEID, 'time', 'time', 'Event onset time',
 		sql_def='timestamptz NOT NULL UNIQUE',
 		not_null=True,
 		dtype='time',
 		parse_name='Time'),
-	Col(E_FEID, 'duration', 'Effective event duration, hours',
+	Col(E_FEID, 'duration', 'duration', 'Effective event duration, hours',
 		not_null=True,
 		is_computed=True,
 		dtype='integer',
@@ -36,7 +36,7 @@ FEID = [
 		parse_value={'3': 'low', '4': 'avg', '5': 'high'}),
 	Col(E_FEID, 'old_magnitude', '_magnitude', '(AB), FD magnitude as maximum 10 GV CR density variation obtained using GSM corrected for magnetospheric effect using the Dst-index',
 		parse_name='MagnM'),
-	Col(E_FEID, 'gamma', '(AB), rigidity spectrum exponent during the hour of minimum CR density',
+	Col(E_FEID, 'gamma', 'gamma', '(AB), rigidity spectrum exponent during the hour of minimum CR density',
 		parse_name='GammaM'),
 	Col(E_FEID, 'vmbm', 'VmBm',  'Vmax / 400 * Bmax / 5',
 		is_computed=True),

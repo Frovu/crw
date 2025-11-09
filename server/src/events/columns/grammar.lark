@@ -1,5 +1,5 @@
 
-?fn_call: NAME "(" sum ["," sum]* ")"
+fn_call: NAME "(" (sum ("," sum)*)? ")"
 
 ?sum: product
 	| sum "+" product   -> add

@@ -13,7 +13,7 @@ class GetColumn(Function):
 			ArgDef('events_shift', [TYPE.LITERAL], [DTYPE.NUMBER], default='0'),
 		])
 
-	def evaluate(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
+	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
 		col_name = args[0].value
 		shift = args[1].value if len(args) > 1 else 0

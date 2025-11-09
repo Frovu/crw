@@ -1,11 +1,12 @@
 from lark import Lark, Transformer, v_args
 
-from events.columns.functions import math, select
+from events.columns.context import ComputationContext
+from events.columns.functions import math_op, select_op
 from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
-	**math.functions,
-	**select.functions
+	**math_op.functions,
+	**select_op.functions
 }
 
 helpers = {
@@ -15,11 +16,15 @@ helpers = {
 
 @v_args(inline=True)
 class CalculateTree(Transformer):
+	def __init__(self, visit_tokens: bool = True) -> None:
+		super().__init__(visit_tokens)
+		self.ctx = ComputationContext()
+
 	def number(self, txt):
 		return num_literal(float(txt))
 	
 	def string(self, txt):
-		return str_literal(str(txt))
+		return str_literal(str(txt)[1:-1])
 
 	def series(self, name):
 		return 
@@ -28,7 +33,7 @@ class CalculateTree(Transformer):
 		fn = functions.get(name)
 		if not fn:
 			raise NameError(f'Unknown function: {name}()')
-		return fn(*args)
+		return fn(args, self.ctx)
 	
 	def add(self, *args):
 		return self.fn_call('add', *args)
@@ -41,14 +46,9 @@ class CalculateTree(Transformer):
 
 calc = Lark.open('grammar.lark', rel_to=__file__)
 
-
 def test():
-	expr = "2*$asd"
+	expr = "col(\"time\")"
 	res = calc.parse(expr)
 	print(res.pretty())
 	
 	print('=', CalculateTree().transform(res))
-
-
-if __name__ == '__main__':
-	test()

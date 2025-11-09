@@ -1,5 +1,6 @@
 
 from events.columns.column import Column, DTYPE as COL_DTYPE
+from events.columns.computed_column import DATA_TABLE
 from events.table_structure import E_FEID, SELECT_FEID, get_col_by_name
 
 from psycopg.sql import SQL
@@ -30,8 +31,8 @@ class ComputationContext:
 			cols = SQL(',').join([c.sql_val() for c in to_fetch])
 			
 			ids = self.target_ids
-			select_query = SQL(f'SELECT {{}}\nFROM {SELECT_FEID} {{}} ORDER BY time') \
-				.format(cols, 'WHERE id = ANY(%s) ' if ids else '')
+			select_query = SQL(f'SELECT {{}}\nFROM events.{E_FEID} fe LEFT JOIN events.{DATA_TABLE} cc '+\
+				'ON feid_id = id {} ORDER BY time').format(cols, SQL('WHERE id = ANY(%s) ' if ids else ''))
 
 			with pool.connection() as conn:
 				curs = conn.execute(select_query, [ids] if ids else [])

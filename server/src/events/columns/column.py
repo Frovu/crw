@@ -42,7 +42,7 @@ class Column:
 	
 	def sql_val(self):
 		name = Identifier(self.sql_name)
-		return SQL('EXTRACT(EPOCH FROM {})::integer').format(name) if self.dtype == 'time' else name
+		return SQL('EXTRACT(EPOCH FROM {0})::integer as {0}').format(name) if self.dtype == 'time' else name
 
 	def sql_col_def(self):
 		return SQL(' ').join([Identifier(self.sql_name), self.sql_def])
