@@ -1,0 +1,252 @@
+export type Column = {
+    entity: string;
+    sql_name: string;
+    name: string;
+    description: string | null;
+    dtype: 'real' | 'integer' | 'time' | 'text' | 'enum';
+    sql_def: string;
+    is_computed: boolean;
+    not_null: boolean;
+    enum: string[] | null;
+    parse_name: string | null;
+    parse_value: {[key: string]: string | null} | null;
+    parse_stub: string | null;
+};
+
+export type ComputedColumn = {
+    entity: string;
+    sql_name: string;
+    name: string;
+    description: string | null;
+    dtype: 'real' | 'integer' | 'time' | 'text' | 'enum';
+    id: number;
+    created_at: string;
+    computed_at: string | null;
+    owner_id: number;
+    is_public: boolean;
+    definition: string;
+};
+
+export type Series = {
+    source: 'omni' | 'gsm' | 'sat';
+    name: string;
+    db_name: string;
+    display_name: string;
+    description: string;
+};
+
+export type ChangelogEntry = {
+    time: number;
+    author: string;
+    old: string;
+    new: string;
+    special: 'import' | null;
+};
+
+export type ChangelogResponse = {
+    fields: string[];
+    events: {[key: string]: {[key: string]: (number | null | string)[][]}};
+};
+
+export interface tables {
+	donki_flares: {
+		id: number | null;
+		event_id: string | null;
+		start_time: Date;
+		peak_time: Date | null;
+		end_time: Date | null;
+		class: string | null;
+		lat: number | null;
+		lon: number | null;
+		active_region: number | null;
+		note: string | null;
+		linked_events: string | null;
+	},
+
+	donki_cmes: {
+		id: number | null;
+		event_id: string | null;
+		time: Date;
+		time_21_5: Date | null;
+		lat: number | null;
+		lon: number | null;
+		half_width: number | null;
+		speed: number | null;
+		type: string | null;
+		data_level: number | null;
+		note: string | null;
+		linked_events: string | null;
+		enlil_id: number | null;
+		enlil_est_shock: Date | null;
+		enlil_filename: string | null;
+	},
+
+	lasco_cmes: {
+		time: Date;
+		central_angle: number | null;
+		angular_width: number | null;
+		speed: number | null;
+		speed_2: number | null;
+		speed_2_20rs: number | null;
+		acceleration: number | null;
+		mass: number | null;
+		kinetic_energy: number | null;
+		measurement_angle: number | null;
+		note: string | null;
+		space_speed: number | null;
+		lat: number | null;
+		lon: number | null;
+		flare_class: string | null;
+		flare_onset: string | null;
+	},
+
+	cactus_cmes: {
+		time: Date;
+		cactus_id: number;
+		dt0: number | null;
+		central_angle: number | null;
+		angular_width: number | null;
+		speed: number | null;
+		dv: number | null;
+		minv: number | null;
+		maxv: number | null;
+	},
+
+	r_c_icmes: {
+		time: Date;
+		body_start: Date;
+		body_end: Date;
+		quality: number;
+		mc_index: number;
+		cmes_time: string;
+	},
+
+	solardemon_dimmings: {
+		id: number | null;
+		flare_id: number | null;
+		start_time: Date;
+		peak_time: Date;
+		end_time: Date;
+		intensity: number | null;
+		max_drop: number | null;
+		lat: number | null;
+		lon: number | null;
+		dist: number | null;
+		active_region: number | null;
+		image_count: number | null;
+	},
+
+	solardemon_flares: {
+		id: number | null;
+		dimming_id: number | null;
+		start_time: Date;
+		peak_time: Date;
+		end_time: Date;
+		est_class: string | null;
+		lat: number | null;
+		lon: number | null;
+		dist: number | null;
+		active_region: number | null;
+		est_flux: number | null;
+		goes_flux: number | null;
+		goes_peak_time: Date | null;
+		detection_number: number | null;
+	},
+
+	solarsoft_flares: {
+		start_time: Date;
+		peak_time: Date;
+		end_time: Date;
+		class: string | null;
+		lat: number | null;
+		lon: number | null;
+		active_region: number | null;
+	},
+
+	solen_holes: {
+		tag: string | null;
+		time: Date;
+		polarity: string;
+		location: string;
+		comment: string;
+		disturbance_time: Date | null;
+	},
+
+	feid: {
+		id: number | null;
+		time: Date;
+		duration: number;
+		onset_type: string | null;
+		s_type: number | null;
+		s_description: string | null;
+		s_confidence: string | null;
+		old_magnitude: number | null;
+		gamma: number | null;
+		vmbm: number | null;
+		base_period: Date | null;
+		pre_increase: number | null;
+		pre_inc_width: number | null;
+		pre_inc_direction: number | null;
+		pre_inc_duration: number | null;
+		pre_inc_magnitude: number | null;
+		pre_decrease: number | null;
+		pre_dec_width: number | null;
+		pre_dec_direction: number | null;
+		pre_dec_duration: number | null;
+		pre_dec_magnitude: number | null;
+		comment: string | null;
+		mc_time: Date | null;
+		mc_duration: number | null;
+		mc_originator: number | null;
+		mc_size: number | null;
+		cme_time: Date | null;
+		cme_legacy_v0: number | null;
+		flr_time: Date | null;
+	},
+
+	feid_sources: {
+		id: number | null;
+		feid_id: number | null;
+		ch_id: number | null;
+		erupt_id: number | null;
+		cr_influence: string | null;
+	},
+
+	sources_ch: {
+		id: number | null;
+		tag: string | null;
+		chimera_time: Date | null;
+		chimera_id: number | null;
+		time: Date | null;
+		lat: number | null;
+		area: number | null;
+		b: number | null;
+		phi: number | null;
+		width: number | null;
+	},
+
+	sources_erupt: {
+		id: number | null;
+		flr_start: Date | null;
+		flr_peak: Date | null;
+		flr_end: Date | null;
+		flr_flux: number | null;
+		active_region: number | null;
+		flr_source: string | null;
+		lat: number | null;
+		lon: number | null;
+		coords_source: string | null;
+		cme_time: Date | null;
+		cme_speed: number | null;
+		cme_source: string | null;
+		note: string | null;
+		solarsoft_flr_start: Date | null;
+		noaa_flr_start: Date | null;
+		donki_flr_id: number | null;
+		donki_cme_id: number | null;
+		lasco_cme_time: Date | null;
+		cactus_cme_time: Date | null;
+		rc_icme_time: Date | null;
+	},
+
+}
