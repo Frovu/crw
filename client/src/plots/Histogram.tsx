@@ -1,14 +1,14 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/events';
+import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
 import { ExportableUplot } from '../events/ExportPlot';
-import { applySample } from '../events/sample';
+import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
-import type { Value } from '../events/columns';
-import { useTable } from '../events/eventsState';
+import type { Value } from '../events/columns/columns';
+import { useTable } from '../events/core/eventsState';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -56,7 +56,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 	const columnOpts = columns.filter(
 		(c) =>
 			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
-			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id),
+			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id)
 	);
 
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
@@ -100,7 +100,11 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 						<select
 							title="Sample (none = all events)"
 							className="Borderless"
-							style={{ width: '7em', marginLeft: 1, color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+							style={{
+								width: '7em',
+								marginLeft: 1,
+								color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset',
+							}}
 							value={params[sampleKeys[i]]}
 							onChange={(e) => set(sampleKeys[i], e.target.value)}
 						>
@@ -201,7 +205,7 @@ function drawResiduals(params: HistogramParams, samples: number[][], min: number
 				px(6) +
 				(Math.max.apply(
 					null,
-					vals.map((v) => v.toString().length),
+					vals.map((v) => v.toString().length)
 				) *
 					ch +
 					ch) *
@@ -239,7 +243,9 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 	const fnt = font(14, true);
 	const px = (a: number) => scale * a * devicePixelRatio;
 	const averages = {
-		mean: params.drawMean && samples.map((smpl) => (smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null)),
+		mean:
+			params.drawMean &&
+			samples.map((smpl) => (smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null)),
 		median:
 			params.drawMedian &&
 			samples.map((smpl) => {
@@ -301,8 +307,8 @@ function Panel() {
 				sampleId === '<current>'
 					? sampleData
 					: sampleId === '<none>'
-						? allData
-						: applySample(allData, samplesList.find((s) => s.id.toString() === sampleId) ?? null, columns, samplesList);
+					? allData
+					: applySample(allData, samplesList.find((s) => s.id.toString() === sampleId) ?? null, columns, samplesList);
 			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
@@ -333,13 +339,19 @@ function Panel() {
 			return bins as number[];
 		});
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
-		const transformed = samplesBins.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!)).filter((b) => b);
+		const transformed = samplesBins
+			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))
+			.filter((b) => b);
 		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : 0.5)) * binSize) || [];
 
-		const colNames = [0, 1, 2].map((i) => params[('column' + i) as keyof HistogramParams]).map((c) => columns.find((cc) => cc.id === c)?.fullName);
+		const colNames = [0, 1, 2]
+			.map((i) => params[('column' + i) as keyof HistogramParams])
+			.map((c) => columns.find((cc) => cc.id === c)?.fullName);
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
-			.map((id) => (['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')));
+			.map((id) =>
+				['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+			);
 
 		// try to prevent short bars from disappearing
 		const highest = Math.max.apply(null, transformed.flat());
@@ -386,7 +398,10 @@ function Panel() {
 						},
 						{
 							...axisDefaults(showGrid),
-							values: (u, vals) => vals.map((v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())),
+							values: (u, vals) =>
+								vals.map(
+									(v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())
+								),
 							gap: scaled(2),
 							fullLabel: params.showYLabel ? yLabel : '',
 							label: params.showYLabel ? '' : undefined,
@@ -397,8 +412,8 @@ function Panel() {
 									(values
 										? Math.max.apply(
 												null,
-												values.map((v) => v?.toString().length ?? 0),
-											)
+												values.map((v) => v?.toString().length ?? 0)
+										  )
 										: 4),
 							space: getFontSize() * 3,
 						} as CustomAxis,

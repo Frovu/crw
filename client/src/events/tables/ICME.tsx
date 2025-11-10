@@ -2,8 +2,8 @@ import { useContext } from 'react';
 import { useContextMenu, color } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type ICME } from '../events';
-import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
+import { equalValues, valueToString, type ICME } from '../core/eventsSettings';
+import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../core/eventsState';
 import {
 	getSourceLink,
 	linkEruptiveSourceEvent,
@@ -11,7 +11,7 @@ import {
 	timeInMargin,
 	unlinkEruptiveSourceEvent,
 	useCompoundTable,
-} from '../sources';
+} from '../core/sourceActions';
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { icme: ICME } | undefined;

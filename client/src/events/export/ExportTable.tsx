@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { TableViewContext, valueToString } from './events';
-import { computeColumnWidth } from './columns';
+import { computeColumnWidth } from './columns/columns';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);

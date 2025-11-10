@@ -1,4 +1,4 @@
-import type { Onset, MagneticCloud, EventsSettings } from '../events/events';
+import type { Onset, MagneticCloud, EventsSettings } from '../events/core/eventsSettings';
 import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import {
 	getParam,
@@ -104,7 +104,11 @@ export const parseText = (txt: string) => {
 			closing = `</${tagName}>`;
 		const [before, after] = split(text, tag);
 		const [inside, outside] = split(after, closing);
-		return [...rec({ text: before, styles }), ...rec({ text: inside, styles: styles.concat(style(tagName)) }), ...rec({ text: outside, styles })];
+		return [
+			...rec({ text: before, styles }),
+			...rec({ text: inside, styles: styles.concat(style(tagName)) }),
+			...rec({ text: outside, styles }),
+		];
 	};
 	return rec({ text: txt, styles: [] });
 };
@@ -154,7 +158,7 @@ export function drawCustomLegend({
 				px(makrerWidth + 16) +
 				Math.max.apply(
 					null,
-					series.map(({ legend }) => measureStyled(u.ctx, legend)),
+					series.map(({ legend }) => measureStyled(u.ctx, legend))
 				);
 			const lineHeight = getFontSize() * devicePixelRatio + px(2);
 			const height = series.length * lineHeight + px(4);
@@ -184,7 +188,7 @@ export function drawCustomLegend({
 					u.ctx.stroke();
 				}
 				u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
-				const mrkr = bars ? (marker ?? 'square') : marker;
+				const mrkr = bars ? marker ?? 'square' : marker;
 				if (mrkr) draw[mrkr](x + px(6 + makrerWidth / 2), y);
 				if (mrkr !== 'arrow') u.ctx.fill();
 				u.ctx.fillStyle = color('text');
@@ -230,7 +234,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 					: rec().flatMap(([text, stroke]) => {
 							const nodes = parseText(applyTextTransform(text));
 							return nodes.map((n) => ({ ...n, stroke }));
-						});
+					  });
 
 				const fontSize = measureDigit();
 				const textWidth = measureStyled(u.ctx, parts);
@@ -241,16 +245,20 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const first = axis._splits?.[axis._values?.findIndex((v) => !!v || (v as any) === 0)!]!;
 				const last = axis._splits?.[axis._values?.findLastIndex((v) => !!v || (v as any) === 0)!]!;
 				const targetLeft =
-					(axis.distr === 3 ? u.bbox.top + u.bbox.height / 2 : u.valToPos((last + first) / 2, axis.scale!, true)) + (flowDir * textWidth) / 2;
+					(axis.distr === 3 ? u.bbox.top + u.bbox.height / 2 : u.valToPos((last + first) / 2, axis.scale!, true)) +
+					(flowDir * textWidth) / 2;
 
 				let posX, posY;
 				if (isHorizontal) {
 					posX = clamp(px(2), u.width * devicePixelRatio - textWidth - px(4), targetLeft - textWidth);
-					posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height * devicePixelRatio - px(2);
+					posY = axis.side === 0 ? axis.labelSize ?? fontSize.height : u.height * devicePixelRatio - px(2);
 				} else {
 					const bottomX = u.height * devicePixelRatio;
 					posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
-					posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetLeft, true) : clamp(px(2), bottomX - textWidth - px(4), targetLeft);
+					posY =
+						flowDir > 0
+							? clamp(textWidth + px(4), bottomX - px(2), targetLeft, true)
+							: clamp(px(2), bottomX - textWidth - px(4), targetLeft);
 					if (isNaN(posY)) continue;
 				}
 
@@ -301,7 +309,7 @@ export async function basicDataQuery(path: string, interval: [Date, Date], query
 		ordered.splice(
 			timeIdx,
 			1,
-			ordered[timeIdx].map((t) => (t == null ? null : t + period / 2)),
+			ordered[timeIdx].map((t) => (t == null ? null : t + period / 2))
 		);
 	return ordered;
 }
@@ -407,7 +415,7 @@ export function tooltipPlugin({
 			],
 			setCursor: [
 				(u) => {
-					const idx = userDidx ? userDidx() : (u.cursor.idxs?.[seriesIdx!] ?? null);
+					const idx = userDidx ? userDidx() : u.cursor.idxs?.[seriesIdx!] ?? null;
 					if (dataIdx !== idx) {
 						dataIdx = idx;
 						setTooltip(u);
@@ -442,7 +450,7 @@ export function titlePlugin({
 				: {
 						...opts,
 						padding: opts.padding?.toSpliced(0, 1, (opts.padding as any)[0] + pad) as any,
-					},
+				  },
 		hooks: !showTitle
 			? {}
 			: {
@@ -489,7 +497,7 @@ export function titlePlugin({
 								u.ctx.restore();
 							}, captureOverrides),
 					],
-				},
+			  },
 	};
 }
 

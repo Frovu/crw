@@ -1,11 +1,11 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
-import { apiPost, useEventListener } from '../util';
-import { MainTableContext, SampleContext, findColumn, useEventsSettings } from './events';
-import { color } from '../plots/plotUtil';
-import { AuthContext, logError, logMessage, logSuccess } from '../app';
+import { apiPost, useEventListener } from '../../util';
+import { MainTableContext, SampleContext, findColumn, useEventsSettings } from '../core/eventsSettings';
+import { color } from '../../plots/plotUtil';
+import { AuthContext, logError, logMessage, logSuccess } from '../../app';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Confirmation } from '../Utility';
-import { SW_TYPES } from '../plots/time/SWTypes';
+import { Confirmation } from '../../Utility';
+import { SW_TYPES } from '../../plots/time/SWTypes';
 
 export default function ColumnsSelector() {
 	return null;
@@ -177,7 +177,7 @@ export default function ColumnsSelector() {
 		onSuccess: ({ time }, genericId) => {
 			if (genericId === gid) reset();
 			const col = columns.find((c) => c.generic?.id === genericId);
-			queryClient.invalidateQueries({ queryKey: ['tableStructure'] });
+			queryClient.invalidateQueries({ queryKey: ['Tables'] });
 			logSuccess(`Deleted column ${col?.fullName ?? genericId}`);
 		},
 		onError: (err: any, genericId) => {
@@ -193,7 +193,7 @@ export default function ColumnsSelector() {
 				gid: createNew ? undefined : gid,
 			}),
 		onSuccess: ({ generic, name, time }) => {
-			queryClient.invalidateQueries({ queryKey: ['tableStructure'] });
+			queryClient.invalidateQueries({ queryKey: ['Tables'] });
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			setGeneric(generic);
 			setReport({ success: `Done in ${time} s` });

@@ -2,9 +2,9 @@ import { useContext, useState, useEffect, useCallback, type KeyboardEvent } from
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size, useEventListener } from '../../util';
-import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, valueToString } from '../events';
-import { useEventsState } from '../eventsState';
-import { pickEventForSample } from '../sample';
+import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, valueToString } from '../core/eventsSettings';
+import { useEventsState } from '../core/eventsState';
+import { pickEventForSample } from '../sample/sample';
 import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
 import type { ChangelogEntry } from '../../api';
 

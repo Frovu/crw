@@ -4,7 +4,7 @@ import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQu
 import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
-import { usePlotParams, type EventsPanel } from '../../events/events';
+import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
 import type { ContextMenuProps } from '../../layout';
 
 const defaultParams = {
@@ -24,7 +24,7 @@ function tracePaths(
 	scl: number,
 	{ size, position, defaultPos }: PlotOverlayHandle,
 	params: GSMParams & BasicPlotParams,
-	posCache: VectorCache,
+	posCache: VectorCache
 ): uPlot.Series.PathBuilder {
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
@@ -145,7 +145,11 @@ function tracePaths(
 
 		u.ctx.textAlign = 'left';
 		u.ctx.fillText(applyTextTransform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
-		u.ctx.fillText(applyTextTransform(`Ay, ${xArrowPercent}%`), x + Math.max(0, xArrowPercent * scalex - lineW), y - lineH / 2 - arrowRadius + px(2));
+		u.ctx.fillText(
+			applyTextTransform(`Ay, ${xArrowPercent}%`),
+			x + Math.max(0, xArrowPercent * scalex - lineW),
+			y - lineH / 2 - arrowRadius + px(2)
+		);
 		u.ctx.stroke();
 
 		u.ctx.restore();

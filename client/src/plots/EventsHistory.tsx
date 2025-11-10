@@ -1,14 +1,14 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings, MainTableContext, SampleContext, usePlotParams } from '../events/events';
+import { useEventsSettings, MainTableContext, SampleContext, usePlotParams } from '../events/core/eventsSettings';
 import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
 import { ExportableUplot } from '../events/ExportPlot';
 import { NumberInput } from '../Utility';
-import { applySample } from '../events/sample';
+import { applySample } from '../events/sample/sample';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
-import { useTable } from '../events/eventsState';
+import { useTable } from '../events/core/eventsState';
 
 const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
 
@@ -47,7 +47,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 	);
 
 	const columnOpts = columns.filter(
-		(c) => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) || series.some((p) => p.column === c.id),
+		(c) => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) || series.some((p) => p.column === c.id)
 	);
 
 	return (
@@ -100,7 +100,12 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 				<Checkbox text="X label" k="showXLabel" />
 				<div>
 					Window:
-					<select className="Borderless" style={{ margin: '0 4px' }} value={params.window} onChange={(e) => set('window', e.target.value as any)}>
+					<select
+						className="Borderless"
+						style={{ margin: '0 4px' }}
+						value={params.window}
+						onChange={(e) => set('window', e.target.value as any)}
+					>
 						{Object.keys(windowOptions).map((k) => (
 							<option key={k} value={k}>
 								{k}
@@ -170,8 +175,8 @@ function Panel() {
 			sample === '<none>'
 				? allData
 				: sample === '<current>'
-					? currentData
-					: applySample(allData, samplesList.find((s) => s.id.toString() === sample) ?? null, columns, samplesList),
+				? currentData
+				: applySample(allData, samplesList.find((s) => s.id.toString() === sample) ?? null, columns, samplesList)
 		);
 
 		for (let bin = 0; bin < 9999; ++bin) {
@@ -183,10 +188,13 @@ function Panel() {
 
 			for (const [i, { column }] of params.historySeries.entries()) {
 				if (column == null) continue;
-				const batch = samples[i].filter((row) => start <= (row[timeColIdx] as Date).getTime() && (row[timeColIdx] as Date).getTime() < end);
+				const batch = samples[i].filter(
+					(row) => start <= (row[timeColIdx] as Date).getTime() && (row[timeColIdx] as Date).getTime() < end
+				);
 
 				const colIdx = columns.findIndex((col) => col.id === column);
-				const val = column === '<count>' ? batch.length : batch.reduce((acc, row) => acc + (row[colIdx] as number), 0) / batch.length;
+				const val =
+					column === '<count>' ? batch.length : batch.reduce((acc, row) => acc + (row[colIdx] as number), 0) / batch.length;
 
 				values[i].push(val);
 			}
@@ -200,16 +208,26 @@ function Panel() {
 		return () => {
 			const ch = measureDigit().width,
 				scale = scaled(1);
-			const columnNames = params.historySeries.map(({ column }) => (column === '<count>' ? 'count' : columns.find((cc) => cc.id === column)?.fullName));
+			const columnNames = params.historySeries.map(({ column }) =>
+				column === '<count>' ? 'count' : columns.find((cc) => cc.id === column)?.fullName
+			);
 			const scaleNames = params.historyOneAxis ? [columnNames[0]] : Array.from(new Set(columnNames.filter((c) => c)).values());
 			const sampleNames = params.historySeries.map(({ sample: id }) =>
-				'<current>' === id ? '' : '<none>' === id ? ' (all)' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
+				'<current>' === id
+					? ''
+					: '<none>' === id
+					? ' (all)'
+					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
 			);
 			return {
 				padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
 				focus: { alpha: 1 },
 				cursor: { focus: { prox: 32 }, drag: { x: false, y: false, setScale: false } },
-				plugins: [tooltipPlugin(), legendPlugin({ params: { showLegend }, overlayHandle }), labelsPlugin({ params: { showLegend } })],
+				plugins: [
+					tooltipPlugin(),
+					legendPlugin({ params: { showLegend }, overlayHandle }),
+					labelsPlugin({ params: { showLegend } }),
+				],
 				axes: [
 					{
 						...axisDefaults(showGrid),
@@ -230,14 +248,14 @@ function Panel() {
 									ch *
 										Math.max.apply(
 											null,
-											vals?.map((v) => v.length),
+											vals?.map((v) => v.length)
 										) +
 									scale * 12,
 								values: (u, vals) => vals.map((v) => v.toString()),
 								fullLabel: scl === 'count' ? 'events count' : scl,
 								label: '',
 								incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50],
-							}) as uPlot.Axis,
+							} as uPlot.Axis)
 					),
 				],
 				series: [

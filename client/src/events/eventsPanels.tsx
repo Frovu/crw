@@ -1,9 +1,9 @@
 import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
-import type { EventsPanel } from './events';
+import type { EventsPanel } from './core/eventsSettings';
 import { defaultPlotParams } from '../plots/basicPlot';
 
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
-import { EventsCheckbox, FeidTable } from './EventsTable';
+import { EventsCheckbox, FeidTable } from './panels/FeidPanel';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
 import { RSMPlot } from '../plots/time/Circles';
@@ -67,7 +67,12 @@ const panels: EventsPanel<any>[] = [
 function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 	return (
 		<div
-			style={{ height: '100%', userSelect: 'none', overflow: 'clip', border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid' }}
+			style={{
+				height: '100%',
+				userSelect: 'none',
+				overflow: 'clip',
+				border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid',
+			}}
 		>
 			<panel.Panel />
 		</div>
@@ -138,5 +143,5 @@ export const eventsPanels = Object.fromEntries(
 			Panel: () => <PanelWrapper panel={p as any} />,
 			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
 		},
-	]),
+	])
 );

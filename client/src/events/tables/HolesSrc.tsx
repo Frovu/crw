@@ -2,9 +2,9 @@ import { useContext } from 'react';
 import { useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString } from '../events';
-import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
-import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../sources';
+import { equalValues, valueToString } from '../core/eventsSettings';
+import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../core/eventsState';
+import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../core/sourceActions';
 import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_ch';

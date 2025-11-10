@@ -1,12 +1,12 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
-import { AuthContext, color, logError, logMessage } from '../app';
-import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../util';
-import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from './events';
+import { AuthContext, color, logError, logMessage } from '../../app';
+import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
+import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from '../core/eventsSettings';
 import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Option, Select, askConfirmation } from '../Utility';
-import { useTable } from './eventsState';
-import type { Column } from '../api';
+import { Option, Select, askConfirmation } from '../../Utility';
+import { useTable } from '../core/eventsState';
+import type { Column } from '../../api';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;

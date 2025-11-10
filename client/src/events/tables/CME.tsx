@@ -2,8 +2,8 @@ import { useContext } from 'react';
 import { useContextMenu, color } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type CME, type ICME } from '../events';
-import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../eventsState';
+import { equalValues, valueToString, type CME, type ICME } from '../core/eventsSettings';
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../core/eventsState';
 import {
 	getSourceLink,
 	linkEruptiveSourceEvent,
@@ -11,7 +11,7 @@ import {
 	timeInMargin,
 	unlinkEruptiveSourceEvent,
 	useCompoundTable,
-} from '../sources';
+} from '../core/sourceActions';
 import { useSolarPlotContext } from '../../plots/time/solar';
 
 function Menu() {

@@ -2,8 +2,8 @@ import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString } from '../events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../eventsState';
+import { equalValues, valueToString } from '../core/eventsSettings';
+import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,
 	timeInMargin,
@@ -12,7 +12,7 @@ import {
 	useSolenHolesQuery,
 	type CHS,
 	type SolenCH,
-} from '../sources';
+} from '../core/sourceActions';
 import { prettyDate } from '../../util';
 
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));

@@ -25,7 +25,7 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { usePlotParams, type Onset } from '../../events/events';
+import { usePlotParams, type Onset } from '../../events/core/eventsSettings';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/ExportPlot';
 import { ValidatedInput } from '../../Utility';

@@ -1,10 +1,10 @@
 import { type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { MainTableContext, SampleContext, useEventsSettings, valueToString } from './events';
+import { MainTableContext, SampleContext, useEventsSettings, valueToString } from './core/eventsSettings';
 import { apiGet, apiPost, prettyDate, useEventListener } from '../util';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type Sample, applySample, renderFilters, useSampleState } from './sample';
+import { type Sample, applySample, renderFilters, useSampleState } from './sample/sample';
 import { AuthContext, color, logError, logMessage, logSuccess } from '../app';
-import { type DataRow, type Value } from './columns';
+import { type DataRow, type Value } from './columns/columns';
 import { Confirmation } from '../Utility';
 import {
 	discardChange,
@@ -15,7 +15,7 @@ import {
 	setRawData,
 	useEventsState,
 	type TableName,
-} from './eventsState';
+} from './core/eventsState';
 import type { ChangelogResponse, Column, ComputedColumn, Series } from '../api';
 
 export default function EventsDataProvider({ children }: { children: ReactNode }) {
@@ -26,7 +26,7 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 
 	const structureQuery = useQuery({
 		staleTime: Infinity,
-		queryKey: ['tableStructure'],
+		queryKey: ['Tables'],
 		queryFn: async () => {
 			const res = await apiGet<{
 				tables: { [table: string]: Column[] };
@@ -84,7 +84,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 			if (col.dtype === 'time') {
 				for (const row of data) {
 					if (row[i] === null) continue;
-					if (col.name.startsWith('flr')) console.log(row[i]);
 					const date = new Date((row[i] as number) * 1e3);
 					row[i] = isNaN(date.getTime()) ? null : date;
 				}

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../events';
+import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../core/eventsSettings';
 import { logMessage, useContextMenu } from '../../app';
 import {
 	deleteEvent,
@@ -13,7 +13,7 @@ import {
 	useSource,
 	useSources,
 	useTable,
-} from '../eventsState';
+} from '../core/eventsState';
 import {
 	assignCMEToErupt,
 	assignFlareToErupt,
@@ -24,7 +24,7 @@ import {
 	sourceLabels,
 	useCompoundTable,
 	useTableQuery,
-} from '../sources';
+} from '../core/sourceActions';
 import { useEventListener } from '../../util';
 
 const ENT = 'sources_erupt';

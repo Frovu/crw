@@ -2,7 +2,7 @@ import React, { type CSSProperties, createContext, type ReactNode } from 'react'
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
-import type { TableMenuDetails } from './events/events';
+import type { TableMenuDetails } from './events/core/eventsSettings';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
@@ -109,14 +109,16 @@ export const useAppSettings = create<AppSettings>()(
 						colors[theme] = {};
 					}),
 				renderColors: () =>
-					Object.fromEntries(Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => ['--color-' + name, rgbaToHexa(val)])),
+					Object.fromEntries(
+						Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => ['--color-' + name, rgbaToHexa(val)])
+					),
 			}),
 			{
 				name: 'crwAppSettings',
 				partialize: ({ theme, colors }) => ({ theme, colors }),
-			},
-		),
-	),
+			}
+		)
+	)
 );
 
 export const getApp = () => useAppSettings.getState().app ?? 'feid';

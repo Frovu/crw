@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { apiGet } from '../util';
-import type { Column, ComputedColumn } from '../api';
+import { apiGet } from '../../util';
+import type { Column, ComputedColumn } from '../../api';
 
 export type Value = Date | string | number | null;
 export type DataRow = [number, ...Array<Value>];

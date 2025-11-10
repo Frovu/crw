@@ -1,10 +1,10 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type Flare } from '../events';
+import { equalValues, valueToString, type Flare } from '../core/eventsSettings';
 import { color, useContextMenu } from '../../app';
-import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../sources';
+import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../core/eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../core/sourceActions';
 import { useSolarPlotContext } from '../../plots/time/solar';
 
 function Menu() {

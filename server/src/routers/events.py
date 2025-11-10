@@ -79,15 +79,16 @@ def _get_fetch_source():
 @route_shielded
 @compress.compressed()
 def list_events():
+	uid = session.get('uid')
 	entity = request.args.get('entity')
 	include = request.args.get('include')
-	include = include.split(',') if include else None
-	if entity:
-		return query.select_events(entity, include)
-	
 	changelog = request.args.get('changelog', 'false').lower() == 'true'
-	uid = session.get('uid')
-	return query.select_feid(uid, include, changelog=changelog)
+	include = include.split(',') if include else None
+
+	if not entity:
+		raise ValueError('Specify entity')
+	
+	return query.select_events(entity, uid, include, changelog)
 
 @bp.route('/table_structure/', methods=['GET'])
 @route_shielded

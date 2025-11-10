@@ -2,7 +2,16 @@ import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, equalValues, valueToString, TableViewContext, usePlotParams, findColumn } from '../events/events';
+import {
+	MainTableContext,
+	SampleContext,
+	useEventsSettings,
+	equalValues,
+	valueToString,
+	TableViewContext,
+	usePlotParams,
+	findColumn,
+} from '../events/core/eventsSettings';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
@@ -10,8 +19,8 @@ import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
-import { applySample } from '../events/sample';
-import { useEventsState, useTable } from '../events/eventsState';
+import { applySample } from '../events/sample/sample';
+import { useEventsState, useTable } from '../events/core/eventsState';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 
@@ -48,7 +57,9 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const columnOpts = columns.filter(
-		(c) => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id)) || (['column0', 'column1'] as const).some((p) => params[p] === c.id)
+		(c) =>
+			(['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id)) ||
+			(['column0', 'column1'] as const).some((p) => params[p] === c.id)
 	);
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
 
@@ -69,14 +80,24 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 	const Checkbox = ({ text, k }: { text: string; k: keyof CorrelationParams }) => (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => setParams({ [k]: e.target.checked })} />
+			<input
+				type="checkbox"
+				style={{ paddingLeft: 4 }}
+				checked={params[k] as boolean}
+				onChange={(e) => setParams({ [k]: e.target.checked })}
+			/>
 		</label>
 	);
 
 	return (
 		<div className="Group">
 			<div>
-				<span className="TextButton" title="Reset" style={{ userSelect: 'none', cursor: 'pointer' }} onClick={() => set('sample0', '<current>')}>
+				<span
+					className="TextButton"
+					title="Reset"
+					style={{ userSelect: 'none', cursor: 'pointer' }}
+					onClick={() => set('sample0', '<current>')}
+				>
 					Sample:
 				</span>
 				<select
@@ -151,7 +172,12 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 			</div>
 			<div className="Row">
 				color:
-				<select className="Borderless" style={{ padding: '0 6px' }} value={params.color} onChange={(e) => setParams({ color: e.target.value })}>
+				<select
+					className="Borderless"
+					style={{ padding: '0 6px' }}
+					value={params.color}
+					onChange={(e) => setParams({ color: e.target.value })}
+				>
 					{colors.map((c) => (
 						<option key={c} value={c}>
 							{c}
@@ -236,7 +262,8 @@ function Panel() {
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
 		const timeIdx = columns.findIndex((c) => c.fullName === 'time');
-		const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
+		const findRow = (i: number) =>
+			sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
 
 		let hoveredRect: any;
 		let qt: Quadtree;
@@ -277,7 +304,11 @@ function Panel() {
 							},
 							html: (u, sidx, didx) => {
 								const row = findRow(didx);
-								return row ? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}` : '??';
+								return row
+									? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(
+											row[colIdx[1]]
+									  )}`
+									: '??';
 							},
 						}),
 						titlePlugin({
@@ -311,7 +342,11 @@ function Panel() {
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
 							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
 							values: (u, vals) =>
-								vals.map((v) => (loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString())),
+								vals.map((v) =>
+									loglog && logx
+										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
+										: v?.toString()
+								),
 						},
 						{
 							...axisDefaults(showGrid),
@@ -328,7 +363,9 @@ function Panel() {
 										: 4),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 							values: (u, vals) =>
-								vals.map((v) => (loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString())),
+								vals.map((v) =>
+									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString()
+								),
 						} as CustomAxis,
 					],
 					scales: {
@@ -375,7 +412,20 @@ function Panel() {
 			},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any, // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [params, currentData, allData, samplesList, columns, showTitle, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId]);
+	}, [
+		params,
+		currentData,
+		allData,
+		samplesList,
+		columns,
+		showTitle,
+		showLegend,
+		overlayHandle,
+		showGrid,
+		setCursor,
+		shownData,
+		setPlotId,
+	]);
 
 	if (!memo) return <div className="Center">NOT ENOUGH DATA</div>;
 	const { options, data } = memo;

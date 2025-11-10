@@ -2,9 +2,9 @@ import { useContext, useMemo } from 'react';
 import { useEventListener } from '../util';
 import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
-import { applySample, sampleEditingMarkers, useSampleState } from './sample';
-import { type MagneticCloud, type Onset, PlotContext, SampleContext, TableViewContext, useEventsSettings } from './events';
-import { useEventsState, useTable } from './eventsState';
+import { applySample, sampleEditingMarkers, useSampleState } from './sample/sample';
+import { type MagneticCloud, type Onset, PlotContext, SampleContext, TableViewContext, useEventsSettings } from './core/eventsSettings';
+import { useEventsState, useTable } from './core/eventsState';
 import { eventsPanels } from './eventsPanels';
 
 function EventsView() {
@@ -32,7 +32,7 @@ function EventsView() {
 				sort.direction *
 				(['text', 'enum'].includes(column?.type)
 					? ((renderedData[a][sortIdx] as string) ?? '').localeCompare((renderedData[b][sortIdx] as string) ?? '')
-					: (renderedData[a][sortIdx] ?? (0 as any)) - (renderedData[b][sortIdx] ?? (0 as any))),
+					: (renderedData[a][sortIdx] ?? (0 as any)) - (renderedData[b][sortIdx] ?? (0 as any)))
 		);
 		if (markers && sort.column === '_sample') {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5 } as any;
@@ -64,9 +64,14 @@ function EventsView() {
 	const plotContext = useMemo(() => {
 		const idx = plotId && data.findIndex((r) => r[0] === plotId);
 		if (idx == null || idx < 0) return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
-		const [timeIdx, durIdx, onsIdx, baseIdx, cloudTime, cloudDur] = ['time', 'duration', 'onset_type', 'base_period', 'mc_time', 'mc_duration'].map((c) =>
-			columns.findIndex((cc) => cc.id === c),
-		);
+		const [timeIdx, durIdx, onsIdx, baseIdx, cloudTime, cloudDur] = [
+			'time',
+			'duration',
+			'onset_type',
+			'base_period',
+			'mc_time',
+			'mc_duration',
+		].map((c) => columns.findIndex((cc) => cc.id === c));
 		const plotDate = setStartAt || (data[idx][timeIdx] as Date);
 		const baseDate = data[idx][baseIdx] as Date;
 		const hour = Math.floor(plotDate?.getTime() / 36e5) * 36e5;
@@ -78,8 +83,12 @@ function EventsView() {
 		const [onsets, ends] = [0, 36e5].map((end) =>
 			events.map(
 				(r) =>
-					({ time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)), type: r[onsIdx] || null, secondary: setStartAt || r[0] !== plotId }) as Onset,
-			),
+					({
+						time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
+						type: r[onsIdx] || null,
+						secondary: setStartAt || r[0] !== plotId,
+					} as Onset)
+			)
 		);
 		if (setStartAt) onsets.push({ time: setStartAt, type: null, insert: true });
 		if (setEndAt) ends.push({ time: setEndAt, type: null, insert: true });
@@ -119,7 +128,10 @@ export default function EventsApp() {
 	return (
 		<EventsDataProvider>
 			<title>FEID - Forbush Effects and Interplanetary Disturbances database</title>
-			<meta name="description" content="Multifunctional online interface to the Forbush Effects and Interplanetary Disturbances database" />
+			<meta
+				name="description"
+				content="Multifunctional online interface to the Forbush Effects and Interplanetary Disturbances database"
+			/>
 			<EventsView />
 		</EventsDataProvider>
 	);

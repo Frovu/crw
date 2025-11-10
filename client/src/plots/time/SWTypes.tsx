@@ -4,7 +4,7 @@ import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil
 import { ExportableUplot } from '../../events/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
-import { usePlotParams, type EventsPanel } from '../../events/events';
+import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 
@@ -68,9 +68,9 @@ function Panel() {
 									stroke: color(COLORS[i]),
 									fill: color(reli === 'high' ? COLORS[i] : 'bg'),
 								},
-							}) as uPlot.Series,
-					),
-				),
+							} as uPlot.Series)
+					)
+				)
 			),
 		} as Omit<uPlot.Options, 'width' | 'height'>;
 	}, [params]);

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { equalValues, valueToString } from './events';
 import { apiPost, useEventListener, useMutationHandler } from '../util';
-import type { Value } from './columns';
+import type { Value } from './columns/columns';
 import { useTable } from './eventsState';
 import { color } from '../app';
 

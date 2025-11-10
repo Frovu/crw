@@ -1,33 +1,34 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { equalValues, type ChangeValue } from './events';
-import type { DataRow } from './columns';
-import type { Column, tableStructure } from '../api';
+import { equalValues, type ChangeValue } from './eventsSettings';
+import type { ChangelogResponse, Column, StaticColumn, Tables } from '../../api';
 
-export const flaresLinks = {
-	SFT: ['solarsoft_flr_start', 'start_time'],
-	// NOA: ['noaa_flare_start', 'start_time'],
-	DKI: ['donki_flr_id', 'id'],
-	// dMN: ['solardemon_flr_id', 'id'],
-} as const;
-
-export const cmeLinks = {
-	LSC: ['lasco_cme_time', 'time'],
-	DKI: ['donki_cme_id', 'id'],
-	CCT: ['cactus_cme_time', 'time'],
-} as const;
-
-export const icmeLinks = {
-	'R&C': ['rc_icme_time', 'time'],
-} as const;
+export type TableValue = string | number | Date | null;
+export type TableRow = TableValue[];
 
 export type Sort = { column: string; direction: 1 | -1 };
-export type Cursor = { row: number; column: number; entity: string; editing?: boolean; id: number };
-const tables: readonly (keyof tableStructure)[] = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'];
-export type TableName = (typeof tables)[number];
-const linkIds = [flaresLinks, cmeLinks, icmeLinks].flatMap((lnk) => Object.values(lnk).map((l) => l[0])) as string[];
 
-export const [fIdIdx, chIdIdx, eruptIdIdx, inflIdIdx] = [1, 2, 3, 4];
+export type Cursor = { row: number; column: number; entity: string; editing?: boolean; id: number };
+
+export const compoundTables = {
+	cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
+	icme: ['r_c_icmes'],
+	flare: ['solarsoft_flares', 'donki_flares'],
+} as const;
+
+const editableTables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
+export type EditableTable = keyof Tables & (typeof editableTables)[number];
+
+
+type TableState<T extends EditableTable> = {
+	changes: ChangeValue[];
+	created: TableRow[];
+	deleted: number[];
+	columns: (T extends 'feid' ? Column : StaticColumn)[];
+	rawData: TableRow[],
+	data: TableRow[],
+	changelog: null | ChangelogResponse
+}
 
 const defaultSate = {
 	cursor: null as Cursor | null,
@@ -38,15 +39,18 @@ const defaultSate = {
 	setStartAt: null as Date | null,
 	setEndAt: null as Date | null,
 
-	changes: Object.fromEntries(tables.map((t) => [t, [] as ChangeValue[]])) as { [t in TableName]: ChangeValue[] },
-	created: Object.fromEntries(tables.map((t) => [t, [] as DataRow[]])) as { [t in TableName]: DataRow[] },
-	deleted: Object.fromEntries(tables.map((t) => [t, [] as number[]])) as { [t in TableName]: number[] },
-	columns: {} as { [t in TableName]?: Column[] },
-	rawData: {} as { [t in TableName]?: DataRow[] },
-	data: {} as { [t in TableName]?: DataRow[] },
+	tables: Object.fromEntries(editableTables.map((t) => [t, {
+		changes: [] as any,
+		created: [] as any,
+		deleted: [] as any,
+		columns: [] as any,
+		rawData: [] as any,
+		data: [] as any,
+		changelog: null,
+	}])) as { [t in EditableTable]: TableState<t> },
 };
 
-type EventsState = typeof defaultSate & {
+export type EventsState = typeof defaultSate & {
 	setEditing: (val: boolean) => void;
 	setModify: (val: number | null) => void;
 	setModifySource: (val: number | null) => void;
@@ -110,36 +114,6 @@ export const useEventsState = create<EventsState>()(
 	}))
 );
 
-const applyChanges = (state: typeof defaultSate, tbl: TableName) => {
-	const rawData = state.rawData[tbl];
-	const deleted = state.deleted[tbl];
-	const created = state.created[tbl];
-	const columns = state.columns[tbl]!;
-	const changes = state.changes[tbl];
-	if (!rawData) return [];
-	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter(
-		(r) => !deleted.includes(r[0] as number)
-	) as typeof rawData;
-	for (const { id, column, value } of changes) {
-		const row = data.find((r) => r[0] === id);
-		const columnIdx = columns.findIndex((c) => c.sql_name === column);
-		if (row) row[columnIdx] = value;
-	}
-	if (tbl === 'sources_erupt') {
-		const [i1, i2, i3] = ['flr_start', 'cme_time', 'rc_icme_time'].map((cid) => columns.findIndex((c) => c.sql_name === cid));
-		data.sort((a: any, b: any) => (a[i1] ?? a[i2] ?? a[i3]) - (b[i1] ?? b[i2] ?? b[i3]));
-	} else {
-		const sortIdx = columns.findIndex((c) => c.dtype === 'time');
-		if (sortIdx > 0) data.sort((a: any, b: any) => a[sortIdx] - b[sortIdx]);
-	}
-	return data;
-};
-
-export const useTable = (tbl: TableName = 'feid') => ({
-	data: useEventsState((st) => st.data[tbl])!,
-	columns: useEventsState((st) => st.columns[tbl])!,
-});
-
 export const useFeidCursor = () => {
 	const { data, columns } = useTable();
 	const plotId = useEventsState((st) => st.plotId);
@@ -152,8 +126,8 @@ export const useFeidCursor = () => {
 	return { duration, start, end, id: plotId, row };
 };
 
-export const rowAsDict = <T extends keyof tableStructure = never>(row: any[] | undefined, columns: Column[]) =>
-	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as tableStructure[T];
+export const rowAsDict = <T extends keyof Tables = never>(row: any[] | undefined, columns: Column[]) =>
+	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as Tables[T];
 
 export const useSources = () => {
 	const plotId = useEventsState((st) => st.plotId);
@@ -177,7 +151,7 @@ export const useSources = () => {
 		.filter((a) => !!a);
 };
 
-export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): tableStructure[T] | null => {
+export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): Tables[T] | null => {
 	const plotId = useEventsState((st) => st.plotId);
 	const cursor = useEventsState((st) => st.cursor);
 	const modifySource = useEventsState((st) => st.modifySource);
@@ -195,14 +169,7 @@ export const useSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft
 	return !data || targetId == null ? null : (rowAsDict(data.find((row) => row[0] === targetId)!, columns) as any);
 };
 
-export const setRawData = (tbl: TableName, rdata: DataRow[], cols: Column[]) =>
-	queueMicrotask(() =>
-		useEventsState.setState((state) => {
-			state.columns[tbl] = cols;
-			state.rawData[tbl] = rdata;
-			state.data[tbl] = applyChanges(state, tbl);
-		})
-	);
+export const setRawData = (tbl: TableName, rdata: TableRow[], cols: Column[]) =>
 
 export const discardChange = (tbl: TableName, { column, id }: ChangeValue) =>
 	useEventsState.setState((state) => {
@@ -290,7 +257,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		const { columns, data, created } = state;
 
 		if (sourceId == null) {
-			const newRow = [id, ...columns[tbl]!.slice(1).map((c) => null)] as DataRow;
+			const newRow = [id, ...columns[tbl]!.slice(1).map((c) => null)] as TableRow;
 			created[tbl] = [...created[tbl], newRow];
 			data[tbl] = [...data[tbl]!, newRow];
 		}
@@ -299,7 +266,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		const feidSrcRow = [
 			feidSrcId,
 			...columns.feid_sources!.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId }[c.sql_name] ?? null)),
-		] as DataRow;
+		] as TableRow;
 		created.feid_sources = [...created.feid_sources, feidSrcRow];
 		data.feid_sources = [...data.feid_sources!, feidSrcRow];
 
@@ -308,7 +275,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 	return id;
 }
 
-export function makeSourceChanges<T extends 'sources_ch' | 'sources_erupt'>(tbl: T, row: tableStructure[T]) {
+export function makeSourceChanges<T extends 'sources_ch' | 'sources_erupt'>(tbl: T, row: Tables[T]) {
 	makeChange(
 		tbl,
 		Object.entries(row)

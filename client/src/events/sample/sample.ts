@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { parseColumnValue } from './events';
+import { parseColumnValue } from '../core/eventsSettings';
 import { immer } from 'zustand/middleware/immer';
-import type { ColumnDef, Value, DataRow } from './columns';
+import type { ColumnDef, Value, DataRow } from '../columns/columns';
 
 export const FILTER_OPS = ['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp'] as const;
 export type Filter = {
@@ -103,7 +103,7 @@ export const useSampleState = create<SampleState>()(
 					state.current = { ...sample, filters: sample.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? [] };
 				}
 			}),
-	})),
+	}))
 );
 
 export function pickEventForSample(action: 'whitelist' | 'blacklist', id: number) {
@@ -164,7 +164,7 @@ export function applySample(data: DataRow[], sample: Sample | null, columns: Col
 				}, {}) as { [k: number]: DataRow };
 				const timeIdx = columns.findIndex((c) => c.fullName === 'time');
 				return Object.values(set).sort((a, b) => (a[timeIdx] as any) - (b[timeIdx] as any));
-			})();
+		  })();
 	return base
 		.filter((row) => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
 		.filter((row) => !sample.blacklist.includes(row[0]));

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { useEventsSettings, type Flare } from '../../events/events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../../events/eventsState';
-import { serializeCoords, useCompoundTable } from '../../events/sources';
+import { useEventsSettings, type Flare } from '../../events/core/eventsSettings';
+import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../../events/core/eventsState';
+import { serializeCoords, useCompoundTable } from '../../events/core/sourceActions';
 import type uPlot from 'uplot';
 import { color } from '../../app';
 import { font, scaled } from '../plotUtil';
@@ -9,7 +9,15 @@ import type { BasicPlotParams } from '../basicPlot';
 
 type FlareOnset = { time: Date; sources: string[]; flare: Flare };
 
-export function flaresOnsetsPlugin({ params, flares, focusTime }: { params: BasicPlotParams; flares: FlareOnset[]; focusTime: Date }): uPlot.Plugin {
+export function flaresOnsetsPlugin({
+	params,
+	flares,
+	focusTime,
+}: {
+	params: BasicPlotParams;
+	flares: FlareOnset[];
+	focusTime: Date;
+}): uPlot.Plugin {
 	const { showMetaInfo, showMetaLabels } = params;
 	const scale = scaled(1);
 	const px = (a: number) => a * scale;
@@ -35,7 +43,11 @@ export function flaresOnsetsPlugin({ params, flares, focusTime }: { params: Basi
 						ctx.stroke();
 						ctx.beginPath();
 						const col =
-							focusTime.getTime() === time.getTime() ? 'active' : ['A', 'B', 'C'].includes((flare.class ?? 'A')[0]) ? 'text-dark' : 'white';
+							focusTime.getTime() === time.getTime()
+								? 'active'
+								: ['A', 'B', 'C'].includes((flare.class ?? 'A')[0])
+								? 'text-dark'
+								: 'white';
 						ctx.strokeStyle = ctx.fillStyle = color(col);
 						const tm = (flare.peak_time?.getTime() ?? time.getTime()) / 1e3;
 						const x = u.valToPos(tm, 'x', true);
@@ -79,13 +91,15 @@ export function useSolarPlotContext() {
 		cursor?.entity === 'flares'
 			? (rowAsDict(flr.data[cursor.row], flr.columns).start_time as Date)
 			: cursor?.entity === 'CMEs'
-				? (rowAsDict(cme.data[cursor.row], cme.columns).time as Date)
-				: (((erupt?.flr_start ?? erupt?.cme_time) as Date) ?? new Date((feidTime?.getTime() ?? 0) - 3 * 864e5));
+			? (rowAsDict(cme.data[cursor.row], cme.columns).time as Date)
+			: ((erupt?.flr_start ?? erupt?.cme_time) as Date) ?? new Date((feidTime?.getTime() ?? 0) - 3 * 864e5);
 	const interval = plotOffsetSolar.map((o) => new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
 
 	return useMemo(() => {
 		const flrTidx = flr.columns.findIndex((c) => c.id === 'start_time');
-		const flares = flr.data.filter((r) => interval[0] <= r[flrTidx]! && r[flrTidx]! <= interval[1]).map((r) => rowAsDict(r, flr.columns));
+		const flares = flr.data
+			.filter((r) => interval[0] <= r[flrTidx]! && r[flrTidx]! <= interval[1])
+			.map((r) => rowAsDict(r, flr.columns));
 		const flrs = new Map();
 		for (const flare of flares) {
 			const { start_time: time, src } = flare;

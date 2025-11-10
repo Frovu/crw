@@ -6,7 +6,7 @@ import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/ExportPlot';
 import { color } from '../../app';
 import { useSolarPlotContext } from './solar';
-import { usePlotParams, type EventsPanel } from '../../events/events';
+import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
 import { SolarPlotOverlay } from '../BasicPlot';
 
 const colors = {
@@ -27,7 +27,10 @@ function Panel() {
 	const query = useQuery({
 		queryKey: ['CMEHT', from, to],
 		queryFn: () =>
-			apiGet<{ time: number; speed: number; width: number; mpa: number; ht: [number, number][] }[]>('events/cme_heighttime', { from: from - 7200, to }),
+			apiGet<{ time: number; speed: number; width: number; mpa: number; ht: [number, number][] }[]>('events/cme_heighttime', {
+				from: from - 7200,
+				to,
+			}),
 	});
 
 	const plot = useMemo(() => {

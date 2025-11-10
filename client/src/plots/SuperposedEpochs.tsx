@@ -3,12 +3,12 @@ import { apiPost } from '../util';
 import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { useQueries } from '@tanstack/react-query';
 import uPlot from 'uplot';
-import { applySample } from '../events/sample';
-import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/events';
+import { applySample } from '../events/sample/sample';
+import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
 import { type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
-import { useTable } from '../events/eventsState';
+import { useTable } from '../events/core/eventsState';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;

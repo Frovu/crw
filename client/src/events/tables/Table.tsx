@@ -11,9 +11,9 @@ import {
 	type MouseEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
-import { parseColumnValue, isValidColumnValue, valueToString } from '../events';
+import { parseColumnValue, isValidColumnValue, valueToString } from '../core/eventsSettings';
 import { color, openContextMenu } from '../../app';
-import { makeChange, useEventsState, type Cursor, type TableName } from '../eventsState';
+import { makeChange, useEventsState, type Cursor, type TableName } from '../core/eventsState';
 import type { Column } from '../../api';
 
 export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {

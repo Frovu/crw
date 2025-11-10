@@ -1,5 +1,5 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
-import { AuthContext, useContextMenu, openContextMenu } from '../app';
+import { AuthContext, useContextMenu, openContextMenu } from '../../app';
 import {
 	type LayoutsMenuDetails,
 	useLayout,
@@ -7,8 +7,8 @@ import {
 	type ContextMenuProps,
 	type LayoutContextType,
 	AppLayoutContext,
-} from '../layout';
-import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../util';
+} from '../../layout';
+import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
 import {
 	type TableMenuDetails,
 	useEventsSettings,
@@ -20,14 +20,14 @@ import {
 	setStatColumn,
 	type EventsSettings,
 	type EventsPanel,
-} from './events';
-import { useSampleState, defaultFilterOp } from './sample';
-import ColumnsSelector from './Columns';
-import ImportMenu from './Import';
-import SampleView from './Sample';
+} from '../core/eventsSettings';
+import { useSampleState, defaultFilterOp } from '../sample/sample';
+import ColumnsSelector from '../columns/Columns';
+import ImportMenu from '../Import';
+import SampleView from '../sample/Sample';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEventsState, useTable } from './eventsState';
-import FeidTableView from './tables/FeidTable';
+import { useEventsState, useTable } from '../core/eventsState';
+import FeidTableView from '../tables/FeidTable';
 
 const defaultParams = {
 	showChangelog: false,

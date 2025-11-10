@@ -2,9 +2,9 @@ import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { type ColumnDef, type DataRow } from '../columns';
-import { equalValues, valueToString } from '../events';
-import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../eventsState';
+import { type ColumnDef, type DataRow } from '../columns/columns';
+import { equalValues, valueToString } from '../core/eventsSettings';
+import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,
 	unlinkHoleSourceEvent,
@@ -13,7 +13,7 @@ import {
 	type CHS,
 	type ChimeraCH,
 	type SolenCH,
-} from '../sources';
+} from '../core/sourceActions';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';

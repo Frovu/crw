@@ -18,7 +18,7 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 				`auth/${createMode ? 'register' : type}`,
 				upsertMode ? { login, password, role } : passMode ? { password, newPassword } : { login, password }
 			),
-		['auth', 'samples', 'tableStructure', 'tableData']
+		['auth', 'samples', 'Tables', 'tableData']
 	);
 
 	useEffect(() => setCreateMode(false), []);
@@ -39,7 +39,11 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 			{},
 			{
 				onSuccess: () =>
-					logSuccess(passMode ? 'Password changed' : (createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login),
+					logSuccess(
+						passMode
+							? 'Password changed'
+							: (createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login
+					),
 			}
 		);
 	};
@@ -71,18 +75,33 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 					)}
 					<p>
 						Password:&nbsp;
-						<input type="password" style={{ width: '11em' }} onChange={(e) => setPassword(e.target.value)} onKeyDown={ifEnter} />
+						<input
+							type="password"
+							style={{ width: '11em' }}
+							onChange={(e) => setPassword(e.target.value)}
+							onKeyDown={ifEnter}
+						/>
 					</p>
 					{passMode && (
 						<p>
 							New password:&nbsp;
-							<input type="password" style={{ width: '11em' }} onChange={(e) => setnewPassword(e.target.value)} onKeyDown={ifEnter} />
+							<input
+								type="password"
+								style={{ width: '11em' }}
+								onChange={(e) => setnewPassword(e.target.value)}
+								onKeyDown={ifEnter}
+							/>
 						</p>
 					)}
 					{(passMode || createMode) && (
 						<p title="Repeat password">
 							Confirm:&nbsp;
-							<input type="password" style={{ width: '11em' }} onChange={(e) => setnewPassword2(e.target.value)} onKeyDown={ifEnter} />
+							<input
+								type="password"
+								style={{ width: '11em' }}
+								onChange={(e) => setnewPassword2(e.target.value)}
+								onKeyDown={ifEnter}
+							/>
 						</p>
 					)}
 				</div>
@@ -107,7 +126,7 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 export function AuthNav() {
 	const [hovered, setHovered] = useState(0);
 	const { login, role, promptLogin } = useContext(AuthContext);
-	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'tableStructure', 'tableData']);
+	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'Tables', 'tableData']);
 
 	return (
 		<div

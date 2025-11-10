@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { fetchTable, type ColumnDef } from './columns';
+import { fetchTable, type ColumnDef } from '../columns/columns';
 import {
 	chIdIdx,
 	cmeLinks,
@@ -15,9 +15,9 @@ import {
 	useEventsState,
 	type TableName,
 } from './eventsState';
-import { equalValues, type CME, type Flare, type ICME, type SrcEruptRow } from './events';
-import { askConfirmation, askProceed } from '../Utility';
-import { logError, logMessage } from '../app';
+import { equalValues, type CME, type Flare, type ICME, type SrcEruptRow } from './eventsSettings';
+import { askConfirmation, askProceed } from '../../Utility';
+import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 
 type EruptEnt = 'flare' | 'cme' | 'icme';
@@ -51,13 +51,6 @@ export type ChimeraCH = {
 };
 type EruptiveEvent = Flare | CME | ICME;
 
-export const columnOrder = {
-	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
-	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'central_angle', 'enlil_id', 'note'],
-	icme: ['time'],
-	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
-	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
-};
 export const sourceLabels = {
 	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
 	cme: Object.keys(cmeLinks) as (keyof typeof cmeLinks)[],

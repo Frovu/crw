@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createContext, useContext, useMemo } from 'react';
-import type { Filter, Sample } from './sample';
-import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../layout';
-import { getApp } from '../app';
-import type { Value, DataRow } from './columns';
-import type { BasicPlotParams } from '../plots/basicPlot';
-import type { ChangelogEntry, ChangelogResponse, Column, Series } from '../api';
+import type { Filter, Sample } from '../sample/sample';
+import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../../layout';
+import { getApp } from '../../app';
+import type { Value, DataRow } from '../columns/columns';
+import type { BasicPlotParams } from '../../plots/basicPlot';
+import type { ChangelogEntry, ChangelogResponse, Column, Series } from '../../api';
 
 const defaultSettings = {
 	showChangelog: false,

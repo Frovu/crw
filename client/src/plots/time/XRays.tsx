@@ -1,4 +1,4 @@
-import { usePlotParams, type EventsPanel } from '../../events/events';
+import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
@@ -47,7 +47,8 @@ function Panel() {
 						distr: 3,
 						gap: scaled(4),
 						// minMax: [null, 1e-5],
-						values: (u, vals) => vals.map((v) => (Math.log10(v) % 1 === 0 ? (['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '') : '')),
+						values: (u, vals) =>
+							vals.map((v) => (Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '' : '')),
 					},
 				],
 				series: () => [

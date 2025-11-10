@@ -1,71 +1,52 @@
 from datetime import datetime, timezone
+from dataclasses import dataclass, asdict
+import ts_type
 from database import pool, log
 from psycopg.sql import SQL, Identifier
 
+from events.changelog import ChangelogResponse, select_changelog
+from events.columns.column import Column
 from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
 from events.columns.computed_column import select_computed_columns, DATA_TABLE as CC_TABLE
-from events.columns.series import SERIES
 
-def render_table_structure(uid: int):
-	tables = {
-		table: [col.as_dict() for col in columns] for table, columns in ALL_TABLES.items()
-	}
-	ccs = [c.as_dict() for c in select_computed_columns(uid)]
-		
-	series = { ser.name: ser.as_dict() for ser in SERIES }
-	return { 'tables': tables, 'series': series, 'computed_columns': ccs }
+@ts_type.gen_type
+@dataclass
+class TableDataResponse:
+	columns: list[Column]
+	data: list[list[float | str | None]]
+	changelog: ChangelogResponse | None = None
 
-def select_events(entity: str, include: list[str]|None=None):
+	def to_dict(self):
+		return asdict(self)
+
+
+def select_events(entity: str, uid: int|None=None, include: list[str]|None=None, changelog=False):
 	if entity not in ALL_TABLES:
 		raise NameError(f'Unknown entity: \'{entity}\'')
 	
+	is_feid = entity == 'feid'
 	cols = ALL_TABLES[entity]
-	cols = cols if include is None else [c for c in cols if c.name in include]
+	if is_feid:
+		cols = [*cols, *select_computed_columns(uid)]
+	columns = cols if include is None else [c for c in cols if c.name in include]
 
 	col_q = SQL(',').join([c.sql_val() for c in cols])
 	time_col = next((c for c in cols if 'time' in c.sql_name), None)
 	order = Identifier(time_col.sql_name if time_col else 'id')
-	query = SQL('SELECT {} FROM events.{} ORDER BY {}').format(col_q, Identifier(entity), order)
+
+	join_ccs = SQL(f'LEFT JOIN events.{CC_TABLE} ON id = feid_id ' if is_feid else '')
+	query = SQL('SELECT {} FROM events.{} {} ORDER BY {}').format(col_q, Identifier(entity), join_ccs, order)
 
 	with pool.connection() as conn:
 		data = conn.execute(query).fetchall()
 
-	return { 'columns': [c.as_dict() for c in cols], 'data': data }
+		resp = TableDataResponse(columns, data)
 
-def select_feid(uid: int|None=None, include: list[str]|None=None, changelog=False):
-	columns = [*FEID, *select_computed_columns(uid)]
-	if include:
-		columns = [c for c in columns if c.name in include]
-	
-	col_q = SQL(',').join([c.sql_val() for c in columns])
-	select = SQL(f'SELECT {{}} FROM events.{E_FEID} '+\
-		f'LEFT JOIN events.{CC_TABLE} ON id = feid_id ORDER BY time').format(col_q)
+		if changelog:
+			resp.changelog = select_changelog(conn, entity, columns)
 
-	with pool.connection() as conn:
-		curs = conn.execute(select)
-		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description or []]
-		resp = { 'fields': fields, 'data': rows }
-
-		changes = None
-		if changelog: # TODO: optimization
-			changes = { 'fields': ['time', 'author', 'old', 'new', 'special'], 'events': {} }
-			query = '''SELECT event_id, column_name, special, old_value, new_value,
-				EXTRACT (EPOCH FROM changes_log.time)::integer,
-				(select login from users where uid = author) as author
-				FROM events.changes_log WHERE
-					event_id is not null AND entity_name=\'feid\' AND column_name = ANY(%s)'''
-			res = conn.execute(query, [[c.sql_name for c in columns]]).fetchall()
-			per_event = changes['events']
-			for eid, column, special, old_val, new_val, made_at, author in res:
-				if eid not in per_event:
-					per_event[eid] = {}
-				if column not in per_event[eid]:
-					per_event[eid][column] = []
-				per_event[eid][column].append([made_at, author, old_val, new_val, special])
-			
-			resp['changelog'] = changes # type: ignore
-
-	log.info('Table rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
+	if is_feid:
+		log.info('FEID rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
 	return resp
 
 def link_source(feid_id, entity, existing_id = None):
