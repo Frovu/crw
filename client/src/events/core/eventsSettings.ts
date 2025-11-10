@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createContext, useContext, useMemo } from 'react';
-import type { Filter, Sample } from '../sample/sample';
 import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../../layout';
 import { getApp } from '../../app';
 import type { Value, DataRow } from '../columns/columns';
 import type { BasicPlotParams } from '../../plots/basicPlot';
-import type { ChangelogEntry, ChangelogResponse, Column, Series } from '../../api';
+import type { ChangelogEntry, ChangelogResponse, Column, Sample, Series } from '../../api';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -66,7 +65,6 @@ export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: numbe
 	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry[] | undefined;
 
 export type ChangeValue = { id: number; column: string; value: Value; silent?: boolean; fast?: boolean };
-export type FiltersCollection = { filter: Filter; id: number }[];
 
 export const MainTableContext = createContext<{
 	columns: Column[];

@@ -4,7 +4,7 @@ import { equalValues, type ChangeValue } from './eventsSettings';
 import type { ChangelogResponse, Column, StaticColumn, Tables } from '../../api';
 
 export type TableValue = string | number | Date | null;
-export type TableRow = TableValue[];
+export type TableRow = [number, ...TableValue[]];
 
 export type Sort = { column: string; direction: 1 | -1 };
 
@@ -25,6 +25,7 @@ type TableState<T extends EditableTable> = {
 	created: TableRow[];
 	deleted: number[];
 	columns: (T extends 'feid' ? Column : StaticColumn)[];
+	index: { [c in keyof Tables[T]]: number },
 	rawData: TableRow[],
 	data: TableRow[],
 	changelog: null | ChangelogResponse
@@ -46,6 +47,7 @@ const defaultSate = {
 		columns: [] as any,
 		rawData: [] as any,
 		data: [] as any,
+		index: {} as any,
 		changelog: null,
 	}])) as { [t in EditableTable]: TableState<t> },
 };
@@ -91,11 +93,12 @@ export const useEventsState = create<EventsState>()(
 			set((st) => {
 				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySource = null;
 				if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
-					const srcIdIdx = cursor?.entity === 'sources_ch' ? chIdIdx : eruptIdIdx;
-					const src = st.data.feid_sources?.find((row) => row[srcIdIdx] === cursor?.id);
+					const target = cursor?.entity === 'sources_ch' ? 'ch_id' : 'erupt_id';
+					const idIdx = st.tables.feid_sources.index[target];
+					const src = st.tables.feid_sources.data.find((row) => row[idIdx] === cursor?.id);
 					if (src) {
-						st.modifySource = src[0];
-						st.plotId = src[fIdIdx] as number;
+						st.modifySource = src[st.tables.feid_sources.index.id] as number;
+						st.plotId = src[st.tables.feid_sources.index.feid_id] as number;
 					}
 				}
 				st.cursor = cursor;

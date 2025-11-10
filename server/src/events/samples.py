@@ -1,4 +1,35 @@
+from datetime import datetime
 from database import pool, log
+from dataclasses import dataclass, asdict
+from typing import Literal
+import ts_type
+
+FILTER_OP = Literal['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp']
+FILTER_OPS: list[FILTER_OP] = ['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp']
+
+@ts_type.gen_type
+@dataclass
+class Filter:
+	operation: FILTER_OP
+	column: str
+	value: str
+
+@ts_type.gen_type
+@dataclass
+class Sample:
+	id: int
+	name: str
+	authors: list[str]
+	public: bool
+	includes: list[int]
+	filters: list[Filter]
+	whitelist: list[int]
+	blacklist: list[int]
+	created: datetime
+	modified: datetime
+
+	def to_dict(self):
+		return asdict(self)
 
 def _init():
 	with pool.connection() as conn:
@@ -21,8 +52,8 @@ def select(uid=None):
 		curs = conn.execute('SELECT id, name, array(select login from users where uid = ANY(authors) order by login) as authors, ' +\
 		'public, includes, filters, whitelist, blacklist, created, last_modified as modified ' + 
 		'FROM events.samples WHERE public ' + ('' if uid is None else ' OR %s = ANY(authors)') + 'ORDER BY name', [] if uid is None else [uid])
-		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
-		return [{ f: val for val, f in zip(row, fields) } for row in rows]
+		rows = curs.fetchall()
+		return [Sample(*row) for row in rows]
 
 def create_sample(uid, name, filters_json, includes):
 	with pool.connection() as conn:
@@ -32,7 +63,7 @@ def create_sample(uid, name, filters_json, includes):
 		curs = conn.execute('INSERT INTO events.samples(name, authors, filters, includes) VALUES (%s, %s, %s, %s) RETURNING '+
 		'id, name, array(select login from users where uid = ANY(authors)) as authors, ' +\
 		' public, filters, whitelist, blacklist, includes', [name, [uid,], filters_json, includes or []])
-		return { f: val for val, f in zip(curs.fetchone(), [desc[0] for desc in curs.description]) }
+		return Sample(*curs.fetchone() or [])
 
 def remove_sample(uid, sid):
 	with pool.connection() as conn:

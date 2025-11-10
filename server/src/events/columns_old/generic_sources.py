@@ -1,5 +1,5 @@
 from database import pool
-from events.table_structure import ALL_TABLES, ENTITY_CH, SOURCE_ERUPT, SOURCE_CH, SOURCES_LINKS
+from events.table_structure import ALL_TABLES, ENTITY_CH, SOURCE_ERUPT, SOURCE_CH, SOURCE_LINKS
 import numpy as np
 
 # Read columns.ts for g params reference
@@ -44,7 +44,7 @@ def _select_src_entity(feid_ids: list[int], params):
 
 	join_end_src = ''
 	if is_end_src:
-		link_id_col, targ_id_col = SOURCES_LINKS[t_entity]
+		link_id_col, targ_id_col = SOURCE_LINKS[t_entity]
 		join_end_src = f'LEFT JOIN events.{t_entity} tgt ON src.{link_id_col} = tgt.{targ_id_col}'
 	else:
 		targ_id_col = 'id'

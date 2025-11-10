@@ -2,11 +2,11 @@ import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
 import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from '../core/eventsSettings';
-import { type Filter, type Sample, useSampleState, applySample, FILTER_OPS } from './sample';
+import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Option, Select, askConfirmation } from '../../Utility';
-import { useTable } from '../core/eventsState';
-import type { Column } from '../../api';
+import { filterOperations, type Column, type Filter, type Sample } from '../../api';
+import { useTable } from '../core/data';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;
@@ -19,7 +19,7 @@ function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 		}
 		return false;
 	}
-	if (['<=', '>='].includes(operation) && column.type === 'enum') return true;
+	if (['<=', '>='].includes(operation) && column.dtype === 'enum') return true;
 	const val = parseColumnValue(value, column);
 	return !isValidColumnValue(val, column);
 }
@@ -62,22 +62,22 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 	);
 }
 
-function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?: boolean }) {
+function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; disabled?: boolean }) {
 	const { columns } = useContext(MainTableContext);
 	const { shownColumns } = useEventsSettings();
 	const [filter, setFilter] = useState({ ...filterOri });
 	const { changeFilter, removeFilter } = useSampleState();
 
 	const { value, operation, column: columnId } = filter;
-	const column = columns.find((c) => c.id === columnId);
+	const column = columns.find((col) => col.sql_name === columnId);
 
-	const isSelectInput = column && column.type === 'enum' && operation !== 'regexp';
+	const isSelectInput = column && column.dtype === 'enum' && operation !== 'regexp';
 	const isInvalid = isFilterInvalid(filter, column);
 
 	const set = (what: string) => (e: any) => {
 		if (!column && what !== 'column') return;
 		const fl = { ...filter, [what]: e.target.value.trim() };
-		if (column?.enum && isSelectInput && !column.enum.includes(fl.value)) fl.value = column.enum[0];
+		if (isSelectInput && column.type === 'static' && column.enum && !column.enum.includes(fl.value)) fl.value = column.enum[0];
 		setFilter(fl);
 		if (!isFilterInvalid(fl, column)) changeFilter(fl);
 		if (e.target instanceof HTMLSelectElement) e.target.blur();
@@ -92,16 +92,16 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?
 				onChange={set('column')}
 			>
 				{shownColumns
-					?.map((c) => columns.find((col) => col.id === c))
-					.filter((c) => c)
+					?.map((show) => columns.find((col) => col.sql_name === show))
+					.filter((col): col is Column => !!col)
 					.map((col) => (
-						<option value={col!.id} key={col!.id}>
-							{col!.fullName}
+						<option value={col.sql_name} key={col.sql_name}>
+							{col.name}
 						</option>
 					))}
 				{column && !shownColumns?.includes(columnId) && (
 					<option value={columnId} key={columnId}>
-						{column.fullName}
+						{column.name}
 					</option>
 				)}
 				{!column && (
@@ -116,13 +116,13 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?
 					flex: '2',
 					textAlign: 'center',
 					maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
-					borderColor: column?.type === 'enum' && isInvalid ? color('red') : 'transparent',
+					borderColor: column?.dtype === 'enum' && isInvalid ? color('red') : 'transparent',
 					marginRight: '4px',
 				}}
 				value={operation}
 				onChange={set('operation')}
 			>
-				{FILTER_OPS.map((op) => (
+				{filterOperations.map((op) => (
 					<option key={op} value={op}>
 						{op}
 					</option>
@@ -143,7 +143,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?
 					onChange={set('value')}
 				/>
 			)}
-			{!operation.includes('null') && isSelectInput && (
+			{!operation.includes('null') && isSelectInput && column.type === 'static' && (
 				<select disabled={disabled} style={{ flex: '2', maxWidth: '8em', minWidth: 0 }} value={value} onChange={set('value')}>
 					{column.enum?.map((val) => (
 						<option key={val} value={val}>
@@ -159,7 +159,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: Filter; disabled?
 
 const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
-	const { data: tableData, columns } = useTable();
+	const { data: tableData, columns } = useTable('feid');
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
 	const { current: sample, filters, isPicking, showDetails: show, set, setSample, setPicking, setShow, clearFilters } = useSampleState();
@@ -278,7 +278,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 
 	const publicIssue =
 		sample?.public &&
-		sample.filters?.map(({ column }) => columns.find((c) => c.id === column)).find((col) => col?.generic && !col.generic.is_public);
+		sample.filters
+			?.map(({ column }) => columns.find((col) => col.sql_name === column))
+			.find((col) => col?.type === 'computed' && !col.is_public);
 
 	return (
 		<div ref={ref} style={{ maxWidth: '46em' }}>
@@ -318,7 +320,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 								value={id.toString()}
 								style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}
 							>
-								{sample?.id === id ? sample.name : name}
+								{sample?.id === id ? sample!.name : name}
 								<div style={{ flex: 1 }} />
 								{authors.includes(login!) && (
 									<div
@@ -406,11 +408,11 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 							title="Other users will not be able to use this sample, please make all required columns public"
 							style={{ color: color('red') }}
 						>
-							! Public sample depends on a private column: {publicIssue.fullName}
+							! Public sample depends on a private column: {publicIssue.name}
 						</div>
 					)}
 					<div
-						title={`Created at: ${prettyDate(sample.created)}\nModified at: ${prettyDate(sample.modified)}`}
+						title={`Created at: ${prettyDate(new Date(sample.created))}\nModified at: ${prettyDate(new Date(sample.modified))}`}
 						style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}
 					>
 						<div

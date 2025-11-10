@@ -134,7 +134,7 @@ SOURCE_CH = [
 	Col(E_CH, 'width', description='Longitudinal width, °'),
 ]
 
-SOURCES_LINKS = {
+SOURCE_LINKS = {
 	donki.FLR_TABLE: ['donki_flr_id', 'id'],
 	donki.CME_TABLE: ['donki_cme_id', 'id'],
 	lasco_cme.TABLE: ['lasco_cme_time', 'time'],
@@ -143,6 +143,16 @@ SOURCES_LINKS = {
 	solarsoft.TABLE: ['solarsoft_flr_start', 'start_time'],
 	noaa_flares.TABLE: ['noaa_flr_start', 'start_time'],
 	solen_info.TABLE: ['tag', 'tag'],
+}
+
+SOURCE_LABELS = {
+	donki.FLR_TABLE: 'DKI',
+	donki.CME_TABLE: 'DKI',
+	lasco_cme.TABLE: 'LSC',
+	cactus_cme.TABLE: 'CCT',
+	r_c_icme.TABLE: 'R&C',
+	solarsoft.TABLE: 'SFT',
+	noaa_flares.TABLE: 'NOA'
 }
 
 ALL_TABLES: dict[str, list[Col]] = {

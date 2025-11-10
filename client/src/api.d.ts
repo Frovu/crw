@@ -33,7 +33,19 @@ export const sourceLinks = {
         'tag',
         'tag'
     ]
-};
+} as const;
+
+export const sourceLabels = {
+    donki_flares: 'DKI',
+    donki_cmes: 'DKI',
+    lasco_cmes: 'LSC',
+    cactus_cmes: 'CCT',
+    r_c_icmes: 'R&C',
+    solarsoft_flares: 'SFT',
+    legacy_noaa_flares: 'NOA'
+} as const;
+
+export const filterOperations = ['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp'] as const;
 
 export type Column = StaticColumn | ComputedColumn;
 
@@ -76,15 +88,42 @@ export type Series = {
     description: string;
 };
 
+export type ChangelogEntry = {
+    time: number;
+    author: string;
+    old: string;
+    new: string;
+    special: 'import' | null;
+};
+
+export type ChangelogResponse = {
+    fields: string[];
+    events: {[key: string]: {[key: string]: (number | null | string)[][]}};
+};
+
 export type TableDataResponse = {
     columns: Column[];
     data: (number | string | null)[][];
     changelog: ChangelogResponse | null;
 };
 
-export type ChangelogResponse = {
-    fields: string[];
-    events: {[key: string]: {[key: string]: (number | null | string)[][]}};
+export type Filter = {
+    operation: '>=' | '<=' | '==' | '<>' | 'is null' | 'not null' | 'regexp';
+    column: string;
+    value: string;
+};
+
+export type Sample = {
+    id: number;
+    name: string;
+    authors: string[];
+    public: boolean;
+    includes: number[];
+    filters: Filter[];
+    whitelist: number[];
+    blacklist: number[];
+    created: string;
+    modified: string;
 };
 
 export interface Tables {

@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import type { Column, TableDataResponse, Tables } from '../../api';
+import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api';
 import { apiGet } from '../../util';
 import { useContext, useMemo } from 'react';
 import { compoundTables, useEventsState, type EditableTable, type EventsState, type TableRow } from './eventsState';
@@ -41,23 +41,16 @@ export function useCompoundTable(which: keyof typeof compoundTables) {
 				const results = await Promise.all(tables.map((t) => fetchTable(t)));
 				const sCols = results.map((q) => q.columns);
 				const sData = results.map((q) => q.data);
-				const pairs = Object.values(sCols).flatMap((cols) => cols.map((c) => [c.sql_name, c]));
+				const pairs = Object.values(sCols).flatMap((cols) => cols.map((col) => [col.sql_name, col]));
 				const columns = [...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as Column[];
-				const indexes = sourceLabels[which].map((src, srci) => columns.map((c) => sCols[srci].findIndex((sc) => sc.id === c?.id)));
-				const data = sData.flatMap((rows, srci) =>
-					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))])
+				const indexes = tables.map((_, ti) => columns.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name)));
+				const data = sData.flatMap((rows, ti) =>
+					rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))])
 				);
-				const tIdx = columns.findIndex((c) => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
+				const tIdx = columns.findIndex((col) => col.sql_name === (which === 'flare' ? 'start_time' : 'time')) + 1;
 				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
 
-				for (const col of columns) {
-					if (col.name.includes('class')) col.width = 5.5;
-					if (['lat', 'lon'].includes(col.name)) col.width = 4.5;
-					if (which === 'flare' && ['end', 'peak'].includes(col.name)) col.width = 6;
-					if (['type', 'level'].includes(col.name)) col.width = 3;
-				}
-
-				return { data, columns: [{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef, ...columns] };
+				return { data, columns: [{ sql_name: 'src', name: 'src', description: '' } as Column, ...columns] };
 			},
 		}).data ?? { data: [], columns: [] }
 	);
@@ -76,6 +69,7 @@ export function useTableDataQuery(tbl: EditableTable, withChangelog?: boolean) {
 				useEventsState.setState((state) => {
 					state.tables[tbl].changelog = changelog;
 					state.tables[tbl].columns = columns;
+					state.tables[tbl].index = Object.fromEntries(columns.map((col, i) => [col.sql_name, i])) as any;
 					state.tables[tbl].rawData = data;
 					state.tables[tbl].data = renderEditableTableData(state, tbl);
 				})

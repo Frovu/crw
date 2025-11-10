@@ -1,39 +1,22 @@
 import { create } from 'zustand';
 import { parseColumnValue } from '../core/eventsSettings';
 import { immer } from 'zustand/middleware/immer';
-import type { ColumnDef, Value, DataRow } from '../columns/columns';
+import type { TableRow, TableValue } from '../core/eventsState';
+import type { Column, Filter, Sample } from '../../api';
 
-export const FILTER_OPS = ['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp'] as const;
-export type Filter = {
-	operation: (typeof FILTER_OPS)[number];
-	column: string;
-	value: string;
-	id?: number;
-};
-
-export type Sample = {
-	id: number;
-	name: string;
-	includes: number[];
-	filters: Filter[];
-	whitelist: number[];
-	blacklist: number[];
-	authors: string[];
-	public: boolean;
-	created: Date;
-	modified: Date;
-};
+export type FilterWithId = { id: number } & Filter;
+export type SampleWithFilterIds = Omit<Sample, 'filters'> & { filters: FilterWithId[] };
 
 export type SampleState = {
 	showDetails: boolean;
 	isPicking: boolean;
-	current: null | Sample;
-	filters: Filter[];
+	current: null | SampleWithFilterIds;
+	filters: FilterWithId[];
 	set: (a: Partial<Sample>) => void;
 	setPicking: (a: boolean) => void;
 	setShow: (a: boolean) => void;
-	addFilter: (column: ColumnDef, val?: Value) => void;
-	changeFilter: (filter: Filter) => void;
+	addFilter: (column: Column, val?: TableValue) => void;
+	changeFilter: (filter: FilterWithId) => void;
 	removeFilter: (id?: number) => void;
 	changeInclude: (id: number | null, newId: number) => void;
 	removeInclude: (id: number) => void;
@@ -43,8 +26,8 @@ export type SampleState = {
 
 const defaultFilter = { operation: '>=', value: '3' } as const;
 
-export const defaultFilterOp = (column: ColumnDef, val: Value) =>
-	val == null ? 'not null' : column.type === 'enum' ? '==' : column.type === 'text' ? 'regexp' : '>=';
+export const defaultFilterOp = (column: Column, val: TableValue) =>
+	val == null ? 'not null' : column.dtype === 'enum' ? '==' : column.dtype === 'text' ? 'regexp' : '>=';
 
 export const useSampleState = create<SampleState>()(
 	immer((set) => ({
@@ -64,9 +47,9 @@ export const useSampleState = create<SampleState>()(
 				if (val !== undefined) {
 					const operation = defaultFilterOp(column, val ?? null);
 					const value = (val instanceof Date ? val.toISOString().replace(/T.*/, '') : val?.toString()) ?? '';
-					target.filters.push({ column: column.id, operation, value, id: Date.now() });
+					target.filters.push({ column: column.sql_name, operation, value, id: Date.now() });
 				} else {
-					const fl = state.filters.at(-1) ?? { column: column.id, ...defaultFilter };
+					const fl = state.filters.at(-1) ?? { column: column.sql_name, ...defaultFilter };
 					target.filters.push({ ...fl, id: Date.now() });
 				}
 			}),
@@ -116,10 +99,10 @@ export function pickEventForSample(action: 'whitelist' | 'blacklist', id: number
 	});
 }
 
-export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
+export function renderFilters(filters: Filter[], columns: Column[]) {
 	const fns = filters
 		.map((fl) => {
-			const columnIdx = columns.findIndex((c) => c.id === fl.column);
+			const columnIdx = columns.findIndex((col) => col.sql_name === fl.column);
 			if (columnIdx < 0) return null;
 			const column = columns[columnIdx];
 			const fn = (() => {
@@ -143,13 +126,13 @@ export function renderFilters(filters: Filter[], columns: ColumnDef[]) {
 						return (v: any) => v != null && v !== value;
 				}
 			})();
-			return fn && ((row: DataRow) => fn(row[columnIdx]));
+			return fn && ((row: TableRow) => fn(row[columnIdx]));
 		})
-		.filter((fn) => fn) as ((row: DataRow) => boolean)[];
-	return (row: DataRow) => !fns.some((fn) => !fn(row));
+		.filter((fn) => fn) as ((row: TableRow) => boolean)[];
+	return (row: TableRow) => !fns.some((fn) => !fn(row));
 }
 
-export function applySample(data: DataRow[], sample: Sample | null, columns: ColumnDef[], samples: Sample[]): DataRow[] {
+export function applySample(data: TableRow[], sample: Sample | null, columns: Column[], samples: Sample[]): TableRow[] {
 	if (!sample) return data;
 	const filter = sample.filters?.length && renderFilters(sample.filters, columns);
 	const base = !sample.includes?.length
@@ -161,8 +144,8 @@ export function applySample(data: DataRow[], sample: Sample | null, columns: Col
 					const applied = applySample(data, smpl, columns, samples);
 					const ent = Object.fromEntries(applied.map((r) => [r[0], r]));
 					return Object.assign(acc, ent);
-				}, {}) as { [k: number]: DataRow };
-				const timeIdx = columns.findIndex((c) => c.fullName === 'time');
+				}, {}) as { [k: number]: TableRow };
+				const timeIdx = columns.findIndex((col) => col.name === 'time');
 				return Object.values(set).sort((a, b) => (a[timeIdx] as any) - (b[timeIdx] as any));
 		  })();
 	return base
@@ -170,7 +153,7 @@ export function applySample(data: DataRow[], sample: Sample | null, columns: Col
 		.filter((row) => !sample.blacklist.includes(row[0]));
 }
 
-export function sampleEditingMarkers(data: DataRow[], sample: Sample, columns: ColumnDef[]) {
+export function sampleEditingMarkers(data: TableRow[], sample: Sample, columns: Column[]) {
 	const filterFn = sample.filters && renderFilters(sample.filters, columns);
 	return data.map((row) => {
 		const fl = filterFn && filterFn(row) && 'f';
