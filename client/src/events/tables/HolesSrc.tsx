@@ -10,7 +10,7 @@ import {
 	useEventsState,
 	useFeidCursor,
 	useSelectedSource,
-	useSources,
+	useCurrentFeidSources,
 	useTable,
 } from '../core/eventsState';
 import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../core/sourceActions';
@@ -31,7 +31,7 @@ function deleteHole(id: number) {
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
 	const detail = useContextMenu((state) => state.menu?.detail) as { ch: CHS } | undefined;
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const chsId = detail?.ch?.id;
 	const isLinked = sources.find((s) => s.ch?.id === chsId);
 
@@ -58,12 +58,12 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 
 function Panel() {
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	const { cursor: sCursor } = useEventsState();
+	const sCursor = useEntityCursor();
 	const { start: cursorTime, row: feid } = useFeidCursor();
 	const { data, columns } = useTable(ENT);
 	const feidSrc = useTable('feid_sources');
 	const sourceCh = useSelectedSource(ENT);
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 
 	useTableQuery(ENT);
@@ -95,7 +95,9 @@ function Panel() {
 							const orphan = !feidSrc.data.find((r) => r[chIdIdx] === row[0]);
 							const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
 							const dark =
-								!orange && !orphan && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
+								!orange &&
+								!orphan &&
+								!timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 1 * 36e5);
 
 							const className = orphan
 								? 'text-red'
@@ -118,7 +120,9 @@ function Panel() {
 										`${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
 									}
 								>
-									{({ column, cidx }) => <DefaultCell column={column}>{valueToString(row[cidx + 1])}</DefaultCell>}
+									{({ column, cidx }) => (
+										<DefaultCell column={column}>{valueToString(row[cidx + 1])}</DefaultCell>
+									)}
 								</DefaultRow>
 							);
 						},

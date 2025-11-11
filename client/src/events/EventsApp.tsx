@@ -1,138 +1,167 @@
-import { useContext, useMemo } from 'react';
 import { useEventListener } from '../util';
-import EventsDataProvider from './EventsData';
 import AppLayout from '../Layout';
-import { applySample, sampleEditingMarkers, useSampleState } from './sample/sample';
-import { type MagneticCloud, type Onset, PlotContext, SampleContext, TableViewContext, useEventsSettings } from './core/eventsSettings';
-import { useEventsState, useTable } from './core/eventsState';
-import { eventsPanels } from './eventsPanels';
+import { useEventsSettings } from './core/eventsSettings';
+import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
+import type { EventsPanel } from './core/eventsSettings';
+import { defaultPlotParams } from '../plots/basicPlot';
 
-function EventsView() {
-	const { shownColumns, plotOffset, plotUnlistedEvents, showIncludeMarkers } = useEventsSettings();
-	const { columns, data } = useTable();
-	const { current: sample, samples, data: sampleData } = useContext(SampleContext);
-	const editingSample = useSampleState((state) => state.isPicking);
-	const sort = useEventsState((state) => state.sort);
-	const plotId = useEventsState((state) => state.plotId);
-	const modifyId = useEventsState((state) => state.modifyId);
-	const setStartAt = useEventsState((state) => state.setStartAt);
-	const setEndAt = useEventsState((state) => state.setEndAt);
+import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
+import { EventsCheckbox, FeidTable } from './panels/FeidPanel';
+import { GeomagnPlot } from '../plots/time/Geomagn';
+import { GSMPlot } from '../plots/time/GSM';
+import { RSMPlot } from '../plots/time/Circles';
+import { IMFPlot } from '../plots/time/IMF';
+import { SatParticlesPlot } from '../plots/time/Particles';
+import { SWPlasmaPlot } from '../plots/time/SW';
+import { CMEHeightPlot } from '../plots/time/CMEHeight';
+import { SWTypesPlot } from '../plots/time/SWTypes';
+import { XraysPlot } from '../plots/time/XRays';
+import { SunView } from './panels/SunView';
+import { ColorsSettings } from '../Colors';
+import { InsertControls } from './insert/Insert';
+import { CMETable } from './tables/CME';
+import { EruptionsTable } from './tables/Eruptions';
+import { HolesTable } from './tables/HolesSrc';
+import { FlaresTable } from './tables/Flares';
+import { ICMETable } from './tables/ICME';
+import { ChimeraHoles } from './tables/HolesChimera';
+import { SolenHoles } from './tables/HolesSolen';
+import { useContextMenu } from '../app';
+import { Correlation } from '../plots/Correlate';
+import { Histogram } from '../plots/Histogram';
+import { SuperposedEpochs } from '../plots/SuperposedEpochs';
+import { EventsHistory } from '../plots/EventsHistory';
+import { SWPCHint } from './panels/SWPC';
 
-	const dataCo = useMemo(() => {
-		console.time('compute table');
-		const cols = columns.filter((c) => shownColumns?.includes(c.id));
-		const enabledIdxs = [0, ...cols.map((c) => columns.findIndex((cc) => cc.id === c.id))];
-		const sortIdx = 1 + cols.findIndex((c) => c.id === (sort.column === '_sample' ? 'time' : sort.column));
-		const renderedData = sampleData.map((row) => enabledIdxs.map((ci) => row[ci])) as typeof sampleData;
-		const markers = editingSample && sample ? sampleEditingMarkers(sampleData, sample, columns) : null;
-		const idxs = [...renderedData.keys()],
-			column = cols[sortIdx - 1];
-		idxs.sort(
-			(a: number, b: number) =>
-				sort.direction *
-				(['text', 'enum'].includes(column?.type)
-					? ((renderedData[a][sortIdx] as string) ?? '').localeCompare((renderedData[b][sortIdx] as string) ?? '')
-					: (renderedData[a][sortIdx] ?? (0 as any)) - (renderedData[b][sortIdx] ?? (0 as any)))
-		);
-		if (markers && sort.column === '_sample') {
-			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5 } as any;
-			idxs.sort((a, b) => ((weights[markers[a]] ?? 9) - (weights[markers[b]] ?? 9)) * sort.direction);
-		}
-		console.timeEnd('compute table');
-		return {
-			data: idxs.map((i) => renderedData[i]),
-			markers: markers && idxs.map((i) => markers[i]),
-			columns: cols,
-		};
-	}, [columns, sampleData, editingSample, sample, sort, shownColumns]);
+const panels: EventsPanel<any>[] = [
+	GSMPlot,
+	IMFPlot,
+	SWPlasmaPlot,
+	SWTypesPlot,
+	GeomagnPlot,
+	RSMPlot,
+	Correlation,
+	Histogram,
+	SuperposedEpochs,
+	EventsHistory,
+	FeidTable,
+	SatParticlesPlot,
+	CMEHeightPlot,
+	XraysPlot,
+	SunView,
+	ExportControls,
+	ExportPreview,
+	ColorsSettings,
+	InsertControls,
+	EruptionsTable,
+	HolesTable,
+	FlaresTable,
+	CMETable,
+	ICMETable,
+	ChimeraHoles,
+	SolenHoles,
+	SWPCHint,
+	{
+		name: 'Empty',
+		Panel: () => null,
+	},
+];
 
-	const dataContext = useMemo(() => {
-		if (!showIncludeMarkers || !sample?.includes?.length) return { ...dataCo, includeMarkers: null };
-		const smpls = sample.includes.map((sid) => samples.find((s) => s.id === sid));
-		const set = {} as any;
-		for (const smpl of smpls) {
-			if (!smpl) continue;
-			const applied = applySample(data, smpl, columns, samples);
-			for (let i = 0; i < applied.length; ++i) {
-				set[applied[i][0]] = (set[applied[i][0]] ? set[applied[i][0]] + ';' : '') + smpl.name;
-			}
-		}
-		const markers = dataCo.data.map((r) => set[r[0]]);
-		return { ...dataCo, includeMarkers: markers };
-	}, [columns, data, dataCo, sample?.includes, samples, showIncludeMarkers]);
-
-	const plotContext = useMemo(() => {
-		const idx = plotId && data.findIndex((r) => r[0] === plotId);
-		if (idx == null || idx < 0) return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
-		const [timeIdx, durIdx, onsIdx, baseIdx, cloudTime, cloudDur] = [
-			'time',
-			'duration',
-			'onset_type',
-			'base_period',
-			'mc_time',
-			'mc_duration',
-		].map((c) => columns.findIndex((cc) => cc.id === c));
-		const plotDate = setStartAt || (data[idx][timeIdx] as Date);
-		const baseDate = data[idx][baseIdx] as Date;
-		const hour = Math.floor(plotDate?.getTime() / 36e5) * 36e5;
-		const interval = plotOffset.map((h) => new Date(hour + h * 36e5));
-		const allNeighbors = data.slice(Math.max(0, idx - 16), Math.min(data.length, idx + 16));
-		const events = allNeighbors
-			.filter((r) => plotUnlistedEvents || sampleData.find((sr) => sr[0] === r[0]))
-			.filter((r) => (!setStartAt && !setEndAt) || r[0] !== modifyId);
-		const [onsets, ends] = [0, 36e5].map((end) =>
-			events.map(
-				(r) =>
-					({
-						time: new Date(+r[timeIdx]! + end * (r[durIdx]! as any)),
-						type: r[onsIdx] || null,
-						secondary: setStartAt || r[0] !== plotId,
-					} as Onset)
-			)
-		);
-		if (setStartAt) onsets.push({ time: setStartAt, type: null, insert: true });
-		if (setEndAt) ends.push({ time: setEndAt, type: null, insert: true });
-		const clouds = allNeighbors
-			.map((r) => {
-				const time = (r[cloudTime] as Date | null)?.getTime(),
-					dur = r[cloudDur] as number | null;
-				if (!time || !dur) return null;
-				return {
-					start: new Date(time),
-					end: new Date(time + dur * 36e5),
-				};
-			})
-			.filter((v): v is MagneticCloud => v != null);
-		return {
-			interval: interval as [Date, Date],
-			base: baseDate,
-			onsets,
-			ends,
-			clouds,
-		};
-	}, [plotId, data, setStartAt, plotOffset, setEndAt, columns, plotUnlistedEvents, sampleData, modifyId]);
-
+function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 	return (
-		<TableViewContext.Provider value={dataContext}>
-			<PlotContext.Provider value={plotContext}>
-				<AppLayout panels={eventsPanels} />
-			</PlotContext.Provider>
-		</TableViewContext.Provider>
+		<div
+			style={{
+				height: '100%',
+				userSelect: 'none',
+				overflow: 'clip',
+				border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid',
+			}}
+		>
+			<panel.Panel />
+		</div>
 	);
 }
 
+function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
+	const details = (useContextMenu((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
+	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
+	return (
+		<>
+			{isPlot && (
+				<>
+					<div className="Row">
+						<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)} />
+						{type === 'Particles' && <Checkbox text="solar" k="solarTime" />}
+					</div>
+					<div className="separator" />
+					<div className="Row">
+						<EventsCheckbox text="grid" k="showGrid" />
+						{(!isStat || type === 'Events history') && <EventsCheckbox text="markers" k="showMarkers" />}
+						<EventsCheckbox text="legend" k="showLegend" />
+						{type === 'Correlation' && <EventsCheckbox text="title" k="showTitle" />}
+					</div>
+				</>
+			)}
+			{isPlot && !isStat && (
+				<>
+					<div className="separator" />
+					<div className="Row">
+						<Checkbox text="time axis" k="showTimeAxis" />
+						<Checkbox text="meta" k="showMetaInfo" />
+						<Checkbox text="label" k="showMetaLabels" />
+					</div>
+					{(!isSolar || (type === 'Particles' && params.solarTime === false)) && (
+						<>
+							<div className="Row">
+								<EventsCheckbox text="show unlisted" k="plotUnlistedEvents" />
+								<EventsCheckbox text="MCs" k="showMagneticClouds" />
+								<EventsCheckbox text="ends" k="showEventsEnds" />
+							</div>
+						</>
+					)}
+					{Menu && <div className="separator" />}
+				</>
+			)}
+			{Menu && (
+				<>
+					<Menu {...{ params, setParams, Checkbox }} />
+				</>
+			)}
+			{isPlot && (
+				<>
+					<div className="separator" />
+					{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
+				</>
+			)}
+		</>
+	);
+}
+
+const eventsPanels = Object.fromEntries(
+	panels.map((p) => [
+		p.name,
+		{
+			...p,
+			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
+			Panel: () => <PanelWrapper panel={p as any} />,
+			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
+		},
+	])
+);
+
 export default function EventsApp() {
 	const { reset } = useEventsSettings();
+
 	useEventListener('resetSettings', reset);
 
 	return (
-		<EventsDataProvider>
+		<>
 			<title>FEID - Forbush Effects and Interplanetary Disturbances database</title>
 			<meta
 				name="description"
 				content="Multifunctional online interface to the Forbush Effects and Interplanetary Disturbances database"
 			/>
-			<EventsView />
-		</EventsDataProvider>
+			<AppLayout panels={eventsPanels} />
+		</>
 	);
 }

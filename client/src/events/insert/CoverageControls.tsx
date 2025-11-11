@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
-import { logSuccess, logError, color } from '../app';
-import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent } from '../util';
+import { logSuccess, logError, color } from '../../app';
+import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent } from '../../util';
 
 const ENTS = {
 	// [pretty name, is single coverage entry]

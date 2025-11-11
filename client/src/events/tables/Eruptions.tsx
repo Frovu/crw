@@ -1,7 +1,14 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../core/eventsSettings';
+import {
+	equalValues,
+	valueToString,
+	type CME,
+	type Flare,
+	type SrcEruptRow,
+	type TableMenuDetails,
+} from '../core/eventsSettings';
 import { logMessage, useContextMenu } from '../../app';
 import {
 	deleteEvent,
@@ -11,7 +18,7 @@ import {
 	useEventsState,
 	useFeidCursor,
 	useSelectedSource,
-	useSources,
+	useCurrentFeidSources,
 	useTable,
 } from '../core/eventsState';
 import {
@@ -63,7 +70,7 @@ function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: CME | Flare) {
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const detail = useContextMenu((state) => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
 	const isLinked = sources.find((s) => s.erupt?.id === eruptId);
@@ -90,12 +97,12 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 }
 
 function Panel() {
-	const { cursor: sCursor } = useEventsState();
+	const sCursor = useEntityCursor();
 	const { data, columns } = useTable(ENT);
 	const feidSrc = useTable('feid_sources');
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const selectedErupt = useSelectedSource('sources_erupt');
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 
@@ -140,7 +147,9 @@ function Panel() {
 									const idColIdx = flares.columns?.findIndex((col) => col.id === idColId);
 									const flr =
 										erupt[linkColId] &&
-										flares.data?.find((r) => equalValues(r[idColIdx], erupt[linkColId]) && r[0] === erupt.flr_source);
+										flares.data?.find(
+											(r) => equalValues(r[idColIdx], erupt[linkColId]) && r[0] === erupt.flr_source
+										);
 									return flr ? (rowAsDict(flr, flares.columns) as Flare) : null;
 							  })();
 					const orphan = !feidSrc.data.find((r) => r[eruptIdIdx] === row[0]);
@@ -154,7 +163,8 @@ function Panel() {
 							onClick={(e, cidx) => onClick(idx, cidx)}
 							contextMenuData={() => ({ nodeId, cell: { id: row[0] } })}
 							title={(cidx) =>
-								(cidx === 1 ? `id = ${row[0]}; ` : '') + `${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
+								(cidx === 1 ? `id = ${row[0]}; ` : '') +
+								`${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
 							}
 						>
 							{({ column, cidx: scidx, curs }) => {
@@ -166,7 +176,9 @@ function Panel() {
 											if (['lat', 'lon'].includes(cid) && erupt.coords_source !== 'FLR') return false; // FIXME
 											if (!flare) return !flares.data;
 											const val =
-												cid === 'flr_flux' ? flare.flux ?? parseFlareFlux(flare.class) : flare[flare_columns[cid]];
+												cid === 'flr_flux'
+													? flare.flux ?? parseFlareFlux(flare.class)
+													: flare[flare_columns[cid]];
 											return !equalValues(val, row[cidx]);
 									  })()
 									: null;

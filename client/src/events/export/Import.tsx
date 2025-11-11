@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { equalValues, valueToString } from './events';
-import { apiPost, useEventListener, useMutationHandler } from '../util';
-import type { Value } from './columns/columns';
-import { useTable } from './eventsState';
-import { color } from '../app';
+import { apiPost, useEventListener, useMutationHandler } from '../../util';
+import { color } from '../../app';
+import { useTable, type TableValue } from '../core/editableTables';
+import { equalValues, valueToString } from '../core/eventsSettings';
+import type { StaticColumn } from '../../api';
 
 const FIXES = [
 	[/(A|B|C|M|X) ([.\d]+)/g, '$1$2'],
@@ -12,7 +12,7 @@ const FIXES = [
 ] as [RegExp, string][];
 
 export default function ImportMenu() {
-	const { columns: allColumns, data: currentData } = useTable();
+	const { columns: allColumns, data: currentData, index } = useTable('feid');
 	const [fileText, setFileText] = useState<string>();
 	const [open, setOpen] = useState(false);
 	const [importColumn, setImportColumn] = useState<string | null>(null);
@@ -30,36 +30,37 @@ export default function ImportMenu() {
 		if (headerIdx < 0) return { error: 'columns index not found' };
 		const colsIndex = allLines[headerIdx].trim().split(/\s+/);
 		const columns = allColumns
-			.filter((c) => colsIndex.includes(c.parseName!))
-			.map((c) => ({ ...c, idx: colsIndex.indexOf(c.parseName!) }));
+			.filter((c): c is StaticColumn => c.type === 'static' && colsIndex.includes(c.parse_name!))
+			.map((c) => ({ ...c, idx: colsIndex.indexOf(c.parse_name!) }));
 		const lines = allLines.slice(headerIdx + 1).filter((l) => l.length > 0);
-		const rows = [...Array(lines.length)].map((r) => Array(columns.length)) as Value[][];
+		const rows = [...Array(lines.length)].map((r) => Array(columns.length)) as TableValue[][];
 
 		for (const [ri, line] of lines.entries()) {
 			try {
 				const split = line.trim().split(/\s+/);
 				if (split.length < colsIndex.length)
 					return { error: `column count does not match (${split.length} != ${colsIndex.length}): ${line}` };
-				for (const [ci, { name, idx, type, parseValue }] of columns.entries()) {
+				for (const [ci, { name, idx, dtype, parse_value }] of columns.entries()) {
 					const str = split[idx];
-					if (parseValue) {
-						rows[ri][ci] = parseValue[str] ?? null;
+					if (parse_value) {
+						rows[ri][ci] = parse_value[str] ?? null;
 					} else if (str === 'None') {
 						rows[ri][ci] = null;
 					} else {
-						if (type === 'time') {
+						if (dtype === 'time') {
 							const dateStr = (split[idx - 1] + 'T' + str).replace(/T(\d):/, 'T0$1:').replace(/\./g, '-') + 'Z';
 							const val = new Date(dateStr);
-							if (isNaN(val.getTime())) return { error: `invalid ${name}: ${dateStr}  (${split[idx - 1] + ' ' + str})` };
+							if (isNaN(val.getTime()))
+								return { error: `invalid ${name}: ${dateStr}  (${split[idx - 1] + ' ' + str})` };
 							rows[ri][ci] = val;
-						} else if (['integer', 'real'].includes(type)) {
-							const val = type === 'integer' ? parseInt(str) : parseFloat(str);
+						} else if (['integer', 'real'].includes(dtype)) {
+							const val = dtype === 'integer' ? parseInt(str) : parseFloat(str);
 							if (isNaN(val)) return { error: `invalid ${name} (NaN): ${str}` };
 							rows[ri][ci] = val;
-						} else if (['enum', 'text'].includes(type)) {
+						} else if (['enum', 'text'].includes(dtype)) {
 							rows[ri][ci] = str;
 						} else {
-							return { error: `type not supported: ${type}` };
+							return { error: `dtype not supported: ${dtype}` };
 						}
 					}
 				}
@@ -76,11 +77,18 @@ export default function ImportMenu() {
 			changes: [] as [
 				number,
 				Date,
-				{ entity: string; column: string; before: (typeof rows)[number][number]; after: (typeof rows)[number][number] }[]
+				{
+					entity: string;
+					column: string;
+					before: (typeof rows)[number][number];
+					after: (typeof rows)[number][number];
+				}[]
 			][],
 		};
-		const timeIdx = allColumns.findIndex((c) => c.fullName === 'time');
-		const targetData = (currentData as Date[][]).filter((r) => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1]) as any[];
+		const timeIdx = index.time;
+		const targetData = (currentData as Date[][]).filter(
+			(r) => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1]
+		) as any[];
 		const lost = targetData.slice() as ((typeof rows)[number][number][] | null)[];
 		const added = [];
 		for (const row of rows) {
@@ -91,15 +99,16 @@ export default function ImportMenu() {
 				++diff.found;
 				lost[foundIdx] = null;
 				const changes: (typeof diff.changes)[number][2] = [];
-				for (const [ci, { id, entity }] of columns.entries()) {
-					if (importColumn && id !== importColumn) continue;
-					const oldVal = found[allColumns.findIndex((c) => c.id === id)];
+				for (const [ci, { sql_name, entity }] of columns.entries()) {
+					if (importColumn && sql_name !== importColumn) continue;
+					const oldVal = found[allColumns.findIndex((c) => c.sql_name === sql_name)];
 					const newVal = row[ci];
-					if (id === 'duration' && newVal === -99) continue;
-					if (equalValues(oldVal, newVal) || (oldVal == null && [-999, -99, -99.9, 0, -1].includes(newVal as number))) continue;
+					if (sql_name === 'duration' && newVal === -99) continue;
+					if (equalValues(oldVal, newVal) || (oldVal == null && [-999, -99, -99.9, 0, -1].includes(newVal as number)))
+						continue;
 					changes.push({
 						entity,
-						column: id,
+						column: sql_name,
 						before: oldVal,
 						after: newVal,
 					});
@@ -133,10 +142,10 @@ export default function ImportMenu() {
 				remove: actuallyLost.map((l) => l![0]),
 				total: rows.length,
 				interval: interval as [Date, Date],
-				columns: columns.map((c) => c.id),
+				columns: columns.map((c) => c.sql_name),
 			},
 		};
-	}, [allColumns, currentData, importColumn, fileText, open]);
+	}, [fileText, open, allColumns, index.time, currentData, importColumn]);
 
 	const { report, mutate, isPending } = useMutationHandler(
 		({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
@@ -165,10 +174,10 @@ export default function ImportMenu() {
 					>
 						<option value="<no>">&lt;no&gt;</option>
 						{allColumns
-							.filter((c) => c.id !== 'time' && c.parseName)
+							.filter((c): c is StaticColumn => c.sql_name !== 'time' && c.type === 'static' && !!c.parse_name)
 							.map((col) => (
-								<option value={col.id} key={col.id}>
-									{col.fullName} &lt;- {col.parseName}
+								<option value={col.sql_name} key={col.sql_name}>
+									{col.name} &lt;- {col.parse_name}
 								</option>
 							))}
 					</select>
@@ -241,11 +250,24 @@ export default function ImportMenu() {
 										</div>
 									)}
 								</div>
-								<div style={{ color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)', marginTop: 4 }}>
+								<div
+									style={{
+										color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)',
+										marginTop: 4,
+									}}
+								>
 									Altered: {changes.length}
 								</div>
 								{changes.length > 0 && (
-									<div style={{ maxHeight: 160, marginTop: 8, overflowY: 'scroll', fontSize: 14, lineHeight: 1 }}>
+									<div
+										style={{
+											maxHeight: 160,
+											marginTop: 8,
+											overflowY: 'scroll',
+											fontSize: 14,
+											lineHeight: 1,
+										}}
+									>
 										{changes.map(([_, date, list]) => (
 											<div key={date.getTime()} style={{ marginBottom: 12 }}>
 												<span style={{ color: 'var(--color-acid)' }}>{valueToString(date)}</span>
@@ -287,7 +309,11 @@ export default function ImportMenu() {
 							</div>
 						);
 					})()}
-				<div className="CloseButton" style={{ position: 'absolute', top: 2, right: 8 }} onClick={() => setOpen(false)} />
+				<div
+					className="CloseButton"
+					style={{ position: 'absolute', top: 2, right: 8 }}
+					onClick={() => setOpen(false)}
+				/>
 			</div>
 		</>
 	);

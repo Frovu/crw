@@ -6,6 +6,7 @@ import { getApp } from '../../app';
 import type { Value, DataRow } from '../columns/columns';
 import type { BasicPlotParams } from '../../plots/basicPlot';
 import type { ChangelogEntry, ChangelogResponse, Column, Sample, Series } from '../../api.d';
+import type { MagneticCloud, Onset } from './plot';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -58,9 +59,6 @@ export type TableParams = {
 	showIncludeMarkers?: boolean;
 };
 
-export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
-export type MagneticCloud = { start: Date; end: Date };
-
 export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
 	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as
 		| ChangelogEntry[]
@@ -92,7 +90,7 @@ export type TableMenuDetails = {
 	cell?: { id: number; column: Column; value: Value };
 };
 
-export const usePlotParams = <T>() => {
+export const usePlot = <T>() => {
 	const { params } = useContext(LayoutContext)!;
 	const settings = useEventsSettings();
 	const plotContext = useContext(PlotContext);

@@ -5,8 +5,8 @@ import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
 import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import { color } from '../../app';
-import { useSolarPlotContext } from './solar';
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { useSolarPlot } from '../solar';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
 import { SolarPlotOverlay } from '../BasicPlot';
 
 const colors = {
@@ -17,9 +17,9 @@ const colors = {
 };
 
 function Panel() {
-	const params = usePlotParams<{}>();
+	const params = usePlot<{}>();
 	const { showGrid } = params;
-	const { interval } = useSolarPlotContext();
+	const { interval } = useSolarPlot();
 	const [from, to] = interval.map((d) => Math.floor(d.getTime() / 1e3));
 
 	const [upl, setUpl] = useState<uPlot | null>(null);

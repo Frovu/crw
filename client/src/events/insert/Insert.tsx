@@ -1,18 +1,19 @@
 import { useContext, type MouseEvent } from 'react';
-import { color, logSuccess, openContextMenu, useContextMenu } from '../app';
-import { prettyDate, useEventListener } from '../util';
+import { color, logSuccess, openContextMenu, useContextMenu } from '../../app';
+import { prettyDate, useEventListener } from '../../util';
 import CoverageControls from './CoverageControls';
-import { useFeidCursor, useEventsState, useSources, useTable, makeChange, createFeid, deleteEvent, linkSource } from './eventsState';
-import { getSourceLink, useTableQuery } from './sources';
-import { ValidatedInput } from '../Utility';
-import { LayoutContext, openWindow } from '../layout';
-import type { FeidSrcRow } from './events';
+import { ValidatedInput } from '../../Utility';
+import { LayoutContext, openWindow } from '../../layout';
+import { createFeid, deleteEvent, getTable, linkSource, makeChange, useTable } from '../core/editableTables';
+import { useFeidCursor, useEventsState, useCurrentFeidSources } from '../core/eventsState';
+import { getSourceLink } from '../core/sourceActions';
+import type { Tables } from '../../api';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Menu() {
 	const { id: feidId } = useFeidCursor();
-	const detail = useContextMenu((state) => state.menu?.detail) as { source: FeidSrcRow } | undefined;
+	const detail = useContextMenu((state) => state.menu?.detail) as { source: Tables['feid_sources'] } | undefined;
 
 	return (
 		<>
@@ -30,11 +31,11 @@ function Menu() {
 						onClick={() => {
 							const srcId = linkSource('sources_erupt', feidId);
 							setTimeout(() => {
-								const { setCursor, data } = useEventsState.getState();
+								const { setCursor } = useEventsState.getState();
 								setCursor({
 									entity: 'sources_erupt',
 									column: 2,
-									row: data.sources_erupt!.findIndex((r) => r[0] === srcId),
+									row: getTable('sources_erupt').data.findIndex((row) => row[0] === srcId),
 									id: srcId,
 								});
 							}, 100);
@@ -69,17 +70,13 @@ function Panel() {
 		useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { id: nodeId } = useContext(LayoutContext)!;
-	const { columns } = useTable();
-	const sources = useSources();
+	const { columns } = useTable('feid');
+	const sources = useCurrentFeidSources();
 
 	const isLink = modifySourceId;
 	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isIdle = !isMove && !isInsert && !isLink;
-
-	useTableQuery('feid_sources');
-	useTableQuery('sources_erupt');
-	useTableQuery('sources_ch');
 
 	const srcs = useTable('feid_sources');
 
@@ -155,7 +152,8 @@ function Panel() {
 		setModifySource(nxt.source.id);
 	});
 
-	if (plotId == null || feidId == null || !start) return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
+	if (plotId == null || feidId == null || !start)
+		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
 	const errNoPrimary = !sources.find((s) => s.source.cr_influence === 'primary');
 
@@ -181,7 +179,9 @@ function Panel() {
 				width={84}
 				style={{
 					minWidth: 80,
-					color: color({ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ?? 'red'),
+					color: color(
+						{ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ?? 'red'
+					),
 					whiteSpace: 'nowrap',
 				}}
 				onContextMenu={(e) => {
@@ -216,7 +216,17 @@ function Panel() {
 				<div style={{ alignSelf: 'start', position: 'relative', width: 154, height: 26, paddingTop: 1 }}>
 					<CoverageControls date={start} />
 				</div>
-				<div style={{ display: 'flex', flex: 1, maxWidth: 163, color: color('white'), gap: 2, paddingBottom: 2, alignSelf: 'end' }}>
+				<div
+					style={{
+						display: 'flex',
+						flex: 1,
+						maxWidth: 163,
+						color: color('white'),
+						gap: 2,
+						paddingBottom: 2,
+						alignSelf: 'end',
+					}}
+				>
 					{(isIdle || isInsert) && (
 						<button onClick={isInsert ? handleEnter : toggle('insert')} style={{ flex: 1 }}>
 							Insert
@@ -272,7 +282,9 @@ function Panel() {
 									type="text"
 									value={feid.s_type}
 									style={{ width: 36, padding: 0, background: color('input-bg', 0.5) }}
-									callback={(value) => makeChange('feid', { id: feidId, column: 's_type', value, fast: true })}
+									callback={(value) =>
+										makeChange('feid', { id: feidId, column: 's_type', value, fast: true })
+									}
 								/>
 								<span style={{ paddingLeft: 2, color: color('text-dark', 0.3) }}>(0)</span>
 							</td>
@@ -295,7 +307,9 @@ function Panel() {
 								<span style={{ fontSize: 14, paddingRight: 8 }}>conf</span>
 								<span
 									style={{
-										color: color({ low: 'orange', avg: 'text', high: 'green' }[feid.s_confidence ?? ''] ?? 'red'),
+										color: color(
+											{ low: 'orange', avg: 'text', high: 'green' }[feid.s_confidence ?? ''] ?? 'red'
+										),
 									}}
 								>
 									{feid.s_confidence ? feid.s_confidence : 'N/A'}
@@ -310,7 +324,9 @@ function Panel() {
 											<div
 												style={{
 													color: color(
-														sources.find((s) => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime())
+														sources.find(
+															(s) => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime()
+														)
 															? 'green'
 															: 'red'
 													),
@@ -323,7 +339,9 @@ function Panel() {
 											<div
 												style={{
 													color: color(
-														sources.find((s) => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime())
+														sources.find(
+															(s) => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime()
+														)
 															? 'green'
 															: 'red'
 													),
@@ -342,7 +360,9 @@ function Panel() {
 									type="text"
 									value={feid.s_description}
 									style={{ width: '100%', padding: 0, background: color('input-bg', 0.5) }}
-									callback={(value) => makeChange('feid', { id: feidId, column: 's_description', value, fast: true })}
+									callback={(value) =>
+										makeChange('feid', { id: feidId, column: 's_description', value, fast: true })
+									}
 								/>
 							</td>
 						</tr>
@@ -352,7 +372,9 @@ function Panel() {
 									type="text"
 									value={feid.comment}
 									style={{ width: '100%', padding: 0, background: color('input-bg', 0.5) }}
-									callback={(value) => makeChange('feid', { id: feidId, column: 'comment', value, fast: true })}
+									callback={(value) =>
+										makeChange('feid', { id: feidId, column: 'comment', value, fast: true })
+									}
 								/>
 							</td>
 						</tr>
@@ -368,7 +390,10 @@ function Panel() {
 
 						const clr = (what: 'flare' | 'cme' | 'icme', which: string) => {
 							const isSet = src.erupt?.[getSourceLink(what, which)[0]];
-							return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', 0.2) : 'unset' };
+							return {
+								color: color(isSet ? 'green' : 'text-dark'),
+								backgroundColor: isSet ? color('green', 0.2) : 'unset',
+							};
 						};
 
 						return (
@@ -391,7 +416,11 @@ function Panel() {
 											</td>
 											<td
 												width={40}
-												style={{ borderBottomColor: 'transparent', textAlign: 'right', color: color('text-dark') }}
+												style={{
+													borderBottomColor: 'transparent',
+													textAlign: 'right',
+													color: color('text-dark'),
+												}}
 											>
 												FLR:
 											</td>
@@ -428,7 +457,10 @@ function Panel() {
 
 						const clr = (which: 'solen' | 'chimera') => {
 							const isSet = src.ch?.[which === 'solen' ? 'tag' : 'chimera_id'];
-							return { color: color(isSet ? 'green' : 'text-dark'), backgroundColor: isSet ? color('green', 0.2) : 'unset' };
+							return {
+								color: color(isSet ? 'green' : 'text-dark'),
+								backgroundColor: isSet ? color('green', 0.2) : 'unset',
+							};
 						};
 
 						return (

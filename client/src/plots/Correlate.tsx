@@ -9,7 +9,7 @@ import {
 	equalValues,
 	valueToString,
 	TableViewContext,
-	usePlotParams,
+	usePlot,
 	findColumn,
 } from '../events/core/eventsSettings';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
@@ -206,7 +206,7 @@ function Panel() {
 	const { data: shownData } = useContext(TableViewContext);
 	const { data: allData, columns } = useTable();
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
-	const params = usePlotParams<CorrelationParams>();
+	const params = usePlot<CorrelationParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,

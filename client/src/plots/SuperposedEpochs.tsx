@@ -4,7 +4,7 @@ import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } f
 import { useQueries } from '@tanstack/react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample/sample';
-import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
+import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/eventsSettings';
 import { type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/export/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
@@ -151,7 +151,7 @@ function Panel() {
 	const { plotOffset, showGrid, showLegend } = useEventsSettings();
 	const { columns, series: seriesDict } = useContext(MainTableContext);
 	const { data: allData } = useTable();
-	const params = usePlotParams<CollisionOptions>();
+	const params = usePlot<CollisionOptions>();
 	const { sample0, sample1, sample2, timeColumn } = params;
 
 	const series = [params.series0, params.series1, params.series2];

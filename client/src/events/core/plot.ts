@@ -1,11 +1,19 @@
 import { useContext, useMemo } from 'react';
-import { type Onset, type MagneticCloud, useEventsSettings } from './eventsSettings';
+import { useEventsSettings } from './eventsSettings';
 import { LayoutContext } from '../../layout';
-import { useEventsState } from './eventsState';
+import { useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
+import { useCompoundTable } from './query';
+import type { EruptiveEvent } from './sourceActions';
 
-export function usePlotParams() {
+export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
+
+export type MagneticCloud = { start: Date; end: Date };
+
+export type FlareOnset = { time: Date; sources: string[]; flare: EruptiveEvent<'flare'> };
+
+export function usePlot() {
 	const layout = useContext(LayoutContext);
 	const settings = useEventsSettings();
 	const { plotUnlistedEvents, plotOffset } = settings;
@@ -77,4 +85,46 @@ export function usePlotParams() {
 			stretch: true,
 		};
 	}, [settings, plotContext, layout?.params]);
+}
+
+export function useSolarPlot() {
+	const cursor = useEventsState((s) => s.cursor);
+	const { start: feidTime } = useFeidCursor();
+	const plotOffsetSolar = useEventsSettings((st) => st.plotOffsetSolar);
+	const erupt = useSelectedSource('sources_erupt', true);
+	const flr = useCompoundTable('flare');
+	const cme = useCompoundTable('cme');
+
+	return useMemo(() => {
+		const focusTime =
+			(cursor?.entity === 'flare'
+				? flr?.entry(flr.data[cursor.row]).start_time
+				: cursor?.entity === 'cme'
+				? cme?.entry(cme.data[cursor.row]).time
+				: erupt?.flr_start ?? erupt?.cme_time) ?? new Date((feidTime.getTime() ?? 0) - 3 * 864e5);
+		const interval = plotOffsetSolar.map((o) => new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
+
+		const flrTidx = flr?.columns.findIndex((col) => col.sql_name === 'start_time');
+		const flares = flr?.data
+			.filter((row) => interval[0] <= row[flrTidx!]! && row[flrTidx!]! <= interval[1])
+			.map((row) => flr.entry(row));
+
+		const flrs = new Map();
+		for (const flare of flares ?? []) {
+			const { start_time: time, src } = flare;
+			const k = (time as any).getTime();
+			const old = flrs.get(k);
+			flrs.set(k, {
+				sources: [...(old?.sources ?? []), src],
+				flare: old?.flare ?? flare,
+				time,
+			});
+		}
+
+		return {
+			focusTime,
+			interval,
+			flares: Array.from(flrs.values()) as FlareOnset[],
+		};
+	}, [cme, flr, cursor, erupt, feidTime, plotOffsetSolar]);
 }

@@ -1,11 +1,11 @@
 import { useContext, useState, type MouseEvent } from 'react';
 import { read, utils } from 'xlsx';
-import { apiGet, apiPost, cn, prettyDate } from '../util';
+import { apiGet, apiPost, cn, prettyDate } from '../../util';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { logError, logSuccess } from '../app';
-import { useSolarPlotContext } from '../plots/time/solar';
-import { useFeidCursor } from './eventsState';
-import { LayoutContext } from '../layout';
+import { logError, logSuccess } from '../../app';
+import { useSolarPlot } from '../../plots/solar';
+import { LayoutContext } from '../../layout';
+import { useFeidCursor } from '../core/eventsState';
 
 type ApiData = [number, string, string][];
 type Data = (string | null)[][];
@@ -75,7 +75,7 @@ function Panel() {
 	const {
 		size: { width, height },
 	} = useContext(LayoutContext)!;
-	const { focusTime: timeSolar } = useSolarPlotContext();
+	const { focusTime: timeSolar } = useSolarPlot();
 	const { start: timeEarth } = useFeidCursor();
 	const dates = [timeSolar, timeEarth].map((date) => Math.floor(date?.getTime() / 864e5) * 86400);
 

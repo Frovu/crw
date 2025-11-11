@@ -1,9 +1,10 @@
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
+import { useSolarPlot } from '../../events/core/plot';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled } from '../plotUtil';
-import { flaresOnsetsPlugin, useSolarPlotContext } from './solar';
+import { flaresOnsetsPlugin } from '../solar';
 
 const defaultParams = {
 	showShortXrays: true,
@@ -20,9 +21,9 @@ function Menu({ Checkbox }: ContextMenuProps<SatXraysParams>) {
 }
 
 function Panel() {
-	const params = usePlotParams<SatXraysParams>();
+	const params = usePlot<SatXraysParams>();
 	const { showGrid, showShortXrays } = params;
-	const { interval, flares, focusTime } = useSolarPlotContext();
+	const { interval, flares, focusTime } = useSolarPlot();
 
 	return (
 		<BasicPlot
@@ -48,7 +49,9 @@ function Panel() {
 						gap: scaled(4),
 						// minMax: [null, 1e-5],
 						values: (u, vals) =>
-							vals.map((v) => (Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '' : '')),
+							vals.map((v) =>
+								Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '' : ''
+							),
 					},
 				],
 				series: () => [

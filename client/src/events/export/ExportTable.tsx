@@ -1,9 +1,9 @@
-import { useContext } from 'react';
-import { TableViewContext, valueToString } from '../events';
 import { computeColumnWidth } from '../columns/columns';
+import { valueToString } from '../core/eventsSettings';
+import { useFeidTableView } from '../core/feid';
 
 export function ExportMenu() {
-	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
+	const { data: shownData, columns: allColumns, includeMarkers: inc } = useFeidTableView();
 
 	const columns = inc
 		? allColumns.concat({
@@ -16,11 +16,11 @@ export function ExportMenu() {
 
 	const renderText = (format: 'json' | 'csv' | 'txt') => {
 		const data = shownData.map((row, i) => (!inc ? row.slice(1) : row.slice(1).concat(inc[i])));
-		const cols = columns.map(({ name, dtype, description, enum: aenum }) => ({
+		const cols = columns.map(({ name, dtype, description, ...col }) => ({
 			name,
 			dtype,
 			description,
-			enum: aenum,
+			...(col.type === 'static' && col.enum && { enum: col.enum }),
 		}));
 
 		if (format === 'json') {

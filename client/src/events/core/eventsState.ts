@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Tables } from '../../api.d';
-import { getTable, useTable } from './editableTables';
+import { getTable, useTable, type EditableTable } from './editableTables';
 import { useMemo } from 'react';
+import type { CHEnt, EruptTable } from './sourceActions';
 
 export type Sort = { column: string; direction: 1 | -1 };
 
-export type Cursor = { row: number; column: number; entity: string; editing?: boolean; id: number };
+export type Cursor = { row: number; column: number; entity: EditableTable | CHEnt | EruptTable; editing?: boolean; id: number };
 
 const defaultSate = {
 	cursor: null as Cursor | null,
@@ -86,6 +87,9 @@ export const useEventsState = create<EventsState>()(
 			}),
 	}))
 );
+
+export const useEntityCursor = (ent: Cursor['entity']) =>
+	useEventsState((st) => (st.cursor?.entity === ent ? st.cursor : null));
 
 export const useFeidCursor = () => {
 	const { data, getById, entry } = useTable('feid');

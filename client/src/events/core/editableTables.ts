@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 export type TableValue = string | number | Date | null;
 export type TableRow = [number, ...TableValue[]];
 
-const editableTables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
+export const editableTables = ['feid', 'feid_sources', 'sources_erupt', 'sources_ch'] as const;
 export type EditableTable = keyof Tables & (typeof editableTables)[number];
 
 type TableState<T extends EditableTable> = {
@@ -83,18 +83,18 @@ const renderTableData = (state: TablesState, tbl: EditableTable) => {
 	return data;
 };
 
-const rowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
+export const tableRowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
 	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as Tables[T];
 
 const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableState<T>, 'columns' | 'data' | 'index'>) => ({
 	columns,
 	data,
 	index,
-	entry: (row: (typeof data)[number]) => rowAsDict<T>(row, columns),
+	entry: (row: (typeof data)[number]) => tableRowAsDict<T>(row, columns),
 	getById: (id: number | null) => {
 		if (id === null) return null;
 		const row = data.find((r) => r[0] === id);
-		return row ? rowAsDict<T>(row, columns) : null;
+		return row ? tableRowAsDict<T>(row, columns) : null;
 	},
 });
 

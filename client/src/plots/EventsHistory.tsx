@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings, MainTableContext, SampleContext, usePlotParams } from '../events/core/eventsSettings';
+import { useEventsSettings, MainTableContext, SampleContext, usePlot } from '../events/core/eventsSettings';
 import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
@@ -173,7 +173,7 @@ function Panel() {
 	const { data: currentData, samples: samplesList } = useContext(SampleContext);
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
 	const { columns, data: allData } = useTable();
-	const params = usePlotParams<HistoryParams>();
+	const params = usePlot<HistoryParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,

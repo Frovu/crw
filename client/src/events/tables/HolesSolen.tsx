@@ -3,7 +3,7 @@ import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../core/eventsSettings';
-import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources } from '../core/eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,
 	timeInMargin,
@@ -16,7 +16,20 @@ import {
 import { prettyDate } from '../../util';
 
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
-const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const months = [
+	'january',
+	'february',
+	'march',
+	'april',
+	'may',
+	'june',
+	'july',
+	'august',
+	'september',
+	'october',
+	'november',
+	'december',
+];
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { ch?: SolenCH };
@@ -49,11 +62,11 @@ function Panel() {
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
 	const { time: stateTime, catched } = useHolesViewState();
 	const [frame, setFrame] = useState(0);
-	const { cursor: sCursor } = useEventsState();
+	const sCursor = useEntityCursor();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const query = useSolenHolesQuery();
 	const sourceCh = useSelectedSource('sources_ch') as CHS;
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const anySourceCh = sourceCh ?? (sources.find((s) => s.ch)?.ch as CHS);
 	const chimeraRules = useNodeExists('Chimera Holes');
 
@@ -131,7 +144,8 @@ function Panel() {
 
 									const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
 									const dark =
-										!orange && !timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
+										!orange &&
+										!timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
 
 									const className = linkedToThisCH
 										? 'text-cyan'
@@ -146,7 +160,8 @@ function Panel() {
 											key={row[0]}
 											{...{ row, idx, columns, cursor, className, padRow }}
 											onClick={(e, cidx) => {
-												if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('solen', ch, feidId);
+												if (cidx === 0 && feidId !== null)
+													return linkHoleSourceEvent('solen', ch, feidId);
 												onClick(idx, cidx);
 											}}
 											contextMenuData={() => ({ nodeId, ch })}
@@ -174,7 +189,14 @@ function Panel() {
 					style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
 					onClick={(e) =>
 						!isWindow &&
-						openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Solen Holes' }, unique: nodeId })
+						openWindow({
+							x: e.clientX,
+							y: e.clientY,
+							w: 512,
+							h: 512,
+							params: { type: 'Solen Holes' },
+							unique: nodeId,
+						})
 					}
 				>
 					<img

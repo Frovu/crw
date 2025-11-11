@@ -1,13 +1,8 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api.d';
 import { apiGet } from '../../util';
-import { setRawData, type EditableTable, type TableRow } from './editableTables';
-
-export const compoundTables = {
-	cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
-	icme: ['r_c_icmes'],
-	flare: ['solarsoft_flares', 'donki_flares'],
-} as const;
+import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
+import { compoundTables, type EruptiveEvent } from './sourceActions';
 
 const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
@@ -33,34 +28,42 @@ async function fetchTable(entity: keyof Tables, withChangelog?: boolean) {
 	return { columns, data, changelog };
 }
 
-export function useCompoundTable(which: keyof typeof compoundTables) {
-	return (
-		useQuery({
-			queryKey: ['compoundTable', which],
-			staleTime: Infinity,
-			placeholderData: keepPreviousData,
-			queryFn: async () => {
-				const tables = compoundTables[which];
-				const results = await Promise.all(tables.map((t) => fetchTable(t)));
-				const sCols = results.map((q) => q.columns);
-				const sData = results.map((q) => q.data);
-				const pairs = Object.values(sCols).flatMap((cols) => cols.map((col) => [col.sql_name, col]));
-				const columns = [
-					...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values(),
-				] as Column[];
-				const indexes = tables.map((_, ti) =>
-					columns.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name))
-				);
-				const data = sData.flatMap((rows, ti) =>
-					rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))])
-				);
-				const tIdx = columns.findIndex((col) => col.sql_name === (which === 'flare' ? 'start_time' : 'time')) + 1;
-				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
+export function useCompoundTable<T extends keyof typeof compoundTables>(which: T) {
+	return useQuery({
+		queryKey: ['compoundTable', which],
+		staleTime: Infinity,
+		placeholderData: keepPreviousData,
+		queryFn: async () => {
+			const tables = compoundTables[which];
+			const results = await Promise.all(tables.map((t) => fetchTable(t)));
+			const sCols = results.map((q) => q.columns);
+			const sData = results.map((q) => q.data);
+			const pairs = Object.values(sCols).flatMap((cols) => cols.map((col) => [col.sql_name, col]));
+			const cols = [
+				...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values(),
+			] as Column[];
+			const indexes = tables.map((_, ti) =>
+				cols.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name))
+			);
+			const data = sData.flatMap((rows, ti) =>
+				rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))])
+			);
+			const tIdx = cols.findIndex((col) => col.sql_name === (which === 'flare' ? 'start_time' : 'time')) + 1;
+			data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
 
-				return { data, columns: [{ sql_name: 'src', name: 'src', description: '' } as Column, ...columns] };
-			},
-		}).data ?? { data: [], columns: [] }
-	);
+			const columns = [{ sql_name: 'src', name: 'src', description: '' } as Column, ...cols];
+			const index = Object.fromEntries(columns.map((col, i) => [col.sql_name, i])) as {
+				[c in keyof EruptiveEvent<T>]: number;
+			};
+
+			return {
+				data,
+				columns,
+				index,
+				entry: (row: (typeof data)[number]) => tableRowAsDict(row, columns) as EruptiveEvent<T>,
+			};
+		},
+	}).data;
 }
 
 export function useTableDataQuery(tbl: EditableTable, withChangelog?: boolean) {

@@ -25,7 +25,7 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { usePlotParams, type Onset } from '../../events/core/eventsSettings';
+import { usePlot, type Onset } from '../../events/core/eventsSettings';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import { ValidatedInput } from '../../Utility';
@@ -985,7 +985,7 @@ export function PlotCirclesStandalone() {
 }
 
 function Panel() {
-	const params = usePlotParams<CirclesPlotParams>();
+	const params = usePlot<CirclesPlotParams>();
 
 	return (
 		<>

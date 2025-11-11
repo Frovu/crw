@@ -1,18 +1,17 @@
 import { useContext } from 'react';
 import { LayoutContext } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type Flare } from '../core/eventsSettings';
+import { equalValues, valueToString } from '../core/eventsSettings';
 import { color, useContextMenu } from '../../app';
-import { rowAsDict, useFeidCursor, useEventsState, useSelectedSource, useTable, flaresLinks, useSources } from '../core/eventsState';
-import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../core/sourceActions';
-import { useSolarPlotContext } from '../../plots/time/solar';
+import { useFeidCursor, useEventsState, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
+import { getSourceLink, linkEruptiveSourceEvent, unlinkEruptiveSourceEvent, type EruptiveEvent } from '../core/sourceActions';
 
 function Menu() {
-	const detail = useContextMenu((state) => state.menu?.detail) as { flare: Flare } | undefined;
+	const detail = useContextMenu((state) => state.menu?.detail) as { flare: EruptiveEvent<'flare'> } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
 	const erupt = useSelectedSource('sources_erupt');
-	const [linkColId, idColId] = getSourceLink('flare', flare?.src);
+	const link = getSourceLink('flare', flare?.src);
 	const isLinked = flare && equalValues(flare[idColId as 'start_time'], erupt?.[linkColId]);
 
 	return !flare ? null : (
@@ -34,12 +33,12 @@ function Menu() {
 }
 
 function Panel() {
-	const { cursor: sCursor } = useEventsState();
+	const sCursor = useEntityCursor();
 	const cursor = sCursor?.entity === 'flares' ? sCursor : null;
 	const erupt = useSelectedSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
-	const sources = useSources();
-	const { focusTime } = useSolarPlotContext();
+	const sources = useCurrentFeidSources();
+	const { focusTime } = useSolarPlot();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('flare');
@@ -47,7 +46,8 @@ function Panel() {
 	if (!data.length) return <div className="Center">LOADING..</div>;
 
 	const [timeIdx] = ['start'].map((what) => columns.findIndex((c) => c.name === what));
-	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[timeIdx] as Date)?.getTime() > focusTime.getTime());
+	const focusIdx =
+		focusTime == null ? data.length : data.findIndex((r) => (r[timeIdx] as Date)?.getTime() > focusTime.getTime());
 	const linked = erupt && Object.fromEntries(Object.entries(flaresLinks).map(([src, lnk]) => [src, erupt[lnk[0]]]));
 
 	return (
@@ -62,7 +62,9 @@ function Panel() {
 					if (cursor && erupt && e.key === '-')
 						return unlinkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare);
 					if (cursor && ['+', '='].includes(e.key))
-						return feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare, feidId);
+						return (
+							feidId && linkEruptiveSourceEvent('flare', rowAsDict(data[cursor.row], columns) as Flare, feidId)
+						);
 				},
 				row: (row, idx, onClick, padRow) => {
 					const flare = rowAsDict(row, columns) as Flare;
@@ -83,7 +85,9 @@ function Panel() {
 								flare.linked_events &&
 								erupt?.cme_time &&
 								flare.linked_events.find(
-									(lnk) => lnk.includes('CME') && timeInMargin(erupt?.cme_time, new Date(lnk.slice(0, 19) + 'Z'), 6e5)
+									(lnk) =>
+										lnk.includes('CME') &&
+										timeInMargin(erupt?.cme_time, new Date(lnk.slice(0, 19) + 'Z'), 6e5)
 								)
 							)
 								return true;
@@ -100,7 +104,9 @@ function Panel() {
 
 					// FIXME: this is probably slow
 					const eruptLinkIdx = !darkk && eruptions.columns?.findIndex((col) => col.id === linkColId);
-					const dark = darkk || (eruptLinkIdx && eruptions.data?.find((eru) => equalValues(flare[idColId], eru[eruptLinkIdx])));
+					const dark =
+						darkk ||
+						(eruptLinkIdx && eruptions.data?.find((eru) => equalValues(flare[idColId], eru[eruptLinkIdx])));
 
 					const className = isLinked
 						? isPrime

@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
+import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/eventsSettings';
 import { ExportableUplot } from '../events/export/ExportPlot';
 import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
@@ -292,7 +292,7 @@ function Panel() {
 	const { data: allData, columns } = useTable();
 	const { showGrid, showLegend } = useEventsSettings();
 	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
-	const params = usePlotParams<HistogramParams>();
+	const params = usePlot<HistogramParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,

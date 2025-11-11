@@ -3,8 +3,8 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
-import { useSolarPlotContext } from './solar';
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { useSolarPlot } from '../solar';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
 
 const PARTICLES = {
 	p1: '>1 MeV',
@@ -69,10 +69,10 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 }
 
 function Panel() {
-	const params = usePlotParams<SatPartParams>();
+	const params = usePlot<SatPartParams>();
 	const { showParticles, showGrid, showTimeAxis, solarTime } = params;
 	const para = { ...params };
-	const { interval: sInterv } = useSolarPlotContext();
+	const { interval: sInterv } = useSolarPlot();
 	const size = useContext(LayoutContext)?.size;
 	if (solarTime) para.interval = sInterv;
 
@@ -90,7 +90,9 @@ function Panel() {
 			{...{
 				queryKey: ['satparticles', showParticles.join()],
 				queryFn: () =>
-					showParticles.length ? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles]) : (null as any),
+					showParticles.length
+						? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles])
+						: (null as any),
 				params: solarTime
 					? {
 							...para,
@@ -108,7 +110,9 @@ function Panel() {
 						fullLabel: 'N / cm²⋅s⋅sr',
 						distr: 3,
 						values: (u, vals) =>
-							vals.map((v) => (v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
+							vals.map((v) =>
+								v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : ''
+							),
 					},
 				],
 				series: () =>

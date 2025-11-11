@@ -533,7 +533,7 @@ function Panel() {
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const { cursor } = useEventsState();
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 	const activeErupt = useSelectedSource('sources_erupt', true);
 	const { start: feidTime, row: feid } = useFeidCursor();
 

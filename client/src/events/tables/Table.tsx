@@ -13,8 +13,9 @@ import {
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../core/eventsSettings';
 import { color, openContextMenu } from '../../app';
-import { makeChange, useEventsState, type Cursor, type TableName } from '../core/eventsState';
+import { useEventsState, type Cursor } from '../core/eventsState';
 import type { Column } from '../../api.d';
+import { makeChange, type EditableTable } from '../core/editableTables';
 
 export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {
 	return (
@@ -104,12 +105,12 @@ export function CellInput({
 	id: number;
 	column: Column;
 	value: string;
-	table: TableName;
+	table: EditableTable;
 	options?: string[];
 	change?: (val: any) => boolean;
 }) {
 	const [invalid, setInvalid] = useState(false);
-	const { escapeCursor } = useEventsState();
+	const escapeCursor = useEventsState((state) => state.escapeCursor);
 
 	return useMemo(() => {
 		const doChange = (v: any) => (change ? change(v) : makeChange(table, { id, column: column.sql_name, value: v }));
@@ -188,7 +189,7 @@ export function TableWithCursor({
 	onKeydown,
 }: {
 	size: Size;
-	entity: string;
+	entity: Cursor['entity'];
 	data: any[][];
 	focusIdx?: number;
 	columns: Column[];

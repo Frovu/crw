@@ -4,7 +4,7 @@ import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQu
 import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
 import type { ContextMenuProps } from '../../layout';
 
 const defaultParams = {
@@ -144,7 +144,11 @@ function tracePaths(
 		drawArrow(u.ctx, xArrowPercent * scalex, 0, x + xArrowPercent * scalex, y, scl * devicePixelRatio * 10);
 
 		u.ctx.textAlign = 'left';
-		u.ctx.fillText(applyTextTransform(`Ax, ${yArrowPercent}%`), x + arrowRadius + px(2), y + yArrowPercent * scaley - px(4));
+		u.ctx.fillText(
+			applyTextTransform(`Ax, ${yArrowPercent}%`),
+			x + arrowRadius + px(2),
+			y + yArrowPercent * scaley - px(4)
+		);
 		u.ctx.fillText(
 			applyTextTransform(`Ay, ${xArrowPercent}%`),
 			x + Math.max(0, xArrowPercent * scalex - lineW),
@@ -173,7 +177,7 @@ function Menu({ Checkbox }: ContextMenuProps<GSMParams>) {
 }
 
 function Panel() {
-	const params = usePlotParams<GSMParams>();
+	const params = usePlot<GSMParams>();
 	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
 
 	const vectorCache: VectorCache = useRef<number[][]>([]);
@@ -184,10 +188,15 @@ function Panel() {
 			{...{
 				queryKey: ['GSMani', maskGLE, subtractTrend, useA0m],
 				queryFn: async () => {
-					const data = await basicDataQuery('cream/gsm', interval, ['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'], {
-						mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
-						subtract_trend: subtractTrend ? 'true' : 'false', // eslint-disable-line camelcase
-					});
+					const data = await basicDataQuery(
+						'cream/gsm',
+						interval,
+						['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'],
+						{
+							mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
+							subtract_trend: subtractTrend ? 'true' : 'false', // eslint-disable-line camelcase
+						}
+					);
 					if (data) data[2] = data[2].map((d, i) => data[3][i]! + d!);
 					return data;
 				},

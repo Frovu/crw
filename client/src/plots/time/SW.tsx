@@ -1,4 +1,4 @@
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
@@ -25,7 +25,7 @@ function Menu({ Checkbox }: ContextMenuProps<SWParams>) {
 }
 
 function Panel() {
-	const params = usePlotParams<SWParams>();
+	const params = usePlot<SWParams>();
 	const { useTemperatureIndex, showBeta, showDensity, interval } = params;
 	const tColumn = useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (
@@ -65,7 +65,8 @@ function Panel() {
 						showGrid: showBeta || showDensity ? false : true,
 						distr: useTemperatureIndex ? 1 : 3,
 						...(!useTemperatureIndex && {
-							values: (u, vals) => vals.map((v) => (Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
+							values: (u, vals) =>
+								vals.map((v) => (Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
 						}),
 					},
 				],

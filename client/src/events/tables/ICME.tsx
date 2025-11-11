@@ -3,7 +3,14 @@ import { useContextMenu, color } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type ICME } from '../core/eventsSettings';
-import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources } from '../core/eventsState';
+import {
+	icmeLinks,
+	rowAsDict,
+	useEventsState,
+	useFeidCursor,
+	useSelectedSource,
+	useCurrentFeidSources,
+} from '../core/eventsState';
 import {
 	getSourceLink,
 	linkEruptiveSourceEvent,
@@ -37,7 +44,12 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 				</button>
 			)}
 			<div className="separator" />
-			<a className="Row" href="https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm" target="_blank" rel="noreferrer">
+			<a
+				className="Row"
+				href="https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm"
+				target="_blank"
+				rel="noreferrer"
+			>
 				R&C Catalogue
 			</a>
 		</>
@@ -45,10 +57,10 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 }
 
 function Panel() {
-	const { cursor: sCursor } = useEventsState();
+	const sCursor = useEntityCursor();
 	const cursor = sCursor?.entity === 'ICMEs' ? sCursor : null;
 	const erupt = useSelectedSource('sources_erupt');
-	const sources = useSources();
+	const sources = useCurrentFeidSources();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
 	const { columns, data } = useCompoundTable('icme');
@@ -71,18 +83,24 @@ function Panel() {
 					if (cursor && erupt && e.key === '-')
 						return unlinkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME);
 					if (cursor && ['+', '='].includes(e.key))
-						return feidId && linkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME, feidId);
+						return (
+							feidId &&
+							linkEruptiveSourceEvent('icme', rowAsDict(data[cursor.row] as any, columns) as ICME, feidId)
+						);
 				},
 				row: (row, idx, onClick, padRow) => {
 					const icme = rowAsDict(row as any, columns);
 					const time = (icme.time as any)?.getTime();
 					const isLinked = equalValues(icme.time, linked?.[icme.src as any]);
-					const linkedToAnyErupt = sources.find((s) => equalValues(s.erupt?.[getSourceLink('icme', icme.src)[0]], icme.time));
+					const linkedToAnyErupt = sources.find((s) =>
+						equalValues(s.erupt?.[getSourceLink('icme', icme.src)[0]], icme.time)
+					);
 
 					const orange =
 						!isLinked &&
 						!linkedToAnyErupt &&
-						(timeInMargin(icme.time, cursorTime, 36e5) || (feid.mc_time && timeInMargin(icme.body_start, feid.mc_time, 36e5)));
+						(timeInMargin(icme.time, cursorTime, 36e5) ||
+							(feid.mc_time && timeInMargin(icme.body_start, feid.mc_time, 36e5)));
 					const dark = linkedToAnyErupt || (!orange && !timeInMargin(icme.time, cursorTime, 24 * 36e5));
 
 					const className = isLinked ? 'text-cyan' : dark ? 'text-text-dark' : orange ? 'text-orange' : 'text-text';

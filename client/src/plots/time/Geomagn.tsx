@@ -3,7 +3,7 @@ import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
 import type { ContextMenuProps } from '../../layout';
-import { usePlotParams, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
 
 const defaultParams = {
 	useAp: false,
@@ -53,7 +53,7 @@ function Menu({ Checkbox }: ContextMenuProps<GeomagnParams>) {
 }
 
 function Panel() {
-	const params = usePlotParams<GeomagnParams>();
+	const params = usePlot<GeomagnParams>();
 	return (
 		<BasicPlot
 			{...{

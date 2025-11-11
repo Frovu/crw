@@ -3,21 +3,27 @@ import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
 import { sourceLabels, sourceLinks, type Tables } from '../../api.d';
-import { compoundTables } from './query';
 import { equalValues } from './eventsSettings';
 import { useEventsState } from './eventsState';
+
+export const compoundTables = {
+	cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
+	icme: ['r_c_icmes'],
+	flare: ['solarsoft_flares', 'donki_flares'],
+} as const;
 
 type FlareSrc = 'donki_flares' | 'solarsoft_flares' | 'legacy_noaa_flares';
 type CMESrc = 'lasco_cmes' | 'donki_cmes' | 'cactus_cmes';
 type ICMESrc = 'r_c_icmes';
 type EruptSrc = { flare: FlareSrc; cme: CMESrc; icme: ICMESrc };
+export type EruptTable = keyof EruptSrc;
 type EruptEnt = keyof EruptSrc;
 
-type CHEnt = 'solen_holes' | 'chimera_holes';
+export type CHEnt = 'solen_holes' | 'chimera_holes';
 type EruptSrcLabel<T extends EruptEnt> = (typeof sourceLabels)[EruptSrc[T]];
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
-type EruptiveEvent<T extends EruptEnt> = { src: EruptSrcLabel<T> } & Tables[EruptSrc[T]] &
+export type EruptiveEvent<T extends EruptEnt> = { src: EruptSrcLabel<T> } & Tables[EruptSrc[T]] &
 	Partial<UnionToIntersection<Tables[EruptSrc[T]]>>;
 
 type CachimeraedHolesState = null | { start: number; end: number; solenHole: Tables['solen_holes'] | null };
@@ -36,7 +42,10 @@ export const useHolesViewState = create<{
 
 export function getSourceLink<T extends EruptEnt>(ent: T, src: EruptSrcLabel<T>) {
 	const [link, id] = sourceLinks[compoundTables[ent].find((tbl) => sourceLabels[tbl] === src)!];
-	return { link, id };
+	return { link, id } as {
+		link: typeof link;
+		id: keyof EruptiveEvent<T>;
+	};
 }
 
 export function unlinkEruptiveSourceEvent<T extends EruptEnt>(ent: T, event: EruptiveEvent<T>) {
@@ -82,7 +91,7 @@ export function linkEruptiveSourceEvent<T extends EruptEnt>(ent: T, event: Erupt
 
 	const link = getSourceLink(ent, event.src);
 	const linkColIdx = erupts.index[link.link];
-	const eventId = event[link.id as keyof typeof event];
+	const eventId = event[link.id];
 
 	const linkedToOther = ent !== 'icme' && erupts.data.find((row) => equalValues(row[linkColIdx], eventId));
 

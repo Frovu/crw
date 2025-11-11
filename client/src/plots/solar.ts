@@ -1,13 +1,9 @@
-import { useMemo } from 'react';
-import { useEventsSettings, type Flare } from '../../events/core/eventsSettings';
-import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource } from '../../events/core/eventsState';
-import { serializeCoords, useCompoundTable } from '../../events/core/sourceActions';
 import type uPlot from 'uplot';
-import { color } from '../../app';
-import { font, scaled } from '../plotUtil';
-import type { BasicPlotParams } from '../basicPlot';
-
-type FlareOnset = { time: Date; sources: string[]; flare: Flare };
+import { color } from '../app';
+import { font, scaled } from './plotUtil';
+import type { BasicPlotParams } from './basicPlot';
+import type { FlareOnset } from '../events/core/plot';
+import { serializeCoords } from '../events/core/sourceActions';
 
 export function flaresOnsetsPlugin({
 	params,
@@ -77,44 +73,4 @@ export function flaresOnsetsPlugin({
 			],
 		},
 	};
-}
-
-export function useSolarPlotContext() {
-	const cursor = useEventsState((s) => s.cursor);
-	const { start: feidTime } = useFeidCursor();
-	const { plotOffsetSolar } = useEventsSettings();
-	const erupt = useSelectedSource('sources_erupt', true);
-	const flr = useCompoundTable('flare');
-	const cme = useCompoundTable('cme');
-
-	const focusTime =
-		cursor?.entity === 'flares'
-			? (rowAsDict(flr.data[cursor.row], flr.columns).start_time as Date)
-			: cursor?.entity === 'CMEs'
-			? (rowAsDict(cme.data[cursor.row], cme.columns).time as Date)
-			: ((erupt?.flr_start ?? erupt?.cme_time) as Date) ?? new Date((feidTime?.getTime() ?? 0) - 3 * 864e5);
-	const interval = plotOffsetSolar.map((o) => new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
-
-	return useMemo(() => {
-		const flrTidx = flr.columns.findIndex((c) => c.id === 'start_time');
-		const flares = flr.data
-			.filter((r) => interval[0] <= r[flrTidx]! && r[flrTidx]! <= interval[1])
-			.map((r) => rowAsDict(r, flr.columns));
-		const flrs = new Map();
-		for (const flare of flares) {
-			const { start_time: time, src } = flare;
-			const k = (time as any).getTime();
-			const old = flrs.get(k);
-			flrs.set(k, {
-				sources: [...(old?.sources ?? []), src],
-				flare: old?.flare ?? flare,
-				time,
-			});
-		}
-		return {
-			focusTime,
-			interval,
-			flares: Array.from(flrs.values()) as FlareOnset[],
-		};
-	}, [flr, interval[0].getTime(), interval[1].getTime()]); // eslint-disable-line
 }
