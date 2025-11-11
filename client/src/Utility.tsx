@@ -1,4 +1,13 @@
-import { useState, useRef, useEffect, type ReactNode, type CSSProperties, type ChangeEvent, createContext, useContext } from 'react';
+import {
+	useState,
+	useRef,
+	useEffect,
+	type ReactNode,
+	type CSSProperties,
+	type ChangeEvent,
+	createContext,
+	useContext,
+} from 'react';
 import { useEventListener } from './util';
 import { ErrorBoundary } from 'react-error-boundary';
 import { color, openConfirmation } from './app';
@@ -63,7 +72,14 @@ export function NumberInput({
 		onChange(val);
 	};
 
-	return <input type="text" style={{ ...style, ...(!valid && { borderColor: 'var(--color-red)' }) }} value={text} onChange={change} />;
+	return (
+		<input
+			type="text"
+			style={{ ...style, ...(!valid && { borderColor: 'var(--color-red)' }) }}
+			value={text}
+			onChange={change}
+		/>
+	);
 }
 
 export function ValidatedInput({
@@ -165,23 +181,28 @@ export function Confirmation({
 	);
 }
 
-export function askConfirmation(cntnt: ReactNode | string, callback: () => void) {
-	const content =
-		typeof cntnt === 'string' ? (
-			<>
-				<h4>Confirm action</h4>
-				<p>{cntnt}</p>
-			</>
-		) : (
-			cntnt
+export function askConfirmation(head: string, body: string) {
+	return new Promise<boolean>((resolve) => {
+		setTimeout(
+			() =>
+				openConfirmation({
+					content: (
+						<>
+							<h4>{head || 'Confirm action'}</h4>
+							<p>{body}</p>
+						</>
+					),
+					callback: () => resolve(true),
+					onClose: () => resolve(false),
+				}),
+			20
 		);
-	setTimeout(() => openConfirmation({ content, callback }), 20);
+	});
 }
 
-export function askProceed(content: ReactNode) {
-	return new Promise<boolean>((resolve) => {
-		setTimeout(() => openConfirmation({ content, callback: () => resolve(true), onClose: () => resolve(false) }), 20);
-	});
+export async function withConfirmation(head: string, body: string, callback: () => void) {
+	const conf = await askConfirmation(head, body);
+	return conf && callback();
 }
 
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -199,7 +220,8 @@ export function MonthInput({
 	const month = date.getUTCMonth();
 	const count = Math.ceil((interval[1] - interval[0]) / 86400 / 31);
 
-	const commit = (y: number, m: number, c: number) => callback([0, c].map((a) => Date.UTC(y, m + a) / 1e3) as [number, number]);
+	const commit = (y: number, m: number, c: number) =>
+		callback([0, c].map((a) => Date.UTC(y, m + a) / 1e3) as [number, number]);
 
 	const set = (action: 'month' | 'year' | 'count', value: number) => {
 		if (action === 'month') {
@@ -293,7 +315,11 @@ export function Option({ value, children, style }: { value: string; children: Re
 	const selected = value === context?.value;
 
 	return (
-		<div className="SelectOption" style={{ ...style, ...(selected && { color: color('active') }) }} onClick={() => onChange?.(value)}>
+		<div
+			className="SelectOption"
+			style={{ ...style, ...(selected && { color: color('active') }) }}
+			onClick={() => onChange?.(value)}
+		>
 			{children}
 		</div>
 	);

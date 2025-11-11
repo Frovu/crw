@@ -12,7 +12,7 @@ DAY = 86400
 URL = 'https://solarmonitor.org/'
 img_re = re.compile(r'href="saia_chimr_ch_(\d{8}_\d{6})\.png"')
 
-TABLE = 'chimera'
+TABLE = 'chimera_holes'
 COLS = [
 	Col(TABLE, 'id', dtype='integer', description='CHIMERA number'),
 	Col(TABLE, 'xcen'),

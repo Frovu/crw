@@ -6,6 +6,7 @@ from events.columns.column import Column, DTYPE
 import events.columns.computed_column
 import events.columns.series
 import events.query
+from events.source import chimera
 from events.samples import FILTER_OPS
 from events.table_structure import ALL_TABLES, SOURCE_LABELS, SOURCE_LINKS
 
@@ -71,6 +72,6 @@ with open(TARGET, 'w') as f:
 		f.write(text + '\n\n')
 
 	f.write('export interface Tables {\n')
-	for tbl, cols in ALL_TABLES.items():
+	for tbl, cols in [*ALL_TABLES.items(), [chimera.TABLE, chimera.COLS]]:
 		generate_table_type(tbl, cols, f.write)
 	f.write('}\n')

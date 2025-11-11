@@ -13,7 +13,7 @@ const defaultSate = {
 	sort: { column: 'time', direction: 1 } as Sort,
 	plotId: null as number | null,
 	modifyId: null as number | null,
-	modifySource: null as number | null,
+	modifySourceId: null as number | null,
 	setStartAt: null as Date | null,
 	setEndAt: null as Date | null,
 };
@@ -35,7 +35,7 @@ export const useEventsState = create<EventsState>()(
 		...defaultSate,
 		setModifySource: (val) =>
 			set((st) => {
-				st.modifySource = val;
+				st.modifySourceId = val;
 			}),
 		setEditing: (val) =>
 			set((st) => {
@@ -44,7 +44,7 @@ export const useEventsState = create<EventsState>()(
 		setModify: (val) =>
 			set((st) => {
 				st.modifyId = val;
-				st.modifySource = null;
+				st.modifySourceId = null;
 			}),
 		setStart: (val) =>
 			set((st) => {
@@ -57,14 +57,14 @@ export const useEventsState = create<EventsState>()(
 			}),
 		setCursor: (cursor) =>
 			set((st) => {
-				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySource = null;
+				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySourceId = null;
 				if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
 					const sources = getTable('feid_sources');
 					const target = cursor?.entity === 'sources_ch' ? 'ch_id' : 'erupt_id';
 					const idIdx = sources.index[target];
 					const src = sources.data.find((row) => row[idIdx] === cursor?.id);
 					if (src) {
-						st.modifySource = src[sources.index.id] as number;
+						st.modifySourceId = src[sources.index.id] as number;
 						st.plotId = src[sources.index.feid_id] as number;
 					}
 				}
@@ -73,7 +73,7 @@ export const useEventsState = create<EventsState>()(
 		setPlotId: (setter) =>
 			set((st) => {
 				st.plotId = setter(st.plotId);
-				st.modifySource = null;
+				st.modifySourceId = null;
 			}),
 		toggleSort: (column, dir) =>
 			set((st) => ({ ...st, sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
@@ -89,7 +89,7 @@ export const useFeidCursor = () => {
 	const plotId = useEventsState((st) => st.plotId);
 
 	return useMemo(() => {
-		const row = (plotId === null ? null : getById(plotId)) ?? entry(data[data.length - 1]);
+		const row = getById(plotId) ?? entry(data[data.length - 1]);
 		const duration = row.duration;
 		const start = row.time;
 		const end = new Date(start.getTime() + duration * 36e5);
@@ -119,9 +119,9 @@ export const useCurrentFeidSources = () => {
 
 export const useSelectedSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): Tables[T] | null => {
 	const sources = useCurrentFeidSources();
-	const modifySource = useEventsState((st) => st.modifySource);
+	const modifySourceId = useEventsState((st) => st.modifySourceId);
 	const what = tbl === 'sources_ch' ? 'ch' : 'erupt';
-	if (modifySource) return (sources.find((src) => src.source.id === modifySource)?.[what] as Tables[T]) ?? null;
+	if (modifySourceId) return (sources.find((src) => src.source.id === modifySourceId)?.[what] as Tables[T]) ?? null;
 	if (!soft) return null;
 
 	const found = sources.find((src) => src[what] && src.source.cr_influence === 'primary')?.[what] ?? sources.find((src) => src[what]);

@@ -344,4 +344,26 @@ export interface Tables {
 		rc_icme_time: Date | null;
 	},
 
+	chimera_holes: {
+		id: number | null;
+		xcen: number | null;
+		ycen: number | null;
+		lat: number | null;
+		lon: number | null;
+		width_text: string | null;
+		width: number | null;
+		area: number | null;
+		area_percent: number | null;
+		b: number | null;
+		b_plus: number | null;
+		b_minus: number | null;
+		b_max: number | null;
+		b_min: number | null;
+		tot_b_plus: number | null;
+		tot_b_minus: number | null;
+		phi: number | null;
+		phi_plus: number | null;
+		phi_minus: number | null;
+	},
+
 }

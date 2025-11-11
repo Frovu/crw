@@ -65,14 +65,14 @@ function Menu() {
 }
 
 function Panel() {
-	const { modifyId, setStartAt, setEndAt, plotId, modifySource, setStart, setEnd, setModify, setModifySource, setPlotId } =
+	const { modifyId, setStartAt, setEndAt, plotId, modifySourceId, setStart, setEnd, setModify, setModifySource, setPlotId } =
 		useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
 	const { id: nodeId } = useContext(LayoutContext)!;
 	const { columns } = useTable();
 	const sources = useSources();
 
-	const isLink = modifySource;
+	const isLink = modifySourceId;
 	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isIdle = !isMove && !isInsert && !isLink;
@@ -148,7 +148,7 @@ function Panel() {
 	});
 
 	useEventListener('action+cycleSource', () => {
-		const modSrc = useEventsState.getState().modifySource;
+		const modSrc = useEventsState.getState().modifySourceId;
 		const idx = sources.findIndex((s) => s.source.id === modSrc);
 		if (idx < 0) return setModifySource(sources.at(0)?.source.id || null);
 		const nxt = sources[(idx + 1) % sources.length];
@@ -364,7 +364,7 @@ function Panel() {
 					.filter((s) => s.erupt)
 					.map((src, i) => {
 						const srcId = src.source.id as number;
-						const isActive = srcId === modifySource;
+						const isActive = srcId === modifySourceId;
 
 						const clr = (what: 'flare' | 'cme' | 'icme', which: string) => {
 							const isSet = src.erupt?.[getSourceLink(what, which)[0]];
@@ -424,7 +424,7 @@ function Panel() {
 					.filter((s) => s.ch)
 					.map((src, i) => {
 						const srcId = src.source.id;
-						const isActive = srcId === modifySource;
+						const isActive = srcId === modifySourceId;
 
 						const clr = (which: 'solen' | 'chimera') => {
 							const isSet = src.ch?.[which === 'solen' ? 'tag' : 'chimera_id'];

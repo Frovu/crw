@@ -91,7 +91,8 @@ const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableS
 	data,
 	index,
 	entry: (row: (typeof data)[number]) => rowAsDict<T>(row, columns),
-	getById: (id: number) => {
+	getById: (id: number | null) => {
+		if (id === null) return null;
 		const row = data.find((r) => r[0] === id);
 		return row ? rowAsDict<T>(row, columns) : null;
 	},
@@ -160,6 +161,8 @@ export function makeChange(tbl: EditableTable, chgs: ChangeValue | ChangeValue[]
 			const rawRow = st[tbl].rawData.find((r) => r[0] === id);
 			const colIdx = st[tbl].columns.findIndex((c) => c.sql_name === column);
 
+			// TODO: handle deleting created entries
+
 			st[tbl].changes = [
 				...st[tbl].changes.filter((change) => change.id !== id || column !== change.column),
 				...(!equalValues(rawRow?.[colIdx] ?? null, value) ? [{ id, column, value, silent }] : []),
@@ -208,7 +211,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		state.feid_sources.data = [...state.feid_sources.data, feidSrcRow];
 
 		useEventsState.setState((estate) => {
-			estate.modifySource = feidSrcId;
+			estate.modifySourceId = feidSrcId;
 		});
 	});
 	return id;
