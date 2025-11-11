@@ -64,8 +64,6 @@ export type MagneticCloud = { start: Date; end: Date };
 export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
 	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry[] | undefined;
 
-export type ChangeValue = { id: number; column: string; value: Value; silent?: boolean; fast?: boolean };
-
 export const MainTableContext = createContext<{
 	columns: Column[];
 	tables: { [table: string]: Column[] };

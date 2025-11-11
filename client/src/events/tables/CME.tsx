@@ -3,7 +3,7 @@ import { useContextMenu, color } from '../../app';
 import { LayoutContext, openWindow } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type CME, type ICME } from '../core/eventsSettings';
-import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../core/eventsState';
+import { cmeLinks, rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources, useTable } from '../core/eventsState';
 import {
 	getSourceLink,
 	linkEruptiveSourceEvent,
@@ -18,7 +18,7 @@ function Menu() {
 	const detail = useContextMenu((state) => state.menu?.detail) as { cme: CME } | undefined;
 	const { id } = useFeidCursor();
 	const cme = detail?.cme;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const src = cme?.src;
 	const [linkColId, idColId] = getSourceLink('cme', src);
 	const isLinked = cme && equalValues(cme[idColId], erupt?.[linkColId]);
@@ -63,7 +63,7 @@ function Menu() {
 function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'CMEs' ? sCursor : null;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
 	const icmes = useCompoundTable('icme');
 	const sources = useSources();

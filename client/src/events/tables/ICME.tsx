@@ -3,7 +3,7 @@ import { useContextMenu, color } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type ICME } from '../core/eventsSettings';
-import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../core/eventsState';
+import { icmeLinks, rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources } from '../core/eventsState';
 import {
 	getSourceLink,
 	linkEruptiveSourceEvent,
@@ -17,7 +17,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { icme: ICME } | undefined;
 	const { id } = useFeidCursor();
 	const icme = detail?.icme;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const src = icme?.src as string;
 	const [linkColId, idColId] = getSourceLink('icme', src);
 	const isLinked = icme && equalValues(icme[idColId], erupt?.[linkColId]);
@@ -47,7 +47,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'ICMEs' ? sCursor : null;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const sources = useSources();
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;

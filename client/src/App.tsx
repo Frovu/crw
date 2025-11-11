@@ -9,9 +9,19 @@ import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
-import EventsApp from './events/EventsView';
+import EventsApp from './events/EventsApp';
 import { useEventListener } from './util';
-import { closeContextMenu, handleGlobalKeydown, openContextMenu, themeOptions, useAppSettings, logColor, APPS, useContextMenu, closeConfirmation } from './app';
+import {
+	closeContextMenu,
+	handleGlobalKeydown,
+	openContextMenu,
+	themeOptions,
+	useAppSettings,
+	logColor,
+	APPS,
+	useContextMenu,
+	closeConfirmation,
+} from './app';
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
 import { CatchErrors, Confirmation } from './Utility';
@@ -35,7 +45,11 @@ function Logs() {
 	useEventListener('contextmenu', () => setExpand(false));
 
 	return (
-		<div style={{ flex: 2, maxWidth: '32em', position: 'relative' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+		<div
+			style={{ flex: 2, maxWidth: '32em', position: 'relative' }}
+			onMouseEnter={() => setHover(true)}
+			onMouseLeave={() => setHover(false)}
+		>
 			{!expand && hover && (
 				<button className="TextButton" style={{ width: '100%' }} onClick={() => setExpand((s) => !s)}>
 					show logs
@@ -115,7 +129,10 @@ function App() {
 		return (
 			<div style={{ margin: '2em 3em', lineHeight: '2em', fontSize: 20 }} className="AppSelect">
 				<title>Cosmic Rays Research Workstation - IZMIRAN</title>
-				<meta name="description" content="A set of publicly available data applications used for research in IZMIRAN cosmic rays department" />
+				<meta
+					name="description"
+					content="A set of publicly available data applications used for research in IZMIRAN cosmic rays department"
+				/>
 				<h2>Select an application:</h2>
 				<button className="TextButton" onClick={() => selectApp('feid')}>
 					- Forbush Effects and Interplanetary Disturbances catalogue
@@ -186,7 +203,11 @@ function App() {
 					<div style={{ flex: 1 }} />
 					<Logs />
 					<div>
-						<button className="TextButton" style={{ color: 'var(--color-text)', padding: '0px 16px' }} onClick={() => openInfo()}>
+						<button
+							className="TextButton"
+							style={{ color: 'var(--color-text)', padding: '0px 16px' }}
+							onClick={() => openInfo()}
+						>
 							Info & Manual
 						</button>
 					</div>

@@ -6,7 +6,7 @@ import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Option, Select, askConfirmation } from '../../Utility';
 import { filterOperations, type Column, type Filter, type Sample } from '../../api';
-import { useTable } from '../core/data';
+import { useTable } from '../core/query';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;

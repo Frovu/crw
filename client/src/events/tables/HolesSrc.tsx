@@ -3,7 +3,16 @@ import { useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../core/eventsSettings';
-import { chIdIdx, deleteEvent, rowAsDict, useEventsState, useFeidCursor, useSource, useSources, useTable } from '../core/eventsState';
+import {
+	chIdIdx,
+	deleteEvent,
+	rowAsDict,
+	useEventsState,
+	useFeidCursor,
+	useSelectedSource,
+	useSources,
+	useTable,
+} from '../core/eventsState';
 import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../core/sourceActions';
 import { askConfirmation } from '../../Utility';
 
@@ -53,7 +62,7 @@ function Panel() {
 	const { start: cursorTime, row: feid } = useFeidCursor();
 	const { data, columns } = useTable(ENT);
 	const feidSrc = useTable('feid_sources');
-	const sourceCh = useSource(ENT);
+	const sourceCh = useSelectedSource(ENT);
 	const sources = useSources();
 	const cursor = sCursor?.entity === ENT ? sCursor : null;
 

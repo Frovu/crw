@@ -51,20 +51,3 @@ export function computeColumnWidth(column: Column) {
 			return 6;
 	}
 }
-
-export type TableResponse = { columns: Column[]; data: Value[][] };
-
-export const fetchTable = async (entity: string) => {
-	const { columns, data: rData } = await apiGet<TableResponse>('events', { entity });
-	const data = rData.map((row) => [
-		...columns.map((c, i) => {
-			if (row[i] == null) return null;
-			if (c.dtype === 'time') {
-				const date = new Date((row[i] as number) * 1e3);
-				return isNaN(date.getTime()) ? null : date;
-			}
-			return row[i];
-		}),
-	]);
-	return { columns, data };
-};

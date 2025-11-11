@@ -3,7 +3,7 @@ import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../core/eventsSettings';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources } from '../core/eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,
 	timeInMargin,
@@ -22,7 +22,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { ch?: SolenCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
-	const chSrc = useSource('sources_ch') as CHS | null;
+	const chSrc = useSelectedSource('sources_ch') as CHS | null;
 
 	const isLinked = ch && chSrc && equalValues(ch.tag, chSrc.tag);
 
@@ -52,7 +52,7 @@ function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
 	const query = useSolenHolesQuery();
-	const sourceCh = useSource('sources_ch') as CHS;
+	const sourceCh = useSelectedSource('sources_ch') as CHS;
 	const sources = useSources();
 	const anySourceCh = sourceCh ?? (sources.find((s) => s.ch)?.ch as CHS);
 	const chimeraRules = useNodeExists('Chimera Holes');

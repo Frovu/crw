@@ -10,7 +10,7 @@ import {
 	rowAsDict,
 	useEventsState,
 	useFeidCursor,
-	useSource,
+	useSelectedSource,
 	useSources,
 	useTable,
 } from '../core/eventsState';
@@ -96,7 +96,7 @@ function Panel() {
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const sources = useSources();
-	const selectedErupt = useSource('sources_erupt');
+	const selectedErupt = useSelectedSource('sources_erupt');
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 
 	const cursor = sCursor?.entity === ENT ? sCursor : null;

@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
-import { rowAsDict, useEventsState, useFeidCursor, useSource, useSources, type RowDict } from './eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources, type RowDict } from './eventsState';
 import { equalValues, type EventsPanel } from './events';
 import { apiGet, dispatchCustomEvent, prettyDate } from '../util';
 import { color } from '../app';
@@ -499,7 +499,7 @@ function Panel() {
 	const cmes = useCompoundTable('cme');
 	const { cursor } = useEventsState();
 	const sources = useSources();
-	const activeErupt = useSource('sources_erupt', true);
+	const activeErupt = useSelectedSource('sources_erupt', true);
 	const { start: feidTime, row: feid } = useFeidCursor();
 
 	const cme = (() => {

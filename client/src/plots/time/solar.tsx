@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useEventsSettings, type Flare } from '../../events/core/eventsSettings';
-import { rowAsDict, useEventsState, useFeidCursor, useSource } from '../../events/core/eventsState';
+import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource } from '../../events/core/eventsState';
 import { serializeCoords, useCompoundTable } from '../../events/core/sourceActions';
 import type uPlot from 'uplot';
 import { color } from '../../app';
@@ -83,7 +83,7 @@ export function useSolarPlotContext() {
 	const cursor = useEventsState((s) => s.cursor);
 	const { start: feidTime } = useFeidCursor();
 	const { plotOffsetSolar } = useEventsSettings();
-	const erupt = useSource('sources_erupt', true);
+	const erupt = useSelectedSource('sources_erupt', true);
 	const flr = useCompoundTable('flare');
 	const cme = useCompoundTable('cme');
 

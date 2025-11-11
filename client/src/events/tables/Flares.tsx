@@ -3,7 +3,7 @@ import { LayoutContext } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type Flare } from '../core/eventsSettings';
 import { color, useContextMenu } from '../../app';
-import { rowAsDict, useFeidCursor, useEventsState, useSource, useTable, flaresLinks, useSources } from '../core/eventsState';
+import { rowAsDict, useFeidCursor, useEventsState, useSelectedSource, useTable, flaresLinks, useSources } from '../core/eventsState';
 import { getSourceLink, linkEruptiveSourceEvent, timeInMargin, unlinkEruptiveSourceEvent, useCompoundTable } from '../core/sourceActions';
 import { useSolarPlotContext } from '../../plots/time/solar';
 
@@ -11,7 +11,7 @@ function Menu() {
 	const detail = useContextMenu((state) => state.menu?.detail) as { flare: Flare } | undefined;
 	const { id } = useFeidCursor();
 	const flare = detail?.flare;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const [linkColId, idColId] = getSourceLink('flare', flare?.src);
 	const isLinked = flare && equalValues(flare[idColId as 'start_time'], erupt?.[linkColId]);
 
@@ -36,7 +36,7 @@ function Menu() {
 function Panel() {
 	const { cursor: sCursor } = useEventsState();
 	const cursor = sCursor?.entity === 'flares' ? sCursor : null;
-	const erupt = useSource('sources_erupt');
+	const erupt = useSelectedSource('sources_erupt');
 	const eruptions = useTable('sources_erupt');
 	const sources = useSources();
 	const { focusTime } = useSolarPlotContext();
