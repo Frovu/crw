@@ -2,7 +2,7 @@ import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
 import type { EventsPanel } from './core/eventsSettings';
 import { defaultPlotParams } from '../plots/basicPlot';
 
-import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './ExportPlot';
+import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
 import { EventsCheckbox, FeidTable } from './panels/FeidPanel';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
@@ -13,9 +13,9 @@ import { SWPlasmaPlot } from '../plots/time/SW';
 import { CMEHeightPlot } from '../plots/time/CMEHeight';
 import { SWTypesPlot } from '../plots/time/SWTypes';
 import { XraysPlot } from '../plots/time/XRays';
-import { SunView } from './SunView';
+import { SunView } from './panels/SunView';
 import { ColorsSettings } from '../Colors';
-import { InsertControls } from './Insert';
+import { InsertControls } from './insert/Insert';
 import { CMETable } from './tables/CME';
 import { EruptionsTable } from './tables/Eruptions';
 import { HolesTable } from './tables/HolesSrc';
@@ -28,7 +28,7 @@ import { Correlation } from '../plots/Correlate';
 import { Histogram } from '../plots/Histogram';
 import { SuperposedEpochs } from '../plots/SuperposedEpochs';
 import { EventsHistory } from '../plots/EventsHistory';
-import { SWPCHint } from './SWPC';
+import { SWPCHint } from './panels/SWPC';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,

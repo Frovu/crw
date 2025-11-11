@@ -1,19 +1,30 @@
-import { useContext, useEffect, useRef, useState, type MouseEvent } from 'react';
-import { LayoutContext, openWindow, type ContextMenuProps, type LayoutContextType } from '../layout';
-import { getSourceLink, serializeCoords, useCompoundTable } from './sources';
-import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useSources, type RowDict } from './eventsState';
-import { equalValues, type EventsPanel } from './events';
-import { apiGet, dispatchCustomEvent, prettyDate } from '../util';
-import { color } from '../app';
 import { useQuery } from '@tanstack/react-query';
-import { font } from '../plots/plotUtil';
+import { useContext, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { create } from 'zustand';
-import { NumberInput } from '../Utility';
+import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindow } from '../../layout';
+import { font } from '../../plots/plotUtil';
+import { apiGet, dispatchCustomEvent, prettyDate } from '../../util';
+import { NumberInput } from '../../Utility';
+import { equalValues, type EventsPanel } from '../core/eventsSettings';
+import { useEventsState, useSelectedSource, useFeidCursor } from '../core/eventsState';
+import { useCompoundTable } from '../core/query';
+import { serializeCoords, getSourceLink } from '../core/sourceActions';
 
 const MODES = ['SDO', 'FLR', 'WSA-ENLIL'] as const;
 const PREFER_FLR = ['ANY', 'dMN', 'SFT'] as const;
 const ENLIL_OPTS = ['density', 'velocity'] as const;
-const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'];
+const SDO_SRC = [
+	'AIA 193',
+	'AIA 193 diff',
+	'LASCO C2',
+	'LASCO C3',
+	'AIA 094',
+	'AIA 131',
+	'AIA 171',
+	'AIA 211',
+	'AIA 304',
+	'AIA 335',
+];
 const defaultParams = {
 	mode: 'SDO' as (typeof MODES)[number],
 	prefer: 'ANY' as (typeof PREFER_FLR)[number],
@@ -50,7 +61,8 @@ export const useSunViewState = create<{
 }));
 
 const SFT_URL = 'https://www.lmsal.com/solarsoft/latest_events_archive/events_summary/';
-const dMN_FLR = 'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
+const dMN_FLR =
+	'https://www.sidc.be/solardemon/science/flares_details.php?science=1&wavelength=94&delay=40&only_image=1&width=400';
 const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
 function Menu({ params, setParams }: ContextMenuProps<Params>) {
@@ -178,7 +190,9 @@ export function SDO({
 					const sec = time.getUTCSeconds().toString().padStart(2, '0');
 					const fname =
 						`${year}${mon}${day}_${hour}${min}${sec}_` +
-						(isLsc ? `lasc${source.at(-1)}rdf.png` : `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
+						(isLsc
+							? `lasc${source.at(-1)}rdf.png`
+							: `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
 					const url = IMG_URL + `${dir}/${year}/${mon}/${day}/${fname}`;
 
 					const img = new Image();
@@ -309,7 +323,11 @@ export function SDO({
 		const nlat = (asin(yr) * 180) / PI - decl;
 		const nlon = (-asin(xr / cos((nlat / 180) * PI)) * 180) / PI;
 
-		dispatchCustomEvent('setSolarCoordinates', { time: new Date(round(time - 3000) * 1e3), lat: round(nlat), lon: round(nlon) });
+		dispatchCustomEvent('setSolarCoordinates', {
+			time: new Date(round(time - 3000) * 1e3),
+			lat: round(nlat),
+			lon: round(nlon),
+		});
 	};
 
 	return (
@@ -409,7 +427,15 @@ function DemonFlareFilm({ id }: { id: number }) {
 	return (
 		<>
 			{!loaded && <div className="Center">LOADING...</div>}
-			<div style={{ transform: `scale(${size / 400})`, transformOrigin: 'top left', height: 400, width: 400, overflow: 'hidden' }}>
+			<div
+				style={{
+					transform: `scale(${size / 400})`,
+					transformOrigin: 'top left',
+					height: 400,
+					width: 400,
+					overflow: 'hidden',
+				}}
+			>
 				<div style={{ position: 'absolute', height: '100%', width: '100%', zIndex: 2 }} />
 				<iframe
 					ref={ref}
@@ -476,7 +502,16 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 				</div>
 			)}
 			src
-			<div style={{ position: 'absolute', top: 2, left: 2, maxWidth: imgSize - 2, maxHeight: imgSize - 2, overflow: 'clip' }}>
+			<div
+				style={{
+					position: 'absolute',
+					top: 2,
+					left: 2,
+					maxWidth: imgSize - 2,
+					maxHeight: imgSize - 2,
+					overflow: 'clip',
+				}}
+			>
 				<img
 					style={{
 						transform: `translate(${move}px, ${move}px)`,

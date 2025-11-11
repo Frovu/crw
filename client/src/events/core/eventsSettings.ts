@@ -5,7 +5,7 @@ import { useLayoutsStore, setNodeParams, type Panel, LayoutContext } from '../..
 import { getApp } from '../../app';
 import type { Value, DataRow } from '../columns/columns';
 import type { BasicPlotParams } from '../../plots/basicPlot';
-import type { ChangelogEntry, ChangelogResponse, Column, Sample, Series } from '../../api';
+import type { ChangelogEntry, ChangelogResponse, Column, Sample, Series } from '../../api.d';
 
 const defaultSettings = {
 	showChangelog: false,
@@ -62,7 +62,9 @@ export type Onset = { time: Date; type: string | null; secondary?: boolean; inse
 export type MagneticCloud = { start: Date; end: Date };
 
 export const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
-	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as ChangelogEntry[] | undefined;
+	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as
+		| ChangelogEntry[]
+		| undefined;
 
 export const MainTableContext = createContext<{
 	columns: Column[];
@@ -80,7 +82,9 @@ export const TableViewContext = createContext<{
 	includeMarkers: null | string[];
 }>({} as any);
 
-export const PlotContext = createContext<{ interval: [Date, Date]; base?: Date; onsets?: Onset[]; clouds?: MagneticCloud[] }>({} as any);
+export const PlotContext = createContext<{ interval: [Date, Date]; base?: Date; onsets?: Onset[]; clouds?: MagneticCloud[] }>(
+	{} as any
+);
 
 export type TableMenuDetails = {
 	header?: Column;

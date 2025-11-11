@@ -6,7 +6,7 @@ import type { TableMenuDetails } from './events/core/eventsSettings';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
-import type { TextTransformMenuDetail } from './events/ExportPlot';
+import type { TextTransformMenuDetail } from './events/export/ExportPlot';
 
 export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
 
@@ -110,7 +110,10 @@ export const useAppSettings = create<AppSettings>()(
 					}),
 				renderColors: () =>
 					Object.fromEntries(
-						Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => ['--color-' + name, rgbaToHexa(val)])
+						Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => [
+							'--color-' + name,
+							rgbaToHexa(val),
+						])
 					),
 			}),
 			{
@@ -143,7 +146,9 @@ export function getDefaultColor(name: string): RgbaColor {
 }
 
 export const logMessage = (text: string, type: LogMessage['type'] = 'info') =>
-	queueMicrotask(() => useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })));
+	queueMicrotask(() =>
+		useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) }))
+	);
 export const logError = (txt?: any) => {
 	txt && logMessage(txt.toString(), 'error');
 };
@@ -204,7 +209,11 @@ export const closeConfirmation = () =>
 	});
 
 export const roleOptions = ['admin', 'operator'] as const;
-export const AuthContext = createContext<{ login?: string; role?: (typeof roleOptions)[number]; promptLogin: (a: any) => void }>({} as any);
+export const AuthContext = createContext<{
+	login?: string;
+	role?: (typeof roleOptions)[number];
+	promptLogin: (a: any) => void;
+}>({} as any);
 
 export function handleGlobalKeydown(e: KeyboardEvent) {
 	if (e.code === 'Escape') return dispatchCustomEvent('escape');

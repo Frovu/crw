@@ -1,8 +1,18 @@
 import { useCallback, useContext, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { usePlotOverlay, axisDefaults, customTimeSplits, markersPaths, color, type Size, scaled, getParam, getFontSize } from './plotUtil';
+import {
+	usePlotOverlay,
+	axisDefaults,
+	customTimeSplits,
+	markersPaths,
+	color,
+	type Size,
+	scaled,
+	getParam,
+	getFontSize,
+} from './plotUtil';
 import uPlot from 'uplot';
-import { ExportableUplot } from '../events/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportPlot';
 import {
 	type BasicPlotParams,
 	type CustomAxis,
@@ -16,7 +26,7 @@ import {
 	sliceData,
 	actionsPlugin,
 } from './basicPlot';
-import { useSunViewState } from '../events/SunView';
+import { useSunViewState } from '../events/panels/SunView';
 import { LayoutContext } from '../layout';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
@@ -78,7 +88,9 @@ export default function BasicPlot({
 										const [fmin, fmax] = ax.minMax ?? [null, null];
 										const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - 0.0001;
 										const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + 0.0001;
-										const [bottom, top] = override ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
+										const [bottom, top] = override
+											? [override.bottom, override.top]
+											: ax.position ?? [0, 1];
 										const scale: CustomScale = u.scales[ax.label];
 										scale.scaleValue = { min, max };
 										scale.positionValue = { bottom, top };
@@ -86,18 +98,25 @@ export default function BasicPlot({
 										const resultingH = h / (top - bottom);
 										const margin = h / 20;
 										return [
-											min - resultingH * bottom - (!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
-											max + resultingH * (1 - top) + (!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
+											min -
+												resultingH * bottom -
+												(!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
+											max +
+												resultingH * (1 - top) +
+												(!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
 										];
 									},
-								}
+							  }
 							: ax.minMax
-								? {
-										range: (u, dmin, dmax) => [Math.min(dmin, ax.minMax?.[0] ?? dmin), Math.max(dmax, ax.minMax?.[1] ?? dmax)],
-									}
-								: {}),
+							? {
+									range: (u, dmin, dmax) => [
+										Math.min(dmin, ax.minMax?.[0] ?? dmin),
+										Math.max(dmax, ax.minMax?.[1] ?? dmax),
+									],
+							  }
+							: {}),
 					} as uPlot.Scale,
-				]) ?? [],
+				]) ?? []
 			),
 			axes: [
 				{
@@ -108,20 +127,22 @@ export default function BasicPlot({
 				(axes ?? []).map((ax) => ({
 					...axisDefaults(
 						ax.showGrid ?? params.showGrid,
-						(ax.filter ?? ax.distr === 3)
+						ax.filter ?? ax.distr === 3
 							? undefined
 							: (u, splits) => {
 									const scale = u.scales[ax.scale ?? ax.label] as CustomScale;
 									const { min, max } = scale.scaleValue!;
-									return splits.map((s, i) => ((s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null));
-								},
+									return splits.map((s, i) =>
+										(s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null
+									);
+							  }
 					),
 					values: (u, vals) => vals.map((v) => v?.toString().replace('-', '−')),
 					...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
 					scale: ax.label,
 					...ax,
 					label: '',
-				})),
+				}))
 			),
 			series: [{}].concat(
 				(series ?? []).map((ser) => ({
@@ -133,12 +154,12 @@ export default function BasicPlot({
 								fill: ser.fill ?? ser.stroke,
 								width: 0,
 								paths: markersPaths(ser.marker, 8),
-							},
+						  },
 					scale: ser.label,
 					...ser,
 					paths: ser.myPaths?.(scaled(1)),
 					width: scaled(ser.width ?? 1),
-				})),
+				}))
 			),
 			plugins: [
 				metainfoPlugin({ params, ...metaParams }),
@@ -179,5 +200,7 @@ export function SolarPlotOverlay({ upl }: { upl: uPlot }) {
 	const x = upl.valToPos(time, 'x', true);
 	const out = x < upl.bbox.left || x > upl.bbox.left + upl.bbox.width;
 
-	return out ? null : <div style={{ position: 'absolute', top: 0, left: x, height: '100%', width: 2, background: color('text', 0.5) }} />;
+	return out ? null : (
+		<div style={{ position: 'absolute', top: 0, left: x, height: '100%', width: 2, background: color('text', 0.5) }} />
+	);
 }

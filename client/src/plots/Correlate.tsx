@@ -13,7 +13,7 @@ import {
 	findColumn,
 } from '../events/core/eventsSettings';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
-import { ExportableUplot } from '../events/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportPlot';
 import uPlot from 'uplot';
 import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
@@ -103,7 +103,11 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 				<select
 					title="Sample (none = all events)"
 					className="Borderless"
-					style={{ width: '10em', marginLeft: 4, color: params.sample0 === '<current>' ? color('text-dark') : 'unset' }}
+					style={{
+						width: '10em',
+						marginLeft: 4,
+						color: params.sample0 === '<current>' ? color('text-dark') : 'unset',
+					}}
 					value={params.sample0}
 					onChange={(e) => set('sample0', e.target.value)}
 				>
@@ -226,7 +230,9 @@ function Panel() {
 				: applySample(allData, samplesList.find((s) => s.id.toString() === sample0) ?? null, columns, samplesList);
 
 		if (!sampleData.length) return null;
-		const colIdx = ['column0', 'column1'].map((c) => columns.findIndex((cc) => cc.id === params[c as keyof CorrelationParams]));
+		const colIdx = ['column0', 'column1'].map((c) =>
+			columns.findIndex((cc) => cc.id === params[c as keyof CorrelationParams])
+		);
 		if (colIdx.includes(-1)) return null;
 		const [colX, colY] = colIdx.map((c) => columns[c]);
 		if (!['integer', 'real'].includes(colX.type) || !['integer', 'real'].includes(colY.type)) return null;
@@ -258,7 +264,9 @@ function Panel() {
 		const regrPoints = Array(128)
 			.fill(0)
 			.map((_, i) => minx + (i * (maxx - minx)) / 128);
-		const regrPredicts = regrPoints.map((x) => (loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]));
+		const regrPredicts = regrPoints.map((x) =>
+			loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]
+		);
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
 		const timeIdx = columns.findIndex((c) => c.fullName === 'time');
@@ -299,7 +307,12 @@ function Panel() {
 							onclick: (u, didx) => {
 								const row = findRow(didx);
 								if (!row) return;
-								setCursor({ row: shownData.findIndex((r) => r[0] === row[0]), column: 0, entity: 'feid', id: row[0] });
+								setCursor({
+									row: shownData.findIndex((r) => r[0] === row[0]),
+									column: 0,
+									entity: 'feid',
+									id: row[0],
+								});
 								setPlotId(() => row[0]);
 							},
 							html: (u, sidx, didx) => {
@@ -314,7 +327,10 @@ function Panel() {
 						titlePlugin({
 							text: [
 								{ text: `α=${intercept.toFixed(2)}; `, color: 'text-dark' },
-								{ text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`, color: 'text' },
+								{
+									text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`,
+									color: 'text',
+								},
 							],
 							params: { showTitle: showTitle && !!regr },
 						}),
@@ -364,7 +380,9 @@ function Panel() {
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 							values: (u, vals) =>
 								vals.map((v) =>
-									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString()
+									loglog
+										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
+										: v?.toString()
 								),
 						} as CustomAxis,
 					],

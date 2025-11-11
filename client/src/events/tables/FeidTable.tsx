@@ -6,14 +6,34 @@ import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry
 import { useEventsState } from '../core/eventsState';
 import { pickEventForSample } from '../sample/sample';
 import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
-import type { ChangelogEntry } from '../../api';
+import type { ChangelogEntry } from '../../api.d';
 
-export default function FeidTableView({ size, averages, entity }: { size: Size; entity: string; averages?: (null | number[])[] }) {
+export default function FeidTableView({
+	size,
+	averages,
+	entity,
+}: {
+	size: Size;
+	entity: string;
+	averages?: (null | number[])[];
+}) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changelog: wholeChangelog } = useContext(MainTableContext);
 	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
 	const viewState = useEventsState();
-	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, modifyId, changes, created, deleted, toggleSort, setPlotId } = viewState;
+	const {
+		plotId,
+		sort,
+		cursor: sCursor,
+		setStartAt,
+		setEndAt,
+		modifyId,
+		changes,
+		created,
+		deleted,
+		toggleSort,
+		setPlotId,
+	} = viewState;
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
@@ -96,7 +116,10 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 											>
 												##
 												{sort.column === '_sample' && (
-													<div className="SortShadow" style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }} />
+													<div
+														className="SortShadow"
+														style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}
+													/>
 												)}
 											</td>
 										)}
@@ -120,7 +143,11 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 											</td>
 										))}
 										{includeMarkers && (
-											<td title="Event included from samples:" className="ColumnHeader" style={{ minWidth: '3.5ch' }}>
+											<td
+												title="Event included from samples:"
+												className="ColumnHeader"
+												style={{ minWidth: '3.5ch' }}
+											>
 												#S
 											</td>
 										)}
@@ -149,9 +176,13 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 								onClick(idx, cidx);
 								if (e.ctrlKey) setPlotId(() => row[0]);
 							}}
-							contextMenuData={(cidx) => ({ nodeId, cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] } })}
+							contextMenuData={(cidx) => ({
+								nodeId,
+								cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] },
+							})}
 							title={(cidx) =>
-								(cidx === 0 ? `id = ${row[0]}; ` : '') + `${columns[cidx].name} = ${valueToString(row[cidx + 1])}`
+								(cidx === 0 ? `id = ${row[0]}; ` : '') +
+								`${columns[cidx].name} = ${valueToString(row[cidx + 1])}`
 							}
 							before={
 								marker && (
@@ -200,7 +231,10 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 				tfoot: showAverages && (
 					<>
 						<tr style={{ height: 2 }}>
-							<td colSpan={columns.length} style={{ height: 1, borderTop: 'none', borderColor: color('grid') }}></td>
+							<td
+								colSpan={columns.length}
+								style={{ height: 1, borderTop: 'none', borderColor: color('grid') }}
+							></td>
 						</tr>
 						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => (
 							<tr key={label} style={{ height: 24, fontSize: 15 }}>
@@ -284,7 +318,9 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 													<b>{column.name}</b>
 												</i>
 												: {val(change.old)} -&gt; <b>{val(change.new)}</b>
-												{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
+												{change.special && (
+													<i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>
+												)}
 											</div>
 										);
 									})
@@ -315,7 +351,13 @@ export default function FeidTableView({ size, averages, entity }: { size: Size; 
 								<span style={{ color: color('active') }}> [{data.length}]</span>
 								{changeCount > 0 && (
 									<div
-										style={{ display: 'inline-flex', width: 160, height: 19, justifyContent: 'center', gap: 12 }}
+										style={{
+											display: 'inline-flex',
+											width: 160,
+											height: 19,
+											justifyContent: 'center',
+											gap: 12,
+										}}
 										onClick={(e) => e.stopPropagation()}
 										onMouseEnter={() => setChangesHovered(true)}
 										onMouseLeave={() => setChangesHovered(false)}

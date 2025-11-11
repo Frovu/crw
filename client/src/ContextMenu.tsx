@@ -3,8 +3,8 @@ import { LayoutContextMenu } from './Layout';
 import { AuthContext, useContextMenu, closeContextMenu } from './app';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
-import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/ExportPlot';
-import { ExportMenu } from './events/ExportTable';
+import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/ExportPlot';
+import { ExportMenu } from './events/export/ExportTable';
 
 export default function ContextMenu() {
 	const { resetLayout } = useLayoutsStore();

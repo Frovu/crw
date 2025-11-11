@@ -49,7 +49,8 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 		placeholderData: keepPreviousData,
 		structuralSharing: false,
 		queryKey: ['tableData', 'feid'],
-		queryFn: () => apiGet<{ data: Value[][]; fields: string[]; changelog?: ChangelogResponse }>('events', { changelog: true }),
+		queryFn: () =>
+			apiGet<{ data: Value[][]; fields: string[]; changelog?: ChangelogResponse }>('events', { changelog: true }),
 	});
 
 	useEffect(() => {
@@ -124,7 +125,11 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				entities: Object.fromEntries(
 					(Object.keys(changes) as TableName[]).map((tbl) => [
 						tbl,
-						{ changes: changes[tbl], created: created[tbl].map((r) => rowAsDict(r, columns[tbl]!)), deleted: deleted[tbl] },
+						{
+							changes: changes[tbl],
+							created: created[tbl].map((r) => rowAsDict(r, columns[tbl]!)),
+							deleted: deleted[tbl],
+						},
 					])
 				),
 			}),
@@ -143,36 +148,6 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 	// 										SAMPLE
 	// ************************************************************************************
 
-	const filters = useSampleState((state) => state.filters);
-	const sample = useSampleState((state) => state.current);
-	const isPicking = useSampleState((state) => state.isPicking);
-
-	const samplesQuery = useQuery({
-		queryKey: ['samples'],
-		queryFn: async () => {
-			const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
-			for (const smpl of samples) for (const k of ['created', 'modified'] as const) smpl[k] = smpl[k] && new Date(smpl[k]);
-			console.log('%cavailable samples:', 'color: #0f0', samples);
-			return samples;
-		},
-	});
-
-	const sampleContext = useMemo(() => {
-		const samples = samplesQuery.data;
-		if (!data.feid || !columns.feid || !samples) return null;
-		const isOwn = (s: Sample) => (s.authors.includes(login as any) ? -1 : 1);
-		const sorted = samples.sort((a, b) => b.modified.getTime() - a.modified.getTime()).sort((a, b) => isOwn(a) - isOwn(b));
-		const dt = data.feid;
-		const applied = isPicking ? (dt.map((row) => [...row]) as typeof dt) : applySample(dt, sample, columns.feid, sorted);
-		const filterFn = renderFilters(filters, columns.feid);
-		const filtered = applied.filter((row) => filterFn(row));
-		return {
-			data: filtered,
-			current: sample,
-			samples: sorted,
-		};
-	}, [samplesQuery.data, data.feid, columns.feid, isPicking, sample, filters, login]);
-
 	if (!mainContext || !data || !sampleContext || !structureQuery.data || !samplesQuery.data) {
 		return (
 			<div style={{ padding: 8 }}>
@@ -180,7 +155,9 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 				<div>{dataQuery.isLoading && 'Loading data...'}</div>
 				<div>{samplesQuery.isLoading && 'Loading samples...'}</div>
 				<div style={{ color: 'var(--color-red)' }}>
-					<div>{structureQuery.error?.toString() ?? dataQuery.error?.toString() ?? samplesQuery.error?.toString()}</div>
+					<div>
+						{structureQuery.error?.toString() ?? dataQuery.error?.toString() ?? samplesQuery.error?.toString()}
+					</div>
 				</div>
 			</div>
 		);
@@ -215,7 +192,10 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 										<div key={id} style={{ color: color('magenta') }}>
 											-{' '}
 											{tbl === 'feid'
-												? prettyDate((rawData[tbl as TableName]?.find((r) => r[0] === id)?.[1] as Date) ?? null)
+												? prettyDate(
+														(rawData[tbl as TableName]?.find((r) => r[0] === id)?.[1] as Date) ??
+															null
+												  )
 												: '#' + id}
 											<div
 												className="CloseButton"
@@ -227,15 +207,20 @@ export default function EventsDataProvider({ children }: { children: ReactNode }
 									{chgs
 										.filter((ch) => !ch.silent)
 										.map(({ id, column: cId, value }) => {
-											const column = columns[tbl as keyof typeof columns]?.find((c) => c.sql_name === cId);
+											const column = columns[tbl as keyof typeof columns]?.find(
+												(c) => c.sql_name === cId
+											);
 											const row = rawData[tbl as keyof typeof changes]!.find((r) => r[0] === id);
-											const colIdx = columns[tbl as keyof typeof changes]!.findIndex((c) => c.sql_name === cId);
+											const colIdx = columns[tbl as keyof typeof changes]!.findIndex(
+												(c) => c.sql_name === cId
+											);
 											const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 											const val1 = value == null ? 'null' : valueToString(value);
 											return (
 												<div key={id + cId + value}>
 													<span style={{ color: color('text-dark') }}>#{id}: </span>
-													<i style={{ color: color('active') }}>{column?.name}</i> {val0} -&gt; <b>{val1}</b>
+													<i style={{ color: color('active') }}>{column?.name}</i> {val0} -&gt;{' '}
+													<b>{val1}</b>
 													<div
 														className="CloseButton"
 														style={{ transform: 'translate(4px, 2px)' }}

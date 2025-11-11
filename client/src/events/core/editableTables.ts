@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues } from './eventsSettings';
-import { sourceLinks, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api';
+import { sourceLinks, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api.d';
 import { useTableDataQuery } from './query';
 import { useEventsState } from './eventsState';
 import { useMemo } from 'react';

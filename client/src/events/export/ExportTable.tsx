@@ -1,6 +1,6 @@
 import { useContext } from 'react';
-import { TableViewContext, valueToString } from './events';
-import { computeColumnWidth } from './columns/columns';
+import { TableViewContext, valueToString } from '../events';
+import { computeColumnWidth } from '../columns/columns';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, includeMarkers: inc } = useContext(TableViewContext);
@@ -30,7 +30,9 @@ export function ExportMenu() {
 				'Note: plaintext export option has limitations and one should consider using JSON instead' +
 				'\r\nAll whitespace in values is replaced by _, missing values are marked as N/A\r\n';
 			const widths = columns.map(computeColumnWidth);
-			text += columns.map((col, i) => col.name.replace(/\s/g, '_').padStart(widths[i], ' '.repeat(widths[i]))).join(' ') + '\r\n';
+			text +=
+				columns.map((col, i) => col.name.replace(/\s/g, '_').padStart(widths[i], ' '.repeat(widths[i]))).join(' ') +
+				'\r\n';
 			for (const row of data) {
 				for (const [i] of columns.entries()) {
 					const v = row[i];

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Tables } from '../../api';
+import type { Tables } from '../../api.d';
 import { getTable, useTable } from './editableTables';
 import { useMemo } from 'react';
 
@@ -76,7 +76,10 @@ export const useEventsState = create<EventsState>()(
 				st.modifySourceId = null;
 			}),
 		toggleSort: (column, dir) =>
-			set((st) => ({ ...st, sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) } })),
+			set((st) => ({
+				...st,
+				sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) },
+			})),
 		escapeCursor: () =>
 			set((st) => {
 				st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null;
@@ -124,6 +127,7 @@ export const useSelectedSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl:
 	if (modifySourceId) return (sources.find((src) => src.source.id === modifySourceId)?.[what] as Tables[T]) ?? null;
 	if (!soft) return null;
 
-	const found = sources.find((src) => src[what] && src.source.cr_influence === 'primary')?.[what] ?? sources.find((src) => src[what]);
+	const found =
+		sources.find((src) => src[what] && src.source.cr_influence === 'primary')?.[what] ?? sources.find((src) => src[what]);
 	return (found as Tables[T]) ?? null;
 };

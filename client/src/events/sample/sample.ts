@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { parseColumnValue } from '../core/eventsSettings';
 import { immer } from 'zustand/middleware/immer';
-import type { TableRow, TableValue } from '../core/eventsState';
-import type { Column, Filter, Sample } from '../../api';
+import type { Column, Filter, Sample } from '../../api.d';
+import type { TableRow, TableValue } from '../core/editableTables';
+import { useQuery } from '@tanstack/react-query';
+import { apiGet } from '../../util';
 
 export type FilterWithId = { id: number } & Filter;
 export type SampleWithFilterIds = Omit<Sample, 'filters'> & { filters: FilterWithId[] };
@@ -67,7 +69,8 @@ export const useSampleState = create<SampleState>()(
 			set((state) => {
 				const inc = state.current?.includes;
 				if (!state.current || !inc) return;
-				state.current.includes = id == null || !inc.includes(id) ? inc.concat(newId) : inc.map((i) => (i === id ? newId : i));
+				state.current.includes =
+					id == null || !inc.includes(id) ? inc.concat(newId) : inc.map((i) => (i === id ? newId : i));
 			}),
 		removeInclude: (id) =>
 			set((state) => {
@@ -160,5 +163,16 @@ export function sampleEditingMarkers(data: TableRow[], sample: Sample, columns: 
 		const wl = sample.whitelist.includes(row[0]) && '+';
 		const bl = sample.blacklist.includes(row[0]) && '-';
 		return (fl || ' ') + (wl || bl || ' ');
+	});
+}
+
+export function useSampleQuery() {
+	return useQuery({
+		queryKey: ['samples'],
+		queryFn: async () => {
+			const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
+			console.log('%cavailable samples:', 'color: #0f0', samples);
+			return samples;
+		},
 	});
 }

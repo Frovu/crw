@@ -1,17 +1,17 @@
 import { type ChangeEvent, useContext, useEffect, useMemo, useState } from 'react';
-import { type PlotsOverrides, color, withOverrides } from '../plots/plotUtil';
-import type { TextTransform, ScaleParams, CustomScale } from '../plots/basicPlot';
-import { useEventsSettings, type EventsPanel } from './events';
+import { type PlotsOverrides, color, withOverrides } from '../../plots/plotUtil';
+import type { TextTransform, ScaleParams, CustomScale } from '../../plots/basicPlot';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { LayoutContext, gapSize, useLayoutsStore, useNodeExists } from '../layout';
+import { LayoutContext, gapSize, useLayoutsStore, useNodeExists } from '../../layout';
 import { persist } from 'zustand/middleware';
-import { apiGet, apiPost, prettyDate, type Size } from '../util';
-import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../app';
+import { apiGet, apiPost, prettyDate, type Size } from '../../util';
+import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../../app';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEventsState } from './eventsState';
+import { type EventsPanel, useEventsSettings } from '../core/eventsSettings';
+import { useEventsState } from '../core/eventsState';
 
 type uOptions = Omit<uPlot.Options, 'width' | 'height'>;
 type PlotEntryParams = {
@@ -73,7 +73,9 @@ export const usePlotExportSate = create<PlotExportState>()(
 				set(({ overrides }) => {
 					const foundA = overrides.textTransform?.find((t) => t.id === idA);
 					const foundB = overrides.textTransform?.find((t) => t.id === idB);
-					overrides.textTransform = overrides.textTransform?.map((t) => (t.id === idA ? foundB : t.id === idB ? foundA : t) ?? t);
+					overrides.textTransform = overrides.textTransform?.map(
+						(t) => (t.id === idA ? foundB : t.id === idB ? foundA : t) ?? t
+					);
 				}),
 			setInches: (v) =>
 				set((state) => {
@@ -122,7 +124,8 @@ function computePlotsLayout() {
 	const layout: { [k: string]: { x: number; y: number; w: number; h: number } } = {};
 	const walk = (x: number, y: number, w: number, h: number, node: string = 'root') => {
 		if (!tree[node]) {
-			if (panels?.find((p) => p.name === items[node]?.type)?.isPlot) layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
+			if (panels?.find((p) => p.name === items[node]?.type)?.isPlot)
+				layout[node] = { x, y, w: Math.floor(w), h: Math.floor(h) };
 			return;
 		}
 		const { split, ratio, children } = tree[node]!;
@@ -294,7 +297,9 @@ export function ExportableUplot({
 	const controlsPresent = useNodeExists('Export Controls');
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
-	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };
+	const borderSize = layout?.size
+		? { width: layout?.size.width - 2, height: layout?.size.height - 2 }
+		: { width: 600, height: 400 };
 	const sz = size ? size(borderSize, !layout?.size) : borderSize;
 
 	useEffect(() => {
@@ -393,7 +398,9 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 
 	const load = (transforms: TextTransform[]) => (e: any) => {
 		const entries = transforms.map(({ search, replace }, i) => ({ search, replace, id: Date.now() + i, enabled: true }));
-		const merged = doReplace ? entries : current?.concat(entries.filter((nt) => !current.find((t) => t.search === nt.search)));
+		const merged = doReplace
+			? entries
+			: current?.concat(entries.filter((nt) => !current.find((t) => t.search === nt.search)));
 
 		set('textTransform', merged);
 		closeContextMenu();
@@ -444,7 +451,8 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 				)}
 			</>
 		);
-	const nameInvalid = selected == null && (nameInput === '' || presets.find((p) => p.author === login && p.name === nameInput));
+	const nameInvalid =
+		selected == null && (nameInput === '' || presets.find((p) => p.author === login && p.name === nameInput));
 
 	return (
 		<div className="Group">
@@ -570,7 +578,9 @@ function ControlsPanel() {
 				)}
 				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingTop: 4 }}>
 					<span>
-						<label title={`Actual font size = ${fontPx}px = ${((fontPx / scale / width) * inches * 72).toFixed(2)}pt`}>
+						<label
+							title={`Actual font size = ${fontPx}px = ${((fontPx / scale / width) * inches * 72).toFixed(2)}pt`}
+						>
 							Font
 							<input
 								style={{ width: 42, margin: '0 4px' }}
@@ -625,7 +635,8 @@ function ControlsPanel() {
 					</span>
 				</div>
 				<div style={{ color: color('text-dark'), paddingTop: 2 }}>
-					image: {width * scale} x {height * scale} px, ≈ {((width * height * 0.74 * (scale - 1.2)) / 1024 / 1024).toFixed(2)} MB
+					image: {width * scale} x {height * scale} px, ≈{' '}
+					{((width * height * 0.74 * (scale - 1.2)) / 1024 / 1024).toFixed(2)} MB
 				</div>
 				<div className="separator"></div>
 				<PlotIntervalInput step={1} />
@@ -644,7 +655,11 @@ function ControlsPanel() {
 						}}
 					>
 						per event
-						<input type="checkbox" checked={perPlotScales} onChange={(e) => setPerPlotMode(plotId, e.target.checked)} />
+						<input
+							type="checkbox"
+							checked={perPlotScales}
+							onChange={(e) => setPerPlotMode(plotId, e.target.checked)}
+						/>
 					</label>
 				</span>
 				<div style={{ maxWidth: 'max-content', textAlign: 'right' }}>
@@ -738,7 +753,13 @@ function ControlsPanel() {
 						</button>
 						<div
 							title="Some characters, if thou mightst need em"
-							style={{ userSelect: 'text', letterSpacing: 2, fontSize: 16, paddingRight: 8, color: color('text-dark') }}
+							style={{
+								userSelect: 'text',
+								letterSpacing: 2,
+								fontSize: 16,
+								paddingRight: 8,
+								color: color('text-dark'),
+							}}
 						>
 							−+±×⋅·∙⋆°
 						</div>
@@ -842,7 +863,10 @@ export function PlotIntervalInput({ step: alterStep, solar }: { step?: number; s
 	const step = alterStep ?? (solar ? 6 : 24);
 
 	return (
-		<div style={{ display: 'inline-flex', gap: 4, cursor: 'default' }} title="Plot time interval, as hours offset from event onset">
+		<div
+			style={{ display: 'inline-flex', gap: 4, cursor: 'default' }}
+			title="Plot time interval, as hours offset from event onset"
+		>
 			Interval:{' '}
 			<input
 				style={{ width: 54, height: '1.25em' }}

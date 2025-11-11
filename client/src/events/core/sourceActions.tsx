@@ -2,7 +2,7 @@ import { askConfirmation, withConfirmation } from '../../Utility';
 import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
-import { sourceLabels, sourceLinks, type Tables } from '../../api';
+import { sourceLabels, sourceLinks, type Tables } from '../../api.d';
 import { compoundTables } from './query';
 import { equalValues } from './eventsSettings';
 import { useEventsState } from './eventsState';

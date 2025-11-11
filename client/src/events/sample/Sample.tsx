@@ -1,11 +1,17 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
-import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from '../core/eventsSettings';
+import {
+	parseColumnValue,
+	isValidColumnValue,
+	MainTableContext,
+	SampleContext,
+	useEventsSettings,
+} from '../core/eventsSettings';
 import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Option, Select, askConfirmation } from '../../Utility';
-import { filterOperations, type Column, type Filter, type Sample } from '../../api';
+import { filterOperations, type Column, type Filter, type Sample } from '../../api.d';
 import { useTable } from '../core/query';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
@@ -77,7 +83,8 @@ function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; dis
 	const set = (what: string) => (e: any) => {
 		if (!column && what !== 'column') return;
 		const fl = { ...filter, [what]: e.target.value.trim() };
-		if (isSelectInput && column.type === 'static' && column.enum && !column.enum.includes(fl.value)) fl.value = column.enum[0];
+		if (isSelectInput && column.type === 'static' && column.enum && !column.enum.includes(fl.value))
+			fl.value = column.enum[0];
 		setFilter(fl);
 		if (!isFilterInvalid(fl, column)) changeFilter(fl);
 		if (e.target instanceof HTMLSelectElement) e.target.blur();
@@ -144,7 +151,12 @@ function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; dis
 				/>
 			)}
 			{!operation.includes('null') && isSelectInput && column.type === 'static' && (
-				<select disabled={disabled} style={{ flex: '2', maxWidth: '8em', minWidth: 0 }} value={value} onChange={set('value')}>
+				<select
+					disabled={disabled}
+					style={{ flex: '2', maxWidth: '8em', minWidth: 0 }}
+					value={value}
+					onChange={set('value')}
+				>
 					{column.enum?.map((val) => (
 						<option key={val} value={val}>
 							{val}
@@ -162,7 +174,17 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const { data: tableData, columns } = useTable('feid');
 	const { samples } = useContext(SampleContext);
 	const { login, role } = useContext(AuthContext);
-	const { current: sample, filters, isPicking, showDetails: show, set, setSample, setPicking, setShow, clearFilters } = useSampleState();
+	const {
+		current: sample,
+		filters,
+		isPicking,
+		showDetails: show,
+		set,
+		setSample,
+		setPicking,
+		setShow,
+		clearFilters,
+	} = useSampleState();
 	const [hoverAuthors, setHoverAuthors] = useState(0);
 	const [nameInput, setNameInput] = useState<string | null>(null);
 	const toDelete = useRef<Sample | null>(null);
@@ -247,9 +269,11 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			}
 		);
 
-	const unsavedChanges = show && sample && JSON.stringify(samples.find((s) => s.id === sample.id)) !== JSON.stringify(stripFilters);
+	const unsavedChanges =
+		show && sample && JSON.stringify(samples.find((s) => s.id === sample.id)) !== JSON.stringify(stripFilters);
 	const allowEdit = sample && samples.find((s) => s.id === sample.id)?.authors.includes(login!);
-	const nameValid = nameInput?.length && !samples.find((s) => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
+	const nameValid =
+		nameInput?.length && !samples.find((s) => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
 
 	const sampleStats = useMemo(() => {
 		if (sample == null) return null;
@@ -259,11 +283,17 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const blacklisted = blacklist.filter((id) => tableData.find((row) => row[0] === id)).length;
 		return (
 			<span style={{ minWidth: 'max-content' }}>
-				<span title="Whitelisted events: found/total" style={{ color: whitelisted ? color('cyan') : color('text-dark') }}>
+				<span
+					title="Whitelisted events: found/total"
+					style={{ color: whitelisted ? color('cyan') : color('text-dark') }}
+				>
 					[+{whitelisted}
 					{whitelist.length ? '/' + whitelist.length : ''}]
 				</span>
-				<span title="Blacklisted events: found/total" style={{ color: blacklisted ? color('magenta') : color('text-dark') }}>
+				<span
+					title="Blacklisted events: found/total"
+					style={{ color: blacklisted ? color('magenta') : color('text-dark') }}
+				>
 					{' '}
 					[-{blacklisted}
 					{blacklist.length ? '/' + blacklist.length : ''}]
@@ -387,17 +417,33 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			)}
 			{allowEdit && show && (
 				<>
-					<div style={{ padding: 4, display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'right', alignItems: 'center' }}>
+					<div
+						style={{
+							padding: 4,
+							display: 'flex',
+							flexWrap: 'wrap',
+							gap: 8,
+							justifyContent: 'right',
+							alignItems: 'center',
+						}}
+					>
 						{sampleStats}
 						{<IncludeCard sampleId={null} />}
 						<div style={{ flex: 1 }} />
-						<label className="MenuInput" style={{ minWidth: 'max-content', ...(isPicking && { color: color('magenta') }) }}>
+						<label
+							className="MenuInput"
+							style={{ minWidth: 'max-content', ...(isPicking && { color: color('magenta') }) }}
+						>
 							pick events
 							<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type="checkbox" />
 						</label>
 						<label className="MenuInput" style={{ minWidth: 'max-content' }}>
 							public
-							<input checked={sample.public} onChange={(e) => set({ public: e.target.checked })} type="checkbox" />
+							<input
+								checked={sample.public}
+								onChange={(e) => set({ public: e.target.checked })}
+								type="checkbox"
+							/>
 						</label>
 						<button className="TextButton" style={{ paddingLeft: 8 }} onClick={copySample}>
 							Make copy
@@ -412,7 +458,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						</div>
 					)}
 					<div
-						title={`Created at: ${prettyDate(new Date(sample.created))}\nModified at: ${prettyDate(new Date(sample.modified))}`}
+						title={`Created at: ${prettyDate(new Date(sample.created))}\nModified at: ${prettyDate(
+							new Date(sample.modified)
+						)}`}
 						style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}
 					>
 						<div
@@ -420,7 +468,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 							onMouseEnter={() => setHoverAuthors((a) => (a < 1 ? 1 : a))}
 							onMouseLeave={() => setHoverAuthors((a) => (a > 1 ? a : 0))}
 						>
-							{hoverAuthors === 0 && <span style={{ color: color('text-dark') }}>by {sample.authors.join(',')}</span>}
+							{hoverAuthors === 0 && (
+								<span style={{ color: color('text-dark') }}>by {sample.authors.join(',')}</span>
+							)}
 							{hoverAuthors === 1 && (
 								<div style={{ cursor: 'pointer', color: color('active') }} onClick={() => setHoverAuthors(2)}>
 									Edit authors?

@@ -6,7 +6,7 @@ import uPlot from 'uplot';
 import { applySample } from '../events/sample/sample';
 import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
 import { type ContextMenuProps } from '../layout';
-import { ExportableUplot, PlotIntervalInput } from '../events/ExportPlot';
+import { ExportableUplot, PlotIntervalInput } from '../events/export/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { useTable } from '../events/core/eventsState';
 
@@ -54,7 +54,11 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 						<select
 							title="Data series"
 							className="Borderless"
-							style={{ width: '7em', marginLeft: 2, color: params[seriesKeys[i]] == null ? color('text-dark') : 'unset' }}
+							style={{
+								width: '7em',
+								marginLeft: 2,
+								color: params[seriesKeys[i]] == null ? color('text-dark') : 'unset',
+							}}
 							value={params[seriesKeys[i]] ?? '__none'}
 							onChange={(e) => set(seriesKeys[i], e.target.value === '__none' ? null : e.target.value)}
 						>
@@ -220,7 +224,9 @@ function Panel() {
 		const time = queries.find((q) => q.data)?.data?.[0];
 		const timeShifted = time?.map((t) => t + (time[1] - time[0]) / 2);
 		const sampleNames = [sample0, sample1, sample2].map((id) =>
-			['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+			['<current>', '<none>'].includes(id)
+				? ''
+				: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
 		);
 		return {
 			data: [

@@ -23,10 +23,10 @@ import {
 } from '../core/eventsSettings';
 import { useSampleState, defaultFilterOp } from '../sample/sample';
 import ColumnsSelector from '../columns/Columns';
-import ImportMenu from '../Import';
+import ImportMenu from '../export/Import';
 import SampleView from '../sample/Sample';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEventsState, useTable } from '../core/eventsState';
+import { useEventsState } from '../core/eventsState';
 import FeidTableView from '../tables/FeidTable';
 
 const defaultParams = {
@@ -107,7 +107,9 @@ function Panel() {
 				? []
 				: shownColumns.map((col, i) => {
 						if (!['integer', 'real'].includes(col.type)) return null;
-						const sorted = (shownData.map((row) => row[i + 1]).filter((v) => v != null) as number[]).sort((a, b) => a - b);
+						const sorted = (shownData.map((row) => row[i + 1]).filter((v) => v != null) as number[]).sort(
+							(a, b) => a - b
+						);
 						if (!sorted.length) return null;
 						const mid = Math.floor(sorted.length / 2);
 						const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
@@ -145,7 +147,11 @@ function Panel() {
 			<ImportMenu />
 			<ColumnsSelector />
 			<SampleView ref={ref} />
-			<FeidTableView averages={averages} entity="feid" size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
+			<FeidTableView
+				averages={averages}
+				entity="feid"
+				size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}
+			/>
 		</>
 	);
 }

@@ -4,13 +4,21 @@ import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
-import { ExportableUplot } from '../events/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample/sample';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
 import { useTable } from '../events/core/eventsState';
 
-const windowOptions = { '2 years': 24, '1 year': 12, '6 months': 6, '4 months': 4, '3 months': 3, '2 months': 2, '1 month': 1 } as const;
+const windowOptions = {
+	'2 years': 24,
+	'1 year': 12,
+	'6 months': 6,
+	'4 months': 4,
+	'3 months': 3,
+	'2 months': 2,
+	'1 month': 1,
+} as const;
 
 const seriesColors = ['green', 'purple', 'magenta', 'acid', 'cyan'] as const;
 const seriesMarkers = ['diamond', 'circle', 'square', 'triangleUp', 'triangleDown'] as const;
@@ -37,17 +45,26 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 	const { historySeries: series } = params;
 
 	const set = <T extends keyof HistoryParams>(k: T, val: HistoryParams[T]) => setParams({ [k]: val });
-	const setSample = (i: number, val: StatSeries['sample']) => set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
-	const setColumn = (i: number, val: StatSeries['column']) => set('historySeries', series.toSpliced(i, 1, { ...series[i], column: val }));
+	const setSample = (i: number, val: StatSeries['sample']) =>
+		set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
+	const setColumn = (i: number, val: StatSeries['column']) =>
+		set('historySeries', series.toSpliced(i, 1, { ...series[i], column: val }));
 	const Checkbox = ({ text, k }: { text: string; k: keyof HistoryParams }) => (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => set(k, e.target.checked)} />
+			<input
+				type="checkbox"
+				style={{ paddingLeft: 4 }}
+				checked={params[k] as boolean}
+				onChange={(e) => set(k, e.target.checked)}
+			/>
 		</label>
 	);
 
 	const columnOpts = columns.filter(
-		(c) => (['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) || series.some((p) => p.column === c.id)
+		(c) =>
+			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
+			series.some((p) => p.column === c.id)
 	);
 
 	return (
@@ -81,7 +98,11 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 						<select
 							title="Sample (none = all events)"
 							className="Borderless"
-							style={{ width: '7em', marginLeft: 1, color: series[i]?.sample === '<current>' ? color('text-dark') : 'unset' }}
+							style={{
+								width: '7em',
+								marginLeft: 1,
+								color: series[i]?.sample === '<current>' ? color('text-dark') : 'unset',
+							}}
 							value={series[i]?.sample}
 							onChange={(e) => setSample(i, e.target.value)}
 						>
@@ -164,7 +185,9 @@ function Panel() {
 		const window = windowOptions[params.window];
 		const timeColIdx = columns.findIndex((c) => c.name === 'time');
 		const firstEvent = allData[0][timeColIdx] as Date;
-		const lastEvent = params.forceRight ? new Date(Date.UTC(params.forceRight, 0, 1)) : (allData.at(-1)![timeColIdx] as Date);
+		const lastEvent = params.forceRight
+			? new Date(Date.UTC(params.forceRight, 0, 1))
+			: (allData.at(-1)![timeColIdx] as Date);
 		const firstMonth = params.forceLeft
 			? (params.forceLeft - 1970) * 12
 			: Math.floor(((firstEvent.getUTCFullYear() - 1970) * 12 + firstEvent.getUTCMonth()) / window) * window;
@@ -194,7 +217,9 @@ function Panel() {
 
 				const colIdx = columns.findIndex((col) => col.id === column);
 				const val =
-					column === '<count>' ? batch.length : batch.reduce((acc, row) => acc + (row[colIdx] as number), 0) / batch.length;
+					column === '<count>'
+						? batch.length
+						: batch.reduce((acc, row) => acc + (row[colIdx] as number), 0) / batch.length;
 
 				values[i].push(val);
 			}
@@ -211,7 +236,9 @@ function Panel() {
 			const columnNames = params.historySeries.map(({ column }) =>
 				column === '<count>' ? 'count' : columns.find((cc) => cc.id === column)?.fullName
 			);
-			const scaleNames = params.historyOneAxis ? [columnNames[0]] : Array.from(new Set(columnNames.filter((c) => c)).values());
+			const scaleNames = params.historyOneAxis
+				? [columnNames[0]]
+				: Array.from(new Set(columnNames.filter((c) => c)).values());
 			const sampleNames = params.historySeries.map(({ sample: id }) =>
 				'<current>' === id
 					? ''

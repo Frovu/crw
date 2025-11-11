@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api';
+import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api.d';
 import { apiGet } from '../../util';
 import { setRawData, type EditableTable, type TableRow } from './editableTables';
 
@@ -45,8 +45,12 @@ export function useCompoundTable(which: keyof typeof compoundTables) {
 				const sCols = results.map((q) => q.columns);
 				const sData = results.map((q) => q.data);
 				const pairs = Object.values(sCols).flatMap((cols) => cols.map((col) => [col.sql_name, col]));
-				const columns = [...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as Column[];
-				const indexes = tables.map((_, ti) => columns.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name)));
+				const columns = [
+					...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values(),
+				] as Column[];
+				const indexes = tables.map((_, ti) =>
+					columns.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name))
+				);
 				const data = sData.flatMap((rows, ti) =>
 					rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))])
 				);

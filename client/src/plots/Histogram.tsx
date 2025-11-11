@@ -2,7 +2,7 @@ import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { MainTableContext, SampleContext, useEventsSettings, usePlotParams } from '../events/core/eventsSettings';
-import { ExportableUplot } from '../events/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportPlot';
 import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { type ContextMenuProps } from '../layout';
@@ -63,7 +63,12 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 	const Checkbox = ({ text, k }: { text: string; k: keyof HistogramParams }) => (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => set(k, e.target.checked)} />
+			<input
+				type="checkbox"
+				style={{ paddingLeft: 4 }}
+				checked={params[k] as boolean}
+				onChange={(e) => set(k, e.target.checked)}
+			/>
 		</label>
 	);
 
@@ -315,7 +320,9 @@ function Panel() {
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
 		const enumMode = !!column.enum;
-		const samples = enumMode ? [allSamples[firstIdx].map((v) => (!v ? 0 : column.enum!.indexOf(v as any) + 1))] : allSamples;
+		const samples = enumMode
+			? [allSamples[firstIdx].map((v) => (!v ? 0 : column.enum!.indexOf(v as any) + 1))]
+			: allSamples;
 
 		const everything = samples.flat() as number[];
 		const min = params.forceMin ?? Math.min.apply(null, everything);
@@ -350,7 +357,9 @@ function Panel() {
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
 			.map((id) =>
-				['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+				['<current>', '<none>'].includes(id)
+					? ''
+					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
 			);
 
 		// try to prevent short bars from disappearing
@@ -368,7 +377,10 @@ function Panel() {
 					focus: { alpha: 0.5 },
 					cursor: { focus: { prox: 64 }, drag: { x: false, y: false, setScale: false }, points: { show: false } },
 					hooks: {
-						draw: [drawAverages(params, samples), enumMode ? () => {} : drawResiduals(params, samples as any, min, max)],
+						draw: [
+							drawAverages(params, samples),
+							enumMode ? () => {} : drawResiduals(params, samples as any, min, max),
+						],
 					},
 					plugins: [
 						tooltipPlugin({
@@ -393,14 +405,17 @@ function Panel() {
 							gap: scaled(2),
 							values: (u, vals) => vals.map((v) => v),
 							...(enumMode && {
-								values: (u, vals) => vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')),
+								values: (u, vals) =>
+									vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')),
 							}),
 						},
 						{
 							...axisDefaults(showGrid),
 							values: (u, vals) =>
 								vals.map(
-									(v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())
+									(v) =>
+										v &&
+										(yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())
 								),
 							gap: scaled(2),
 							fullLabel: params.showYLabel ? yLabel : '',
@@ -421,7 +436,8 @@ function Panel() {
 					scales: {
 						x: {
 							time: false,
-							range: () => (!enumMode ? [min, max] : [min - binSize / 2, max + (binSize / 2) * (enumMode ? -1 : 1)]),
+							range: () =>
+								!enumMode ? [min, max] : [min - binSize / 2, max + (binSize / 2) * (enumMode ? -1 : 1)],
 						},
 						y: {
 							distr: yScale === 'log' ? 3 : 1,

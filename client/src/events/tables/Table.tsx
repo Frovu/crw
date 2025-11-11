@@ -14,13 +14,18 @@ import { clamp, cn, useEventListener, type Size } from '../../util';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../core/eventsSettings';
 import { color, openContextMenu } from '../../app';
 import { makeChange, useEventsState, type Cursor, type TableName } from '../core/eventsState';
-import type { Column } from '../../api';
+import type { Column } from '../../api.d';
 
 export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {
 	return (
 		<tr>
 			{columns.map((col) => (
-				<td key={col.sql_name} title={`[${col.name}] ${col.description ?? ''}`} className="ColumnHeader" style={{ cursor: 'auto' }}>
+				<td
+					key={col.sql_name}
+					title={`[${col.name}] ${col.description ?? ''}`}
+					className="ColumnHeader"
+					style={{ cursor: 'auto' }}
+				>
 					<div style={{ height: 20 + padHeader, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
 				</td>
 			))}
@@ -209,13 +214,16 @@ export function TableWithCursor({
 	const padHeader = hRem - (viewSize / 2) * padRow;
 
 	const [viewIndex, setViewIndex] = useState(
-		focusIdx == null ? Math.max(0, data.length - viewSize) : clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2))
+		focusIdx == null
+			? Math.max(0, data.length - viewSize)
+			: clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2))
 	);
 
 	const updateViewIndex = useCallback(
 		(curs: Cursor) =>
 			setViewIndex((vidx) => {
-				const newIdx = curs.row - 1 <= vidx ? curs.row - 1 : curs.row + 1 >= vidx + viewSize ? curs.row - viewSize + 2 : vidx;
+				const newIdx =
+					curs.row - 1 <= vidx ? curs.row - 1 : curs.row + 1 >= vidx + viewSize ? curs.row - viewSize + 2 : vidx;
 
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			}),
@@ -253,7 +261,8 @@ export function TableWithCursor({
 
 	const hasHead = headCallback !== null;
 	useEffect(() => {
-		const cell = cursor && (ref.current!.children[0]?.children[hasHead ? 1 : 0].children[0]?.children[cursor.column] as HTMLElement);
+		const cell =
+			cursor && (ref.current!.children[0]?.children[hasHead ? 1 : 0].children[0]?.children[cursor.column] as HTMLElement);
 		if (!cursor || !cell) return;
 		const left = Math.max(0, cell.offsetLeft - (ref.current?.offsetWidth! * 2) / 3);
 		ref.current?.scrollTo({ left });
@@ -305,7 +314,8 @@ export function TableWithCursor({
 			if (columns[column].dtype === 'time') {
 				const curYear = (data[cur][column + 1] as Date).getUTCFullYear();
 
-				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear && cur > 0 && cur < data.length - 1) cur += deltaRow;
+				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear && cur > 0 && cur < data.length - 1)
+					cur += deltaRow;
 			} else {
 				while (data[cur][column + 1] === null && cur > 0 && cur < data.length - 1) cur += deltaRow;
 			}
