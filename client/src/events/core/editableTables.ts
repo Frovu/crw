@@ -4,6 +4,7 @@ import { equalValues } from './eventsSettings';
 import { sourceLinks, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api';
 import { useTableDataQuery } from './query';
 import { useEventsState } from './eventsState';
+import { useMemo } from 'react';
 
 export type TableValue = string | number | Date | null;
 export type TableRow = [number, ...TableValue[]];
@@ -47,9 +48,6 @@ export const useTablesStore = create<TablesState>()(
 	}))
 );
 
-export const rowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
-	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as Tables[T];
-
 export const setRawData = (tbl: EditableTable, rdata: TableRow[], columns: Column[], changelog: null | ChangelogResponse) =>
 	queueMicrotask(() =>
 		useTablesStore.setState((state) => {
@@ -85,20 +83,31 @@ const renderTableData = (state: TablesState, tbl: EditableTable) => {
 	return data;
 };
 
-export function getTable<T extends EditableTable>(tbl: T) {
-	const state = useTablesStore.getState();
-	return state[tbl];
-}
+const rowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
+	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as Tables[T];
 
-export function useTable<T extends EditableTable>(tbl: T) {
+const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableState<T>, 'columns' | 'data' | 'index'>) => ({
+	columns,
+	data,
+	index,
+	entry: (row: (typeof data)[number]) => rowAsDict<T>(row, columns),
+	getById: (id: number) => {
+		const row = data.find((r) => r[0] === id);
+		return row ? rowAsDict<T>(row, columns) : null;
+	},
+});
+
+export const getTable = <T extends EditableTable>(tbl: T) => tableApi(useTablesStore.getState()[tbl]);
+
+export const useTable = <T extends EditableTable>(tbl: T) => {
 	const query = useTableDataQuery(tbl);
 	const columns = useTablesStore((st) => st[tbl].columns);
 	const data = useTablesStore((st) => st[tbl].data);
 	const index = useTablesStore((st) => st[tbl].index);
 
 	if (!data && query.isFetched) query.refetch();
-	return { columns, data, index };
-}
+	return useMemo(() => tableApi({ columns, data, index }), [columns, data, index]);
+};
 
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>
 	useTablesStore.setState((state) => {

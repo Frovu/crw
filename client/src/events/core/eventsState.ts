@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Tables } from '../../api';
-import { getTable, rowAsDict, useTable } from './editableTables';
+import { getTable, useTable } from './editableTables';
 import { useMemo } from 'react';
 
 export type Sort = { column: string; direction: 1 | -1 };
@@ -85,17 +85,16 @@ export const useEventsState = create<EventsState>()(
 );
 
 export const useFeidCursor = () => {
-	const { data, columns } = useTable('feid');
+	const { data, getById, entry } = useTable('feid');
 	const plotId = useEventsState((st) => st.plotId);
 
 	return useMemo(() => {
-		const idx = data.findIndex((r) => r[0] === plotId);
-		const row = rowAsDict<'feid'>(data[idx < 0 ? data.length - 1 : idx], columns);
+		const row = (plotId === null ? null : getById(plotId)) ?? entry(data[data.length - 1]);
 		const duration = row.duration;
 		const start = row.time;
 		const end = new Date(start.getTime() + duration * 36e5);
 		return { duration, start, end, id: plotId, row };
-	}, [columns, data, plotId]);
+	}, [data, entry, getById, plotId]);
 };
 
 export const useCurrentFeidSources = () => {
@@ -107,17 +106,15 @@ export const useCurrentFeidSources = () => {
 		return src.data
 			.filter((row) => row[src.index.feid_id] === plotId)
 			.map((row) => {
-				const source = rowAsDict<'feid_sources'>(row, src.columns);
-				if (source.ch_id) {
-					const found = ch.data.find((r) => r[0] === source.ch_id);
-					return { source, ch: found && rowAsDict<'sources_ch'>(found, ch.columns) };
-				} else if (row[src.index.erupt_id]) {
-					const found = erupt.data.find((r) => r[0] === source.erupt_id);
-					return { source, erupt: found && rowAsDict<'sources_erupt'>(found, erupt.columns) };
+				const source = src.entry(row);
+				if (source.ch_id !== null) {
+					return { source, ch: ch.getById(source.ch_id) };
+				} else if (source.erupt_id !== null) {
+					return { source, erupt: erupt.getById(source.erupt_id) };
 				}
 				return { source };
 			});
-	}, [ch.columns, ch.data, erupt.columns, erupt.data, plotId, src.columns, src.data, src.index]);
+	}, [ch, erupt, plotId, src]);
 };
 
 export const useSelectedSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): Tables[T] | null => {

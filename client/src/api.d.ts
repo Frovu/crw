@@ -250,6 +250,23 @@ export interface Tables {
 		disturbance_time: Date | null;
 	},
 
+	legacy_noaa_flares: {
+		start_time: Date;
+		peak_time: Date;
+		end_time: Date;
+		class: string | null;
+		lat: number | null;
+		lon: number | null;
+		active_region: number | null;
+		psi: number | null;
+		gle: number | null;
+		dt_p10: number | null;
+		p10: number | null;
+		p60: number | null;
+		p100: number | null;
+		note: string | null;
+	},
+
 	feid: {
 		id: number;
 		time: Date;

@@ -1,4 +1,13 @@
-import React, { type SetStateAction, useCallback, useEffect, useLayoutEffect, useRef, useState, useReducer, type ReactElement } from 'react';
+import React, {
+	type SetStateAction,
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+	useReducer,
+	type ReactElement,
+} from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -51,6 +60,9 @@ export function prettyDate(inp: Date | number | null, short = false) {
 export const clamp = (min: number, max: number, val: number, minFirst: boolean = false) =>
 	minFirst ? Math.min(max, Math.max(min, val)) : Math.max(min, Math.min(max, val));
 
+export const timeInMargin = (tm: Date, of: Date, margin: number, right?: number) =>
+	of.getTime() - margin <= tm.getTime() && tm.getTime() <= of.getTime() + (right ?? margin);
+
 export const dist2 = (x1: number, y1: number, x2: number, y2: number) => (x1 - x2) ** 2 + (y1 - y2) ** 2;
 
 export const distToSegment = (xp: number, yp: number, x1: number, y1: number, x2: number, y2: number) => {
@@ -85,7 +97,11 @@ export function dispatchCustomEvent(eventName: string, detail?: {}) {
 	document.dispatchEvent(new CustomEvent(eventName, { detail }));
 }
 
-export function useEventListener(eventName: string, callback: (e: any) => any | (() => any), elementRef?: React.RefObject<HTMLElement | null>) {
+export function useEventListener(
+	eventName: string,
+	callback: (e: any) => any | (() => any),
+	elementRef?: React.RefObject<HTMLElement | null>
+) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
 
@@ -172,7 +188,13 @@ export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn:
 		...mutation,
 		report,
 		setReport,
-		color: mutation.isPending ? 'var(--color-text)' : report?.success ? 'var(--color-green)' : report?.error ? 'var(--color-red)' : 'var(--color-text)',
+		color: mutation.isPending
+			? 'var(--color-text)'
+			: report?.success
+			? 'var(--color-green)'
+			: report?.error
+			? 'var(--color-red)'
+			: 'var(--color-text)',
 	};
 }
 

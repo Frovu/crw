@@ -165,6 +165,7 @@ ALL_TABLES: dict[str, list[Col]] = {
 	solardemon.FLR_TABLE: solardemon.FLR_COLS,
 	solarsoft.TABLE: solarsoft.COLS,
 	solen_info.TABLE: solen_info.COLS,
+	noaa_flares.TABLE: noaa_flares.COLS,
 	E_FEID: FEID,
 	E_FEID_SOURCE: FEID_SOURCE,
 	E_SOURCE_CH: SOURCE_CH,

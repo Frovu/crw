@@ -19,45 +19,20 @@ import { equalValues, type CME, type Flare, type ICME, type SrcEruptRow } from '
 import { askConfirmation, askProceed } from '../../Utility';
 import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
+import { getTable } from './editableTables';
+import type { Tables, sourceLabels } from '../../api';
 
-type EruptEnt = 'flare' | 'cme' | 'icme';
+type FlareSrc = 'donki_flares' | 'solarsoft_flares' | 'legacy_noaa_flares';
+type CMESrc = 'lasco_cmes' | 'donki_cmes' | 'cactus_cmes';
+type ICMESrc = 'r_c_icmes';
+type EruptSrc = { flare: FlareSrc; cme: CMESrc; icme: ICMESrc };
+type EruptEnt = keyof EruptSrc;
 type HoleEnt = 'solen' | 'chimera';
 
-export type CHS = {
-	id: number;
-	tag: string;
-	time: Date;
-	lat: number;
-	width: number;
-	area: number;
-	b: number;
-	phi: number;
-	chimera_time: Date;
-	chimera_id: number;
-};
-export type SolenCH = { tag: string; time: Date; location: string | null };
-export type ChimeraCH = {
-	id: number;
-	area_percent: number;
-	xcen: number;
-	ycen: number;
-	lat: number;
-	lon: number;
-	width: number;
-	area: number;
-	b: number;
-	phi: number;
-	chimera_time: Date;
-};
-type EruptiveEvent = Flare | CME | ICME;
+type EruptiveEvent<T extends EruptEnt> = { src: (typeof sourceLabels)[EruptSrc[T]] } & Tables[EruptSrc[T]];
 
-export const sourceLabels = {
-	flare: Object.keys(flaresLinks) as (keyof typeof flaresLinks)[],
-	cme: Object.keys(cmeLinks) as (keyof typeof cmeLinks)[],
-	icme: Object.keys(icmeLinks) as (keyof typeof icmeLinks)[],
-};
+type CatchedHolesState = null | { start: number; end: number; solenHole: Tables['solen_holes'] | null };
 
-type CatchedHolesState = null | { start: number; end: number; solenHole: SolenCH | null };
 export const useHolesViewState = create<{
 	catched: CatchedHolesState;
 	time: number;
@@ -80,15 +55,17 @@ export function getSourceLink<T extends EruptEnt>(which: T, src: any) {
 	);
 }
 
-export const timeInMargin = (t: any, of: any, margin: number, right?: number) =>
-	of?.getTime() - margin <= t?.getTime() && t?.getTime() <= of?.getTime() + (right ?? margin);
+export async function unlinkEruptiveSourceEvent<T extends EruptEnt>(which: T, event: EruptiveEvent<T>) {
+	const { modifySource } = useEventsState.getState();
+	const erupts = getTable('sources_erupt');
+	const sources = getTable('feid_sources');
+	const sourceRow = sources.data.find((row) => row[0] === modifySource);
+	const eruptId = sourceRow?.[sources.index.erupt_id] as number | null;
 
-export async function unlinkEruptiveSourceEvent(which: EruptEnt, event: EruptiveEvent) {
-	const { modifySource, data, columns } = useEventsState.getState();
-	if (!modifySource || !data.feid_sources || !data.sources_erupt) return logMessage('Source not selected');
-	const eruptId = data.feid_sources.find((row) => row[0] === modifySource)?.[eruptIdIdx] as number | null;
-	const row = data.sources_erupt!.find((rw) => rw[0] === eruptId);
-	const erupt = rowAsDict(row, columns.sources_erupt!) as SrcEruptRow;
+	if (modifySource === null || eruptId === null) return logError('Eruption not selected');
+
+	const row = erupts.data.find((row) => row[0] === eruptId);
+	const erupt = rowAsDict<'sources_erupt'>(row, columns.sources_erupt!);
 
 	const linkColId = getSourceLink(which, event.src)[0];
 	if (eruptId == null) return logError('Source not found');
@@ -389,97 +366,4 @@ export function parseFlareFlux(cls: string | null) {
 	if (!multi) return null;
 	const val = multi * parseFloat(cls.slice(1));
 	return isNaN(val) ? null : Math.round(val * 10) / 10;
-}
-
-export function useSolenHolesQuery() {
-	return useQuery({
-		queryKey: ['solen_holes'],
-		queryFn: async () => {
-			const res = await fetchTable('solen_holes');
-			for (const col of res.columns) {
-				col.width =
-					{
-						tag: 5.5,
-						polarity: 2,
-						loc: 8.5,
-						time: 6,
-						comment: 11,
-					}[col.name] ?? col.width;
-			}
-			return res;
-		},
-	});
-}
-
-export function useCompoundTable(which: EruptEnt) {
-	return (
-		useQuery({
-			queryKey: ['events:' + which],
-			staleTime: Infinity,
-			placeholderData: keepPreviousData,
-			queryFn: async () => {
-				const tables = {
-					cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
-					icme: ['r_c_icmes'],
-					flare: ['solarsoft_flares', 'donki_flares'],
-				}[which];
-				const results = await Promise.all(tables.map((t) => fetchTable(t)));
-				const sCols = results.map((q) => q.columns);
-				const sData = results.map((q) => q.data);
-				const pairs = Object.values(sCols).flatMap((cols) => cols.map((c) => [c.id, c]));
-				const columns = [...new Map([...(columnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as ColumnDef[];
-				const indexes = sourceLabels[which].map((src, srci) => columns.map((c) => sCols[srci].findIndex((sc) => sc.id === c?.id)));
-				const data = sData.flatMap((rows, srci) =>
-					rows.map((row) => [sourceLabels[which][srci], ...indexes[srci].map((idx) => (idx < 0 ? null : row[idx]))])
-				);
-				const tIdx = columns.findIndex((c) => c.id === (which === 'flare' ? 'start_time' : 'time')) + 1;
-				data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
-
-				for (const col of columns) {
-					if (col.name.includes('class')) col.width = 5.5;
-					if (['lat', 'lon'].includes(col.name)) col.width = 4.5;
-					if (which === 'flare' && ['end', 'peak'].includes(col.name)) col.width = 6;
-					if (['type', 'level'].includes(col.name)) col.width = 3;
-				}
-
-				return { data, columns: [{ id: 'src', name: 'src', description: '', fullName: 'src', width: 4 } as ColumnDef, ...columns] };
-			},
-		}).data ?? { data: [], columns: [] }
-	);
-}
-
-export function useTableQuery(tbl: TableName) {
-	const data = useEventsState((st) => st.data[tbl]);
-
-	const query = useQuery({
-		queryKey: ['tableData', tbl],
-		staleTime: Infinity,
-		queryFn: async () => {
-			const { columns, data: dt } = await fetchTable(tbl);
-			const order = columnOrder[tbl as keyof typeof columnOrder];
-			if (!order) {
-				setRawData(tbl, dt as any, columns);
-				return dt;
-			}
-			const cols = [...new Set(['id', ...order, ...columns.map((c) => c.id)])];
-
-			for (const col of columns) {
-				if (tbl === 'sources_ch') {
-					col.width = 'tag' === col.id ? 7.5 : ['b', 'phi', 'lat', 'area', 'width'].includes(col.id) ? 4.5 : col.width;
-				} else if (tbl === 'sources_erupt') {
-					col.width = ['XF peak', 'XF end'].includes(col.name) ? 6 : ['lat', 'lon'].includes(col.name) ? 4.5 : col.width;
-				}
-			}
-
-			const idxs = cols.map((cid) => columns.findIndex((c) => c.id === cid));
-			const dat = dt.map((row) => idxs.map((i) => row[i]));
-			const cl = idxs.map((i) => columns[i]);
-			setRawData(tbl, dat as any, cl);
-			return dat;
-		},
-	});
-
-	if (!data && query.isFetched) query.refetch();
-
-	return query;
 }

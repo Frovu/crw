@@ -36,7 +36,7 @@ async function fetchTable(entity: keyof Tables, withChangelog?: boolean) {
 export function useCompoundTable(which: keyof typeof compoundTables) {
 	return (
 		useQuery({
-			queryKey: ['events:' + which],
+			queryKey: ['compoundTable', which],
 			staleTime: Infinity,
 			placeholderData: keepPreviousData,
 			queryFn: async () => {
