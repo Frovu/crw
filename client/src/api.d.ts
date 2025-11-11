@@ -254,10 +254,10 @@ export interface Tables {
 		id: number;
 		time: Date;
 		duration: number;
-		onset_type: string | null;
+		onset_type: 'SSC' | 'iSW' | 'SI' | null;
 		s_type: number | null;
 		s_description: string | null;
-		s_confidence: string | null;
+		s_confidence: 'low' | 'avg' | 'high' | null;
 		old_magnitude: number | null;
 		gamma: number | null;
 		vmbm: number | null;
@@ -287,7 +287,7 @@ export interface Tables {
 		feid_id: number;
 		ch_id: number | null;
 		erupt_id: number | null;
-		cr_influence: string | null;
+		cr_influence: 'primary' | 'secondary' | 'residual' | null;
 	},
 
 	sources_ch: {
@@ -310,13 +310,13 @@ export interface Tables {
 		flr_end: Date | null;
 		flr_flux: number | null;
 		active_region: number | null;
-		flr_source: string | null;
+		flr_source: 'SFT' | 'DKI' | 'NOA' | 'MNL' | null;
 		lat: number | null;
 		lon: number | null;
-		coords_source: string | null;
+		coords_source: 'FLR' | 'LSC' | 'DKI' | 'MNL' | null;
 		cme_time: Date | null;
 		cme_speed: number | null;
-		cme_source: string | null;
+		cme_source: 'LSC' | 'DKI' | 'CCT' | null;
 		note: string | null;
 		solarsoft_flr_start: Date | null;
 		noaa_flr_start: Date | null;

@@ -31,7 +31,11 @@ def generate_table_type(tbl: str, cols: list[Column], write):
 	write(f'\t{tbl}: {{\n')
 	for col in cols:
 		nullable = '' if col.not_null else ' | null' 
-		write(f'\t\t{col.sql_name}: {dtype_to_ts(col.dtype)}{nullable};\n')
+		if col.enum:
+			dtype = ' | '.join([f"'{val}'" for val in col.enum])
+		else:
+			dtype = dtype_to_ts(col.dtype)
+		write(f'\t\t{col.sql_name}: {dtype}{nullable};\n')
 	write('\t},\n\n')
 
 rendered = ts.generator.render(Builder)
