@@ -4,7 +4,7 @@ import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQu
 import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
-import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 
 const defaultParams = {

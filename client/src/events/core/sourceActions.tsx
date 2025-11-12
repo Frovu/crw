@@ -3,7 +3,7 @@ import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
 import { sourceLabels, sourceLinks, type Tables } from '../../api.d';
-import { equalValues } from './eventsSettings';
+import { equalValues } from './util';
 import { useEventsState } from './eventsState';
 
 export const compoundTables = {

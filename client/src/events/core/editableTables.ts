@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { equalValues } from './eventsSettings';
+import { equalValues } from './util';
 import { sourceLinks, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api.d';
 import { useTableDataQuery } from './query';
 import { useEventsState } from './eventsState';
@@ -86,7 +86,13 @@ const renderTableData = (state: TablesState, tbl: EditableTable) => {
 export const tableRowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
 	Object.fromEntries(columns.map((c, i) => [c.sql_name, row?.[i] ?? null])) as Tables[T];
 
-const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableState<T>, 'columns' | 'data' | 'index'>) => ({
+const tableApi = <T extends EditableTable>({
+	changelog,
+	columns,
+	data,
+	index,
+}: Pick<TableState<T>, 'changelog' | 'columns' | 'data' | 'index'>) => ({
+	changelog,
 	columns,
 	data,
 	index,
@@ -102,12 +108,13 @@ export const getTable = <T extends EditableTable>(tbl: T) => tableApi(useTablesS
 
 export const useTable = <T extends EditableTable>(tbl: T) => {
 	const query = useTableDataQuery(tbl);
+	const changelog = useTablesStore((st) => st[tbl].changelog);
 	const columns = useTablesStore((st) => st[tbl].columns);
 	const data = useTablesStore((st) => st[tbl].data);
 	const index = useTablesStore((st) => st[tbl].index);
 
 	if (!data && query.isFetched) query.refetch();
-	return useMemo(() => tableApi({ columns, data, index }), [columns, data, index]);
+	return useMemo(() => tableApi({ columns, data, index, changelog }), [changelog, columns, data, index]);
 };
 
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>

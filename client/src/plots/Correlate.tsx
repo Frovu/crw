@@ -11,7 +11,7 @@ import {
 	TableViewContext,
 	usePlot,
 	findColumn,
-} from '../events/core/eventsSettings';
+} from '../events/core/util';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { ExportableUplot } from '../events/export/ExportPlot';
 import uPlot from 'uplot';

@@ -10,7 +10,7 @@ import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../../util';
 import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../../app';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type EventsPanel, useEventsSettings } from '../core/eventsSettings';
+import { type EventsPanel, useEventsSettings } from '../core/util';
 import { useEventsState } from '../core/eventsState';
 
 type uOptions = Omit<uPlot.Options, 'width' | 'height'>;

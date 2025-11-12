@@ -4,7 +4,7 @@ import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
-import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/util';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 

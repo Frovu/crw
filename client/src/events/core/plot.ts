@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings } from './eventsSettings';
+import { useEventsSettings } from './util';
 import { LayoutContext } from '../../layout';
 import { useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';

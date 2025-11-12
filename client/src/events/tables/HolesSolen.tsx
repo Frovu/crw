@@ -2,7 +2,7 @@ import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString } from '../core/eventsSettings';
+import { equalValues, valueToString } from '../core/util';
 import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,

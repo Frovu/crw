@@ -12,7 +12,7 @@ import {
 	editableTables,
 	tableRowAsDict,
 } from './editableTables';
-import { valueToString } from './eventsSettings';
+import { valueToString } from './util';
 
 export function CommitChanges() {
 	const [showCommit, setShowCommit] = useState(false);

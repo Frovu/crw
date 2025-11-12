@@ -1,5 +1,5 @@
 import { computeColumnWidth } from '../columns/columns';
-import { valueToString } from '../core/eventsSettings';
+import { valueToString } from '../core/util';
 import { useFeidTableView } from '../core/feid';
 
 export function ExportMenu() {

@@ -1,6 +1,6 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { apiPost, useEventListener } from '../../util';
-import { MainTableContext, SampleContext, findColumn, useEventsSettings } from '../core/eventsSettings';
+import { MainTableContext, SampleContext, findColumn, useEventsSettings } from '../core/util';
 import { color } from '../../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../../app';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -89,7 +89,10 @@ export default function ColumnsSelector() {
 	const paramsChanged = original && JSON.stringify(original.params) !== JSON.stringify(params);
 	const smhChanged =
 		original &&
-		(paramsChanged || genericSate.is_public !== original.is_public || desc !== original.description || nickname !== original.nickname);
+		(paramsChanged ||
+			genericSate.is_public !== original.is_public ||
+			desc !== original.description ||
+			nickname !== original.nickname);
 	const withDuration = ['FE', 'MC'];
 	const isClone = operation === 'clone_column',
 		isCombine = G_COMBINE_OP.includes(operation as any),
@@ -104,9 +107,11 @@ export default function ColumnsSelector() {
 		(isValue && (params.series || isTime)) ||
 		(isSrcCol && params.target_entity && params.influence?.length && (params.target_column || isSrcCount));
 
-	const columnOpts = !isClone && !isCombine ? null : columns.filter((c) => !c.hidden).map(({ id, fullName }) => [id, fullName]);
+	const columnOpts =
+		!isClone && !isCombine ? null : columns.filter((c) => !c.hidden).map(({ id, fullName }) => [id, fullName]);
 
-	const srcColTargetOpts = operation === 'source_value' && structure[params.target_entity as any]?.map((col) => [col.id, col.name]);
+	const srcColTargetOpts =
+		operation === 'source_value' && structure[params.target_entity as any]?.map((col) => [col.id, col.name]);
 
 	useEventListener('escape', () => setOpen(false));
 	useEventListener('action+openColumnsSelector', () => setOpen((o) => !o));
@@ -133,7 +138,8 @@ export default function ColumnsSelector() {
 	});
 
 	const { mutate: computeRow } = useMutation({
-		mutationFn: (rowId: number) => apiPost<{ time: number; done: boolean; error?: string }>('events/compute_row', { id: rowId }),
+		mutationFn: (rowId: number) =>
+			apiPost<{ time: number; done: boolean; error?: string }>('events/compute_row', { id: rowId }),
 		onMutate: (rowId) => {
 			logMessage('Computing row #' + rowId.toString(), 'debug');
 		},
@@ -198,7 +204,9 @@ export default function ColumnsSelector() {
 			setGeneric(generic);
 			setReport({ success: `Done in ${time} s` });
 			if (!shownColumns?.includes(name)) setColumns((cols) => cols.concat(name));
-			logSuccess(`${gid ? 'Modified' : 'Created'} generic ${oriColumn?.fullName ?? generic.nickname ?? generic.id} in ${time} s`);
+			logSuccess(
+				`${gid ? 'Modified' : 'Created'} generic ${oriColumn?.fullName ?? generic.nickname ?? generic.id} in ${time} s`
+			);
 		},
 		onError: (err: any) => {
 			setReport({ error: err.toString() });
@@ -242,7 +250,10 @@ export default function ColumnsSelector() {
 		return (
 			<>
 				<select
-					style={{ color: isDefault ? color('text-dark') : 'unset', width: isEvent ? '16ch' : isSWS ? '10ch' : '7.5ch' }}
+					style={{
+						color: isDefault ? color('text-dark') : 'unset',
+						width: isEvent ? '16ch' : isSWS ? '10ch' : '7.5ch',
+					}}
 					className="Borderless"
 					value={isEvent ? refToStr(st) : isSWS ? swRefToStr(st) : st?.operation}
 					onChange={(e) => setPoint(k, e.target.value)}
@@ -302,7 +313,10 @@ export default function ColumnsSelector() {
 						))}
 					</select>
 				)}
-				<label title="Offset in hours" style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('text-dark') : 'inherit' }}>
+				<label
+					title="Offset in hours"
+					style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('text-dark') : 'inherit' }}
+				>
 					+
 					<input
 						style={{ margin: '0 2px', width: '6ch' }}
@@ -391,14 +405,20 @@ export default function ColumnsSelector() {
 										onMouseUp={(e) => {
 											e.stopPropagation();
 											if (!dragging || Math.abs(e.clientY - dragging.y) < 4) {
-												if (e.button === 0 && !e.shiftKey && !e.ctrlKey) check(id, !shownColumns?.includes(id));
+												if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
+													check(id, !shownColumns?.includes(id));
 											} else {
 												setColumnOrder(newOrder);
 											}
 											setDragging(null);
 										}}
 									>
-										<input type="checkbox" style={{ marginRight: 8 }} checked={!!shownColumns?.includes(id)} readOnly />
+										<input
+											type="checkbox"
+											style={{ marginRight: 8 }}
+											checked={!!shownColumns?.includes(id)}
+											readOnly
+										/>
 										{name}
 									</button>
 									{role && generic && (
@@ -415,7 +435,9 @@ export default function ColumnsSelector() {
 										<div
 											className="CloseButton"
 											onClick={(e) => {
-												const dep = samples.filter((smpl) => smpl.filters?.find(({ column }) => column === id));
+												const dep = samples.filter((smpl) =>
+													smpl.filters?.find(({ column }) => column === id)
+												);
 												console.log('dependent samples', dep);
 												e.stopPropagation();
 												if (dep.length > 0) setSamplesDepend(dep.map((s) => s.name));
@@ -429,7 +451,11 @@ export default function ColumnsSelector() {
 				))}
 				{role && (
 					<div className="GenericsControls" onClick={(e) => e.stopPropagation()}>
-						<h4 style={{ margin: 0, padding: '4px 0 8px 0', cursor: 'pointer' }} title="Reset" onMouseDown={() => reset()}>
+						<h4
+							style={{ margin: 0, padding: '4px 0 8px 0', cursor: 'pointer' }}
+							title="Reset"
+							onMouseDown={() => reset()}
+						>
 							Manage custom columns:
 						</h4>
 						{(original || isValid) && (
@@ -572,7 +598,11 @@ export default function ColumnsSelector() {
 						)}
 					</div>
 				)}
-				<div className="CloseButton" style={{ position: 'absolute', top: 2, right: 4 }} onClick={() => setOpen(false)} />
+				<div
+					className="CloseButton"
+					style={{ position: 'absolute', top: 2, right: 4 }}
+					onClick={() => setOpen(false)}
+				/>
 			</div>
 		</>
 	);

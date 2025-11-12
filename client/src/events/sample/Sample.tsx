@@ -1,13 +1,7 @@
 import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../../app';
 import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
-import {
-	parseColumnValue,
-	isValidColumnValue,
-	MainTableContext,
-	SampleContext,
-	useEventsSettings,
-} from '../core/eventsSettings';
+import { parseColumnValue, isValidColumnValue, MainTableContext, SampleContext, useEventsSettings } from '../core/util';
 import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Option, Select, askConfirmation } from '../../Utility';

@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString } from '../core/eventsSettings';
+import { equalValues, valueToString } from '../core/util';
 import {
 	chIdIdx,
 	deleteEvent,

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { apiPost, useEventListener, useMutationHandler } from '../../util';
 import { color } from '../../app';
 import { useTable, type TableValue } from '../core/editableTables';
-import { equalValues, valueToString } from '../core/eventsSettings';
+import { equalValues, valueToString } from '../core/util';
 import type { StaticColumn } from '../../api';
 
 const FIXES = [

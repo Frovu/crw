@@ -4,7 +4,7 @@ import { useContextMenu } from '../../app';
 import { LayoutContext } from '../../layout';
 import { cn } from '../../util';
 import { type TableValue, useTable } from '../core/editableTables';
-import { equalValues } from '../core/eventsSettings';
+import { equalValues } from '../core/util';
 import { useFeidCursor, useSelectedSource, useEntityCursor } from '../core/eventsState';
 import { useSolarPlot } from '../core/plot';
 import { useCompoundTable } from '../core/query';

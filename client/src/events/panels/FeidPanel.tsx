@@ -20,7 +20,7 @@ import {
 	setStatColumn,
 	type EventsSettings,
 	type EventsPanel,
-} from '../core/eventsSettings';
+} from '../core/util';
 import { useSampleState, defaultFilterOp } from '../sample/sample';
 import ColumnsSelector from '../columns/Columns';
 import ImportMenu from '../export/Import';

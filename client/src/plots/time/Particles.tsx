@@ -4,7 +4,7 @@ import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
 import { useSolarPlot } from '../solar';
-import { usePlot, type EventsPanel } from '../../events/core/eventsSettings';
+import { usePlot, type EventsPanel } from '../../events/core/util';
 
 const PARTICLES = {
 	p1: '>1 MeV',

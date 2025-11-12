@@ -2,7 +2,7 @@ import React, { type CSSProperties, createContext, type ReactNode } from 'react'
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
-import type { TableMenuDetails } from './events/core/eventsSettings';
+import type { TableMenuDetails } from './events/core/util';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';

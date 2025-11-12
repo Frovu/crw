@@ -2,11 +2,18 @@ import { useContext, useState, useEffect, useCallback, type KeyboardEvent } from
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size, useEventListener } from '../../util';
-import { type TableParams, MainTableContext, TableViewContext, getChangelogEntry, valueToString } from '../core/eventsSettings';
+import { type TableParams, valueToString } from '../core/util';
 import { useEventsState } from '../core/eventsState';
 import { pickEventForSample } from '../sample/sample';
 import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
-import type { ChangelogEntry } from '../../api.d';
+import type { ChangelogEntry, ChangelogResponse } from '../../api.d';
+import { useFeidTableView } from '../core/feid';
+import { useTable } from '../core/editableTables';
+
+const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
+	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as
+		| ChangelogEntry[]
+		| undefined;
 
 export default function FeidTableView({
 	size,
@@ -18,22 +25,9 @@ export default function FeidTableView({
 	averages?: (null | number[])[];
 }) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changelog: wholeChangelog } = useContext(MainTableContext);
-	const { data, columns, markers, includeMarkers } = useContext(TableViewContext);
-	const viewState = useEventsState();
-	const {
-		plotId,
-		sort,
-		cursor: sCursor,
-		setStartAt,
-		setEndAt,
-		modifyId,
-		changes,
-		created,
-		deleted,
-		toggleSort,
-		setPlotId,
-	} = viewState;
+	const { changelog: wholeChangelog } = useTable('feid');
+	const { data, columns, markers, includeMarkers } = useFeidTableView();
+	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, modifyId, toggleSort, setPlotId } = useEventsState();
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;

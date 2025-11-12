@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/eventsSettings';
+import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/util';
 import { ExportableUplot } from '../events/export/ExportPlot';
 import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';

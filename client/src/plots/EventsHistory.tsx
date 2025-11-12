@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings, MainTableContext, SampleContext, usePlot } from '../events/core/eventsSettings';
+import { useEventsSettings, MainTableContext, SampleContext, usePlot } from '../events/core/util';
 import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';

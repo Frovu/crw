@@ -3,7 +3,7 @@ import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { type ColumnDef, type DataRow } from '../columns/columns';
-import { equalValues, valueToString } from '../core/eventsSettings';
+import { equalValues, valueToString } from '../core/util';
 import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
 import {
 	linkHoleSourceEvent,
@@ -96,7 +96,9 @@ function Panel() {
 	const solenHole =
 		catched?.solenHole ??
 		(solenChOfSrc && (rowAsDict(solenChOfSrc, solenQuery.data!.columns) as SolenCH)) ??
-		((solenCursor && solenQuery.data && rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null) ??
+		((solenCursor &&
+			solenQuery.data &&
+			rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null) ??
 		null;
 	const solenTime = solenHole?.time as Date | null;
 
@@ -108,10 +110,13 @@ function Panel() {
 		queryKey: ['chimera_holes', start, end, holesAnimation],
 		queryFn: async () => {
 			if (!start || !end) return null;
-			const res = await apiGet<{ columns: ColumnDef[]; holes: { [dtst: number]: DataRow[] }; images: number[] }>('events/chimera', {
-				from: start,
-				to: end,
-			});
+			const res = await apiGet<{ columns: ColumnDef[]; holes: { [dtst: number]: DataRow[] }; images: number[] }>(
+				'events/chimera',
+				{
+					from: start,
+					to: end,
+				}
+			);
 
 			const frames = res.images
 				.filter((tst) => tst >= start && tst <= end)
@@ -165,7 +170,9 @@ function Panel() {
 					})(),
 				}))
 				.concat({ id: 'chimera_time', hidden: true, type: 'time' } as ColumnDef);
-			const reorder = [...new Set([...columnOrder, ...cols.map((c) => c.id)])].map((cid) => cols.findIndex((col) => col.id === cid));
+			const reorder = [...new Set([...columnOrder, ...cols.map((c) => c.id)])].map((cid) =>
+				cols.findIndex((col) => col.id === cid)
+			);
 			const columns = reorder.map((idx) => cols[idx]);
 			const holes = res.holes;
 			for (const tst in holes) {
@@ -298,9 +305,12 @@ function Panel() {
 											{...{ row, idx, columns, cursor, className, padRow }}
 											onClick={(e, cidx) => {
 												if (start && end) setCatched({ start, end, solenHole });
-												setFrame(query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0);
+												setFrame(
+													query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0
+												);
 
-												if (cidx === 0 && feidId !== null) return linkHoleSourceEvent('chimera', ch, feidId);
+												if (cidx === 0 && feidId !== null)
+													return linkHoleSourceEvent('chimera', ch, feidId);
 												onClick(idx, cidx);
 											}}
 											contextMenuData={() => ({ nodeId, ch })}
@@ -327,7 +337,14 @@ function Panel() {
 				style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
 				onClick={(e) =>
 					!isWindow &&
-					openWindow({ x: e.clientX, y: e.clientY, w: 512, h: 512, params: { type: 'Chimera Holes' }, unique: nodeId })
+					openWindow({
+						x: e.clientX,
+						y: e.clientY,
+						w: 512,
+						h: 512,
+						params: { type: 'Chimera Holes' },
+						unique: nodeId,
+					})
 				}
 			>
 				<div style={{ position: 'absolute', maxWidth: imgSize, maxHeight: imgSize, overflow: 'clip' }}>
@@ -345,7 +362,13 @@ function Panel() {
 					<span style={{ paddingRight: 8 }}>
 						{frame + 1}/{framesTotal}
 					</span>
-					<a target="_blank" rel="noreferrer" href={url} style={{ color: 'orange' }} onClick={(e) => e.stopPropagation()}>
+					<a
+						target="_blank"
+						rel="noreferrer"
+						href={url}
+						style={{ color: 'orange' }}
+						onClick={(e) => e.stopPropagation()}
+					>
 						{prettyDate(timestamp).slice(5, -3)}
 					</a>
 				</div>

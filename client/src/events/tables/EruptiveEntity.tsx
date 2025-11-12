@@ -1,5 +1,5 @@
 import { openWindow } from '../../layout';
-import { valueToString } from '../core/eventsSettings';
+import { valueToString } from '../core/util';
 import { timeInMargin } from '../../util';
 import { EruptiveEntityMenu, EruptiveEntityTable } from './EruptiveEntityCore';
 import type { MouseEvent } from 'react';

@@ -1,4 +1,4 @@
-import type { Onset, MagneticCloud, EventsSettings } from '../events/core/eventsSettings';
+import type { Onset, MagneticCloud, EventsSettings } from '../events/core/util';
 import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import {
 	getParam,
@@ -219,8 +219,11 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const marked: { [k: string]: true } = {};
 				const rec = (txt: string = axis.fullLabel!): string[][] => {
 					if (!txt) return [];
-					const re = (label: string) => new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
-					const series = u.series.find((ser) => ser && !marked[ser.label as string] && txt.match(re(ser.label as string)));
+					const re = (label: string) =>
+						new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
+					const series = u.series.find(
+						(ser) => ser && !marked[ser.label as string] && txt.match(re(ser.label as string))
+					);
 					if (!series) return [[txt, color('text')]];
 					const label = series.label as string;
 					marked[label] = true;
@@ -356,10 +359,13 @@ export function tooltipPlugin({
 
 		const left = tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1);
 		tooltip.style.top = tooltipTopOffset + top + shiftY + 'px';
-		tooltip.style.left = (flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
+		tooltip.style.left =
+			(flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
 		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
-		tooltip.innerHTML = html ? html(u, sidx, dataIdx!) : `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
+		tooltip.innerHTML = html
+			? html(u, sidx, dataIdx!)
+			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
 	}
 
 	const tooltip = document.createElement('div');
@@ -483,7 +489,11 @@ export function titlePlugin({
 								u.ctx.save();
 								u.ctx.textAlign = 'left';
 								u.ctx.textBaseline = 'top';
-								const parts = textParts.map((t) => ({ ...t, styles: t.styles ?? [], text: applyTextTransform(t.text) }));
+								const parts = textParts.map((t) => ({
+									...t,
+									styles: t.styles ?? [],
+									text: applyTextTransform(t.text),
+								}));
 								const width = measureStyled(u.ctx, parts);
 								let x = clamp(4, u.width * devicePixelRatio - width, (u.width * devicePixelRatio - width) / 2);
 								for (const { text, styles, color: c } of parts) {

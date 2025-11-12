@@ -5,7 +5,7 @@ import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindo
 import { font } from '../../plots/plotUtil';
 import { apiGet, dispatchCustomEvent, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';
-import { equalValues, type EventsPanel } from '../core/eventsSettings';
+import { equalValues, type EventsPanel } from '../core/util';
 import { useEventsState, useSelectedSource, useFeidCursor } from '../core/eventsState';
 import { useCompoundTable } from '../core/query';
 import { serializeCoords, getSourceLink } from '../core/sourceActions';

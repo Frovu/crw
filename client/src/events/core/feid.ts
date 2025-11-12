@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { useSampleState, sampleEditingMarkers, applySample, renderFilters, useSampleQuery } from '../sample/sample';
 import { useTable } from './editableTables';
-import { useEventsSettings } from './eventsSettings';
+import { useEventsSettings } from './util';
 import { useEventsState } from './eventsState';
 import type { Sample } from '../../api';
 import { AuthContext } from '../../app';

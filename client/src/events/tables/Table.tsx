@@ -11,7 +11,7 @@ import {
 	type MouseEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
-import { parseColumnValue, isValidColumnValue, valueToString } from '../core/eventsSettings';
+import { parseColumnValue, isValidColumnValue, valueToString } from '../core/util';
 import { color, openContextMenu } from '../../app';
 import { useEventsState, type Cursor } from '../core/eventsState';
 import type { Column } from '../../api.d';

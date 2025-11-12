@@ -1,8 +1,8 @@
 import { useEventListener } from '../util';
 import AppLayout from '../Layout';
-import { useEventsSettings } from './core/eventsSettings';
+import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
-import type { EventsPanel } from './core/eventsSettings';
+import type { EventsPanel } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
