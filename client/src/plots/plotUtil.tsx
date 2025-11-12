@@ -1,4 +1,4 @@
-import React, { type MutableRefObject, useRef, useState, useMemo } from 'react';
+import { type MutableRefObject, useRef, useState, useMemo } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
@@ -114,7 +114,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 						const text = (showYear ? showYear + '-' : '     ') + month + '-' + day;
 						return applyTextTransform(text);
 					}),
-				captureOverrides,
+				captureOverrides
 			),
 		space: width * 5.5,
 		gap: scaled(1),
@@ -130,7 +130,14 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 	};
 }
 
-export function drawArrow(ctx: CanvasRenderingContext2D | Path2D, dx: number, dy: number, tox: number, toy: number, hlen: number) {
+export function drawArrow(
+	ctx: CanvasRenderingContext2D | Path2D,
+	dx: number,
+	dy: number,
+	tox: number,
+	toy: number,
+	hlen: number
+) {
 	const angle = Math.atan2(dy, dx);
 	ctx.lineTo(tox, toy);
 	ctx.lineTo(tox - hlen * Math.cos(angle - Math.PI / 6), toy - hlen * Math.sin(angle - Math.PI / 6));
@@ -177,18 +184,22 @@ export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuil
 	const size = scaled(sizePx * devicePixelRatio);
 	return (u, seriesIdx) => {
 		const p = new Path2D();
-		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-			const radius = size / 2;
-			const draw = drawShape(p, radius)[type];
-			for (let i = 0; i < dataX.length; i++) {
-				const val = dataY[i];
-				if (val == null || val <= scaleY.min! || val >= scaleY.max!) continue;
-				const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
-				const cy = valToPosY(val, scaleY, yDim, yOff);
-				p.moveTo(cx + radius, cy);
-				draw(cx, cy);
+		uPlot.orient(
+			u,
+			seriesIdx,
+			(series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+				const radius = size / 2;
+				const draw = drawShape(p, radius)[type];
+				for (let i = 0; i < dataX.length; i++) {
+					const val = dataY[i];
+					if (val == null || val <= scaleY.min! || val >= scaleY.max!) continue;
+					const cx = valToPosX(dataX[i], scaleX, xDim, xOff);
+					const cy = valToPosY(val, scaleY, yDim, yOff);
+					p.moveTo(cx + radius, cy);
+					draw(cx, cy);
+				}
 			}
-		});
+		);
 		return { fill: p, stroke: p };
 	};
 }
@@ -343,7 +354,7 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 			},
 			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}),
-		[],
+		[]
 	);
 
 	return handle;

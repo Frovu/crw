@@ -1,6 +1,6 @@
 import { Fragment, useContext, useEffect, useState } from 'react';
 import { apiPost, useEventListener } from '../../util';
-import { MainTableContext, SampleContext, findColumn, useEventsSettings } from '../core/util';
+import { useEventsSettings } from '../core/util';
 import { color } from '../../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../../app';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

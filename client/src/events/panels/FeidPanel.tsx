@@ -14,9 +14,6 @@ import {
 	useEventsSettings,
 	copyAverages,
 	valueToString,
-	SampleContext,
-	TableViewContext,
-	findColumn,
 	setStatColumn,
 	type EventsSettings,
 	type EventsPanel,
@@ -147,11 +144,7 @@ function Panel() {
 			<ImportMenu />
 			<ColumnsSelector />
 			<SampleView ref={ref} />
-			<FeidTableView
-				averages={averages}
-				entity="feid"
-				size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}
-			/>
+			<FeidTableView averages={averages} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
 		</>
 	);
 }

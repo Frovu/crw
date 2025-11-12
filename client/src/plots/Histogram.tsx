@@ -1,14 +1,13 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
 import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/util';
+import { useEventsSettings } from '../events/core/util';
 import { ExportableUplot } from '../events/export/ExportPlot';
 import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
 import type { Value } from '../events/columns/columns';
-import { useTable } from '../events/core/eventsState';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;

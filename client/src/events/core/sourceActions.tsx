@@ -2,7 +2,7 @@ import { askConfirmation, withConfirmation } from '../../Utility';
 import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
-import { sourceLabels, sourceLinks, type Tables } from '../../api.d';
+import { sourceLabels, sourceLinks, type Tables } from '../../api';
 import { equalValues } from './util';
 import { useEventsState } from './eventsState';
 
@@ -11,6 +11,8 @@ export const compoundTables = {
 	icme: ['r_c_icmes'],
 	flare: ['solarsoft_flares', 'donki_flares'],
 } as const;
+
+export type ChimeraCH = { chimera_time: Date } & Tables['chimera_holes'];
 
 type FlareSrc = 'donki_flares' | 'solarsoft_flares' | 'legacy_noaa_flares';
 type CMESrc = 'lasco_cmes' | 'donki_cmes' | 'cactus_cmes';
@@ -29,15 +31,15 @@ export type EruptiveEvent<T extends EruptEnt> = { src: EruptSrcLabel<T> } & Tabl
 type CachimeraedHolesState = null | { start: number; end: number; solenHole: Tables['solen_holes'] | null };
 
 export const useHolesViewState = create<{
-	cachimeraed: CachimeraedHolesState;
+	catched: CachimeraedHolesState;
 	time: number;
 	setTime: (a: number) => void;
-	setCachimeraed: (a: CachimeraedHolesState) => void;
+	setCatched: (a: CachimeraedHolesState) => void;
 }>()((set) => ({
-	cachimeraed: null,
+	catched: null,
 	time: 0,
 	setTime: (time) => set((s) => ({ ...s, time })),
-	setCachimeraed: (cachimeraed) => set((s) => ({ ...s, cachimeraed })),
+	setCatched: (cachimeraed) => set((s) => ({ ...s, cachimeraed })),
 }));
 
 export function getSourceLink<T extends EruptEnt>(ent: T, src: EruptSrcLabel<T>) {
@@ -167,9 +169,9 @@ export function linkHoleSourceEvent<T extends CHEnt>(ent: T, event: Tables[T], f
 			ch.tag = solen.tag;
 			if (!ch.chimera_time || !ch.time) ch.time = solen.time;
 		} else {
-			const chimera = event as Tables['chimera_holes'];
+			const chimera = event as ChimeraCH;
 			ch.chimera_id = chimera.id;
-			ch.chimera_time = (chimera as any).chimera_time; // FIXME: provide chimera_time from server?
+			ch.chimera_time = chimera.chimera_time;
 
 			const chtm = ch.chimera_time!.getTime() / 1e3;
 			const sunRotation = 360 / 27.27 / 86400; // deg/s, kinda

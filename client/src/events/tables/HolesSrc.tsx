@@ -3,17 +3,8 @@ import { useContextMenu } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import {
-	chIdIdx,
-	deleteEvent,
-	rowAsDict,
-	useEventsState,
-	useFeidCursor,
-	useSelectedSource,
-	useCurrentFeidSources,
-	useTable,
-} from '../core/eventsState';
-import { linkSrcToEvent, timeInMargin, useTableQuery, type CHS } from '../core/sourceActions';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
+import { linkSrcToEvent } from '../core/sourceActions';
 import { askConfirmation } from '../../Utility';
 
 const ENT = 'sources_ch';

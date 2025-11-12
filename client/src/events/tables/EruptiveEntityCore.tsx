@@ -103,7 +103,7 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 						if (linkedTo)
 							// This event is already linked to some eruption // FIXME: this is probably slow
 							return 'text-text-dark';
-						return rowColorCallback({ erupt, feid, event }) ?? 'text-text';
+						return (feid && rowColorCallback({ erupt, feid, event })) ?? 'text-text';
 					})();
 
 					return (

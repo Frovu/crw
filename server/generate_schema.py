@@ -13,7 +13,7 @@ from events.table_structure import ALL_TABLES, SOURCE_LABELS, SOURCE_LINKS
 from typing import get_origin, Any, LiteralString
 import json, ts_type as ts
 
-TARGET = '../client/src/api.d.ts'
+TARGET = '../client/src/api.ts'
 
 class Builder(ts.NodeBuilder):
 	def handle_unknown_type(self, t: Any) -> ts.TypeNode:

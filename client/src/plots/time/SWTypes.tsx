@@ -4,7 +4,7 @@ import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
-import { usePlot, type EventsPanel } from '../../events/core/util';
+import { usePlot } from '../../events/core/plot';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 
@@ -23,7 +23,7 @@ async function getTypes(interval: [Date, Date]) {
 }
 
 function Panel() {
-	const params = usePlot<{}>();
+	const params = usePlot();
 	const query = useQuery({
 		queryKey: ['SWTypes', paddedInterval(params.interval)],
 		queryFn: async () => await getTypes(params.interval),
@@ -91,7 +91,7 @@ function Panel() {
 	);
 }
 
-export const SWTypesPlot: EventsPanel<{}> = {
+export const SWTypesPlot = {
 	name: 'SW Types',
 	Panel,
 	isPlot: true,

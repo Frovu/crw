@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { parseColumnValue } from '../core/util';
 import { immer } from 'zustand/middleware/immer';
-import type { Column, Filter, Sample } from '../../api.d';
+import type { Column, Filter, Sample } from '../../api';
 import type { TableRow, TableValue } from '../core/editableTables';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../util';

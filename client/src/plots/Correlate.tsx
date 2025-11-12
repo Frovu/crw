@@ -2,16 +2,7 @@ import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import {
-	MainTableContext,
-	SampleContext,
-	useEventsSettings,
-	equalValues,
-	valueToString,
-	TableViewContext,
-	usePlot,
-	findColumn,
-} from '../events/core/util';
+import { useEventsSettings, equalValues, valueToString } from '../events/core/util';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { ExportableUplot } from '../events/export/ExportPlot';
 import uPlot from 'uplot';
@@ -20,7 +11,7 @@ import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample/sample';
-import { useEventsState, useTable } from '../events/core/eventsState';
+import { useEventsState } from '../events/core/eventsState';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'];
 

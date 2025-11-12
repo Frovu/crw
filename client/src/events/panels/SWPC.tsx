@@ -3,9 +3,9 @@ import { read, utils } from 'xlsx';
 import { apiGet, apiPost, cn, prettyDate } from '../../util';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { logError, logSuccess } from '../../app';
-import { useSolarPlot } from '../../plots/solar';
 import { LayoutContext } from '../../layout';
 import { useFeidCursor } from '../core/eventsState';
+import { useSolarPlot } from '../core/plot';
 
 type ApiData = [number, string, string][];
 type Data = (string | null)[][];

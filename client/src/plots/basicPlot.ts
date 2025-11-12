@@ -1,4 +1,5 @@
-import type { Onset, MagneticCloud, EventsSettings } from '../events/core/util';
+import type { MagneticCloud, Onset } from '../events/core/plot';
+import type { EventsSettings } from '../events/core/util';
 import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
 import {
 	getParam,

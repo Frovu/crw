@@ -4,11 +4,10 @@ import { axisDefaults, color, getParam, measureDigit, scaled, usePlotOverlay } f
 import { useQueries } from '@tanstack/react-query';
 import uPlot from 'uplot';
 import { applySample } from '../events/sample/sample';
-import { MainTableContext, SampleContext, useEventsSettings, usePlot } from '../events/core/util';
+import { useEventsSettings } from '../events/core/util';
 import { type ContextMenuProps } from '../layout';
 import { ExportableUplot, PlotIntervalInput } from '../events/export/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
-import { useTable } from '../events/core/eventsState';
 
 const colors = ['green', 'purple', 'magenta'];
 const seriesKeys = ['series0', 'series1', 'series2'] as const;

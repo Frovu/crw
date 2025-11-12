@@ -14,7 +14,7 @@ import { clamp, cn, useEventListener, type Size } from '../../util';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../core/util';
 import { color, openContextMenu } from '../../app';
 import { useEventsState, type Cursor } from '../core/eventsState';
-import type { Column } from '../../api.d';
+import type { Column } from '../../api';
 import { makeChange, type EditableTable } from '../core/editableTables';
 
 export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {

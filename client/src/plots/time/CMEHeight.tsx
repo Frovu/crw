@@ -5,8 +5,8 @@ import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
 import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import { color } from '../../app';
-import { useSolarPlot } from '../solar';
-import { usePlot, type EventsPanel } from '../../events/core/util';
+import { useSolarPlot } from '../../events/core/plot';
+import { usePlot } from '../../events/core/plot';
 import { SolarPlotOverlay } from '../BasicPlot';
 
 const colors = {

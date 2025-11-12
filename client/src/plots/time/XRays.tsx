@@ -1,4 +1,4 @@
-import { usePlot, type EventsPanel } from '../../events/core/util';
+import { usePlot } from '../../events/core/plot';
 import { useSolarPlot } from '../../events/core/plot';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';

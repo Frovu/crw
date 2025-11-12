@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Tables } from '../../api.d';
+import type { Tables } from '../../api';
 import { getTable, useTable, type EditableTable } from './editableTables';
 import { useMemo } from 'react';
 import type { CHEnt, EruptTable } from './sourceActions';
@@ -96,6 +96,7 @@ export const useFeidCursor = () => {
 	const plotId = useEventsState((st) => st.plotId);
 
 	return useMemo(() => {
+		if (data.length < 1) return { duration: 0, start: new Date('2023-01-01'), end: new Date('2023-01-04'), id: null };
 		const row = getById(plotId) ?? entry(data[data.length - 1]);
 		const duration = row.duration;
 		const start = row.time;

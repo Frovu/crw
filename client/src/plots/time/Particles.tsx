@@ -3,8 +3,7 @@ import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
-import { useSolarPlot } from '../solar';
-import { usePlot, type EventsPanel } from '../../events/core/util';
+import { usePlot, useSolarPlot } from '../../events/core/plot';
 
 const PARTICLES = {
 	p1: '>1 MeV',
@@ -69,7 +68,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 }
 
 function Panel() {
-	const params = usePlot<SatPartParams>();
+	const params = usePlot();
 	const { showParticles, showGrid, showTimeAxis, solarTime } = params;
 	const para = { ...params };
 	const { interval: sInterv } = useSolarPlot();

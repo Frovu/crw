@@ -3,16 +3,8 @@ import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
-import {
-	linkHoleSourceEvent,
-	timeInMargin,
-	unlinkHoleSourceEvent,
-	useHolesViewState,
-	useSolenHolesQuery,
-	type CHS,
-	type SolenCH,
-} from '../core/sourceActions';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
+import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState } from '../core/sourceActions';
 import { prettyDate } from '../../util';
 
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));

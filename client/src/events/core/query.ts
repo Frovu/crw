@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api.d';
+import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api';
 import { apiGet } from '../../util';
 import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
@@ -12,8 +12,8 @@ const tablesColumnOrder = {
 	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
 } as const;
 
-async function fetchTable(entity: keyof Tables, withChangelog?: boolean) {
-	const { columns, data: rData, changelog } = await apiGet<TableDataResponse>('events', { entity, changelog: withChangelog });
+async function fetchTable(entity: keyof Tables, chlog?: boolean) {
+	const { columns, data: rData, changelog } = await apiGet<TableDataResponse>('events', { entity, changelog: !!chlog });
 	const data = rData as TableRow[];
 
 	for (const [i, col] of columns.entries()) {

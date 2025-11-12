@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { useEventsSettings, MainTableContext, SampleContext, usePlot } from '../events/core/util';
+import { useEventsSettings } from '../events/core/util';
 import { type ContextMenuProps } from '../layout';
 import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
@@ -8,7 +8,6 @@ import { ExportableUplot } from '../events/export/ExportPlot';
 import { NumberInput } from '../Utility';
 import { applySample } from '../events/sample/sample';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
-import { useTable } from '../events/core/eventsState';
 
 const windowOptions = {
 	'2 years': 24,

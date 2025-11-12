@@ -2,18 +2,10 @@ import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { type ColumnDef, type DataRow } from '../columns/columns';
+import { type DataRow } from '../columns/columns';
 import { equalValues, valueToString } from '../core/util';
-import { rowAsDict, useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
-import {
-	linkHoleSourceEvent,
-	unlinkHoleSourceEvent,
-	useHolesViewState,
-	useSolenHolesQuery,
-	type CHS,
-	type ChimeraCH,
-	type SolenCH,
-} from '../core/sourceActions';
+import { useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
+import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState, type ChimeraCH } from '../core/sourceActions';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet, prettyDate } from '../../util';
 import { NumberInput } from '../../Utility';
@@ -28,12 +20,11 @@ const defaultSettings = {
 type Params = Partial<typeof defaultSettings>;
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
-	const para = { ...defaultSettings, ...params };
-	const { slowFrameTime: frameTime, holesAnimation } = para;
+	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
 	const detail = useContextMenu((state) => state.menu?.detail) as { ch?: ChimeraCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
-	const chs = useSelectedSource('sources_ch') as CHS | null;
+	const chs = useSelectedSource('sources_ch');
 
 	const isLinked = ch && chs && equalValues(ch.chimera_time, chs.chimera_time) && equalValues(ch.id, chs.chimera_id);
 
@@ -44,12 +35,12 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 					<button
 						className="TextButton"
 						style={{ color: color(chs?.chimera_time ? 'text-dark' : 'text') }}
-						onClick={() => feidId && linkHoleSourceEvent('chimera', ch, feidId)}
+						onClick={() => feidId && linkHoleSourceEvent('chimera_holes', ch, feidId)}
 					>
 						Link CHIMERA CH
 					</button>
 					{isLinked && (
-						<button className="TextButton" onClick={() => unlinkHoleSourceEvent('chimera')}>
+						<button className="TextButton" onClick={() => unlinkHoleSourceEvent('chimera_holes')}>
 							Unlink CHIMERA CH
 						</button>
 					)}

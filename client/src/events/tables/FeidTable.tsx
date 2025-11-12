@@ -3,48 +3,36 @@ import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size, useEventListener } from '../../util';
 import { type TableParams, valueToString } from '../core/util';
-import { useEventsState } from '../core/eventsState';
+import { useEntityCursor, useEventsState } from '../core/eventsState';
 import { pickEventForSample } from '../sample/sample';
 import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
-import type { ChangelogEntry, ChangelogResponse } from '../../api.d';
+import type { ChangelogEntry, ChangelogResponse } from '../../api';
 import { useFeidTableView } from '../core/feid';
-import { useTable } from '../core/editableTables';
+import { useTablesStore } from '../core/editableTables';
 
 const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
 	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as
 		| ChangelogEntry[]
 		| undefined;
 
-export default function FeidTableView({
-	size,
-	averages,
-	entity,
-}: {
-	size: Size;
-	entity: string;
-	averages?: (null | number[])[];
-}) {
+export default function FeidTableView({ size, averages }: { size: Size; averages?: (null | number[])[] }) {
 	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changelog: wholeChangelog } = useTable('feid');
+	const { changelog: wholeChangelog, changes, created, deleted } = useTablesStore().feid;
 	const { data, columns, markers, includeMarkers } = useFeidTableView();
-	const { plotId, sort, cursor: sCursor, setStartAt, setEndAt, modifyId, toggleSort, setPlotId } = useEventsState();
+	const { plotId, sort, setStartAt, setEndAt, modifyId, toggleSort, setPlotId } = useEventsState();
+	const cursor = useEntityCursor('feid');
 	const [changesHovered, setChangesHovered] = useState(false);
 	const showChangelog = params?.showChangelog && size.height > 300;
 	const showAverages = params?.showAverages && size.height > 300;
 	const hideHeader = params?.hideHeader && size.height < 480;
-	const cursor = sCursor?.entity === entity ? sCursor : null;
 
-	const incMarkWidth =
-		includeMarkers &&
-		Math.min(
-			16,
-			Math.max.apply(
-				null,
-				includeMarkers.map((m) => m?.length)
-			)
-		);
+	const iMarkers = includeMarkers?.map((m) => m?.length);
+	const incMarkWidth = iMarkers && Math.min(16, Math.max.apply(null, iMarkers));
 
 	const cursCol = cursor && columns[cursor?.column]?.sql_name;
+
+	// TODO: refactor changelog
+
 	const changelogCols =
 		(showChangelog || null) &&
 		cursor &&
@@ -89,7 +77,7 @@ export default function FeidTableView({
 				data,
 				columns,
 				onKeydown,
-				entity,
+				entity: 'feid',
 				allowEdit: true,
 				size,
 				headSize: (hideHeader ? 0 : 90) + (showAverages ? 98 : 0) + (!hideHeader && showChangelog ? 54 : 0),
@@ -152,12 +140,16 @@ export default function FeidTableView({
 				row: (row, idx, onClick, padRow) => {
 					const marker = markers?.[idx];
 					const markerColor = marker && (marker.endsWith('+') ? 'cyan' : marker.endsWith('-') ? 'magenta' : 'text');
-					const isCompModified = columns.map((col) => {
-						if (col.type !== 'computed') return false;
-						const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort((a, b) => b.time - a.time);
-						if (!chgs?.length) return false;
-						return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
-					});
+					const isCompModified =
+						wholeChangelog &&
+						columns.map((col) => {
+							if (col.type !== 'computed') return false;
+							const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort(
+								(a, b) => b.time - a.time
+							);
+							if (!chgs?.length) return false;
+							return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
+						});
 
 					const className = plotId === row[0] ? 'text-cyan' : 'text-text';
 
@@ -211,7 +203,7 @@ export default function FeidTableView({
 								) : (
 									<CellInput
 										{...{
-											table: entity as any,
+											table: 'feid',
 											id: row[0],
 											column,
 											value,

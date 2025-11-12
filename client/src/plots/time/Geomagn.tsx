@@ -3,7 +3,7 @@ import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
 import type { ContextMenuProps } from '../../layout';
-import { usePlot, type EventsPanel } from '../../events/core/util';
+import { usePlot } from '../../events/core/plot';
 
 const defaultParams = {
 	useAp: false,

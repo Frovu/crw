@@ -1,19 +1,9 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { CellInput, DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type CME, type Flare, type SrcEruptRow, type TableMenuDetails } from '../core/util';
+import { equalValues, valueToString, type TableMenuDetails } from '../core/util';
 import { logMessage, useContextMenu } from '../../app';
-import {
-	deleteEvent,
-	eruptIdIdx,
-	makeSourceChanges,
-	rowAsDict,
-	useEventsState,
-	useFeidCursor,
-	useSelectedSource,
-	useCurrentFeidSources,
-	useTable,
-} from '../core/eventsState';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	assignCMEToErupt,
 	assignFlareToErupt,
@@ -21,9 +11,6 @@ import {
 	inputEruptionManually,
 	linkSrcToEvent,
 	parseFlareFlux,
-	sourceLabels,
-	useCompoundTable,
-	useTableQuery,
 } from '../core/sourceActions';
 import { useEventListener } from '../../util';
 
@@ -36,7 +23,7 @@ const flare_columns = {
 	active_region: 'active_region',
 	lat: 'lat',
 	lon: 'lon',
-} as { [k: string]: keyof Flare };
+} as const;
 
 function switchMainFlare(erupt: SrcEruptRow, flare: Flare) {
 	logMessage(`FLR: ${erupt.flr_source} -> ${flare.src} in ERUPT #${erupt.id}`);
