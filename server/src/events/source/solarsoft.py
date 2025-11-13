@@ -104,7 +104,7 @@ def _scrape_flares(progr, dt_start, dt_end):
 		progr[0] += 100 / len(links)
 	
 	log.info('Upserting [%s] solarsoft FLRs from %s', len(data), str(dt_start).split()[0])
-	upsert_many(TABLE, [c.name for c in COLS], list(data.values()), conflict_constraint='start_time')
+	upsert_many(TABLE, [c.sql_name for c in COLS], list(data.values()), conflict_constraint='start_time')
 	upsert_coverage(TABLE, dt_start)
 
 def fetch(progr, entity, month):

@@ -105,7 +105,7 @@ def scrape_solardemon(what, days):
 	
 	log.info('Upserting [%s] solardemon %s for %s days', len(data), what, str(days))
 	cols, tbl = (FLR_COLS, FLR_TABLE) if what == 'flares' else (DIM_COLS, DIM_TABLE)
-	upsert_many(tbl, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_many(tbl, [c.sql_name for c in cols], data, conflict_constraint='id')
 
 	cov = get_coverage(tbl)
 	cov_start = cov[0][0] if len(cov) else None

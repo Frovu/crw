@@ -22,7 +22,7 @@ COLUMNS = {
 }
 
 def parse_xf():
-	columns = [c.name for c in COLS]
+	columns = [c.sql_name for c in COLS]
 	data = []
 	with open(PATH, encoding='cp1251') as f:
 		print('file open')

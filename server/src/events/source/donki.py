@@ -99,6 +99,7 @@ def _obtain_month(what: Literal['CME', 'FLR'], month_start: datetime):
 			iid = int(cme['link'].split('/')[-2])
 			aid, note = cme['activityID'], cme['note']
 			linked = [e['activityID'] for e in cme['linkedEvents'] or []]
+			linked = ','.join(linked)
 
 			an = next((a for a in cme['cmeAnalyses'] or [] if a['isMostAccurate']), None)
 			if not an:
@@ -122,11 +123,12 @@ def _obtain_month(what: Literal['CME', 'FLR'], month_start: datetime):
 			ctype, note, ar, eid = (flr[k] for k in ['classType', 'note', 'activeRegionNum', 'flrID'])
 			iid = int(flr['link'].split('/')[-2])
 			linked = [e['activityID'] for e in flr['linkedEvents'] or []]
+			linked = ','.join(linked)
 
 			data.append([iid, eid, *times, ctype, lat, lon, ar, note, linked])
 	
 	log.info('Upserting [%s] DONKI %ss for %s', len(data), what, s_str)
-	upsert_many(table, [c.name for c in cols], data, conflict_constraint='id')
+	upsert_many(table, [c.sql_name for c in cols], data, conflict_constraint='id')
 	upsert_coverage(table, month_start)
 
 def fetch(progr, entity, month):

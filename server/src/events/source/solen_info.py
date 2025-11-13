@@ -65,5 +65,5 @@ def fetch():
 		data.append((tag, time, pol, loc, comm, est))
 
 	log.info('Upserting [%s] solen CHs', len(data))
-	upsert_many(TABLE, [c.name for c in COLS], data, conflict_constraint='tag')
+	upsert_many(TABLE, [c.sql_name for c in COLS], data, conflict_constraint='tag')
 	upsert_coverage(TABLE, data[-1][1], data[0][1], single=True)

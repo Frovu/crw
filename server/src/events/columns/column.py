@@ -40,6 +40,7 @@ class Column(BaseColumn):
 	type: Literal['static'] = 'static'
 
 	def __post_init__(self):
+		super().__post_init__()
 		if 'not null' in self.sql_def.lower() or 'primary key' in self.sql_def.lower():
 			self.not_null = True
 

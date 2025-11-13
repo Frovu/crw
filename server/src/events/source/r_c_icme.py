@@ -61,15 +61,16 @@ def fetch():
 
 		cmes = []
 		cur = ''
-		for part in time_re.findall(vals[-1]):
+		for part in time_re.findall(vals[-1].replace('\'', '/')):
 			if len(part) > 4:
 				cur = part.replace(' ', '/')
 			else:
 				pts = (*cur.split('/'), part[:2], part[2:])
-				cmes.append(datetime(*[int(p) for p in pts], tzinfo=timezone.utc))
+				dtm = datetime(*[int(p) for p in pts], tzinfo=timezone.utc)
+				cmes.append(dtm.isoformat().split('.')[0]+'Z')
 			
-		data.append((ons, start, end, qual, mc, cmes))
+		data.append((ons, start, end, qual, mc, ','.join(cmes)))
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
-	upsert_many(TABLE, [c.name for c in COLS], data)
+	upsert_many(TABLE, [c.sql_name for c in COLS], data)
 	upsert_coverage(TABLE, data[0][0], data[-1][0], single=True)

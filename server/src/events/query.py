@@ -47,7 +47,7 @@ def select_events(entity: str, uid: int|None=None, include: list[str]|None=None,
 
 	if is_feid:
 		log.info('FEID rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
-	return resp
+	return resp.to_dict()
 
 def link_source(feid_id, entity, existing_id = None):
 	with pool.connection() as conn:

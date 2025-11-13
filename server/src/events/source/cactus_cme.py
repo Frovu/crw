@@ -69,8 +69,8 @@ def fetch(progr):
 		conn.execute(f'DELETE FROM events.{TABLE}')
 	progr[0] = 3
 
-	upsert_many(TABLE, [c.name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
+	upsert_many(TABLE, [c.sql_name for c in COLS], lz_data, conflict_constraint='time, cactus_id')
 	progr[0] = 4
-	upsert_many(TABLE, [c.name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
+	upsert_many(TABLE, [c.sql_name for c in COLS], qkl_data, conflict_constraint='time, cactus_id')
 	progr[0] = 5
 	upsert_coverage(TABLE, lz_data[0][0], qkl_data[-1][0], single=True)
