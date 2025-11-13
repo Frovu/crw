@@ -42,12 +42,14 @@ export const useComputedColumnState = create<Storage>()(
 export function computeColumnWidth(column: Column) {
 	switch (column.dtype) {
 		case 'enum':
-			return Math.max(5, ...column.enum!.map((el) => el.length));
+			return 50;
 		case 'time':
-			return 17;
+			return 156;
 		case 'text':
-			return 14;
+			return 120;
+		case 'integer':
+			return 48;
 		default:
-			return 6;
+			return 64;
 	}
 }

@@ -3,6 +3,7 @@ import { sourceLabels, type Column, type TableDataResponse, type Tables } from '
 import { apiGet } from '../../util';
 import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
+import { logError } from '../../app';
 
 const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
@@ -13,19 +14,24 @@ const tablesColumnOrder = {
 } as const;
 
 async function fetchTable(entity: keyof Tables, chlog?: boolean) {
-	const { columns, data: rData, changelog } = await apiGet<TableDataResponse>('events', { entity, changelog: !!chlog });
-	const data = rData as TableRow[];
+	try {
+		const { columns, data: rData, changelog } = await apiGet<TableDataResponse>('events', { entity, changelog: !!chlog });
+		const data = rData as TableRow[];
 
-	for (const [i, col] of columns.entries()) {
-		if (col.dtype === 'time') {
-			for (const row of data) {
-				if (row[i] === null) continue;
-				const date = new Date((row[i] as number) * 1e3);
-				row[i] = isNaN(date.getTime()) ? null : date;
+		for (const [i, col] of columns.entries()) {
+			if (col.dtype === 'time') {
+				for (const row of data) {
+					if (row[i] === null) continue;
+					const date = new Date((row[i] as number) * 1e3);
+					row[i] = isNaN(date.getTime()) ? null : date;
+				}
 			}
 		}
+		return { columns, data, changelog };
+	} catch (e) {
+		logError(`Fetching ${entity}: ${e}`);
+		throw e;
 	}
-	return { columns, data, changelog };
 }
 
 export function useCompoundTable<T extends keyof typeof compoundTables>(which: T) {
@@ -63,6 +69,7 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 				entry: (row: (typeof data)[number]) => tableRowAsDict(row, columns) as EruptiveEvent<T>,
 			};
 		},
+		throwOnError: true,
 	}).data;
 }
 
@@ -75,6 +82,7 @@ export function useTableDataQuery(tbl: EditableTable, withChangelog?: boolean) {
 		queryFn: async () => {
 			const { columns, data, changelog } = await fetchTable(tbl, withChangelog);
 			setRawData(tbl, data, columns, changelog);
+			return { columns, data, changelog };
 		},
 	});
 }

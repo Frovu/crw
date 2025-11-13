@@ -4,9 +4,10 @@ import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../.
 import { parseColumnValue, isValidColumnValue, useEventsSettings } from '../core/util';
 import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Option, Select, askConfirmation } from '../../Utility';
+import { Option, Select, askConfirmation, withConfirmation } from '../../Utility';
 import { filterOperations, type Column, type Filter, type Sample } from '../../api';
 import { useTable } from '../core/editableTables';
+import { useFeidSample } from '../core/feid';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;
@@ -25,8 +26,11 @@ function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 }
 
 function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disabled?: boolean }) {
-	const { samples } = useContext(SampleContext);
+	const { samples } = useFeidSample();
 	const { changeInclude, removeInclude, current } = useSampleState();
+
+	if (!samples) return null;
+
 	const blank = id === null;
 	const opts = samples.filter((s) => s.id !== current?.id && (s.id === id || !current?.includes?.includes(s.id)));
 	const sample = samples.find((s) => s.id === id);
@@ -63,7 +67,7 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 }
 
 function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; disabled?: boolean }) {
-	const { columns } = useContext(MainTableContext);
+	const { columns } = useTable('feid');
 	const { shownColumns } = useEventsSettings();
 	const [filter, setFilter] = useState({ ...filterOri });
 	const { changeFilter, removeFilter } = useSampleState();
@@ -166,7 +170,7 @@ function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; dis
 const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const queryClient = useQueryClient();
 	const { data: tableData, columns } = useTable('feid');
-	const { samples } = useContext(SampleContext);
+	const { samples } = useFeidSample();
 	const { login, role } = useContext(AuthContext);
 	const {
 		current: sample,
@@ -183,29 +187,6 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const [nameInput, setNameInput] = useState<string | null>(null);
 	const toDelete = useRef<Sample | null>(null);
 
-	const deleteSample = () => {
-		askConfirmation('Sample deletion is irreversible. Proceed?', () =>
-			mutate(
-				{ action: 'remove', ow: toDelete.current ?? sample! },
-				{
-					onSuccess: () => {
-						logMessage('Sample deleted: ' + (toDelete.current ?? sample)?.name);
-						toDelete.current = null;
-						setSample(null);
-					},
-				}
-			)
-		);
-	};
-
-	const newName = (i: number = 0, n?: string): string => {
-		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
-		return samples.find((s) => s.name === name) ? newName(i + 1, n) : name;
-	};
-	const stripFilters = sample && {
-		...sample,
-		filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [],
-	};
 	const { mutate, isPending } = useMutation({
 		mutationFn: async ({ action, ow }: { action: 'create' | 'remove' | 'update' | 'copy'; ow?: Sample }) =>
 			apiPost<typeof action extends 'remove' ? { message?: string } : Sample>(
@@ -234,6 +215,31 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	});
 
 	useEventListener('escape', () => setNameInput(null));
+
+	if (!samples) return null;
+
+	const newName = (i: number = 0, n?: string): string => {
+		const name = (n ? n + ' Copy #' : 'New Sample #') + i;
+		return samples.find((s) => s.name === name) ? newName(i + 1, n) : name;
+	};
+	const stripFilters = sample && {
+		...sample,
+		filters: sample.filters?.map(({ column, operation, value }) => ({ column, operation, value })) ?? [],
+	};
+
+	const deleteSample = () =>
+		withConfirmation('', 'Sample deletion is irreversible. Proceed?', () =>
+			mutate(
+				{ action: 'remove', ow: toDelete.current ?? sample! },
+				{
+					onSuccess: () => {
+						logMessage('Sample deleted: ' + (toDelete.current ?? sample)?.name);
+						toDelete.current = null;
+						setSample(null);
+					},
+				}
+			)
+		);
 
 	const createSample = () =>
 		mutate(
@@ -269,7 +275,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const nameValid =
 		nameInput?.length && !samples.find((s) => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
 
-	const sampleStats = useMemo(() => {
+	// FIXME: this was a memo, is optimization rly needed here?
+	const sampleStats = (() => {
 		if (sample == null) return null;
 		const { whitelist, blacklist } = sample;
 		const applied = applySample(tableData, sample, columns, samples);
@@ -298,7 +305,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				</span>
 			</span>
 		);
-	}, [columns, sample, samples, tableData]);
+	})();
 
 	const publicIssue =
 		sample?.public &&

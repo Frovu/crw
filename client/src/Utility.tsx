@@ -27,7 +27,11 @@ export function CatchErrors({ children }: { children: ReactNode }) {
 	return (
 		<ErrorBoundary
 			fallbackRender={({ error, resetErrorBoundary }) => (
-				<div style={{ width: '100%', height: '100%' }} onMouseOver={() => resetErrorBoundary()}>
+				<div
+					style={{ width: '100%', height: '100%' }}
+					onMouseEnter={() => resetErrorBoundary()}
+					onMouseLeave={() => resetErrorBoundary()}
+				>
 					<div className="Center" style={{ color: 'var(--color-red)' }}>
 						ERROR: {error.message}
 					</div>

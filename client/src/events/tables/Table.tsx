@@ -9,30 +9,15 @@ import {
 	useCallback,
 	useMemo,
 	type MouseEvent,
+	type WheelEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../core/util';
 import { color, openContextMenu } from '../../app';
-import { useEventsState, type Cursor } from '../core/eventsState';
+import { useEntityCursor, useEventsState, type Cursor } from '../core/eventsState';
 import type { Column } from '../../api';
 import { makeChange, type EditableTable } from '../core/editableTables';
-
-export function DefaultHead({ columns, padHeader }: { padHeader: number; columns: Column[] }) {
-	return (
-		<tr>
-			{columns.map((col) => (
-				<td
-					key={col.sql_name}
-					title={`[${col.name}] ${col.description ?? ''}`}
-					className="ColumnHeader"
-					style={{ cursor: 'auto' }}
-				>
-					<div style={{ height: 20 + padHeader, lineHeight: 1, fontSize: 15 }}>{col.name}</div>
-				</td>
-			))}
-		</tr>
-	);
-}
+import { computeColumnWidth } from '../columns/columns';
 
 type DefaultRowParams = {
 	row: any[];
@@ -87,138 +72,54 @@ export function DefaultRow({
 
 export function DefaultCell({ column, children }: { column: Column; children: ReactNode }) {
 	return (
-		<span className="Cell">
-			<div className="TdOver" />
+		<>
+			{/* <div className="TdOver" /> */}
 			{children}
-		</span>
+		</>
 	);
-}
-
-export function CellInput({
-	id,
-	column,
-	value,
-	table,
-	options,
-	change,
-}: {
-	id: number;
-	column: Column;
-	value: string;
-	table: EditableTable;
-	options?: string[];
-	change?: (val: any) => boolean;
-}) {
-	const [invalid, setInvalid] = useState(false);
-	const escapeCursor = useEventsState((state) => state.escapeCursor);
-
-	return useMemo(() => {
-		const doChange = (v: any) => (change ? change(v) : makeChange(table, { id, column: column.sql_name, value: v }));
-
-		const onChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>, save: boolean = false) => {
-			const str = e.target.value.trim();
-			const val = str === '' ? null : str === 'auto' ? str : parseColumnValue(str, column);
-			const isValid = ['auto', null].includes(val as any) || isValidColumnValue(val, column);
-			const isOk = isValid && (!save || doChange(val));
-			setInvalid(!isOk);
-		};
-
-		const inpStype = {
-			width: '100%',
-			borderWidth: 0,
-			padding: 0,
-			backgroundColor: color('bg'),
-			boxShadow: column.dtype !== 'enum' ? ' 0 0 16px 4px ' + (invalid ? color('red') : color('active')) : 'unest',
-		};
-
-		return (
-			<>
-				{column.dtype === 'enum' && (
-					<select
-						autoFocus
-						style={inpStype!}
-						value={value}
-						onChange={(e) => {
-							onChange(e, true);
-							escapeCursor();
-						}}
-					>
-						{column.type === 'static' && !column.not_null && <option value="">&lt;null&gt;</option>}
-						{column.type === 'static' &&
-							(options ?? column.enum)?.map((val) => (
-								<option key={val} value={val}>
-									{val}
-								</option>
-							))}
-					</select>
-				)}
-				{column.dtype !== 'enum' && (
-					<input
-						type="text"
-						autoFocus
-						style={inpStype!}
-						defaultValue={value}
-						onChange={onChange}
-						onBlur={(e) => {
-							e.target.value !== value && onChange(e, true);
-							escapeCursor();
-						}}
-					/>
-				)}
-			</>
-		);
-	}, [column.type, id, JSON.stringify(options), invalid, table, value]); // eslint-disable-line
 }
 
 type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void, padding: number) => ReactNode;
 type HeadConstructor = (columns: Column[], padding: number) => ReactNode;
+
+type TableProps = {
+	size: Size;
+	entity: Cursor['entity'];
+	data: any[][];
+	focusIdx?: number;
+	columns: Column[];
+	row: RowConstructor;
+	allowEdit?: boolean;
+	tfoot?: ReactNode;
+	onKeydown: (e: KeyboardEvent, curs: Cursor) => void;
+};
 
 export function TableWithCursor({
 	entity,
 	data,
 	columns,
 	focusIdx,
-	headSize,
 	allowEdit,
-	head: headCallback,
 	row: rowCallback,
 	tfoot,
-	footer,
-	hideBorder,
 	size,
 	onKeydown,
-}: {
-	size: Size;
-	entity: Cursor['entity'];
-	data: any[][];
-	focusIdx?: number;
-	columns: Column[];
-	headSize?: number;
-	head?: HeadConstructor | null;
-	row: RowConstructor;
-	allowEdit?: boolean;
-	tfoot?: ReactNode;
-	footer?: ReactNode;
-	hideBorder?: boolean;
-	onKeydown?: (e: KeyboardEvent) => void;
-}) {
-	const { cursor: sCursor, setStartAt, setEndAt, plotId, modifyId, setCursor, escapeCursor, setEditing } = useEventsState();
-	const cursor = sCursor?.entity === entity ? sCursor : null;
+}: TableProps) {
+	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
+	const cursor = useEntityCursor(entity);
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const rowsHeight = size.height - (headSize ?? 28);
+	const rowsHeight = size.height - 34;
 	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
 	const padRow = hRem > viewSize ? 1 : 0;
 	const padHeader = hRem - (viewSize / 2) * padRow;
 
-	const [viewIndex, setViewIndex] = useState(
-		focusIdx == null
-			? Math.max(0, data.length - viewSize)
-			: clamp(0, data.length - viewSize, Math.floor(focusIdx - viewSize / 2))
-	);
+	const headerHeight = 32 + padHeader;
+
+	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
 	const updateViewIndex = useCallback(
 		(curs: Cursor) =>
@@ -260,14 +161,12 @@ export function TableWithCursor({
 			});
 	}, [plotId, cursor, viewSize, entity]); // eslint-disable-line
 
-	const hasHead = headCallback !== null;
 	useEffect(() => {
-		const cell =
-			cursor && (ref.current!.children[0]?.children[hasHead ? 1 : 0].children[0]?.children[cursor.column] as HTMLElement);
+		const cell = cursor && (ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement);
 		if (!cursor || !cell) return;
 		const left = Math.max(0, cell.offsetLeft - (ref.current?.offsetWidth! * 2) / 3);
 		ref.current?.scrollTo({ left });
-	}, [cursor, ref.current?.offsetWidth, hasHead]);
+	}, [cursor, ref.current?.offsetWidth]);
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (setStartAt || setEndAt || modifyId) return;
@@ -302,7 +201,7 @@ export function TableWithCursor({
 				End: [0, columns.length],
 			}[e.code];
 
-		if (!delta || (sCursor && !cursor)) return onKeydown?.(e);
+		if (!delta) return cursor && onKeydown?.(e, cursor);
 
 		const [deltaRow, deltaCol] = delta;
 		const { row, column } = cursor ?? {
@@ -344,30 +243,46 @@ export function TableWithCursor({
 		[allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]
 	);
 
+	const onWheel = (e: WheelEvent) =>
+		setViewIndex((idx) => {
+			if (cursor) queueMicrotask(() => setCursor(null));
+			const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
+			return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
+		});
+
 	return (
-		<div className={cn('absolute p-[2px]', !hideBorder && 'border-1')} style={{ ...size }}>
-			<div className="Table" ref={ref}>
-				<table
-					onWheel={(e) =>
-						setViewIndex((idx) => {
-							if (cursor) queueMicrotask(() => setCursor(null));
-							const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
-							return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
-						})
-					}
-				>
-					{headCallback !== null && (
-						<thead>{headCallback?.(columns, padHeader) ?? <DefaultHead {...{ columns, padHeader }} />}</thead>
-					)}
-					<tbody>
-						{data
-							.slice(viewIndex, Math.max(0, viewIndex + viewSize))
-							.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}
-					</tbody>
-					{tfoot && <tfoot>{tfoot}</tfoot>}
-				</table>
-			</div>
-			{footer}
+		<div ref={ref} className="absolute overflow-x-scroll no-scrollbar" style={{ ...size }}>
+			<table className="table-fixed cursor-pointer w-0 h-0" onWheel={onWheel}>
+				<thead>
+					<tr className="h-2 break-words overflow-clip">
+						{columns.map((col) => (
+							<th
+								className="relative leading-none text-sm border [clip-path:polygon(0_0,0_100%,100%_100%,100%_0)]"
+								key={col.sql_name}
+								onClick={() => entity === 'feid' && toggleSort(col.name)}
+								title={`[${col.name}] ${col.description ?? ''}`}
+								style={{ width: computeColumnWidth(col), height: headerHeight }}
+							>
+								<div style={{ maxHeight: headerHeight }}>{col.name}</div>
+								{entity === 'feid' && sort.column === col.sql_name && (
+									<div
+										className={cn(
+											'shadow-[0_0_28px_6px] absolute left-0 h-[1px] w-full shadow-active',
+											sort.direction < 0 ? 'top-[-3px]' : 'bottom-[-3px]'
+										)}
+									/>
+								)}
+							</th>
+						))}
+					</tr>
+				</thead>
+				<tbody className="[&_td]:border text-center whitespace-nowrap">
+					{data
+						.slice(viewIndex, Math.max(0, viewIndex + viewSize))
+						.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}
+				</tbody>
+				{tfoot && <tfoot>{tfoot}</tfoot>}
+			</table>
 		</div>
 	);
 }

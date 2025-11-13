@@ -5,10 +5,11 @@ import { type Size, useEventListener } from '../../util';
 import { type TableParams, valueToString } from '../core/util';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import { pickEventForSample } from '../sample/sample';
-import { TableWithCursor, CellInput, DefaultRow, DefaultCell } from './Table';
+import { TableWithCursor, DefaultRow, DefaultCell } from './Table';
 import type { ChangelogEntry, ChangelogResponse } from '../../api';
 import { useFeidTableView } from '../core/feid';
 import { useTablesStore } from '../core/editableTables';
+import { CellInput } from './TableInput';
 
 const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
 	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as

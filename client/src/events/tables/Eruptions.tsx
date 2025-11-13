@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { CellInput, DefaultCell, DefaultHead, DefaultRow, TableWithCursor } from './Table';
+import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
 import { equalValues, valueToString, type TableMenuDetails } from '../core/util';
 import { logMessage, useContextMenu } from '../../app';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
