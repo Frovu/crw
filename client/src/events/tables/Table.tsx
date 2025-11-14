@@ -8,6 +8,7 @@ import {
 	useCallback,
 	type WheelEvent,
 	useContext,
+	type MouseEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { valueToString } from '../core/util';
@@ -47,17 +48,19 @@ export const defaultTableParams: TableParams = {
 	showIncludeMarkers: true,
 };
 
+type TableColumn = Column | SpecialColumn;
 type TableProps = {
 	size: Size;
 	entity: TableEntity;
 	data: TableValue[][];
-	columns: (Column | SpecialColumn)[];
+	columns: TableColumn[];
 	focusIdx?: number;
 	enableEditing?: boolean;
 	tfoot?: ReactNode;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
-	cellContent?: (val: TableValue, column: Column | SpecialColumn) => string | undefined;
-	onKeydown: (e: KeyboardEvent, curs: Cursor) => void;
+	cellContent?: (val: TableValue, column: TableColumn) => string | undefined;
+	onKeydown?: (e: KeyboardEvent, curs: Cursor) => void;
+	onClick?: (e: MouseEvent, row: TableValue[], column: TableColumn) => boolean | undefined;
 };
 
 export function EventsTable({
@@ -69,6 +72,7 @@ export function EventsTable({
 	tfoot,
 	size,
 	onKeydown,
+	onClick,
 	rowClassName,
 	cellContent,
 }: TableProps) {
@@ -202,16 +206,15 @@ export function EventsTable({
 		});
 	});
 
-	const onClick = useCallback(
-		(row: number, column: number) => {
+	const cellClick = (e: MouseEvent, row: number, column: number) => {
+		if (!onClick?.(e, data[row], columns[column])) {
 			const editing = enableEditing && cursor?.column === column && cursor?.row === row;
 			const id = sliceId ? (data[row]?.[0] as number) : null;
 			const cur = { entity, row, column, ...(editing && { editing }), ...(id && { id }) };
 			setCursor(cur);
 			updateViewIndex(cur);
-		},
-		[enableEditing, cursor?.column, cursor?.row, sliceId, data, entity, setCursor, updateViewIndex]
-	);
+		}
+	};
 
 	const onWheel = (e: WheelEvent) =>
 		setViewIndex((idx) => {
@@ -219,8 +222,6 @@ export function EventsTable({
 			const newIdx = idx + (e.deltaY > 0 ? 1 : -1) * Math.ceil(viewSize / 2);
 			return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 		});
-
-	console.log(sort);
 
 	return (
 		<div ref={ref} className="overflow-x-scroll no-scrollbar" style={{ ...size }}>
@@ -270,7 +271,7 @@ export function EventsTable({
 											className={curs ? 'outline-active outline-1' : undefined}
 											key={column.sql_name}
 											title={title}
-											onClick={(e) => onClick(ridx, cidx)}
+											onClick={(e) => cellClick(e, ridx, cidx)}
 											onContextMenu={openContextMenu('events', {
 												nodeId,
 												column,

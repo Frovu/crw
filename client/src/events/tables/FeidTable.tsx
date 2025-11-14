@@ -8,7 +8,7 @@ import { applySample, pickEventForSample } from '../sample/sample';
 import { EventsTable, type SpecialColumn, type TableParams } from './Table';
 import type { ChangelogEntry, ChangelogResponse, Column, StaticColumn } from '../../api';
 import { useFeidSample, useFeidTableView } from '../core/feid';
-import { useTablesStore } from '../core/editableTables';
+import { useTablesStore, type TableRow } from '../core/editableTables';
 import { CellInput } from './TableInput';
 
 const sampleMarkerCol: SpecialColumn = {
@@ -19,7 +19,7 @@ const sampleMarkerCol: SpecialColumn = {
 	name: '##',
 	description: 'f is for filter, + is whitelist, - is blacklist',
 };
-// onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
+// onClick={(e) => }
 // if (e.ctrlKey) setPlotId(() => row[0]);
 
 const incMarkerCol: SpecialColumn = {
@@ -70,7 +70,7 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 	const withSampleMarkers = useMemo(() => {
 		if (!markers) return { columns, data };
 		return {
-			data: data.map((row, i) => [row[0], markers[i], ...row.slice(1)]),
+			data: data.map((row, i) => [row[0], markers[i], ...row.slice(1)]) as TableRow[],
 			columns: [columns[0], sampleMarkerCol, ...columns.slice(1)],
 		};
 	}, [columns, markers, data]);
@@ -90,7 +90,7 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 		}
 		console.timeEnd('include markers');
 		return {
-			data: withSampleMarkers.data.map((r) => [...r, set[r[0] as number]]),
+			data: withSampleMarkers.data.map((r) => [...r, set[r[0]]]),
 			columns: [...withSampleMarkers.columns, incMarkerCol],
 		};
 	}, [params.showIncludeMarkers, sample?.includes, samples, withSampleMarkers, data, columns]);
@@ -115,6 +115,12 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 				entity: 'feid',
 				enableEditing: true,
 				rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
+				onClick: (e, row, column) => {
+					if (column.sql_name === '_sample') {
+						pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0] as number);
+						return true;
+					}
+				},
 				tfoot: null && (
 					<>
 						<tr style={{ height: 2 }}>
