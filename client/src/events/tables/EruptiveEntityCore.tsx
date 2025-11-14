@@ -16,7 +16,7 @@ import {
 	unlinkEruptiveSourceEvent,
 	compoundTables,
 } from '../core/sourceActions';
-import { TableWithCursor, DefaultRow, DefaultCell } from './Table';
+import { EventsTable } from './Table';
 
 export function EruptiveEntityMenu<T extends EruptTable>({ entity }: { entity: T }) {
 	const detail = useContextMenu((state) => state.menu?.detail) as { [key in T]: EruptiveEvent<T> } | undefined;
@@ -76,7 +76,7 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 		erupt && Object.fromEntries(compoundTables.cme.map((ent) => [sourceLabels[ent], erupt[sourceLinks[ent][0]]]));
 
 	return (
-		<TableWithCursor
+		<EventsTable
 			{...{
 				entity,
 				data,

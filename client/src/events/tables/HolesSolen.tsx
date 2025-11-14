@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
-import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
+import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState } from '../core/sourceActions';
@@ -116,7 +116,7 @@ function Panel() {
 			{!isWindow && (
 				<div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 					{
-						<TableWithCursor
+						<EventsTable
 							{...{
 								entity: 'solen_holes',
 								hideBorder: true,

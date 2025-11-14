@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import { color, useContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
-import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
+import { EventsTable } from './Table';
 import { type DataRow } from '../columns/columns';
 import { equalValues, valueToString } from '../core/util';
 import { useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
@@ -263,7 +263,7 @@ function Panel() {
 			{!isWindow && (
 				<div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
 					{
-						<TableWithCursor
+						<EventsTable
 							{...{
 								entity: 'chimera_holes',
 								hideBorder: true,

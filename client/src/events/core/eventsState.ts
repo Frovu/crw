@@ -4,10 +4,9 @@ import type { Tables } from '../../api';
 import { getTable, useTable, type EditableTable } from './editableTables';
 import { useMemo } from 'react';
 import type { CHEnt, EruptTable } from './sourceActions';
+import type { Cursor } from '../tables/Table';
 
 export type Sort = { column: string; direction: 1 | -1 };
-
-export type Cursor = { row: number; column: number; entity: EditableTable | CHEnt | EruptTable; editing?: boolean; id: number };
 
 const defaultSate = {
 	cursor: null as Cursor | null,
@@ -59,6 +58,7 @@ export const useEventsState = create<EventsState>()(
 		setCursor: (cursor) =>
 			set((st) => {
 				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySourceId = null;
+
 				if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
 					const sources = getTable('feid_sources');
 					const target = cursor?.entity === 'sources_ch' ? 'ch_id' : 'erupt_id';

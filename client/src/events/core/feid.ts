@@ -40,13 +40,13 @@ export function useFeidTableView() {
 
 	const sorted = useMemo(() => {
 		console.time('render feid table');
-		const cols = columns.filter((col) => shownColumns?.includes(col.sql_name));
-		const enabledIdxs = [0, ...cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name))];
-		const sortIdx = 1 + cols.findIndex((col) => col.sql_name === (sort.column === '_sample' ? 'time' : sort.column));
+		const cols = columns.filter((col) => ['id', ...shownColumns!]?.includes(col.sql_name));
+		const enabledIdxs = cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name));
+		const sortIdx = cols.findIndex((col) => col.sql_name === (sort.column === '_sample' ? 'time' : sort.column));
 		const renderedData = data.map((row) => enabledIdxs.map((ci) => row[ci])) as typeof data;
 		const markers = isPicking && sample ? sampleEditingMarkers(data, sample, columns) : null;
 		const idxs = [...renderedData.keys()];
-		const sortColumn = cols[sortIdx - 1];
+		const sortColumn = cols[sortIdx];
 		idxs.sort(
 			(a: number, b: number) =>
 				sort.direction *

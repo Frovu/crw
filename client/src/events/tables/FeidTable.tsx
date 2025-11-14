@@ -5,7 +5,7 @@ import { type Size, useEventListener } from '../../util';
 import { type TableParams, valueToString } from '../core/util';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import { pickEventForSample } from '../sample/sample';
-import { TableWithCursor, DefaultRow, DefaultCell } from './Table';
+import { EventsTable } from './Table';
 import type { ChangelogEntry, ChangelogResponse } from '../../api';
 import { useFeidTableView } from '../core/feid';
 import { useTablesStore } from '../core/editableTables';
@@ -73,7 +73,7 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 			document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 
 	return (
-		<TableWithCursor
+		<EventsTable
 			{...{
 				data,
 				columns,

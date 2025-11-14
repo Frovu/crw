@@ -81,6 +81,7 @@ export function useTableDataQuery(tbl: EditableTable, withChangelog?: boolean) {
 		queryKey: ['tableData', tbl],
 		queryFn: async () => {
 			const { columns, data, changelog } = await fetchTable(tbl, withChangelog);
+			console.log('%cloaded table:', 'color: #0ff', tbl, columns, data, changelog);
 			setRawData(tbl, data, columns, changelog);
 			return { columns, data, changelog };
 		},

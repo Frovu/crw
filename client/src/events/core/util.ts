@@ -56,12 +56,6 @@ export type TableParams = {
 	showIncludeMarkers?: boolean;
 };
 
-export type TableMenuDetails = {
-	header?: Column;
-	averages?: { averages: (number[] | null)[]; label: string; row: number; column: number };
-	cell?: { id: number; column: Column; value: Value };
-};
-
 export function copyAverages({ averages, row, column }: Required<TableMenuDetails>['averages'], what: 'all' | 'row' | 'col') {
 	if (what === 'col') return navigator.clipboard.writeText(averages[column]?.map((c) => c.toFixed(2)).join(',') ?? '');
 	const filtered = averages.filter((r) => r);

@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
-import { DefaultCell, DefaultRow, TableWithCursor } from './Table';
-import { equalValues, valueToString, type TableMenuDetails } from '../core/util';
+import { EventsTable } from './Table';
+import { equalValues, valueToString } from '../core/util';
 import { logMessage, useContextMenu } from '../../app';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
@@ -105,7 +105,7 @@ function Panel() {
 	const focusIdx = focusIdxx < 0 ? data.length : focusIdxx;
 
 	return (
-		<TableWithCursor
+		<EventsTable
 			{...{
 				data,
 				columns,

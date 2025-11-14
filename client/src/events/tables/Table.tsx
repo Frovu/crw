@@ -3,107 +3,55 @@ import {
 	useRef,
 	useLayoutEffect,
 	useEffect,
-	type ChangeEvent,
 	type ReactNode,
 	type KeyboardEvent,
 	useCallback,
-	useMemo,
-	type MouseEvent,
 	type WheelEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
-import { parseColumnValue, isValidColumnValue, valueToString } from '../core/util';
-import { color, openContextMenu } from '../../app';
-import { useEntityCursor, useEventsState, type Cursor } from '../core/eventsState';
-import type { Column } from '../../api';
-import { makeChange, type EditableTable } from '../core/editableTables';
+import { valueToString } from '../core/util';
+import { openContextMenu } from '../../app';
+import { useEntityCursor, useEventsState } from '../core/eventsState';
+import type { Column, Tables } from '../../api';
+import { type EditableTable, type TableValue } from '../core/editableTables';
 import { computeColumnWidth } from '../columns/columns';
+import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
 
-type DefaultRowParams = {
-	row: any[];
-	idx: number;
-	columns: Column[];
-	className: string;
-	padRow: number;
-	cursor: Cursor | null;
-	before?: ReactNode;
-	after?: ReactNode;
-	title?: (cidx: number) => string;
-	onClick: (e: MouseEvent, cidx: number) => void;
-	contextMenuData: (cidx: number) => any;
-	children: (cell: { column: Column; cidx: number; curs: Cursor | null }) => ReactNode;
+export type Cursor = { entity: TableEntity; row: number; column: number; id?: number; editing?: boolean };
+
+export type TableEntity = EditableTable | CHEnt | EruptTable;
+export type TableAverages = { averages: (number[] | null)[]; label: string; row: number; column: number };
+
+export type TableMenuDetails<T extends TableEntity> = {
+	column: Column;
+	event?: T extends EruptTable ? EruptiveEvent<T> : T extends keyof Tables ? Tables[T] : never;
+	averages?: TableAverages;
 };
-
-export function DefaultRow({
-	row,
-	idx,
-	columns,
-	className,
-	cursor,
-	padRow,
-	before,
-	after,
-	title,
-	onClick,
-	contextMenuData,
-	children,
-}: DefaultRowParams) {
-	return (
-		<tr style={{ height: 23 + padRow, fontSize: 15 }}>
-			{before}
-			{columns.map((column, cidx) => {
-				const curs = cursor?.row === idx && cidx === cursor?.column ? cursor : null;
-				return (
-					<td
-						className={cn(curs && 'outline-active outline-1', className)}
-						key={column.sql_name}
-						title={title?.(cidx) ?? `${column.name} = ${valueToString(row[cidx])}`}
-						onClick={(e) => onClick(e, cidx)}
-						onContextMenu={openContextMenu('events', contextMenuData(cidx))}
-					>
-						{children({ column, cidx, curs })}
-					</td>
-				);
-			})}
-			{after}
-		</tr>
-	);
-}
-
-export function DefaultCell({ column, children }: { column: Column; children: ReactNode }) {
-	return (
-		<>
-			{/* <div className="TdOver" /> */}
-			{children}
-		</>
-	);
-}
-
-type RowConstructor = (row: any[], idx: number, onClick: (i: number, cidx: number) => void, padding: number) => ReactNode;
-type HeadConstructor = (columns: Column[], padding: number) => ReactNode;
 
 type TableProps = {
 	size: Size;
-	entity: Cursor['entity'];
-	data: any[][];
-	focusIdx?: number;
+	entity: TableEntity;
+	data: TableValue[][];
 	columns: Column[];
-	row: RowConstructor;
-	allowEdit?: boolean;
+	focusIdx?: number;
+	enableEditing?: boolean;
 	tfoot?: ReactNode;
+	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
+	cellContent?: (val: TableValue, column: Column) => string | undefined;
 	onKeydown: (e: KeyboardEvent, curs: Cursor) => void;
 };
 
-export function TableWithCursor({
+export function EventsTable({
 	entity,
 	data,
 	columns,
 	focusIdx,
-	allowEdit,
-	row: rowCallback,
+	enableEditing,
 	tfoot,
 	size,
 	onKeydown,
+	rowClassName,
+	cellContent,
 }: TableProps) {
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
 	const cursor = useEntityCursor(entity);
@@ -118,6 +66,8 @@ export function TableWithCursor({
 	const padHeader = hRem - (viewSize / 2) * padRow;
 
 	const headerHeight = 32 + padHeader;
+
+	const sliceId = columns[0]?.sql_name === 'id' ? 1 : 0;
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 
@@ -134,22 +84,19 @@ export function TableWithCursor({
 
 	useEventListener('escape', escapeCursor);
 
-	useLayoutEffect(() => {
-		if (cursor?.entity !== entity || cursor?.id === data[cursor.row]?.[0]) return;
-		setCursor(null);
-		setViewIndex(clamp(0, data.length - viewSize, focusIdx ?? data.length));
-	}, [cursor, data, entity, focusIdx, setCursor, viewSize]);
-
+	// get cursor into view if set externally
 	useEffect(() => {
 		cursor && updateViewIndex(cursor);
 	}, [cursor, updateViewIndex]);
 
+	// change view on focusIdx changes
 	useLayoutEffect(() => {
 		if (cursor) return;
 		const focus = focusIdx ? Math.floor(focusIdx - viewSize / 2) : data.length;
 		setViewIndex(clamp(0, data.length - viewSize, focus));
 	}, [cursor, data.length, focusIdx, viewSize]);
 
+	// get plotted feid into view if cursor not set
 	useLayoutEffect(() => {
 		if (cursor || entity !== 'feid') return;
 		const plotIdx = data.findIndex((r) => r[0] === plotId);
@@ -159,8 +106,9 @@ export function TableWithCursor({
 				if (plotIdx >= vidx + viewSize - 1) return clamp(0, data.length - viewSize, plotIdx - viewSize + 2);
 				return vidx;
 			});
-	}, [plotId, cursor, viewSize, entity]); // eslint-disable-line
+	}, [plotId, cursor, viewSize, entity, data]);
 
+	// scroll cell into view horizontally
 	useEffect(() => {
 		const cell = cursor && (ref.current!.children[0]?.children[1].children[0]?.children[cursor.column] as HTMLElement);
 		if (!cursor || !cell) return;
@@ -170,23 +118,25 @@ export function TableWithCursor({
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
 		if (setStartAt || setEndAt || modifyId) return;
+
 		const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement;
-		if (allowEdit && cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
+		if (enableEditing && cursor && ['Enter', 'NumpadEnter'].includes(e.code)) {
 			if (isInput) (e.target as any).blur();
 			return setEditing(!cursor?.editing);
 		}
-		if (cursor?.editing) return;
-		if ((!cursor || columns[cursor.column].dtype !== 'enum') && isInput) return;
 
-		const set = (crs: Omit<Cursor, 'id'>) => {
-			const curs = { ...crs, id: data[crs.row]?.[0] };
+		if (!cursor || cursor?.editing) return;
+		if (columns[cursor.column].dtype !== 'enum' && isInput) return;
+
+		const set = (cur: Cursor) => {
+			const curs = { ...cur, ...(sliceId ? { id: data[cur.row][0] as number } : null) };
 			setCursor(curs);
 			updateViewIndex(curs);
 			e.preventDefault();
 		};
 
-		if (cursor && e.ctrlKey && e.code === 'Home') return set({ entity, row: 0, column: cursor?.column ?? 0 });
-		if (cursor && e.ctrlKey && e.code === 'End') return set({ entity, row: data.length - 1, column: cursor?.column ?? 0 });
+		if (e.ctrlKey && e.code === 'Home') return set({ entity, row: 0, column: cursor?.column ?? 0 });
+		if (e.ctrlKey && e.code === 'End') return set({ entity, row: data.length - 1, column: cursor?.column ?? 0 });
 
 		const delta =
 			!e.altKey &&
@@ -206,7 +156,7 @@ export function TableWithCursor({
 		const [deltaRow, deltaCol] = delta;
 		const { row, column } = cursor ?? {
 			row: deltaRow > 0 ? -1 : data.length,
-			column: deltaCol >= 0 ? -1 : columns.length,
+			column: deltaCol === 0 ? sliceId : deltaCol > 0 ? sliceId - 1 : columns.length,
 		};
 
 		if (e.ctrlKey && deltaRow !== 0) {
@@ -221,26 +171,23 @@ export function TableWithCursor({
 			}
 			return set({ entity, row: cur, column });
 		}
+
 		set({
 			entity,
 			row: clamp(0, data.length - 1, row + deltaRow),
-			column: clamp(0, columns.length - 1, column + deltaCol),
+			column: clamp(sliceId, columns.length - 1, column + deltaCol),
 		});
 	});
 
 	const onClick = useCallback(
-		(idx: number, cidx: number) => {
-			const cur = {
-				entity,
-				row: idx,
-				column: cidx,
-				id: data[idx]?.[0],
-				editing: allowEdit && cursor?.column === cidx && cursor?.row === idx,
-			};
+		(row: number, column: number) => {
+			const editing = enableEditing && cursor?.column === column && cursor?.row === row;
+			const id = sliceId ? (data[row]?.[0] as number) : null;
+			const cur = { entity, row, column, ...(editing && { editing }), ...(id && { id }) };
 			setCursor(cur);
 			updateViewIndex(cur);
 		},
-		[allowEdit, cursor?.column, cursor?.row, data, entity, setCursor, updateViewIndex]
+		[enableEditing, cursor?.column, cursor?.row, sliceId, data, entity, setCursor, updateViewIndex]
 	);
 
 	const onWheel = (e: WheelEvent) =>
@@ -255,7 +202,7 @@ export function TableWithCursor({
 			<table className="table-fixed cursor-pointer w-0 h-0" onWheel={onWheel}>
 				<thead>
 					<tr className="h-2 break-words overflow-clip">
-						{columns.map((col) => (
+						{columns.slice(sliceId).map((col) => (
 							<th
 								className="relative leading-none text-sm border [clip-path:polygon(0_0,0_100%,100%_100%,100%_0)]"
 								key={col.sql_name}
@@ -267,8 +214,8 @@ export function TableWithCursor({
 								{entity === 'feid' && sort.column === col.sql_name && (
 									<div
 										className={cn(
-											'shadow-[0_0_28px_6px] absolute left-0 h-[1px] w-full shadow-active',
-											sort.direction < 0 ? 'top-[-3px]' : 'bottom-[-3px]'
+											'shadow-[0_0_28px_6px] absolute left-0 h-[2px] w-[calc(100%)] shadow-active',
+											sort.direction < 0 ? 'top-[-2px]' : 'bottom-[-2px]'
 										)}
 									/>
 								)}
@@ -276,10 +223,35 @@ export function TableWithCursor({
 						))}
 					</tr>
 				</thead>
-				<tbody className="[&_td]:border text-center whitespace-nowrap">
-					{data
-						.slice(viewIndex, Math.max(0, viewIndex + viewSize))
-						.map((rw, ri) => rowCallback(rw, ri + viewIndex, onClick, padRow))}
+				<tbody className="[&_td]:border text-center whitespace-nowrap text-[15px]">
+					{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, rowi) => {
+						const ridx = viewIndex + rowi;
+						const className = rowClassName?.(row, ridx);
+						const key = sliceId ? (row[0] as number) : `${row[0]}${row[1]}${row[2]}`;
+						return (
+							<tr key={key} className={className} style={{ height: 23 + padRow }}>
+								{columns.slice(sliceId).map((column, scidx) => {
+									const cidx = scidx + sliceId;
+									const curs = cursor?.row === ridx && cidx === cursor?.column ? cursor : null;
+									const title =
+										column.name === 'time' && sliceId
+											? `id = ${row[0]}`
+											: `${column.name} = ${valueToString(row[cidx])}`;
+									return (
+										<td
+											className={curs ? 'outline-active outline-1' : undefined}
+											key={column.sql_name}
+											title={title}
+											onClick={(e) => onClick(ridx, cidx)}
+											onContextMenu={openContextMenu('events')}
+										>
+											{cellContent?.(row[cidx], column) ?? valueToString(row[cidx])}
+										</td>
+									);
+								})}
+							</tr>
+						);
+					})}
 				</tbody>
 				{tfoot && <tfoot>{tfoot}</tfoot>}
 			</table>
