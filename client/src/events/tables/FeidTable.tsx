@@ -122,45 +122,6 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 					}
 				},
 				tfoot: null && (
-					<>
-						<tr style={{ height: 2 }}>
-							<td
-								colSpan={columns.length}
-								style={{ height: 1, borderTop: 'none', borderColor: color('grid') }}
-							></td>
-						</tr>
-						{['median', 'mean', 'σ', 'σ / √n'].map((label, ari) => (
-							<tr key={label} style={{ height: 24, fontSize: 15 }}>
-								{markers && <td style={{ borderColor: 'transparent' }} />}
-								{averages?.map((avgs, i) => {
-									const isLabel = columns[i].dtype === 'time';
-									const val = avgs?.[ari];
-									return (
-										<td
-											key={columns[i].sql_name}
-											style={{
-												borderColor: color('grid'),
-												textAlign: isLabel ? 'right' : 'unset',
-												padding: isLabel ? '0 6px' : 0,
-											}}
-											onContextMenu={openContextMenu('events', {
-												nodeId,
-												averages: {
-													averages,
-													label,
-													row: ari,
-													column: i,
-												},
-											})}
-											title={(!isLabel && val?.toString()) || ''}
-										>
-											{isLabel ? label : val ? val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}
-										</td>
-									);
-								})}
-							</tr>
-						))}
-					</>
 				),
 				footer: true ? null : (
 					<>

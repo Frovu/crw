@@ -165,28 +165,6 @@ function Panel() {
 			return closest?.[0] ?? null;
 		});
 
-	const averages = useMemo(
-		() =>
-			!params.showAverages
-				? []
-				: shownColumns.map((col, i) => {
-						if (!['integer', 'real'].includes(col.type)) return null;
-						const sorted = (shownData.map((row) => row[i + 1]).filter((v) => v != null) as number[]).sort(
-							(a, b) => a - b
-						);
-						if (!sorted.length) return null;
-						const mid = Math.floor(sorted.length / 2);
-						const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-						const sum = sorted.reduce((a, b) => a + b, 0);
-						const n = sorted.length;
-						const mean = sum / n;
-						const std = Math.sqrt(sorted.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
-						const sem = std / Math.sqrt(n);
-						return [median, mean, std, sem];
-				  }),
-		[shownColumns, shownData, params.showAverages]
-	);
-
 	useEventListener('action+plot', plotMove(0));
 	useEventListener('action+plotPrev', plotMove(-1, true));
 	useEventListener('action+plotNext', plotMove(+1, true));
@@ -217,10 +195,7 @@ function Panel() {
 			<ColumnsSelector />
 			<SampleView ref={ref} />
 			<div className="absolute bottom-0">
-				<FeidTableView
-					averages={averages}
-					size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}
-				/>
+				<FeidTableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
 			</div>
 		</div>
 	);

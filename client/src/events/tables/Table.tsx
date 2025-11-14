@@ -19,16 +19,16 @@ import { tableRowAsDict, type EditableTable, type TableValue } from '../core/edi
 import { computeColumnWidth } from '../columns/columns';
 import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
 import { LayoutContext, type LayoutContextType } from '../../layout';
+import { type TableAveragesData, TableAverages } from './TableAverages';
 
 export type Cursor = { entity: TableEntity; row: number; column: number; id?: number; editing?: boolean };
 
 export type TableEntity = EditableTable | CHEnt | EruptTable;
-export type TableAverages = { averages: (number[] | null)[]; label: string; row: number; column: number };
 
 export type TableMenuDetails<T extends TableEntity = TableEntity> = {
 	column: Column | SpecialColumn;
 	event?: T extends EruptTable ? EruptiveEvent<T> : T extends keyof Tables ? Tables[T] : never;
-	averages?: TableAverages;
+	averages?: TableAveragesData;
 };
 
 export type SpecialColumn = {
@@ -48,7 +48,7 @@ export const defaultTableParams: TableParams = {
 	showIncludeMarkers: true,
 };
 
-type TableColumn = Column | SpecialColumn;
+export type TableColumn = Column | SpecialColumn;
 type TableProps = {
 	size: Size;
 	entity: TableEntity;
@@ -80,12 +80,12 @@ export function EventsTable({
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
 	const cursor = useEntityCursor(entity);
 
-	const showChangelog = params?.showChangelog && size.height > 300;
-	const showAverages = params?.showAverages && size.height > 300;
+	const showChangelog = entity === 'feid' && params.showChangelog && size.height > 300;
+	const showAverages = entity === 'feid' && params.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const rowsHeight = size.height - 34;
+	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0);
 	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
@@ -286,7 +286,11 @@ export function EventsTable({
 						);
 					})}
 				</tbody>
-				{tfoot && <tfoot>{tfoot}</tfoot>}
+				{showAverages && (
+					<tfoot>
+						<TableAverages data={data} columns={columns} />
+					</tfoot>
+				)}
 			</table>
 		</div>
 	);
