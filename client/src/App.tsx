@@ -19,7 +19,7 @@ import {
 	useAppSettings,
 	logColor,
 	APPS,
-	useContextMenu,
+	useContextMenuStore,
 	closeConfirmation,
 } from './app';
 import { LayoutNav } from './Layout';
@@ -98,7 +98,7 @@ function Logs() {
 
 function App() {
 	const { app, theme, infoOpen, openInfo, closeInfo, setTheme, setApp } = useAppSettings();
-	const confirmation = useContextMenu((s) => s.confirmation);
+	const confirmation = useContextMenuStore((s) => s.confirmation);
 
 	useEffect(() => {
 		const titleApp = APPS.find((a) => window.location.pathname.endsWith(a)) ?? null;
@@ -113,7 +113,9 @@ function App() {
 		setApp(a as any);
 	};
 
-	useEventListener('action+switchTheme', () => setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]));
+	useEventListener('action+switchTheme', () =>
+		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length])
+	);
 	document.documentElement.setAttribute('main-theme', theme);
 
 	useEventListener('action+openInfo', () => (infoOpen ? closeInfo() : openInfo()));
@@ -159,7 +161,10 @@ function App() {
 	return (
 		<div className="bbox" style={{ overflow: 'clip' }}>
 			<CatchErrors>
-				<div className="bbox" style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}>
+				<div
+					className="bbox"
+					style={{ height: `calc(100vh - ${showNav ? 24 : 0}px)`, width: '100vw', padding: '4px 4px 2px 4px' }}
+				>
 					{app === 'ros' && <PlotCirclesStandalone />}
 					{app === 'feid' && <EventsApp />}
 					{app === 'meteo' && <TemperatureApp />}
@@ -192,7 +197,11 @@ function App() {
 					{app === 'feid' && <LayoutNav />}
 					<div title="Application colors scheme" style={{ paddingLeft: 8 }}>
 						theme:
-						<select style={{ width: theme.length + 4 + 'ch' }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
+						<select
+							style={{ width: theme.length + 4 + 'ch' }}
+							value={theme}
+							onChange={(e) => setTheme(e.target.value as any)}
+						>
 							{themeOptions.map((th) => (
 								<option key={th} value={th}>
 									{th}

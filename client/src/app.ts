@@ -2,11 +2,11 @@ import React, { type CSSProperties, createContext, type ReactNode } from 'react'
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { dispatchCustomEvent } from './util';
-import type { TableMenuDetails } from './events/core/util';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
 import type { TextTransformMenuDetail } from './events/export/ExportPlot';
+import type { TableEntity, TableMenuDetails } from './events/tables/Table';
 
 export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
 
@@ -170,6 +170,7 @@ type menuDetails = {
 	textTransform: TextTransformMenuDetail;
 	app: never;
 };
+
 type ContextMenu = {
 	menu: null | {
 		x: number;
@@ -184,31 +185,42 @@ type ContextMenu = {
 	};
 };
 
-export const useContextMenu = create<ContextMenu>()((set) => ({
+export const useContextMenuStore = create<ContextMenu>()((set) => ({
 	menu: null,
 	confirmation: null,
 }));
+
+export const useContextMenu = <T extends keyof menuDetails>() =>
+	useContextMenuStore((state) => state.menu?.detail) as menuDetails[T] | undefined;
+
+export const useEventsContextMenu = <T extends TableEntity>() => useContextMenu() as LayoutsMenuDetails & TableMenuDetails<T>;
 
 export const openContextMenu =
 	<T extends keyof menuDetails>(type: T, detail?: menuDetails[T], force?: boolean) =>
 	(e: React.MouseEvent | MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		useContextMenu.setState(({ menu }) => ({ menu: !force && menu ? null : { x: e.clientX, y: e.clientY, type, detail } }));
+		useContextMenuStore.setState(({ menu }) => ({
+			menu: !force && menu ? null : { x: e.clientX, y: e.clientY, type, detail },
+		}));
 	};
+
 export const openConfirmation = (conf: ContextMenu['confirmation']) =>
-	useContextMenu.setState((s) => {
+	useContextMenuStore.setState((s) => {
 		s.confirmation?.onClose?.();
 		return { ...s, confirmation: conf };
 	});
-export const closeContextMenu = () => useContextMenu.setState((s) => ({ ...s, menu: null }));
+
+export const closeContextMenu = () => useContextMenuStore.setState((s) => ({ ...s, menu: null }));
+
 export const closeConfirmation = () =>
-	useContextMenu.setState((s) => {
+	useContextMenuStore.setState((s) => {
 		s.confirmation?.onClose?.();
 		return { ...s, confirmation: null };
 	});
 
 export const roleOptions = ['admin', 'operator'] as const;
+
 export const AuthContext = createContext<{
 	login?: string;
 	role?: (typeof roleOptions)[number];

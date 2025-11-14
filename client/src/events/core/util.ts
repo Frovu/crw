@@ -6,9 +6,6 @@ import type { Value } from '../columns/columns';
 import type { Column } from '../../api';
 
 const defaultSettings = {
-	showChangelog: false,
-	showAverages: true,
-	showIncludeMarkers: true,
 	showMagneticClouds: true,
 	plotOffset: [-24, 48],
 	plotOffsetSolar: [-12, 12],
@@ -21,6 +18,7 @@ const defaultSettings = {
 	shownColumns: undefined as undefined | string[],
 	columnOrder: undefined as undefined | string[],
 };
+
 export type EventsSettings = typeof defaultSettings & {
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void;
 	setColumns: (fn: (cols: string[]) => string[]) => void;
@@ -47,13 +45,6 @@ export type EventsPanel<T> = Panel<T> & {
 	isPlot?: boolean;
 	isStat?: boolean;
 	isSolar?: boolean;
-};
-
-export type TableParams = {
-	showChangelog: boolean;
-	showAverages: boolean;
-	hideHeader?: boolean;
-	showIncludeMarkers?: boolean;
 };
 
 export function copyAverages({ averages, row, column }: Required<TableMenuDetails>['averages'], what: 'all' | 'row' | 'col') {

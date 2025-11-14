@@ -7,37 +7,56 @@ import {
 	type KeyboardEvent,
 	useCallback,
 	type WheelEvent,
+	useContext,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { valueToString } from '../core/util';
 import { openContextMenu } from '../../app';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import type { Column, Tables } from '../../api';
-import { type EditableTable, type TableValue } from '../core/editableTables';
+import { tableRowAsDict, type EditableTable, type TableValue } from '../core/editableTables';
 import { computeColumnWidth } from '../columns/columns';
 import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
+import { LayoutContext, type LayoutContextType } from '../../layout';
 
 export type Cursor = { entity: TableEntity; row: number; column: number; id?: number; editing?: boolean };
 
 export type TableEntity = EditableTable | CHEnt | EruptTable;
 export type TableAverages = { averages: (number[] | null)[]; label: string; row: number; column: number };
 
-export type TableMenuDetails<T extends TableEntity> = {
-	column: Column;
+export type TableMenuDetails<T extends TableEntity = TableEntity> = {
+	column: Column | SpecialColumn;
 	event?: T extends EruptTable ? EruptiveEvent<T> : T extends keyof Tables ? Tables[T] : never;
 	averages?: TableAverages;
+};
+
+export type SpecialColumn = {
+	type: 'special';
+	width: number;
+} & Pick<Column, 'name' | 'description' | 'sql_name' | 'dtype'>;
+
+export type TableParams = {
+	showChangelog?: boolean;
+	showAverages?: boolean;
+	showIncludeMarkers?: boolean;
+};
+
+export const defaultTableParams: TableParams = {
+	showChangelog: false,
+	showAverages: true,
+	showIncludeMarkers: true,
 };
 
 type TableProps = {
 	size: Size;
 	entity: TableEntity;
 	data: TableValue[][];
-	columns: Column[];
+	columns: (Column | SpecialColumn)[];
 	focusIdx?: number;
 	enableEditing?: boolean;
 	tfoot?: ReactNode;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
-	cellContent?: (val: TableValue, column: Column) => string | undefined;
+	cellContent?: (val: TableValue, column: Column | SpecialColumn) => string | undefined;
 	onKeydown: (e: KeyboardEvent, curs: Cursor) => void;
 };
 
@@ -53,8 +72,12 @@ export function EventsTable({
 	rowClassName,
 	cellContent,
 }: TableProps) {
+	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
 	const cursor = useEntityCursor(entity);
+
+	const showChangelog = params?.showChangelog && size.height > 300;
+	const showAverages = params?.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
@@ -197,8 +220,10 @@ export function EventsTable({
 			return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 		});
 
+	console.log(sort);
+
 	return (
-		<div ref={ref} className="absolute overflow-x-scroll no-scrollbar" style={{ ...size }}>
+		<div ref={ref} className="overflow-x-scroll no-scrollbar" style={{ ...size }}>
 			<table className="table-fixed cursor-pointer w-0 h-0" onWheel={onWheel}>
 				<thead>
 					<tr className="h-2 break-words overflow-clip">
@@ -208,10 +233,13 @@ export function EventsTable({
 								key={col.sql_name}
 								onClick={() => entity === 'feid' && toggleSort(col.name)}
 								title={`[${col.name}] ${col.description ?? ''}`}
-								style={{ width: computeColumnWidth(col), height: headerHeight }}
+								style={{
+									width: col.type === 'special' ? col.width : computeColumnWidth(col),
+									height: headerHeight,
+								}}
 							>
 								<div style={{ maxHeight: headerHeight }}>{col.name}</div>
-								{entity === 'feid' && sort.column === col.sql_name && (
+								{entity === 'feid' && sort.column === col.name && (
 									<div
 										className={cn(
 											'shadow-[0_0_28px_6px] absolute left-0 h-[2px] w-[calc(100%)] shadow-active',
@@ -223,7 +251,7 @@ export function EventsTable({
 						))}
 					</tr>
 				</thead>
-				<tbody className="[&_td]:border text-center whitespace-nowrap text-[15px]">
+				<tbody className="[&_td]:border [&_td]:overflow-clip text-center whitespace-nowrap text-[15px]">
 					{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, rowi) => {
 						const ridx = viewIndex + rowi;
 						const className = rowClassName?.(row, ridx);
@@ -243,7 +271,11 @@ export function EventsTable({
 											key={column.sql_name}
 											title={title}
 											onClick={(e) => onClick(ridx, cidx)}
-											onContextMenu={openContextMenu('events')}
+											onContextMenu={openContextMenu('events', {
+												nodeId,
+												column,
+												event: tableRowAsDict(row, columns as Column[]),
+											})}
 										>
 											{cellContent?.(row[cidx], column) ?? valueToString(row[cidx])}
 										</td>

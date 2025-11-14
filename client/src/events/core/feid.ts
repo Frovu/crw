@@ -5,6 +5,7 @@ import { useEventsSettings } from './util';
 import { useEventsState } from './eventsState';
 import type { Sample } from '../../api';
 import { AuthContext } from '../../app';
+import { useQuery } from '@tanstack/react-query';
 
 export function useFeidSample() {
 	const { login } = useContext(AuthContext);
@@ -12,7 +13,7 @@ export function useFeidSample() {
 	const { columns, data: tableData } = useTable('feid');
 	const { filters, current: sample, isPicking } = useSampleState();
 
-	return useMemo(() => {
+	const computeSample = () => {
 		console.time('render feid sample');
 		const isOwn = (s: Sample) => (s.authors.includes(login as any) ? -1 : 1);
 		const sorted = samplesQuery.data
@@ -21,16 +22,19 @@ export function useFeidSample() {
 		const applied = isPicking || !sorted ? tableData : applySample(tableData, sample, columns, sorted);
 		const filterFn = renderFilters(filters, columns);
 		const filtered = applied.filter((row) => filterFn(row));
-		console.time('render feid sample');
-		return {
-			data: filtered,
-			samples: sorted,
-		};
-	}, [samplesQuery.data, isPicking, tableData, sample, columns, filters, login]);
+		console.timeEnd('render feid sample');
+		return { sample, data: filtered, samples: sorted };
+	};
+
+	return useQuery({
+		queryKey: ['feidSample'],
+		initialData: computeSample,
+		queryFn: computeSample,
+	}).data;
 }
 
 export function useFeidTableView() {
-	const { shownColumns, showIncludeMarkers } = useEventsSettings();
+	const { shownColumns } = useEventsSettings();
 	const { columns } = useTable('feid');
 
 	const sort = useEventsState((state) => state.sort);
@@ -42,7 +46,8 @@ export function useFeidTableView() {
 		console.time('render feid table');
 		const cols = columns.filter((col) => ['id', ...shownColumns!]?.includes(col.sql_name));
 		const enabledIdxs = cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name));
-		const sortIdx = cols.findIndex((col) => col.sql_name === (sort.column === '_sample' ? 'time' : sort.column));
+		const srtIdx = cols.findIndex((col) => col.sql_name === sort.column);
+		const sortIdx = srtIdx >= 0 ? srtIdx : cols.findIndex((col) => col.name === 'time');
 		const renderedData = data.map((row) => enabledIdxs.map((ci) => row[ci])) as typeof data;
 		const markers = isPicking && sample ? sampleEditingMarkers(data, sample, columns) : null;
 		const idxs = [...renderedData.keys()];
@@ -66,22 +71,5 @@ export function useFeidTableView() {
 		};
 	}, [columns, data, isPicking, sample, sort, shownColumns]);
 
-	const withIncludeMarkers = useMemo(() => {
-		if (!showIncludeMarkers || !sample?.includes?.length || !samples) {
-			return { ...sorted, includeMarkers: null };
-		}
-		const smpls = sample.includes.map((sid) => samples.find((s) => s.id === sid));
-		const set = {} as { [k: string]: string };
-		for (const smpl of smpls) {
-			if (!smpl) continue;
-			const applied = applySample(data, smpl, columns, samples);
-			for (let i = 0; i < applied.length; ++i) {
-				set[applied[i][0]] = (set[applied[i][0]] ? set[applied[i][0]] + ';' : '') + smpl.name;
-			}
-		}
-		const markers = sorted.data.map((r) => set[r[0]]);
-		return { ...sorted, includeMarkers: markers };
-	}, [columns, data, sorted, sample?.includes, samples, showIncludeMarkers]);
-
-	return withIncludeMarkers;
+	return sorted;
 }

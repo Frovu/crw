@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { logMessage, useContextMenu } from '../../app';
+import { logMessage, useContextMenuStore } from '../../app';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	assignCMEToErupt,
@@ -51,7 +51,7 @@ function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: CME | Flare) {
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
 	const sources = useCurrentFeidSources();
-	const detail = useContextMenu((state) => state.menu?.detail) as TableMenuDetails | undefined;
+	const detail = useContextMenuStore((state) => state.menu?.detail) as TableMenuDetails | undefined;
 	const eruptId = detail?.cell?.id;
 	const isLinked = sources.find((s) => s.erupt?.id === eruptId);
 

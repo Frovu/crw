@@ -35,7 +35,6 @@ const feidDefaultLayouts: LayoutPreset = {
 				left: {
 					type: 'FEID Table',
 					showAverages: true,
-					showChangelog: false,
 				},
 				p1: {
 					type: 'IMF + Speed',
@@ -86,7 +85,6 @@ const feidDefaultLayouts: LayoutPreset = {
 				topLeft: {
 					type: 'FEID Table',
 					showAverages: true,
-					showChangelog: false,
 				},
 				p1: {
 					type: 'Correlation',
@@ -276,9 +274,6 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 				mainTable: {
 					type: 'FEID Table',
-					showChangelog: false,
-					showAverages: false,
-					hideHeader: false,
 				},
 				flares: {
 					type: 'Flares Table',

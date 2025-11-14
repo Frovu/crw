@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { LayoutContextMenu } from './Layout';
-import { AuthContext, useContextMenu, closeContextMenu } from './app';
+import { AuthContext, useContextMenuStore, closeContextMenu } from './app';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
 import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/ExportPlot';
@@ -9,7 +9,7 @@ import { ExportMenu } from './events/export/ExportTable';
 export default function ContextMenu() {
 	const { resetLayout } = useLayoutsStore();
 	const { role, promptLogin } = useContext(AuthContext);
-	const { menu } = useContextMenu();
+	const { menu } = useContextMenuStore();
 	const [div, setDiv] = useState<HTMLDivElement | null>(null);
 
 	return !menu ? null : (

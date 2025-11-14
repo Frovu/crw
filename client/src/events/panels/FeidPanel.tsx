@@ -1,16 +1,8 @@
 import { useContext, useEffect, useMemo, useRef } from 'react';
-import { AuthContext, useContextMenu, openContextMenu } from '../../app';
-import {
-	type LayoutsMenuDetails,
-	useLayout,
-	LayoutContext,
-	type ContextMenuProps,
-	type LayoutContextType,
-	AppLayoutContext,
-} from '../../layout';
+import { AuthContext, openContextMenu, useEventsContextMenu } from '../../app';
+import { useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType, AppLayoutContext } from '../../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
 import {
-	type TableMenuDetails,
 	useEventsSettings,
 	copyAverages,
 	valueToString,
@@ -28,15 +20,7 @@ import FeidTableView from '../tables/FeidTable';
 import { useTable } from '../core/editableTables';
 import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTableDataQuery } from '../core/query';
-
-const defaultParams = {
-	showChangelog: false,
-	showAverages: true,
-	showIncludeMarkers: true,
-	hideHeader: false,
-};
-
-export type MainTableParams = typeof defaultParams;
+import { defaultTableParams, type TableParams } from '../tables/Table';
 
 export function EventsCheckbox({ text, k }: { text: string; k: keyof EventsSettings }) {
 	const settings = useEventsSettings.getState();
@@ -53,20 +37,22 @@ export function EventsCheckbox({ text, k }: { text: string; k: keyof EventsSetti
 	);
 }
 
-function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
+function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
-	const details = (useContextMenu((state) => state.menu?.detail) || null) as (LayoutsMenuDetails & TableMenuDetails) | null;
+	const menu = useEventsContextMenu<'feid'>();
 	const { toggleSort, setPlotId } = useEventsState();
 	const panels = Object.values(useContext(AppLayoutContext).panels) as EventsPanel<unknown>[];
 	const layout = useLayout();
 	const { addFilter } = useSampleState();
 
+	console.log('123123', menu);
+
 	const statsPresent = Object.values(layout.items).some((node) => panels.find((p) => p.name === node?.type)?.isStat);
-	const column = details?.cell?.column ?? details?.header;
-	const value = details?.cell?.value;
-	const rowId = details?.cell?.id;
-	const averages = details?.averages;
+	const column = menu.column;
+	const value = menu.event?.[column.sql_name as keyof typeof menu.event];
+	const feidId = menu.event?.id;
+	const averages = menu.averages;
 
 	return (
 		<>
@@ -79,16 +65,15 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 				</>
 			)}
 			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
-			{rowId != null && params.hideHeader && <Checkbox text="Hide table head" k="hideHeader" />}
 			<div className="separator" />
-			{rowId != null && (
+			{feidId != null && (
 				<>
-					<button onClick={() => setPlotId(() => rowId)}>Plot this event</button>
+					<button onClick={() => setPlotId(() => feidId)}>Plot this event</button>
 					<div className="separator" />
 				</>
 			)}
-			{rowId == null && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
-			{rowId == null && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
+			{feidId == null && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
+			{feidId == null && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
 			{!column && role && (
 				<>
 					<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
@@ -97,35 +82,34 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 			)}
 			{column && (
 				<>
-					{role && rowId != null && (
-						<button onClick={() => dispatchCustomEvent('computeRow', { id: rowId })}>Recompute row</button>
+					{role && feidId != null && (
+						<button onClick={() => dispatchCustomEvent('computeRow', { id: feidId })}>Recompute row</button>
 					)}
 					{(column.name === 'duration' || column.type === 'computed') && role && (
 						<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>
 					)}
 					<button onClick={() => toggleSort(column.sql_name, 1)}>Sort ascending</button>
 					<button onClick={() => toggleSort(column.sql_name, -1)}>Sort descening</button>
-					{statsPresent && (
+					{column.type !== 'special' && statsPresent && (
 						<>
 							<button onClick={() => setStatColumn(column, 0)}>Use as X</button>
 							<button onClick={() => setStatColumn(column, 1)}>Use as Y</button>
 						</>
 					)}
-					{value !== undefined && (
+					{column.type !== 'special' && value !== undefined && (
 						<button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}>
 							Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}
 						</button>
 					)}
 				</>
 			)}
-			{rowId == null && (
+			{feidId == null && (
 				<>
 					<div className="separator" />
 					<div className="Group">
-						<EventsCheckbox text="Show include markers" k="showIncludeMarkers" />
+						<Checkbox text="Show include markers" k="showIncludeMarkers" />
 						<Checkbox text="Show column averages" k="showAverages" />
 						<Checkbox text="Show changes log" k="showChangelog" />
-						<Checkbox text="Hide table head" k="hideHeader" />
 					</div>
 				</>
 			)}
@@ -134,7 +118,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<MainTableParams>) {
 }
 
 function Panel() {
-	const { size, params } = useContext(LayoutContext) as LayoutContextType<MainTableParams>;
+	const { size, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { columns, data: allData } = useTable('feid');
 	const { data: sampleData } = useFeidSample();
 	const { data: shownData, columns: shownColumns } = useFeidTableView();
@@ -171,7 +155,6 @@ function Panel() {
 				return current;
 			}
 			if (current == null) return null;
-			queueMicrotask(() => setCursor(null));
 			if (plotUnlistedEvents && global)
 				return allData[clamp(0, allData.length - 1, allData.findIndex((r) => r[0] === current) + dir)][0];
 			const found = shownData.findIndex((r) => r[0] === current);
@@ -229,12 +212,17 @@ function Panel() {
 	if (!allData.length && query.error) throw query.error;
 
 	return (
-		<>
+		<div className="relative h-full">
 			<ImportMenu />
 			<ColumnsSelector />
 			<SampleView ref={ref} />
-			<FeidTableView averages={averages} size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />
-		</>
+			<div className="absolute bottom-0">
+				<FeidTableView
+					averages={averages}
+					size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }}
+				/>
+			</div>
+		</div>
 	);
 }
 
@@ -242,5 +230,5 @@ export const FeidTable = {
 	name: 'FEID Table',
 	Menu,
 	Panel,
-	defaultParams,
+	defaultParams: defaultTableParams,
 };

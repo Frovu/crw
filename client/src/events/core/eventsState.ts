@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Tables } from '../../api';
-import { getTable, useTable, type EditableTable } from './editableTables';
+import { getTable, useTable } from './editableTables';
 import { useMemo } from 'react';
-import type { CHEnt, EruptTable } from './sourceActions';
 import type { Cursor } from '../tables/Table';
 
 export type Sort = { column: string; direction: 1 | -1 };

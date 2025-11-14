@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { sourceLabels, sourceLinks, type Column, type Tables } from '../../api';
-import { useContextMenu } from '../../app';
+import { useContextMenuStore } from '../../app';
 import { LayoutContext } from '../../layout';
 import { cn } from '../../util';
 import { type TableValue, useTable } from '../core/editableTables';
@@ -19,7 +19,7 @@ import {
 import { EventsTable } from './Table';
 
 export function EruptiveEntityMenu<T extends EruptTable>({ entity }: { entity: T }) {
-	const detail = useContextMenu((state) => state.menu?.detail) as { [key in T]: EruptiveEvent<T> } | undefined;
+	const detail = useContextMenuStore((state) => state.menu?.detail) as { [key in T]: EruptiveEvent<T> } | undefined;
 	const { id } = useFeidCursor();
 	const event = detail?.[entity];
 	const erupt = useSelectedSource('sources_erupt');

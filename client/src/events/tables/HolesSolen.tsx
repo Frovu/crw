@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, useContextMenu } from '../../app';
+import { color, useContextMenuStore } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
@@ -24,7 +24,7 @@ const months = [
 ];
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
-	const detail = useContextMenu((state) => state.menu?.detail) as { ch?: SolenCH };
+	const detail = useContextMenuStore((state) => state.menu?.detail) as { ch?: SolenCH };
 	const { id: feidId } = useFeidCursor();
 	const ch = detail?.ch;
 	const chSrc = useSelectedSource('sources_ch') as CHS | null;

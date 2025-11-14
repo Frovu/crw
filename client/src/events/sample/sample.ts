@@ -171,7 +171,7 @@ export function useSampleQuery() {
 		queryKey: ['samples'],
 		queryFn: async () => {
 			const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
-			console.log('%cavailable samples:', 'color: #0f0', samples);
+			console.log('%cfetched samples:', 'color: #0f0', samples);
 			return samples;
 		},
 	});

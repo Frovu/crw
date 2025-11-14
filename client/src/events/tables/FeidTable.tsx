@@ -1,50 +1,45 @@
-import { useContext, useState, useEffect, useCallback, type KeyboardEvent } from 'react';
+import { useContext, useState, useEffect, useCallback, type KeyboardEvent, useMemo } from 'react';
 import { color, openContextMenu } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size, useEventListener } from '../../util';
-import { type TableParams, valueToString } from '../core/util';
+import { valueToString } from '../core/util';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
-import { pickEventForSample } from '../sample/sample';
-import { EventsTable } from './Table';
-import type { ChangelogEntry, ChangelogResponse } from '../../api';
-import { useFeidTableView } from '../core/feid';
+import { applySample, pickEventForSample } from '../sample/sample';
+import { EventsTable, type SpecialColumn, type TableParams } from './Table';
+import type { ChangelogEntry, ChangelogResponse, Column, StaticColumn } from '../../api';
+import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTablesStore } from '../core/editableTables';
 import { CellInput } from './TableInput';
 
-const getChangelogEntry = (chl: ChangelogResponse | undefined, eid: number, cid: string) =>
-	chl?.events[eid]?.[cid]?.map((row) => Object.fromEntries(chl.fields.map((f, i) => [f, row[i]]))) as
-		| ChangelogEntry[]
-		| undefined;
+const sampleMarkerCol: SpecialColumn = {
+	type: 'special',
+	sql_name: '_sample',
+	dtype: 'text',
+	width: 48,
+	name: '##',
+	description: 'f is for filter, + is whitelist, - is blacklist',
+};
+// onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
+// if (e.ctrlKey) setPlotId(() => row[0]);
+
+const incMarkerCol: SpecialColumn = {
+	type: 'special',
+	sql_name: '_include',
+	dtype: 'text',
+	width: 48,
+	name: '#S',
+	description: 'event included from following samples',
+};
 
 export default function FeidTableView({ size, averages }: { size: Size; averages?: (null | number[])[] }) {
-	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
+	const { params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { changelog: wholeChangelog, changes, created, deleted } = useTablesStore().feid;
-	const { data, columns, markers, includeMarkers } = useFeidTableView();
-	const { plotId, sort, setStartAt, setEndAt, modifyId, toggleSort, setPlotId } = useEventsState();
+	const { data, columns, markers } = useFeidTableView();
+	const { plotId, sort, setStartAt, setEndAt, modifyId, setPlotId } = useEventsState();
+	const { sample, samples } = useFeidSample();
 	const cursor = useEntityCursor('feid');
 	const [changesHovered, setChangesHovered] = useState(false);
-	const showChangelog = params?.showChangelog && size.height > 300;
-	const showAverages = params?.showAverages && size.height > 300;
-	const hideHeader = params?.hideHeader && size.height < 480;
 
-	const iMarkers = includeMarkers?.map((m) => m?.length);
-	const incMarkWidth = iMarkers && Math.min(16, Math.max.apply(null, iMarkers));
-
-	const cursCol = cursor && columns[cursor?.column]?.sql_name;
-
-	// TODO: refactor changelog
-
-	const changelogCols =
-		(showChangelog || null) &&
-		cursor &&
-		wholeChangelog &&
-		data[cursor.row] &&
-		columns.map((c) => [c.sql_name, getChangelogEntry(wholeChangelog, data[cursor.row][0], c.sql_name)]);
-	const changelog = changelogCols
-		?.filter((c) => !!c[1])
-		.flatMap(([col, chgs]) => (chgs as ChangelogEntry[]).map((c) => ({ column: col, ...c })))
-		.sort((a, b) => b.time - a.time)
-		.sort((a, b) => (cursCol === b.column ? 1 : 0) - (cursCol === a.column ? 1 : 0));
 	const changeCount = [changes, created, deleted].flatMap(Object.values).reduce((a, b) => a + b.length, 0);
 
 	useEffect(() => {
@@ -72,150 +67,55 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 		() =>
 			document.dispatchEvent(new KeyboardEvent('keydown', { code: key, ctrlKey: ctrl }));
 
+	const withSampleMarkers = useMemo(() => {
+		if (!markers) return { columns, data };
+		return {
+			data: data.map((row, i) => [row[0], markers[i], ...row.slice(1)]),
+			columns: [columns[0], sampleMarkerCol, ...columns.slice(1)],
+		};
+	}, [columns, markers, data]);
+
+	const withIncludeMarkers = useMemo(() => {
+		if (!params.showIncludeMarkers || !sample?.includes?.length || !samples) return withSampleMarkers;
+
+		console.time('include markers');
+		const smpls = sample.includes.map((sid) => samples.find((s) => s.id === sid));
+		const set = {} as { [k: number]: string };
+		for (const smpl of smpls) {
+			if (!smpl) continue;
+			const applied = applySample(data, smpl, columns, samples);
+			for (let i = 0; i < applied.length; ++i) {
+				set[applied[i][0]] = (set[applied[i][0]] ? set[applied[i][0]] + ';' : '') + smpl.name;
+			}
+		}
+		console.timeEnd('include markers');
+		return {
+			data: withSampleMarkers.data.map((r) => [...r, set[r[0] as number]]),
+			columns: [...withSampleMarkers.columns, incMarkerCol],
+		};
+	}, [params.showIncludeMarkers, sample?.includes, samples, withSampleMarkers, data, columns]);
+
+	// const isCompModified =
+	// 	wholeChangelog &&
+	// 	columns.map((col) => {
+	// 		if (col.type !== 'computed') return false;
+	// 		const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort(
+	// 			(a, b) => b.time - a.time
+	// 		);
+	// 		if (!chgs?.length) return false;
+	// 		return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
+	// 	});
+
 	return (
 		<EventsTable
 			{...{
-				data,
-				columns,
+				size,
+				...withIncludeMarkers,
 				onKeydown,
 				entity: 'feid',
-				allowEdit: true,
-				size,
-				headSize: (hideHeader ? 0 : 90) + (showAverages ? 98 : 0) + (!hideHeader && showChangelog ? 54 : 0),
-				head: hideHeader
-					? null
-					: (cols, padH) => {
-							const padTableH = Math.floor(padH / 3);
-							const columnH = 38 + padH - padTableH;
-							return (
-								<>
-									<tr style={{ fontSize: 15 }}>
-										{markers && (
-											<td
-												title="f is for filter, + is whitelist, - is blacklist"
-												className="ColumnHeader"
-												style={{ minWidth: '3.5ch' }}
-												onClick={() => toggleSort('_sample')}
-											>
-												##
-												{sort.column === '_sample' && (
-													<div
-														className="SortShadow"
-														style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}
-													/>
-												)}
-											</td>
-										)}
-										{columns.map((col) => (
-											<td
-												key={col.sql_name}
-												title={`[${col.name}] ${col.description ?? ''}`}
-												className="ColumnHeader"
-												onClick={() => toggleSort(col.name)}
-												onContextMenu={openContextMenu('events', { nodeId, header: col })}
-											>
-												<div style={{ height: columnH, lineHeight: 1 }}>
-													<span>{col.name}</span>
-													{sort.column === col.name && (
-														<div
-															className="SortShadow"
-															style={{ [sort.direction < 0 ? 'top' : 'bottom']: -2 }}
-														/>
-													)}
-												</div>
-											</td>
-										))}
-										{includeMarkers && (
-											<td
-												title="Event included from samples:"
-												className="ColumnHeader"
-												style={{ minWidth: '3.5ch' }}
-											>
-												#S
-											</td>
-										)}
-									</tr>
-								</>
-							);
-					  },
-				row: (row, idx, onClick, padRow) => {
-					const marker = markers?.[idx];
-					const markerColor = marker && (marker.endsWith('+') ? 'cyan' : marker.endsWith('-') ? 'magenta' : 'text');
-					const isCompModified =
-						wholeChangelog &&
-						columns.map((col) => {
-							if (col.type !== 'computed') return false;
-							const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort(
-								(a, b) => b.time - a.time
-							);
-							if (!chgs?.length) return false;
-							return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
-						});
-
-					const className = plotId === row[0] ? 'text-cyan' : 'text-text';
-
-					return (
-						<DefaultRow
-							key={row[0]}
-							{...{ row, idx, columns, cursor, className, padRow }}
-							onClick={(e, cidx) => {
-								if (setEndAt || setEndAt || modifyId) return;
-								onClick(idx, cidx);
-								if (e.ctrlKey) setPlotId(() => row[0]);
-							}}
-							contextMenuData={(cidx) => ({
-								nodeId,
-								cell: { id: row[0], value: row[cidx + 1], column: columns[cidx] },
-							})}
-							title={(cidx) =>
-								(cidx === 0 ? `id = ${row[0]}; ` : '') +
-								`${columns[cidx].name} = ${valueToString(row[cidx + 1])}`
-							}
-							before={
-								marker && (
-									<td
-										title="f: filtered; + whitelisted; - blacklisted"
-										onClick={(e) => pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0])}
-									>
-										<span className="Cell" style={{ color: color(markerColor!) }}>
-											{marker}
-										</span>
-									</td>
-								)
-							}
-							after={
-								includeMarkers?.[idx] && (
-									<td title="Included in these samples">
-										<span style={{ width: incMarkWidth! + 2 + 'ch' }} className="Cell">
-											{includeMarkers?.[idx]}
-										</span>
-									</td>
-								)
-							}
-						>
-							{({ column, cidx, curs }) => {
-								const value = valueToString(row[cidx + 1]);
-
-								return !curs?.editing ? (
-									<DefaultCell column={column}>
-										{value}
-										{isCompModified?.[cidx] && <span className="ModifiedMarker" />}
-									</DefaultCell>
-								) : (
-									<CellInput
-										{...{
-											table: 'feid',
-											id: row[0],
-											column,
-											value,
-										}}
-									/>
-								);
-							}}
-						</DefaultRow>
-					);
-				},
-				tfoot: showAverages && (
+				enableEditing: true,
+				rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
+				tfoot: null && (
 					<>
 						<tr style={{ height: 2 }}>
 							<td
@@ -256,7 +156,7 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 						))}
 					</>
 				),
-				footer: hideHeader ? null : (
+				footer: true ? null : (
 					<>
 						{showChangelog && (
 							<div

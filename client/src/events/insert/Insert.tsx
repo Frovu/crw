@@ -1,5 +1,5 @@
 import { useContext, type MouseEvent } from 'react';
-import { color, logSuccess, openContextMenu, useContextMenu } from '../../app';
+import { color, logSuccess, openContextMenu, useContextMenuStore } from '../../app';
 import { prettyDate, useEventListener } from '../../util';
 import CoverageControls from './CoverageControls';
 import { ValidatedInput } from '../../Utility';
@@ -13,7 +13,7 @@ const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Menu() {
 	const { id: feidId } = useFeidCursor();
-	const detail = useContextMenu((state) => state.menu?.detail) as { source: Tables['feid_sources'] } | undefined;
+	const detail = useContextMenuStore((state) => state.menu?.detail) as { source: Tables['feid_sources'] } | undefined;
 
 	return (
 		<>

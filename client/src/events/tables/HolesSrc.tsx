@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { useContextMenu } from '../../app';
+import { useContextMenuStore } from '../../app';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
@@ -21,7 +21,7 @@ function deleteHole(id: number) {
 
 function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 	const { id: feidId } = useFeidCursor();
-	const detail = useContextMenu((state) => state.menu?.detail) as { ch: CHS } | undefined;
+	const detail = useContextMenuStore((state) => state.menu?.detail) as { ch: CHS } | undefined;
 	const sources = useCurrentFeidSources();
 	const chsId = detail?.ch?.id;
 	const isLinked = sources.find((s) => s.ch?.id === chsId);

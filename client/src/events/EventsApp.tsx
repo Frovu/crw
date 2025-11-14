@@ -24,7 +24,7 @@ import { EruptionsTable } from './tables/Eruptions';
 import { HolesTable } from './tables/HolesSrc';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
-import { useContextMenu } from '../app';
+import { useContextMenuStore } from '../app';
 import { Correlation } from '../plots/Correlate';
 import { Histogram } from '../plots/Histogram';
 import { SuperposedEpochs } from '../plots/SuperposedEpochs';
@@ -81,7 +81,7 @@ function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 }
 
 function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
-	const details = (useContextMenu((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
+	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
 		<>
