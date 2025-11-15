@@ -90,6 +90,12 @@ export const useEventsState = create<EventsState>()(
 export const useEntityCursor = (ent: Cursor['entity']) =>
 	useEventsState((st) => (st.cursor?.entity === ent ? st.cursor : null));
 
+export const getPlottedFeid = () => {
+	const { getById } = getTable('feid');
+	const { plotId } = useEventsState.getState();
+	return getById(plotId);
+};
+
 export const useFeidCursor = () => {
 	const { data, getById, entry } = useTable('feid');
 	const plotId = useEventsState((st) => st.plotId);

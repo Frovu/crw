@@ -126,5 +126,5 @@ export function useSolarPlot() {
 			interval,
 			flares: Array.from(flrs.values()) as FlareOnset[],
 		};
-	}, [cme, flr, cursor, erupt, feidTime, plotOffsetSolar]);
+	}, [cme, flr, erupt, cursor, feidTime, plotOffsetSolar]);
 }

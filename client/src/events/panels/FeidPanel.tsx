@@ -15,7 +15,7 @@ import ColumnsSelector from '../columns/Columns';
 import ImportMenu from '../export/Import';
 import SampleView from '../sample/Sample';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEventsState } from '../core/eventsState';
+import { useEntityCursor, useEventsState } from '../core/eventsState';
 import FeidTableView from '../tables/FeidTable';
 import { useTable } from '../core/editableTables';
 import { useFeidSample, useFeidTableView } from '../core/feid';
@@ -51,8 +51,6 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 	const panels = Object.values(useContext(AppLayoutContext).panels) as EventsPanel<unknown>[];
 	const layout = useLayout();
 	const { addFilter } = useSampleState();
-
-	console.log('123123', menu);
 
 	const statsPresent = Object.values(layout.items).some((node) => panels.find((p) => p.name === node?.type)?.isStat);
 	const column = menu.column;
@@ -129,12 +127,13 @@ function Panel() {
 	const { data: sampleData } = useFeidSample();
 	const { data: shownData, columns: shownColumns } = useFeidTableView();
 	const { plotUnlistedEvents } = useEventsSettings();
-	const { plotId, setPlotId, cursor: sCursor, setCursor } = useEventsState();
-	const { addFilter } = useSampleState();
+	const plotId = useEventsState((st) => st.plotId);
+	const setPlotId = useEventsState((st) => st.setPlotId);
+	const setCursor = useEventsState((st) => st.setCursor);
+	const addFilter = useSampleState((st) => st.addFilter);
+	const cursor = useEntityCursor('feid');
 	const ref = useRef<HTMLDivElement | null>(null);
 	useSize(ref.current);
-
-	const cursor = sCursor?.entity === 'feid' ? sCursor : null;
 
 	// always plot something
 	useEffect(() => {

@@ -44,7 +44,7 @@ export type TableParams = {
 
 export type TableColumn = Column | SpecialColumn;
 type TableProps = {
-	size: Size;
+	size?: Size;
 	entity: TableEntity;
 	data: TableValue[][];
 	columns: TableColumn[];
@@ -57,7 +57,7 @@ type TableProps = {
 };
 
 export function EventsTable({
-	size,
+	size: paramSize,
 	entity,
 	data,
 	columns,
@@ -68,16 +68,17 @@ export function EventsTable({
 	rowClassName,
 	cellContent,
 }: TableProps) {
-	const { id: nodeId, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
+	const { id: nodeId, params, size: nodeSize } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
 	const cursor = useEntityCursor(entity);
+	const size = paramSize ?? nodeSize;
 
 	const showChangelog = entity === 'feid' && params.showChangelog && size.height > 300;
 	const showAverages = entity === 'feid' && params.showAverages && size.height > 300;
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0) - (showAverages ? 80 : 0);
+	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0) - (showChangelog ? 62 : 0);
 	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
@@ -89,6 +90,7 @@ export function EventsTable({
 	const sliceId = columns[0]?.sql_name === 'id' ? 1 : 0;
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
+	console.log(entity, size.height, rowsHeight, viewSize, data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).length);
 
 	const updateViewIndex = useCallback(
 		(curs: Cursor) =>
@@ -248,7 +250,7 @@ export function EventsTable({
 					{data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).map((row, rowi) => {
 						const ridx = viewIndex + rowi;
 						const className = rowClassName?.(row, ridx);
-						const key = sliceId ? (row[0] as number) : `${row[0]}${row[1]}${row[2]}`;
+						const key = sliceId ? (row[0] as number) : `${row[0]}${row[1]}${row[2]}${rowi}`;
 						return (
 							<tr key={key} className={className} style={{ height: 23 + padRow }}>
 								{columns.slice(sliceId).map((column, scidx) => {

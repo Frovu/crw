@@ -83,10 +83,10 @@ export function unlinkHoleSourceEvent(ent: CHEnt) {
 	});
 }
 
-export function linkEruptiveSourceEvent<T extends EruptEnt>(ent: T, event: EruptiveEvent<T>, feidId: number) {
-	const { modifySourceId, setStartAt, setEndAt } = useEventsState.getState();
+export function linkEruptiveSourceEvent<T extends EruptEnt>(ent: T, event: EruptiveEvent<T>) {
+	const { modifySourceId, setStartAt, setEndAt, plotId: feidId } = useEventsState.getState();
 
-	if (setStartAt || setEndAt) return;
+	if (setStartAt || setEndAt || feidId == null) return;
 
 	const erupts = getTable('sources_erupt');
 	const modifyingEruptId = getTable('feid_sources').getById(modifySourceId)?.erupt_id;

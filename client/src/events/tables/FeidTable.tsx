@@ -1,8 +1,8 @@
-import { useContext, useState, useEffect, useCallback, type KeyboardEvent, useMemo } from 'react';
+import { useContext, useState, useEffect, type KeyboardEvent, useMemo } from 'react';
 import { color } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size } from '../../util';
-import { useEntityCursor, useEventsState } from '../core/eventsState';
+import { useEventsState } from '../core/eventsState';
 import { applySample, pickEventForSample } from '../sample/sample';
 import { EventsTable, type SpecialColumn, type TableParams } from './Table';
 import { useFeidSample, useFeidTableView } from '../core/feid';
@@ -34,7 +34,6 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 	const { data, columns, markers } = useFeidTableView();
 	const { sample, samples } = useFeidSample();
 	const plotId = useEventsState((st) => st.plotId);
-	const cursor = useEntityCursor('feid');
 
 	const [changesHovered, setChangesHovered] = useState(false);
 
@@ -44,14 +43,6 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 	useEffect(() => {
 		if (changeCount === 0) setChangesHovered(false);
 	}, [changeCount]);
-
-	const onKeydown = useCallback(
-		(e: KeyboardEvent) => {
-			if (cursor && ['-', '+', '='].includes(e.key))
-				return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
-		},
-		[cursor, data]
-	);
 
 	const simulateKey =
 		(key: string, ctrl: boolean = false) =>
@@ -102,7 +93,10 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 			{...{
 				size,
 				...withIncludeMarkers,
-				onKeydown,
+				onKeydown: (e, cursor) => {
+					if (cursor && ['-', '+', '='].includes(e.key))
+						return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+				},
 				entity: 'feid',
 				enableEditing: true,
 				rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
