@@ -30,11 +30,12 @@ const incMarkerCol: SpecialColumn = {
 
 export default function FeidTableView({ size, averages }: { size: Size; averages?: (null | number[])[] }) {
 	const { params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changelog: wholeChangelog, changes, created, deleted } = useTablesStore().feid;
+	const { changes, created, deleted } = useTablesStore().feid;
 	const { data, columns, markers } = useFeidTableView();
-	const { plotId, sort, setStartAt, setEndAt, modifyId, setPlotId } = useEventsState();
 	const { sample, samples } = useFeidSample();
+	const plotId = useEventsState((st) => st.plotId);
 	const cursor = useEntityCursor('feid');
+
 	const [changesHovered, setChangesHovered] = useState(false);
 
 	// FIXME NOT ONLY FEID CHANGES

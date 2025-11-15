@@ -5,12 +5,12 @@ import { useEventsSettings } from './util';
 import { useEventsState } from './eventsState';
 import type { Sample } from '../../api';
 import { AuthContext } from '../../app';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 export function useFeidSample() {
 	const { login } = useContext(AuthContext);
 	const samplesQuery = useSampleQuery();
-	const { columns, data: tableData } = useTable('feid');
+	const { columns, data: tableData, updatedAt } = useTable('feid');
 	const { filters, current: sample, isPicking } = useSampleState();
 
 	const computeSample = () => {
@@ -23,13 +23,15 @@ export function useFeidSample() {
 		const filterFn = renderFilters(filters, columns);
 		const filtered = applied.filter((row) => filterFn(row));
 		console.timeEnd('render feid sample');
-		return { sample, data: filtered, samples: sorted };
+		return { sample, data: filtered, samples: sorted, updatedAt: Date.now() };
 	};
 
 	return useQuery({
-		queryKey: ['feidSample', isPicking, tableData, sample, columns, filters],
-		initialData: computeSample,
+		queryKey: ['feidSample', updatedAt, isPicking, sample, columns, JSON.stringify(filters)],
+		staleTime: Infinity,
 		queryFn: computeSample,
+		initialData: computeSample,
+		placeholderData: keepPreviousData,
 	}).data;
 }
 
@@ -40,7 +42,7 @@ export function useFeidTableView() {
 	const sort = useEventsState((state) => state.sort);
 	const { current: sample, isPicking } = useSampleState();
 
-	const { data } = useFeidSample();
+	const { data, updatedAt } = useFeidSample();
 
 	const renderTable = () => {
 		console.time('render feid table');
@@ -72,8 +74,10 @@ export function useFeidTableView() {
 	};
 
 	return useQuery({
-		queryKey: ['feidSample', isPicking, sample, columns, data, sort.column],
-		initialData: renderTable,
+		queryKey: ['feidView', updatedAt, isPicking, sample, columns, sort.column],
+		staleTime: Infinity,
 		queryFn: renderTable,
+		initialData: renderTable,
+		placeholderData: keepPreviousData,
 	}).data;
 }

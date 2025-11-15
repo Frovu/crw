@@ -107,7 +107,10 @@ export const useTable = <T extends EditableTable>(tbl: T) => {
 	const index = useTablesStore((st) => st[tbl].index);
 
 	if (!data && query.isFetched) query.refetch();
-	return useMemo(() => tableApi({ columns, data, index }), [columns, data, index]);
+	return useMemo(
+		() => ({ ...tableApi({ columns, data, index }), updatedAt: query.dataUpdatedAt }),
+		[columns, data, index, query.dataUpdatedAt]
+	);
 };
 
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>

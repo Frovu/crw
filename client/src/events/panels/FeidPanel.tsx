@@ -1,6 +1,6 @@
-import { useContext, useEffect, useMemo, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import { AuthContext, openContextMenu, useEventsContextMenu } from '../../app';
-import { useLayout, LayoutContext, type ContextMenuProps, type LayoutContextType, AppLayoutContext } from '../../layout';
+import { useLayout, LayoutContext, type ContextMenuProps, AppLayoutContext } from '../../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
 import {
 	useEventsSettings,
@@ -124,7 +124,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 }
 
 function Panel() {
-	const { size, params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
+	const { size } = useContext(LayoutContext)!;
 	const { columns, data: allData } = useTable('feid');
 	const { data: sampleData } = useFeidSample();
 	const { data: shownData, columns: shownColumns } = useFeidTableView();

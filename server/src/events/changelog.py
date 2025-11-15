@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal
 from database import pool
-from psycopg import Connection, sql
+from psycopg import Connection
 import ts_type
 
 from events.columns.column import Column
@@ -41,12 +41,12 @@ _init()
 def select_changelog(conn: Connection, entity: str, columns: list[Column]):
 	# TODO: optimization
 	changelog = ChangelogResponse(['time', 'author', 'old', 'new', 'special'], {})
-	query = sql.SQL('''SELECT event_id, column_name, special, old_value, new_value,
+	query = '''SELECT event_id, column_name, special, old_value, new_value,
 		EXTRACT (EPOCH FROM changes_log.time)::integer,
 		(select login from users where uid = author) as author
 		FROM events.changes_log WHERE event_id is not null
-		AND entity_name={} AND column_name = ANY(%s)''').format(sql.Identifier(entity))
-	res = conn.execute(query, [[c.sql_name for c in columns]]).fetchall()
+		AND entity_name=%s AND column_name = ANY(%s)'''
+	res = conn.execute(query, [entity, [c.sql_name for c in columns]]).fetchall()
 
 	tgt = changelog.events
 	for eid, column, special, old_val, new_val, made_at, author in res:

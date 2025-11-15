@@ -28,6 +28,17 @@ import { CatchErrors, Confirmation } from './Utility';
 
 const theQueryClient = new QueryClient();
 
+// dev tools
+// This code is only for TypeScript
+declare global {
+	interface Window {
+		__TANSTACK_QUERY_CLIENT__: import('@tanstack/query-core').QueryClient;
+	}
+}
+
+// This code is for all users
+window.__TANSTACK_QUERY_CLIENT__ = theQueryClient;
+
 function Logs() {
 	const { log } = useAppSettings();
 	const [hover, setHover] = useState(false);
