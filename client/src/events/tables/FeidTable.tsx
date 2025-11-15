@@ -1,15 +1,12 @@
 import { useContext, useState, useEffect, useCallback, type KeyboardEvent, useMemo } from 'react';
-import { color, openContextMenu } from '../../app';
+import { color } from '../../app';
 import { LayoutContext, type LayoutContextType } from '../../layout';
-import { type Size, useEventListener } from '../../util';
-import { valueToString } from '../core/util';
+import { type Size } from '../../util';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import { applySample, pickEventForSample } from '../sample/sample';
 import { EventsTable, type SpecialColumn, type TableParams } from './Table';
-import type { ChangelogEntry, ChangelogResponse, Column, StaticColumn } from '../../api';
 import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTablesStore, type TableRow } from '../core/editableTables';
-import { CellInput } from './TableInput';
 
 const sampleMarkerCol: SpecialColumn = {
 	type: 'special',
@@ -40,6 +37,7 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 	const cursor = useEntityCursor('feid');
 	const [changesHovered, setChangesHovered] = useState(false);
 
+	// FIXME NOT ONLY FEID CHANGES
 	const changeCount = [changes, created, deleted].flatMap(Object.values).reduce((a, b) => a + b.length, 0);
 
 	useEffect(() => {
@@ -53,14 +51,6 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 		},
 		[cursor, data]
 	);
-
-	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (setStartAt || setEndAt || modifyId) return;
-		if (cursor?.editing) return;
-
-		if (cursor && ['-', '+', '='].includes(e.key))
-			return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
-	});
 
 	const simulateKey =
 		(key: string, ctrl: boolean = false) =>
@@ -121,70 +111,8 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 						return true;
 					}
 				},
-				tfoot: null && (
-				),
 				footer: true ? null : (
 					<>
-						{showChangelog && (
-							<div
-								style={{
-									position: 'relative',
-									display: 'flex',
-									flexDirection: 'column-reverse',
-									fontSize: 12,
-									border: '1px var(--color-border) solid',
-									height: 52,
-									padding: 2,
-									margin: 0,
-									marginTop: 2,
-									overflowY: 'scroll',
-								}}
-							>
-								{changelog?.length ? (
-									changelog.map((change) => {
-										const column = columns.find((c) => c.sql_name === change.column)!;
-										const time = new Date(change.time * 1e3);
-										const val = (str: string | null) =>
-											str == null
-												? 'null'
-												: column.dtype === 'time'
-												? new Date(parseInt(str) * 1e3).toISOString().replace(/\..*|T/g, ' ')
-												: str;
-										return (
-											<div key={JSON.stringify(change)} style={{ margin: '0' }}>
-												<i style={{ color: 'var(--color-text-dark)' }}>
-													[
-													{time
-														.toISOString()
-														.replace(/\..*|T/g, ' ')
-														.slice(0, -4)}
-													] @{change.author}{' '}
-												</i>
-												<i
-													style={{
-														color:
-															columns[cursor!.column].sql_name === column.sql_name
-																? color('active')
-																: 'unset',
-													}}
-												>
-													{' '}
-													<b>{column.name}</b>
-												</i>
-												: {val(change.old)} -&gt; <b>{val(change.new)}</b>
-												{change.special && (
-													<i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>
-												)}
-											</div>
-										);
-									})
-								) : (
-									<div className="Center" style={{ color: 'var(--color-text-dark)' }}>
-										NO CHANGES
-									</div>
-								)}
-							</div>
-						)}
 						<div
 							style={{
 								padding: '2px 0 2px 0',

@@ -62,6 +62,8 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 				[c in keyof EruptiveEvent<T>]: number;
 			};
 
+			console.log('%cloaded comp table:', 'color: #0af', which, columns, data);
+
 			return {
 				data,
 				columns,
@@ -73,14 +75,14 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 	}).data;
 }
 
-export function useTableDataQuery(tbl: EditableTable, withChangelog?: boolean) {
+export function useTableDataQuery(tbl: EditableTable) {
 	return useQuery({
 		staleTime: Infinity,
 		placeholderData: keepPreviousData,
 		structuralSharing: false,
 		queryKey: ['tableData', tbl],
 		queryFn: async () => {
-			const { columns, data, changelog } = await fetchTable(tbl, withChangelog);
+			const { columns, data, changelog } = await fetchTable(tbl, tbl === 'feid');
 			console.log('%cloaded table:', 'color: #0ff', tbl, columns, data, changelog);
 			setRawData(tbl, data, columns, changelog);
 			return { columns, data, changelog };

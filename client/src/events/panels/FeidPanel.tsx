@@ -20,7 +20,13 @@ import FeidTableView from '../tables/FeidTable';
 import { useTable } from '../core/editableTables';
 import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTableDataQuery } from '../core/query';
-import { defaultTableParams, type TableParams } from '../tables/Table';
+import { type TableParams } from '../tables/Table';
+
+const defaultTableParams: TableParams = {
+	showChangelog: false,
+	showAverages: true,
+	showIncludeMarkers: true,
+};
 
 export function EventsCheckbox({ text, k }: { text: string; k: keyof EventsSettings }) {
 	const settings = useEventsSettings.getState();

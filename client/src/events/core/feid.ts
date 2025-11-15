@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext } from 'react';
 import { useSampleState, sampleEditingMarkers, applySample, renderFilters, useSampleQuery } from '../sample/sample';
 import { useTable } from './editableTables';
 import { useEventsSettings } from './util';
@@ -27,7 +27,7 @@ export function useFeidSample() {
 	};
 
 	return useQuery({
-		queryKey: ['feidSample'],
+		queryKey: ['feidSample', isPicking, tableData, sample, columns, filters],
 		initialData: computeSample,
 		queryFn: computeSample,
 	}).data;
@@ -40,9 +40,9 @@ export function useFeidTableView() {
 	const sort = useEventsState((state) => state.sort);
 	const { current: sample, isPicking } = useSampleState();
 
-	const { data, samples } = useFeidSample();
+	const { data } = useFeidSample();
 
-	const sorted = useMemo(() => {
+	const renderTable = () => {
 		console.time('render feid table');
 		const cols = columns.filter((col) => ['id', ...shownColumns!]?.includes(col.sql_name));
 		const enabledIdxs = cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name));
@@ -69,7 +69,11 @@ export function useFeidTableView() {
 			markers: markers && idxs.map((i) => markers[i]),
 			columns: cols,
 		};
-	}, [columns, data, isPicking, sample, sort, shownColumns]);
+	};
 
-	return sorted;
+	return useQuery({
+		queryKey: ['feidSample', isPicking, sample, columns, data, sort.column],
+		initialData: renderTable,
+		queryFn: renderTable,
+	}).data;
 }

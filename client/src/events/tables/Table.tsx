@@ -3,11 +3,10 @@ import {
 	useRef,
 	useLayoutEffect,
 	useEffect,
-	type ReactNode,
-	type KeyboardEvent,
 	useCallback,
-	type WheelEvent,
 	useContext,
+	type KeyboardEvent,
+	type WheelEvent,
 	type MouseEvent,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
@@ -20,6 +19,7 @@ import { computeColumnWidth } from '../columns/columns';
 import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type TableAveragesData, TableAverages } from './TableAverages';
+import { TableChangelog } from './Changelog';
 
 export type Cursor = { entity: TableEntity; row: number; column: number; id?: number; editing?: boolean };
 
@@ -42,12 +42,6 @@ export type TableParams = {
 	showIncludeMarkers?: boolean;
 };
 
-export const defaultTableParams: TableParams = {
-	showChangelog: false,
-	showAverages: true,
-	showIncludeMarkers: true,
-};
-
 export type TableColumn = Column | SpecialColumn;
 type TableProps = {
 	size: Size;
@@ -56,7 +50,6 @@ type TableProps = {
 	columns: TableColumn[];
 	focusIdx?: number;
 	enableEditing?: boolean;
-	tfoot?: ReactNode;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
 	cellContent?: (val: TableValue, column: TableColumn) => string | undefined;
 	onKeydown?: (e: KeyboardEvent, curs: Cursor) => void;
@@ -64,13 +57,12 @@ type TableProps = {
 };
 
 export function EventsTable({
+	size,
 	entity,
 	data,
 	columns,
 	focusIdx,
 	enableEditing,
-	tfoot,
-	size,
 	onKeydown,
 	onClick,
 	rowClassName,
@@ -85,7 +77,7 @@ export function EventsTable({
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0);
+	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0) - (showAverages ? 80 : 0);
 	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
@@ -292,6 +284,7 @@ export function EventsTable({
 					</tfoot>
 				)}
 			</table>
+			{showChangelog && <TableChangelog entity={entity} columns={columns} />}
 		</div>
 	);
 }

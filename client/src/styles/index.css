@@ -54,6 +54,15 @@ button {
 	-ms-overflow-style: none;  /* IE and Edge */
 	scrollbar-width: none;     /* Firefox */
 	}
+
+
+	.center {
+		position: absolute;
+		width: fit-content;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+	}
 }
 
 .PopupBackground {
