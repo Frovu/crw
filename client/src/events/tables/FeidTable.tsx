@@ -1,12 +1,12 @@
-import { useContext, useState, useEffect, type KeyboardEvent, useMemo } from 'react';
-import { color } from '../../app';
+import { useContext, useMemo } from 'react';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size } from '../../util';
 import { useEventsState } from '../core/eventsState';
 import { applySample, pickEventForSample } from '../sample/sample';
 import { EventsTable, type SpecialColumn, type TableParams } from './Table';
 import { useFeidSample, useFeidTableView } from '../core/feid';
-import { useTablesStore, type TableRow } from '../core/editableTables';
+import { type TableRow } from '../core/editableTables';
+import { ChangesGadget } from '../core/changes';
 
 const sampleMarkerCol: SpecialColumn = {
 	type: 'special',
@@ -30,19 +30,9 @@ const incMarkerCol: SpecialColumn = {
 
 export default function FeidTableView({ size, averages }: { size: Size; averages?: (null | number[])[] }) {
 	const { params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
-	const { changes, created, deleted } = useTablesStore().feid;
 	const { data, columns, markers } = useFeidTableView();
 	const { sample, samples } = useFeidSample();
 	const plotId = useEventsState((st) => st.plotId);
-
-	const [changesHovered, setChangesHovered] = useState(false);
-
-	// FIXME NOT ONLY FEID CHANGES
-	const changeCount = [changes, created, deleted].flatMap(Object.values).reduce((a, b) => a + b.length, 0);
-
-	useEffect(() => {
-		if (changeCount === 0) setChangesHovered(false);
-	}, [changeCount]);
 
 	const simulateKey =
 		(key: string, ctrl: boolean = false) =>
@@ -89,106 +79,54 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 	// 	});
 
 	return (
-		<EventsTable
-			{...{
-				size,
-				...withIncludeMarkers,
-				onKeydown: (e, cursor) => {
-					if (cursor && ['-', '+', '='].includes(e.key))
-						return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
-				},
-				entity: 'feid',
-				enableEditing: true,
-				rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
-				onClick: (e, row, column) => {
-					if (column.sql_name === '_sample') {
-						pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0] as number);
-						return true;
-					}
-				},
-				footer: true ? null : (
-					<>
-						<div
-							style={{
-								padding: '2px 0 2px 0',
-								display: 'flex',
-								justifyContent: 'space-between',
-								alignContent: 'bottom',
-							}}
+		<>
+			<EventsTable
+				{...{
+					size: {
+						...size,
+						height: size.height - 22,
+					},
+					...withIncludeMarkers,
+					onKeydown: (e, cursor) => {
+						if (cursor && ['-', '+', '='].includes(e.key))
+							return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
+					},
+					entity: 'feid',
+					enableEditing: true,
+					rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
+					onClick: (e, row, column) => {
+						if (column.sql_name === '_sample') {
+							pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0] as number);
+							return true;
+						}
+					},
+				}}
+			/>
+			<div className="flex justify-between content-bottom h-[22px]">
+				<div className="flex text-text-dark text-sm overflow-clip whitespace-nowrap">
+					<div className="text-active"> [{data.length}]</div>
+					<ChangesGadget />
+				</div>
+
+				<div className="flex gap-[2px] text-base text-text-dark font-bold">
+					{[
+						['↑', 'ArrowUp'],
+						['↓', 'ArrowDown'],
+						['H', 'Home'],
+						['E', 'End'],
+						['←', 'ArrowLeft'],
+						['→', 'ArrowRight'],
+					].map(([label, key]) => (
+						<button
+							key={key}
+							className="hover:text-active border-1 w-5 h-5 leading-none"
+							onClick={simulateKey(key, ['Home', 'End'].includes(key))}
 						>
-							<span
-								style={{
-									color: 'var(--color-text-dark)',
-									fontSize: 14,
-									overflow: 'clip',
-									whiteSpace: 'nowrap',
-									minWidth: 0,
-								}}
-							>
-								<span style={{ color: color('active') }}> [{data.length}]</span>
-								{changeCount > 0 && (
-									<div
-										style={{
-											display: 'inline-flex',
-											width: 160,
-											height: 19,
-											justifyContent: 'center',
-											gap: 12,
-										}}
-										onClick={(e) => e.stopPropagation()}
-										onMouseEnter={() => setChangesHovered(true)}
-										onMouseLeave={() => setChangesHovered(false)}
-									>
-										{!changesHovered && (
-											<span style={{ color: color('red'), fontSize: 14 }}>
-												&nbsp;&nbsp;With [{changeCount}] unsaved&nbsp;
-											</span>
-										)}
-										{changesHovered && (
-											<>
-												<button
-													className="TextButton"
-													style={{ lineHeight: 1 }}
-													onClick={simulateKey('KeyS', true)}
-												>
-													save
-												</button>
-												<button
-													className="TextButton"
-													style={{ lineHeight: 1 }}
-													onClick={simulateKey('KeyX', true)}
-												>
-													discard
-												</button>
-											</>
-										)}
-									</div>
-								)}
-							</span>
-							<span style={{ display: 'inline-flex', gap: '2px', fontSize: 16 }}>
-								<button className="TableControl" onClick={simulateKey('ArrowUp')}>
-									<span>↑</span>
-								</button>
-								<button className="TableControl" onClick={simulateKey('ArrowDown')}>
-									<span>↓</span>
-								</button>
-								<button className="TableControl" onClick={simulateKey('Home', true)}>
-									<span>H</span>
-								</button>
-								<button className="TableControl" onClick={simulateKey('End', true)}>
-									<span>E</span>
-								</button>
-								<button className="TableControl" onClick={simulateKey('ArrowLeft')}>
-									<span>←</span>
-								</button>
-								<button className="TableControl" onClick={simulateKey('ArrowRight')}>
-									<span>→</span>
-								</button>
-							</span>
-						</div>
-					</>
-				),
-			}}
-		/>
+							{label}
+						</button>
+					))}
+				</div>
+			</div>
+		</>
 	);
 }

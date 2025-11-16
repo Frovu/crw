@@ -1,6 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 @import "tailwindcss";
+@import "./themes.css";
 
 :root {
 	--font: 'Roboto Mono', monospace;
@@ -21,11 +22,7 @@
 	box-sizing: border-box; /* Opera/IE 8+ */
 }
 
-body {
-	margin: 0;
-}
-
-input,
+/* input,
 button,
 select {
 	background-color: var(--color-bg);
@@ -41,7 +38,7 @@ input[type='checkbox'],
 select,
 button {
 	cursor: pointer;
-}
+} */
 
 @layer utilities {
 	/* Hide scrollbar for Chrome, Safari and Opera */
@@ -55,6 +52,27 @@ button {
 	scrollbar-width: none;     /* Firefox */
 	}
 
+	input,
+	button,
+	select {
+		@apply bg-bg border-1 cursor-pointer;
+		font-family: inherit;
+		font-size: inherit;
+		color: inherit;
+		outline: none;
+		&:hover {
+			@apply border-active;
+
+		}
+	}
+
+	.btn-text {
+		@apply cursor-pointer border-0 p-0;
+	}
+
+	.btn-text:hover {
+		@apply text-active underline;
+	}
 
 	.center {
 		position: absolute;

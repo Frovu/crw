@@ -2,8 +2,8 @@ import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { logMessage, useContextMenuStore } from '../../app';
-import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
+import { logMessage, useContextMenu, useContextMenuStore, useEventsContextMenu } from '../../app';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources, useEntityCursor } from '../core/eventsState';
 import {
 	assignCMEToErupt,
 	assignFlareToErupt,
@@ -11,8 +11,12 @@ import {
 	inputEruptionManually,
 	linkSrcToEvent,
 	parseFlareFlux,
+	type EruptiveEvent,
 } from '../core/sourceActions';
 import { useEventListener } from '../../util';
+import { deleteEvent, makeSourceChanges, useTable } from '../core/editableTables';
+import { sourceLabels, type Tables } from '../../api';
+import { useCompoundTable } from '../core/query';
 
 const ENT = 'sources_erupt';
 const flare_columns = {
@@ -25,7 +29,7 @@ const flare_columns = {
 	lon: 'lon',
 } as const;
 
-function switchMainFlare(erupt: SrcEruptRow, flare: Flare) {
+function switchMainFlare(erupt: Tables['sources_erupt'], flare: EruptiveEvent<'flare'>) {
 	logMessage(`FLR: ${erupt.flr_source} -> ${flare.src} in ERUPT #${erupt.id}`);
 	const ar = erupt.active_region;
 	assignFlareToErupt(erupt, flare);
@@ -33,13 +37,17 @@ function switchMainFlare(erupt: SrcEruptRow, flare: Flare) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchMainCME(erupt: SrcEruptRow, cme: CME) {
+function switchMainCME(erupt: Tables['sources_erupt'], cme: EruptiveEvent<'cme'>) {
 	logMessage(`CME: ${erupt.cme_source} -> ${cme.src} in ERUPT #${erupt.id}`);
 	assignCMEToErupt(erupt, cme);
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: CME | Flare) {
+function switchCoordsSrc(
+	erupt: Tables['sources_erupt'],
+	opt: Tables['sources_erupt']['coords_source'],
+	sth?: EruptiveEvent<'cme' | 'flare'>
+) {
 	if (opt !== 'MNL') {
 		erupt.lat = sth?.lat ?? null;
 		erupt.lon = sth?.lon ?? null;
@@ -48,12 +56,12 @@ function switchCoordsSrc(erupt: SrcEruptRow, opt: string, sth?: CME | Flare) {
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
+function Menu() {
 	const { id: feidId } = useFeidCursor();
 	const sources = useCurrentFeidSources();
-	const detail = useContextMenuStore((state) => state.menu?.detail) as TableMenuDetails | undefined;
-	const eruptId = detail?.cell?.id;
-	const isLinked = sources.find((s) => s.erupt?.id === eruptId);
+	const menu = useEventsContextMenu<'sources_erupt'>();
+	const eruptId = menu.event?.id;
+	const isLinked = sources.find((s) => s.erupt?.id === menu?.event);
 
 	return (
 		eruptId && (
@@ -77,19 +85,14 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 }
 
 function Panel() {
-	const sCursor = useEntityCursor();
+	const cursor = useEntityCursor(ENT);
 	const { data, columns } = useTable(ENT);
+	const selectedErupt = useSelectedSource(ENT);
 	const feidSrc = useTable('feid_sources');
 	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const sources = useCurrentFeidSources();
-	const selectedErupt = useSelectedSource('sources_erupt');
 	const { start: cursorTime, id: feidId } = useFeidCursor();
-
-	const cursor = sCursor?.entity === ENT ? sCursor : null;
-
-	useTableQuery('feid_sources');
-	useTableQuery(ENT);
 
 	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {
 		feidId && inputEruptionManually({ lat, lon, time }, feidId, selectedErupt?.id ?? null);

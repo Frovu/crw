@@ -142,7 +142,7 @@ div.separator {
 	color: var(--color-active);
 	text-decoration: underline;
 }
-
+/* 
 button,
 select {
 	text-align: center;
@@ -189,7 +189,7 @@ select:disabled {
 button:hover:enabled,
 select:hover:enabled {
 	border-color: var(--color-active) !important;
-}
+} */
 
 .w-color-sketch {
 	--sketch-box-shadow: none !important;

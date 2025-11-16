@@ -73,22 +73,6 @@
 	transform: translate(1px, -3px);
 }
 
-.TableControl {
-	border-color: var(--color-border);
-	color: var(--color-text-dark);
-	position: relative;
-	padding: 0;
-	height: 19px;
-	width: 19px;
-}
-.TableControl * {
-	font-size: 16px;
-	font-weight: bold;
-	position: absolute;
-	top: -3.5px;
-	left: 4px;
-}
-
 .Filters {
 	justify-content: left;
 	display: flex;

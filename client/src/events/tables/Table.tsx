@@ -14,12 +14,13 @@ import { valueToString } from '../core/util';
 import { openContextMenu } from '../../app';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import type { Column, Tables } from '../../api';
-import { tableRowAsDict, type EditableTable, type TableValue } from '../core/editableTables';
+import { makeChange, tableRowAsDict, type EditableTable, type TableValue } from '../core/editableTables';
 import { computeColumnWidth } from '../columns/columns';
 import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
 import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type TableAveragesData, TableAverages } from './TableAverages';
 import { TableChangelog } from './Changelog';
+import { TableInput } from './TableInput';
 
 export type Cursor = { entity: TableEntity; row: number; column: number; id?: number; editing?: boolean };
 
@@ -90,7 +91,6 @@ export function EventsTable({
 	const sliceId = columns[0]?.sql_name === 'id' ? 1 : 0;
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
-	console.log(entity, size.height, rowsHeight, viewSize, data.slice(viewIndex, Math.max(0, viewIndex + viewSize)).length);
 
 	const updateViewIndex = useCallback(
 		(curs: Cursor) =>
@@ -260,6 +260,7 @@ export function EventsTable({
 										column.name === 'time' && sliceId
 											? `id = ${row[0]}`
 											: `${column.name} = ${valueToString(row[cidx])}`;
+									const isEditing = curs?.editing && column.type !== 'special';
 									return (
 										<td
 											className={curs ? 'outline-active outline-1' : undefined}
@@ -272,7 +273,20 @@ export function EventsTable({
 												event: tableRowAsDict(row, columns as Column[]),
 											})}
 										>
-											{cellContent?.(row[cidx], column) ?? valueToString(row[cidx])}
+											{isEditing && (
+												<TableInput
+													column={column}
+													value={row[cidx]}
+													onChange={(value) =>
+														makeChange(entity as EditableTable, {
+															id: row[0] as number,
+															column: column.sql_name,
+															value,
+														})
+													}
+												/>
+											)}
+											{!isEditing && (cellContent?.(row[cidx], column) ?? valueToString(row[cidx]))}
 										</td>
 									);
 								})}

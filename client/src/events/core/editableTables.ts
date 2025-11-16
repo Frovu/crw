@@ -21,6 +21,7 @@ type TableState<T extends EditableTable> = {
 	rawData: TableRow[];
 	data: TableRow[];
 	changelog: null | ChangelogResponse;
+	updatedAt: number;
 };
 type TablesState = { [t in EditableTable]: TableState<t> };
 
@@ -38,6 +39,7 @@ const defaultSate = Object.fromEntries(
 			data: [] as any,
 			index: {} as any,
 			changelog: null,
+			updatedAt: 0,
 		},
 	])
 ) as TablesState;
@@ -55,7 +57,7 @@ export const setRawData = (tbl: EditableTable, rdata: TableRow[], columns: Colum
 			state[tbl].columns = columns;
 			state[tbl].index = Object.fromEntries(columns.map((col, i) => [col.sql_name, i])) as any;
 			state[tbl].rawData = rdata;
-			state[tbl].data = renderTableData(state, tbl);
+			renderTableData(state, tbl);
 		})
 	);
 
@@ -80,7 +82,8 @@ const renderTableData = (state: TablesState, tbl: EditableTable) => {
 		data.sort((a: any, b: any) => a[idx] - b[idx]);
 	}
 
-	return data;
+	state[tbl].data = data;
+	state[tbl].updatedAt = Date.now();
 };
 
 export const tableRowAsDict = <T extends keyof Tables = never>(row: TableValue[], columns: Column[]) =>
@@ -105,30 +108,28 @@ export const useTable = <T extends EditableTable>(tbl: T) => {
 	const columns = useTablesStore((st) => st[tbl].columns);
 	const data = useTablesStore((st) => st[tbl].data);
 	const index = useTablesStore((st) => st[tbl].index);
+	const updatedAt = useTablesStore((st) => st[tbl].updatedAt);
 
 	if (!data && query.isFetched) query.refetch();
-	return useMemo(
-		() => ({ ...tableApi({ columns, data, index }), updatedAt: query.dataUpdatedAt }),
-		[columns, data, index, query.dataUpdatedAt]
-	);
+	return useMemo(() => ({ ...tableApi({ columns, data, index }), updatedAt }), [columns, data, index, updatedAt]);
 };
 
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>
 	useTablesStore.setState((state) => {
 		state[tbl].changes = state[tbl].changes.filter((c) => c.id !== id || column !== c.column);
-		state[tbl].data = renderTableData(state, tbl);
+		renderTableData(state, tbl);
 	});
 
 export const discardCreated = (tbl: EditableTable, id: number) =>
 	useTablesStore.setState((state) => {
 		state[tbl].created = state[tbl].created.filter((r) => r[0] !== id);
-		state[tbl].data = renderTableData(state, tbl);
+		renderTableData(state, tbl);
 	});
 
 export const discardDeleted = (tbl: EditableTable, id: number) =>
 	useTablesStore.setState((state) => {
 		state[tbl].deleted = state[tbl].deleted.filter((did) => did !== id);
-		state[tbl].data = renderTableData(state, tbl);
+		renderTableData(state, tbl);
 	});
 
 export const resetChanges = (keepData: boolean) =>
@@ -137,7 +138,7 @@ export const resetChanges = (keepData: boolean) =>
 			state[tbl].changes = [];
 			state[tbl].created = [];
 			state[tbl].deleted = [];
-			if (!keepData) state[tbl].data = renderTableData(state, tbl);
+			if (!keepData) renderTableData(state, tbl);
 		}
 	});
 
@@ -153,6 +154,7 @@ export function deleteEvent(tbl: EditableTable, id: number) {
 				});
 		}
 		st[tbl].data = st[tbl].data?.filter((r) => r[0] !== id);
+		st[tbl].updatedAt = Date.now();
 	});
 }
 
@@ -175,8 +177,8 @@ export function makeChange(tbl: EditableTable, chgs: ChangeValue | ChangeValue[]
 				const row = st[tbl].data!.find((r) => r[0] === id);
 				if (row) row[colIdx] = value;
 			} else {
-				console.log('rendering', tbl);
-				st[tbl].data = renderTableData(st, tbl);
+				console.log('rendering changes', tbl);
+				renderTableData(st, tbl);
 			}
 		}
 	});
@@ -188,7 +190,7 @@ export function createFeid(row: { time: Date; duration: number }) {
 		const { columns, created } = state.feid;
 		const newRow = [id, ...columns.slice(1).map((col) => row[col.sql_name as keyof typeof row] ?? null)];
 		state.feid.created = [newRow as any, ...created];
-		state.feid.data = renderTableData(state, 'feid');
+		renderTableData(state, 'feid');
 	});
 	return id;
 }
@@ -203,6 +205,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 			const newRow = [id, ...columns.slice(1).map(() => null)] as TableRow;
 			state[tbl].created = [...created, newRow];
 			state[tbl].data = [...data, newRow];
+			state[tbl].updatedAt = Date.now();
 		}
 
 		const targetIdCol = tbl === 'sources_ch' ? 'ch_id' : 'erupt_id';
@@ -212,6 +215,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		] as TableRow;
 		state.feid_sources.created = [...state.feid_sources.created, feidSrcRow];
 		state.feid_sources.data = [...state.feid_sources.data, feidSrcRow];
+		state.feid_sources.updatedAt = Date.now();
 
 		useEventsState.setState((estate) => {
 			estate.modifySourceId = feidSrcId;

@@ -1,5 +1,5 @@
 import { sourceLabels, sourceLinks, type Tables } from '../../api';
-import { useContextMenuStore } from '../../app';
+import { useEventsContextMenu } from '../../app';
 import { cn } from '../../util';
 import { type TableValue, useTable } from '../core/editableTables';
 import { equalValues } from '../core/util';
@@ -18,15 +18,14 @@ import { EventsTable, type TableColumn } from './Table';
 import { useMemo } from 'react';
 
 export function EruptiveEntityMenu<T extends EruptTable>({ entity }: { entity: T }) {
-	const detail = useContextMenuStore((state) => state.menu?.detail) as { [key in T]: EruptiveEvent<T> } | undefined;
-	const event = detail?.[entity];
+	const { event } = useEventsContextMenu<T>();
 	const erupt = useSelectedSource('sources_erupt');
 
 	if (!event) return null;
 
 	const src = event.src;
-	const link = getSourceLink(entity, src);
-	const isLinked = equalValues(event[link.id], erupt?.[link.link]);
+	const link = getSourceLink(entity, src as any);
+	const isLinked = equalValues(event[link.id as keyof typeof event], erupt?.[link.link]);
 
 	return (
 		<>
