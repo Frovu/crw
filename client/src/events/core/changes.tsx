@@ -1,7 +1,7 @@
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { color, logError, logSuccess } from '../../app';
-import { useEventListener, apiPost, prettyDate } from '../../util';
+import { logError, logSuccess } from '../../app';
+import { useEventListener, apiPost, prettyDate, dispatchCustomEvent } from '../../util';
 import { Confirmation } from '../../Utility';
 import {
 	resetChanges,
@@ -14,17 +14,16 @@ import {
 } from './editableTables';
 import { valueToString } from './util';
 
-export function CommitChanges() {
+export function ChangesGadget() {
+	const state = useTablesStore();
+	const queryClient = useQueryClient();
 	const [showCommit, setShowCommit] = useState(false);
-	const state = useTablesStore.getState();
+	const [hovered, setHovered] = useState(false);
+
 	const totalChanges = editableTables
 		.flatMap((tbl) => [state[tbl].created, state[tbl].deleted, state[tbl].changes])
 		.reduce((a, b) => a + b.length, 0);
 
-	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
-	useEventListener('action+discardChanges', () => resetChanges(false));
-
-	const queryClient = useQueryClient();
 	const { mutate: doCommit, error } = useMutation({
 		mutationFn: () =>
 			apiPost('events/changes', {
@@ -50,69 +49,95 @@ export function CommitChanges() {
 		},
 	});
 
-	if (!showCommit) return null;
+	useEventListener('action+commitChanges', () => setShowCommit(totalChanges > 0));
+	useEventListener('action+discardChanges', () => resetChanges(false));
 
-	// TODO: redesign with tw
 	return (
-		<Confirmation callback={() => doCommit()} closeSelf={(yes) => !yes && setShowCommit(false)}>
-			<h4 style={{ margin: '1em 0 0 0' }}>
-				About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}
-			</h4>
-			<div style={{ textAlign: 'left', padding: '1em 2em 1em 2em' }} onClick={(e) => e.stopPropagation()}>
-				{Object.entries(changes).map(([tbl, chgs]) => (
-					<div key={tbl}>
-						{chgs.length + created[tbl as TableName].length + deleted[tbl as TableName].length > 0 && (
-							<div>
-								<b>{tbl.replace('feid', 'FEID')}</b>
-							</div>
-						)}
-						{created[tbl as TableName].map((row) => (
-							<div key={row[0]} style={{ color: color('cyan') }}>
-								+ {tbl === 'feid' ? prettyDate(row[1] as Date) : '#' + row[0]}
-								<div
-									className="CloseButton"
-									style={{ transform: 'translate(4px, 2px)' }}
-									onClick={() => discardCreated(tbl as any, row[0])}
-								/>
-							</div>
-						))}
-						{deleted[tbl as TableName].map((id) => (
-							<div key={id} style={{ color: color('magenta') }}>
-								-{' '}
-								{tbl === 'feid'
-									? prettyDate((rawData[tbl as TableName]?.find((r) => r[0] === id)?.[1] as Date) ?? null)
-									: '#' + id}
-								<div
-									className="CloseButton"
-									style={{ transform: 'translate(4px, 2px)' }}
-									onClick={() => discardDeleted(tbl as any, id)}
-								/>
-							</div>
-						))}
-						{chgs
-							.filter((ch) => !ch.silent)
-							.map(({ id, column: cId, value }) => {
-								const column = columns[tbl as keyof typeof columns]?.find((c) => c.sql_name === cId);
-								const row = rawData[tbl as keyof typeof changes]!.find((r) => r[0] === id);
-								const colIdx = columns[tbl as keyof typeof changes]!.findIndex((c) => c.sql_name === cId);
-								const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
-								const val1 = value == null ? 'null' : valueToString(value);
-								return (
-									<div key={id + cId + value}>
-										<span style={{ color: color('text-dark') }}>#{id}: </span>
-										<i style={{ color: color('active') }}>{column?.name}</i> {val0} -&gt; <b>{val1}</b>
+		<>
+			{totalChanges === 0 ? null : (
+				<div
+					className="w-42 h-full text-sm flex"
+					onClick={(e) => e.stopPropagation()}
+					onMouseEnter={() => setHovered(true)}
+					onMouseLeave={() => setHovered(false)}
+				>
+					{!hovered && <div className="text-magenta">&nbsp;&nbsp;With [{totalChanges}] unsaved&nbsp;</div>}
+					{hovered && (
+						<>
+							<button
+								className="btn-text grow text-right"
+								onClick={() => dispatchCustomEvent('action+commitChanges')}
+							>
+								save
+							</button>
+							<button className="btn-text grow" onClick={() => dispatchCustomEvent('action+discardChanges')}>
+								discard
+							</button>
+						</>
+					)}
+				</div>
+			)}
+			{showCommit && (
+				<Confirmation callback={() => doCommit()} closeSelf={(yes) => !yes && setShowCommit(false)}>
+					<h4 className="m-0 text-base text-text">
+						About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}
+					</h4>
+					<div className="text-left text-text p-1 max-h-96 overflow-y-scroll" onClick={(e) => e.stopPropagation()}>
+						{editableTables.map((tbl) => (
+							<div key={tbl}>
+								{state[tbl].changes.length + state[tbl].deleted.length + state[tbl].created.length > 0 && (
+									<div>
+										<b>{tbl.replace('feid', 'FEID')}</b>
+									</div>
+								)}
+								{state[tbl].created.map((row) => (
+									<div key={row[0]} className="text-cyan">
+										+ {tbl === 'feid' ? prettyDate(row[1] as Date) : '#' + row[0]}
 										<div
-											className="CloseButton"
+											className="btn-close"
 											style={{ transform: 'translate(4px, 2px)' }}
-											onClick={() => discardChange(tbl as any, { id, column: cId, value })}
+											onClick={() => discardCreated(tbl, row[0])}
 										/>
 									</div>
-								);
-							})}
+								))}
+								{state[tbl].deleted.map((id) => (
+									<div key={id} className="text-magenta">
+										-{' '}
+										{tbl === 'feid'
+											? prettyDate((state[tbl].rawData.find((r) => r[0] === id)?.[1] as Date) ?? null)
+											: '#' + id}
+										<div
+											className="btn-close"
+											style={{ transform: 'translate(4px, 2px)' }}
+											onClick={() => discardDeleted(tbl, id)}
+										/>
+									</div>
+								))}
+								{state[tbl].changes
+									.filter((ch) => !ch.silent)
+									.map(({ id, column: colName, value }) => {
+										const colIdx = state[tbl].columns.findIndex((c) => c.sql_name === colName);
+										const column = state[tbl].columns[colIdx];
+										const row = state[tbl].rawData.find((r) => r[0] === id);
+										const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
+										const val1 = value == null ? 'null' : valueToString(value);
+										return (
+											<div key={id + colName + value}>
+												<span className="text-text-dark">#{id}: </span>
+												<i className="text-active">{column?.name}</i> {val0} -&gt; <b>{val1}</b>
+												<div
+													className="btn-close pl-1"
+													onClick={() => discardChange(tbl, { id, column: colName, value })}
+												/>
+											</div>
+										);
+									})}
+							</div>
+						))}
 					</div>
-				))}
-			</div>
-			{(error as any) && <div style={{ color: color('red') }}>{(error as any).toString()}</div>}
-		</Confirmation>
+					{(error as any) && <div className="text-red">{(error as any).toString()}</div>}
+				</Confirmation>
+			)}
+		</>
 	);
 }
