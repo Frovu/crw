@@ -1,10 +1,12 @@
 import traceback
 from time import time
 from threading import Thread, Lock
+from typing import Literal
 import numpy as np
-from database import pool, log
+from database import pool, log, upsert_many
 from events.columns.generic_columns import select_generics
 from events.columns.generic_core import apply_changes, recompute_for_row, recompute_generics, G_DERIVED, SELECT_FEID
+import events.columns.generic_core as gen
 
 DEFAULT_DURATION = 72
 
@@ -67,6 +69,47 @@ def _compute_x_v_idx(for_row=None):
 		conn.execute('UPDATE events.coronal_mass_ejections SET v_index = v_mean_0 / 1000' + w, v)
 		conn.execute('UPDATE events.solar_flares SET x_index = magnitude * dt1 / 1000' + w, v)
 
+T_KT_COL = Literal['t_ktl', 'd_ktl', 'ktl_cnt', 't_kth', 'd_kth', 'kth_cnt']
+KT_COLS: list[T_KT_COL] = ['t_ktl', 'd_ktl', 'ktl_cnt', 't_kth', 'd_kth', 'kth_cnt']
+@str_err
+def _compute_kt(for_rows, colname: T_KT_COL):
+	what = 'cnt' if 'cnt' in colname else colname.split('_')[0]
+	ptype = colname.split('_')[0 if 'cnt' in colname else 1]
+
+	target_id, event_start, event_duration = gen._select(for_rows, ('id', 'time', 'duration'))
+	cache = { 'FE': (event_start, event_duration) }
+	t_1, t_2 = [gen.get_ref_time(for_rows, r, cache) for r in gen.default_window()]
+	d_time, data = gen._select_series(t_1, t_2, 't_idx')
+	slices = gen.get_slices(d_time, t_1, t_2)
+
+	mask = (lambda d: d <= 0.5) if ptype == 'ktl' else (lambda d: d >= 1.5)
+	res = np.full(len(target_id), np.nan)
+
+	for i, slice in enumerate(slices):
+		if slice.start < 0:
+			continue
+		masked = mask(data[slice])
+
+		if what == 't':
+			if np.count_nonzero(masked) == 0:
+				res[i] = np.nan
+			else:
+				res[i] = (d_time[np.argmax(masked) + slice.start] - t_1[i]) / gen.HOUR
+		elif what == 'd':
+			res[i] = np.count_nonzero(masked)
+		else: # what == 'cnt':
+			preceding = np.roll(masked, 1)
+			preceding[0] = False
+			res[i] = np.count_nonzero(masked & ~preceding)
+
+	target_id = target_id.astype('i8')
+	res = np.where(~np.isfinite(res), None, np.round(res, 2))
+	data = np.column_stack((res, target_id)).tolist()
+	with pool.connection() as conn:
+		query = f'UPDATE events.feid SET {colname} = %s WHERE id = %s'
+		conn.cursor().executemany(query, data)
+		apply_changes(conn, colname, table='feid')
+
 def _compute_all(for_row):
 	generics = select_generics(select_all=True)
 	err = _compute_duration(for_row)
@@ -78,6 +121,8 @@ def _compute_all(for_row):
 		err += recompute_for_row([g for g in generics if g.params.operation     in G_DERIVED], for_row)
 	err += _compute_vmbm(generics, for_row)
 	err += _compute_x_v_idx(for_row)
+	for col in KT_COLS:
+		err += _compute_kt(for_row, col)
 	err = '; '.join([e for e in err if e])
 	compute_cache[for_row] = (compute_cache.get(for_row, [time()])[0], time(), err)
 
@@ -110,6 +155,8 @@ def compute_column(column):
 		return _compute_x_v_idx()[0]
 	elif column == 'duration':
 		return _compute_duration()[0]
+	elif column in KT_COLS:
+		return _compute_kt(None, column)[0]
 	else:
 		found = next((g for g in generics if g.name == column), None)
 		if not found:
