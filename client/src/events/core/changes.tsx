@@ -13,6 +13,7 @@ import {
 	tableRowAsDict,
 } from './editableTables';
 import { valueToString } from './util';
+import { CloseButton } from '../../components/Button';
 
 export function ChangesGadget() {
 	const state = useTablesStore();
@@ -125,8 +126,8 @@ export function ChangesGadget() {
 											<div key={id + colName + value}>
 												<span className="text-text-dark">#{id}: </span>
 												<i className="text-active">{column?.name}</i> {val0} -&gt; <b>{val1}</b>
-												<div
-													className="btn-close pl-1"
+												<CloseButton
+													className="ml-1"
 													onClick={() => discardChange(tbl, { id, column: colName, value })}
 												/>
 											</div>

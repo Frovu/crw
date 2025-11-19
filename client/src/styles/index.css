@@ -3,6 +3,10 @@
 @import "tailwindcss";
 @import "./themes.css";
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
 	--font: 'Roboto Mono', monospace;
 
@@ -22,24 +26,6 @@
 	box-sizing: border-box; /* Opera/IE 8+ */
 }
 
-/* input,
-button,
-select {
-	background-color: var(--color-bg);
-	font-family: inherit;
-	font-size: inherit;
-	color: inherit;
-	outline: none;
-}
-option {
-	color: var(--color-text);
-}
-input[type='checkbox'],
-select,
-button {
-	cursor: pointer;
-} */
-
 @layer utilities {
 	/* Hide scrollbar for Chrome, Safari and Opera */
 	.no-scrollbar::-webkit-scrollbar {
@@ -52,26 +38,7 @@ button {
 	scrollbar-width: none;     /* Firefox */
 	}
 
-	input,
-	button,
-	select {
-		@apply bg-bg border-1 cursor-pointer;
-		font-family: inherit;
-		font-size: inherit;
-		color: inherit;
-		outline: none;
-		&:hover {
-			@apply border-active;
 
-		}
-	}
-
-	.btn-text {
-		@apply cursor-pointer border-0 p-0;
-	}
-	.btn-text:hover {
-		@apply text-active underline;
-	}
 
 	.btn-close {
 		position: relative;
@@ -104,6 +71,7 @@ button {
 	}
 }
 
+
 .PopupBackground {
 	background-color: var(--color-bg);
 	opacity: 0.7;
@@ -124,13 +92,6 @@ button {
 	z-index: 129;
 }
 
-.Center {
-	position: absolute;
-	width: fit-content;
-	left: 50%;
-	top: 50%;
-	transform: translate(-50%, -50%);
-}
 
 .CloseButton {
 	position: relative;

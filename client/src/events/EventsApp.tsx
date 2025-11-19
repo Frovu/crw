@@ -2,11 +2,11 @@ import { useEventListener } from '../util';
 import AppLayout from '../Layout';
 import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
-import type { EventsPanel } from './core/util';
+import type { EventsPanel, EventsSettings } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
-import { EventsCheckbox, FeidTable } from './panels/FeidPanel';
+import { FeidTable } from './panels/FeidPanel';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
 import { RSMPlot } from '../plots/time/Circles';
@@ -30,6 +30,7 @@ import { Histogram } from '../plots/Histogram';
 import { SuperposedEpochs } from '../plots/SuperposedEpochs';
 import { EventsHistory } from '../plots/EventsHistory';
 import { SWPCHint } from './panels/SWPC';
+import { EventsCheckbox } from '../components/Checkbox';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -84,7 +85,7 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
-		<>
+		<div className="flex flex-col items-center">
 			{isPlot && (
 				<>
 					<div className="Row">
@@ -93,10 +94,10 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 					</div>
 					<div className="separator" />
 					<div className="Row">
-						<EventsCheckbox text="grid" k="showGrid" />
-						{(!isStat || type === 'Events history') && <EventsCheckbox text="markers" k="showMarkers" />}
-						<EventsCheckbox text="legend" k="showLegend" />
-						{type === 'Correlation' && <EventsCheckbox text="title" k="showTitle" />}
+						<EventsCheckbox label="grid" k="showGrid" />
+						{(!isStat || type === 'Events history') && <EventsCheckbox label="markers" k="showMarkers" />}
+						<EventsCheckbox label="legend" k="showLegend" />
+						{type === 'Correlation' && <EventsCheckbox label="title" k="showTitle" />}
 					</div>
 				</>
 			)}
@@ -111,27 +112,23 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 					{(!isSolar || (type === 'Particles' && params.solarTime === false)) && (
 						<>
 							<div className="Row">
-								<EventsCheckbox text="show unlisted" k="plotUnlistedEvents" />
-								<EventsCheckbox text="MCs" k="showMagneticClouds" />
-								<EventsCheckbox text="ends" k="showEventsEnds" />
+								<EventsCheckbox label="show unlisted" k="plotUnlistedEvents" />
+								<EventsCheckbox label="MCs" k="showMagneticClouds" />
+								<EventsCheckbox label="ends" k="showEventsEnds" />
 							</div>
 						</>
 					)}
 					{Menu && <div className="separator" />}
 				</>
 			)}
-			{Menu && (
-				<>
-					<Menu {...{ params, setParams, Checkbox }} />
-				</>
-			)}
+			{Menu && <Menu {...{ params, setParams, Checkbox }} />}
 			{isPlot && (
 				<>
 					<div className="separator" />
 					{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
 				</>
 			)}
-		</>
+		</div>
 	);
 }
 

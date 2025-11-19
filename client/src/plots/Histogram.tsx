@@ -8,6 +8,7 @@ import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './ba
 import { type ContextMenuProps } from '../layout';
 import { NumberInput } from '../Utility';
 import type { Value } from '../events/columns/columns';
+import { useFeidSample, useFeidTableView } from '../events/core/feid';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -48,9 +49,9 @@ const defaultParams: HistogramParams = {
 	drawMedian: false,
 };
 
-function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
-	const { columns } = useContext(MainTableContext);
-	const { samples } = useContext(SampleContext);
+function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
+	const { columns } = useFeidTableView();
+	const { samples } = useFeidSample();
 	const { shownColumns } = useEventsSettings();
 	const columnOpts = columns.filter(
 		(c) =>
@@ -58,30 +59,19 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id)
 	);
 
-	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
-	const Checkbox = ({ text, k }: { text: string; k: keyof HistogramParams }) => (
-		<label>
-			{text}
-			<input
-				type="checkbox"
-				style={{ paddingLeft: 4 }}
-				checked={params[k] as boolean}
-				onChange={(e) => set(k, e.target.checked)}
-			/>
-		</label>
-	);
-
 	return (
-		<div className="Group">
+		<>
 			{([0, 1, 2] as const).map((i) => (
 				<div key={i} className="Row" style={{ paddingRight: 4 }}>
 					<span
 						title="Reset"
 						style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
-						onClick={() => {
-							set(columnKeys[i], null);
-							set(sampleKeys[i], '<current>');
-						}}
+						onClick={() =>
+							setParams({
+								[columnKeys[i]]: null,
+								[sampleKeys[i]]: '<current>',
+							})
+						}
 					>
 						#{i}
 					</span>
@@ -174,15 +164,13 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 					allowNull={true}
 				/>
 			</div>
-			<div className="Row">
-				<Checkbox text="Show Y label" k="showYLabel" />
-				<Checkbox text=" mean" k="drawMean" />
-				<Checkbox text=" median" k="drawMedian" />
+			<div className="flex gap-1">
+				<Checkbox label="Show Y label" k="showYLabel" />
+				<Checkbox label=" mean" k="drawMean" />
+				<Checkbox label=" median" k="drawMedian" />
 			</div>
-			<div className="Row">
-				<Checkbox text="Show residual counts" k="showResiduals" />
-			</div>
-		</div>
+			<Checkbox label="Show residual counts" k="showResiduals" />
+		</>
 	);
 }
 

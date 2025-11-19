@@ -18,10 +18,12 @@ import {
 	moveWindow,
 	type Panel,
 	type NodeParams,
+	type ContextMenuProps,
 } from './layout';
 import { CatchErrors } from './Utility';
 import ContextMenu from './ContextMenu';
 import { defaultLayouts } from './defaultLayouts';
+import { Checkbox } from './components/Checkbox';
 
 function Window({ id }: { id: string }) {
 	const { panels } = useContext(AppLayoutContext);
@@ -96,7 +98,9 @@ function Window({ id }: { id: string }) {
 			}}
 			onContextMenu={openContextMenu('layout', { nodeId: id, window: { ...params } })}
 		>
-			<LayoutContext.Provider value={{ id, size, params, panel, isWindow: true, setParams: (para) => setWindowParams(id, para) }}>
+			<LayoutContext.Provider
+				value={{ id, size, params, panel, isWindow: true, setParams: (para) => setWindowParams(id, para) }}
+			>
 				<CatchErrors>
 					<panel.Panel />
 				</CatchErrors>
@@ -169,12 +173,10 @@ function Item({ id, size }: { id: string; size: Size }) {
 					</LayoutContext.Provider>
 				)}
 				{!item.type && (
-					<div className="Center">
-						<div className="ContextMenu" style={{ position: 'unset' }}>
-							<CatchErrors>
-								<LayoutContextMenu id={id} />
-							</CatchErrors>
-						</div>
+					<div className="center border">
+						<CatchErrors>
+							<LayoutContextMenu id={id} />
+						</CatchErrors>
 					</div>
 				)}
 			</div>
@@ -248,26 +250,20 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 	const panel: Panel<object> | undefined = panels[type ?? ''];
 	const params: NodeParams<{ [k: string]: any }> = { type, ...panel?.defaultParams, ...(window ?? item) };
 
-	const Checkbox = ({ text, k }: { text: string; k: string }) => (
-		<label>
-			{text}
-			<input
-				type="checkbox"
-				style={{ marginLeft: 4 }}
-				checked={params[k] as boolean}
-				onChange={(e) => setNodeParams(id, { [k]: e.target.checked })}
-			/>
-		</label>
+	const cb: ContextMenuProps<object>['Checkbox'] = ({ k, ...props }) => (
+		<Checkbox {...props} checked={params[k]} onCheckedChange={(val) => setNodeParams(id, { [k]: val })} />
 	);
 
-	if (window)
-		return (
-			<CatchErrors>
-				{panel?.Menu && (
-					<panel.Menu {...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox }} />
-				)}
-			</CatchErrors>
-		);
+	// if (window)
+	// 	return (
+	// 		<CatchErrors>
+	// 			{panel?.Menu && (
+	// 				<panel.Menu
+	// 					{...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox: cb }}
+	// 				/>
+	// 			)}
+	// 		</CatchErrors>
+	// 	);
 
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
@@ -291,13 +287,15 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 					))}
 				</select>
 			)}
-			{!isFirstInRoot && type && <div className="separator" />}
-			{type && panel.Menu && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox }} />}
+			{!isFirstInRoot && type && !window && <div className="separator" />}
+			{type && panel.Menu && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox: cb }} />}
 			{item && <div className="separator" />}
-			{!item && <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
-			{(!item || type) && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
-			{!item && <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
-			{(!item || type) && <button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>}
+			{!item && !window && <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
+			{(!item || type) && !window && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
+			{!item && !window && <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
+			{(!item || type) && !window && (
+				<button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>
+			)}
 			{item && id !== 'root' && !(item.type && isFirstInRoot) && (
 				<button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>
 			)}
@@ -362,7 +360,9 @@ export function LayoutNav() {
 										}}
 										autoFocus
 										onFocus={(e) => e.target.select()}
-										onKeyDown={(e) => ['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()}
+										onKeyDown={(e) =>
+											['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()
+										}
 										onBlur={() => {
 											renameLayout(renaming.layout, renaming.input);
 											setRenaming(null);
@@ -383,7 +383,11 @@ export function LayoutNav() {
 									</span>
 								)}
 								<div style={{ minWidth: 8 }} />
-								<button hidden={!isUsers} className="TextButton" onClick={() => setRenaming({ layout, input: layout })}>
+								<button
+									hidden={!isUsers}
+									className="TextButton"
+									onClick={() => setRenaming({ layout, input: layout })}
+								>
 									rename
 								</button>
 								<button className="TextButton" onClick={() => copyLayout(layout)}>

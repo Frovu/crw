@@ -5,6 +5,7 @@ import { immer } from 'zustand/middleware/immer';
 import { getApp, logMessage } from './app';
 import type { Size } from './util';
 import { defaultLayouts } from './defaultLayouts';
+import type { CheckboxProps } from './components/Checkbox';
 
 export const gapSize = 2;
 
@@ -36,7 +37,7 @@ export type LayoutsMenuDetails = { nodeId: string; window?: NodeParams<{}> };
 export type ContextMenuProps<T> = {
 	params: NodeParams<T>;
 	setParams: ParamsSetter<T>;
-	Checkbox: ({ text, k }: { text: string; k: keyof T }) => ReactElement;
+	Checkbox: (props: { k: keyof T } & Omit<CheckboxProps, 'checked' | 'onCheckedChange'>) => ReactElement;
 };
 
 export type AppLayoutProps<T> = {
@@ -103,7 +104,9 @@ export const useLayoutsStore = create<LayoutsState>()(
 			...defaultState,
 			startDrag: (nodeId) =>
 				set((state) =>
-					state.dragFrom === nodeId ? state : { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo }
+					state.dragFrom === nodeId
+						? state
+						: { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo }
 				),
 			dragOver: (nodeId) => set((state) => (state.dragFrom ? { ...state, dragTo: nodeId } : state)),
 			finishDrag: () =>
@@ -131,7 +134,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 					const app = getApp();
 					logMessage('layout removed: ' + layout);
 					delete apps[app].list[layout];
-					if (apps[app].active === layout) apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].active;
+					if (apps[app].active === layout)
+						apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].active;
 				}),
 			copyLayout: (layout) =>
 				set(({ apps }) => {

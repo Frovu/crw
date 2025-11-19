@@ -25,6 +25,8 @@ if (!Array.prototype.toSpliced) {
 	};
 }
 
+export type BoolKeys<T> = { [K in keyof T]: T[K] extends boolean ? K : never }[keyof T];
+
 export type OpState<T = string> =
 	| {
 			status: 'working';
@@ -213,7 +215,9 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			year: init.getFullYear(),
 			month: init.getMonth(),
 			count: initialMonths ?? 1,
-			interval: [0, initialMonths ?? 1].map((inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3),
+			interval: [0, initialMonths ?? 1].map(
+				(inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3
+			),
 		}
 	);
 	const set = (action: 'month' | 'year' | 'count', value: number) => dispatch({ action, value });

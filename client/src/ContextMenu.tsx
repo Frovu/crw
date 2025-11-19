@@ -5,6 +5,7 @@ import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
 import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/ExportPlot';
 import { ExportMenu } from './events/export/ExportTable';
+import { Button } from './components/Button';
 
 export default function ContextMenu() {
 	const { resetLayout } = useLayoutsStore();
@@ -15,22 +16,20 @@ export default function ContextMenu() {
 	return !menu ? null : (
 		<div
 			ref={setDiv}
-			className="ContextMenu"
+			className="fixed flex flex-col items-start p-2 border bg-bg text-sm z-5 [&>*]:w-full [&>*]:text-left [&_button]:border-none [&_button]:hover:text-active [&_button]:hover:underline"
 			style={{
 				left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
 				top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)),
 			}}
-			onMouseDown={(e) => {
-				e.stopPropagation();
-			}}
+			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.target instanceof HTMLButtonElement && closeContextMenu()}
 		>
 			{menu.type === 'app' && (
 				<>
-					{role && <button onClick={() => promptLogin('password')}>Change password</button>}
-					{role === 'admin' && <button onClick={() => promptLogin('upsert')}>Upsert user</button>}
-					<button onClick={() => resetLayout()}>Reset layout</button>
-					<button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</button>
+					{role && <Button onClick={() => promptLogin('password')}>Change password</Button>}
+					{role === 'admin' && <Button onClick={() => promptLogin('upsert')}>Upsert user</Button>}
+					<Button onClick={() => resetLayout()}>Reset layout</Button>
+					<Button onClick={() => dispatchCustomEvent('resetSettings')}>Reset all settings</Button>
 				</>
 			)}
 			{'tableExport' === menu.type && <ExportMenu />}

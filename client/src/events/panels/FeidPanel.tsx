@@ -2,14 +2,7 @@ import { useContext, useEffect, useRef } from 'react';
 import { AuthContext, openContextMenu, useEventsContextMenu } from '../../app';
 import { useLayout, LayoutContext, type ContextMenuProps, AppLayoutContext } from '../../layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
-import {
-	useEventsSettings,
-	copyAverages,
-	valueToString,
-	setStatColumn,
-	type EventsSettings,
-	type EventsPanel,
-} from '../core/util';
+import { useEventsSettings, copyAverages, valueToString, setStatColumn, type EventsPanel } from '../core/util';
 import { useSampleState, defaultFilterOp } from '../sample/sample';
 import ColumnsSelector from '../columns/Columns';
 import ImportMenu from '../export/Import';
@@ -27,21 +20,6 @@ const defaultTableParams: TableParams = {
 	showAverages: true,
 	showIncludeMarkers: true,
 };
-
-export function EventsCheckbox({ text, k }: { text: string; k: keyof EventsSettings }) {
-	const settings = useEventsSettings.getState();
-	return (
-		<label>
-			{text}
-			<input
-				type="checkbox"
-				style={{ paddingLeft: 4 }}
-				checked={settings[k] as boolean}
-				onChange={(e) => settings.set(k, e.target.checked)}
-			/>
-		</label>
-	);
-}
 
 function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 	const queryClient = useQueryClient();

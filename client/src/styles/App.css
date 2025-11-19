@@ -61,7 +61,6 @@
 	z-index: 5;
 	width: max-content;
 	font-size: 14px;
-	position: fixed;
 	padding: 8px;
 	background-color: var(--color-bg);
 	border: 1px var(--color-border) solid;
@@ -143,53 +142,6 @@ div.separator {
 	text-decoration: underline;
 }
 /* 
-button,
-select {
-	text-align: center;
-	border: 1px var(--color-border) solid;
-}
-
-input:not([type='checkbox']),
-label > select,
-select.Borderless {
-	text-align: center;
-	background-color: var(--color-input-bg);
-	border: 1px transparent solid;
-}
-
-input:not([type='checkbox']):disabled,
-label > select:disabled,
-label > select.Borderless:disabled {
-	opacity: 0.7;
-}
-
-label > select,
-select.Borderless {
-	border: 1px transparent solid;
-}
-
-label:has(input[type='checkbox']):hover {
-	cursor: pointer;
-	color: var(--color-active);
-	text-decoration: underline;
-}
-
-input:focus-visible,
-button:focus-visible,
-select:focus-visible {
-	border-color: var(--color-active);
-}
-
-input:disabled,
-button:disabled,
-select:disabled {
-	color: var(--color-text-dark);
-}
-
-button:hover:enabled,
-select:hover:enabled {
-	border-color: var(--color-active) !important;
-} */
 
 .w-color-sketch {
 	--sketch-box-shadow: none !important;
