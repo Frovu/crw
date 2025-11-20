@@ -132,20 +132,24 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
-type SimpleSelectProps = {
+type SimpleSelectProps<T> = {
 	placeholder?: string;
-	options: string[];
-	value?: string;
-	onChange: (val: string) => void;
+	options: [T, string][];
+	value?: T;
+	onChange: (val: T) => void;
+	className?: string;
 };
-const SimpleSelect = ({ placeholder, options, value, onChange }: SimpleSelectProps) => {
+const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, className }: SimpleSelectProps<T>) => {
 	return (
-		<Select value={value} onValueChange={onChange}>
-			<SelectTrigger>
+		<Select
+			value={options.find(([val]) => val === value)?.[1] ?? ''}
+			onValueChange={(label) => onChange(options.find(([, lbl]) => lbl === label)![0])}
+		>
+			<SelectTrigger className={className}>
 				<SelectValue placeholder={placeholder} />
 			</SelectTrigger>
 			<SelectContent side="top">
-				{options.map((lbl) => (
+				{options.map(([, lbl]) => (
 					<SelectItem key={lbl} value={lbl}>
 						{lbl}
 					</SelectItem>

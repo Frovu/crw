@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { cn } from '../util';
 
 const variants = {
-	text: 'border-none hover:underline',
+	text: 'border-0 hover:underline',
 } as const;
 
 export function Button(props: ComponentProps<'button'> & { variant?: keyof typeof variants }) {
