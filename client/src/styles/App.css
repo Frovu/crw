@@ -1,3 +1,5 @@
+
+/* 
 .AppSelect {
 	text-align: left;
 }
@@ -108,12 +110,6 @@
 	text-decoration: underline;
 }
 
-div.separator {
-	background-color: var(--color-border);
-	margin: 4px 0 4px 0;
-	height: 1px;
-}
-
 .AppNav {
 	border-top: 1px var(--color-border) solid;
 	height: 24px;
@@ -141,7 +137,6 @@ div.separator {
 	color: var(--color-active);
 	text-decoration: underline;
 }
-/* 
 
 .w-color-sketch {
 	--sketch-box-shadow: none !important;

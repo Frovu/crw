@@ -38,28 +38,10 @@
 	scrollbar-width: none;     /* Firefox */
 	}
 
-
-
-	.btn-close {
-		position: relative;
-		display: inline-block;
-		width: 1em;
-		height: 16px;
-		line-height: 1;
-		color: var(--color-red);
-	}
-	.btn-close::after {
-		position: absolute;
-		content: '×';
-		display: inline-block;
-		user-select: none;
-		cursor: pointer;
-		padding: 0 2px 0 2px;
-		font-size: 24px;
-		transform: translate(-2px, -2px);
-	}
-	.btn-close:hover {
-		color: var(--color-active) !important;
+	.separator {
+		background-color: var(--color-border);
+		margin: 4px 0 4px 0;
+		height: 1px;
 	}
 
 	.center {
@@ -99,7 +81,7 @@
 	width: 1em;
 	height: 16px;
 	line-height: 16px;
-	color: var(--color-red);
+	color: var(--color-cyan);
 }
 .CloseButton::after {
 	position: absolute;

@@ -24,6 +24,8 @@ import { CatchErrors } from './Utility';
 import ContextMenu from './ContextMenu';
 import { defaultLayouts } from './defaultLayouts';
 import { Checkbox } from './components/Checkbox';
+import { Button, CloseButton } from './components/Button';
+import { SimpleSelect } from './components/Select';
 
 function Window({ id }: { id: string }) {
 	const { panels } = useContext(AppLayoutContext);
@@ -81,17 +83,8 @@ function Window({ id }: { id: string }) {
 
 	return (
 		<div
-			style={{
-				position: 'fixed',
-				zIndex: 3,
-				left: pos.x,
-				top: pos.y,
-				width: pos.w,
-				height: pos.h,
-				backgroundColor: color('bg'),
-				padding: 1,
-				border: '1px solid ' + color('border'),
-			}}
+			className="fixed z-3 bg-bg p-[1px] border"
+			style={{ left: pos.x, top: pos.y, width: pos.w, height: pos.h }}
 			onDoubleClick={() => closeWindow(id)}
 			onMouseDown={(e) => {
 				drag.current = { pos, x: e.clientX, y: e.clientY };
@@ -105,19 +98,7 @@ function Window({ id }: { id: string }) {
 					<panel.Panel />
 				</CatchErrors>
 			</LayoutContext.Provider>
-			<div
-				className="CloseButton"
-				style={{
-					position: 'absolute',
-					top: -1,
-					right: -1,
-					zIndex: 15,
-					background: color('bg'),
-					border: '1px solid ' + color('border'),
-					lineHeight: '14px',
-				}}
-				onClick={() => closeWindow(id)}
-			/>
+			<CloseButton className="absolute -top-[1px] -right-[1px] bg-bg border" onClick={() => closeWindow(id)} />
 			<div
 				style={{ position: 'absolute', cursor: 'nw-resize', zIndex: 4, top: -4, left: -4, width: 16, height: 16 }}
 				onMouseDown={(e) => {
@@ -201,7 +182,8 @@ function Node({ id, size }: { id: string; size: Size }) {
 
 	return (
 		<div
-			style={{ ...size, position: 'relative', display: 'flex', flexDirection: split, justifyContent: 'space-between' }}
+			className="relative flex justify-between"
+			style={{ ...size, flexDirection: split }}
 			onMouseMove={(e) => {
 				if (!drag.current) return;
 				const delta = (isRow ? e.clientX : e.clientY) - drag.current.click;
@@ -216,12 +198,10 @@ function Node({ id, size }: { id: string; size: Size }) {
 		>
 			<Node {...propsA} />
 			<div
+				className="absolute z-2 select-none"
 				style={{
 					...size,
 					[dim]: 12,
-					position: 'absolute',
-					zIndex: 2,
-					userSelect: 'none',
 					[isRow ? 'left' : 'top']: size[dim] * ratio! - 6,
 					cursor: isRow ? 'col-resize' : 'row-resize',
 				}}
@@ -274,30 +254,30 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 	return (
 		<CatchErrors>
 			{item && !(type && isFirstInRoot) && (
-				<select
-					style={{ borderColor: 'transparent', textAlign: 'left' }}
-					value={type ?? 'empty'}
-					onChange={(e) => setNodeParams(id, { type: e.target.value as any })}
-				>
-					{type == null && <option value={'empty'}>Select panel</option>}
-					{Object.keys(panels).map((opt) => (
-						<option key={opt} value={opt}>
-							{opt}
-						</option>
-					))}
-				</select>
+				<SimpleSelect
+					options={Object.keys(panels)}
+					value={type ?? undefined}
+					onChange={(val) => setNodeParams(id, { type: val })}
+				/>
 			)}
 			{!isFirstInRoot && type && !window && <div className="separator" />}
-			{type && panel.Menu && <panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox: cb }} />}
+			{window && panel.Menu && (
+				<panel.Menu
+					{...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox: cb }}
+				/>
+			)}
+			{!window && panel.Menu && (
+				<panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox: cb }} />
+			)}
 			{item && <div className="separator" />}
-			{!item && !window && <button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</button>}
-			{(!item || type) && !window && <button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</button>}
-			{!item && !window && <button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</button>}
+			{!item && !window && <Button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</Button>}
+			{(!item || type) && !window && <Button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</Button>}
+			{!item && !window && <Button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</Button>}
 			{(!item || type) && !window && (
-				<button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</button>
+				<Button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</Button>
 			)}
 			{item && id !== 'root' && !(item.type && isFirstInRoot) && (
-				<button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</button>
+				<Button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</Button>
 			)}
 		</CatchErrors>
 	);
@@ -383,16 +363,16 @@ export function LayoutNav() {
 									</span>
 								)}
 								<div style={{ minWidth: 8 }} />
-								<button
+								<Button
 									hidden={!isUsers}
 									className="TextButton"
 									onClick={() => setRenaming({ layout, input: layout })}
 								>
 									rename
-								</button>
-								<button className="TextButton" onClick={() => copyLayout(layout)}>
+								</Button>
+								<Button className="TextButton" onClick={() => copyLayout(layout)}>
 									copy
-								</button>
+								</Button>
 								<label title={`Cycle with ${KEY_COMB.switchLayout} key`}>
 									cycle
 									<input
@@ -456,7 +436,7 @@ export default function AppLayout(props: AppLayoutProps<any>) {
 	return (
 		<div
 			id="layoutRoot"
-			style={{ width: '100%', height: '100%' }}
+			className="w-full h-full"
 			ref={setContainer}
 			onMouseLeave={() => startDrag(null)}
 			onMouseUp={() => startDrag(null)}

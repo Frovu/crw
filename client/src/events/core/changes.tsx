@@ -13,7 +13,7 @@ import {
 	tableRowAsDict,
 } from './editableTables';
 import { valueToString } from './util';
-import { CloseButton } from '../../components/Button';
+import { Button, CloseButton } from '../../components/Button';
 
 export function ChangesGadget() {
 	const state = useTablesStore();
@@ -65,15 +65,12 @@ export function ChangesGadget() {
 					{!hovered && <div className="text-magenta">&nbsp;&nbsp;With [{totalChanges}] unsaved&nbsp;</div>}
 					{hovered && (
 						<>
-							<button
-								className="btn-text grow text-right"
-								onClick={() => dispatchCustomEvent('action+commitChanges')}
-							>
+							<Button className="grow text-right" onClick={() => dispatchCustomEvent('action+commitChanges')}>
 								save
-							</button>
-							<button className="btn-text grow" onClick={() => dispatchCustomEvent('action+discardChanges')}>
+							</Button>
+							<Button className="grow" onClick={() => dispatchCustomEvent('action+discardChanges')}>
 								discard
-							</button>
+							</Button>
 						</>
 					)}
 				</div>
@@ -92,26 +89,18 @@ export function ChangesGadget() {
 									</div>
 								)}
 								{state[tbl].created.map((row) => (
-									<div key={row[0]} className="text-cyan">
+									<div key={row[0]} className="text-cyan flex gap-1 items-center">
 										+ {tbl === 'feid' ? prettyDate(row[1] as Date) : '#' + row[0]}
-										<div
-											className="btn-close"
-											style={{ transform: 'translate(4px, 2px)' }}
-											onClick={() => discardCreated(tbl, row[0])}
-										/>
+										<CloseButton onClick={() => discardCreated(tbl, row[0])} />
 									</div>
 								))}
 								{state[tbl].deleted.map((id) => (
-									<div key={id} className="text-magenta">
+									<div key={id} className="text-magenta flex gap-1 items-center">
 										-{' '}
 										{tbl === 'feid'
 											? prettyDate((state[tbl].rawData.find((r) => r[0] === id)?.[1] as Date) ?? null)
 											: '#' + id}
-										<div
-											className="btn-close"
-											style={{ transform: 'translate(4px, 2px)' }}
-											onClick={() => discardDeleted(tbl, id)}
-										/>
+										<CloseButton onClick={() => discardDeleted(tbl, id)} />
 									</div>
 								))}
 								{state[tbl].changes
@@ -123,11 +112,10 @@ export function ChangesGadget() {
 										const val0 = row?.[colIdx] == null ? 'null' : valueToString(row?.[colIdx]);
 										const val1 = value == null ? 'null' : valueToString(value);
 										return (
-											<div key={id + colName + value}>
+											<div key={id + colName + value} className="flex items-center gap-1.5">
 												<span className="text-text-dark">#{id}: </span>
 												<i className="text-active">{column?.name}</i> {val0} -&gt; <b>{val1}</b>
 												<CloseButton
-													className="ml-1"
 													onClick={() => discardChange(tbl, { id, column: colName, value })}
 												/>
 											</div>

@@ -11,10 +11,10 @@ export function Button(props: ComponentProps<'button'> & { variant?: keyof typeo
 }
 
 export function CloseButton(props: ComponentProps<'button'>) {
-	const cls = 'relative text-red text-2xl cursor-pointer hover:text-active hover:active:text-active/80';
+	const cls = 'relative text-red h-4 w-4 overflow-clip cursor-pointer hover:text-active hover:active:text-active/80';
 	return (
 		<button {...props} className={cn(cls, props.className)}>
-			<div className="absolute -top-5.5">×</div>
+			<div className="absolute text-2xl -top-[10px]">×</div>
 		</button>
 	);
 }

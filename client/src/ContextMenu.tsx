@@ -16,7 +16,7 @@ export default function ContextMenu() {
 	return !menu ? null : (
 		<div
 			ref={setDiv}
-			className="fixed flex flex-col items-start p-2 border bg-bg text-sm z-5 [&>*]:w-full [&>*]:text-left [&_button]:border-none [&_button]:hover:text-active [&_button]:hover:underline"
+			className="fixed flex flex-col items-start p-2 border bg-bg text-sm z-5 [&>*]:w-full [&>*]:text-left"
 			style={{
 				left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
 				top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)),
