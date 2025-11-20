@@ -5,7 +5,7 @@ import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import { linkSrcToEvent } from '../core/sourceActions';
-import { askConfirmation } from '../../Utility';
+import { askConfirmation } from '../../components/Confirmation';
 
 const ENT = 'sources_ch';
 

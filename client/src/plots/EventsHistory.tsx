@@ -5,7 +5,7 @@ import type uPlot from 'uplot';
 import { axisDefaults, markersPaths, measureDigit, scaled, usePlotOverlay } from './plotUtil';
 import { color } from '../app';
 import { ExportableUplot } from '../events/export/ExportPlot';
-import { NumberInput } from '../Utility';
+import { NumberInput } from '../components/NumberInput';
 import { applySample } from '../events/sample/sample';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from './basicPlot';
 

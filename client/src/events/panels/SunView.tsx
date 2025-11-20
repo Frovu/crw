@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindow } from '../../layout';
 import { font } from '../../plots/plotUtil';
 import { apiGet, dispatchCustomEvent, prettyDate } from '../../util';
-import { NumberInput } from '../../Utility';
+import { NumberInput } from '../../components/NumberInput';
 import { equalValues, type EventsPanel } from '../core/util';
 import { useEventsState, useSelectedSource, useFeidCursor } from '../core/eventsState';
 import { useCompoundTable } from '../core/query';

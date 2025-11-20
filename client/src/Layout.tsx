@@ -20,7 +20,7 @@ import {
 	type NodeParams,
 	type ContextMenuProps,
 } from './layout';
-import { CatchErrors } from './Utility';
+import { CatchErrors } from './components/CatchErrors';
 import ContextMenu from './ContextMenu';
 import { defaultLayouts } from './defaultLayouts';
 import { Checkbox } from './components/Checkbox';

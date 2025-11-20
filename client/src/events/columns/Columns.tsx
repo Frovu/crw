@@ -4,7 +4,7 @@ import { useEventsSettings } from '../core/util';
 import { color } from '../../plots/plotUtil';
 import { AuthContext, logError, logMessage, logSuccess } from '../../app';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Confirmation } from '../../Utility';
+import { Confirmation } from '../../components/Confirmation';
 import { SW_TYPES } from '../../plots/time/SWTypes';
 
 export default function ColumnsSelector() {

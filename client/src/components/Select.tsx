@@ -19,7 +19,7 @@ const SelectTrigger = React.forwardRef<
 	<SelectPrimitive.Trigger
 		ref={ref}
 		className={cn(
-			'flex gap-2 p-1 py-2 h-6 cursor-pointer hover:text-active hover:underline w-full items-center justify-between whitespace-nowrap ring-offset-background placeholder:text-text-dark focus:outline-hidden focus:ring-1 focus:ring-active disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
+			'flex gap-2 p-1 py-2 h-6 cursor-pointer hover:text-active w-full items-center justify-between whitespace-nowrap ring-offset-background placeholder:text-text-dark focus:outline-hidden focus:ring-1 focus:ring-active disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
 			className
 		)}
 		{...props}
@@ -128,7 +128,7 @@ const SelectSeparator = React.forwardRef<
 	React.ElementRef<typeof SelectPrimitive.Separator>,
 	React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-	<SelectPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-muted', className)} {...props} />
+	<SelectPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-border', className)} {...props} />
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
@@ -137,15 +137,14 @@ type SimpleSelectProps<T> = {
 	options: [T, string][];
 	value?: T;
 	onChange: (val: T) => void;
-	className?: string;
-};
-const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, className }: SimpleSelectProps<T>) => {
+} & Omit<React.ComponentProps<'button'>, 'value' | 'onChange'>;
+const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, ...props }: SimpleSelectProps<T>) => {
 	return (
 		<Select
 			value={options.find(([val]) => val === value)?.[1] ?? ''}
 			onValueChange={(label) => onChange(options.find(([, lbl]) => lbl === label)![0])}
 		>
-			<SelectTrigger className={className}>
+			<SelectTrigger {...props}>
 				<SelectValue placeholder={placeholder} />
 			</SelectTrigger>
 			<SelectContent side="top">

@@ -2,7 +2,7 @@ import { useContext, type MouseEvent } from 'react';
 import { color, logSuccess, openContextMenu, useContextMenuStore } from '../../app';
 import { prettyDate, useEventListener } from '../../util';
 import CoverageControls from './CoverageControls';
-import { ValidatedInput } from '../../Utility';
+import { ValidatedInput } from '../../components/ValidatedInput';
 import { LayoutContext, openWindow } from '../../layout';
 import { createFeid, deleteEvent, getTable, linkSource, makeChange, useTable } from '../core/editableTables';
 import { useFeidCursor, useEventsState, useCurrentFeidSources } from '../core/eventsState';

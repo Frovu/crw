@@ -2,11 +2,12 @@ import type { ComponentProps } from 'react';
 import { cn } from '../util';
 
 const variants = {
-	text: 'border-0 hover:underline',
+	text: 'border-0 hover:underline hover:text-active',
+	default: 'px-2 border hover:border-active',
 } as const;
 
 export function Button(props: ComponentProps<'button'> & { variant?: keyof typeof variants }) {
-	const cls = 'cursor-pointer hover:text-active hover:active:text-active/80';
+	const cls = 'cursor-pointer hover:active:text-active/80';
 	return <button {...props} className={cn(cls, variants[props.variant ?? 'text'], props.className)} />;
 }
 

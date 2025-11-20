@@ -9,7 +9,7 @@ import uPlot from 'uplot';
 import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from './basicPlot';
 import { Quadtree } from './quadtree';
 import { prettyDate } from '../util';
-import { NumberInput } from '../Utility';
+import { NumberInput } from '../components/NumberInput';
 import { applySample } from '../events/sample/sample';
 import { useEventsState } from '../events/core/eventsState';
 

@@ -27,7 +27,7 @@ import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
 import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/export/ExportPlot';
-import { ValidatedInput } from '../../Utility';
+import { ValidatedInput } from '../../components/ValidatedInput';
 import type { ContextMenuProps } from '../../layout';
 
 const defaultParams = {

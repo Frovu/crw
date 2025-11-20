@@ -6,9 +6,11 @@ import { ExportableUplot } from '../events/export/ExportPlot';
 import { applySample } from '../events/sample/sample';
 import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 import { type ContextMenuProps } from '../layout';
-import { NumberInput } from '../Utility';
+import { NumberInput } from '../components/NumberInput';
 import type { Value } from '../events/columns/columns';
 import { useFeidSample, useFeidTableView } from '../events/core/feid';
+import { SimpleSelect } from '../components/Select';
+import { cn } from '../util';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -55,65 +57,52 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 	const { shownColumns } = useEventsSettings();
 	const columnOpts = columns.filter(
 		(c) =>
-			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
-			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id)
+			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.sql_name)) ||
+			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name)
 	);
 
 	return (
 		<>
 			{([0, 1, 2] as const).map((i) => (
-				<div key={i} className="Row" style={{ paddingRight: 4 }}>
-					<span
+				<div key={i} className="flex mt-1 gap-2">
+					<div
 						title="Reset"
-						style={{ color: color(colors[i]), cursor: 'pointer', userSelect: 'none' }}
-						onClick={() =>
-							setParams({
-								[columnKeys[i]]: null,
-								[sampleKeys[i]]: '<current>',
-							})
-						}
+						className="cursor-pointer select-none"
+						style={{ color: color(colors[i]) }}
+						onClick={() => setParams({ [columnKeys[i]]: null, [sampleKeys[i]]: '<current>' })}
 					>
 						#{i}
-					</span>
-					<div>
-						<select
+					</div>
+					<div className="flex">
+						<SimpleSelect
 							title="Column"
-							className="Borderless"
-							style={{ width: '10em', color: params[columnKeys[i]] == null ? color('text-dark') : 'unset' }}
-							value={params[columnKeys[i]] ?? '__none'}
-							onChange={(e) => set(columnKeys[i], e.target.value === '__none' ? null : e.target.value)}
-						>
-							<option value="__none">&lt;none&gt;</option>
-							{columnOpts.map(({ id, fullName }) => (
-								<option key={id} value={id}>
-									{fullName}
-								</option>
-							))}
-						</select>
+							className={cn('w-24 bg-input-bg/80', params[columnKeys[i]] == null && 'text-text-dark')}
+							options={[
+								[null, '<none>'],
+								...columnOpts.map(({ sql_name, name }) => [sql_name, name] as [string, string]),
+							]}
+							value={params[columnKeys[i]] ?? null}
+							onChange={(val) => setParams({ [columnKeys[i]]: val })}
+						/>
 						:
-						<select
+						<SimpleSelect
 							title="Sample (none = all events)"
-							className="Borderless"
-							style={{
-								width: '7em',
-								marginLeft: 1,
-								color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset',
-							}}
+							className={cn(
+								'w-36 bg-input-bg/80 justify-center',
+								params[sampleKeys[i]] === '<current>' && 'text-text-dark'
+							)}
+							options={[
+								['<none>', '<none>'],
+								['<current>', '<current>'],
+								...(samples?.map(({ id, name }) => [id.toString(), name] as [string, string]) ?? []),
+							]}
 							value={params[sampleKeys[i]]}
-							onChange={(e) => set(sampleKeys[i], e.target.value)}
-						>
-							<option value="<none>">&lt;none&gt;</option>
-							<option value="<current>">&lt;current&gt;</option>
-							{samples.map(({ id, name }) => (
-								<option key={id} value={id.toString()}>
-									{name}
-								</option>
-							))}
-						</select>
+							onChange={(val) => setParams({ [sampleKeys[i]]: val })}
+						/>
 					</div>
 				</div>
 			))}
-			<div className="Row">
+			<div className="flex">
 				<div>
 					Y:
 					<select
@@ -289,7 +278,9 @@ function Panel() {
 	const hist = useMemo(() => {
 		const { yScale } = params;
 
-		const cols = [0, 1, 2].map((i) => columns.findIndex((c) => c.id === params[('column' + i) as keyof HistogramParams]));
+		const cols = [0, 1, 2].map((i) =>
+			columns.findIndex((c) => c.sql_name === params[('column' + i) as keyof HistogramParams])
+		);
 		const allSamples = [0, 1, 2].map((i) => {
 			const sampleId = params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'];
 			const colIdx = cols[i];
@@ -300,7 +291,12 @@ function Panel() {
 					? sampleData
 					: sampleId === '<none>'
 					? allData
-					: applySample(allData, samplesList.find((s) => s.id.toString() === sampleId) ?? null, columns, samplesList);
+					: applySample(
+							allData,
+							samplesList.find((s) => s.sql_name.toString() === sampleId) ?? null,
+							columns,
+							samplesList
+					  );
 			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
@@ -340,13 +336,13 @@ function Panel() {
 
 		const colNames = [0, 1, 2]
 			.map((i) => params[('column' + i) as keyof HistogramParams])
-			.map((c) => columns.find((cc) => cc.id === c)?.fullName);
+			.map((c) => columns.find((cc) => cc.sql_name === c)?.fullName);
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
 			.map((id) =>
 				['<current>', '<none>'].includes(id)
 					? ''
-					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+					: ' of ' + (samplesList.find((s) => s.sql_name.toString() === id)?.name ?? 'UNKNOWN')
 			);
 
 		// try to prevent short bars from disappearing

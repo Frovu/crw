@@ -7,7 +7,7 @@ import { useNavigationState, NavigationContext, NavigatedPlot } from '../../plot
 import { axisDefaults, color, customTimeSplits, font, seriesDefaults } from '../../plots/plotUtil';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MonthInput } from '../../Utility';
+import { MonthInput } from '../../components/MonthInput';
 
 const PARAM_GROUP = ['all', 'SW', 'IMF', 'Geomag'] as const;
 const spacecraft: any = {
@@ -44,8 +44,8 @@ const useOmniState = create<OmniState>()(
 		{
 			name: 'crwOmniSettings',
 			partialize: ({ group, interval }) => ({ group, interval }),
-		},
-	),
+		}
+	)
 );
 
 function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
@@ -101,12 +101,12 @@ function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
 			},
 			{
 				...seriesDefaults('🛰sw', 'white'),
-				value: (u, val) => (val ? (spacecraft[val] ?? val?.toString()) : '--'),
+				value: (u, val) => (val ? spacecraft[val] ?? val?.toString() : '--'),
 				show: false,
 			},
 			{
 				...seriesDefaults('🛰imf', 'white', '🛰sw'),
-				value: (u, val) => (val ? (spacecraft[val] ?? val?.toString()) : '--'),
+				value: (u, val) => (val ? spacecraft[val] ?? val?.toString() : '--'),
 				show: false,
 			},
 			{
@@ -162,7 +162,9 @@ function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
 			ready: [
 				(u) => {
 					if (!u.root.children[1]) return;
-					const values = Array.from((u.root as any).children[1].firstChild!.children).map((tr: any) => tr.children[1]);
+					const values = Array.from((u.root as any).children[1].firstChild!.children).map(
+						(tr: any) => tr.children[1]
+					);
 					values.forEach((td) => {
 						td.parentElement!.style.marginRight = '8px';
 						(td.parentElement!.firstChild as HTMLElement).style.padding = '0';
@@ -206,7 +208,8 @@ export default function OmniApp() {
 	}, [query.data]);
 
 	const { min, max } = navigation.state.selection ?? navigation.state.view;
-	const [fetchFrom, fetchTo] = !data || (min === 0 && max === data[0].length - 1) ? interval : [min, max].map((i) => data[0][i]);
+	const [fetchFrom, fetchTo] =
+		!data || (min === 0 && max === data[0].length - 1) ? interval : [min, max].map((i) => data[0][i]);
 
 	const mutation = useMutation({
 		mutationFn: async (sat: string) => {
@@ -216,8 +219,8 @@ export default function OmniApp() {
 			const [from, to] = !rm
 				? [fetchFrom, fetchTo]
 				: !selection
-					? Array(2).fill(data![0][cursor!.idx])
-					: [selection!.min, selection!.max].map((i) => data![0][i]);
+				? Array(2).fill(data![0][cursor!.idx])
+				: [selection!.min, selection!.max].map((i) => data![0][i]);
 
 			const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
 				from,
@@ -248,7 +251,11 @@ export default function OmniApp() {
 
 	useEffect(() => {
 		const what = navigation.state.chosen?.label;
-		if (what) set('group', ['V', 'T', 'Tidx', 'D'].includes(what) ? 'SW' : ['|B|', 'Bx', 'By', 'Bz'].includes(what) ? 'IMF' : 'all');
+		if (what)
+			set(
+				'group',
+				['V', 'T', 'Tidx', 'D'].includes(what) ? 'SW' : ['|B|', 'Bx', 'By', 'Bz'].includes(what) ? 'IMF' : 'all'
+			);
 	}, [navigation.state.chosen, set]);
 
 	return (
@@ -261,7 +268,14 @@ export default function OmniApp() {
 					<div style={{ padding: '8px 16px', lineHeight: '2em' }}>
 						<div
 							onWheel={(e) =>
-								set('group', (g) => PARAM_GROUP[(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) % PARAM_GROUP.length])
+								set(
+									'group',
+									(g) =>
+										PARAM_GROUP[
+											(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) %
+												PARAM_GROUP.length
+										]
+								)
 							}
 						>
 							Parameter group:{' '}
@@ -281,8 +295,16 @@ export default function OmniApp() {
 							<label>
 								{' '}
 								Overwrite present data:
-								<input type="checkbox" checked={overwrite} onChange={(e) => set('overwrite', e.target.checked)} hidden={true} />
-								<span style={{ color: color(overwrite ? 'magenta' : 'cyan') }}> {overwrite ? 'true' : 'false'}</span>
+								<input
+									type="checkbox"
+									checked={overwrite}
+									onChange={(e) => set('overwrite', e.target.checked)}
+									hidden={true}
+								/>
+								<span style={{ color: color(overwrite ? 'magenta' : 'cyan') }}>
+									{' '}
+									{overwrite ? 'true' : 'false'}
+								</span>
 							</label>
 						</div>
 					</div>
@@ -290,7 +312,14 @@ export default function OmniApp() {
 						<div style={{ paddingLeft: 16 }}>
 							<div style={{ color: color('cyan'), verticalAlign: 'top' }}>
 								[{Math.ceil((fetchTo - fetchFrom) / 3600)} h]
-								<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
+								<div
+									style={{
+										display: 'inline-block',
+										color: color('text-dark'),
+										textAlign: 'right',
+										lineHeight: 1.25,
+									}}
+								>
 									{prettyDate(fetchFrom)}
 									<br />
 									&nbsp;&nbsp;to {prettyDate(fetchTo)}
@@ -328,7 +357,13 @@ export default function OmniApp() {
 					</div>
 					<CovregareView />
 				</div>
-				<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
+				<div
+					style={{
+						position: 'relative',
+						height: 'min(100%, calc(100vw / 2))',
+						border: '2px var(--color-border) solid',
+					}}
+				>
 					{(() => {
 						if (query.isLoading) return <div className="center">LOADING...</div>;
 						if (query.isError)
@@ -372,9 +407,12 @@ function CovregareView() {
 		setEditing(false);
 	}, [query.data]);
 
-	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : (newTo ?? new Date(0)));
+	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : newTo ?? new Date(0));
 	return !query.data ? null : (
-		<div style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark') }} onClick={() => setEditing((e) => !e)}>
+		<div
+			style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark') }}
+			onClick={() => setEditing((e) => !e)}
+		>
 			<span style={{ textDecoration: editing ? 'underline' : 'unset', lineHeight: 2 }}>COVERAGE INFO</span>
 			<br />
 			{editing && (

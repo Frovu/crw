@@ -1,13 +1,15 @@
-import { forwardRef, useContext, useMemo, useRef, useState } from 'react';
+import { forwardRef, useContext, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../../app';
-import { apiPost, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
+import { apiPost, cn, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
 import { parseColumnValue, isValidColumnValue, useEventsSettings } from '../core/util';
 import { useSampleState, applySample, type FilterWithId } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Option, Select, askConfirmation, withConfirmation } from '../../Utility';
+import { withConfirmation } from '../../components/Confirmation';
 import { filterOperations, type Column, type Filter, type Sample } from '../../api';
 import { useTable } from '../core/editableTables';
 import { useFeidSample } from '../core/feid';
+import { Select, SelectContent, SelectSeparator, SelectTrigger, SelectValue, SelectItem } from '../../components/Select';
+import { Button } from '../../components/Button';
 
 function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if (!column) return true;
@@ -334,42 +336,37 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				)}
 				{nameInput == null && (
 					<Select
-						title="Select events sample"
-						style={{ color: color('white'), flex: '6 8em', minWidth: 0 }}
 						value={sample?.id?.toString() ?? '_none'}
-						content={sample?.name ?? '-- All events --'}
-						onChange={(val) =>
+						onValueChange={(val) =>
 							val === '_create' ? createSample() : setSample(samples.find((s) => s.id.toString() === val) ?? null)
 						}
 					>
-						<Option value="_create">-- Create sample --</Option>
-						<div className="separator" />
-						<Option value="_none">-- All events --</Option>
-						{samples.map(({ id, name, authors }) => (
-							<Option
-								key={id}
-								value={id.toString()}
-								style={{ display: 'flex', color: color(authors.includes(login!) ? 'text' : 'text-dark') }}
-							>
-								{sample?.id === id ? sample!.name : name}
-								<div style={{ flex: 1 }} />
-								{authors.includes(login!) && (
-									<div
-										className="CloseButton"
-										onClick={(e) => {
-											e.stopPropagation();
-											toDelete.current = samples.find((s) => s.id === id)!;
-											deleteSample();
-										}}
-									/>
-								)}
-							</Option>
-						))}
+						<SelectTrigger
+							title="Select events sample"
+							className="border h-6.5 justify-center hover:border-active text-white grow-3 basis-40 min-w-0"
+						>
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="_create">-- Create sample --</SelectItem>
+							<SelectSeparator />
+							<SelectItem value="_none">-- All events --</SelectItem>
+							{samples.map(({ id, name, authors }) => (
+								<SelectItem
+									className={cn('py-0.5', !authors.includes(login!) && 'text-text-dark')}
+									key={id}
+									value={id.toString()}
+								>
+									{sample?.id === id ? sample!.name : name}
+								</SelectItem>
+							))}
+						</SelectContent>
 					</Select>
 				)}
 				{sample && (
-					<button
-						style={{ flex: '1 fit-content' }}
+					<Button
+						variant="default"
+						className="grow shrink basis-12"
 						title="View sample parameters"
 						onClick={() => {
 							setShow(!show);
@@ -378,16 +375,20 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						}}
 					>
 						{show ? (allowEdit ? 'Cancel' : 'Hide') : allowEdit ? 'Edit' : 'View'}
-					</button>
+					</Button>
 				)}
 				{!sample && role && filters.length > 0 && (
-					<button style={{ flex: '1 fit-content' }} onClick={() => createSample()}>
+					<Button variant="default" className="grow-3 shrink basis-12" onClick={() => createSample()}>
 						Create sample
-					</button>
+					</Button>
 				)}
-				<button style={{ flex: '1 fit-content' }} onClick={() => dispatchCustomEvent('action+addFilter')}>
+				<Button
+					variant="default"
+					className="grow-2 shrink basis-20"
+					onClick={() => dispatchCustomEvent('action+addFilter')}
+				>
 					Add filter
-				</button>
+				</Button>
 			</div>
 
 			{show && sample?.filters && (
@@ -410,9 +411,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					<span style={{ marginLeft: '1em', color: color('text-dark') }}>by {sample.authors.join(',')}</span>
 					<div style={{ flex: 1 }} />
 					{login && (
-						<button className="TextButton" style={{ paddingRight: 4 }} onClick={copySample}>
+						<Button className="TextButton" style={{ paddingRight: 4 }} onClick={copySample}>
 							Make copy
-						</button>
+						</Button>
 					)}
 				</div>
 			)}
@@ -446,9 +447,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 								type="checkbox"
 							/>
 						</label>
-						<button className="TextButton" style={{ paddingLeft: 8 }} onClick={copySample}>
+						<Button className="TextButton" style={{ paddingLeft: 8 }} onClick={copySample}>
 							Make copy
-						</button>
+						</Button>
 					</div>
 					{publicIssue && (
 						<div
@@ -497,18 +498,18 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 								/>
 							</>
 						)}
-						<button
+						<Button
 							id="rename"
 							style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }}
 							onClick={() => setNameInput(nameInput ? null : sample.name)}
 						>
 							Rename
-						</button>
-						<button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={deleteSample}>
+						</Button>
+						<Button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={deleteSample}>
 							Delete
-						</button>
+						</Button>
 						{show && allowEdit && (
-							<button
+							<Button
 								disabled={!unsavedChanges}
 								style={{
 									flex: '2 4em',
@@ -530,7 +531,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 								}
 							>
 								{isPending ? '...' : 'Save changes'}
-							</button>
+							</Button>
 						)}
 					</div>
 				</>

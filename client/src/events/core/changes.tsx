@@ -2,7 +2,7 @@ import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { logError, logSuccess } from '../../app';
 import { useEventListener, apiPost, prettyDate, dispatchCustomEvent } from '../../util';
-import { Confirmation } from '../../Utility';
+import { Confirmation } from '../../components/Confirmation';
 import {
 	resetChanges,
 	discardCreated,

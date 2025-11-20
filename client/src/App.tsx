@@ -24,9 +24,10 @@ import {
 } from './app';
 import { LayoutNav } from './Layout';
 import ContextMenu from './ContextMenu';
-import { CatchErrors, Confirmation } from './Utility';
 import { Button } from './components/Button';
 import { SimpleSelect } from './components/Select';
+import { CatchErrors } from './components/CatchErrors';
+import { Confirmation } from './components/Confirmation';
 
 const theQueryClient = new QueryClient();
 
@@ -121,7 +122,7 @@ function App() {
 
 	useEventListener('action+openInfo', () => (infoOpen ? closeInfo() : openInfo()));
 	useEventListener('escape', closeContextMenu);
-	useEventListener('mousedown', closeContextMenu);
+	useEventListener('mousedown', (e) => !(e.target instanceof HTMLHtmlElement) && closeContextMenu()); // fix for radix select
 	useEventListener('contextmenu', (e: PointerEvent) => {
 		e.preventDefault();
 		closeContextMenu();

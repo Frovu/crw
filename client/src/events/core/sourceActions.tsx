@@ -1,4 +1,4 @@
-import { askConfirmation, withConfirmation } from '../../Utility';
+import { askConfirmation, withConfirmation } from '../../components/Confirmation';
 import { logError, logMessage } from '../../app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
