@@ -6,6 +6,7 @@ import { getApp, logMessage } from './app';
 import type { Size } from './util';
 import { defaultLayouts } from './defaultLayouts';
 import type { CheckboxProps } from './components/Checkbox';
+import type { LucideProps } from 'lucide-react';
 
 export const gapSize = 2;
 
@@ -28,6 +29,7 @@ export type Panel<T> = {
 	name: string;
 	Panel: ComponentType;
 	Menu?: ComponentType<ContextMenuProps<T>>;
+	Icon?: ComponentType<LucideProps>;
 	defaultParams?: T;
 	isDuplicatable?: boolean;
 };

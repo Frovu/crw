@@ -25,7 +25,7 @@ import ContextMenu from './ContextMenu';
 import { defaultLayouts } from './defaultLayouts';
 import { Checkbox } from './components/Checkbox';
 import { Button, CloseButton } from './components/Button';
-import { SimpleSelect } from './components/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/Select';
 
 function Window({ id }: { id: string }) {
 	const { panels } = useContext(AppLayoutContext);
@@ -154,7 +154,7 @@ function Item({ id, size }: { id: string; size: Size }) {
 					</LayoutContext.Provider>
 				)}
 				{!item.type && (
-					<div className="center border">
+					<div className="center border p-2 text-sm">
 						<CatchErrors>
 							<LayoutContextMenu id={id} />
 						</CatchErrors>
@@ -234,17 +234,6 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 		<Checkbox {...props} checked={params[k]} onCheckedChange={(val) => setNodeParams(id, { [k]: val })} />
 	);
 
-	// if (window)
-	// 	return (
-	// 		<CatchErrors>
-	// 			{panel?.Menu && (
-	// 				<panel.Menu
-	// 					{...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox: cb }}
-	// 				/>
-	// 			)}
-	// 		</CatchErrors>
-	// 	);
-
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : isFirst ? 'bottom' : 'top';
@@ -254,27 +243,42 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 	return (
 		<CatchErrors>
 			{item && !(type && isFirstInRoot) && (
-				<SimpleSelect
-					options={Object.keys(panels)}
-					value={type ?? undefined}
-					onChange={(val) => setNodeParams(id, { type: val })}
-				/>
+				<Select value={type ?? ''} onValueChange={(val) => setNodeParams(id, { type: val })}>
+					<SelectTrigger>
+						<SelectValue placeholder={'Select panel'} />
+					</SelectTrigger>
+					<SelectContent>
+						{Object.keys(panels).map((label) => {
+							const Icon = panels[label]?.Icon;
+							return (
+								<SelectItem key={label} value={label}>
+									<div className="flex items-center gap-2">
+										{Icon && <Icon size={20} strokeWidth={1.5} />}
+										{label}
+									</div>
+								</SelectItem>
+							);
+						})}
+					</SelectContent>
+				</Select>
 			)}
 			{!isFirstInRoot && type && !window && <div className="separator" />}
-			{window && panel.Menu && (
+			{window && panel?.Menu && (
 				<panel.Menu
 					{...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox: cb }}
 				/>
 			)}
-			{!window && panel.Menu && (
+			{!window && panel?.Menu && (
 				<panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox: cb }} />
 			)}
 			{item && <div className="separator" />}
-			{!item && !window && <Button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</Button>}
-			{(!item || type) && !window && <Button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</Button>}
-			{!item && !window && <Button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</Button>}
-			{(!item || type) && !window && (
-				<Button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</Button>
+			{!window && (!item || type) && (
+				<>
+					{!type && <Button onClick={() => splitNode(id, 'row', true, dupable)}>Split left</Button>}
+					{<Button onClick={() => splitNode(id, 'row', false, dupable)}>Split right</Button>}
+					{!type && <Button onClick={() => splitNode(id, 'column', true, dupable)}>Split top</Button>}
+					{<Button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</Button>}
+				</>
 			)}
 			{item && id !== 'root' && !(item.type && isFirstInRoot) && (
 				<Button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</Button>

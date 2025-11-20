@@ -2,7 +2,7 @@ import { useEventListener } from '../util';
 import AppLayout from '../Layout';
 import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
-import type { EventsPanel, EventsSettings } from './core/util';
+import type { EventsPanel } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
 import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
@@ -31,6 +31,7 @@ import { SuperposedEpochs } from '../plots/SuperposedEpochs';
 import { EventsHistory } from '../plots/EventsHistory';
 import { SWPCHint } from './panels/SWPC';
 import { EventsCheckbox } from '../components/Checkbox';
+import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -90,7 +91,7 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 				<>
 					<div className="Row">
 						<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)} />
-						{type === 'Particles' && <Checkbox text="solar" k="solarTime" />}
+						{type === 'Particles' && <Checkbox label="solar" k="solarTime" />}
 					</div>
 					<div className="separator" />
 					<div className="Row">
@@ -105,9 +106,9 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 				<>
 					<div className="separator" />
 					<div className="Row">
-						<Checkbox text="time axis" k="showTimeAxis" />
-						<Checkbox text="meta" k="showMetaInfo" />
-						<Checkbox text="label" k="showMetaLabels" />
+						<Checkbox label="time axis" k="showTimeAxis" />
+						<Checkbox label="meta" k="showMetaInfo" />
+						<Checkbox label="label" k="showMetaLabels" />
 					</div>
 					{(!isSolar || (type === 'Particles' && params.solarTime === false)) && (
 						<>
@@ -140,6 +141,17 @@ const eventsPanels = Object.fromEntries(
 			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
 			Panel: () => <PanelWrapper panel={p as any} />,
 			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
+			Icon: p.name.includes('Sun')
+				? Sun
+				: p.isSolar
+				? ChartSpline
+				: p.isStat
+				? ChartNoAxesColumn
+				: p.isPlot
+				? ChartLine
+				: p.name.includes('Table') || p.name.includes('Holes')
+				? Table
+				: Bolt,
 		},
 	])
 );
