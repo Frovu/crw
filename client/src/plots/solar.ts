@@ -42,7 +42,7 @@ export function flaresOnsetsPlugin({
 							focusTime.getTime() === time.getTime()
 								? 'active'
 								: ['A', 'B', 'C'].includes((flare.class ?? 'A')[0])
-								? 'text-dark'
+								? 'dark'
 								: 'white';
 						ctx.strokeStyle = ctx.fillStyle = color(col);
 						const tm = (flare.peak_time?.getTime() ?? time.getTime()) / 1e3;

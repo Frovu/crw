@@ -38,7 +38,7 @@ export function TableChangelog({ entity, columns }: { entity: EditableTable; col
 
 			return (
 				<div key={JSON.stringify(change)} className="m-0">
-					<i style={{ color: 'var(--color-text-dark)' }}>
+					<i style={{ color: 'var(--color-dark)' }}>
 						[{timeShort}] @{change.author}{' '}
 					</i>
 					<i className={cursCol === column?.sql_name ? 'text-active' : ''}>
@@ -46,7 +46,7 @@ export function TableChangelog({ entity, columns }: { entity: EditableTable; col
 						<b>{column?.name ?? change.column}</b>
 					</i>
 					: {value(change.old)} -&gt; <b>{value(change.new)}</b>
-					{change.special && <i style={{ color: 'var(--color-text-dark)' }}> ({change.special})</i>}
+					{change.special && <i style={{ color: 'var(--color-dark)' }}> ({change.special})</i>}
 				</div>
 			);
 		});
@@ -54,7 +54,7 @@ export function TableChangelog({ entity, columns }: { entity: EditableTable; col
 
 	return (
 		<div className="relative flex flex-col-reverse overflow-y-scroll h-[60px] mt-[2px] p-1 border text-xs">
-			{changelog ?? <div className="center text-text-dark text-base">NO CHANGES</div>}
+			{changelog ?? <div className="center text-dark text-base">NO CHANGES</div>}
 		</div>
 	);
 }

@@ -264,7 +264,7 @@ function PreviewPanel() {
 				preview plots (may be slow) <input type="checkbox" checked={show} readOnly />
 			</span>
 			{show && renderTime && (
-				<div style={{ position: 'absolute', fontSize: 14, color: color('text-dark'), bottom: 4, right: 4 }}>
+				<div style={{ position: 'absolute', fontSize: 14, color: color('dark'), bottom: 4, right: 4 }}>
 					Rendered in {renderTime.toFixed()} ms
 				</div>
 			)}
@@ -389,7 +389,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	});
 
 	if (query.error) return <div style={{ color: color('red') }}>error</div>;
-	if (!presets) return <div style={{ color: color('text-dark') }}>loading...</div>;
+	if (!presets) return <div style={{ color: color('dark') }}>loading...</div>;
 
 	const upsert = (e: any) => {
 		e.stopPropagation();
@@ -409,7 +409,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 	if (action === 'load')
 		return (
 			<>
-				<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2 }}>load text transforms set:</div>
+				<div style={{ color: color('dark'), textAlign: 'left', marginTop: -2 }}>load text transforms set:</div>
 				<label title="Current transforms will be lost if checked" style={{ paddingLeft: 2 }}>
 					overwrite current
 					<input type="checkbox" checked={doReplace} onChange={(e) => setDoReplace(e.target.checked)} />
@@ -439,7 +439,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 								>
 									{name}
 								</div>
-								{isPub && <div style={{ color: color('text-dark'), fontSize: 12 }}>(public)</div>}
+								{isPub && <div style={{ color: color('dark'), fontSize: 12 }}>(public)</div>}
 								{author === login ? (
 									<div className="CloseButton" title="Delete preset" onClick={() => removeMut.mutate(name)} />
 								) : (
@@ -456,7 +456,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 
 	return (
 		<div className="Group">
-			<div style={{ color: color('text-dark'), textAlign: 'left', marginTop: -2, fontSize: 14 }}>
+			<div style={{ color: color('dark'), textAlign: 'left', marginTop: -2, fontSize: 14 }}>
 				Only enabled replaces are saved!
 			</div>
 			<div>
@@ -630,11 +630,11 @@ function ControlsPanel() {
 									</option>
 								))}
 							</select>
-							<span style={{ color: color('text-dark') }}>({scale}x)</span>
+							<span style={{ color: color('dark') }}>({scale}x)</span>
 						</label>
 					</span>
 				</div>
-				<div style={{ color: color('text-dark'), paddingTop: 2 }}>
+				<div style={{ color: color('dark'), paddingTop: 2 }}>
 					image: {width * scale} x {height * scale} px, ≈{' '}
 					{((width * height * 0.74 * (scale - 1.2)) / 1024 / 1024).toFixed(2)} MB
 				</div>
@@ -643,7 +643,7 @@ function ControlsPanel() {
 				<div className="separator"></div>
 			</div>
 			<div style={{ overflowY: 'scroll', paddingBottom: 8 }}>
-				<span style={{ color: color('text-dark') }}>
+				<span style={{ color: color('dark') }}>
 					Override scales:
 					<label
 						title="Adjust scales for each event individually"
@@ -670,7 +670,7 @@ function ControlsPanel() {
 							return (
 								<div
 									key={scl}
-									style={{ cursor: 'pointer', color: !active ? color('text-dark') : 'unset' }}
+									style={{ cursor: 'pointer', color: !active ? color('dark') : 'unset' }}
 									onClick={(e) =>
 										!(e.target instanceof HTMLInputElement) &&
 										(active ? removeScale(plotId, scl) : addScale(plotId, scl, scales[scl]))
@@ -746,7 +746,7 @@ function ControlsPanel() {
 							title="Save text transorms for future reuse or sharing"
 							className="TextButton"
 							disabled={!textTransform?.length}
-							style={{ padding: '0 6px', color: color(!textTransform?.length ? 'text-dark' : 'skyblue') }}
+							style={{ padding: '0 6px', color: color(!textTransform?.length ? 'dark' : 'skyblue') }}
 							onClick={openContextMenu('textTransform', { action: 'save' })}
 						>
 							<u>save</u>
@@ -758,7 +758,7 @@ function ControlsPanel() {
 								letterSpacing: 2,
 								fontSize: 16,
 								paddingRight: 8,
-								color: color('text-dark'),
+								color: color('dark'),
 							}}
 						>
 							−+±×⋅·∙⋆°
@@ -788,7 +788,7 @@ function ControlsPanel() {
 						<div
 							key={id}
 							style={{
-								color: !enabled ? color('text-dark') : 'unset',
+								color: !enabled ? color('dark') : 'unset',
 								display: 'flex',
 								gap: 4,
 								flexFlow: 'row wrap',

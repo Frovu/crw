@@ -53,7 +53,7 @@ export const colorKeys = [
 	'bg',
 	'input-bg',
 	'text',
-	'text-dark',
+	'dark',
 	'border',
 	'grid',
 	'active',
@@ -159,7 +159,7 @@ export const logSuccess = (txt?: any) => {
 export const logColor = {
 	error: color('red'),
 	info: color('text'),
-	debug: color('text-dark'),
+	debug: color('dark'),
 	success: color('green'),
 };
 

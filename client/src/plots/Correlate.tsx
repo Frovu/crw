@@ -97,7 +97,7 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 					style={{
 						width: '10em',
 						marginLeft: 4,
-						color: params.sample0 === '<current>' ? color('text-dark') : 'unset',
+						color: params.sample0 === '<current>' ? color('dark') : 'unset',
 					}}
 					value={params.sample0}
 					onChange={(e) => set('sample0', e.target.value)}
@@ -317,7 +317,7 @@ function Panel() {
 						}),
 						titlePlugin({
 							text: [
-								{ text: `α=${intercept.toFixed(2)}; `, color: 'text-dark' },
+								{ text: `α=${intercept.toFixed(2)}; `, color: 'dark' },
 								{
 									text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`,
 									color: 'text',

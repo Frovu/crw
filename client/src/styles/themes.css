@@ -23,7 +23,7 @@
 	--color-bg: rgb(0, 0, 0);
 	--color-input-bg: rgb(25, 25, 25);
 	--color-text: rgb(190, 190, 190);
-	--color-text-dark: rgb(99, 99, 99);
+	--color-dark: rgb(99, 99, 99);
 	--color-border: rgb(55, 55, 55);
 	--color-grid: rgb(33, 33, 33);
 	--color-active: var(--color-gold);
@@ -57,7 +57,7 @@
 	--color-bg: rgb(255, 255, 255);
 	--color-input-bg: rgb(200, 200, 200);
 	--color-text: rgb(22, 22, 22);
-	--color-text-dark: rgb(77, 77, 77);
+	--color-dark: rgb(77, 77, 77);
 	--color-border: rgb(88, 88, 88);
 	--color-grid: rgb(222, 222, 222);
 	--color-active: rgb(228, 0, 106);
@@ -88,7 +88,7 @@
 	--color-bg: rgb(255, 255, 255);
 	--color-input-bg: rgb(200, 200, 200);
 	--color-text: rgb(0, 0, 0);
-	--color-text-dark: rgb(77, 77, 77);
+	--color-dark: rgb(77, 77, 77);
 	--color-border: rgb(66, 66, 66);
 	--color-grid: rgb(222, 222, 222);
 	--color-active: rgb(228, 0, 106);
@@ -119,7 +119,7 @@
 	--color-bg: var(--color-bg);
 	--color-input-bg: var(--color-input-bg);
 	--color-text: var(--color-text);
-	--color-text-dark: var(--color-text-dark);
+	--color-dark: var(--color-dark);
 	--color-border: var(--color-border);
 	--color-grid: var(--color-grid);
 	--color-active: var(--color-active);

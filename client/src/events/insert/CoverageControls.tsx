@@ -199,7 +199,7 @@ export default function CoverageControls({ date }: { date: Date }) {
 						onMouseOver={() => setHovered(true)}
 					>
 						<td
-							style={{ color: color(colour === 'red' ? 'red' : 'text-dark'), paddingBottom: 4, width: 84 }}
+							style={{ color: color(colour === 'red' ? 'red' : 'dark'), paddingBottom: 4, width: 84 }}
 							className="TextButton"
 							onClick={() => setMinified(minified ? false : true)}
 						>

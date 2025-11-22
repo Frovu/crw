@@ -1,4 +1,14 @@
-import { type ReactElement, type SetStateAction, createContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import {
+	type ReactElement,
+	type SetStateAction,
+	createContext,
+	useCallback,
+	useEffect,
+	useMemo,
+	useReducer,
+	useRef,
+	useState,
+} from 'react';
 import { ManyStationsView } from './NeutronView';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CommitMenu, FetchMenu, Help } from './Actions';
@@ -76,7 +86,9 @@ export default function Neutron() {
 		const stations = query.data.fields.slice(1);
 		const time = query.data.revised.map((row) => row[0]);
 		const uncorrectedData = stations.map((s, i) => query.data!.corrected.map((row) => row[i + 1]));
-		const data = stations.map((s, i) => query.data!.revised.map((row, ri) => (corrections[s]?.[ri]! < 0 ? null : (corrections[s]?.[ri] ?? row[i + 1]))));
+		const data = stations.map((s, i) =>
+			query.data!.revised.map((row, ri) => (corrections[s]?.[ri]! < 0 ? null : corrections[s]?.[ri] ?? row[i + 1]))
+		);
 
 		const averages = data.map((sd) => {
 			const s = sd
@@ -90,9 +102,13 @@ export default function Neutron() {
 			.filter((i) => averages[i] > 0)
 			.sort((a, b) => averages[a] - averages[b]);
 		const distance = (averages[sortedIdx[sortedIdx.length - 1]] - averages[sortedIdx[0]]) / sortedIdx.length;
-		const spreaded = sortedIdx.map((idx, i) => data[idx].map((val) => (val == null ? null : val - averages[idx] - i * distance)));
+		const spreaded = sortedIdx.map((idx, i) =>
+			data[idx].map((val) => (val == null ? null : val - averages[idx] - i * distance))
+		);
 		const spreadedUnc = sortedIdx.map((idx, i) =>
-			uncorrectedData[idx].map((val, di) => (val == null || val === data[idx][di] ? null : val - averages[idx] - i * distance)),
+			uncorrectedData[idx].map((val, di) =>
+				val == null || val === data[idx][di] ? null : val - averages[idx] - i * distance
+			)
 		);
 
 		return {
@@ -144,20 +160,24 @@ export default function Neutron() {
 			setCorrections((corr) => {
 				if (!dataState) return {};
 				const sidx = dataState?.stations.indexOf(station);
-				const effective = values.map((v, i) => ((v === STUB_VALUE ? null : v) === dataState.data[sidx + 1][i + fromIndex] ? null : v));
+				const effective = values.map((v, i) =>
+					(v === STUB_VALUE ? null : v) === dataState.data[sidx + 1][i + fromIndex] ? null : v
+				);
 				if (effective.filter((v) => v != null).length <= 0) return corr;
 				const corrs = corr[station]?.slice() ?? Array(dataState.data[0].length).fill(null);
 				corrs.splice(fromIndex, effective.length, ...effective);
 				return { ...corr, [station]: corrs };
 			});
 		},
-		[dataState],
+		[dataState]
 	);
 
 	const showRevisions =
 		(primeStation &&
 			hardCursorIdx &&
-			query.data?.revisions.filter((rev) => rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][hardCursorIdx]))) ||
+			query.data?.revisions.filter(
+				(rev) => rev.station === primeStation && rev.rev_time.includes(dataState?.data[0][hardCursorIdx])
+			)) ||
 		[];
 
 	useEffect(() => {
@@ -191,7 +211,7 @@ export default function Neutron() {
 			addCorrection(
 				primeStation,
 				min,
-				data.slice(min, max + 1).map((v) => v / efficiency),
+				data.slice(min, max + 1).map((v) => v / efficiency)
 			);
 		} else if ('KeyL' === e.code) {
 			queryClient.refetchQueries();
@@ -212,7 +232,7 @@ export default function Neutron() {
 							addCorrection,
 							openPopup,
 							showMinutes,
-						}
+					  }
 			}
 		>
 			<NavigationContext.Provider value={navigation}>
@@ -220,7 +240,11 @@ export default function Neutron() {
 					<>
 						<div className="popupBackground"></div>
 						<div className="popup" style={{ left: '50%', top: '45%' }}>
-							<span onClick={() => openPopup(null)} style={{ position: 'absolute', top: 4, right: 5 }} className="closeButton">
+							<span
+								onClick={() => openPopup(null)}
+								style={{ position: 'absolute', top: 4, right: 5 }}
+								className="closeButton"
+							>
 								&times;
 							</span>
 							{activePopup === 'refetch' && <FetchMenu />}
@@ -229,7 +253,15 @@ export default function Neutron() {
 						</div>
 					</>
 				)}
-				<div style={{ display: 'grid', height: 'calc(100% - 6px)', gridTemplateColumns: '360px 1fr', gap: 4, userSelect: 'none' }}>
+				<div
+					style={{
+						display: 'grid',
+						height: 'calc(100% - 6px)',
+						gridTemplateColumns: '360px 1fr',
+						gap: 4,
+						userSelect: 'none',
+					}}
+				>
 					<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
 						<div style={{ textAlign: 'center', marginRight: 16 }}>[ {monthInput} ]</div>
 						{dataState && (
@@ -245,9 +277,12 @@ export default function Neutron() {
 												e.target.value === 'none'
 													? null
 													: {
-															idx: dataState.stations.indexOf(e.target.value) + dataState.stations.length + 1,
+															idx:
+																dataState.stations.indexOf(e.target.value) +
+																dataState.stations.length +
+																1,
 															label: e.target.value,
-														},
+													  },
 										}))
 									}
 								>
@@ -260,7 +295,11 @@ export default function Neutron() {
 								</select>
 								<label>
 									&nbsp; Min
-									<input type="checkbox" checked={showMinutes} onChange={(e) => setShowMinutes(e.target.checked)} />
+									<input
+										type="checkbox"
+										checked={showMinutes}
+										onChange={(e) => setShowMinutes(e.target.checked)}
+									/>
 								</label>
 							</div>
 						)}
@@ -270,7 +309,14 @@ export default function Neutron() {
 						<div ref={topContainer}></div>
 						<div ref={container}></div>
 						{showRevisions.length > 0 && (
-							<div style={{ maxHeight: 154, overflowY: 'scroll', border: '2px var(--color-border) solid', padding: 2 }}>
+							<div
+								style={{
+									maxHeight: 154,
+									overflowY: 'scroll',
+									border: '2px var(--color-border) solid',
+									padding: 2,
+								}}
+							>
 								{showRevisions.map((rev) => (
 									<div
 										key={rev.id}
@@ -284,8 +330,8 @@ export default function Neutron() {
 										onBlur={() => setHoveredRev(null)}
 									>
 										<p style={{ margin: 0 }}>
-											{rev.author ?? 'anon'} <span style={{ color: 'var(--color-text-dark)' }}>revised</span> [{rev.rev_time.length}]
-											points
+											{rev.author ?? 'anon'} <span style={{ color: 'var(--color-dark)' }}>revised</span> [
+											{rev.rev_time.length}] points
 											<button
 												style={{ position: 'absolute', top: 2, right: 6, padding: '0 8px' }}
 												disabled={rev.reverted_at != null}
@@ -295,7 +341,7 @@ export default function Neutron() {
 											</button>
 										</p>
 										{rev.comment ? 'Comment: ' + rev.comment : ''}
-										<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-text-dark)' }}>
+										<p style={{ margin: '2px 0 0 0', fontSize: 12, color: 'var(--color-dark)' }}>
 											at {prettyDate(rev.time)}
 											{rev.reverted_at != null ? ' / ' + prettyDate(rev.reverted_at) : ''}
 										</p>
@@ -305,11 +351,20 @@ export default function Neutron() {
 						)}
 						{Object.keys(corrections).length > 0 && (
 							<div style={{ color: 'var(--color-magenta)' }}>
-								[!REV!] {Object.entries(corrections).map(([s, crr]) => `${s.toUpperCase()}:${crr.filter((c) => c != null).length} `)}
+								[!REV!]{' '}
+								{Object.entries(corrections).map(
+									([s, crr]) => `${s.toUpperCase()}:${crr.filter((c) => c != null).length} `
+								)}
 							</div>
 						)}
 					</div>
-					<div style={{ position: 'relative', height: 'min(100%, calc(100vw / 2))', border: '2px var(--color-border) solid' }}>
+					<div
+						style={{
+							position: 'relative',
+							height: 'min(100%, calc(100vw / 2))',
+							border: '2px var(--color-border) solid',
+						}}
+					>
 						{(() => {
 							if (query.isLoading) return <div className="center">LOADING...</div>;
 							if (query.isError)
@@ -319,12 +374,24 @@ export default function Neutron() {
 									</div>
 								);
 							if (!query.data) return <div className="center">NO DATA</div>;
-							return <ManyStationsView {...{ legendContainer: topContainer.current, detailsContainer: container.current }} />;
+							return (
+								<ManyStationsView
+									{...{ legendContainer: topContainer.current, detailsContainer: container.current }}
+								/>
+							);
 						})()}
 					</div>
 				</div>
 				<button
-					style={{ position: 'fixed', left: 4, bottom: 8, height: 24, width: 24, padding: 0, border: '1px var(--color-border) solid' }}
+					style={{
+						position: 'fixed',
+						left: 4,
+						bottom: 8,
+						height: 24,
+						width: 24,
+						padding: 0,
+						border: '1px var(--color-border) solid',
+					}}
 					onClick={() => openPopup('help')}
 				>
 					?
@@ -355,7 +422,7 @@ function useEfficiencyInput(autoDisabled: boolean, auto: () => number) {
 				return { text: (Math.round(1000 * val) / 1000).toString(), value: val, div: st.div };
 			}
 		},
-		{ text: '1.0', value: 1, div: null },
+		{ text: '1.0', value: 1, div: null }
 	);
 
 	const efficiency = value / (div || 1);
@@ -391,7 +458,11 @@ function useEfficiencyInput(autoDisabled: boolean, auto: () => number) {
 					/>
 				</span>
 			)}
-			<button style={{ marginLeft: 24, padding: '1px 16px' }} disabled={autoDisabled} onClick={() => dispatch({ action: 'auto' })}>
+			<button
+				style={{ marginLeft: 24, padding: '1px 16px' }}
+				disabled={autoDisabled}
+				onClick={() => dispatch({ action: 'auto' })}
+			>
 				AUTO
 			</button>
 		</div>,

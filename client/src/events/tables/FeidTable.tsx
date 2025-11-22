@@ -103,12 +103,12 @@ export default function FeidTableView({ size, averages }: { size: Size; averages
 				}}
 			/>
 			<div className="flex justify-between content-bottom h-[22px]">
-				<div className="flex text-text-dark text-sm overflow-clip whitespace-nowrap">
+				<div className="flex text-dark text-sm overflow-clip whitespace-nowrap">
 					<div className="text-active"> [{data.length}]</div>
 					<ChangesGadget />
 				</div>
 
-				<div className="flex gap-[2px] text-base text-text-dark font-bold">
+				<div className="flex gap-[2px] text-base text-dark font-bold">
 					{[
 						['↑', 'ArrowUp'],
 						['↓', 'ArrowDown'],

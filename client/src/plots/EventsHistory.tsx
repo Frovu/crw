@@ -81,7 +81,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 						<select
 							title="Column"
 							className="Borderless"
-							style={{ width: '10em', color: series[i]?.column == null ? color('text-dark') : 'unset' }}
+							style={{ width: '10em', color: series[i]?.column == null ? color('dark') : 'unset' }}
 							value={series[i]?.column ?? '__none'}
 							onChange={(e) => setColumn(i, e.target.value === '__none' ? null : e.target.value)}
 						>
@@ -100,7 +100,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 							style={{
 								width: '7em',
 								marginLeft: 1,
-								color: series[i]?.sample === '<current>' ? color('text-dark') : 'unset',
+								color: series[i]?.sample === '<current>' ? color('dark') : 'unset',
 							}}
 							value={series[i]?.sample}
 							onChange={(e) => setSample(i, e.target.value)}

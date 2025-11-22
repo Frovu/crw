@@ -13,8 +13,8 @@ function plotOptions(stations: string[], levels: number[]) {
 				? color('gold')
 				: color('green')
 			: u.series[idx]._focus
-				? color('orange')
-				: color('cyan');
+			? color('orange')
+			: color('cyan');
 	};
 	const levelSize = levels[0] - levels[1];
 	let mouseSelection = false;
@@ -72,7 +72,10 @@ function plotOptions(stations: string[], levels: number[]) {
 		},
 		scales: {
 			y: {
-				range: (u, min, max) => [Math.max(min, levels[levels.length - 1] - 2 * levelSize), Math.min(max, levels[0] + 2 * levelSize)],
+				range: (u, min, max) => [
+					Math.max(min, levels[levels.length - 1] - 2 * levelSize),
+					Math.min(max, levels[0] + 2 * levelSize),
+				],
 			},
 		},
 		axes: [
@@ -84,7 +87,10 @@ function plotOptions(stations: string[], levels: number[]) {
 			},
 			{
 				splits: (u) => levels.map((lvl, i) => ((u.data[1 + i + levels.length][0] ?? lvl) + 2 * lvl) / 3 + 2),
-				values: (u) => stations.map((s) => (s === (u as any)._prime ? s.toUpperCase() : s.toLowerCase())).map((s) => s.slice(0, 4)),
+				values: (u) =>
+					stations
+						.map((s) => (s === (u as any)._prime ? s.toUpperCase() : s.toLowerCase()))
+						.map((s) => s.slice(0, 4)),
 				size: 36,
 				gap: -6,
 				font: font(),
@@ -101,8 +107,8 @@ function plotOptions(stations: string[], levels: number[]) {
 							width: 1,
 							stroke: color('purple', 0.9),
 							points: { show: true, size: 4, fill: color('purple', 0.5), stroke: color('purple', 0.4) },
-						}) as Partial<uPlot.Series>,
-				),
+						} as Partial<uPlot.Series>)
+				)
 			)
 			.concat(
 				stations.map(
@@ -112,8 +118,8 @@ function plotOptions(stations: string[], levels: number[]) {
 							stroke: serColor,
 							grid: { stroke: color('grid'), width: 1 },
 							points: { fill: color('bg'), stroke: serColor },
-						}) as Partial<uPlot.Series>,
-				),
+						} as Partial<uPlot.Series>)
+				)
 			)
 			.concat([
 				{
@@ -130,14 +136,21 @@ function plotOptions(stations: string[], levels: number[]) {
 	} as Omit<uPlot.Options, 'height' | 'width'>;
 }
 
-export function ManyStationsView({ legendContainer, detailsContainer }: { legendContainer: Element | null; detailsContainer: Element | null }) {
+export function ManyStationsView({
+	legendContainer,
+	detailsContainer,
+}: {
+	legendContainer: Element | null;
+	detailsContainer: Element | null;
+}) {
 	const { data, plotData, stations, levels, showMinutes } = useContext(NeutronContext)!;
 	const {
 		state: { cursor, focused, chosen },
 	} = useContext(NavigationContext);
 
 	const chosenOrFocused = (chosen ?? focused)?.label;
-	const legend = cursor && stations.map((st, i) => ({ name: st, value: data[1 + i][cursor.idx], focus: st === chosenOrFocused }));
+	const legend =
+		cursor && stations.map((st, i) => ({ name: st, value: data[1 + i][cursor.idx], focus: st === chosenOrFocused }));
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const options = useCallback(() => plotOptions(stations, levels), [JSON.stringify(stations)]);
@@ -169,14 +182,17 @@ export function ManyStationsView({ legendContainer, detailsContainer }: { legend
 								}}
 							>
 								{legend.map(({ name, value, focus }) => (
-									<span key={name} style={{ color: color(focus ? 'magenta' : value == null ? 'text-dark' : 'text') }}>
+									<span
+										key={name}
+										style={{ color: color(focus ? 'magenta' : value == null ? 'dark' : 'text') }}
+									>
 										{name}={value == null ? 'N/A' : value.toFixed(1)}
 									</span>
 								))}
 							</div>
 						)}
 					</>,
-					legendContainer,
+					legendContainer
 				)}
 			{showMinutes &&
 				chosenOrFocused &&
@@ -186,7 +202,7 @@ export function ManyStationsView({ legendContainer, detailsContainer }: { legend
 					<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
 						<MinuteView {...{ station: chosenOrFocused, timestamp: data[0][cursor.idx] }} />
 					</div>,
-					detailsContainer,
+					detailsContainer
 				)}
 		</>
 	);

@@ -315,7 +315,7 @@ export default function OmniApp() {
 								<div
 									style={{
 										display: 'inline-block',
-										color: color('text-dark'),
+										color: color('dark'),
 										textAlign: 'right',
 										lineHeight: 1.25,
 									}}
@@ -410,7 +410,7 @@ function CovregareView() {
 	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : newTo ?? new Date(0));
 	return !query.data ? null : (
 		<div
-			style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'text-dark') }}
+			style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'dark') }}
 			onClick={() => setEditing((e) => !e)}
 		>
 			<span style={{ textDecoration: editing ? 'underline' : 'unset', lineHeight: 2 }}>COVERAGE INFO</span>
@@ -429,7 +429,7 @@ function CovregareView() {
 			)}
 			{editing && (
 				<>
-					<span style={{ color: color('text-dark') }}>{newTo && prettyDate(newTo)}</span>
+					<span style={{ color: color('dark') }}>{newTo && prettyDate(newTo)}</span>
 					<br />
 				</>
 			)}

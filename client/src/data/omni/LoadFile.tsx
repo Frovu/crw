@@ -5,7 +5,18 @@ import UplotReact from 'uplot-react';
 import { axisDefaults, color, seriesDefaults } from '../../plots/plotUtil';
 
 const fileFormats = ['w0'] as const;
-const omniVariables = ['sw_speed', 'sw_temperature', 'sw_density', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z', 'dst_index', 'kp_index', 'ap_index'] as const;
+const omniVariables = [
+	'sw_speed',
+	'sw_temperature',
+	'sw_density',
+	'imf_scalar',
+	'imf_x',
+	'imf_y',
+	'imf_z',
+	'dst_index',
+	'kp_index',
+	'ap_index',
+] as const;
 
 function parseW0(text: string) {
 	const allLines = text.split('\n');
@@ -73,7 +84,11 @@ export default function LoadFile({ path }: { path: string }) {
 						<h4>Load data from a file</h4>
 						<div>
 							Variable:{' '}
-							<select style={{ width: '11.5ch', marginRight: '24px' }} value={targetVar} onChange={(e) => setTargetVar(e.target.value as any)}>
+							<select
+								style={{ width: '11.5ch', marginRight: '24px' }}
+								value={targetVar}
+								onChange={(e) => setTargetVar(e.target.value as any)}
+							>
 								{omniVariables.map((vr) => (
 									<option key={vr} value={vr}>
 										{vr}
@@ -86,13 +101,15 @@ export default function LoadFile({ path }: { path: string }) {
 							</select>
 							<br />
 							<label>
-								File: <input type="file" onChange={async (e) => setFileText(await e.target.files?.[0]?.text())} />
+								File:{' '}
+								<input type="file" onChange={async (e) => setFileText(await e.target.files?.[0]?.text())} />
 							</label>
 							<br />
 						</div>
 						{data && (
-							<div style={{ color: color('text-dark') }}>
-								parsed [{data[0].length}] hours from {prettyDate(data[0][0]!)} to {prettyDate(data[0][data[0].length - 1]!)}
+							<div style={{ color: color('dark') }}>
+								parsed [{data[0].length}] hours from {prettyDate(data[0][0]!)} to{' '}
+								{prettyDate(data[0][data[0].length - 1]!)}
 							</div>
 						)}
 						{data && data[0].length > 0 && (
@@ -143,7 +160,11 @@ export default function LoadFile({ path }: { path: string }) {
 							</button>
 						)}
 						<div style={{ color: color('red'), height: '1em', marginBottom: 16 }}>{report}</div>
-						<span onClick={() => setOpen(false)} style={{ position: 'absolute', top: 6, right: 12 }} className="CloseButton"></span>
+						<span
+							onClick={() => setOpen(false)}
+							style={{ position: 'absolute', top: 6, right: 12 }}
+							className="CloseButton"
+						></span>
 					</div>
 				</>
 			)}

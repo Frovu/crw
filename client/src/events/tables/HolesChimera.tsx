@@ -34,7 +34,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 				<>
 					<button
 						className="TextButton"
-						style={{ color: color(chs?.chimera_time ? 'text-dark' : 'text') }}
+						style={{ color: color(chs?.chimera_time ? 'dark' : 'text') }}
 						onClick={() => feidId && linkHoleSourceEvent('chimera_holes', ch, feidId)}
 					>
 						Link CHIMERA CH
@@ -288,7 +288,7 @@ function Panel() {
 										(solenHole?.location === 'northern' && ch.lat <= 10) ||
 										(solenHole?.location === 'southern' && ch.lat >= -10);
 
-									const className = linkedToThisCH ? 'text-cyan' : dark ? 'text-text-dark' : 'text-text';
+									const className = linkedToThisCH ? 'text-cyan' : dark ? 'text-dark' : 'text-text';
 
 									return (
 										<DefaultRow

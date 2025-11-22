@@ -39,12 +39,12 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 
 	return (
 		<div>
-			{!blank && <span style={{ fontSize: 14, color: color('text-dark'), paddingLeft: 8 }}>include</span>}
+			{!blank && <span style={{ fontSize: 14, color: color('dark'), paddingLeft: 8 }}>include</span>}
 			{!blank && !sample && <span style={{ fontSize: 14, color: color('red'), padding: 6 }}>DELETED</span>}
 			{(blank || sample) && (
 				<select
 					style={{
-						color: color(blank && !current?.includes?.length ? 'text-dark' : 'text'),
+						color: color(blank && !current?.includes?.length ? 'dark' : 'text'),
 						borderColor: 'transparent',
 						width: sample ? sample.name.length + 4 + 'ch' : 'auto',
 					}}
@@ -286,22 +286,16 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const blacklisted = blacklist.filter((id) => tableData.find((row) => row[0] === id)).length;
 		return (
 			<span style={{ minWidth: 'max-content' }}>
-				<span
-					title="Whitelisted events: found/total"
-					style={{ color: whitelisted ? color('cyan') : color('text-dark') }}
-				>
+				<span title="Whitelisted events: found/total" style={{ color: whitelisted ? color('cyan') : color('dark') }}>
 					[+{whitelisted}
 					{whitelist.length ? '/' + whitelist.length : ''}]
 				</span>
-				<span
-					title="Blacklisted events: found/total"
-					style={{ color: blacklisted ? color('magenta') : color('text-dark') }}
-				>
+				<span title="Blacklisted events: found/total" style={{ color: blacklisted ? color('magenta') : color('dark') }}>
 					{' '}
 					[-{blacklisted}
 					{blacklist.length ? '/' + blacklist.length : ''}]
 				</span>
-				<span title="Total members in sample" style={{ color: color('text-dark') }}>
+				<span title="Total members in sample" style={{ color: color('dark') }}>
 					{' '}
 					= [{applied.length}]
 				</span>
@@ -343,7 +337,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					>
 						<SelectTrigger
 							title="Select events sample"
-							className="border h-6.5 justify-center hover:border-active text-white grow-3 basis-40 min-w-0"
+							className="border h-6.5 justify-center hover:border-active text-white grow-3 basis-40 min-w-0 focus:border-active focus:ring-0"
 						>
 							<SelectValue />
 						</SelectTrigger>
@@ -353,7 +347,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 							<SelectItem value="_none">-- All events --</SelectItem>
 							{samples.map(({ id, name, authors }) => (
 								<SelectItem
-									className={cn('py-0.5', !authors.includes(login!) && 'text-text-dark')}
+									className={cn('py-0.5', !authors.includes(login!) && 'text-dark')}
 									key={id}
 									value={id.toString()}
 								>
@@ -408,7 +402,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			{sample && show && !allowEdit && (
 				<div style={{ padding: 4, display: 'flex', flexWrap: 'wrap' }}>
 					{sampleStats}
-					<span style={{ marginLeft: '1em', color: color('text-dark') }}>by {sample.authors.join(',')}</span>
+					<span style={{ marginLeft: '1em', color: color('dark') }}>by {sample.authors.join(',')}</span>
 					<div style={{ flex: 1 }} />
 					{login && (
 						<Button className="TextButton" style={{ paddingRight: 4 }} onClick={copySample}>
@@ -470,9 +464,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 							onMouseEnter={() => setHoverAuthors((a) => (a < 1 ? 1 : a))}
 							onMouseLeave={() => setHoverAuthors((a) => (a > 1 ? a : 0))}
 						>
-							{hoverAuthors === 0 && (
-								<span style={{ color: color('text-dark') }}>by {sample.authors.join(',')}</span>
-							)}
+							{hoverAuthors === 0 && <span style={{ color: color('dark') }}>by {sample.authors.join(',')}</span>}
 							{hoverAuthors === 1 && (
 								<div style={{ cursor: 'pointer', color: color('active') }} onClick={() => setHoverAuthors(2)}>
 									Edit authors?

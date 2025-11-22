@@ -1,6 +1,6 @@
 import { useRef, useState, useContext, useEffect } from 'react';
 import { clamp, useEventListener, useSize, type Size } from './util';
-import { color, getApp, KEY_COMB, openContextMenu } from './app';
+import { getApp, openContextMenu } from './app';
 import {
 	useLayoutsStore,
 	useLayout,
@@ -22,7 +22,6 @@ import {
 } from './layout';
 import { CatchErrors } from './components/CatchErrors';
 import ContextMenu from './ContextMenu';
-import { defaultLayouts } from './defaultLayouts';
 import { Checkbox } from './components/Checkbox';
 import { Button, CloseButton } from './components/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/Select';
@@ -284,141 +283,6 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 				<Button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</Button>
 			)}
 		</CatchErrors>
-	);
-}
-
-export function LayoutNav() {
-	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
-	const { list, active } = apps[getApp()] ?? { list: {}, active: '' };
-	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
-	const [renaming, setRenaming] = useState<{ layout: string; input: string } | null>(null);
-	const [open, setOpen] = useState(false);
-	const layouts = Object.keys(list);
-
-	const cycleLayouts = (idx: number): any => {
-		const next = (idx + 1) % layouts.length;
-		if (!list[layouts[next]].ignoreWhenCycling || layouts[next] === active) {
-			return selectLayout(layouts[next]);
-		}
-		return cycleLayouts(next);
-	};
-
-	useEventListener('click', () => {
-		setOpen(false);
-		setRenaming(null);
-	});
-	useEventListener('contextmenu', () => {
-		setOpen(false);
-		setRenaming(null);
-	});
-	useEventListener('action+switchLayout', () => cycleLayouts(layouts.indexOf(active)));
-
-	const defaultL = defaultLayouts[getApp() as keyof typeof defaultLayouts]?.list;
-
-	return (
-		<div
-			style={{ padding: '2px 0 2px 4px', position: 'relative' }}
-			onMouseEnter={() => setHovered(1)}
-			onMouseLeave={() => setHovered(0)}
-		>
-			{open && (
-				<div
-					className="ContextMenu"
-					style={{ position: 'absolute', left: -1, bottom: 'calc(100%)' }}
-					onClick={(e) => e.stopPropagation()}
-				>
-					{layouts.map((layout) => {
-						const isUsers = defaultL[layout],
-							isActive = active === layout;
-						return (
-							<div key={layout} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-								{renaming?.layout === layout ? (
-									<input
-										type="text"
-										style={{
-											width: renaming.input.length + 1 + 'ch',
-											maxWidth: '20em',
-											height: '1.25em',
-											flex: 1,
-											color: color('text'),
-										}}
-										autoFocus
-										onFocus={(e) => e.target.select()}
-										onKeyDown={(e) =>
-											['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()
-										}
-										onBlur={() => {
-											renameLayout(renaming.layout, renaming.input);
-											setRenaming(null);
-										}}
-										value={renaming.input}
-										onChange={(e) => setRenaming({ ...renaming, input: e.target.value })}
-									/>
-								) : (
-									<span
-										style={{
-											flex: 1,
-											cursor: 'pointer',
-											color: isActive ? color('active') : isUsers ? color('text') : 'unset',
-										}}
-										onClick={() => selectLayout(layout)}
-									>
-										{layout}
-									</span>
-								)}
-								<div style={{ minWidth: 8 }} />
-								<Button
-									hidden={!isUsers}
-									className="TextButton"
-									onClick={() => setRenaming({ layout, input: layout })}
-								>
-									rename
-								</Button>
-								<Button className="TextButton" onClick={() => copyLayout(layout)}>
-									copy
-								</Button>
-								<label title={`Cycle with ${KEY_COMB.switchLayout} key`}>
-									cycle
-									<input
-										type="checkbox"
-										checked={!list[layout].ignoreWhenCycling}
-										onChange={(e) => toggleCycling(layout, !e.target.checked)}
-									/>
-								</label>
-								{isUsers ? (
-									<div className="CloseButton" onClick={() => deleteLayout(layout)} />
-								) : (
-									<div style={{ minWidth: '1em' }} />
-								)}
-							</div>
-						);
-					})}
-				</div>
-			)}
-			<span
-				style={{
-					cursor: 'pointer',
-					color: open || hovered > 1 ? color('active') : 'unset',
-					textDecoration: !open && hovered > 0 ? 'underline' : 'unset',
-				}}
-				onClick={(e) => {
-					e.stopPropagation();
-					setOpen((o) => !o);
-				}}
-				onMouseEnter={() => setHovered(2)}
-				onMouseLeave={() => setHovered(1)}
-			>
-				{open || hovered > 0 ? 'manage' : 'layout'}
-			</span>
-			:
-			<select style={{ width: active.length + 3 + 'ch' }} value={active} onChange={(e) => selectLayout(e.target.value)}>
-				{Object.keys(list).map((la) => (
-					<option key={la} value={la}>
-						{la}
-					</option>
-				))}
-			</select>
-		</div>
 	);
 }
 

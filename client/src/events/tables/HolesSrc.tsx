@@ -95,7 +95,7 @@ function Panel() {
 								: linkedToThisCH
 								? 'text-cyan'
 								: dark
-								? 'text-text-dark'
+								? 'text-dark'
 								: orange
 								? 'text-orange'
 								: 'text-text';

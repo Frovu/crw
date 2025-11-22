@@ -113,7 +113,7 @@ function drawCirclesLegend({
 			if (!captureOverrides?.scale) size.current = { width, height };
 
 			ctx.lineWidth = px(1);
-			ctx.strokeStyle = color('text-dark');
+			ctx.strokeStyle = color('dark');
 			ctx.fillStyle = color('bg');
 			ctx.fillRect(x, y, width, height);
 			ctx.strokeRect(x, y, width, height);
@@ -582,7 +582,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 					{plotComponent}
 					{moment && <PlotCirclesMoment {...{ params, data: query.data, base, moment, setMoment, settingsOpen }} />}
 					{interactive && (
-						<div style={{ position: 'absolute', color: 'var(--color-text-dark)', right: 16, bottom: 6 }}>
+						<div style={{ position: 'absolute', color: 'var(--color-dark)', right: 16, bottom: 6 }}>
 							{query.isFetching
 								? 'Fetching...'
 								: (query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +

@@ -165,7 +165,7 @@ export default function ImportMenu() {
 				<div style={{ margin: 8 }}>
 					File: <input type="file" onChange={async (e) => setFileText(await e.target.files?.[0]?.text())} />
 				</div>
-				<div style={{ color: color(importColumn ? 'text' : 'text-dark') }}>
+				<div style={{ color: color(importColumn ? 'text' : 'dark') }}>
 					Only one column:
 					<select
 						style={{ maxWidth: 200, marginLeft: 8 }}
@@ -194,7 +194,7 @@ export default function ImportMenu() {
 							changes,
 						} = parsed.parsed;
 						const nihil = (
-							<span style={{ color: 'var(--color-text-dark)' }}>
+							<span style={{ color: 'var(--color-dark)' }}>
 								<i>null</i>
 							</span>
 						);
@@ -207,11 +207,11 @@ export default function ImportMenu() {
 										{first?.toISOString().replace(/T.*/, '')} to {last?.toISOString().replace(/T.*/, '')}
 									</b>
 								</div>
-								<div style={{ color: 'var(--color-text-dark)' }}>
+								<div style={{ color: 'var(--color-dark)' }}>
 									Found: {found} of {total}
 								</div>
 								<div style={{ display: 'inline-block' }}>
-									<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-text-dark)' }}>
+									<div style={{ color: added.length ? 'var(--color-cyan)' : 'var(--color-dark)' }}>
 										Added: <b>{added.length}</b>
 									</div>
 									{added.length > 0 && (
@@ -231,7 +231,7 @@ export default function ImportMenu() {
 									)}
 								</div>
 								<div style={{ display: 'inline-block', marginLeft: 16 }}>
-									<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-text-dark)' }}>
+									<div style={{ color: deleted.length ? 'var(--color-magenta)' : 'var(--color-dark)' }}>
 										&nbsp;Lost: <b>{deleted.length}</b>
 									</div>
 									{deleted.length > 0 && (
@@ -252,7 +252,7 @@ export default function ImportMenu() {
 								</div>
 								<div
 									style={{
-										color: changes.length ? 'var(--color-acid)' : 'var(--color-text-dark)',
+										color: changes.length ? 'var(--color-acid)' : 'var(--color-dark)',
 										marginTop: 4,
 									}}
 								>

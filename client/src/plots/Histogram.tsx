@@ -76,7 +76,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 					<div className="flex">
 						<SimpleSelect
 							title="Column"
-							className={cn('w-24 bg-input-bg/80', params[columnKeys[i]] == null && 'text-text-dark')}
+							className={cn('w-24 bg-input-bg/80', params[columnKeys[i]] == null && 'text-dark')}
 							options={[
 								[null, '<none>'],
 								...columnOpts.map(({ sql_name, name }) => [sql_name, name] as [string, string]),
@@ -89,7 +89,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 							title="Sample (none = all events)"
 							className={cn(
 								'w-36 bg-input-bg/80 justify-center',
-								params[sampleKeys[i]] === '<current>' && 'text-text-dark'
+								params[sampleKeys[i]] === '<current>' && 'text-dark'
 							)}
 							options={[
 								['<none>', '<none>'],
@@ -197,7 +197,7 @@ function drawResiduals(params: HistogramParams, samples: number[][], min: number
 
 			u.ctx.save();
 			u.ctx.lineWidth = px(1);
-			u.ctx.strokeStyle = color('text-dark');
+			u.ctx.strokeStyle = color('dark');
 			u.ctx.fillStyle = color('bg');
 			u.ctx.fillRect(x0, y0, width, height);
 			u.ctx.strokeRect(x0, y0, width, height);

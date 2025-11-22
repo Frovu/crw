@@ -22,7 +22,7 @@ import {
 	useContextMenuStore,
 	closeConfirmation,
 } from './app';
-import { LayoutNav } from './Layout';
+import { LayoutNav } from './LayoutNav';
 import ContextMenu from './ContextMenu';
 import { Button } from './components/Button';
 import { SimpleSelect } from './components/Select';
@@ -80,7 +80,7 @@ function Logs() {
 			{!expand && !hover && last && show && (
 				<div
 					className="pl-1 overflow-clip whitespace-nowrap text-ellipsis"
-					style={{ color: last.type === 'info' ? 'var(--color-text-dark)' : logColor[last.type] }}
+					style={{ color: last.type === 'info' ? 'var(--color-dark)' : logColor[last.type] }}
 				>
 					{last.text}
 				</div>
@@ -89,7 +89,7 @@ function Logs() {
 				<div className="absolute p-1 flex flex-col-reverse bg-bg border break-all w-full h-64 overflow-y-scroll left-0 bottom-0 text-xs">
 					{[...log].reverse().map(({ time, text, type }) => (
 						<div key={time.getTime() + text} style={{ color: logColor[type] }}>
-							<span className="text-text-dark">{time.toLocaleTimeString('en-gb')}:</span> {text}
+							<span className="text-dark">{time.toLocaleTimeString('en-gb')}:</span> {text}
 						</div>
 					))}
 				</div>
@@ -161,21 +161,21 @@ function App() {
 			</CatchErrors>
 			{showNav && (
 				<div
-					className="flex h-6 p-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l"
+					className="flex h-6 p-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l"
 					onContextMenu={openContextMenu('app')}
 				>
 					<SimpleSelect
-						className="pl-2 w-21 text-text-dark"
+						className="pl-2 h-5 w-21 text-dark"
 						options={APPS.map((a) => [a, '/' + a])}
 						value={app}
 						onChange={(a) => selectApp(a)}
 					/>
 					<AuthNav />
 					{app === 'feid' && <LayoutNav />}
-					<div className="flex items-center pl-2 text-text-dark" title="Application color scheme">
+					<div className="flex items-center pl-2 text-dark" title="Application color scheme">
 						theme:
 						<SimpleSelect
-							className={theme === 'Monochrome' ? 'w-30' : 'w-16'}
+							className={theme === 'Monochrome' ? 'h-5 w-30' : 'h-5 w-16'}
 							options={themeOptions.map((t) => [t, t])}
 							value={theme}
 							onChange={(th) => setTheme(th)}

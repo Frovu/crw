@@ -30,7 +30,7 @@ export function EruptiveEntityMenu<T extends EruptTable>({ entity }: { entity: T
 	return (
 		<>
 			<button
-				className={cn('TextButton', erupt?.[link.link] ? 'text-text-dark' : 'text-text')}
+				className={cn('TextButton', erupt?.[link.link] ? 'text-dark' : 'text-text')}
 				onClick={() => linkEruptiveSourceEvent(entity, event)}
 			>
 				Link {src} {entity.toUpperCase()}
@@ -94,12 +94,12 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 						if (isLinked) return erupt?.cme_source === event.src ? 'text-cyan font-bold' : 'text-cyan/90';
 						if (linked?.[event.src])
 							// Other similar event linked to current erupt
-							return 'text-text-dark';
+							return 'text-dark';
 						const linkIdx = eruptions.index[link.link];
 						const linkedTo = eruptions.data?.find((eru) => equalValues(event[link.id], eru[linkIdx]));
 						if (linkedTo)
 							// This event is already linked to some eruption // FIXME: this is probably slow
-							return 'text-text-dark';
+							return 'text-dark';
 
 						const feid = getPlottedFeid();
 						return (feid && rowColorCallback({ erupt, feid, event })) ?? 'text-text';

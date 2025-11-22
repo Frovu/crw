@@ -171,7 +171,7 @@ export function drawCustomLegend({
 			let y = scaled(pos.y);
 			u.ctx.save();
 			u.ctx.lineWidth = px(1);
-			u.ctx.strokeStyle = color('text-dark');
+			u.ctx.strokeStyle = color('dark');
 			u.ctx.fillStyle = color('bg');
 			u.ctx.fillRect(x, y, width, height);
 			u.ctx.strokeRect(x, y, width, height);

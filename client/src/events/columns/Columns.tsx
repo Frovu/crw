@@ -226,7 +226,7 @@ export default function ColumnsSelector() {
 			{txt}:
 			<select
 				className="Borderless"
-				style={!opts.find((o) => o[0] === (params as T)[k]) ? { color: color('text-dark') } : {}}
+				style={!opts.find((o) => o[0] === (params as T)[k]) ? { color: color('dark') } : {}}
 				value={((params as T)[k] as any) || 'null'}
 				onChange={(e) => setParam(k, e.target.value === 'null' ? undefined : (e.target.value as any))}
 			>
@@ -251,7 +251,7 @@ export default function ColumnsSelector() {
 			<>
 				<select
 					style={{
-						color: isDefault ? color('text-dark') : 'unset',
+						color: isDefault ? color('dark') : 'unset',
 						width: isEvent ? '16ch' : isSWS ? '10ch' : '7.5ch',
 					}}
 					className="Borderless"
@@ -315,7 +315,7 @@ export default function ColumnsSelector() {
 				)}
 				<label
 					title="Offset in hours"
-					style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('text-dark') : 'inherit' }}
+					style={{ paddingLeft: 2, color: st?.hours_offset === 0 ? color('dark') : 'inherit' }}
 				>
 					+
 					<input
@@ -382,7 +382,7 @@ export default function ColumnsSelector() {
 								<div
 									key={id}
 									style={{
-										color: generic && !generic?.is_public ? color('text-dark') : color('text'),
+										color: generic && !generic?.is_public ? color('dark') : color('text'),
 										cursor: 'pointer',
 									}}
 									title={description}
@@ -528,7 +528,7 @@ export default function ColumnsSelector() {
 									<label
 										key={infl}
 										title={'Include sources with cr_influence=' + infl}
-										className={!params.influence?.includes(infl) ? 'text-text-dark' : ''}
+										className={!params.influence?.includes(infl) ? 'text-dark' : ''}
 									>
 										{infl}
 										<input

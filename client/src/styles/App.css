@@ -115,7 +115,7 @@
 	height: 24px;
 	display: flex;
 	gap: 8;
-	color: var(--color-text-dark);
+	color: var(--color-dark);
 	font-size: 14px;
 	user-select: none;
 }

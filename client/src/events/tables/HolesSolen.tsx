@@ -35,7 +35,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
 		<>
 			<button
 				className="TextButton"
-				style={{ color: color(chSrc?.tag ? 'text-dark' : 'text') }}
+				style={{ color: color(chSrc?.tag ? 'dark' : 'text') }}
 				onClick={() => feidId && linkHoleSourceEvent('solen', ch, feidId)}
 			>
 				Link solen CH
@@ -142,7 +142,7 @@ function Panel() {
 									const className = linkedToThisCH
 										? 'text-cyan'
 										: dark
-										? 'text-text-dark'
+										? 'text-dark'
 										: orange
 										? 'text-orange'
 										: 'text-text';

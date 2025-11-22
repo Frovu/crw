@@ -55,7 +55,9 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 		<>
 			<div className="PopupBackground" onClick={closePrompt} />
 			<div className="Popup" style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 0 2em' }}>
-				<b>{upsertMode ? 'Upsert user' : !passMode ? (createMode ? 'CRW Register' : 'CRW Login') : 'Change password'}</b>
+				<b>
+					{upsertMode ? 'Upsert user' : !passMode ? (createMode ? 'CRW Register' : 'CRW Login') : 'Change password'}
+				</b>
 				<div style={{ textAlign: 'right' }}>
 					<p>
 						Username:&nbsp;
@@ -113,7 +115,9 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 					</p>
 				)}
 				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-					<span style={{ color, width: '12em', textAlign: 'center', minHeight: '3em' }}>{report?.error ?? report?.success}</span>
+					<span style={{ color, width: '12em', textAlign: 'center', minHeight: '3em' }}>
+						{report?.error ?? report?.success}
+					</span>
 					<button style={{ width: '6em', height: '1.5em' }} onClick={submit}>
 						{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login'}
 					</button>
@@ -139,7 +143,7 @@ export function AuthNav() {
 			}}
 		>
 			<div
-				style={{ whiteSpace: 'nowrap', color: hovered === 1 ? 'var(--color-active)' : 'var(--color-text-dark)' }}
+				style={{ whiteSpace: 'nowrap', color: hovered === 1 ? 'var(--color-active)' : 'var(--color-dark)' }}
 				onMouseEnter={() => setHovered(1)}
 				onMouseLeave={() => setHovered(0)}
 				onClick={(e) => {

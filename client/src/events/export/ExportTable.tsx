@@ -76,7 +76,7 @@ export function ExportMenu() {
 				Copy csv to clipboard
 			</button>
 			<div className="separator" style={{ margin: '6px 0' }}></div>
-			<div style={{ color: 'var(--color-text-dark)', fontSize: 12 }}>
+			<div style={{ color: 'var(--color-dark)', fontSize: 12 }}>
 				Note that table is exported as it is currently visible: respecting selected sample, filters and enabled columns
 			</div>
 		</div>

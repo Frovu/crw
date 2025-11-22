@@ -43,7 +43,7 @@ function plotOptions(): Omit<uPlot.Options, 'width' | 'height'> {
 					({
 						...seriesDefaults(`t_${lvl}mb`, 'purple', 't'),
 						value: (u, val) => val?.toFixed(1) ?? '--',
-					}) as uPlot.Series,
+					} as uPlot.Series)
 			),
 		],
 	};
@@ -114,11 +114,11 @@ export default function TemperatureApp() {
 							rows: query.data.rows?.map((row) => [new Date(row[0] * 1e3), ...row.slice(1)]),
 						},
 						null,
-						2,
+						2
 					),
 				],
-				{ type: 'application/json' },
-			),
+				{ type: 'application/json' }
+			)
 		);
 		a.download = 'air_temperature.json';
 		a.click();
@@ -131,19 +131,28 @@ export default function TemperatureApp() {
 					{monthInput}
 					<div style={{ padding: '8px 0 0 8px', display: 'flex', gap: 16 }}>
 						{['lat', 'lon'].map((coord) => (
-							<label title={`geographical ${coord === 'lat' ? 'latitude (-90 to 90)' : 'longitude (-180 to 180)'}`}>
+							<label
+								title={`geographical ${coord === 'lat' ? 'latitude (-90 to 90)' : 'longitude (-180 to 180)'}`}
+							>
 								{coord} ={' '}
 								<input
 									type="text"
 									defaultValue={coords[coord as 'lat' | 'lon']}
 									style={{ width: 56, textAlign: 'center', borderColor: color('border') }}
 									onKeyDown={(e) =>
-										e.target instanceof HTMLInputElement && ['Enter', 'NumpadEnter', 'Escape'].includes(e.code) && e.target.blur()
+										e.target instanceof HTMLInputElement &&
+										['Enter', 'NumpadEnter', 'Escape'].includes(e.code) &&
+										e.target.blur()
 									}
 									onBlur={(e) =>
 										setCoords((c) => {
 											const val = parseFloat(e.target.value);
-											return isNaN(val) ? c : { ...c, [coord]: coord === 'lat' ? clamp(-90, 90, val) : clamp(-180, 180, val) };
+											return isNaN(val)
+												? c
+												: {
+														...c,
+														[coord]: coord === 'lat' ? clamp(-90, 90, val) : clamp(-180, 180, val),
+												  };
 										})
 									}
 								/>
@@ -164,8 +173,10 @@ export default function TemperatureApp() {
 						<details style={{ paddingBottom: 8, textAlign: 'justify' }}>
 							<summary>Dataset info</summary>
 							Atmospheric temperature on 18 barometric levels is obtained from{' '}
-							<a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">NCEP/NCAR Reanalysis project</a> and interpolated for
-							scpecific location and for 1 hour time resolution using B-splines.
+							<a href="https://psl.noaa.gov/data/gridded/data.ncep.reanalysis.html">
+								NCEP/NCAR Reanalysis project
+							</a>{' '}
+							and interpolated for scpecific location and for 1 hour time resolution using B-splines.
 						</details>
 						{query.data?.status === 'ok' && (
 							<button style={{ padding: '2px 12px' }} onClick={download}>
@@ -173,7 +184,7 @@ export default function TemperatureApp() {
 							</button>
 						)}
 						{query.data?.status === 'ok' && (
-							<div style={{ color: color('text-dark'), paddingTop: 4 }}>
+							<div style={{ color: color('dark'), paddingTop: 4 }}>
 								lat={query.data.coords.lat}, lon={query.data.coords.lon}
 							</div>
 						)}

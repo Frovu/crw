@@ -6,7 +6,19 @@ import regression from 'regression';
 import uPlot from 'uplot';
 import { useNavigationState, NavigationContext, NavigatedPlot } from '../../plots/NavigatedPlot';
 
-const ORDER = ['time', 'original', 'revised', 'corrected', 'expected', 'expected+', 'a0', 'axy', 'az', 't_mass_average', 'pressure'] as const;
+const ORDER = [
+	'time',
+	'original',
+	'revised',
+	'corrected',
+	'expected',
+	'expected+',
+	'a0',
+	'axy',
+	'az',
+	't_mass_average',
+	'pressure',
+] as const;
 
 type CoefInfo = {
 	coef: {
@@ -176,7 +188,9 @@ function MuonApp() {
 
 	const { min, max } = navigation.state.selection ?? navigation.state.view;
 	const [fetchFrom, fetchTo] =
-		!upl?.data || (min === 0 && max === upl.data[0].length - 1) ? interval : [min, max].map((i, n) => upl.data[0][i] ?? interval[n]);
+		!upl?.data || (min === 0 && max === upl.data[0].length - 1)
+			? interval
+			: [min, max].map((i, n) => upl.data[0][i] ?? interval[n]);
 
 	const fitOptions = ['all', 'gsm', 'axy'] as const;
 	const [showCxy, setShowCxy] = useState(true);
@@ -211,13 +225,19 @@ function MuonApp() {
 		}
 
 		const variationSeries = ['revised', 'corrected', 'a0', 'expected'];
-		const varAverages = variationSeries.map((ii) => data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter((v) => v != null).length);
+		const varAverages = variationSeries.map(
+			(ii) => data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter((v) => v != null).length
+		);
 		data['original'] = data['original'].map((v, i) => (v !== data['revised'][i] ? v : null));
 		for (const [i, ser] of [...variationSeries.entries()].concat([[0, 'original']]))
 			data[ser] = data[ser].map((v) => (v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100)));
-		data['expected+'] = data['expected+'].map((v) => (v == null ? null : (v - varAverages.at(-1)!) / (1 + varAverages.at(-1)! / 100)));
+		data['expected+'] = data['expected+'].map((v) =>
+			v == null ? null : (v - varAverages.at(-1)!) / (1 + varAverages.at(-1)! / 100)
+		);
 
-		const counts = Object.fromEntries(Object.entries(data).map(([ser, vals]) => [ser, vals.filter((v) => v != null).length]));
+		const counts = Object.fromEntries(
+			Object.entries(data).map(([ser, vals]) => [ser, vals.filter((v) => v != null).length])
+		);
 
 		const series = ORDER.map((s) => data[s]);
 		if (averaging === 1) return [series, counts];
@@ -246,11 +266,17 @@ function MuonApp() {
 	const [correlationTarget, setCorrelationTarget] = useState<(typeof ORDER)[number]>('expected+');
 	const correlationPlot = useMemo(() => {
 		if (!plotData) return null;
-		const target = correlationTarget === 'expected+' && fetchFrom === interval[0] && fetchTo === interval[1] ? 'expected' : correlationTarget;
+		const target =
+			correlationTarget === 'expected+' && fetchFrom === interval[0] && fetchTo === interval[1]
+				? 'expected'
+				: correlationTarget;
 		const [xColIdx, yColIdx] = (['corrected', target] as const).map((f) => ORDER.indexOf(f));
 		const data = plotData;
 		const filtered: [number, number][] = [...data[0].keys()]
-			.filter((i) => fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo && data[xColIdx][i] != null && data[yColIdx][i] != null)
+			.filter(
+				(i) =>
+					fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo && data[xColIdx][i] != null && data[yColIdx][i] != null
+			)
 			.map((i) => [data[xColIdx][i]!, data[yColIdx][i]!]);
 		if (filtered.length < 2) return null;
 		const transposed = [0, 1].map((i) => filtered.map((r) => r[i])) as [number[], number[]];
@@ -337,7 +363,9 @@ function MuonApp() {
 	});
 
 	const defaultInput = () =>
-		Object.fromEntries((['p', 'tm'] as const).map((coef) => [coef, corrInfo ? ((corrInfo.coef?.[coef] ?? 0) * 100).toFixed(3) : '?']));
+		Object.fromEntries(
+			(['p', 'tm'] as const).map((coef) => [coef, corrInfo ? ((corrInfo.coef?.[coef] ?? 0) * 100).toFixed(3) : '?'])
+		);
 	const [input, setInputState] = useState(defaultInput);
 	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
 
@@ -350,7 +378,9 @@ function MuonApp() {
 				inf.coef['phi'] = (Math.atan2(inf.coef['cy'] * -100, inf.coef['cx'] * -100) * 180) / Math.PI - longitude;
 				inf.error['cxy'] = Math.hypot(inf.error['cx'], inf.error['cy']);
 				inf.error['phi'] = Math.abs(
-					(Math.atan2((inf.error['cy'] - inf.coef['cy']) * 100, (inf.error['cx'] - inf.coef['cx']) * 100) * 180) / Math.PI - inf.coef['phi'],
+					(Math.atan2((inf.error['cy'] - inf.coef['cy']) * 100, (inf.error['cx'] - inf.coef['cx']) * 100) * 180) /
+						Math.PI -
+						inf.coef['phi']
 				);
 			}
 			const grey = fitCoefs === 'gsm' ? ['tm', 'p'] : fitCoefs === 'axy' ? ['tm', 'p', 'c0', 'cz'] : [];
@@ -358,7 +388,7 @@ function MuonApp() {
 				(['coef', 'error'] as const).map((what) => [
 					what,
 					keys.map((k, i) => (
-						<td key={k} style={{ width: 46, color: grey.includes(k) ? color('text-dark') : 'unset' }}>
+						<td key={k} style={{ width: 46, color: grey.includes(k) ? color('dark') : 'unset' }}>
 							{inf[what][k] != null
 								? k === 'phi'
 									? inf[what][k]?.toFixed(1)
@@ -366,7 +396,7 @@ function MuonApp() {
 								: ''}
 						</td>
 					)),
-				]),
+				])
 			) as any;
 		};
 		return [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];
@@ -407,8 +437,12 @@ function MuonApp() {
 							</select>
 						</label>
 					</div>
-					<div title={'longitude = ' + longitude} style={{ color: color('text-dark'), fontSize: 14, textAlign: 'right', paddingRight: 14 }}>
-						operational {until ? 'from' : 'since'} {prettyDate(since, true)} {until ? 'to ' + prettyDate(until, true) : ''}
+					<div
+						title={'longitude = ' + longitude}
+						style={{ color: color('dark'), fontSize: 14, textAlign: 'right', paddingRight: 14 }}
+					>
+						operational {until ? 'from' : 'since'} {prettyDate(since, true)}{' '}
+						{until ? 'to ' + prettyDate(until, true) : ''}
 					</div>
 					<div style={{ paddingTop: 4 }}>Show: {monthInput}</div>
 					{nonnull && (
@@ -461,7 +495,11 @@ function MuonApp() {
 					)}
 					{plotData && (
 						<table style={{ textAlign: 'center', fontSize: 14, borderSpacing: 3 }}>
-							<tr title="Switch between cx/cy and cxy/φ" style={{ cursor: 'pointer' }} onClick={() => setShowCxy((s) => !s)}>
+							<tr
+								title="Switch between cx/cy and cxy/φ"
+								style={{ cursor: 'pointer' }}
+								onClick={() => setShowCxy((s) => !s)}
+							>
 								<td></td>
 								<td>p</td>
 								<td>t</td>
@@ -488,7 +526,10 @@ function MuonApp() {
 								<td>&nbsp;err</td>
 								{displayCoef && displayCoef.error}
 							</tr>
-							<tr title="Actually used for corrections (saved)" style={{ boxShadow: '0 -1px 0 var(--color-border)' }}>
+							<tr
+								title="Actually used for corrections (saved)"
+								style={{ boxShadow: '0 -1px 0 var(--color-border)' }}
+							>
 								<td>used</td>
 								{(['p', 'tm'] as const).map((coef, i) => (
 									<td style={{ padding: '4px 1px 0 1px' }}>
@@ -497,7 +538,10 @@ function MuonApp() {
 											style={{ width: 48, textAlign: 'center', color: color(corrInfo ? 'text' : 'red') }}
 											value={input[coef]}
 											onChange={(e) => setInputState((st) => ({ ...st, [coef]: e.target.value }))}
-											onKeyDown={(e) => ['Escape', 'Enter', 'NumpadEnter'].includes(e.code) && (e.target as HTMLInputElement)?.blur()}
+											onKeyDown={(e) =>
+												['Escape', 'Enter', 'NumpadEnter'].includes(e.code) &&
+												(e.target as HTMLInputElement)?.blur()
+											}
 											onBlur={(e) =>
 												!isNaN(parseFloat(e.target.value)) &&
 												parseFloat(e.target.value) / 100 !== corrInfo?.coef[coef] &&
@@ -517,7 +561,7 @@ function MuonApp() {
 							</button>
 							{corrInfo == null && <>coefficients are not set</>}
 							{corrInfo && (
-								<span style={{ color: color('text-dark'), fontSize: 12 }}>
+								<span style={{ color: color('dark'), fontSize: 12 }}>
 									set /{corrInfo.length && `[${Math.floor(corrInfo.length / 24)} d] `}
 									at {prettyDate(corrInfo.time)}
 									{corrInfo.modified && <div>(modified manually)</div>}
@@ -527,35 +571,62 @@ function MuonApp() {
 					)}
 					<div style={{ paddingTop: 4 }}>{correlationPlot}</div>
 					<div style={{ textAlign: 'right', paddingRight: 8, paddingTop: 4 }}>
-						<div style={{ display: 'inline-block', padding: 8, border: '1px solid', borderColor: color('red', 0.6) }}>
+						<div
+							style={{ display: 'inline-block', padding: 8, border: '1px solid', borderColor: color('red', 0.6) }}
+						>
 							<div style={{ color: color('text'), verticalAlign: 'top', fontSize: 14 }}>
-								<div style={{ display: 'inline-block', color: color('text-dark'), textAlign: 'right', lineHeight: 1.25 }}>
-									<span style={{ color: color('text') }}>[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h] </span>
+								<div
+									style={{
+										display: 'inline-block',
+										color: color('dark'),
+										textAlign: 'right',
+										lineHeight: 1.25,
+									}}
+								>
+									<span style={{ color: color('text') }}>
+										[{Math.ceil((fetchTo - fetchFrom) / 3600) + 1} h]{' '}
+									</span>
 									{prettyDate(fetchFrom)}
 									<br />
 									&nbsp;&nbsp;to {prettyDate(fetchTo)}
 								</div>
 							</div>
 							<div style={{ paddingTop: 8 }} title="Re-obatin all data for focused interval">
-								<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate(false)}>
+								<button
+									style={{ padding: 2, width: 230 }}
+									disabled={isObtaining}
+									onClick={() => obtainMutation.mutate(false)}
+								>
 									{isObtaining ? 'stand by...' : 'Obtain all'}
 								</button>
 							</div>
 							<div style={{ paddingTop: 8 }} title="Re-obatin data for focused interval excluding temperature">
-								<button style={{ padding: 2, width: 230 }} disabled={isObtaining} onClick={() => obtainMutation.mutate(true)}>
+								<button
+									style={{ padding: 2, width: 230 }}
+									disabled={isObtaining}
+									onClick={() => obtainMutation.mutate(true)}
+								>
 									{isObtaining ? 'stand by...' : 'Obtain data'}
 								</button>
 							</div>
 							{plotData && (
 								<div style={{ paddingTop: 8 }} title="Mask selected points (this is kind of reversible)">
-									<button style={{ padding: 2, width: 230 }} disabled={revisionMut.isPending} onClick={() => revisionMut.mutate('remove')}>
+									<button
+										style={{ padding: 2, width: 230 }}
+										disabled={revisionMut.isPending}
+										onClick={() => revisionMut.mutate('remove')}
+									>
 										{revisionMut.isPending ? '...' : `Remove [${rmCount}]`}
 									</button>
 								</div>
 							)}
 							{plotData && (
 								<div style={{ paddingTop: 8 }} title="Clear all revisions (this action is irreversible)">
-									<button style={{ padding: 2, width: 230 }} disabled={revisionMut.isPending} onClick={() => revisionMut.mutate('revert')}>
+									<button
+										style={{ padding: 2, width: 230 }}
+										disabled={revisionMut.isPending}
+										onClick={() => revisionMut.mutate('revert')}
+									>
 										{revisionMut.isPending ? '...' : 'Clear revisions'}
 									</button>
 								</div>

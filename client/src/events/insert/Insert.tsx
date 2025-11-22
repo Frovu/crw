@@ -179,9 +179,7 @@ function Panel() {
 				width={84}
 				style={{
 					minWidth: 80,
-					color: color(
-						{ primary: 'green', secondary: 'text', residual: 'text-dark', def: 'red' }[infl ?? 'def'] ?? 'red'
-					),
+					color: color({ primary: 'green', secondary: 'text', residual: 'dark', def: 'red' }[infl ?? 'def'] ?? 'red'),
 					whiteSpace: 'nowrap',
 				}}
 				onContextMenu={(e) => {
@@ -251,10 +249,10 @@ function Panel() {
 							<td width={64} style={{ color: color(!isIdle ? 'magenta' : 'text'), fontSize: 14 }}>
 								{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}
 							</td>
-							<td title="Event onset time" colSpan={2} style={{ color: color('text-dark') }}>
+							<td title="Event onset time" colSpan={2} style={{ color: color('dark') }}>
 								{prettyDate(start)}
 							</td>
-							<td title="Event duration in hours" width={48} style={{ color: color('text-dark') }}>
+							<td title="Event duration in hours" width={48} style={{ color: color('dark') }}>
 								+{duration}
 							</td>
 						</tr>
@@ -262,7 +260,7 @@ function Panel() {
 							<td
 								title="Event onset type"
 								className="TextButton"
-								style={{ color: color(feid.onset_type == null ? 'text-dark' : 'text') }}
+								style={{ color: color(feid.onset_type == null ? 'dark' : 'text') }}
 								onContextMenu={(e) => {
 									e.stopPropagation();
 									e.preventDefault();
@@ -286,7 +284,7 @@ function Panel() {
 										makeChange('feid', { id: feidId, column: 's_type', value, fast: true })
 									}
 								/>
-								<span style={{ paddingLeft: 2, color: color('text-dark', 0.3) }}>(0)</span>
+								<span style={{ paddingLeft: 2, color: color('dark', 0.3) }}>(0)</span>
 							</td>
 							<td
 								title="Source identification confidence"
@@ -391,7 +389,7 @@ function Panel() {
 						const clr = (what: 'flare' | 'cme' | 'icme', which: string) => {
 							const isSet = src.erupt?.[getSourceLink(what, which)[0]];
 							return {
-								color: color(isSet ? 'green' : 'text-dark'),
+								color: color(isSet ? 'green' : 'dark'),
 								backgroundColor: isSet ? color('green', 0.2) : 'unset',
 							};
 						};
@@ -411,7 +409,7 @@ function Panel() {
 								<table className="Table" style={{ borderCollapse: 'collapse' }}>
 									<tbody>
 										<tr>
-											<td width={84} style={{ color: color('text-dark') }}>
+											<td width={84} style={{ color: color('dark') }}>
 												ERU{i + 1}
 											</td>
 											<td
@@ -419,7 +417,7 @@ function Panel() {
 												style={{
 													borderBottomColor: 'transparent',
 													textAlign: 'right',
-													color: color('text-dark'),
+													color: color('dark'),
 												}}
 											>
 												FLR:
@@ -438,7 +436,7 @@ function Panel() {
 										<tr>
 											<InflButton src={src} />
 
-											<td style={{ textAlign: 'right', color: color('text-dark') }}>CME:</td>
+											<td style={{ textAlign: 'right', color: color('dark') }}>CME:</td>
 											<td style={clr('cme', 'LSC')}>LSC</td>
 											<td style={clr('cme', 'DKI')}>DKI</td>
 											<td style={clr('cme', 'CCT')}>CCT</td>
@@ -458,7 +456,7 @@ function Panel() {
 						const clr = (which: 'solen' | 'chimera') => {
 							const isSet = src.ch?.[which === 'solen' ? 'tag' : 'chimera_id'];
 							return {
-								color: color(isSet ? 'green' : 'text-dark'),
+								color: color(isSet ? 'green' : 'dark'),
 								backgroundColor: isSet ? color('green', 0.2) : 'unset',
 							};
 						};
@@ -478,7 +476,7 @@ function Panel() {
 								<table className="Table" style={{ borderCollapse: 'collapse' }}>
 									<tbody>
 										<tr>
-											<td width={64} style={{ color: color('text-dark') }}>
+											<td width={64} style={{ color: color('dark') }}>
 												{(src.ch?.tag as string) ?? `CH#${i + 1}`}
 											</td>
 											<InflButton src={src} />

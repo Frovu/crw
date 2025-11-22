@@ -56,7 +56,7 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 							style={{
 								width: '7em',
 								marginLeft: 2,
-								color: params[seriesKeys[i]] == null ? color('text-dark') : 'unset',
+								color: params[seriesKeys[i]] == null ? color('dark') : 'unset',
 							}}
 							value={params[seriesKeys[i]] ?? '__none'}
 							onChange={(e) => set(seriesKeys[i], e.target.value === '__none' ? null : e.target.value)}
@@ -75,7 +75,7 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 							style={{
 								width: '7.5em',
 								marginLeft: 1,
-								color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset',
+								color: params[sampleKeys[i]] === '<current>' ? color('dark') : 'unset',
 							}}
 							value={params[sampleKeys[i]]}
 							onChange={(e) => set(sampleKeys[i], e.target.value)}
@@ -377,7 +377,7 @@ function Panel() {
 	return (
 		<>
 			<ExportableUplot {...{ options, data }} />
-			<div style={{ position: 'absolute', color: color('text-dark'), top: 0, right: 3, fontSize: 12 }}>
+			<div style={{ position: 'absolute', color: color('dark'), top: 0, right: 3, fontSize: 12 }}>
 				{queries
 					.map(
 						(q, i) =>

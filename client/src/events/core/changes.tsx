@@ -113,7 +113,7 @@ export function ChangesGadget() {
 										const val1 = value == null ? 'null' : valueToString(value);
 										return (
 											<div key={id + colName + value} className="flex items-center gap-1.5">
-												<span className="text-text-dark">#{id}: </span>
+												<span className="text-dark">#{id}: </span>
 												<i className="text-active">{column?.name}</i> {val0} -&gt; <b>{val1}</b>
 												<CloseButton
 													onClick={() => discardChange(tbl, { id, column: colName, value })}

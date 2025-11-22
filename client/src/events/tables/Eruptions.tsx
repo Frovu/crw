@@ -137,7 +137,7 @@ function Panel() {
 							  })();
 					const orphan = !feidSrc.data.find((r) => r[eruptIdIdx] === row[0]);
 
-					const className = orphan ? 'text-red' : cyan ? 'text-cyan' : dark ? 'text-text-dark' : 'text-text';
+					const className = orphan ? 'text-red' : cyan ? 'text-cyan' : dark ? 'text-dark' : 'text-text';
 
 					return (
 						<DefaultRow
