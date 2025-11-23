@@ -35,6 +35,7 @@ import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'luc
 import { Button } from '../components/Button';
 import { PlotIntervalInput } from '../components/Input';
 import { ENLILView } from './panels/ENLIL';
+import { SFTFlare } from './panels/SFTFlare';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -52,6 +53,7 @@ const panels: EventsPanel<any>[] = [
 	XraysPlot,
 	SunView,
 	ENLILView,
+	SFTFlare,
 	ExportControls,
 	ExportPreview,
 	ColorsSettings,

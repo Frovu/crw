@@ -26,7 +26,7 @@ import {
 	sliceData,
 	actionsPlugin,
 } from './basicPlot';
-import { useSunViewState } from '../events/panels/SunView';
+import { useSunViewState } from '../events/panels/SDO';
 import { LayoutContext } from '../layout';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });

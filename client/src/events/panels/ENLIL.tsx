@@ -30,12 +30,9 @@ function Menu({ params, setParams }: ContextMenuProps<Params>) {
 }
 
 function Panel() {
-	const {
-		params: { variable },
-		size,
-	} = useContext(LayoutContext)! as LayoutContextType<Params>;
+	const { params, size } = useContext(LayoutContext)! as LayoutContextType<Params>;
 	const cmes = useCompoundTable('cme');
-	const { cursor } = useEventsState();
+	const cursor = useEventsState((st) => st.cursor);
 	const erupt = useSelectedSource('sources_erupt', true);
 
 	const enlilId = (() => {
@@ -53,7 +50,7 @@ function Panel() {
 	});
 
 	const fname = query.data?.filename;
-	const para = fname && (variable === 'density' ? 'tim-den' : 'tim-vel');
+	const para = fname && (params.variable === 'density' ? 'tim-den' : 'tim-vel');
 	const url = fname && `https://iswa.gsfc.nasa.gov/downloads/${fname}.${para}.gif`;
 	const dkiurl = fname && `https://kauai.ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/${enlilId}/-1`;
 
