@@ -1,4 +1,5 @@
 import { type CSSProperties, useState, useEffect, type ChangeEvent } from 'react';
+import { Input } from './Input';
 
 export function NumberInput({
 	value,
@@ -32,7 +33,7 @@ export function NumberInput({
 	};
 
 	return (
-		<input
+		<Input
 			type="text"
 			style={{ ...style, ...(!valid && { borderColor: 'var(--color-red)' }) }}
 			value={text}

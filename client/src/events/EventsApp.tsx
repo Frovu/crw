@@ -1,4 +1,4 @@
-import { useEventListener } from '../util';
+import { cn, useEventListener } from '../util';
 import AppLayout from '../Layout';
 import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
@@ -16,7 +16,7 @@ import { SWPlasmaPlot } from '../plots/time/SW';
 import { CMEHeightPlot } from '../plots/time/CMEHeight';
 import { SWTypesPlot } from '../plots/time/SWTypes';
 import { XraysPlot } from '../plots/time/XRays';
-import { SunView } from './panels/SunView';
+import { SunView } from './panels/SDO';
 import { ColorsSettings } from '../Colors';
 import { InsertControls } from './insert/Insert';
 import { CMETable, FlaresTable, ICMETable } from './tables/EruptiveEntity';
@@ -71,14 +71,7 @@ const panels: EventsPanel<any>[] = [
 
 function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 	return (
-		<div
-			style={{
-				height: '100%',
-				userSelect: 'none',
-				overflow: 'clip',
-				border: panel.name?.includes('Table') ? 'unset' : '1px var(--color-border) solid',
-			}}
-		>
+		<div className={cn('h-full select-none', !panel.name?.includes('Table') && 'border')}>
 			<panel.Panel />
 		</div>
 	);
