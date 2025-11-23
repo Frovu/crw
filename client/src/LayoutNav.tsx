@@ -4,7 +4,7 @@ import { Button, CloseButton } from './components/Button';
 import { defaultLayouts } from './defaultLayouts';
 import { useLayoutsStore } from './layout';
 import { cn, useEventListener } from './util';
-import { Input } from './components/Input';
+import { TextInput } from './components/Input';
 import { Checkbox } from './components/Checkbox';
 import { SimpleSelect } from './components/Select';
 
@@ -12,7 +12,7 @@ export function LayoutNav() {
 	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
 	const { list, active } = apps[getApp()] ?? { list: {}, active: '' };
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
-	const [renaming, setRenaming] = useState<{ layout: string; input: string } | null>(null);
+	const [renaming, setRenaming] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const layouts = Object.keys(list);
 
@@ -52,21 +52,17 @@ export function LayoutNav() {
 						const isActive = active === layout;
 						return (
 							<div key={layout} className="flex gap-3 items-center">
-								{renaming?.layout === layout ? (
-									<Input
-										className="w-20"
+								{renaming === layout ? (
+									<TextInput
+										className="w-20 text-text"
 										type="text"
 										autoFocus
-										onFocus={(e) => e.target.select()}
-										onKeyDown={(e) =>
-											['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.()
-										}
-										onBlur={() => {
-											renameLayout(renaming.layout, renaming.input);
+										onSubmit={(val) => {
+											renameLayout(renaming, val);
 											setRenaming(null);
 										}}
-										value={renaming.input}
-										onChange={(e) => setRenaming({ ...renaming, input: e.target.value })}
+										onFocus={(e) => e.target.select()}
+										value={renaming}
 									/>
 								) : (
 									<div
@@ -79,11 +75,7 @@ export function LayoutNav() {
 										{layout}
 									</div>
 								)}
-								<Button
-									hidden={!!isDefault}
-									className="TextButton"
-									onClick={() => setRenaming({ layout, input: layout })}
-								>
+								<Button hidden={!!isDefault} className="TextButton" onClick={() => setRenaming(layout)}>
 									rename
 								</Button>
 								<Button className="TextButton" onClick={() => copyLayout(layout)}>

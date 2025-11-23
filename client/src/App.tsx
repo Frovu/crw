@@ -148,7 +148,7 @@ function App() {
 
 	const showNav = !['ros', 'help'].includes(app);
 	return (
-		<div className="w-screen h-[calc(100vh-1px)] flex flex-col gap-0.5">
+		<div className="w-screen h-screen flex flex-col gap-[1px]">
 			<CatchErrors>
 				<div className="grow shrink min-h-0">
 					{app === 'ros' && <PlotCirclesStandalone />}
@@ -161,7 +161,7 @@ function App() {
 			</CatchErrors>
 			{showNav && (
 				<div
-					className="flex h-6 p-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l"
+					className="flex h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
 					onContextMenu={openContextMenu('app')}
 				>
 					<SimpleSelect

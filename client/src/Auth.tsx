@@ -2,6 +2,9 @@ import { useContext, useState, useEffect, type ReactNode, type KeyboardEvent } f
 import { AuthContext, logSuccess } from './app';
 import { useMutationHandler, apiPost, apiGet, useEventListener } from './util';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from './components/Button';
+import { Popup } from './components/Popup';
+import { TextInput } from './components/Input';
 
 export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; type: 'login' | 'password' | 'upsert' }) {
 	const { login: currentLogin } = useContext(AuthContext);
@@ -52,114 +55,81 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 	};
 
 	return (
-		<>
-			<div className="PopupBackground" onClick={closePrompt} />
-			<div className="Popup" style={{ left: '20vw', top: '20vh', padding: '1em 2.5em 0 2em' }}>
-				<b>
-					{upsertMode ? 'Upsert user' : !passMode ? (createMode ? 'CRW Register' : 'CRW Login') : 'Change password'}
-				</b>
-				<div style={{ textAlign: 'right' }}>
-					<p>
-						Username:&nbsp;
-						<input
-							type="text"
-							{...(passMode && { disabled: true, value: currentLogin })}
-							style={{ width: '11em' }}
-							onChange={(e) => setLogin(e.target.value)}
-							onKeyDown={ifEnter}
-						/>
-					</p>
-					{upsertMode && (
-						<p>
-							Role:&nbsp;
-							<input type="text" style={{ width: '11em' }} onChange={(e) => setRole(e.target.value)} />
-						</p>
-					)}
-					<p>
-						Password:&nbsp;
-						<input
-							type="password"
-							style={{ width: '11em' }}
-							onChange={(e) => setPassword(e.target.value)}
-							onKeyDown={ifEnter}
-						/>
-					</p>
-					{passMode && (
-						<p>
-							New password:&nbsp;
-							<input
-								type="password"
-								style={{ width: '11em' }}
-								onChange={(e) => setnewPassword(e.target.value)}
-								onKeyDown={ifEnter}
-							/>
-						</p>
-					)}
-					{(passMode || createMode) && (
-						<p title="Repeat password">
-							Confirm:&nbsp;
-							<input
-								type="password"
-								style={{ width: '11em' }}
-								onChange={(e) => setnewPassword2(e.target.value)}
-								onKeyDown={ifEnter}
-							/>
-						</p>
-					)}
-				</div>
-				{type === 'login' && !createMode && (
-					<p style={{ textAlign: 'right' }}>
-						<button className="TextButton" onClick={() => setCreateMode(true)}>
-							Create account
-						</button>
-					</p>
-				)}
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-					<span style={{ color, width: '12em', textAlign: 'center', minHeight: '3em' }}>
-						{report?.error ?? report?.success}
-					</span>
-					<button style={{ width: '6em', height: '1.5em' }} onClick={submit}>
-						{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login'}
-					</button>
-				</div>
+		<Popup onClose={closePrompt} className="w-86 flex flex-col items-end gap-2 pr-6">
+			<h2 className="w-full font-bold py-3">
+				{upsertMode ? 'Upsert user' : !passMode ? (createMode ? 'CRW Register' : 'CRW Login') : 'Change password'}
+			</h2>
+			<div>
+				Username:&nbsp;
+				<TextInput
+					value={login}
+					{...(passMode && { disabled: true, value: currentLogin })}
+					onChange={(e) => setLogin(e.target.value)}
+					onKeyDown={ifEnter}
+				/>
 			</div>
-		</>
+			{upsertMode && (
+				<div>
+					Role:&nbsp;
+					<TextInput value={role} onChange={(e) => setRole(e.target.value)} />
+				</div>
+			)}
+			<div>
+				Password:&nbsp;
+				<TextInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={ifEnter} />
+			</div>
+			{passMode && (
+				<div>
+					New password:&nbsp;
+					<TextInput
+						type="password"
+						value={newPassword}
+						onChange={(e) => setnewPassword(e.target.value)}
+						onKeyDown={ifEnter}
+					/>
+				</div>
+			)}
+			{(passMode || createMode) && (
+				<div title="Repeat password">
+					Confirm:&nbsp;
+					<TextInput
+						type="password"
+						value={newPassword2}
+						onChange={(e) => setnewPassword2(e.target.value)}
+						onKeyDown={ifEnter}
+					/>
+				</div>
+			)}
+			{type === 'login' && !createMode && <Button onClick={() => setCreateMode(true)}>Create account</Button>}
+			<div className="flex gap-4 items-start">
+				<div className="grow h-10 leading-4 pt-1" style={{ color }}>
+					{report?.error ?? report?.success}
+				</div>
+				<Button variant="default" className="px-4" onClick={submit}>
+					{passMode ? 'Change' : upsertMode ? 'Upsert' : createMode ? 'Register' : 'Login'}
+				</Button>
+			</div>
+		</Popup>
 	);
 }
 
 export function AuthNav() {
-	const [hovered, setHovered] = useState(0);
 	const { login, role, promptLogin } = useContext(AuthContext);
 	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'Tables', 'tableData']);
 
 	return (
-		<div
-			style={{
-				cursor: 'pointer',
-				padding: '2px 8px',
-				textAlign: 'center',
-				minWidth: '9em',
-				width: 3 + (login?.length ?? 4) + (role?.length ?? 5) + 'ch',
-			}}
-		>
-			<div
-				style={{ whiteSpace: 'nowrap', color: hovered === 1 ? 'var(--color-active)' : 'var(--color-dark)' }}
-				onMouseEnter={() => setHovered(1)}
-				onMouseLeave={() => setHovered(0)}
+		<div className="group relative flex items-center text-dark whitespace-nowrap">
+			<div className="group-hover:invisible px-2">{login ? `${login}:${role}` : 'not logged in'}</div>
+			<Button
+				className="absolute top-0 w-full h-full invisible group-hover:visible"
 				onClick={(e) => {
 					e.stopPropagation();
-					login
-						? mutate(
-								{},
-								{
-									onSuccess: () => logSuccess('Logged out'),
-								}
-						  )
-						: promptLogin('login');
+					if (!login) promptLogin('login');
+					else mutate({}, { onSuccess: () => logSuccess('Logged out') });
 				}}
 			>
-				{login ? (hovered ? 'log out?' : `${login}:${role}`) : hovered ? 'log in?' : 'not logged in'}
-			</div>
+				{login ? 'log out?' : 'log in?'}
+			</Button>
 		</div>
 	);
 }
