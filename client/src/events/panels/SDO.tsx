@@ -188,7 +188,7 @@ export function Panel() {
 		const ctx = canvasRef.current.getContext('2d')!;
 		ctx.clearRect(0, 0, size, size);
 
-		if (time && angle != null && width != null) {
+		if (time && isLsc && angle != null && width != null) {
 			ctx.lineWidth = 1.5;
 			ctx.font = font(10);
 

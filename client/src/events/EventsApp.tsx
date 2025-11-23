@@ -34,6 +34,7 @@ import { EventsCheckbox } from '../components/Checkbox';
 import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
 import { Button } from '../components/Button';
 import { PlotIntervalInput } from '../components/Input';
+import { ENLILView } from './panels/ENLIL';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -50,6 +51,7 @@ const panels: EventsPanel<any>[] = [
 	CMEHeightPlot,
 	XraysPlot,
 	SunView,
+	ENLILView,
 	ExportControls,
 	ExportPreview,
 	ColorsSettings,
@@ -138,7 +140,7 @@ const eventsPanels = Object.fromEntries(
 			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
 			Panel: () => <PanelWrapper panel={p as any} />,
 			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
-			Icon: p.name.includes('Sun')
+			Icon: p.name.includes('View')
 				? Sun
 				: p.isSolar
 				? ChartSpline

@@ -97,7 +97,7 @@ function Window({ id }: { id: string }) {
 					<panel.Panel />
 				</CatchErrors>
 			</LayoutContext.Provider>
-			<CloseButton className="absolute -top-[1px] -right-[1px] bg-bg border" onClick={() => closeWindow(id)} />
+			<CloseButton className="absolute z-4 -top-[1px] -right-[1px] bg-bg border" onClick={() => closeWindow(id)} />
 			<div
 				style={{ position: 'absolute', cursor: 'nw-resize', zIndex: 4, top: -4, left: -4, width: 16, height: 16 }}
 				onMouseDown={(e) => {
