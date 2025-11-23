@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { openConfirmation } from '../app';
 import { useEventListener } from '../util';
+import { Popup } from './Popup';
+import { Button } from './Button';
 
 export function Confirmation({
 	children,
@@ -18,30 +20,23 @@ export function Confirmation({
 		closeSelf();
 	});
 	return (
-		<>
-			<div className="PopupBackground" />
-			<div
-				className="Popup Confirmation"
-				style={{ zIndex: 130, left: '30vw', top: '20vh', maxWidth: 560 }}
-				onClick={(e) => e.stopPropagation()}
-			>
-				{children}
-				<div style={{ marginTop: '1em' }}>
-					<button
-						style={{ width: '8em' }}
-						onClick={() => {
-							callback();
-							closeSelf(true);
-						}}
-					>
-						Confirm (Y)
-					</button>
-					<button style={{ width: '8em', marginLeft: '24px' }} onClick={() => closeSelf()}>
-						Cancel (N)
-					</button>
-				</div>
+		<Popup onClose={closeSelf} className="p-8">
+			{children}
+			<div className="flex gap-4 justify-center pt-6">
+				<Button
+					variant="default"
+					onClick={() => {
+						callback();
+						closeSelf(true);
+					}}
+				>
+					Confirm (Y)
+				</Button>
+				<Button variant="default" onClick={() => closeSelf()}>
+					Cancel (N)
+				</Button>
 			</div>
-		</>
+		</Popup>
 	);
 }
 

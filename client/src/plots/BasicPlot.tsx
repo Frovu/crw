@@ -41,8 +41,8 @@ export default function BasicPlot({
 	metaParams,
 	tooltipParams,
 }: {
-	queryKey: any[];
-	queryFn: () => Promise<any[][] | null>;
+	queryKey: (interval: [number, number]) => any[];
+	queryFn: (interval: [number, number]) => Promise<any[][] | null>;
 	params: BasicPlotParams;
 	metaParams?: Partial<Parameters<typeof metainfoPlugin>[0]>;
 	tooltipParams?: Partial<Parameters<typeof tooltipPlugin>[0]>;
@@ -54,8 +54,8 @@ export default function BasicPlot({
 	const layoutContext = useContext(LayoutContext);
 
 	const query = useQuery({
-		queryKey: [paddedInterval(params.interval), ...queryKey],
-		queryFn,
+		queryKey: queryKey(paddedInterval(params.interval)),
+		queryFn: () => queryFn(paddedInterval(params.interval)),
 	});
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({

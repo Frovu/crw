@@ -69,7 +69,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 	return (
 		<div className="Group">
 			{([0, 1, 2, 3, 4] as const).map((i) => (
-				<div key={i} className="Row" style={{ paddingRight: 4 }}>
+				<div key={i} className="flex gap-3" style={{ paddingRight: 4 }}>
 					<span
 						title="Reset"
 						style={{ color: color(seriesColors[i]), cursor: 'pointer', userSelect: 'none' }}
@@ -116,8 +116,8 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 					</div>
 				</div>
 			))}
-			<div className="Row">
-				<Checkbox text="X label" k="showXLabel" />
+			<div className="flex gap-3">
+				<Checkbox label="X label" k="showXLabel" />
 				<div>
 					Window:
 					<select
@@ -161,8 +161,8 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 					allowNull={true}
 				/>
 			</div>
-			<div className="Row">
-				<Checkbox text="Merge vertical axes" k="historyOneAxis" />
+			<div className="flex gap-3">
+				<Checkbox label="Merge vertical axes" k="historyOneAxis" />
 			</div>
 		</div>
 	);

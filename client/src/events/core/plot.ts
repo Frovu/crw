@@ -1,11 +1,12 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings } from './util';
-import { LayoutContext } from '../../layout';
+import { LayoutContext, type LayoutContextType } from '../../layout';
 import { useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
 import { useCompoundTable } from './query';
 import type { EruptiveEvent } from './sourceActions';
+import type { BasicPlotParams } from '../../plots/basicPlot';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 
@@ -13,8 +14,8 @@ export type MagneticCloud = { start: Date; end: Date };
 
 export type FlareOnset = { time: Date; sources: string[]; flare: EruptiveEvent<'flare'> };
 
-export function usePlot() {
-	const layout = useContext(LayoutContext);
+export function usePlot<T = {}>() {
+	const layout = useContext(LayoutContext) as unknown as LayoutContextType<BasicPlotParams & T>;
 	const settings = useEventsSettings();
 	const { plotUnlistedEvents, plotOffset } = settings;
 

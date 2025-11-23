@@ -19,7 +19,6 @@ export function ChangesGadget() {
 	const state = useTablesStore();
 	const queryClient = useQueryClient();
 	const [showCommit, setShowCommit] = useState(false);
-	const [hovered, setHovered] = useState(false);
 
 	const totalChanges = editableTables
 		.flatMap((tbl) => [state[tbl].created, state[tbl].deleted, state[tbl].changes])
@@ -56,23 +55,16 @@ export function ChangesGadget() {
 	return (
 		<>
 			{totalChanges === 0 ? null : (
-				<div
-					className="w-42 h-full text-sm flex"
-					onClick={(e) => e.stopPropagation()}
-					onMouseEnter={() => setHovered(true)}
-					onMouseLeave={() => setHovered(false)}
-				>
-					{!hovered && <div className="text-magenta">&nbsp;&nbsp;With [{totalChanges}] unsaved&nbsp;</div>}
-					{hovered && (
-						<>
-							<Button className="grow text-right" onClick={() => dispatchCustomEvent('action+commitChanges')}>
-								save
-							</Button>
-							<Button className="grow" onClick={() => dispatchCustomEvent('action+discardChanges')}>
-								discard
-							</Button>
-						</>
-					)}
+				<div className="group w-42 h-full text-sm flex relative" onClick={(e) => e.stopPropagation()}>
+					<div className="group-hover:invisible text-magenta">&nbsp;&nbsp;With [{totalChanges}] unsaved&nbsp;</div>
+					<div className="absolute flex invisible w-full group-hover:visible">
+						<Button className="grow text-right" onClick={() => dispatchCustomEvent('action+commitChanges')}>
+							save
+						</Button>
+						<Button className="grow" onClick={() => dispatchCustomEvent('action+discardChanges')}>
+							discard
+						</Button>
+					</div>
 				</div>
 			)}
 			{showCommit && (

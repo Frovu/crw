@@ -6,6 +6,7 @@ import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
 import { usePlot } from '../../events/core/plot';
 import type { ContextMenuProps } from '../../layout';
+import type { EventsPanel } from '../../events/core/util';
 
 const defaultParams = {
 	maskGLE: true,
@@ -163,22 +164,22 @@ function tracePaths(
 
 function Menu({ Checkbox }: ContextMenuProps<GSMParams>) {
 	return (
-		<div className="Group">
-			<div className="Row">
-				<Checkbox text="Show Axy" k="showAxy" />
-				<Checkbox text="Az" k="showAz" />
-				<Checkbox text="vector" k="showAxyVector" />
+		<>
+			<div className="flex gap-3">
+				<Checkbox label="Show Axy" k="showAxy" />
+				<Checkbox label="Az" k="showAz" />
+				<Checkbox label="vector" k="showAxyVector" />
 			</div>
-			<Checkbox text="Use corrected A0m" k="useA0m" />
-			<Checkbox text="Subtract trend" k="subtractTrend" />
-			<Checkbox text="Mask GLE" k="maskGLE" />
-		</div>
+			<Checkbox label="Use corrected A0m" k="useA0m" />
+			<Checkbox label="Subtract trend" k="subtractTrend" />
+			<Checkbox label="Mask GLE" k="maskGLE" />
+		</>
 	);
 }
 
 function Panel() {
 	const params = usePlot<GSMParams>();
-	const { interval, maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
+	const { maskGLE, subtractTrend, useA0m, showAxy, showAxyVector, showAz } = params;
 
 	const vectorCache: VectorCache = useRef<number[][]>([]);
 	const vectorLegendHandle = usePlotOverlay(() => ({ x: 8, y: 8 }));
@@ -186,8 +187,8 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['GSMani', maskGLE, subtractTrend, useA0m],
-				queryFn: async () => {
+				queryKey: (interval) => ['GSMani', interval, maskGLE, subtractTrend, useA0m],
+				queryFn: async (interval) => {
 					const data = await basicDataQuery(
 						'cream/gsm',
 						interval,

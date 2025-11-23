@@ -8,6 +8,7 @@ import { color } from '../../app';
 import { useSolarPlot } from '../../events/core/plot';
 import { usePlot } from '../../events/core/plot';
 import { SolarPlotOverlay } from '../BasicPlot';
+import type { EventsPanel } from '../../events/core/util';
 
 const colors = {
 	north: 'green',

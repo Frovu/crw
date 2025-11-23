@@ -29,6 +29,8 @@ import { themeOptions } from '../../app';
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import { ValidatedInput } from '../../components/ValidatedInput';
 import type { ContextMenuProps } from '../../layout';
+import { usePlot, type Onset } from '../../events/core/plot';
+import { Input } from '../../components/Input';
 
 const defaultParams = {
 	rsmExtended: false,
@@ -141,10 +143,10 @@ function drawCirclesLegend({
 
 function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) {
 	return (
-		<div className="Group">
+		<>
 			<div>
 				Exclude:
-				<input
+				<Input
 					type="text"
 					style={{ marginLeft: 4, width: '10em', padding: 0 }}
 					defaultValue={params.exclude?.join(',') ?? ''}
@@ -155,16 +157,16 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) 
 					}
 				/>
 			</div>
-			<div className="Row">
-				<Checkbox text="Filter" k="autoFilter" />
-				<Checkbox text="Linear size" k="linearSize" />
+			<div className="flex gap-3">
+				<Checkbox label="Filter" k="autoFilter" />
+				<Checkbox label="Linear size" k="linearSize" />
 			</div>{' '}
-			<div className="Row">
-				<Checkbox text="Extended plot" k="rsmExtended" />
-				<Checkbox text="pIndex" k="showPrecursorIndex" />
+			<div className="flex gap-3">
+				<Checkbox label="Extended plot" k="rsmExtended" />
+				<Checkbox label="pIndex" k="showPrecursorIndex" />
 			</div>{' '}
-			<div className="Row">
-				<input
+			<div className="flex gap-3">
+				<Input
 					style={{ width: '6em' }}
 					type="number"
 					min="-99"
@@ -180,8 +182,8 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) 
 									: e.target.valueAsNumber,
 						})
 					}
-				></input>
-				<input
+				/>
+				<Input
 					style={{ width: '6em' }}
 					type="number"
 					min="-200"
@@ -197,9 +199,9 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesParams>) 
 									: e.target.valueAsNumber,
 						})
 					}
-				></input>
+				/>
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -242,8 +244,8 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 	const [moment, setMoment] = useState<number | null>(null);
 
 	const query = useQuery({
-		queryKey: ['ros', params.interval, params.exclude, params.window, params.autoFilter, base],
-		queryFn: () => (!params.stretch || size.width ? fetchCircles<CirclesResponse>(params, base) : null),
+		queryKey: ['ros', base, !!size.width, params],
+		queryFn: () => (!params.stretch || !!size.width ? fetchCircles<CirclesResponse>(params, base) : null),
 		placeholderData: interactive ? keepPreviousData : null,
 	});
 
@@ -745,15 +747,7 @@ function PlotCirclesMoment({
 	const query = useQuery({
 		staleTime: 0,
 		placeholderData: keepPreviousData,
-		queryKey: [
-			'rosMoment',
-			JSON.stringify(params.interval),
-			params.exclude,
-			params.window,
-			params.autoFilter,
-			base,
-			moment,
-		],
+		queryKey: ['rosMoment', params, base, moment],
 		queryFn: () => fetchCircles<CirclesMomentResponse>(params, base, moment),
 	});
 

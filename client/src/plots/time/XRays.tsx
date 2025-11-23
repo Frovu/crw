@@ -1,5 +1,6 @@
 import { usePlot } from '../../events/core/plot';
 import { useSolarPlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
@@ -13,11 +14,7 @@ const defaultParams = {
 export type SatXraysParams = typeof defaultParams;
 
 function Menu({ Checkbox }: ContextMenuProps<SatXraysParams>) {
-	return (
-		<div className="Group">
-			<Checkbox text="Show short wavelength" k="showShortXrays" />
-		</div>
-	);
+	return <Checkbox label="Show short wavelength" k="showShortXrays" />;
 }
 
 function Panel() {
@@ -28,8 +25,8 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['satxrays'],
-				queryFn: () => basicDataQuery('omni/xrays', interval, ['time', 'l', 's']),
+				queryKey: (interv) => ['satxrays', interv],
+				queryFn: (interv) => basicDataQuery('omni/xrays', interv, ['time', 'l', 's']),
 				params: {
 					...params,
 					interval,

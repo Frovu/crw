@@ -165,7 +165,7 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 					allowNull={true}
 				/>
 			</div>
-			<div className="Row">
+			<div className="flex gap-3">
 				color:
 				<select
 					className="Borderless"
@@ -180,11 +180,11 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 					))}
 				</select>
 			</div>
-			<div className="Row"></div>{' '}
-			<div className="Row">
-				<Checkbox text="regression" k="showRegression" />
-				<Checkbox text="loglog" k="loglog" />
-				<Checkbox text="logx" k="logx" />
+			<div className="flex gap-3"></div>{' '}
+			<div className="flex gap-3">
+				<Checkbox label="regression" k="showRegression" />
+				<Checkbox label="loglog" k="loglog" />
+				<Checkbox label="logx" k="logx" />
 			</div>
 		</div>
 	);

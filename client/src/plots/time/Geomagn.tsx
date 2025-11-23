@@ -4,6 +4,7 @@ import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
 import type { ContextMenuProps } from '../../layout';
 import { usePlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
 
 const defaultParams = {
 	useAp: false,
@@ -46,9 +47,9 @@ const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesId
 
 function Menu({ Checkbox }: ContextMenuProps<GeomagnParams>) {
 	return (
-		<div className="Group">
-			<Checkbox text="Use Ap index" k="useAp" />
-		</div>
+		<>
+			<Checkbox label="Use Ap index" k="useAp" />
+		</>
 	);
 }
 
@@ -57,8 +58,8 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['geomagn'],
-				queryFn: () => basicDataQuery('omni', params.interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
+				queryKey: (interval) => ['geomagn', interval],
+				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
 				params,
 				axes: () => [
 					{

@@ -285,7 +285,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 		}, captureOverrides);
 }
 
-export function paddedInterval(interv: [Date, Date]) {
+export function paddedInterval(interv: [Date, Date]): [number, number] {
 	return [Math.floor(interv[0].getTime() / 864e5) * 86400, Math.ceil((interv[1].getTime() + 36e5) / 864e5) * 86400];
 }
 
@@ -295,11 +295,10 @@ export function sliceData(data: (number | null)[][], interval: [Date, Date]) {
 	return data.map((col) => col.slice(sliceLft, sliceRgt));
 }
 
-export async function basicDataQuery(path: string, interval: [Date, Date], query: string[], params?: {}) {
-	const interv = paddedInterval(interval);
+export async function basicDataQuery(path: string, interval: [number, number], query: string[], params?: {}) {
 	const body = await apiGet<{ rows: (number | null)[][]; fields: string[] }>(path, {
-		from: interv[0].toFixed(0),
-		to: interv[1].toFixed(0),
+		from: interval[0].toFixed(0),
+		to: interval[1].toFixed(0),
 		query: query.join(),
 		...params,
 	});

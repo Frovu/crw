@@ -1,4 +1,5 @@
 import { usePlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 import { type CustomSeries, basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
@@ -13,10 +14,10 @@ export type IMFParams = typeof defaultParams;
 
 function Menu({ Checkbox }: ContextMenuProps<IMFParams>) {
 	return (
-		<div className="Group">
-			<Checkbox text="Show Bx, By" k="showBxBy" />
-			<Checkbox text="Show Bz" k="showBz" />
-		</div>
+		<>
+			<Checkbox label="Show Bx, By" k="showBxBy" />
+			<Checkbox label="Show Bz" k="showBz" />
+		</>
 	);
 }
 
@@ -25,9 +26,9 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['IMF'],
-				queryFn: () =>
-					basicDataQuery('omni', params.interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
+				queryKey: (interval) => ['IMF', interval],
+				queryFn: (interval) =>
+					basicDataQuery('omni', interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
 				params,
 				axes: () => [
 					{

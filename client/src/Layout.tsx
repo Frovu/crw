@@ -153,7 +153,7 @@ function Item({ id, size }: { id: string; size: Size }) {
 					</LayoutContext.Provider>
 				)}
 				{!item.type && (
-					<div className="center border p-2 text-sm">
+					<div className="center border p-2 text-sm flex flex-col gap-1">
 						<CatchErrors>
 							<LayoutContextMenu id={id} />
 						</CatchErrors>

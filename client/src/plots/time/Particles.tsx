@@ -4,6 +4,8 @@ import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';
 import { usePlot, useSolarPlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
+import { Checkbox } from '../../components/Checkbox';
 
 const PARTICLES = {
 	p1: '>1 MeV',
@@ -43,32 +45,27 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 	const opts = particlesOptions;
 
 	return (
-		<div style={{ display: 'flex', flexFlow: 'row wrap', maxWidth: 320, justifyContent: 'right' }}>
+		<div className="flex flex-wrap justify-end gap-0.5 w-80">
 			{opts.map((part) => (
-				<div key={part}>
-					<label style={{ paddingLeft: 6 }}>
-						{name(part)}
-						<input
-							type="checkbox"
-							style={{ marginLeft: 6 }}
-							checked={show.includes(part)}
-							onChange={(e) =>
-								setParams({
-									showParticles: e.target.checked
-										? opts.filter((o) => show.includes(o) || o === part)
-										: show.filter((o) => o !== part),
-								})
-							}
-						/>
-					</label>
-				</div>
+				<Checkbox
+					className="pl-2"
+					label={name(part)}
+					checked={show.includes(part)}
+					onCheckedChange={(val) =>
+						setParams({
+							showParticles: val
+								? opts.filter((o) => show.includes(o) || o === part)
+								: show.filter((o) => o !== part),
+						})
+					}
+				/>
 			))}
 		</div>
 	);
 }
 
 function Panel() {
-	const params = usePlot();
+	const params = usePlot<SatPartParams>();
 	const { showParticles, showGrid, showTimeAxis, solarTime } = params;
 	const para = { ...params };
 	const { interval: sInterv } = useSolarPlot();
@@ -87,10 +84,10 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['satparticles', showParticles.join()],
-				queryFn: () =>
+				queryKey: (interval) => ['satparticles', interval, showParticles],
+				queryFn: (interval) =>
 					showParticles.length
-						? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles])
+						? basicDataQuery('omni/particles', interval, ['time', ...showParticles])
 						: (null as any),
 				params: solarTime
 					? {

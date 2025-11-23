@@ -6,7 +6,7 @@ import uPlot from 'uplot';
 import { applySample } from '../events/sample/sample';
 import { useEventsSettings } from '../events/core/util';
 import { type ContextMenuProps } from '../layout';
-import { ExportableUplot, PlotIntervalInput } from '../events/export/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportPlot';
 import { type CustomAxis, type CustomScale, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
 
 const colors = ['green', 'purple', 'magenta'];
@@ -38,7 +38,7 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 	return (
 		<div className="Group">
 			{['A', 'B', 'C'].map((letter, i) => (
-				<div key={letter} className="Row" style={{ paddingRight: 4 }}>
+				<div key={letter} className="flex gap-3" style={{ paddingRight: 4 }}>
 					<div>
 						<span
 							title="Reset"
@@ -107,10 +107,10 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 					))}
 				</select>{' '}
 			</div>
-			<div className="Row" style={{ marginTop: 2 }}>
+			<div className="flex gap-3" style={{ marginTop: 2 }}>
 				<PlotIntervalInput />
 			</div>
-			<div className="Row" style={{ marginTop: -2 }}>
+			<div className="flex gap-3" style={{ marginTop: -2 }}>
 				<label>
 					Plot median
 					<input

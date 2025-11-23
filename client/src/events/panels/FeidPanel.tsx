@@ -89,9 +89,9 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 				<>
 					<div className="separator" />
 					<div className="Group">
-						<Checkbox text="Show include markers" k="showIncludeMarkers" />
-						<Checkbox text="Show column averages" k="showAverages" />
-						<Checkbox text="Show changes log" k="showChangelog" />
+						<Checkbox label="Show include markers" k="showIncludeMarkers" />
+						<Checkbox label="Show column averages" k="showAverages" />
+						<Checkbox label="Show changes log" k="showChangelog" />
 					</div>
 				</>
 			)}

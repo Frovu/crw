@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { basicDataQuery, tooltipPlugin, metainfoPlugin, paddedInterval, sliceData } from '../basicPlot';
+import { basicDataQuery, tooltipPlugin, metainfoPlugin, sliceData, paddedInterval } from '../basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
 import { ExportableUplot } from '../../events/export/ExportPlot';
 import type uPlot from 'uplot';
@@ -10,23 +10,22 @@ export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] a
 
 const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach', 'purple'];
 
-async function getTypes(interval: [Date, Date]) {
-	const data = await basicDataQuery('omni', interval, ['time', 'sw_type']);
-	if (!data) return null;
-	const swt = (data[1] as any as (string | null)[]).map((t) => t?.split(','));
-	const plotData = [data[0]];
-	for (const [i, type] of SW_TYPES.entries()) {
-		const val = SW_TYPES.length - i - 1;
-		plotData.push(...['', '?'].map((mod) => swt.map((t) => (!t?.includes(type + mod) ? null : val))));
-	}
-	return plotData;
-}
-
 function Panel() {
 	const params = usePlot();
+	const interval = paddedInterval(params.interval);
 	const query = useQuery({
-		queryKey: ['SWTypes', paddedInterval(params.interval)],
-		queryFn: async () => await getTypes(params.interval),
+		queryKey: ['SWTypes', interval],
+		queryFn: async () => {
+			const data = await basicDataQuery('omni', interval, ['time', 'sw_type']);
+			if (!data) return null;
+			const swt = (data[1] as any as (string | null)[]).map((t) => t?.split(','));
+			const plotData = [data[0]];
+			for (const [i, type] of SW_TYPES.entries()) {
+				const val = SW_TYPES.length - i - 1;
+				plotData.push(...['', '?'].map((mod) => swt.map((t) => (!t?.includes(type + mod) ? null : val))));
+			}
+			return plotData;
+		},
 	});
 
 	const options = useCallback(() => {

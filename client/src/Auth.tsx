@@ -121,7 +121,7 @@ export function AuthNav() {
 		<div className="group relative flex items-center text-dark whitespace-nowrap">
 			<div className="group-hover:invisible px-2">{login ? `${login}:${role}` : 'not logged in'}</div>
 			<Button
-				className="absolute top-0 w-full h-full invisible group-hover:visible"
+				className="absolute w-full h-full invisible group-hover:visible"
 				onClick={(e) => {
 					e.stopPropagation();
 					if (!login) promptLogin('login');

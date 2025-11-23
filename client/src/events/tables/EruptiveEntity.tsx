@@ -17,7 +17,7 @@ function CMEMenu() {
 				Open ENLIL view
 			</button>
 			<div className="separator" />
-			<a className="Row" href="https://cdaw.gsfc.nasa.gov/CME_list/" target="_blank" rel="noreferrer">
+			<a className="flex gap-3" href="https://cdaw.gsfc.nasa.gov/CME_list/" target="_blank" rel="noreferrer">
 				LASCO Catalogue
 			</a>
 		</>
@@ -34,7 +34,7 @@ function ICMEMenu() {
 			<EruptiveEntityMenu entity="icme" />
 			<div className="separator" />
 			<a
-				className="Row"
+				className="flex gap-3"
 				href="https://izw1.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm"
 				target="_blank"
 				rel="noreferrer"

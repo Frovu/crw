@@ -10,8 +10,9 @@ import { persist } from 'zustand/middleware';
 import { apiGet, apiPost, prettyDate, type Size } from '../../util';
 import { AuthContext, closeContextMenu, getApp, logError, logSuccess, openContextMenu, useAppSettings } from '../../app';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type EventsPanel, useEventsSettings } from '../core/util';
+import { type EventsPanel } from '../core/util';
 import { useEventsState } from '../core/eventsState';
+import { PlotIntervalInput } from '../../components/Input';
 
 type uOptions = Omit<uPlot.Options, 'width' | 'height'>;
 type PlotEntryParams = {
@@ -499,7 +500,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 				</div>
 			)}
 			<div className="separator" />
-			<div className="Row">
+			<div className="flex gap-3">
 				<div style={{ color: color(upsertMut.isError ? 'red' : 'green') }}>
 					{upsertMut.isSuccess ? 'OK' : upsertMut.isError ? 'ERROR' : ''}
 				</div>
@@ -852,42 +853,6 @@ function ControlsPanel() {
 					))}
 				</div>
 			</div>
-		</div>
-	);
-}
-
-export function PlotIntervalInput({ step: alterStep, solar }: { step?: number; solar?: boolean }) {
-	const { plotOffset, plotOffsetSolar, set } = useEventsSettings();
-	const target = solar ? 'plotOffsetSolar' : 'plotOffset';
-	const [left, right] = solar ? plotOffsetSolar : plotOffset;
-	const step = alterStep ?? (solar ? 6 : 24);
-
-	return (
-		<div
-			style={{ display: 'inline-flex', gap: 4, cursor: 'default' }}
-			title="Plot time interval, as hours offset from event onset"
-		>
-			Interval:{' '}
-			<input
-				style={{ width: 54, height: '1.25em' }}
-				type="number"
-				min="-360"
-				max="0"
-				step={step}
-				defaultValue={left}
-				onChange={(e) => !isNaN(e.target.valueAsNumber) && set(target, [e.target.valueAsNumber, right])}
-			/>
-			/{' '}
-			<input
-				style={{ width: 54, height: '1.25em' }}
-				type="number"
-				min={step}
-				max="360"
-				step={step}
-				defaultValue={right}
-				onChange={(e) => !isNaN(e.target.valueAsNumber) && set(target, [left, e.target.valueAsNumber])}
-			/>{' '}
-			h
 		</div>
 	);
 }

@@ -1,4 +1,5 @@
 import { usePlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
@@ -14,25 +15,25 @@ export type SWParams = typeof defaultParams;
 
 function Menu({ Checkbox }: ContextMenuProps<SWParams>) {
 	return (
-		<div className="Group">
-			<Checkbox text="Show T index" k="useTemperatureIndex" />
-			<div className="Row">
-				<Checkbox text="Show beta" k="showBeta" />
-				<Checkbox text="density" k="showDensity" />
+		<>
+			<Checkbox label="Show T index" k="useTemperatureIndex" />
+			<div className="flex gap-3">
+				<Checkbox label="Show beta" k="showBeta" />
+				<Checkbox label="density" k="showDensity" />
 			</div>
-		</div>
+		</>
 	);
 }
 
 function Panel() {
 	const params = usePlot<SWParams>();
-	const { useTemperatureIndex, showBeta, showDensity, interval } = params;
+	const { useTemperatureIndex, showBeta, showDensity } = params;
 	const tColumn = useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['SW', useTemperatureIndex],
-				queryFn: async () => {
+				queryKey: (interval) => ['SW', interval, tColumn],
+				queryFn: async (interval) => {
 					const data = await basicDataQuery('omni', interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
 					return data?.concat([Array(data[0].length).fill(0.5)]) ?? null;
 				},

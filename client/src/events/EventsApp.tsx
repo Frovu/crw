@@ -5,7 +5,7 @@ import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
 import type { EventsPanel } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
-import { ExportControls, ExportPreview, PlotIntervalInput, renderOne } from './export/ExportPlot';
+import { ExportControls, ExportPreview, renderOne } from './export/ExportPlot';
 import { FeidTable } from './panels/FeidPanel';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
@@ -32,6 +32,8 @@ import { EventsHistory } from '../plots/EventsHistory';
 import { SWPCHint } from './panels/SWPC';
 import { EventsCheckbox } from '../components/Checkbox';
 import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
+import { Button } from '../components/Button';
+import { PlotIntervalInput } from '../components/Input';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -86,15 +88,15 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
-		<div className="flex flex-col items-center">
+		<div className="flex flex-col gap-1 items-end">
 			{isPlot && (
 				<>
-					<div className="Row">
+					<div className="flex gap-2">
 						<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)} />
 						{type === 'Particles' && <Checkbox label="solar" k="solarTime" />}
 					</div>
 					<div className="separator" />
-					<div className="Row">
+					<div className="flex gap-3">
 						<EventsCheckbox label="grid" k="showGrid" />
 						{(!isStat || type === 'Events history') && <EventsCheckbox label="markers" k="showMarkers" />}
 						<EventsCheckbox label="legend" k="showLegend" />
@@ -105,29 +107,31 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 			{isPlot && !isStat && (
 				<>
 					<div className="separator" />
-					<div className="Row">
+					<div className="flex gap-3">
 						<Checkbox label="time axis" k="showTimeAxis" />
 						<Checkbox label="meta" k="showMetaInfo" />
 						<Checkbox label="label" k="showMetaLabels" />
 					</div>
 					{(!isSolar || (type === 'Particles' && params.solarTime === false)) && (
-						<>
-							<div className="Row">
-								<EventsCheckbox label="show unlisted" k="plotUnlistedEvents" />
-								<EventsCheckbox label="MCs" k="showMagneticClouds" />
-								<EventsCheckbox label="ends" k="showEventsEnds" />
-							</div>
-						</>
+						<div className="flex gap-3">
+							<EventsCheckbox label="show unlisted" k="plotUnlistedEvents" />
+							<EventsCheckbox label="MCs" k="showMagneticClouds" />
+							<EventsCheckbox label="ends" k="showEventsEnds" />
+						</div>
 					)}
 					{Menu && <div className="separator" />}
 				</>
 			)}
 			{Menu && <Menu {...{ params, setParams, Checkbox }} />}
 			{isPlot && (
-				<>
+				<div className="w-full">
 					<div className="separator" />
-					{details && <button onClick={() => renderOne(details.nodeId)}>Open image in new tab</button>}
-				</>
+					{details && (
+						<Button className="h-7" onClick={() => renderOne(details.nodeId)}>
+							Open image in new tab
+						</Button>
+					)}
+				</div>
 			)}
 		</div>
 	);
