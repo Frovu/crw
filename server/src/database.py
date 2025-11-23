@@ -44,7 +44,7 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
 		cur.execute(SQL('CREATE TEMP TABLE {} (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP').format(tmpname, itable))
 		for col in icolumns[:len(constants)]:
-			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(itable, col))
+			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(tmpname, col))
 
 		val_columns = SQL(',').join(icolumns[len(constants):])
 		with cur.copy(SQL('COPY {}({}) FROM STDIN').format(tmpname, val_columns)) as copy:
@@ -69,9 +69,8 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 				.format(SQL(conflict_constraint), SQL(',').join(items))
 			
 		col_names = SQL(',').join(icolumns)
-		col_values = SQL(',').join([*map(Placeholder, constants), val_columns])
+		col_values = SQL(',').join([*(Placeholder() * len(constants)), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
-			
 		cur.execute(query, constants)
 
 def create_table(name: str, columns: list[Column], constraint: LiteralString='', schema='events'):

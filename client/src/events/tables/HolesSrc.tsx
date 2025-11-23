@@ -59,7 +59,7 @@ function Panel() {
 
 	useTableQuery(ENT);
 
-	if (!data || !feidSrc.data || !columns) return <div className="Center">LOADING..</div>;
+	if (!data || !feidSrc.data || !columns) return <div className="center">LOADING..</div>;
 
 	const focusTime = cursorTime && cursorTime.getTime() - 2 * 864e5;
 	const focusIdxFound =

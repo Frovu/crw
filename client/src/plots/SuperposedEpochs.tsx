@@ -368,12 +368,12 @@ function Panel() {
 
 	if (queries.some((q) => q.isError))
 		return (
-			<div className="Center" style={{ color: color('red') }}>
+			<div className="center" style={{ color: color('red') }}>
 				FAILED TO LOAD
 			</div>
 		);
-	if (queries.some((q) => !q.data && q.isLoading)) return <div className="Center">LOADING...</div>;
-	if (!queries.some((q) => q.data)) return <div className="Center">EMPTY SAMPLE</div>;
+	if (queries.some((q) => !q.data && q.isLoading)) return <div className="center">LOADING...</div>;
+	if (!queries.some((q) => q.data)) return <div className="center">EMPTY SAMPLE</div>;
 	return (
 		<>
 			<ExportableUplot {...{ options, data }} />

@@ -177,14 +177,14 @@ export default function BasicPlot({
 		return sliceData(query.data, params.interval);
 	}, [query.data, params.interval]);
 
-	if (query.isLoading) return <div className="Center">LOADING...</div>;
+	if (query.isLoading) return <div className="center">LOADING...</div>;
 	if (query.isError)
 		return (
-			<div className="Center" style={{ color: color('red') }}>
+			<div className="center" style={{ color: color('red') }}>
 				FAILED TO LOAD
 			</div>
 		);
-	if (!query.data?.[0]?.length) return <div className="Center">NO DATA</div>;
+	if (!query.data?.[0]?.length) return <div className="center">NO DATA</div>;
 
 	return (
 		<div style={{ position: 'absolute' }}>

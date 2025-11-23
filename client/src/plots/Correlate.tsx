@@ -436,7 +436,7 @@ function Panel() {
 		setPlotId,
 	]);
 
-	if (!memo) return <div className="Center">NOT ENOUGH DATA</div>;
+	if (!memo) return <div className="center">NOT ENOUGH DATA</div>;
 	const { options, data } = memo;
 	return (
 		<>

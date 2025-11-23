@@ -467,7 +467,7 @@ function Panel() {
 		};
 	}, [params, columns, sampleData, allData, samplesList, showLegend, overlayHandle, showGrid]);
 
-	if (!hist) return <div className="Center">NOT ENOUGH DATA</div>;
+	if (!hist) return <div className="center">NOT ENOUGH DATA</div>;
 	return <ExportableUplot {...{ ...hist }} />;
 }
 

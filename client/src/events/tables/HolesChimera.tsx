@@ -216,12 +216,12 @@ function Panel() {
 
 	if (query.isError)
 		return (
-			<div title={query.error.message} className="Center" style={{ color: color('red') }}>
+			<div title={query.error.message} className="center" style={{ color: color('red') }}>
 				FAILED TO LOAD
 			</div>
 		);
-	if (!query.data) return <div className="Center">LOADING..</div>;
-	if (framesTotal <= 0) return <div className="Center">NO CHIMERA DATA</div>;
+	if (!query.data) return <div className="center">LOADING..</div>;
+	if (framesTotal <= 0) return <div className="center">NO CHIMERA DATA</div>;
 
 	const { columns, holes, frames } = query.data;
 	const { timestamp, url, holesTimestamp } = frames[frame < frames.length ? frame : 0];

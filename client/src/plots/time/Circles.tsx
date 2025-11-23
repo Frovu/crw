@@ -572,9 +572,9 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 
 	return (
 		<div ref={container}>
-			{query.isLoading && <div className="Center">LOADING...</div>}
+			{query.isLoading && <div className="center">LOADING...</div>}
 			{query.isError && (
-				<div className="Center" style={{ color: color('red') }}>
+				<div className="center" style={{ color: color('red') }}>
 					FAILED TO LOAD
 				</div>
 			)}

@@ -99,7 +99,7 @@ function Panel() {
 	});
 
 	const { id: nodeId, size } = useContext(LayoutContext)!;
-	if (!data || !feidSrc.data || !columns) return <div className="Center">LOADING..</div>;
+	if (!data || !feidSrc.data || !columns) return <div className="center">LOADING..</div>;
 
 	const focusTime = cursorTime && cursorTime.getTime() - 3 * 864e5;
 	const focusIdxx =

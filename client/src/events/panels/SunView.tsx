@@ -332,13 +332,13 @@ export function SDO({
 
 	return (
 		<div>
-			{query.isLoading && <div className="Center">LOADING..</div>}
+			{query.isLoading && <div className="center">LOADING..</div>}
 			{query.isError && (
-				<div className="Center" style={{ color: color('red') }}>
+				<div className="center" style={{ color: color('red') }}>
 					FAILED TO LOAD
 				</div>
 			)}
-			{!isLoaded && query.isSuccess && <div className="Center">NO SDO DATA</div>}
+			{!isLoaded && query.isSuccess && <div className="center">NO SDO DATA</div>}
 			{!isLsc && isLoaded && (
 				<div
 					style={{
@@ -389,16 +389,16 @@ function EnlilView({ id }: { id: number | null }) {
 
 	return (
 		<div onMouseDown={(e) => e.preventDefault()}>
-			{query.isLoading && <div className="Center">LOADING..</div>}
+			{query.isLoading && <div className="center">LOADING..</div>}
 			{query.isError && (
-				<div className="Center" style={{ color: color('red') }}>
+				<div className="center" style={{ color: color('red') }}>
 					FAILED TO LOAD
 				</div>
 			)}
-			{query.isSuccess && (!id || !url) && <div className="Center">NO ENLIL MODEL</div>}
+			{query.isSuccess && (!id || !url) && <div className="center">NO ENLIL MODEL</div>}
 			{<img alt="" width={size.width} src={url} />}
 			{url && (
-				<div className="Center" style={{ background: color('bg'), top: 11, padding: '0 2px 2px 2px', fontSize: 14 }}>
+				<div className="center" style={{ background: color('bg'), top: 11, padding: '0 2px 2px 2px', fontSize: 14 }}>
 					<a target="_blank" rel="noreferrer" href={dkiurl}>
 						#{id}
 					</a>
@@ -426,7 +426,7 @@ function DemonFlareFilm({ id }: { id: number }) {
 
 	return (
 		<>
-			{!loaded && <div className="Center">LOADING...</div>}
+			{!loaded && <div className="center">LOADING...</div>}
 			<div
 				style={{
 					transform: `scale(${size / 400})`,
@@ -495,9 +495,9 @@ function SFTFLare({ flare }: { flare: RowDict }) {
 			>
 				<b>{flare.class as any}</b> {prettyDate(flare.start_time as any)}
 			</div>
-			{state === 'loading' && <div className="Center">LOADING...</div>}
+			{state === 'loading' && <div className="center">LOADING...</div>}
 			{state === 'error' && (
-				<div className="Center" style={{ color: color('red') }}>
+				<div className="center" style={{ color: color('red') }}>
 					FAILED TO LOAD
 				</div>
 			)}
@@ -564,7 +564,7 @@ function Panel() {
 	})();
 
 	if (mode === 'FLR') {
-		if (!flare) return <div className="Center">NO FLARE DATA</div>;
+		if (!flare) return <div className="center">NO FLARE DATA</div>;
 		if (flare.src === 'dMN' && flare.id) return <DemonFlareFilm id={flare.id as number} />;
 		if (flare.src === 'SFT') return <SFTFLare flare={flare} />;
 		return null;

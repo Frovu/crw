@@ -66,7 +66,7 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 		erupt && Object.fromEntries(compoundTables.cme.map((ent) => [sourceLabels[ent], erupt[sourceLinks[ent][0]]]));
 
 	return useMemo(() => {
-		if (!table) return <div className="Center">LOADING..</div>;
+		if (!table) return <div className="center">LOADING..</div>;
 		const { data, columns, entry } = table;
 
 		return (

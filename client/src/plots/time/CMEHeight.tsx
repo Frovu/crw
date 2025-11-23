@@ -116,12 +116,12 @@ function Panel() {
 
 	if (query.isError)
 		return (
-			<div className="Center" style={{ color: color('red') }}>
+			<div className="center" style={{ color: color('red') }}>
 				FAILED TO LOAD
 			</div>
 		);
-	if (query.isLoading) return <div className="Center">LOADING...</div>;
-	if (!query.data?.length) return <div className="Center">NO LASCO CMEs</div>;
+	if (query.isLoading) return <div className="center">LOADING...</div>;
+	if (!query.data?.length) return <div className="center">NO LASCO CMEs</div>;
 	return (
 		<div>
 			{plot}

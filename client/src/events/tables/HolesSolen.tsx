@@ -72,7 +72,7 @@ function Panel() {
 		return () => clearInterval(inte);
 	}, [chimeraRules]);
 
-	if (!query.data?.data.length) return <div className="Center">LOADING..</div>;
+	if (!query.data?.data.length) return <div className="center">LOADING..</div>;
 
 	const { data, columns } = query.data;
 	const cursorCh = (catched?.solenHole as SolenCH) ?? (cursor ? (rowAsDict(data[cursor.row], columns) as SolenCH) : sourceCh);

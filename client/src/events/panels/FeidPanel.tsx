@@ -169,7 +169,7 @@ function Panel() {
 
 	const query = useTableDataQuery('feid');
 
-	if (query.isLoading) return <div className="Center">LOADING..</div>;
+	if (query.isLoading) return <div className="center">LOADING..</div>;
 	if (!allData.length && query.error) throw query.error;
 
 	return (
