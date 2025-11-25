@@ -25,10 +25,10 @@ import { HolesTable } from './tables/HolesSrc';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
 import { useContextMenuStore } from '../app';
-import { Correlation } from '../plots/Correlate';
-import { Histogram } from '../plots/Histogram';
-import { SuperposedEpochs } from '../plots/SuperposedEpochs';
-import { EventsHistory } from '../plots/EventsHistory';
+import { Correlation } from '../plots/stat/Correlate';
+import { Histogram } from '../plots/stat/Histogram';
+import { SuperposedEpochs } from '../plots/stat/SuperposedEpochs';
+import { EventsHistory } from '../plots/stat/EventsHistory';
 import { SWPCHint } from './panels/SWPC';
 import { EventsCheckbox } from '../components/Checkbox';
 import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
@@ -75,7 +75,7 @@ const panels: EventsPanel<any>[] = [
 
 function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 	return (
-		<div className={cn('h-full select-none', !panel.name?.includes('Table') && 'border')}>
+		<div className={cn('h-full select-none overflow-clip', !panel.name?.includes('Table') && 'border')}>
 			<panel.Panel />
 		</div>
 	);

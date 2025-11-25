@@ -1,19 +1,35 @@
 import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
-import { linePaths, pointPaths } from './plotPaths';
-import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { useEventsSettings, equalValues, valueToString } from '../events/core/util';
-import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
-import { ExportableUplot } from '../events/export/ExportPlot';
 import uPlot from 'uplot';
-import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from './basicPlot';
-import { Quadtree } from './quadtree';
-import { prettyDate } from '../util';
-import { NumberInput } from '../components/NumberInput';
-import { applySample } from '../events/sample/sample';
-import { useEventsState } from '../events/core/eventsState';
+import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from '../basicPlot';
+import { useFeidSample, useFeidTableView } from '../../events/core/feid';
+import { useTable } from '../../events/core/editableTables';
+import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../../layout';
+import { SimpleSelect } from '../../components/Select';
+import { Button } from '../../components/Button';
+import { cn, prettyDate } from '../../util';
+import { NumberInput } from '../../components/Input';
+import { useEventsState } from '../../events/core/eventsState';
+import { usePlot } from '../../events/core/plot';
+import { useEventsSettings, equalValues, valueToString } from '../../events/core/util';
+import { ExportableUplot } from '../../events/export/ExportPlot';
+import { applySample } from '../../events/sample/sample';
+import { pointPaths, linePaths } from '../plotPaths';
+import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
+import { Quadtree } from '../quadtree';
+import { color } from '../../app';
 
-const colors = ['magenta', 'gold', 'cyan', 'green'];
+const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
+
+const columnKeys = [
+	['column0', 'X'],
+	['column1', 'Y'],
+] as const;
+
+const limitKeys = [
+	['X', 'forceMin', 'forceMax'],
+	['Y', 'forceMinY', 'forceMaxY'],
+] as const;
 
 const defaultParams = {
 	sample0: '<current>' as '<current>' | '<none>' | string,
@@ -43,150 +59,73 @@ export type CorrelationParams = {
 	logx: boolean;
 };
 
-function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
-	const { columns } = useContext(MainTableContext);
-	const { samples } = useContext(SampleContext);
-	const { shownColumns } = useEventsSettings();
+function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
+	const { columns } = useTable('feid');
+	const { samples } = useFeidSample();
+	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
-		(c) =>
-			(['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id)) ||
-			(['column0', 'column1'] as const).some((p) => params[p] === c.id)
+		(col) =>
+			(['integer', 'real'].includes(col.dtype) && shownColumns?.includes(col.sql_name)) ||
+			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name)
 	);
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
 
-	const ColumnSelect = ({ k }: { k: keyof CorrelationParams }) => (
-		<select
-			className="Borderless"
-			style={{ maxWidth: '10em', marginLeft: 4, padding: 0 }}
-			value={params[k] as string}
-			onChange={(e) => setParams({ [k]: e.target.value })}
-		>
-			{columnOpts.map(({ id, fullName }) => (
-				<option key={id} value={id}>
-					{fullName}
-				</option>
-			))}
-		</select>
-	);
-	const Checkbox = ({ text, k }: { text: string; k: keyof CorrelationParams }) => (
-		<label>
-			{text}
-			<input
-				type="checkbox"
-				style={{ paddingLeft: 4 }}
-				checked={params[k] as boolean}
-				onChange={(e) => setParams({ [k]: e.target.checked })}
-			/>
-		</label>
-	);
+	const sampleOpts = [
+		['<none>', '<none>'],
+		['<current>', '<current>'],
+		...(samples?.map((sm) => [sm.id.toString(), sm.name]) ?? []),
+	] as [string, string][];
 
 	return (
-		<div className="Group">
-			<div>
-				<span
-					className="TextButton"
-					title="Reset"
-					style={{ userSelect: 'none', cursor: 'pointer' }}
-					onClick={() => set('sample0', '<current>')}
-				>
+		<>
+			<div className="flex gap-1">
+				<Button title="Reset" onClick={() => set('sample0', '<current>')}>
 					Sample:
-				</span>
-				<select
+				</Button>
+				<SimpleSelect
 					title="Sample (none = all events)"
-					className="Borderless"
-					style={{
-						width: '10em',
-						marginLeft: 4,
-						color: params.sample0 === '<current>' ? color('dark') : 'unset',
-					}}
+					className={cn('bg-input-bg w-30', params.sample0 === '<current>' && 'text-dark')}
 					value={params.sample0}
-					onChange={(e) => set('sample0', e.target.value)}
-				>
-					<option value="<none>">&lt;none&gt;</option>
-					<option value="<current>">&lt;current&gt;</option>
-					{samples.map(({ id, name }) => (
-						<option key={id} value={id.toString()}>
-							{name}
-						</option>
-					))}
-				</select>
-			</div>{' '}
-			<div>
-				X:
-				<ColumnSelect k="column0" />
-			</div>{' '}
-			<div>
-				Y:
-				<ColumnSelect k="column1" />
-			</div>
-			<div style={{ textAlign: 'right' }}>
-				<span
-					className="TextButton"
-					title="Reset"
-					style={{ userSelect: 'none', cursor: 'pointer' }}
-					onClick={() => setParams({ forceMin: null, forceMax: null })}
-				>
-					Limit X:
-				</span>
-				<NumberInput
-					style={{ width: '4em', margin: '0 2px', padding: 0 }}
-					value={params.forceMin}
-					onChange={(val) => set('forceMin', val)}
-					allowNull={true}
-				/>
-				;
-				<NumberInput
-					style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
-					value={params.forceMax}
-					onChange={(val) => set('forceMax', val)}
-					allowNull={true}
+					onChange={(val) => set('sample0', val)}
+					options={sampleOpts}
 				/>
 			</div>
-			<div style={{ textAlign: 'right' }}>
-				<span
-					className="TextButton"
-					title="Reset"
-					style={{ userSelect: 'none', cursor: 'pointer' }}
-					onClick={() => setParams({ forceMinY: null, forceMaxY: null })}
-				>
-					Limit Y:
-				</span>
-				<NumberInput
-					style={{ width: '4em', margin: '0 2px', padding: 0 }}
-					value={params.forceMinY}
-					onChange={(val) => set('forceMinY', val)}
-					allowNull={true}
-				/>
-				;
-				<NumberInput
-					style={{ width: '4em', margin: '0 0 0 6px', padding: 0 }}
-					value={params.forceMaxY}
-					onChange={(val) => set('forceMaxY', val)}
-					allowNull={true}
-				/>
-			</div>
+			{columnKeys.map(([key, label]) => (
+				<div key={key} className="flex gap-1">
+					{label}:
+					<SimpleSelect
+						className="w-30 bg-input-bg"
+						value={params[key]}
+						onChange={(val) => set(key, val)}
+						options={columnOpts.map((col) => [col.sql_name, col.name])}
+					/>
+				</div>
+			))}
+			{limitKeys.map(([label, kmin, kmax]) => (
+				<div key="label" className="flex gap-1 h-6">
+					<Button title="Reset limits" onClick={() => setParams({ [kmin]: null, [kmax]: null })}>
+						Limit {label}:
+					</Button>
+					<NumberInput className="w-12" value={params[kmin]} onChange={(val) => set(kmin, val)} allowNull={true} />
+					;
+					<NumberInput className="w-12" value={params[kmax]} onChange={(val) => set(kmax, val)} allowNull={true} />
+				</div>
+			))}
 			<div className="flex gap-3">
 				color:
-				<select
-					className="Borderless"
-					style={{ padding: '0 6px' }}
+				<SimpleSelect
+					className="bg-input-bg"
 					value={params.color}
-					onChange={(e) => setParams({ color: e.target.value })}
-				>
-					{colors.map((c) => (
-						<option key={c} value={c}>
-							{c}
-						</option>
-					))}
-				</select>
+					onChange={(val) => set('color', val)}
+					options={colors.map((c) => [c, c])}
+				/>
 			</div>
-			<div className="flex gap-3"></div>{' '}
 			<div className="flex gap-3">
 				<Checkbox label="regression" k="showRegression" />
 				<Checkbox label="loglog" k="loglog" />
 				<Checkbox label="logx" k="logx" />
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -194,9 +133,9 @@ function Panel() {
 	const { showGrid, showLegend, showTitle } = useEventsSettings();
 	const { setCursor, setPlotId } = useEventsState();
 	const { setParams } = useContext(LayoutContext)! as LayoutContextType<CorrelationParams>;
-	const { data: shownData } = useContext(TableViewContext);
-	const { data: allData, columns } = useTable();
-	const { data: currentData, samples: samplesList } = useContext(SampleContext);
+	const { data: shownData } = useFeidTableView();
+	const { data: allData, columns, index } = useTable('feid');
+	const { data: currentData, samples: samplesList } = useFeidSample();
 	const params = usePlot<CorrelationParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -206,7 +145,8 @@ function Panel() {
 
 	useEffect(() => {
 		for (const k of ['column0', 'column1'] as (keyof CorrelationParams)[]) {
-			if (params[k] == null) setParams({ [k]: findColumn(columns, k === 'column0' ? 'VmBm' : 'magnitude')?.id });
+			if (params[k] == null)
+				setParams({ [k]: columns.find((col) => col.name === (k === 'column0' ? 'VmBm' : 'magnitude'))?.sql_name });
 		}
 	}, [params, columns]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -218,11 +158,16 @@ function Panel() {
 				? currentData
 				: sample0 === '<none>'
 				? allData
-				: applySample(allData, samplesList.find((s) => s.id.toString() === sample0) ?? null, columns, samplesList);
+				: applySample(
+						allData,
+						samplesList?.find((s) => s.id.toString() === sample0) ?? null,
+						columns,
+						samplesList ?? []
+				  );
 
 		if (!sampleData.length) return null;
 		const colIdx = ['column0', 'column1'].map((c) =>
-			columns.findIndex((cc) => cc.id === params[c as keyof CorrelationParams])
+			columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams])
 		);
 		if (colIdx.includes(-1)) return null;
 		const [colX, colY] = colIdx.map((c) => columns[c]);
@@ -260,7 +205,6 @@ function Panel() {
 		);
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
-		const timeIdx = columns.findIndex((c) => c.fullName === 'time');
 		const findRow = (i: number) =>
 			sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
 
@@ -309,7 +253,7 @@ function Panel() {
 							html: (u, sidx, didx) => {
 								const row = findRow(didx);
 								return row
-									? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(
+									? `${prettyDate(row[index.time] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(
 											row[colIdx[1]]
 									  )}`
 									: '??';
@@ -343,7 +287,7 @@ function Panel() {
 						{
 							...axisDefaults(showGrid),
 							space: getFontSize() * 2.5,
-							fullLabel: colX.fullName,
+							fullLabel: colX.name,
 							label: '',
 							size: getFontSize() + scaled(12),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
@@ -357,7 +301,7 @@ function Panel() {
 						},
 						{
 							...axisDefaults(showGrid),
-							fullLabel: colY.fullName,
+							fullLabel: colY.name,
 							label: '',
 							size: (u, values) =>
 								scale * 12 +
@@ -401,7 +345,7 @@ function Panel() {
 									? undefined
 									: sample0 === '<none>'
 									? 'all events'
-									: samplesList.find((s) => s.id.toString() === sample0)?.name,
+									: samplesList?.find((s) => s.id.toString() === sample0)?.name,
 							marker: 'circle',
 							bars: true,
 							stroke: color(params.color),
@@ -434,6 +378,7 @@ function Panel() {
 		setCursor,
 		shownData,
 		setPlotId,
+		index.time,
 	]);
 
 	if (!memo) return <div className="center">NOT ENOUGH DATA</div>;

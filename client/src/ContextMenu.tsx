@@ -22,7 +22,6 @@ export default function ContextMenu() {
 				top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)),
 			}}
 			onMouseDown={(e) => e.stopPropagation()}
-			onClick={(e) => e.target instanceof HTMLButtonElement && closeContextMenu()}
 		>
 			{menu.type === 'app' && (
 				<>

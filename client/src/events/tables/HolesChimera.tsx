@@ -8,7 +8,7 @@ import { useEventsState, useFeidCursor, useSelectedSource } from '../core/events
 import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState, type ChimeraCH } from '../core/sourceActions';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet, prettyDate } from '../../util';
-import { NumberInput } from '../../components/NumberInput';
+import { NumberInput } from '../../components/Input';
 
 const URL = 'https://solarmonitor.org/data/';
 const columnOrder = ['id', 'lat', 'lon', 'b', 'phi', 'area_percent', 'width_text'];

@@ -2,7 +2,7 @@ import { createContext, type ComponentType, type ReactElement } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import { getApp, logMessage } from './app';
+import { closeContextMenu, getApp, logMessage } from './app';
 import type { Size } from './util';
 import { defaultLayouts } from './defaultLayouts';
 import type { CheckboxProps } from './components/Checkbox';
@@ -220,6 +220,7 @@ export const moveWindow = (id: string, move: { x?: number; y?: number; w?: numbe
 
 export const relinquishNode = (nodeId: string) =>
 	useLayoutsStore.setState((state) => {
+		closeContextMenu();
 		const { list, active } = state.apps[getApp()];
 		const { tree, items } = list[active];
 		const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(nodeId));
@@ -234,6 +235,7 @@ export const relinquishNode = (nodeId: string) =>
 
 export const splitNode = (nodeId: string, split: 'row' | 'column', inverse: boolean, dupe: boolean) =>
 	useLayoutsStore.setState((state) => {
+		closeContextMenu();
 		const { list, active } = state.apps[getApp()];
 		const { tree, items } = list[active];
 		const [aId, bId] = ['A', 'B'].map((lt) => lt + Date.now().toString());

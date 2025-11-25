@@ -9,7 +9,7 @@ import { useEventsState, useFeidCursor, useSelectedSource } from '../core/events
 import { useCompoundTable } from '../core/query';
 import { color } from '../../app';
 import { create } from 'zustand';
-import { NumberInput } from '../../components/NumberInput';
+import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 
 const T_BEFORE = 4 * 3600;
@@ -320,7 +320,7 @@ export function Panel() {
 				</div>
 			)}
 			<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }} onClick={onClick} />
-			{isLoaded && <img alt="" src={query.data[frame]?.url} width={size}></img>}
+			{isLoaded && <img alt="" src={query.data[frame]?.url} style={{ minWidth: size }}></img>}
 		</div>
 	);
 }

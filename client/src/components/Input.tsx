@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentProps } from 'react';
+import { useEffect, useState, type ChangeEvent, type ComponentProps } from 'react';
 import { cn } from '../util';
 import { useEventsSettings } from '../events/core/util';
 
@@ -33,6 +33,47 @@ export function TextInput({ value, onSubmit, onChange, onKeyDown, ...props }: Te
 			}}
 			onBlur={() => onSubmit?.(input)}
 			{...props}
+		/>
+	);
+}
+
+export function NumberInput<NULL extends boolean | undefined = true>({
+	value,
+	onChange,
+	min,
+	max,
+	allowNull,
+	...props
+}: {
+	value: NULL extends true ? number | null : number;
+	min?: number;
+	max?: number;
+	onChange: (val: NULL extends true ? number | null : number) => void;
+	allowNull?: NULL;
+} & Omit<ComponentProps<'input'>, 'value' | 'onChange' | 'min' | 'max'>) {
+	const [valid, setValid] = useState(true);
+	const [text, setText] = useState(value?.toString() ?? '');
+
+	useEffect(() => setText(value?.toString() ?? ''), [value]);
+
+	const change = (e: ChangeEvent<HTMLInputElement>) => {
+		const txt = e.target.value.trim();
+		const val = txt === '' ? null : parseFloat(txt);
+		setText(txt);
+		if (val == null && !allowNull) return setValid(false);
+		if (val != null && !txt.match(/^(-?[0-9]+)?(\.[0-9]+)?$/)) return setValid(false);
+		if (val != null && (isNaN(val) || (min != null && val < min) || (max != null && val > max))) return setValid(false);
+		setValid(true);
+		onChange(val as number);
+	};
+
+	return (
+		<Input
+			{...props}
+			type="text"
+			className={cn(!valid && 'ring-red text-red', props.className)}
+			value={text}
+			onChange={change}
 		/>
 	);
 }

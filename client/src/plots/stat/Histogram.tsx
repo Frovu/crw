@@ -1,16 +1,19 @@
 import { useContext, useMemo } from 'react';
 import uPlot from 'uplot';
-import { axisDefaults, color, font, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { useEventsSettings } from '../events/core/util';
-import { ExportableUplot } from '../events/export/ExportPlot';
-import { applySample } from '../events/sample/sample';
-import { type CustomAxis, tooltipPlugin, legendPlugin, labelsPlugin } from './basicPlot';
-import { type ContextMenuProps } from '../layout';
-import { NumberInput } from '../components/NumberInput';
-import type { Value } from '../events/columns/columns';
-import { useFeidSample, useFeidTableView } from '../events/core/feid';
-import { SimpleSelect } from '../components/Select';
-import { cn } from '../util';
+import { useFeidSample, useFeidTableView } from '../../events/core/feid';
+import type { NumberInput } from '../../components/Input';
+import { SimpleSelect } from '../../components/Select';
+import type { Value } from '../../events/columns/columns';
+import { useTable } from '../../events/core/editableTables';
+import { usePlot } from '../../events/core/plot';
+import { useEventsSettings } from '../../events/core/util';
+import { ExportableUplot } from '../../events/export/ExportPlot';
+import { applySample } from '../../events/sample/sample';
+import type { ContextMenuProps } from '../../layout';
+import { cn } from '../../util';
+import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../basicPlot';
+import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../plotUtil';
+import { color } from '../../app';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -54,7 +57,7 @@ const defaultParams: HistogramParams = {
 function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
 	const { columns } = useFeidTableView();
 	const { samples } = useFeidSample();
-	const { shownColumns } = useEventsSettings();
+	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
 		(c) =>
 			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.sql_name)) ||
