@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useSampleState, sampleEditingMarkers, applySample, renderFilters, useSampleQuery } from '../sample/sample';
 import { useTable } from './editableTables';
 import { useEventsSettings } from './util';
@@ -6,6 +6,10 @@ import { useEventsState } from './eventsState';
 import type { Sample } from '../../api';
 import { AuthContext } from '../../app';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+
+const DEBOUNCE_COLUMN_SWITCH = 300;
+let cols_last_updated_at = 0;
+let cols_update_timeout: number | null = null;
 
 export function useFeidSample() {
 	const { login } = useContext(AuthContext);
@@ -36,8 +40,24 @@ export function useFeidSample() {
 }
 
 export function useFeidTableView() {
-	const { shownColumns } = useEventsSettings();
 	const { columns } = useTable('feid');
+	const [shownColumns, setShownColumns] = useState(useEventsSettings.getState().shownColumns);
+
+	useEffect(() => {
+		useEventsSettings.subscribe((st) => {
+			if (Date.now() - cols_last_updated_at > DEBOUNCE_COLUMN_SWITCH) {
+				cols_last_updated_at = Date.now();
+				setShownColumns(st.shownColumns);
+			} else {
+				if (cols_update_timeout != null) clearTimeout(cols_update_timeout);
+				cols_last_updated_at = Date.now();
+				cols_update_timeout = setTimeout(() => {
+					setShownColumns(st.shownColumns);
+					cols_update_timeout = null;
+				}, DEBOUNCE_COLUMN_SWITCH);
+			}
+		});
+	}, []);
 
 	const sort = useEventsState((state) => state.sort);
 	const { current: sample, isPicking } = useSampleState();
@@ -46,7 +66,10 @@ export function useFeidTableView() {
 
 	const renderTable = () => {
 		console.time('render feid table');
-		const cols = columns.filter((col) => ['id', ...shownColumns!]?.includes(col.sql_name));
+		const shown = Object.keys(shownColumns).filter((col) => shownColumns[col]);
+		const cols = ['id', ...shown]
+			.map((name) => columns.find((col) => col.sql_name === name))
+			.filter((col): col is NonNullable<typeof col> => !!col);
 		const enabledIdxs = cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name));
 		const srtIdx = cols.findIndex((col) => col.sql_name === sort.column);
 		const sortIdx = srtIdx >= 0 ? srtIdx : cols.findIndex((col) => col.name === 'time');
@@ -74,7 +97,7 @@ export function useFeidTableView() {
 	};
 
 	return useQuery({
-		queryKey: ['feidView', updatedAt, isPicking, sample, columns, sort.column],
+		queryKey: ['feidView', updatedAt, isPicking, sample, columns, JSON.stringify(shownColumns), sort.column],
 		staleTime: Infinity,
 		queryFn: renderTable,
 		initialData: renderTable,

@@ -4,7 +4,6 @@ import { useLayout, LayoutContext, type ContextMenuProps, AppLayoutContext } fro
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
 import { useEventsSettings, copyAverages, valueToString, setStatColumn, type EventsPanel } from '../core/util';
 import { useSampleState, defaultFilterOp } from '../sample/sample';
-import ColumnsSelector from '../columns/Columns';
 import ImportMenu from '../export/Import';
 import SampleView from '../sample/Sample';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,6 +13,7 @@ import { useTable } from '../core/editableTables';
 import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTableDataQuery } from '../core/query';
 import { type TableParams } from '../tables/Table';
+import { ColumnsView } from '../columns/ColumnsView';
 
 const defaultTableParams: TableParams = {
 	showChangelog: false,
@@ -175,7 +175,7 @@ function Panel() {
 	return (
 		<div className="relative h-full">
 			<ImportMenu />
-			<ColumnsSelector />
+			<ColumnsView />
 			<SampleView ref={ref} />
 			<div className="absolute bottom-0">
 				<FeidTableView size={{ ...size, height: size.height - (ref.current?.offsetHeight ?? 28) }} />

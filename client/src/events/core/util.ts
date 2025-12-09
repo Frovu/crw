@@ -4,6 +4,8 @@ import { useLayoutsStore, setNodeParams, type Panel } from '../../layout';
 import { getApp } from '../../app';
 import type { Value } from '../columns/columns';
 import type { Column } from '../../api';
+import { immer } from 'zustand/middleware/immer';
+import type { TableMenuDetails } from '../tables/Table';
 
 const defaultSettings = {
 	showMagneticClouds: true,
@@ -15,27 +17,32 @@ const defaultSettings = {
 	showMarkers: true,
 	showLegend: false,
 	showTitle: true,
-	shownColumns: undefined as undefined | string[],
-	columnOrder: undefined as undefined | string[],
+	shownColumns: {} as { [col: string]: boolean },
 };
 
 export type EventsSettings = typeof defaultSettings & {
 	set: <T extends keyof EventsSettings>(key: T, val: EventsSettings[T]) => void;
-	setColumns: (fn: (cols: string[]) => string[]) => void;
-	setColumnOrder: (order: string[]) => void;
+	enableColumn: (col: string, val: boolean) => void;
 	reset: () => void;
 };
 
 export const useEventsSettings = create<EventsSettings>()(
 	persist(
-		(set) => ({
+		immer((set) => ({
 			...defaultSettings,
-			set: (key, val) => set((state) => ({ ...state, [key]: val })),
-			setColumns: (fn) => set((state) => ({ ...state, shownColumns: fn(state.shownColumns!) })),
-			setColumnOrder: (val) => set((state) => ({ ...state, columnOrder: val })),
+			set: (key, val) =>
+				set((state) => {
+					state[key] = val;
+				}),
+			enableColumn: (col, val) => {
+				set((state) => {
+					state.shownColumns[col] = val;
+				});
+			},
 			reset: () => set(defaultSettings),
-		}),
+		})),
 		{
+			version: 2,
 			name: 'eventsAppSettings',
 		}
 	)

@@ -8,14 +8,12 @@ import { Confirmation } from '../../components/Confirmation';
 import { SW_TYPES } from '../../plots/time/SWTypes';
 
 export default function ColumnsSelector() {
-	return null;
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const { shownColumns, columnOrder, setColumnOrder, setColumns } = useEventsSettings();
 	const { samples } = useContext(SampleContext);
 	const { rels, columns, structure, series: seriesOpts } = useContext(MainTableContext);
 	const [action, setAction] = useState(true);
-	const [dragging, setDragging] = useState<null | { y: number; id: string; pos: number }>(null);
 	const [open, setOpen] = useState(false);
 	const [report, setReport] = useState<{ error?: string; success?: string }>({});
 	const genericSate = useGenericState();
@@ -119,43 +117,27 @@ export default function ColumnsSelector() {
 
 	const { mutate: computeAll } = useMutation({
 		mutationFn: () => apiPost<{ time: number; done: boolean; error?: string }>('events/compute_all'),
-		onMutate: () => {
-			logMessage('Computing everything...', 'debug');
-		},
+		onMutate: () => logMessage('Computing everything...', 'debug'),
 		onSuccess: ({ time, done, error }) => {
-			if (!done) {
-				setTimeout(() => computeAll(), 1000);
-				return;
-			}
+			if (!done) return setTimeout(() => computeAll(), 1000);
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			logSuccess(`Computed everything in ${time} s`);
 			if (error) logError(error);
 		},
-		onError: (err: any) => {
-			setReport({ error: err.toString() });
-			logError('compute all: ' + err.toString());
-		},
+		onError: (err: any) => logError('compute all: ' + err.toString()),
 	});
 
 	const { mutate: computeRow } = useMutation({
 		mutationFn: (rowId: number) =>
 			apiPost<{ time: number; done: boolean; error?: string }>('events/compute_row', { id: rowId }),
-		onMutate: (rowId) => {
-			logMessage('Computing row #' + rowId.toString(), 'debug');
-		},
+		onMutate: (rowId) => logMessage('Computing row #' + rowId.toString(), 'debug'),
 		onSuccess: ({ time, done, error }, rowId) => {
-			if (!done) {
-				setTimeout(() => computeRow(rowId), 1000);
-				return;
-			}
+			if (!done) return setTimeout(() => computeRow(rowId), 1000);
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			logSuccess(`Computed row #${rowId} in ${time} s`);
 			if (error) logError(error);
 		},
-		onError: (err: any, rowId) => {
-			setReport({ error: err.toString() });
-			logError(`compute row #${rowId}: ` + err.toString());
-		},
+		onError: (err: any, rowId) => logError(`compute row #${rowId}: ` + err.toString()),
 	});
 
 	const { mutate: computeColumn, isPending: loadingCompute } = useMutation({
