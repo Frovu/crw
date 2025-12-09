@@ -18,14 +18,16 @@ class ComputedColumn(BaseColumn):
 	computed_at: datetime | None = None
 	owner_id: int = field(kw_only=True)
 	is_public: bool = field(kw_only=True)
+	is_own: bool = field(kw_only=True)
 	definition: str = field(kw_only=True)
 	type: Literal['computed'] = 'computed'
 
 	@classmethod
-	def from_sql_row(cls, row):
+	def from_sql_row(cls, row, user_id: int | None = None):
 		row['entity'] = DATA_TABLE
 		row['sql_name'] = f'c_{row['id']}'
 		row['is_computed'] = True
+		row['is_own'] = row['owner_id'] = user_id
 		return cls(**row)
 	
 	def init_in_table(self, conn: Connection):
@@ -58,5 +60,5 @@ def select_computed_columns(user_id: int | None=None, select_all=False):
 			[] if user_id is None else [user_id])
 		curs.row_factory = rows.dict_row
 
-		return [ComputedColumn.from_sql_row(row) for row in curs]
+		return [ComputedColumn.from_sql_row(row, user_id) for row in curs]
 _sql_init()

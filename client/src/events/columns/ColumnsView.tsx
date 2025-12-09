@@ -11,7 +11,7 @@ import { ColumnSettings } from './ColumnSettings';
 export function ColumnsView() {
 	const [isOpen, setOpen] = useState(false);
 	const [search, setSearch] = useState('');
-	const [focus, setFocus] = useState('');
+	const [focus, setFocus] = useState({ sql: '', hard: false });
 	const { columns } = useTable('feid');
 	const { shownColumns, enableColumn, set } = useEventsSettings();
 	const [bulkAction, setBulkAction] = useState(true);
@@ -25,7 +25,8 @@ export function ColumnsView() {
 		? sortedColumns
 		: sortedColumns.filter((col) => col.name.toLowerCase().includes(search.toLowerCase()));
 
-	const focusedColumn = filteredColumns.find((col) => col.sql_name === focus);
+	const focusedColumn = filteredColumns.find((col) => col.sql_name === focus.sql);
+	console.log(focus, focusedColumn);
 
 	useEffect(() => {
 		const newObj = Object.assign({}, shownColumns);
@@ -40,7 +41,7 @@ export function ColumnsView() {
 	return !isOpen ? null : (
 		<Popup
 			onClose={() => setOpen(false)}
-			className="h-[min(calc(100vh-16px),600px)] max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
+			className="h-[min(calc(100vh-16px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
 		>
 			<div className="w-64 bg-input-bg border flex items-center">
 				<Input
@@ -56,19 +57,21 @@ export function ColumnsView() {
 					<Button
 						key={sql_name}
 						title={description ?? ''}
-						className={cn('flex gap-2 items-center w-40 text-left', sql_name === focus && 'text-active')}
+						className={cn('flex gap-2 items-center w-40 text-left', sql_name === focus.sql && 'text-active')}
 						onMouseEnter={(e) => {
 							if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
 							setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
+
+							setFocus((fc) => (fc.hard ? fc : { ...fc, sql: sql_name }));
 						}}
 						onMouseDown={(e) => {
-							// if (e.button !== 0) return role && generic && setGeneric(generic);
+							setFocus({ hard: true, sql: sql_name });
+
 							if (!e.shiftKey && !e.ctrlKey)
 								return setDragging({ y: e.clientY, col: sql_name, pos: newOrder.indexOf(sql_name) });
 							const chk = !shownColumns[sql_name];
 							setBulkAction(chk);
 							enableColumn(sql_name, chk);
-							setFocus(sql_name);
 						}}
 						onMouseUp={(e) => {
 							e.stopPropagation();
