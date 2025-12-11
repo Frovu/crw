@@ -5,8 +5,12 @@ import { useEventsSettings } from '../events/core/util';
 const cls =
 	'bg-input-bg text-center w-40 focus:outline-none focus:ring ring-active disabled:text-dark disabled:cursor-not-allowed';
 
-export function Input({ className, ...props }: ComponentProps<'input'>) {
-	return <input className={cn(cls, className)} {...props} />;
+type InputProps = ComponentProps<'input'> & {
+	invalid?: boolean;
+};
+
+export function Input({ className, invalid, ...props }: InputProps) {
+	return <input className={cn(cls, invalid && 'ring ring-red', className)} {...props} />;
 }
 
 type TextInputProps = {

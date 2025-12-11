@@ -7,12 +7,13 @@ import { Button } from '../../components/Button';
 import { Check, Circle, Search } from 'lucide-react';
 import { Input } from '../../components/Input';
 import { ColumnSettings } from './ColumnSettings';
+import { useColumnsState } from './columns';
 
 export function ColumnsView() {
 	const [isOpen, setOpen] = useState(false);
 	const [search, setSearch] = useState('');
-	const [focus, setFocus] = useState({ sql: '', hard: false });
 	const { columns } = useTable('feid');
+	const { focusColumn, focusStick, set: setCol, resetFocus, isDirty } = useColumnsState();
 	const { shownColumns, enableColumn, set } = useEventsSettings();
 	const [bulkAction, setBulkAction] = useState(true);
 	const [drag, setDragging] = useState<null | { y: number; col: string; pos: number }>(null);
@@ -25,8 +26,7 @@ export function ColumnsView() {
 		? sortedColumns
 		: sortedColumns.filter((col) => col.name.toLowerCase().includes(search.toLowerCase()));
 
-	const focusedColumn = filteredColumns.find((col) => col.sql_name === focus.sql);
-	console.log(focus, focusedColumn);
+	const focusedColumn = filteredColumns.find((col) => col.sql_name === focusColumn?.sql_name);
 
 	useEffect(() => {
 		const newObj = Object.assign({}, shownColumns);
@@ -36,36 +36,62 @@ export function ColumnsView() {
 		set('shownColumns', newObj);
 	}, [columns]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	useEventListener('action+openColumnsSelector', () => setOpen((o) => !o));
+	useEventListener('action+openColumnsSelector', () => {
+		setOpen((o) => !o);
+		resetFocus();
+	});
 
 	return !isOpen ? null : (
 		<Popup
 			onClose={() => setOpen(false)}
 			className="h-[min(calc(100vh-16px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
 		>
-			<div className="w-64 bg-input-bg border flex items-center">
-				<Input
-					className="grow h-8"
-					value={search}
-					placeholder="filter columns.."
-					onChange={(e) => setSearch(e.target.value)}
-				></Input>
-				<Search className={cn('mx-2', !search && 'text-dark')} size={18} />
+			<div className="flex gap-2">
+				<div className="w-80 bg-input-bg border flex items-center" onDoubleClick={() => setSearch('')}>
+					<Input
+						className="grow h-8"
+						value={search}
+						placeholder="filter columns.."
+						onChange={(e) => setSearch(e.target.value)}
+					></Input>
+					<Search className={cn('mx-2', !search && 'text-dark')} size={18} />
+				</div>
+				<Button
+					variant="default"
+					className="bg-input-bg"
+					onClick={() => {
+						resetFocus();
+						useEventsSettings.setState((state) => {
+							for (const col in state.shownColumns) if (col !== 'time') state.shownColumns[col] = false;
+						});
+					}}
+				>
+					Clear selection
+				</Button>
 			</div>
-			<div className="p-2 shrink min-h-0 flex flex-col flex-wrap content-start">
-				{filteredColumns.map(({ sql_name, name, description }) => (
+			<div
+				className="p-2 grow shrink min-h-0 flex flex-col flex-wrap content-start"
+				onMouseLeave={() => {
+					if (!focusStick) resetFocus();
+				}}
+			>
+				{filteredColumns.map(({ sql_name, name, description, ...column }) => (
 					<Button
 						key={sql_name}
 						title={description ?? ''}
-						className={cn('flex gap-2 items-center w-40 text-left', sql_name === focus.sql && 'text-active')}
+						className={cn(
+							'flex gap-2 items-center w-40 text-left',
+							sql_name === focusColumn?.sql_name && 'text-active'
+						)}
 						onMouseEnter={(e) => {
 							if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
 							setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
 
-							setFocus((fc) => (fc.hard ? fc : { ...fc, sql: sql_name }));
+							if (!focusStick && !isDirty()) setCol('focusColumn', { sql_name, name, description, ...column });
 						}}
 						onMouseDown={(e) => {
-							setFocus({ hard: true, sql: sql_name });
+							setCol('focusColumn', { sql_name, name, description, ...column });
+							setCol('focusStick', true);
 
 							if (!e.shiftKey && !e.ctrlKey)
 								return setDragging({ y: e.clientY, col: sql_name, pos: newOrder.indexOf(sql_name) });

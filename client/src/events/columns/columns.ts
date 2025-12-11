@@ -5,36 +5,49 @@ import type { Column, ComputedColumn } from '../../api';
 export type Value = Date | string | number | null;
 export type DataRow = [number, ...Array<Value>];
 
-export type ColumnState = {
-	id: number | null;
-} & Pick<ComputedColumn, 'is_public' | 'name' | 'description' | 'definition'>;
+export const columnInputs = ['is_public', 'name', 'description', 'definition'] as const;
 
-const defaultState: ColumnState = {
+export type ColumnInputs = (typeof columnInputs)[number];
+export type State = {
+	id: number | null;
+	focusColumn: Column | null;
+	focusStick: boolean;
+} & Pick<ComputedColumn, ColumnInputs>;
+
+const defaultState: State = {
 	id: null,
 	is_public: false,
 	name: '',
 	description: null,
 	definition: '',
+	focusColumn: null,
+	focusStick: false,
 };
 
-type Storage = ColumnState & {
-	setColumn: (col: ComputedColumn) => void;
-	set: <K extends keyof ColumnState>(k: K, val: Storage[K]) => void;
+type Storage = State & {
+	resetFocus: () => void;
+	set: <K extends keyof State>(k: K, val: Storage[K]) => void;
 	reset: () => void;
+	isDirty: () => boolean;
 };
 
-export const useComputedColumnState = create<Storage>()(
-	immer((set) => ({
+export const useColumnsState = create<Storage>()(
+	immer((set, get) => ({
 		...defaultState,
-		setColumn: (col) =>
+		resetFocus: () =>
 			set((state) => {
-				Object.assign(state, col);
+				state.focusColumn = null;
+				state.focusStick = false;
 			}),
 		set: (k, val) =>
 			set((state) => {
+				if (k === 'focusColumn') {
+					for (const c of columnInputs) (state as any)[c] = defaultState[c];
+				}
 				state[k] = val;
 			}),
 		reset: () => set(defaultState),
+		isDirty: () => !!columnInputs.find((k) => get()[k] !== defaultState[k]),
 	}))
 );
 
