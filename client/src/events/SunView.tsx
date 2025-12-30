@@ -166,9 +166,10 @@ export function SDO({
 			return res.timestamps
 				.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end)
 				.map((timestamp) => {
+					const aiadir = 1730408400 <= timestamp && timestamp <= 1738357200 ? 'sdo/aia_synoptic/' : 'sdo/aia_synoptic_nrt/'
 					const dir = isLsc
 						? 'soho/lasco'
-						: (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : 'sdo/aia_synoptic_nrt/') + source.split(' ')[1];
+						: (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : aiadir) + source.split(' ')[1];
 					const time = new Date(timestamp * 1000);
 					const year = time.getUTCFullYear();
 					const mon = (time.getUTCMonth() + 1).toString().padStart(2, '0');
