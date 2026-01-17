@@ -200,7 +200,7 @@ def select_generics(user_id=None, select_all=False):
 	return result
 _init()
 
-def upset_generic(uid, json_body):
+def upset_generic(uid, json_body, col_id):
 	gid, nickname, description, is_public = \
 		[json_body.get(i) for i in ('gid', 'nickname', 'description', 'is_public')]
 	p = GenericParams.from_dict(json_body['params'])

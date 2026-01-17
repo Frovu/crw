@@ -4,8 +4,9 @@ from typing import Literal
 import ts_type
 
 from psycopg import Connection, rows, sql
-from database import pool
+from database import pool, log
 from events.columns.column import BaseColumn
+
 
 DEF_TABLE = 'computed_columns'
 DATA_TABLE = 'computed_columns_data'
@@ -27,7 +28,7 @@ class ComputedColumn(BaseColumn):
 		row['entity'] = DATA_TABLE
 		row['sql_name'] = f'c_{row['id']}'
 		row['is_computed'] = True
-		row['is_own'] = row['owner_id'] = user_id
+		row['is_own'] = row['owner_id'] == user_id
 		return cls(**row)
 	
 	def init_in_table(self, conn: Connection):
@@ -62,3 +63,11 @@ def select_computed_columns(user_id: int | None=None, select_all=False):
 
 		return [ComputedColumn.from_sql_row(row, user_id) for row in curs]
 _sql_init()
+
+def apply_changes(conn, column, table=DATA_TABLE, dtype='real'):
+	id_col = 'feid_id' if table == DATA_TABLE else 'id'
+	curs = conn.execute(f'UPDATE events.{table} tgt SET {column} = new_value::{dtype} ' +
+		'FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' +
+		'WHERE entity_name = \'feid\' AND column_name = %s ORDER BY event_id, time DESC) chgs ' +
+		f'WHERE tgt.{id_col} = event_id AND (new_value IS NULL OR new_value != \'auto\')', [column])
+	log.info(f'Applied {curs.rowcount} overriding changes to {column}')

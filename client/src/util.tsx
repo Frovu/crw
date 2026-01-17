@@ -75,6 +75,15 @@ export const distToSegment = (xp: number, yp: number, x1: number, y1: number, x2
 	return Math.sqrt(dsq);
 };
 
+export async function apiDelete<T = { message?: string }>(url: string): Promise<T> {
+	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
+		method: 'DELETE',
+		credentials: 'include',
+	});
+	const json = await res.json().catch(() => {});
+	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
+	return json;
+}
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
 		method: 'POST',

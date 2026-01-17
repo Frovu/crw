@@ -9,6 +9,7 @@ from events.misc.plots import epoch_collision
 from events.table_init import import_fds
 from events.columns_old.generic_columns import upset_generic, remove_generic
 from events.columns_old.other_columns import compute_all, compute_column
+from events.columns.query import upsert_computed_column
 from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
 import events.misc.text_transforms as tts
 from events import samples
@@ -236,16 +237,25 @@ def remove_tts():
 	tts.remove(uid, name)
 	return msg('OK')
 
-@bp.route('/generics', methods=['POST'])
+@bp.route('/columns', methods=['POST'])
 @route_shielded
 @require_role('user')
 def _create_generic():
 	uid = session.get('uid')
 	start = time()
-	generic = upset_generic(uid, request.json)
-	return { 'generic': generic.as_dict(uid), 'name': generic.name, 'time': round(time() - start, 3) }
+	col = upsert_computed_column(uid, request.json, None)
+	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
 
-@bp.route('/generics/remove', methods=['POST'])
+@bp.route('/columns/<id>', methods=['POST'])
+@route_shielded
+@require_role('user')
+def _mod_generic(col_id):
+	uid = session.get('uid')
+	start = time()
+	col = upsert_computed_column(uid, request.json, col_id)
+	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
+
+@bp.route('/columns', methods=['DELETE'])
 @route_shielded
 @require_role('user')
 def _remove_generic():

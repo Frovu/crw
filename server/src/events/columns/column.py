@@ -12,6 +12,7 @@ class BaseColumn:
 	name: str = ''
 	description: str | None = None
 	dtype: DTYPE = 'real'
+	is_computed: bool = False
 
 	def __post_init__(self):
 		if not self.name:
@@ -26,12 +27,15 @@ class BaseColumn:
 		if self.dtype == 'enum':
 			return  SQL('text')
 		return SQL(self.dtype)
+	
+	def sql_val(self):
+		name = Identifier(self.sql_name)
+		return SQL('EXTRACT(EPOCH FROM {0})::integer as {0}').format(name) if self.dtype == 'time' else name
 
 @ts_type.gen_type
 @dataclass
 class Column(BaseColumn):
 	sql_def: LiteralString = ''
-	is_computed: bool = False
 	not_null: bool = False
 	enum: list[str] | None = None
 	parse_name: str | None = None
@@ -53,10 +57,6 @@ class Column(BaseColumn):
 			self.not_null and SQL('NOT NULL'),
 			self.enum and SQL('REFERENCES events.{} ON UPDATE CASCADE').format(Identifier(self.enum_table()))
 		]))
-	
-	def sql_val(self):
-		name = Identifier(self.sql_name)
-		return SQL('EXTRACT(EPOCH FROM {0})::integer as {0}').format(name) if self.dtype == 'time' else name
 
 	def sql_col_def(self):
 		return SQL(' ').join([Identifier(self.sql_name), self.sql_type_def()])

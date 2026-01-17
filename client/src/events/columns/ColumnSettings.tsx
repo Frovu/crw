@@ -2,9 +2,13 @@ import type { Column, ComputedColumn } from '../../api';
 import { Input } from '../../components/Input';
 import { Checkbox } from '../../components/Checkbox';
 import { Button } from '../../components/Button';
-import { cn } from '../../util';
+import { apiDelete, apiPost, cn } from '../../util';
 import { useColumnsState, type ColumnInputs } from './columns';
 import { useTable } from '../core/editableTables';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { logSuccess, logError } from '../../app';
+import { useState } from 'react';
+import { useEventsSettings } from '../core/util';
 
 function definitionIsValid(def: string) {
 	return def.length;
@@ -13,6 +17,9 @@ function definitionIsValid(def: string) {
 export function ColumnSettings({ column }: { column?: Column }) {
 	const { columns } = useTable('feid');
 	const { set, resetFocus, reset, ...state } = useColumnsState();
+	const { enableColumn } = useEventsSettings();
+	const [report, setReport] = useState<{ error?: string; success?: string }>({});
+	const queryClient = useQueryClient();
 
 	const value = <K extends ColumnInputs>(k: K) => (column as ComputedColumn)?.[k] ?? state[k];
 
@@ -21,6 +28,46 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const isComputed = column?.type === 'computed';
 	const isModifiable = column?.type === 'computed' && column.is_own;
 
+	const { mutate: deleteGeneric, isPending: loadingDelete } = useMutation({
+		mutationFn: (colId: number) => apiDelete(`events/columns/${colId}`),
+		onSuccess: (_, colId) => {
+			if (colId === state.id) reset();
+			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
+			queryClient.invalidateQueries({ queryKey: ['Tables'] });
+			logSuccess(`Deleted column ${col?.name ?? colId}`);
+		},
+		onError: (err: any, colId) => {
+			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
+			logError(`delete g#${colId} (${col?.name}): ` + err.toString());
+		},
+	});
+
+	const { mutate: upsertGeneric, isPending: loadingUpsert } = useMutation({
+		mutationFn: () => {
+			const url = 'events/columns' + (state.id ? `/${state.id}` : '');
+			const { name, description, definition, is_public } = state;
+			return apiPost<{ column: ComputedColumn; time: number }>(url, {
+				name,
+				description,
+				definition,
+				is_public,
+			});
+		},
+		onSuccess: ({ column, time }) => {
+			queryClient.invalidateQueries({ queryKey: ['Tables'] });
+			queryClient.invalidateQueries({ queryKey: ['tableData'] });
+			set('focusColumn', column);
+			set('focusStick', true);
+			enableColumn(column.sql_name, true);
+			setReport({ success: `Done in ${time} s` });
+			logSuccess(`${state.id ? 'Modified' : 'Created'} column ${column.name} in ${time} s`);
+		},
+		onError: (err: any) => {
+			setReport({ error: err.toString() });
+			logError('generic: ' + err.toString());
+		},
+	});
+
 	const inputsDisabled = !isCreating && !isModifiable;
 	const definitionValid = !isDirty || definitionIsValid(value('definition'));
 	const nameValid =
@@ -28,7 +75,15 @@ export function ColumnSettings({ column }: { column?: Column }) {
 		(value('name').length && !columns.find((col) => col.name === value('name') && col.sql_name !== column?.sql_name));
 
 	return (
-		<div>
+		<div className="relative">
+			<div
+				className="absolute right-1 -top-1 max-h-18 max-w-[400px] text-left overflow-y-clip -translate-y-full"
+				title={report?.error ?? report?.success}
+				onClick={() => setReport({})}
+			>
+				{report?.error && <div className="text-red">{report.error}</div>}
+				{report?.success && <div className="text-green">{report.success}</div>}
+			</div>
 			<div className="flex gap-1 items-center">
 				<div className="text-dark">Name:</div>
 				<Input
@@ -43,7 +98,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 
 				<Input
 					disabled={inputsDisabled}
-					className="w-120 h-7 text-left pl-2"
+					className="w-120 h-7 pl-2"
 					value={value('description') ?? ''}
 					onChange={(e) => set('description', e.target.value)}
 				/>
@@ -81,6 +136,8 @@ export function ColumnSettings({ column }: { column?: Column }) {
 							queueMicrotask(() => {
 								document.getElementById('colNameInput')?.focus();
 							});
+						} else {
+							upsertGeneric();
 						}
 					}}
 				>

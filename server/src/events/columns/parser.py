@@ -15,8 +15,8 @@ helpers = {
 }
 
 @v_args(inline=True)
-class CalculateTree(Transformer):
-	def __init__(self, visit_tokens: bool = True) -> None:
+class ColumnComputer(Transformer):
+	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None) -> None:
 		super().__init__(visit_tokens)
 		self.ctx = ComputationContext()
 
@@ -44,11 +44,11 @@ class CalculateTree(Transformer):
 	def div(self, *args):
 		return self.fn_call('div', *args)
 
-calc = Lark.open('grammar.lark', rel_to=__file__)
+columnParser = Lark.open('grammar.lark', rel_to=__file__)
 
 def test():
 	expr = "col(\"time\")"
-	res = calc.parse(expr)
+	res = columnParser.parse(expr)
 	print(res.pretty())
 	
-	print('=', CalculateTree().transform(res))
+	print('=', ColumnComputer().transform(res))
