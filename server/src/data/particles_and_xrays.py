@@ -19,6 +19,7 @@ PARTICLES = {
 	'e8k': '1000-1900 keV',
 	'e9k': '1900-3200 keV',
 	'e10k': '3200-6500 keV',
+	'e2': '>2 MeV',
 	'p1': '>1 MeV',
 	'p2': '>5 MeV',
 	'p3': '>10 MeV',
@@ -36,8 +37,9 @@ GOES_X_EPOCH = datetime(2009, 11, 26)
 
 def _init():
 	with pool.connection() as conn:
-		pcols = ', '.join([c+' real' for c in PARTICLES])
-		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key, {pcols})')
+		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key)')
+		for c in PARTICLES:
+			conn.execute(f'ALTER TABLE {T_PART} ADD COLUMN IF NOT EXISTS {c} real')
 		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_XRAY} (time timestamptz primary key, s real, l real)')
 _init()
 
@@ -64,6 +66,7 @@ def _obtain_goes(which, t_from, t_to):
 	except Exception as e:
 		log.error(f'GOES: failed to obtain (crs): {e}')
 	finally:
+		log.debug('GOES: obtained %s', which)
 		conn.close()
 
 def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):

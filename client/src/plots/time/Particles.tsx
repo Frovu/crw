@@ -25,6 +25,7 @@ const PARTICLES = {
 	e8k: '1000-1900 keV',
 	e9k: '1900-3200 keV',
 	e10k: '3200-6500 keV',
+	e2: '>2 MeV',
 };
 export const particlesOptions = Object.keys(PARTICLES);
 
@@ -55,7 +56,9 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 							checked={show.includes(part)}
 							onChange={(e) =>
 								setParams({
-									showParticles: e.target.checked ? opts.filter((o) => show.includes(o) || o === part) : show.filter((o) => o !== part),
+									showParticles: e.target.checked
+										? opts.filter((o) => show.includes(o) || o === part)
+										: show.filter((o) => o !== part),
 								})
 							}
 						/>
@@ -87,13 +90,14 @@ function Panel() {
 		<BasicPlot
 			{...{
 				queryKey: ['satparticles', showParticles.join()],
-				queryFn: () => (showParticles.length ? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles]) : (null as any)),
+				queryFn: () =>
+					showParticles.length ? basicDataQuery('omni/particles', para.interval, ['time', ...showParticles]) : (null as any),
 				params: solarTime
 					? {
 							...para,
 							onsets: [],
 							clouds: [],
-						}
+					  }
 					: para,
 				options: () => ({
 					padding: [scaled(8), scaled(solarTime ? 6 : 36), scaled(showTimeAxis ? 0 : 6), 0],
@@ -104,7 +108,8 @@ function Panel() {
 						label: 'ions',
 						fullLabel: 'N / cm²⋅s⋅sr',
 						distr: 3,
-						values: (u, vals) => vals.map((v) => (v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
+						values: (u, vals) =>
+							vals.map((v) => (v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
 					},
 				],
 				series: () =>
