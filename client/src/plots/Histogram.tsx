@@ -55,7 +55,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 	const { shownColumns } = useEventsSettings();
 	const columnOpts = columns.filter(
 		(c) =>
-			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
+			(['integer', 'real', 'enum', 'text'].includes(c.type) && shownColumns?.includes(c.id)) ||
 			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.id),
 	);
 
@@ -100,7 +100,11 @@ function Menu({ params, setParams }: ContextMenuProps<HistogramParams>) {
 						<select
 							title="Sample (none = all events)"
 							className="Borderless"
-							style={{ width: '7em', marginLeft: 1, color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset' }}
+							style={{
+								width: '7em',
+								marginLeft: 1,
+								color: params[sampleKeys[i]] === '<current>' ? color('text-dark') : 'unset',
+							}}
 							value={params[sampleKeys[i]]}
 							onChange={(e) => set(sampleKeys[i], e.target.value)}
 						>
@@ -239,7 +243,9 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 	const fnt = font(14, true);
 	const px = (a: number) => scale * a * devicePixelRatio;
 	const averages = {
-		mean: params.drawMean && samples.map((smpl) => (smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null)),
+		mean:
+			params.drawMean &&
+			samples.map((smpl) => (smpl.length ? (smpl as any[]).reduce((a, b) => a + (b ?? 0), 0) / smpl.length : null)),
 		median:
 			params.drawMedian &&
 			samples.map((smpl) => {
@@ -303,18 +309,19 @@ function Panel() {
 					: sampleId === '<none>'
 						? allData
 						: applySample(allData, samplesList.find((s) => s.id.toString() === sampleId) ?? null, columns, samplesList);
-			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum');
+			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum' || column.type === 'text');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
-		const enumMode = !!column.enum;
-		const samples = enumMode ? [allSamples[firstIdx].map((v) => (!v ? 0 : column.enum!.indexOf(v as any) + 1))] : allSamples;
+		const enumMode = ['text', 'enum'].includes(column.type);
+		const enumValues = column.enum ?? [...new Set(allSamples.flat())].filter((a) => a);
+		const samples = enumMode ? [allSamples[firstIdx].map((v) => (!v ? 0 : enumValues.indexOf(v) + 1))] : allSamples;
 
 		const everything = samples.flat() as number[];
 		const min = params.forceMin ?? Math.min.apply(null, everything);
 		let max = params.forceMax ?? Math.max.apply(null, everything) + 1;
-		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : params.binCount;
+		const binCount = enumMode ? enumValues.length + (everything.includes(0) ? 1 : 0) : params.binCount;
 		if (params.forceMax == null) {
 			const countMax = everything.reduce((a, b) => (b === max ? a + 1 : a), 0);
 			if (countMax > 1)
@@ -333,13 +340,19 @@ function Panel() {
 			return bins as number[];
 		});
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
-		const transformed = samplesBins.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!)).filter((b) => b);
+		const transformed = samplesBins
+			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))
+			.filter((b) => b);
 		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : 0.5)) * binSize) || [];
 
-		const colNames = [0, 1, 2].map((i) => params[('column' + i) as keyof HistogramParams]).map((c) => columns.find((cc) => cc.id === c)?.fullName);
+		const colNames = [0, 1, 2]
+			.map((i) => params[('column' + i) as keyof HistogramParams])
+			.map((c) => columns.find((cc) => cc.id === c)?.fullName);
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
-			.map((id) => (['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')));
+			.map((id) =>
+				['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
+			);
 
 		// try to prevent short bars from disappearing
 		const highest = Math.max.apply(null, transformed.flat());
@@ -381,12 +394,15 @@ function Panel() {
 							gap: scaled(2),
 							values: (u, vals) => vals.map((v) => v),
 							...(enumMode && {
-								values: (u, vals) => vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')),
+								values: (u, vals) => vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...enumValues][v] : '')),
 							}),
 						},
 						{
 							...axisDefaults(showGrid),
-							values: (u, vals) => vals.map((v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())),
+							values: (u, vals) =>
+								vals.map(
+									(v) => v && (yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed()),
+								),
 							gap: scaled(2),
 							fullLabel: params.showYLabel ? yLabel : '',
 							label: params.showYLabel ? '' : undefined,
