@@ -8,7 +8,8 @@ def epoch_collision(times: list[int], interval: list[int], series: str):
 	if series not in G_SERIES:
 		raise ValueError('series not found')
 	src, ser, _ = G_SERIES[series]
-	table = 'gsm_result' if src == 'gsm' else 'omni'
+	print(src, ser, series)
+	table = 'gsm_result' if src == 'gsm' else ('sat_xrays' if ser in ['s', 'l'] else 'sat_particles') if src == 'sat' else 'omni'
 
 	is_delta = series.startswith('$d_')
 	if is_delta:
