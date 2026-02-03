@@ -64,6 +64,16 @@ def select_computed_columns(user_id: int | None=None, select_all=False):
 		return [ComputedColumn.from_sql_row(row, user_id) for row in curs]
 _sql_init()
 
+def select_computed_column_by_id(cid: int, user_id: int | None=None):
+	with pool.connection() as conn:
+		where = 'WHERE is_public' + ('' if user_id is None else ' OR %s = owner_id')
+		curs = conn.execute(f'SELECT * from events.{DEF_TABLE} {where}',
+			[] if user_id is None else [user_id])
+		curs.row_factory = rows.dict_row
+		row = curs.fetchone()
+
+		return ComputedColumn.from_sql_row(row, user_id) if row else None
+
 def apply_changes(conn, column, table=DATA_TABLE, dtype='real'):
 	id_col = 'feid_id' if table == DATA_TABLE else 'id'
 	curs = conn.execute(f'UPDATE events.{table} tgt SET {column} = new_value::{dtype} ' +

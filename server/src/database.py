@@ -1,11 +1,23 @@
 import os, logging
 from psycopg_pool import ConnectionPool
 from psycopg.sql import SQL, Identifier, Placeholder
+from dataclasses import dataclass, asdict
+import ts_type
 
 from typing import LiteralString, Iterable, Sequence, Any
 
 from events.columns.column import Column
 
+@ts_type.gen_type
+@dataclass
+class ComputationResponse:
+	time: float
+	done: bool = True
+	error: str | None = None
+
+	def to_dict(self):
+		return asdict(self)
+	
 log = logging.getLogger('crw')
 pool = ConnectionPool(kwargs = {
 	'dbname': 'crw',

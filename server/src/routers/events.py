@@ -1,4 +1,3 @@
-# type: ignore
 import json
 from time import time
 from datetime import datetime, timezone
@@ -7,9 +6,7 @@ import numpy as np
 from flask import Blueprint, request, session
 from events.misc.plots import epoch_collision
 from events.table_init import import_fds
-from events.columns_old.generic_columns import upset_generic, remove_generic
-from events.columns_old.other_columns import compute_all, compute_column
-from events.columns.query import upsert_computed_column
+import events.columns.query as comp_columns
 from events.source import donki, lasco_cme, cactus_cme, r_c_icme, solardemon, solarsoft, solen_info, chimera
 import events.misc.text_transforms as tts
 from events import samples
@@ -79,7 +76,7 @@ def _get_fetch_source():
 @bp.route('/', methods=['GET'])
 @route_shielded
 @compress.compressed()
-def list_events():
+def _list_events():
 	uid = session.get('uid')
 	entity = request.args.get('entity')
 	include = request.args.get('include')
@@ -243,7 +240,7 @@ def remove_tts():
 def _create_generic():
 	uid = session.get('uid')
 	start = time()
-	col = upsert_computed_column(uid, request.json, None)
+	col = comp_columns.upsert_column(uid, request.json, None)
 	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
 
 @bp.route('/columns/<id>', methods=['POST'])
@@ -252,7 +249,7 @@ def _create_generic():
 def _mod_generic(col_id):
 	uid = session.get('uid')
 	start = time()
-	col = upsert_computed_column(uid, request.json, col_id)
+	col = comp_columns.upsert_column(uid, request.json, col_id)
 	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
 
 @bp.route('/columns', methods=['DELETE'])
@@ -264,29 +261,26 @@ def _remove_generic():
 	remove_generic(uid, gid)
 	return msg('OK')
 
-@bp.route('/compute', methods=['POST'])
+@bp.route('/compute/column', methods=['POST'])
 @route_shielded
 @require_role('user')
 def _compute_generic():
-	name = request.json.get('id')
-	start = time()
-	err = compute_column(name)
-	if err:
-		return msg(err), 500
-	return { 'time': round(time() - start, 2) }
+	uid = session.get('uid')
+	cid = request.json.get('id')
+	return comp_columns.compute_by_id(uid, cid)
 
-@bp.route('/compute_row', methods=['POST'])
+@bp.route('/compute/row', methods=['POST'])
 @route_shielded
 @require_role('user')
 def _compute_row_generic():
 	rid = int(request.json.get('id'))
-	return compute_all(rid)
+	return comp_columns.compute_row(rid)
 
-@bp.route('/compute_all', methods=['POST'])
+@bp.route('/compute/all', methods=['POST'])
 @route_shielded
 @require_role('operator')
 def _compute_everything():
-	return compute_all()
+	return comp_columns.compute_all()
 
 @bp.route('/importTable', methods=['POST'])
 @route_shielded

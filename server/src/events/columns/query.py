@@ -1,9 +1,10 @@
 from time import time
+import traceback
 
 from psycopg import rows
-from database import pool, log, upsert_many
+from database import pool, log, upsert_many, ComputationResponse
 
-from events.columns.computed_column import ComputedColumn, apply_changes, DATA_TABLE, DEF_TABLE
+from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, apply_changes, DATA_TABLE, DEF_TABLE
 from events.columns.parser import columnParser, ColumnComputer
 
 def compute(definition: str, target_ids: list[int] | None = None):
@@ -42,7 +43,7 @@ def compute(definition: str, target_ids: list[int] | None = None):
 			
 
 
-def upsert_computed_column(uid, json_body, col_id):
+def upsert_column(uid, json_body, col_id):
 	name, description, definition, is_public = \
 		[json_body.get(i) for i in ('name', 'description', 'definition', 'is_public')]
 	# columns = select_computed_columns(uid)
@@ -65,6 +66,28 @@ def upsert_computed_column(uid, json_body, col_id):
 			curs.row_factory = rows.dict_row
 			column = ComputedColumn.from_sql_row(curs.fetchone())
 			# FIXME: alter sql datatype
-			log.info(f'Generic edited by ({uid}): #{column.id} {column.name}')
+			log.info(f'Column edited by ({uid}): #{column.id} {column.name}')
 
 	return column
+
+def compute_by_id(user_id, col_id):
+	t_start = time()
+
+	try:
+		column = select_computed_column_by_id(col_id, user_id)
+		if not column: 
+			raise ValueError('Column not found')
+		
+		compute(column.definition)
+
+	except Exception as e:
+		traceback.print_exc()
+		return ComputationResponse(time=time()-t_start, done=False, error=str(e)).to_dict()
+	
+	return ComputationResponse(time=time()-t_start).to_dict()
+
+def compute_row(row_id):
+	pass
+
+def compute_all():
+	pass

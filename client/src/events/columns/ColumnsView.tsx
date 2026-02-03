@@ -8,6 +8,7 @@ import { Check, Circle, Search } from 'lucide-react';
 import { Input } from '../../components/Input';
 import { ColumnSettings } from './ColumnSettings';
 import { useColumnsState } from './columns';
+import ComputeController from './ComputeController';
 
 export function ColumnsView() {
 	const [isOpen, setOpen] = useState(false);
@@ -41,82 +42,89 @@ export function ColumnsView() {
 		resetFocus();
 	});
 
-	return !isOpen ? null : (
-		<Popup
-			onClose={() => setOpen(false)}
-			className="h-[min(calc(100vh-16px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
-		>
-			<div className="flex gap-2">
-				<div className="w-80 bg-input-bg border flex items-center" onDoubleClick={() => setSearch('')}>
-					<Input
-						className="grow h-8"
-						value={search}
-						placeholder="filter columns.."
-						onChange={(e) => setSearch(e.target.value)}
-					></Input>
-					<Search className={cn('mx-2', !search && 'text-dark')} size={18} />
-				</div>
-				<Button
-					variant="default"
-					className="bg-input-bg"
-					onClick={() => {
-						resetFocus();
-						useEventsSettings.setState((state) => {
-							for (const col in state.shownColumns) if (col !== 'time') state.shownColumns[col] = false;
-						});
-					}}
+	return (
+		<>
+			<ComputeController />
+			{isOpen && (
+				<Popup
+					onClose={() => setOpen(false)}
+					className="h-[min(calc(100vh-16px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
 				>
-					Clear selection
-				</Button>
-			</div>
-			<div
-				className="p-2 grow shrink min-h-0 flex flex-col flex-wrap content-start"
-				onMouseLeave={() => {
-					if (!focusStick) resetFocus();
-				}}
-			>
-				{filteredColumns.map(({ sql_name, name, description, ...column }) => (
-					<Button
-						key={sql_name}
-						title={description ?? ''}
-						className={cn(
-							'flex gap-2 items-center w-40 text-left',
-							sql_name === focusColumn?.sql_name && 'text-active'
-						)}
-						onMouseEnter={(e) => {
-							if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
-							setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
-
-							if (!focusStick && !isDirty()) setCol('focusColumn', { sql_name, name, description, ...column });
-						}}
-						onMouseDown={(e) => {
-							setCol('focusColumn', { sql_name, name, description, ...column });
-							setCol('focusStick', true);
-
-							if (!e.shiftKey && !e.ctrlKey)
-								return setDragging({ y: e.clientY, col: sql_name, pos: newOrder.indexOf(sql_name) });
-							const chk = !shownColumns[sql_name];
-							setBulkAction(chk);
-							enableColumn(sql_name, chk);
-						}}
-						onMouseUp={(e) => {
-							e.stopPropagation();
-							if (!drag || Math.abs(e.clientY - drag.y) < 4) {
-								if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
-									enableColumn(sql_name, !shownColumns[sql_name]);
-							} else {
-								set('shownColumns', Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])));
-							}
-							setDragging(null);
+					<div className="flex gap-2">
+						<div className="w-80 bg-input-bg border flex items-center" onDoubleClick={() => setSearch('')}>
+							<Input
+								className="grow h-8"
+								value={search}
+								placeholder="filter columns.."
+								onChange={(e) => setSearch(e.target.value)}
+							></Input>
+							<Search className={cn('mx-2', !search && 'text-dark')} size={18} />
+						</div>
+						<Button
+							variant="default"
+							className="bg-input-bg"
+							onClick={() => {
+								resetFocus();
+								useEventsSettings.setState((state) => {
+									for (const col in state.shownColumns) if (col !== 'time') state.shownColumns[col] = false;
+								});
+							}}
+						>
+							Clear selection
+						</Button>
+					</div>
+					<div
+						className="p-2 grow shrink min-h-0 flex flex-col flex-wrap content-start"
+						onMouseLeave={() => {
+							if (!focusStick) resetFocus();
 						}}
 					>
-						{shownColumns[sql_name] ? (
-							<Check strokeWidth={4} size={16} />
-						) : (
-							<Circle className="text-dark/50" size={16} />
-						)}
-						{name}
-						{/* {generic?.is_own && (
+						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
+							<Button
+								key={sql_name}
+								title={description ?? ''}
+								className={cn(
+									'flex gap-2 items-center w-40 text-left',
+									sql_name === focusColumn?.sql_name && 'text-active',
+								)}
+								onMouseEnter={(e) => {
+									if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
+									setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
+
+									if (!focusStick && !isDirty())
+										setCol('focusColumn', { sql_name, name, description, ...column });
+								}}
+								onMouseDown={(e) => {
+									setCol('focusColumn', { sql_name, name, description, ...column });
+									setCol('focusStick', true);
+
+									if (!e.shiftKey && !e.ctrlKey)
+										return setDragging({ y: e.clientY, col: sql_name, pos: newOrder.indexOf(sql_name) });
+									const chk = !shownColumns[sql_name];
+									setBulkAction(chk);
+									enableColumn(sql_name, chk);
+								}}
+								onMouseUp={(e) => {
+									e.stopPropagation();
+									if (!drag || Math.abs(e.clientY - drag.y) < 4) {
+										if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
+											enableColumn(sql_name, !shownColumns[sql_name]);
+									} else {
+										set(
+											'shownColumns',
+											Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])),
+										);
+									}
+									setDragging(null);
+								}}
+							>
+								{shownColumns[sql_name] ? (
+									<Check strokeWidth={4} size={16} />
+								) : (
+									<Circle className="text-dark/50" size={16} />
+								)}
+								{name}
+								{/* {generic?.is_own && (
 							<div
 								className="CloseButton"
 								onClick={(e) => {
@@ -128,10 +136,12 @@ export function ColumnsView() {
 								}}
 							/>
 						)} */}
-					</Button>
-				))}
-			</div>
-			<ColumnSettings column={focusedColumn} />
-		</Popup>
+							</Button>
+						))}
+					</div>
+					<ColumnSettings column={focusedColumn} />
+				</Popup>
+			)}
+		</>
 	);
 }

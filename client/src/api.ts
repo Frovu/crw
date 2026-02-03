@@ -55,8 +55,8 @@ export type StaticColumn = {
     name: string;
     description: string | null;
     dtype: 'real' | 'integer' | 'time' | 'text' | 'enum';
-    sql_def: string;
     is_computed: boolean;
+    sql_def: string;
     not_null: boolean;
     enum: string[] | null;
     parse_name: string | null;
@@ -65,12 +65,19 @@ export type StaticColumn = {
     type: 'static';
 };
 
+export type ComputationResponse = {
+    time: number;
+    done: boolean;
+    error: string | null;
+};
+
 export type ComputedColumn = {
     entity: string;
     sql_name: string;
     name: string;
     description: string | null;
     dtype: 'real' | 'integer' | 'time' | 'text' | 'enum';
+    is_computed: boolean;
     id: number;
     created_at: string;
     computed_at: string | null;

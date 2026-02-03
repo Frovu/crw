@@ -14,6 +14,7 @@ import { useFeidSample, useFeidTableView } from '../core/feid';
 import { useTableDataQuery } from '../core/query';
 import { type TableParams } from '../tables/Table';
 import { ColumnsView } from '../columns/ColumnsView';
+import { Button } from '../../components/Button';
 
 const defaultTableParams: TableParams = {
 	showChangelog: false,
@@ -40,48 +41,48 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 		<>
 			{averages && (
 				<>
-					<button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</button>
-					<button onClick={() => copyAverages(averages, 'col')}>Copy column averages</button>
-					<button onClick={() => copyAverages(averages, 'all')}>Copy all averages</button>
+					<Button onClick={() => copyAverages(averages, 'row')}>Copy {averages?.label}</Button>
+					<Button onClick={() => copyAverages(averages, 'col')}>Copy column averages</Button>
+					<Button onClick={() => copyAverages(averages, 'all')}>Copy all averages</Button>
 					<div className="separator" />
 				</>
 			)}
-			<button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</button>
+			<Button onClick={() => dispatchCustomEvent('action+openColumnsSelector')}>Select columns</Button>
 			<div className="separator" />
 			{feidId != null && (
 				<>
-					<button onClick={() => setPlotId(() => feidId)}>Plot this event</button>
+					<Button onClick={() => setPlotId(() => feidId)}>Plot this event</Button>
 					<div className="separator" />
 				</>
 			)}
-			{feidId == null && <button onClick={() => queryClient.refetchQueries()}>Reload table</button>}
-			{feidId == null && <button onClick={openContextMenu('tableExport', undefined, true)}>Export table</button>}
+			{feidId == null && <Button onClick={() => queryClient.refetchQueries()}>Reload table</Button>}
+			{feidId == null && <Button onClick={openContextMenu('tableExport', undefined, true)}>Export table</Button>}
 			{!column && role && (
 				<>
-					<button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</button>
-					<button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</button>
+					<Button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</Button>
+					<Button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</Button>
 				</>
 			)}
 			{column && (
 				<>
 					{role && feidId != null && (
-						<button onClick={() => dispatchCustomEvent('computeRow', { id: feidId })}>Recompute row</button>
+						<Button onClick={() => dispatchCustomEvent('computeRow', { id: feidId })}>Recompute row</Button>
 					)}
 					{(column.name === 'duration' || column.type === 'computed') && role && (
-						<button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</button>
+						<Button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</Button>
 					)}
-					<button onClick={() => toggleSort(column.sql_name, 1)}>Sort ascending</button>
-					<button onClick={() => toggleSort(column.sql_name, -1)}>Sort descening</button>
+					<Button onClick={() => toggleSort(column.sql_name, 1)}>Sort ascending</Button>
+					<Button onClick={() => toggleSort(column.sql_name, -1)}>Sort descening</Button>
 					{column.type !== 'special' && statsPresent && (
 						<>
-							<button onClick={() => setStatColumn(column, 0)}>Use as X</button>
-							<button onClick={() => setStatColumn(column, 1)}>Use as Y</button>
+							<Button onClick={() => setStatColumn(column, 0)}>Use as X</Button>
+							<Button onClick={() => setStatColumn(column, 1)}>Use as Y</Button>
 						</>
 					)}
 					{column.type !== 'special' && value !== undefined && (
-						<button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}>
+						<Button style={{ maxWidth: 232 }} onClick={() => addFilter(column, value)}>
 							Filter {column.name} {defaultFilterOp(column, value)} {valueToString(value)}
-						</button>
+						</Button>
 					)}
 				</>
 			)}
@@ -160,9 +161,9 @@ function Panel() {
 	useEventListener('action+addFilter', () => {
 		const column = cursor
 			? shownColumns[cursor.column]
-			: shownColumns.find((col) => col.name === 'magnitude') ??
-			  shownColumns.find((col) => col.dtype === 'real') ??
-			  columns.find((col) => col.dtype === 'real')!;
+			: (shownColumns.find((col) => col.name === 'magnitude') ??
+				shownColumns.find((col) => col.dtype === 'real') ??
+				columns.find((col) => col.dtype === 'real')!);
 		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;
 		addFilter(column, val);
 	});
