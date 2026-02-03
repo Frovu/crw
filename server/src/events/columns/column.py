@@ -23,9 +23,9 @@ class BaseColumn:
 	
 	def sql_type(self):
 		if self.dtype == 'time':
-			return  SQL('timestamptz')
+			return SQL('timestamptz')
 		if self.dtype == 'enum':
-			return  SQL('text')
+			return SQL('text')
 		return SQL(self.dtype)
 	
 	def sql_val(self):

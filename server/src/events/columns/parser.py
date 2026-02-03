@@ -16,7 +16,7 @@ helpers = {
 
 @v_args(inline=True)
 class ColumnComputer(Transformer):
-	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None) -> None:
+	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None):
 		super().__init__(visit_tokens)
 		self.ctx = ComputationContext()
 

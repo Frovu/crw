@@ -1,21 +1,32 @@
 from time import time
 import traceback
+import numpy as np
+from datetime import datetime, timezone
 
 from psycopg import rows
 from database import pool, log, upsert_many, ComputationResponse
 
 from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, apply_changes, DATA_TABLE, DEF_TABLE
 from events.columns.parser import columnParser, ColumnComputer
+from events.columns.functions.common import Value, TYPE, DTYPE, value_to_sql_dtype
 
-def compute(definition: str, target_ids: list[int] | None = None):
+def _compute(definition: str, target_ids: list[int] | None = None):
+	t_start = time()
 
 	parsed = columnParser.parse(definition)
 
-	t_start = time()
-
 	computer = ColumnComputer(target_ids=target_ids)
-	ids = computer.ctx.select_columns_by_name(['id'])[0]
+	ids = np.array(computer.ctx.select_columns_by_name(['id'])[0]).astype(int)
 	result = computer.transform(parsed)
+
+	if not target_ids:
+		log.debug('Computed %s in %ss', definition, round(time() - t_start, 2))
+
+	if result.type != TYPE.COLUMN:
+		raise ValueError('Evaluated to a non-column value')
+
+	return ids, result
+
 	# if target_ids is not None:
 	# 	ids = _select(None, ('id',))[0].astype(int)
 	# 	idx = np.where(ids == for_row)[0][0]
@@ -26,47 +37,52 @@ def compute(definition: str, target_ids: list[int] | None = None):
 	# 	locol.debug(f'Computing {col.name}')
 	# 	target_id, result = _do_compute(g)
 
-	print(ids)
-	print(result)
 
 	# if result is None:
 	# 	return f'{col.name}: empty result'
 	# if target_ids is None:
 	# 	log.info(f'Computed {col.name} in {round(time()-t_start,2)}s')
-
-	# data = np.column_stack((target_id, result)).tolist()
-	# upsert_many(DATA_TABLE, ['feid_id', col.name], data, conflict_constraint='feid_id')
-	# with pool.connection() as conn:
-	# 	apply_changes(conn, col.name, dtype=col.sql_data_type)
-	# 	if target_ids is None:
-	# 		conn.execute(f'UPDATE events.{DEF_TABLE} SET last_computed = CURRENT_TIMESTAMP WHERE id = %s', [col.id])
 			
+def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = False):
+	val = [datetime.fromtimestamp(v, timezone.utc) for v in result.value] if result.dtype == DTYPE.TIME else result.value
+	data = zip(ids, val)
 
+	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id')
+	
+	with pool.connection() as conn:
+		apply_changes(conn, col)
+		if whole_column:
+			conn.execute(f'UPDATE events.{DEF_TABLE} SET computed_at = CURRENT_TIMESTAMP WHERE id = %s', [col.id])
+	
 
 def upsert_column(uid, json_body, col_id):
 	name, description, definition, is_public = \
 		[json_body.get(i) for i in ('name', 'description', 'definition', 'is_public')]
-	# columns = select_computed_columns(uid)
 
-	res = compute(definition)
+	ids, result = _compute(definition)
+	dtype = value_to_sql_dtype(result.dtype)
 
 	with pool.connection() as conn:
 		if col_id is None:
 			curs = conn.execute(f'INSERT INTO events.{DEF_TABLE} ' +\
-				'(owner_id, name, description, definition, is_public) VALUES (%s,%s,%s,%s,%s) RETURNING *',
-				[uid, name, description, definition, is_public])
+				'(owner_id, name, description, definition, is_public, dtype) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
+				[uid, name, description, definition, is_public, dtype])
 			curs.row_factory = rows.dict_row	
 			column = ComputedColumn.from_sql_row(curs.fetchone())
+			column.drop_in_table(conn)
 			column.init_in_table(conn)
 			log.info(f'Column created by ({uid}): #{column.id} {column.name}')
 		else:
 			curs = conn.execute(f'UPDATE events.{DEF_TABLE} SET ' +\
-				'nickname=%s, description=%s, definition=%s, is_public=%s WHERE id = %s RETURNING *',
-				[name, description, definition, is_public, col_id])
+				'nickname=%s, description=%s, definition=%s, is_public=%s, dtype=%s WHERE id = %s RETURNING *',
+				[name, description, definition, is_public, col_id, dtype])
 			curs.row_factory = rows.dict_row
 			column = ComputedColumn.from_sql_row(curs.fetchone())
-			# FIXME: alter sql datatype
+			column.drop_in_table(conn)
+			column.init_in_table(conn)
 			log.info(f'Column edited by ({uid}): #{column.id} {column.name}')
+	
+	_upsert_data(column, ids, result, True)
 
 	return column
 
@@ -78,7 +94,7 @@ def compute_by_id(user_id, col_id):
 		if not column: 
 			raise ValueError('Column not found')
 		
-		compute(column.definition)
+		_compute(column.definition)
 
 	except Exception as e:
 		traceback.print_exc()

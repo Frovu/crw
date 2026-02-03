@@ -34,6 +34,9 @@ class ComputedColumn(BaseColumn):
 	def init_in_table(self, conn: Connection):
 		iname, itype = sql.Identifier(self.sql_name), self.sql_type()
 		conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} ADD COLUMN IF NOT EXISTS {{}} {{}}').format(iname, itype))
+	
+	def drop_in_table(self, conn: Connection):
+		conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} DROP COLUMN IF EXISTS {{}}').format(sql.Identifier(self.sql_name)))
 
 def _sql_init():
 	with pool.connection() as conn:
@@ -45,6 +48,7 @@ def _sql_init():
 			computed_at timestamptz,
 			owner_id INT REFERENCES users,
 			is_public BOOLEAN NOT NULL DEFAULT 'f',
+			dtype TEXT,
 			definition text)''')
 		conn.execute(f'CREATE TABLE IF NOT EXISTS events.{DATA_TABLE} ('+
 			'feid_id INTEGER NOT NULL UNIQUE REFERENCES events.feid ON DELETE CASCADE)')
@@ -74,10 +78,12 @@ def select_computed_column_by_id(cid: int, user_id: int | None=None):
 
 		return ComputedColumn.from_sql_row(row, user_id) if row else None
 
-def apply_changes(conn, column, table=DATA_TABLE, dtype='real'):
-	id_col = 'feid_id' if table == DATA_TABLE else 'id'
-	curs = conn.execute(f'UPDATE events.{table} tgt SET {column} = new_value::{dtype} ' +
+def apply_changes(conn, col: BaseColumn):
+	id_col = 'feid_id' if col.entity == DATA_TABLE else 'id'
+	query = sql.SQL('UPDATE events.{} tgt SET {} = new_value::{} ' +
 		'FROM (SELECT DISTINCT ON (event_id) event_id, new_value FROM events.changes_log ' +
 		'WHERE entity_name = \'feid\' AND column_name = %s ORDER BY event_id, time DESC) chgs ' +
-		f'WHERE tgt.{id_col} = event_id AND (new_value IS NULL OR new_value != \'auto\')', [column])
-	log.info(f'Applied {curs.rowcount} overriding changes to {column}')
+		f'WHERE tgt.{id_col} = event_id AND (new_value IS NULL OR new_value != \'auto\')') \
+		.format(sql.Identifier(col.entity), sql.Identifier(col.sql_name), col.sql_type())
+	curs = conn.execute(query, [col.sql_name])
+	log.info(f'Applied {curs.rowcount} overriding changes to {col.name}')

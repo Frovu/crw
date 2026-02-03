@@ -16,6 +16,7 @@ class ComputationResponse:
 	error: str | None = None
 
 	def to_dict(self):
+		self.time = round(self.time, 1)
 		return asdict(self)
 	
 log = logging.getLogger('crw')
@@ -47,7 +48,8 @@ def upsert_coverage(entity, start, end=None, single=False):
 		conn.execute('INSERT INTO coverage_info (entity, start, i_end, at) VALUES (%s, %s, %s, now()) ' +\
 			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
 
-def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: list[Any]=[], conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
+def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: list[Any]=[],  \
+		conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		tmpname = Identifier(table.split('.')[-1] + '_tmp')
 		itable = SQL('.').join([Identifier(schema), Identifier(table)])

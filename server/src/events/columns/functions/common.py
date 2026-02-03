@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Any
 
 TYPE = StrEnum('TYPE', ['LITERAL', 'SERIES', 'COLUMN'])
-DTYPE = StrEnum('DTYPE', ['NUMBER', 'TIME', 'STRING'])
+DTYPE = StrEnum('DTYPE', ['REAL', 'INT', 'TIME', 'TEXT'])
 
 @dataclass
 class Value:
@@ -12,11 +12,29 @@ class Value:
 	value: Any
 
 def str_literal(val: str):
-	return Value(TYPE.LITERAL, DTYPE.STRING, val)
+	return Value(TYPE.LITERAL, DTYPE.TEXT, val)
 
 def num_literal(val: float):
-	return Value(TYPE.LITERAL, DTYPE.NUMBER, val)
+	dtype = DTYPE.INT if val % 1 == 0 else DTYPE.REAL
+	return Value(TYPE.LITERAL, dtype, val)
 
+def sql_to_value_dtype(dtype: str):
+	if dtype == 'time':
+		return DTYPE.TIME
+	if dtype == 'integer':
+		return DTYPE.INT
+	if dtype == 'real':
+		return DTYPE.REAL
+	return DTYPE.TEXT
+
+def value_to_sql_dtype(dtype: DTYPE):
+	if dtype == DTYPE.TIME:
+		return 'time'
+	if dtype == DTYPE.INT:
+		return 'integer'
+	if dtype == DTYPE.REAL:
+		return 'real'
+	return 'text'
 
 @dataclass
 class ArgDef:

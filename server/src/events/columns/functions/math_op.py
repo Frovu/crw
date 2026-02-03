@@ -5,7 +5,7 @@ from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 class MathOperation(Function):
 	def __init__(self, name: str, fn) -> None:
 		types = [t for t in TYPE]
-		dtypes = [DTYPE.NUMBER, DTYPE.TIME]
+		dtypes = [DTYPE.REAL, DTYPE.INT, DTYPE.TIME]
 		super().__init__(name, [ArgDef('lhs', types, dtypes), ArgDef('rhs', types, dtypes)])
 		self.fn = fn
 
@@ -22,13 +22,17 @@ class MathOperation(Function):
 		is_column = any(a.type == TYPE.COLUMN for a in args)
 
 		if is_time:
-			lhv, rhv = [a.value * 3600 if a.dtype == DTYPE.NUMBER else a.value for a in args]
+			lhv, rhv = [a.value * 3600 if a.dtype in [DTYPE.REAL, DTYPE.INT] else a.value for a in args]
 		else:
 			lhv, rhv = [a.value for a in args]
 
 		res_value = self.fn(lhv, rhv)
 		res_type = TYPE.SERIES if is_series else TYPE.COLUMN if is_column else TYPE.LITERAL
-		res_dtype = DTYPE.TIME if is_time else DTYPE.NUMBER
+
+		if is_time:
+			res_dtype = DTYPE.TIME
+		else:
+			res_dtype = DTYPE.INT if self.name != 'div' and all(a.dtype == DTYPE.INT for a in args) else DTYPE.REAL
 
 		return Value(res_type, res_dtype, res_value)
 	
