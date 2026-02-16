@@ -22,6 +22,7 @@ const defaultParams = {
 	sample0: '<current>',
 	sample1: '<current>',
 	sample2: '<current>',
+	logScale: false,
 	showEpochMedian: false,
 	showEpochStd: true,
 	showXLabel: false,
@@ -112,7 +113,7 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 					Plot median
 					<input
 						type="checkbox"
-						style={{ paddingLeft: 4 }}
+						style={{ marginLeft: 4 }}
 						checked={params.showEpochMedian}
 						onChange={(e) => set('showEpochMedian', e.target.checked)}
 					/>
@@ -121,20 +122,29 @@ function Menu({ params, setParams }: ContextMenuProps<CollisionOptions>) {
 					std error
 					<input
 						type="checkbox"
-						style={{ paddingLeft: 4 }}
+						style={{ marginLeft: 4 }}
 						checked={params.showEpochStd}
 						onChange={(e) => set('showEpochStd', e.target.checked)}
 					/>
 				</label>
 			</div>
-			<div>
+			<div className="Row">
 				<label>
 					Show X label
 					<input
 						type="checkbox"
-						style={{ paddingLeft: 4 }}
+						style={{ marginLeft: 4 }}
 						checked={params.showXLabel}
 						onChange={(e) => set('showXLabel', e.target.checked)}
+					/>
+				</label>
+				<label>
+					Log scale
+					<input
+						type="checkbox"
+						style={{ marginLeft: 4 }}
+						checked={params.logScale}
+						onChange={(e) => set('logScale', e.target.checked)}
 					/>
 				</label>
 			</div>
@@ -160,7 +170,7 @@ function Panel() {
 				const found = samplesList.find((s) => s.id.toString() === name);
 				return found ? applySample(allData, found, columns, samplesList) : null;
 			}),
-		[sample0, sample1, sample2, currentData, allData, samplesList, columns]
+		[sample0, sample1, sample2, currentData, allData, samplesList, columns],
 	);
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -220,8 +230,9 @@ function Panel() {
 		const time = queries.find((q) => q.data)?.data?.[0];
 		const timeShifted = time?.map((t) => t + (time[1] - time[0]) / 2);
 		const sampleNames = [sample0, sample1, sample2].map((id) =>
-			['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+			['<current>', '<none>'].includes(id) ? '' : ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
 		);
+		console.log(params.logScale);
 		return {
 			data: [
 				timeShifted,
@@ -262,12 +273,12 @@ function Panel() {
 							space: scaled(32),
 							size: (u, vals) =>
 								ch *
-									Math.max.apply(
+									(Math.max.apply(
 										null,
-										vals?.map((v) => v.length)
-									) +
+										vals?.map((v) => v?.length),
+									) || 4) +
 								scale * 12,
-							values: (u, vals) => vals.map((v) => v.toString()),
+							values: (u, vals) => vals.map((v) => v?.toString()),
 							scale: axScale(idx),
 							fullLabel: filtered
 								.filter((id) => axScale(id) === axScale(idx))
@@ -282,24 +293,26 @@ function Panel() {
 							filtered.map((idx, i) => [
 								axScale(idx),
 								{
+									distr: params.logScale ? 3 : 1,
 									range: (u, dmin, dmax) => {
 										const override = scaleOverrides?.[axScale(idx)!];
-										const min = override?.min ?? dmin - 0.0001;
+										const pmin = override?.min ?? dmin - 0.0001;
+										const min = params.logScale ? Math.max(0.01, pmin) : pmin;
 										const max = override?.max ?? dmax + 0.0001;
-										const [bottom, top] = override ? [override.bottom, override.top] : [0, 1];
+										const [bottom, top] = !params.logScale && override ? [override.bottom, override.top] : [0, 1];
 										const scl: CustomScale = u.scales[axScale(idx)!];
 										scl.scaleValue = { min, max };
 										scl.positionValue = { bottom, top };
 										const h = max - min;
 										const resultingH = h / (top - bottom);
-										const margin = h / 10;
+										const margin = params.logScale ? 0 : h / 10;
 										return [
 											min - resultingH * bottom - (!override && bottom === 0 ? margin : 0),
 											max + resultingH * (1 - top) + (!override && top === 1 ? margin : 0),
 										];
 									},
 								} as CustomScale,
-							])
+							]),
 						),
 					},
 					series: [
@@ -341,7 +354,7 @@ function Panel() {
 											width: scaled(0.9),
 											points: { show: false },
 										},
-									] as uPlot.Series[]
+									] as uPlot.Series[],
 							)
 							.flat(),
 					],
@@ -353,6 +366,7 @@ function Panel() {
 		params.showEpochMedian,
 		params.showEpochStd,
 		params.showXLabel,
+		params.logScale,
 		queries[0].data, // eslint-disable-line react-hooks/exhaustive-deps
 		queries[1].data, // eslint-disable-line react-hooks/exhaustive-deps
 		queries[2].data, // eslint-disable-line react-hooks/exhaustive-deps
@@ -380,7 +394,7 @@ function Panel() {
 								<span key={sampleKeys[i]} style={{ color: color(colors[i]) }}>
 									{q.data.at(-1)?.length}
 								</span>
-							)
+							),
 					)
 					.filter((a) => a)
 					.reduce((a, b) => [a, '/', b] as any)}
