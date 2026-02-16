@@ -97,7 +97,7 @@ function Panel() {
 							...para,
 							onsets: [],
 							clouds: [],
-					  }
+						}
 					: para,
 				options: () => ({
 					padding: [scaled(8), scaled(solarTime ? 6 : 36), scaled(showTimeAxis ? 0 : 6), 0],
@@ -105,7 +105,7 @@ function Panel() {
 				axes: () => [
 					{
 						...axisDefaults(showGrid, (u, splits) => splits.map((s) => (Math.log10(s) % 1 === 0 ? s : null))),
-						label: 'ions',
+						label: 'part',
 						fullLabel: 'N / cm²⋅s⋅sr',
 						distr: 3,
 						values: (u, vals) =>
@@ -115,7 +115,7 @@ function Panel() {
 				series: () =>
 					showParticles.map((part, i) => ({
 						label: part,
-						scale: 'ions',
+						scale: 'part',
 						stroke: color(colors[i % colors.length], i >= colors.length ? 0.8 : 1),
 						legend: name(part),
 					})),

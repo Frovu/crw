@@ -71,31 +71,24 @@ export default function BasicPlot({
 					ax.label,
 					{
 						distr: ax.distr ?? 1,
-						...(ax.distr !== 3
-							? {
-									range: (u, dmin, dmax) => {
-										const override = scaleOverrides?.[ax.label];
-										const [fmin, fmax] = ax.minMax ?? [null, null];
-										const min = override?.min ?? Math.min(dmin, fmin ?? dmin) - 0.0001;
-										const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + 0.0001;
-										const [bottom, top] = override ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
-										const scale: CustomScale = u.scales[ax.label];
-										scale.scaleValue = { min, max };
-										scale.positionValue = { bottom, top };
-										const h = max - min;
-										const resultingH = h / (top - bottom);
-										const margin = h / 20;
-										return [
-											min - resultingH * bottom - (!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
-											max + resultingH * (1 - top) + (!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
-										];
-									},
-								}
-							: ax.minMax
-								? {
-										range: (u, dmin, dmax) => [Math.min(dmin, ax.minMax?.[0] ?? dmin), Math.max(dmax, ax.minMax?.[1] ?? dmax)],
-									}
-								: {}),
+						range: (u, dmin, dmax) => {
+							const override = scaleOverrides?.[ax.label];
+							const [fmin, fmax] = ax.minMax ?? [null, null];
+							const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin) - 0.0001;
+							const min = ax.distr !== 3 ? pmin : Math.max(0.0001, pmin);
+							const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + 0.0001;
+							const [bottom, top] = override && ax.distr !== 3 ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
+							const scale: CustomScale = u.scales[ax.label];
+							scale.scaleValue = { min, max };
+							scale.positionValue = { bottom, top };
+							const h = max - min;
+							const resultingH = h / (top - bottom);
+							const margin = ax.distr !== 3 ? h / 20 : 0;
+							return [
+								min - resultingH * bottom - (!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
+								max + resultingH * (1 - top) + (!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
+							];
+						},
 					} as uPlot.Scale,
 				]) ?? [],
 			),
@@ -113,7 +106,9 @@ export default function BasicPlot({
 							: (u, splits) => {
 									const scale = u.scales[ax.scale ?? ax.label] as CustomScale;
 									const { min, max } = scale.scaleValue!;
-									return splits.map((s, i) => ((s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null));
+									return splits.map((s, i) =>
+										(s >= min || splits[i + 1] > min) && (s <= max || splits[i - 1] < max) ? s : null,
+									);
 								},
 					),
 					values: (u, vals) => vals.map((v) => v?.toString().replace('-', '−')),

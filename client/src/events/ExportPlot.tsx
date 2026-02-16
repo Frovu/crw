@@ -107,8 +107,8 @@ export const usePlotExportSate = create<PlotExportState>()(
 		{
 			name: 'plotsExportState',
 			partialize: ({ overrides, inches }) => ({ overrides, inches }),
-		}
-	)
+		},
+	),
 );
 
 function computePlotsLayout() {
@@ -138,14 +138,14 @@ function computePlotsLayout() {
 	const [minX, minY] = (['x', 'y'] as const).map((d) =>
 		Math.min.apply(
 			null,
-			Object.values(layout).map((pos) => pos[d])
-		)
+			Object.values(layout).map((pos) => pos[d]),
+		),
 	);
 	const [maxX, maxY] = (['x', 'y'] as const).map((d) =>
 		Math.max.apply(
 			null,
-			Object.values(layout).map((pos) => pos[d] + pos[d === 'x' ? 'w' : 'h'])
-		)
+			Object.values(layout).map((pos) => pos[d] + pos[d === 'x' ? 'w' : 'h']),
+		),
 	);
 
 	for (const node in layout) {
@@ -227,7 +227,7 @@ async function doRenderPlots() {
 				new uPlot(opts, data as any, (u, init) => {
 					init();
 					resolve(u);
-				})
+				}),
 		);
 		ctx.drawImage(upl.ctx.canvas, Math.round(x * devicePixelRatio), Math.round(y * devicePixelRatio));
 		upl.destroy();
@@ -292,7 +292,6 @@ export function ExportableUplot({
 	const { theme, colors } = useAppSettings();
 	const { scalesParams, textTransform } = usePlotExportSate((st) => st.overrides);
 	const controlsPresent = useNodeExists('Export Controls');
-	console.log(controlsPresent);
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };
@@ -321,7 +320,7 @@ export function ExportableUplot({
 										if (positionValue && scaleValue)
 											state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
 									}
-								})
+								}),
 							);
 						setUpl(u);
 						onCreate?.(u);
@@ -418,7 +417,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 								className="SelectOption"
 								style={{ display: 'flex', maxWidth: 320, alignItems: 'center', gap: 6, padding: '0 4px' }}
 								title={`Author: ${author}\nCreated: ${prettyDate(new Date(created))}\nModified: ${prettyDate(
-									new Date(modified)
+									new Date(modified),
 								)}`}
 							>
 								<div
@@ -757,7 +756,7 @@ function ControlsPanel() {
 											enabled: true,
 											id: Date.now(),
 										},
-									].concat(textTransform ?? [])
+									].concat(textTransform ?? []),
 								)
 							}
 						>
@@ -823,7 +822,7 @@ function ControlsPanel() {
 									onClick={() =>
 										set(
 											'textTransform',
-											textTransform.filter((t) => t.id !== id)
+											textTransform.filter((t) => t.id !== id),
 										)
 									}
 								></span>
