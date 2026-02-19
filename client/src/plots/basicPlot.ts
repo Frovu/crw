@@ -104,7 +104,11 @@ export const parseText = (txt: string) => {
 			closing = `</${tagName}>`;
 		const [before, after] = split(text, tag);
 		const [inside, outside] = split(after, closing);
-		return [...rec({ text: before, styles }), ...rec({ text: inside, styles: styles.concat(style(tagName)) }), ...rec({ text: outside, styles })];
+		return [
+			...rec({ text: before, styles }),
+			...rec({ text: inside, styles: styles.concat(style(tagName)) }),
+			...rec({ text: outside, styles }),
+		];
 	};
 	return rec({ text: txt, styles: [] });
 };
@@ -215,7 +219,8 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const marked: { [k: string]: true } = {};
 				const rec = (txt: string = axis.fullLabel!): string[][] => {
 					if (!txt) return [];
-					const re = (label: string) => new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
+					const re = (label: string) =>
+						new RegExp(`(?<!(?:d|e)\\()${label?.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
 					const series = u.series.find((ser) => ser && !marked[ser.label as string] && txt.match(re(ser.label as string)));
 					if (!series) return [[txt, color('text')]];
 					const label = series.label as string;
@@ -240,8 +245,14 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const baseTop = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
 				const first = axis._splits?.[axis._values?.findIndex((v) => !!v || (v as any) === 0)!]!;
 				const last = axis._splits?.[axis._values?.findLastIndex((v) => !!v || (v as any) === 0)!]!;
+				console.log(axis.fullLabel, axis.distr);
 				const targetLeft =
-					(axis.distr === 3 ? u.bbox.top + u.bbox.height / 2 : u.valToPos((last + first) / 2, axis.scale!, true)) + (flowDir * textWidth) / 2;
+					(axis.distr === 3
+						? !isHorizontal
+							? u.bbox.top + u.bbox.height / 2
+							: u.bbox.left + u.bbox.width / 2
+						: u.valToPos((last + first) / 2, axis.scale!, true)) +
+					(flowDir * textWidth) / 2;
 
 				let posX, posY;
 				if (isHorizontal) {
@@ -250,7 +261,10 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				} else {
 					const bottomX = u.height * devicePixelRatio;
 					posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
-					posY = flowDir > 0 ? clamp(textWidth + px(4), bottomX - px(2), targetLeft, true) : clamp(px(2), bottomX - textWidth - px(4), targetLeft);
+					posY =
+						flowDir > 0
+							? clamp(textWidth + px(4), bottomX - px(2), targetLeft, true)
+							: clamp(px(2), bottomX - textWidth - px(4), targetLeft);
 					if (isNaN(posY)) continue;
 				}
 

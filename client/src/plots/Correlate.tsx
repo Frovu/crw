@@ -2,7 +2,16 @@ import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
 import { linePaths, pointPaths } from './plotPaths';
 import { axisDefaults, color, getFontSize, measureDigit, scaled, usePlotOverlay } from './plotUtil';
-import { MainTableContext, SampleContext, useEventsSettings, equalValues, valueToString, TableViewContext, usePlotParams, findColumn } from '../events/events';
+import {
+	MainTableContext,
+	SampleContext,
+	useEventsSettings,
+	equalValues,
+	valueToString,
+	TableViewContext,
+	usePlotParams,
+	findColumn,
+} from '../events/events';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../layout';
 import { ExportableUplot } from '../events/ExportPlot';
 import uPlot from 'uplot';
@@ -48,7 +57,9 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 	const { samples } = useContext(SampleContext);
 	const { shownColumns } = useEventsSettings();
 	const columnOpts = columns.filter(
-		(c) => (['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id)) || (['column0', 'column1'] as const).some((p) => params[p] === c.id)
+		(c) =>
+			(['integer', 'real'].includes(c.type) && shownColumns?.includes(c.id)) ||
+			(['column0', 'column1'] as const).some((p) => params[p] === c.id),
 	);
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
 
@@ -69,14 +80,24 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 	const Checkbox = ({ text, k }: { text: string; k: keyof CorrelationParams }) => (
 		<label>
 			{text}
-			<input type="checkbox" style={{ paddingLeft: 4 }} checked={params[k] as boolean} onChange={(e) => setParams({ [k]: e.target.checked })} />
+			<input
+				type="checkbox"
+				style={{ paddingLeft: 4 }}
+				checked={params[k] as boolean}
+				onChange={(e) => setParams({ [k]: e.target.checked })}
+			/>
 		</label>
 	);
 
 	return (
 		<div className="Group">
 			<div>
-				<span className="TextButton" title="Reset" style={{ userSelect: 'none', cursor: 'pointer' }} onClick={() => set('sample0', '<current>')}>
+				<span
+					className="TextButton"
+					title="Reset"
+					style={{ userSelect: 'none', cursor: 'pointer' }}
+					onClick={() => set('sample0', '<current>')}
+				>
 					Sample:
 				</span>
 				<select
@@ -151,7 +172,12 @@ function Menu({ params, setParams }: ContextMenuProps<CorrelationParams>) {
 			</div>
 			<div className="Row">
 				color:
-				<select className="Borderless" style={{ padding: '0 6px' }} value={params.color} onChange={(e) => setParams({ color: e.target.value })}>
+				<select
+					className="Borderless"
+					style={{ padding: '0 6px' }}
+					value={params.color}
+					onChange={(e) => setParams({ color: e.target.value })}
+				>
 					{colors.map((c) => (
 						<option key={c} value={c}>
 							{c}
@@ -196,8 +222,8 @@ function Panel() {
 			sample0 === '<current>'
 				? currentData
 				: sample0 === '<none>'
-				? allData
-				: applySample(allData, samplesList.find((s) => s.id.toString() === sample0) ?? null, columns, samplesList);
+					? allData
+					: applySample(allData, samplesList.find((s) => s.id.toString() === sample0) ?? null, columns, samplesList);
 
 		if (!sampleData.length) return null;
 		const colIdx = ['column0', 'column1'].map((c) => columns.findIndex((cc) => cc.id === params[c as keyof CorrelationParams]));
@@ -236,7 +262,8 @@ function Panel() {
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
 		const timeIdx = columns.findIndex((c) => c.fullName === 'time');
-		const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
+		const findRow = (i: number) =>
+			sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
 
 		let hoveredRect: any;
 		let qt: Quadtree;
@@ -277,7 +304,9 @@ function Panel() {
 							},
 							html: (u, sidx, didx) => {
 								const row = findRow(didx);
-								return row ? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}` : '??';
+								return row
+									? `${prettyDate(row[timeIdx] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}`
+									: '??';
 							},
 						}),
 						titlePlugin({
@@ -307,28 +336,36 @@ function Panel() {
 							space: getFontSize() * 2.5,
 							fullLabel: colX.fullName,
 							label: '',
+							distr: logx && loglog ? 3 : 1,
 							size: getFontSize() + scaled(12),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
+							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10],
 							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
 							values: (u, vals) =>
-								vals.map((v) => (loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString())),
+								vals.map((v) =>
+									loglog && logx
+										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
+										: v?.toString(),
+								),
 						},
 						{
 							...axisDefaults(showGrid),
 							fullLabel: colY.fullName,
 							label: '',
+							distr: loglog ? 3 : 1,
 							size: (u, values) =>
 								scale * 12 +
 								ch *
 									(values
 										? Math.max.apply(
 												null,
-												values.map((v) => v?.toString().length ?? 0)
-										  )
+												values.map((v) => v?.toString().length ?? 0),
+											)
 										: 4),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
+							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10],
 							values: (u, vals) =>
-								vals.map((v) => (loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString())),
+								vals.map((v) =>
+									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
+								),
 						} as CustomAxis,
 					],
 					scales: {
@@ -354,8 +391,8 @@ function Panel() {
 								sample0 === '<current>'
 									? undefined
 									: sample0 === '<none>'
-									? 'all events'
-									: samplesList.find((s) => s.id.toString() === sample0)?.name,
+										? 'all events'
+										: samplesList.find((s) => s.id.toString() === sample0)?.name,
 							marker: 'circle',
 							bars: true,
 							stroke: color(params.color),
@@ -375,7 +412,20 @@ function Panel() {
 			},
 			data: [plotData, plotData, [regrPoints, regrPredicts]] as any, // UplotReact seems to not be aware of faceted plot mode
 		};
-	}, [params, currentData, allData, samplesList, columns, showTitle, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId]);
+	}, [
+		params,
+		currentData,
+		allData,
+		samplesList,
+		columns,
+		showTitle,
+		showLegend,
+		overlayHandle,
+		showGrid,
+		setCursor,
+		shownData,
+		setPlotId,
+	]);
 
 	if (!memo) return <div className="Center">NOT ENOUGH DATA</div>;
 	const { options, data } = memo;
