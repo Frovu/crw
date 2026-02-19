@@ -245,7 +245,6 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const baseTop = (flowDir > 0 ? 0 : u.width) + (axis.labelSize ?? fontSize.height) * flowDir;
 				const first = axis._splits?.[axis._values?.findIndex((v) => !!v || (v as any) === 0)!]!;
 				const last = axis._splits?.[axis._values?.findLastIndex((v) => !!v || (v as any) === 0)!]!;
-				console.log(axis.fullLabel, axis.distr);
 				const targetLeft =
 					(axis.distr === 3
 						? !isHorizontal

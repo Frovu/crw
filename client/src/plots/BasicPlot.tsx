@@ -75,7 +75,7 @@ export default function BasicPlot({
 							const override = scaleOverrides?.[ax.label];
 							const [fmin, fmax] = ax.minMax ?? [null, null];
 							const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin) - 0.0001;
-							const min = ax.distr !== 3 ? pmin : Math.max(0.0001, pmin);
+							const min = ax.distr !== 3 ? pmin : Math.max(0.1, pmin);
 							const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + 0.0001;
 							const [bottom, top] = override && ax.distr !== 3 ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
 							const scale: CustomScale = u.scales[ax.label];
