@@ -1,19 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Popup } from '../../components/Popup';
-import { cn, useEventListener } from '../../util';
+import { apiDelete, cn, useEventListener } from '../../util';
 import { useEventsSettings } from '../core/util';
-import { useTable } from '../core/editableTables';
-import { Button } from '../../components/Button';
+import { dropColumn, useTable } from '../core/editableTables';
+import { Button, CloseButton } from '../../components/Button';
 import { Check, Circle, Search } from 'lucide-react';
 import { Input } from '../../components/Input';
 import { ColumnSettings } from './ColumnSettings';
 import { useColumnsState } from './columns';
 import ComputeController from './ComputeController';
+import { useMutation } from '@tanstack/react-query';
+import { logError, logSuccess } from '../../app';
+import { useFeidSample } from '../core/feid';
+import { withConfirmation } from '../../components/Confirmation';
 
 export function ColumnsView() {
 	const [isOpen, setOpen] = useState(false);
 	const [search, setSearch] = useState('');
 	const { columns } = useTable('feid');
+	const { samples } = useFeidSample();
 	const { focusColumn, focusStick, set: setCol, resetFocus, isDirty } = useColumnsState();
 	const { shownColumns, enableColumn, set } = useEventsSettings();
 	const [bulkAction, setBulkAction] = useState(true);
@@ -28,6 +33,21 @@ export function ColumnsView() {
 		: sortedColumns.filter((col) => col.name.toLowerCase().includes(search.toLowerCase()));
 
 	const focusedColumn = filteredColumns.find((col) => col.sql_name === focusColumn?.sql_name);
+
+	const { mutate: deleteColumn } = useMutation({
+		mutationFn: (colId: number) => apiDelete(`events/columns/${colId}`),
+		onSuccess: (_, colId) => {
+			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
+			if (!col || col.type !== 'computed') return;
+			if (focusedColumn?.sql_name === col.sql_name) resetFocus();
+			dropColumn('feid', col);
+			logSuccess(`Deleted column ${col.name} = ${col.definition}`);
+		},
+		onError: (err, colId) => {
+			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
+			logError(`Delete #${colId} (${col?.name}): ${err}`);
+		},
+	});
 
 	useEffect(() => {
 		const newObj = Object.assign({}, shownColumns);
@@ -80,63 +100,75 @@ export function ColumnsView() {
 						}}
 					>
 						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
-							<Button
-								key={sql_name}
-								title={description ?? ''}
-								className={cn(
-									'flex gap-2 items-center w-40 text-left',
-									sql_name === focusColumn?.sql_name && 'text-active',
-								)}
-								onMouseEnter={(e) => {
-									if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
-									setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
+							<div className="flex w-40 items-center gap-1" key={sql_name}>
+								<Button
+									title={description ?? ''}
+									className={cn(
+										'flex gap-2 items-center text-left',
+										sql_name === focusColumn?.sql_name && 'text-active',
+									)}
+									onMouseEnter={(e) => {
+										if ((e.shiftKey || e.ctrlKey) && e.buttons === 1)
+											return enableColumn(sql_name, bulkAction);
+										setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
 
-									if (!focusStick && !isDirty())
+										if (!focusStick && !isDirty())
+											setCol('focusColumn', { sql_name, name, description, ...column });
+									}}
+									onMouseDown={(e) => {
 										setCol('focusColumn', { sql_name, name, description, ...column });
-								}}
-								onMouseDown={(e) => {
-									setCol('focusColumn', { sql_name, name, description, ...column });
-									setCol('focusStick', true);
+										setCol('focusStick', true);
 
-									if (!e.shiftKey && !e.ctrlKey)
-										return setDragging({ y: e.clientY, col: sql_name, pos: newOrder.indexOf(sql_name) });
-									const chk = !shownColumns[sql_name];
-									setBulkAction(chk);
-									enableColumn(sql_name, chk);
-								}}
-								onMouseUp={(e) => {
-									e.stopPropagation();
-									if (!drag || Math.abs(e.clientY - drag.y) < 4) {
-										if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
-											enableColumn(sql_name, !shownColumns[sql_name]);
-									} else {
-										set(
-											'shownColumns',
-											Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])),
-										);
-									}
-									setDragging(null);
-								}}
-							>
-								{shownColumns[sql_name] ? (
-									<Check strokeWidth={4} size={16} />
-								) : (
-									<Circle className="text-dark/50" size={16} />
+										if (!e.shiftKey && !e.ctrlKey)
+											return setDragging({
+												y: e.clientY,
+												col: sql_name,
+												pos: newOrder.indexOf(sql_name),
+											});
+										const chk = !shownColumns[sql_name];
+										setBulkAction(chk);
+										enableColumn(sql_name, chk);
+									}}
+									onMouseUp={(e) => {
+										e.stopPropagation();
+										if (!drag || Math.abs(e.clientY - drag.y) < 4) {
+											if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
+												enableColumn(sql_name, !shownColumns[sql_name]);
+										} else {
+											set(
+												'shownColumns',
+												Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])),
+											);
+										}
+										setDragging(null);
+									}}
+								>
+									{shownColumns[sql_name] ? (
+										<Check strokeWidth={4} size={16} />
+									) : (
+										<Circle className="text-dark/50" size={16} />
+									)}
+									{name}
+								</Button>
+								{column.type === 'computed' && column.is_own && (
+									<CloseButton
+										onClick={(e) => {
+											const dependencies = samples?.filter((smpl) =>
+												smpl.filters?.find(({ column: col }) => col === sql_name),
+											);
+											if (dependencies && dependencies.length > 0) {
+												withConfirmation(
+													'Delete depended column?',
+													`Following samples depend on it: ${dependencies.map((s) => s.name).join(', ')}`,
+													() => deleteColumn(column.id),
+												);
+											} else {
+												deleteColumn(column.id);
+											}
+										}}
+									/>
 								)}
-								{name}
-								{/* {generic?.is_own && (
-							<div
-								className="CloseButton"
-								onClick={(e) => {
-									const dep = samples.filter((smpl) => smpl.filters?.find(({ column }) => column === sql_name));
-									console.log('dependent samples', dep);
-									e.stopPropagation();
-									if (dep.length > 0) setSamplesDepend(dep.map((s) => s.name));
-									else deleteGeneric(generic.sql_name);
-								}}
-							/>
-						)} */}
-							</Button>
+							</div>
 						))}
 					</div>
 					<ColumnSettings column={focusedColumn} />

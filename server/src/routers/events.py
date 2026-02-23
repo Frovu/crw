@@ -237,44 +237,41 @@ def remove_tts():
 @bp.route('/columns', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _create_generic():
+def _create_column():
 	uid = session.get('uid')
 	start = time()
 	col = comp_columns.upsert_column(uid, request.json, None)
-	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
+	return { 'column': col.as_dict(), 'time': round(time() - start, 3) }
 
-@bp.route('/columns/<id>', methods=['POST'])
+@bp.route('/columns/<int:col_id>', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _mod_generic(col_id):
+def _mod_column(col_id):
 	uid = session.get('uid')
 	start = time()
 	col = comp_columns.upsert_column(uid, request.json, col_id)
-	return { 'generic': col.as_dict(), 'time': round(time() - start, 3) }
+	return { 'column': col.as_dict(), 'time': round(time() - start, 3) }
 
-@bp.route('/columns', methods=['DELETE'])
+@bp.route('/columns/<int:col_id>', methods=['DELETE'])
 @route_shielded
 @require_role('user')
-def _remove_generic():
+def _remove_column(col_id):
 	uid = session.get('uid')
-	gid = int(request.json.get('id'))
-	remove_generic(uid, gid)
+	comp_columns.delete_column(uid, col_id)
 	return msg('OK')
 
-@bp.route('/compute/column', methods=['POST'])
+@bp.route('/compute/column/<int:id>', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _compute_generic():
+def _compute_column(col_id):
 	uid = session.get('uid')
-	cid = request.json.get('id')
-	return comp_columns.compute_by_id(uid, cid)
+	return comp_columns.compute_by_id(uid, col_id)
 
-@bp.route('/compute/row', methods=['POST'])
+@bp.route('/compute/row/<int:id>', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _compute_row_generic():
-	rid = int(request.json.get('id'))
-	return comp_columns.compute_row(rid)
+def _compute_row_column(row_id):
+	return comp_columns.compute_row(row_id)
 
 @bp.route('/compute/all', methods=['POST'])
 @route_shielded

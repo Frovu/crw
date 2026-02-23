@@ -86,6 +86,17 @@ def upsert_column(uid, json_body, col_id):
 
 	return column
 
+def delete_column(user_id, col_id):
+	column = select_computed_column_by_id(col_id, user_id)
+
+	if not column:
+		raise ValueError('Not found')
+	
+	with pool.connection() as conn:
+		conn.execute(f'DELETE FROM events.{DEF_TABLE} WHERE id = %s', [column.id])
+		log.info(f'Column deleted by ({user_id}): #{column.id} {column.name} = {column.definition}')
+
+
 def compute_by_id(user_id, col_id):
 	t_start = time()
 

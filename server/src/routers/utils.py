@@ -31,12 +31,12 @@ def route_shielded(func):
 
 def require_role(r_role: str):
 	def decorator(func):
-		def wrapper():
+		def wrapper(*args, **kwargs):
 			if (role := get_role()) is None:
 				return { 'message': 'Unauthorized' }, 401
 			if role not in ROLES or ROLES.index(role) > ROLES.index(r_role):
 				return { 'message': 'Forbidden' }, 403
-			return func()
+			return func(*args, **kwargs)
 		wrapper.__name__ = func.__name__
 		return wrapper
 	return decorator

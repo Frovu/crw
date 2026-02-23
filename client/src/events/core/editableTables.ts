@@ -41,13 +41,13 @@ const defaultSate = Object.fromEntries(
 			changelog: null,
 			updatedAt: 0,
 		},
-	])
+	]),
 ) as TablesState;
 
 export const useTablesStore = create<TablesState>()(
 	immer((set) => ({
 		...defaultSate,
-	}))
+	})),
 );
 
 export const setRawData = (tbl: EditableTable, rdata: TableRow[], columns: Column[], changelog: null | ChangelogResponse) =>
@@ -58,14 +58,14 @@ export const setRawData = (tbl: EditableTable, rdata: TableRow[], columns: Colum
 			state[tbl].index = Object.fromEntries(columns.map((col, i) => [col.sql_name, i])) as any;
 			state[tbl].rawData = rdata;
 			renderTableData(state, tbl);
-		})
+		}),
 	);
 
 const renderTableData = (state: TablesState, tbl: EditableTable) => {
 	const { columns, rawData, deleted, created, changes } = state[tbl];
 
 	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter(
-		(r) => !deleted.includes(r[0] as number)
+		(r) => !deleted.includes(r[0] as number),
 	) as typeof rawData;
 
 	for (const { id, column, value } of changes) {
@@ -113,6 +113,12 @@ export const useTable = <T extends EditableTable>(tbl: T) => {
 	if (!data && query.isFetched) query.refetch();
 	return useMemo(() => ({ ...tableApi({ columns, data, index }), updatedAt }), [columns, data, index, updatedAt]);
 };
+
+export const dropColumn = (tbl: EditableTable, column: Column) =>
+	useTablesStore.setState((state) => {
+		state[tbl].columns = state[tbl].columns.filter((c) => c.sql_name !== column.sql_name);
+		renderTableData(state, tbl);
+	});
 
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>
 	useTablesStore.setState((state) => {
@@ -211,7 +217,7 @@ export function linkSource(tbl: 'sources_ch' | 'sources_erupt', feidId: number, 
 		const targetIdCol = tbl === 'sources_ch' ? 'ch_id' : 'erupt_id';
 		const feidSrcRow = [
 			feidSrcId,
-			...state.feid_sources.columns.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId }[c.sql_name] ?? null)),
+			...state.feid_sources.columns.slice(1).map((c) => ({ [targetIdCol]: id, feid_id: feidId })[c.sql_name] ?? null),
 		] as TableRow;
 		state.feid_sources.created = [...state.feid_sources.created, feidSrcRow];
 		state.feid_sources.data = [...state.feid_sources.data, feidSrcRow];
@@ -237,6 +243,6 @@ export function makeSourceChanges<T extends 'sources_ch' | 'sources_erupt'>(tbl:
 					!Object.values(sourceLinks)
 						.map((l) => l[0])
 						.includes(column as any) && !column.endsWith('source'),
-			}))
+			})),
 	);
 }

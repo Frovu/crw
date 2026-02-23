@@ -9,7 +9,7 @@ class MathOperation(Function):
 		super().__init__(name, [ArgDef('lhs', types, dtypes), ArgDef('rhs', types, dtypes)])
 		self.fn = fn
 
-	def __call__(self, args: tuple[Value, ...]) -> Value:
+	def __call__(self, args: tuple[Value, ...], _) -> Value:
 		super().validate(args)
 		for one, other in [args, args[::-1]]:
 			if one.type == TYPE.SERIES and other.type not in [TYPE.SERIES, TYPE.LITERAL]:

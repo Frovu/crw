@@ -2,7 +2,7 @@ import type { Column, ComputedColumn } from '../../api';
 import { Input } from '../../components/Input';
 import { Checkbox } from '../../components/Checkbox';
 import { Button } from '../../components/Button';
-import { apiDelete, apiPost, cn } from '../../util';
+import { apiPost, cn } from '../../util';
 import { useColumnsState, type ColumnInputs } from './columns';
 import { useTable } from '../core/editableTables';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,20 +28,6 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const isComputed = column?.type === 'computed';
 	const isModifiable = column?.type === 'computed' && column.is_own;
 
-	const { mutate: deleteGeneric, isPending: loadingDelete } = useMutation({
-		mutationFn: (colId: number) => apiDelete(`events/columns/${colId}`),
-		onSuccess: (_, colId) => {
-			if (colId === state.id) reset();
-			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
-			queryClient.invalidateQueries({ queryKey: ['Tables'] });
-			logSuccess(`Deleted column ${col?.name ?? colId}`);
-		},
-		onError: (err: any, colId) => {
-			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
-			logError(`delete g#${colId} (${col?.name}): ` + err.toString());
-		},
-	});
-
 	const { mutate: upsertGeneric, isPending: loadingUpsert } = useMutation({
 		mutationFn: () => {
 			const url = 'events/columns' + (state.id ? `/${state.id}` : '');
@@ -53,14 +39,14 @@ export function ColumnSettings({ column }: { column?: Column }) {
 				is_public,
 			});
 		},
-		onSuccess: ({ column, time }) => {
+		onSuccess: ({ column: col, time }) => {
 			queryClient.invalidateQueries({ queryKey: ['Tables'] });
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
-			set('focusColumn', column);
+			set('focusColumn', col);
 			set('focusStick', true);
-			enableColumn(column.sql_name, true);
+			enableColumn(col.sql_name, true);
 			setReport({ success: `Done in ${time} s` });
-			logSuccess(`${state.id ? 'Modified' : 'Created'} column ${column.name} in ${time} s`);
+			logSuccess(`${state.id ? 'Modified' : 'Created'} column ${col.name} in ${time} s`);
 		},
 		onError: (err: any) => {
 			setReport({ error: err.toString() });

@@ -75,15 +75,6 @@ export const distToSegment = (xp: number, yp: number, x1: number, y1: number, x2
 	return Math.sqrt(dsq);
 };
 
-export async function apiDelete<T = { message?: string }>(url: string): Promise<T> {
-	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
-		method: 'DELETE',
-		credentials: 'include',
-	});
-	const json = await res.json().catch(() => {});
-	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
-	return json;
-}
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
 		method: 'POST',
@@ -95,10 +86,21 @@ export async function apiPost<T = { message?: string }>(url: string, body?: { [k
 	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
 	return json;
 }
+
 export async function apiGet<T = { message?: string }>(url: string, query?: { [k: string]: any }): Promise<T> {
 	let uri = import.meta.env.VITE_API + 'api/' + url;
 	if (query) uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });
+	const json = await res.json().catch(() => {});
+	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
+	return json;
+}
+
+export async function apiDelete<T = { message?: string }>(url: string): Promise<T> {
+	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
+		method: 'DELETE',
+		credentials: 'include',
+	});
 	const json = await res.json().catch(() => {});
 	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
 	return json;
@@ -111,7 +113,7 @@ export function dispatchCustomEvent(eventName: string, detail?: {}) {
 export function useEventListener(
 	eventName: string,
 	callback: (e: any) => any | (() => any),
-	elementRef?: React.RefObject<HTMLElement | null>
+	elementRef?: React.RefObject<HTMLElement | null>,
 ) {
 	const savedCallback = useRef(callback);
 	savedCallback.current = callback;
@@ -143,7 +145,7 @@ export function usePersistedState<T>(key: string, initial: (() => T) | T): [T, (
 				window.localStorage.setItem(key, JSON.stringify(value));
 				return value;
 			}),
-		[key]
+		[key],
 	);
 
 	return [state, setter];
@@ -202,10 +204,10 @@ export function useMutationHandler<F extends (...args: any) => Promise<any>>(fn:
 		color: mutation.isPending
 			? 'var(--color-text)'
 			: report?.success
-			? 'var(--color-green)'
-			: report?.error
-			? 'var(--color-red)'
-			: 'var(--color-text)',
+				? 'var(--color-green)'
+				: report?.error
+					? 'var(--color-red)'
+					: 'var(--color-text)',
 	};
 }
 
@@ -225,9 +227,9 @@ export function useMonthInput(initial?: Date, initialMonths?: number, maxMonths?
 			month: init.getMonth(),
 			count: initialMonths ?? 1,
 			interval: [0, initialMonths ?? 1].map(
-				(inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3
+				(inc) => new Date(Date.UTC(init.getFullYear(), init.getMonth() + inc)).getTime() / 1e3,
 			),
-		}
+		},
 	);
 	const set = (action: 'month' | 'year' | 'count', value: number) => dispatch({ action, value });
 
