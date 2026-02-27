@@ -7,7 +7,7 @@ const variants = {
 } as const;
 
 export function Button(props: ComponentProps<'button'> & { variant?: keyof typeof variants }) {
-	const cls = 'cursor-pointer hover:active:text-active/80';
+	const cls = 'cursor-pointer hover:active:text-active/80 disabled:pointer-events-none disabled:opacity-60';
 	return <button {...props} className={cn(cls, variants[props.variant ?? 'text'], props.className)} />;
 }
 

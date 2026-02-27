@@ -9,13 +9,11 @@ export const columnInputs = ['is_public', 'name', 'description', 'definition'] a
 
 export type ColumnInputs = (typeof columnInputs)[number];
 export type State = {
-	id: number | null;
 	focusColumn: Column | null;
 	focusStick: boolean;
 } & Pick<ComputedColumn, ColumnInputs>;
 
 const defaultState: State = {
-	id: null,
 	is_public: false,
 	name: '',
 	description: null,
@@ -36,19 +34,29 @@ export const useColumnsState = create<Storage>()(
 		...defaultState,
 		resetFocus: () =>
 			set((state) => {
-				state.focusColumn = null;
-				state.focusStick = false;
+				if (!state.isDirty()) {
+					for (const c of columnInputs) (state as any)[c] = defaultState[c];
+					state.focusColumn = null;
+					state.focusStick = false;
+				}
 			}),
 		set: (k, val) =>
 			set((state) => {
 				if (k === 'focusColumn') {
-					for (const c of columnInputs) (state as any)[c] = defaultState[c];
+					for (const c of columnInputs) (state as any)[c] = (val as ComputedColumn)?.[c] ?? defaultState[c];
 				}
 				state[k] = val;
 			}),
 		reset: () => set(defaultState),
-		isDirty: () => !!columnInputs.find((k) => get()[k] !== defaultState[k]),
-	}))
+		isDirty: () => {
+			const { focusColumn, ...state } = get();
+			return !!columnInputs.find((k) =>
+				focusColumn
+					? state[k] !== ((focusColumn as ComputedColumn)[k] ?? defaultState[k])
+					: state[k] !== defaultState[k],
+			);
+		},
+	})),
 );
 
 export function computeColumnWidth(column: Column) {

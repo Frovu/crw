@@ -70,9 +70,9 @@ _sql_init()
 
 def select_computed_column_by_id(cid: int, user_id: int | None=None):
 	with pool.connection() as conn:
-		where = 'WHERE is_public' + ('' if user_id is None else ' OR %s = owner_id')
-		curs = conn.execute(f'SELECT * from events.{DEF_TABLE} {where}',
-			[] if user_id is None else [user_id])
+		where = 'AND is_public' + ('' if user_id is None else ' OR %s = owner_id')
+		curs = conn.execute(f'SELECT * from events.{DEF_TABLE} WHERE id = %s {where}',
+			[cid] if user_id is None else [cid, user_id])
 		curs.row_factory = rows.dict_row
 		row = curs.fetchone()
 

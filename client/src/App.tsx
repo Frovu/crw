@@ -116,7 +116,7 @@ function App() {
 	};
 
 	useEventListener('action+switchTheme', () =>
-		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length])
+		setTheme(themeOptions[(themeOptions.indexOf(theme) + 1) % themeOptions.length]),
 	);
 	document.documentElement.setAttribute('main-theme', theme);
 
@@ -161,7 +161,7 @@ function App() {
 			</CatchErrors>
 			{showNav && (
 				<div
-					className="flex h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
+					className="flex z-20 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
 					onContextMenu={openContextMenu('app')}
 				>
 					<SimpleSelect

@@ -21,16 +21,17 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const [report, setReport] = useState<{ error?: string; success?: string }>({});
 	const queryClient = useQueryClient();
 
-	const value = <K extends ColumnInputs>(k: K) => (column as ComputedColumn)?.[k] ?? state[k];
-
 	const isDirty = state.isDirty();
+	const value = <K extends ColumnInputs>(k: K) => state[k];
+
+	const targetId = column?.type === 'computed' ? column.id : null;
 	const isCreating = !column;
 	const isComputed = column?.type === 'computed';
 	const isModifiable = column?.type === 'computed' && column.is_own;
 
 	const { mutate: upsertGeneric, isPending: loadingUpsert } = useMutation({
-		mutationFn: () => {
-			const url = 'events/columns' + (state.id ? `/${state.id}` : '');
+		mutationFn: (modify: boolean) => {
+			const url = 'events/columns' + (modify && targetId ? `/${targetId}` : '');
 			const { name, description, definition, is_public } = state;
 			return apiPost<{ column: ComputedColumn; time: number }>(url, {
 				name,
@@ -46,7 +47,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 			set('focusStick', true);
 			enableColumn(col.sql_name, true);
 			setReport({ success: `Done in ${time} s` });
-			logSuccess(`${state.id ? 'Modified' : 'Created'} column ${col.name} in ${time} s`);
+			logSuccess(`${targetId ? 'Modified' : 'Created'} column ${col.name} in ${time} s`);
 		},
 		onError: (err: any) => {
 			setReport({ error: err.toString() });
@@ -88,8 +89,13 @@ export function ColumnSettings({ column }: { column?: Column }) {
 					value={value('description') ?? ''}
 					onChange={(e) => set('description', e.target.value)}
 				/>
-				{isModifiable && (
-					<Button variant="default" className="ml-1 bg-input-bg w-38 h-7">
+				{isModifiable && isDirty && (
+					<Button
+						disabled={loadingUpsert}
+						variant="default"
+						className="ml-1 text-active bg-input-bg w-38 h-7"
+						onClick={() => upsertGeneric(true)}
+					>
 						Modify column
 					</Button>
 				)}
@@ -114,6 +120,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 					/>
 				</div>
 				<Button
+					disabled={loadingUpsert}
 					variant="default"
 					className="ml-1 bg-input-bg w-38 h-7"
 					onClick={() => {
@@ -123,7 +130,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 								document.getElementById('colNameInput')?.focus();
 							});
 						} else {
-							upsertGeneric();
+							upsertGeneric(false);
 						}
 					}}
 				>

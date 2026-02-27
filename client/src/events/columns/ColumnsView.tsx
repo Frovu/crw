@@ -19,7 +19,7 @@ export function ColumnsView() {
 	const [search, setSearch] = useState('');
 	const { columns } = useTable('feid');
 	const { samples } = useFeidSample();
-	const { focusColumn, focusStick, set: setCol, resetFocus, isDirty } = useColumnsState();
+	const { focusColumn, focusStick, set: setCol, reset: resetColumns, resetFocus, isDirty } = useColumnsState();
 	const { shownColumns, enableColumn, set } = useEventsSettings();
 	const [bulkAction, setBulkAction] = useState(true);
 	const [drag, setDragging] = useState<null | { y: number; col: string; pos: number }>(null);
@@ -59,6 +59,7 @@ export function ColumnsView() {
 
 	useEventListener('action+openColumnsSelector', () => {
 		setOpen((o) => !o);
+		if (!isDirty()) resetColumns();
 		resetFocus();
 	});
 
@@ -68,7 +69,7 @@ export function ColumnsView() {
 			{isOpen && (
 				<Popup
 					onClose={() => setOpen(false)}
-					className="h-[min(calc(100vh-16px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
+					className="h-[min(calc(100vh-34px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
 				>
 					<div className="flex gap-2">
 						<div className="w-80 bg-input-bg border flex items-center" onDoubleClick={() => setSearch('')}>
@@ -85,6 +86,7 @@ export function ColumnsView() {
 							className="bg-input-bg"
 							onClick={() => {
 								resetFocus();
+								resetColumns();
 								useEventsSettings.setState((state) => {
 									for (const col in state.shownColumns) if (col !== 'time') state.shownColumns[col] = false;
 								});

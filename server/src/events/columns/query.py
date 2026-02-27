@@ -55,7 +55,7 @@ def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = F
 			conn.execute(f'UPDATE events.{DEF_TABLE} SET computed_at = CURRENT_TIMESTAMP WHERE id = %s', [col.id])
 	
 
-def upsert_column(uid, json_body, col_id):
+def upsert_column(user_id, json_body, col_id):
 	name, description, definition, is_public = \
 		[json_body.get(i) for i in ('name', 'description', 'definition', 'is_public')]
 
@@ -66,21 +66,23 @@ def upsert_column(uid, json_body, col_id):
 		if col_id is None:
 			curs = conn.execute(f'INSERT INTO events.{DEF_TABLE} ' +\
 				'(owner_id, name, description, definition, is_public, dtype) VALUES (%s,%s,%s,%s,%s,%s) RETURNING *',
-				[uid, name, description, definition, is_public, dtype])
+				[user_id, name, description, definition, is_public, dtype])
 			curs.row_factory = rows.dict_row	
 			column = ComputedColumn.from_sql_row(curs.fetchone())
 			column.drop_in_table(conn)
 			column.init_in_table(conn)
-			log.info(f'Column created by ({uid}): #{column.id} {column.name}')
+			log.info(f'Column created by ({user_id}): #{column.id} {column.name}')
 		else:
 			curs = conn.execute(f'UPDATE events.{DEF_TABLE} SET ' +\
-				'nickname=%s, description=%s, definition=%s, is_public=%s, dtype=%s WHERE id = %s RETURNING *',
-				[name, description, definition, is_public, col_id, dtype])
+				'name=%s, description=%s, definition=%s, is_public=%s, dtype=%s WHERE id = %s',
+				[name, description, definition, is_public, dtype, col_id])
+			
+			curs = conn.execute(f'SELECT * from events.{DEF_TABLE} WHERE id = %s', [col_id])
 			curs.row_factory = rows.dict_row
 			column = ComputedColumn.from_sql_row(curs.fetchone())
 			column.drop_in_table(conn)
 			column.init_in_table(conn)
-			log.info(f'Column edited by ({uid}): #{column.id} {column.name}')
+			log.info(f'Column edited by ({user_id}): #{column.id} {column.name}')
 	
 	_upsert_data(column, ids, result, True)
 
