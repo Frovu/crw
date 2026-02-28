@@ -100,7 +100,7 @@ export function EventsTable({
 
 				return clamp(0, data.length <= viewSize ? 0 : data.length - viewSize, newIdx);
 			}),
-		[data.length, viewSize]
+		[data.length, viewSize],
 	);
 
 	useEventListener('escape', escapeCursor);
@@ -238,7 +238,7 @@ export function EventsTable({
 									<div
 										className={cn(
 											'shadow-[0_0_28px_6px] absolute left-0 h-[2px] w-[calc(100%)] shadow-active',
-											sort.direction < 0 ? 'top-[-2px]' : 'bottom-[-2px]'
+											sort.direction < 0 ? 'top-[-2px]' : 'bottom-[-2px]',
 										)}
 									/>
 								)}
@@ -257,9 +257,7 @@ export function EventsTable({
 									const cidx = scidx + sliceId;
 									const curs = cursor?.row === ridx && cidx === cursor?.column ? cursor : null;
 									const title =
-										column.name === 'time' && sliceId
-											? `id = ${row[0]}`
-											: `${column.name} = ${valueToString(row[cidx])}`;
+										column.name === 'time' && sliceId ? `id = ${row[0]}` : `${column.name} = ${row[cidx]}`;
 									const isEditing = curs?.editing && column.type !== 'special';
 									return (
 										<td

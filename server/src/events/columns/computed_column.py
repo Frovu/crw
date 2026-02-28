@@ -68,11 +68,11 @@ def select_computed_columns(user_id: int | None=None, select_all=False):
 		return [ComputedColumn.from_sql_row(row, user_id) for row in curs]
 _sql_init()
 
-def select_computed_column_by_id(cid: int, user_id: int | None=None):
+def select_computed_column_by_id(col_id: int, user_id: int | None=None):
 	with pool.connection() as conn:
-		where = 'AND is_public' + ('' if user_id is None else ' OR %s = owner_id')
+		where = 'AND (is_public' + (')' if user_id is None else ' OR %s = owner_id)')
 		curs = conn.execute(f'SELECT * from events.{DEF_TABLE} WHERE id = %s {where}',
-			[cid] if user_id is None else [cid, user_id])
+			[col_id] if user_id is None else [col_id, user_id])
 		curs.row_factory = rows.dict_row
 		row = curs.fetchone()
 

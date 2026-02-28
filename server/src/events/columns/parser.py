@@ -10,8 +10,8 @@ functions = {
 }
 
 helpers = {
-	'start': lambda: functions['col'](str_literal('time')),
-	'end': lambda: functions['add'](functions['col'](str_literal('time'), functions['col'](str_literal('duration'))))
+	'start': lambda ctx: functions['col']([str_literal('time')], ctx),
+	'end': lambda ctx: functions['add']([functions['col']([str_literal('time')], ctx), functions['col']([str_literal('duration')], ctx)], ctx)
 }
 
 @v_args(inline=True)
@@ -28,6 +28,13 @@ class ColumnComputer(Transformer):
 
 	def series(self, name):
 		return 
+	
+	def helper(self, name):
+		fn = helpers.get(name)
+		if not fn:
+			raise NameError(f'Unknown helper: @{name}')
+		print(fn(self.ctx))
+		return fn(self.ctx)
 
 	def fn_call(self, name, *args: Value):
 		fn = functions.get(name)

@@ -22,8 +22,8 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 	if not target_ids:
 		log.debug('Computed %s in %ss', definition, round(time() - t_start, 2))
 
-	if result.type != TYPE.COLUMN:
-		raise ValueError('Evaluated to a non-column value')
+	if result.type == TYPE.LITERAL:
+		result = Value(TYPE.COLUMN, result.dtype, np.full_like(ids, result.value))
 
 	return ids, result
 
@@ -44,7 +44,12 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 	# 	log.info(f'Computed {col.name} in {round(time()-t_start,2)}s')
 			
 def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = False):
-	val = [datetime.fromtimestamp(v, timezone.utc) for v in result.value] if result.dtype == DTYPE.TIME else result.value
+	if result.dtype == DTYPE.TIME:
+		val = [datetime.fromtimestamp(v, timezone.utc) for v in result.value]
+	elif result.dtype == DTYPE.INT:
+		val = result.value.astype(int)
+	else:
+		val = result.value
 	data = zip(ids, val)
 
 	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id')
