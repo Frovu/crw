@@ -3,7 +3,7 @@ import traceback
 import numpy as np
 from datetime import datetime, timezone
 
-from psycopg import rows
+from psycopg import rows, sql
 from database import pool, log, upsert_many, ComputationResponse
 
 from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, apply_changes, DATA_TABLE, DEF_TABLE
@@ -18,6 +18,9 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 	computer = ColumnComputer(target_ids=target_ids)
 	ids = np.array(computer.ctx.select_columns_by_name(['id'])[0]).astype(int)
 	result = computer.transform(parsed)
+
+	if result.type == TYPE.SERIES:
+		raise Exception('Computation result was a time series')
 
 	if not target_ids:
 		log.debug('Computed %s in %ss', definition, round(time() - t_start, 2))
@@ -44,12 +47,14 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 	# 	log.info(f'Computed {col.name} in {round(time()-t_start,2)}s')
 			
 def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = False):
+	res = result.value
 	if result.dtype == DTYPE.TIME:
-		val = [datetime.fromtimestamp(v, timezone.utc) for v in result.value]
+		val = [datetime.fromtimestamp(v, timezone.utc) for v in res]
 	elif result.dtype == DTYPE.INT:
-		val = result.value.astype(int)
+		val = np.where(~np.isfinite(res), None, np.round(res).astype(int))
 	else:
-		val = result.value
+		val = np.where(~np.isfinite(res), None, np.round(res, 2))
+		
 	data = zip(ids, val)
 
 	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id')
@@ -89,7 +94,7 @@ def upsert_column(user_id, json_body, col_id):
 			column.init_in_table(conn)
 			log.info(f'Column edited by ({user_id}): #{column.id} {column.name}')
 	
-	_upsert_data(column, ids, result, True)
+	_upsert_data(column, ids, result, whole_column=True)
 
 	return column
 
@@ -101,8 +106,8 @@ def delete_column(user_id, col_id):
 	
 	with pool.connection() as conn:
 		conn.execute(f'DELETE FROM events.{DEF_TABLE} WHERE id = %s', [column.id])
+		conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} DROP COLUMN {{}}').format(sql.Identifier(column.sql_name)))
 		log.info(f'Column deleted by ({user_id}): #{column.id} {column.name} = {column.definition}')
-
 
 def compute_by_id(user_id, col_id):
 	t_start = time()
@@ -112,7 +117,8 @@ def compute_by_id(user_id, col_id):
 		if not column: 
 			raise ValueError('Column not found')
 		
-		_compute(column.definition)
+		ids, result =_compute(column.definition)
+		_upsert_data(column, ids, result, whole_column=True)
 
 	except Exception as e:
 		traceback.print_exc()

@@ -31,7 +31,7 @@ export default function ComputeController() {
 	});
 
 	const { mutate: computeColumn } = useMutation({
-		mutationFn: (column: ComputedColumn) => apiPost<ComputationResponse>('events/compute/column', { id: column.id }),
+		mutationFn: (column: ComputedColumn) => apiPost<ComputationResponse>('events/compute/column/' + column.id),
 		onMutate: (column) => {
 			logMessage('Computing ' + column.name, 'debug');
 		},

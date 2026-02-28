@@ -41,7 +41,6 @@ export function ColumnSettings({ column }: { column?: Column }) {
 			});
 		},
 		onSuccess: ({ column: col, time }) => {
-			queryClient.invalidateQueries({ queryKey: ['Tables'] });
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			set('focusColumn', col);
 			set('focusStick', true);

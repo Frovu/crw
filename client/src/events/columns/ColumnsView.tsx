@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Popup } from '../../components/Popup';
 import { apiDelete, clamp, cn, useEventListener } from '../../util';
 import { useEventsSettings } from '../core/util';
-import { dropColumn, useTable } from '../core/editableTables';
+import { useTable } from '../core/editableTables';
 import { Button, CloseButton } from '../../components/Button';
 import { Check, Circle, Search } from 'lucide-react';
 import { Input } from '../../components/Input';
 import { ColumnSettings } from './ColumnSettings';
 import { useColumnsState } from './columns';
 import ComputeController from './ComputeController';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logError, logSuccess } from '../../app';
 import { useFeidSample } from '../core/feid';
 import { withConfirmation } from '../../components/Confirmation';
@@ -21,6 +21,7 @@ export function ColumnsView() {
 	const { samples } = useFeidSample();
 	const { focusColumn, focusStick, set: setCol, reset: resetColumns, resetFocus, isDirty } = useColumnsState();
 	const { shownColumns, enableColumn, set } = useEventsSettings();
+	const queryClient = useQueryClient();
 	const [bulkAction, setBulkAction] = useState(true);
 	const [drag, setDragging] = useState<null | { y: number; col: string; pos: number }>(null);
 
@@ -37,10 +38,10 @@ export function ColumnsView() {
 	const { mutate: deleteColumn } = useMutation({
 		mutationFn: (colId: number) => apiDelete(`events/columns/${colId}`),
 		onSuccess: (_, colId) => {
+			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			const col = columns.find((c) => c.type === 'computed' && c.id === colId);
 			if (!col || col.type !== 'computed') return;
 			if (focusedColumn?.sql_name === col.sql_name) resetFocus();
-			dropColumn('feid', col);
 			logSuccess(`Deleted column ${col.name} = ${col.definition}`);
 		},
 		onError: (err, colId) => {

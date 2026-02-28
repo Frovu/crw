@@ -91,8 +91,9 @@ export async function apiGet<T = { message?: string }>(url: string, query?: { [k
 	let uri = import.meta.env.VITE_API + 'api/' + url;
 	if (query) uri += '?' + new URLSearchParams(query).toString();
 	const res = await fetch(uri, { credentials: 'include' });
-	const json = await res.json().catch(() => {});
+	const json = await res.json().catch((e) => {});
 	if (res.status !== 200) throw new Error(json?.message ?? 'HTTP ' + res.status);
+	if (!json) throw new Error(`/${url} - empty response`);
 	return json;
 }
 

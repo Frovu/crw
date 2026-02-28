@@ -19,9 +19,9 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 		() =>
 			apiPost(
 				`auth/${createMode ? 'register' : type}`,
-				upsertMode ? { login, password, role } : passMode ? { password, newPassword } : { login, password }
+				upsertMode ? { login, password, role } : passMode ? { password, newPassword } : { login, password },
 			),
-		['auth', 'samples', 'Tables', 'tableData']
+		['auth', 'samples', 'tableData'],
 	);
 
 	useEffect(() => setCreateMode(false), []);
@@ -45,9 +45,9 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 					logSuccess(
 						passMode
 							? 'Password changed'
-							: (createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login
+							: (createMode ? 'User registered: ' : upsertMode ? 'Upserted: ' : 'Logged in: ') + login,
 					),
-			}
+			},
 		);
 	};
 	const ifEnter = (e: KeyboardEvent) => {
@@ -115,7 +115,7 @@ export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; typ
 
 export function AuthNav() {
 	const { login, role, promptLogin } = useContext(AuthContext);
-	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'Tables', 'tableData']);
+	const { mutate } = useMutationHandler(() => apiPost('auth/logout'), ['auth', 'samples', 'tableData']);
 
 	return (
 		<div className="group relative flex items-center text-dark whitespace-nowrap">

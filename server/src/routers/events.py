@@ -260,7 +260,7 @@ def _remove_column(col_id):
 	comp_columns.delete_column(uid, col_id)
 	return msg('OK')
 
-@bp.route('/compute/column/<int:id>', methods=['POST'])
+@bp.route('/compute/column/<int:col_id>', methods=['POST'])
 @route_shielded
 @require_role('user')
 def _compute_column(col_id):

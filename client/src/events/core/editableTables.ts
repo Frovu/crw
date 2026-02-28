@@ -114,12 +114,6 @@ export const useTable = <T extends EditableTable>(tbl: T) => {
 	return useMemo(() => ({ ...tableApi({ columns, data, index }), updatedAt }), [columns, data, index, updatedAt]);
 };
 
-export const dropColumn = (tbl: EditableTable, column: Column) =>
-	useTablesStore.setState((state) => {
-		state[tbl].columns = state[tbl].columns.filter((c) => c.sql_name !== column.sql_name);
-		renderTableData(state, tbl);
-	});
-
 export const discardChange = (tbl: EditableTable, { column, id }: ChangeValue) =>
 	useTablesStore.setState((state) => {
 		state[tbl].changes = state[tbl].changes.filter((c) => c.id !== id || column !== c.column);
