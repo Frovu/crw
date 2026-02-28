@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Popup } from '../../components/Popup';
-import { apiDelete, cn, useEventListener } from '../../util';
+import { apiDelete, clamp, cn, useEventListener } from '../../util';
 import { useEventsSettings } from '../core/util';
 import { dropColumn, useTable } from '../core/editableTables';
 import { Button, CloseButton } from '../../components/Button';
@@ -100,6 +100,24 @@ export function ColumnsView() {
 						onMouseLeave={() => {
 							if (!focusStick) resetFocus();
 						}}
+						onKeyDown={(e) => {
+							const diff = {
+								Home: -9999,
+								ArrowUp: -1,
+								ArrowLeft: -1,
+								ArrowDown: 1,
+								ArrowRight: 1,
+								End: 9999,
+							}[e.key];
+							if (!diff || !(e.target instanceof HTMLButtonElement)) return;
+
+							const parent = e.target.parentElement?.parentElement;
+							if (!parent) return;
+							const index = [...parent.children].findIndex((el) => el.firstChild === e.target);
+
+							const newIndex = clamp(0, parent.children.length - 1, index + diff);
+							(parent.children[newIndex].firstElementChild as any)?.focus?.();
+						}}
 					>
 						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
 							<div className="flex w-40 items-center gap-1" key={sql_name}>
@@ -116,6 +134,13 @@ export function ColumnsView() {
 
 										if (!focusStick && !isDirty())
 											setCol('focusColumn', { sql_name, name, description, ...column });
+									}}
+									onClick={(e) => {
+										if (e.pageX === 0 && e.pageY === 0) {
+											setCol('focusColumn', { sql_name, name, description, ...column });
+											setCol('focusStick', true);
+											enableColumn(sql_name, !shownColumns[sql_name]);
+										}
 									}}
 									onMouseDown={(e) => {
 										setCol('focusColumn', { sql_name, name, description, ...column });

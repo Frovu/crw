@@ -62,7 +62,12 @@ export function ColumnSettings({ column }: { column?: Column }) {
 		(value('name').length && !columns.find((col) => col.name === value('name') && col.sql_name !== column?.sql_name));
 
 	return (
-		<div className="relative">
+		<div
+			className="relative"
+			onKeyDown={(e) => {
+				if (isDirty && targetId && ['Enter', 'NumpadEnter'].includes(e.key)) upsertGeneric(true);
+			}}
+		>
 			<div
 				className="absolute right-1 -top-1 max-h-18 max-w-[400px] text-left overflow-y-clip -translate-y-full"
 				title={report?.error ?? report?.success}
