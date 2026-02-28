@@ -1,7 +1,8 @@
 
 from events.columns.column import Column, DTYPE as COL_DTYPE
 from events.columns.computed_column import DATA_TABLE
-from events.table_structure import E_FEID, SELECT_FEID, get_col_by_name
+from events.columns.series import Series
+from events.table_structure import E_FEID, get_col_by_name
 
 from psycopg.sql import SQL
 from database import pool
@@ -42,6 +43,11 @@ class ComputationContext:
 				self.cache[c.sql_name] = res[:,i].astype(np_dtype(c.dtype))
 
 		return [self.cache[c.sql_name] for c in columns]
+	
+	def select_series(self, series: Series):
+		if series.name not in self.cache:
+			self.cache[series.name] = series.fetch(self.get_series_frame())
+		return self.cache[series.name]
 
 	def select_columns_by_name(self, names: list[str]):
 		return self.select_columns([get_col_by_name(E_FEID, name) for name in names])

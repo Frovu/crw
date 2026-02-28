@@ -52,9 +52,19 @@ def _sql_init():
 			definition text)''')
 		conn.execute(f'CREATE TABLE IF NOT EXISTS events.{DATA_TABLE} ('+
 			'feid_id INTEGER NOT NULL UNIQUE REFERENCES events.feid ON DELETE CASCADE)')
+		table_cols = conn.execute(f'SELECT column_name FROM information_schema.columns WHERE table_name = \'{DATA_TABLE}\'').fetchall()
 		
 	cols = select_computed_columns(select_all=True)
+
 	with pool.connection() as conn:
+		for col, in table_cols:
+			if col == 'feid_id':
+				continue
+			if next((c for c in cols if c.sql_name == col), None):
+				continue
+			conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} DROP COLUMN {{}}').format(sql.Identifier(col)))
+			log.info('Droping zombie column %s.%s', DATA_TABLE, col)
+
 		for col in cols:
 			col.init_in_table(conn)
 

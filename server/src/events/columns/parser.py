@@ -1,12 +1,13 @@
 from lark import Lark, Transformer, v_args
 
 from events.columns.context import ComputationContext
-from events.columns.functions import math_op, select_op
+from events.columns.functions import math_op, select_op, series_op
 from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
 	**math_op.functions,
-	**select_op.functions
+	**select_op.functions,
+	**series_op.functions
 }
 
 helpers = {
@@ -27,7 +28,7 @@ class ColumnComputer(Transformer):
 		return str_literal(str(txt)[1:-1])
 
 	def series(self, name):
-		return 
+		return self.fn_call('ser', str_literal(name))
 	
 	def helper(self, name):
 		fn = helpers.get(name)
