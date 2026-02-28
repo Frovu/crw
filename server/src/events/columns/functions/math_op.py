@@ -1,6 +1,21 @@
 
-from operator import add, sub, mul, truediv as div
+from operator import abs, add, sub, mul, pow, mod, truediv as div
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
+
+class UnaryOperation(Function):
+	def __init__(self, name: str, fn) -> None:
+		types = [t for t in TYPE]
+		dtypes = [DTYPE.REAL, DTYPE.INT]
+		super().__init__(name, [ArgDef('arg', types, dtypes)])
+		self.fn = fn
+
+	def __call__(self, args: tuple[Value, ...], _) -> Value:
+		super().validate(args)
+		arg = args[0]
+
+		res_value = self.fn(arg.value)
+
+		return Value(arg.type, arg.dtype, res_value)
 
 class MathOperation(Function):
 	def __init__(self, name: str, fn) -> None:
@@ -20,6 +35,9 @@ class MathOperation(Function):
 		is_time = any(a.dtype == DTYPE.TIME for a in args)
 		is_series = any(a.type == TYPE.SERIES for a in args)
 		is_column = any(a.type == TYPE.COLUMN for a in args)
+
+		if is_time and self.name not in ['add', 'sub']:
+			raise TypeError(f'{self.name}() unsupported with time values')
 
 		if is_time:
 			lhv, rhv = [a.value * 3600 if a.dtype in [DTYPE.REAL, DTYPE.INT] else a.value for a in args]
@@ -41,4 +59,7 @@ functions = {
 	'sub': MathOperation('sub', sub),
 	'mul': MathOperation('mul', mul),
 	'div': MathOperation('div', div),
+	'mod': MathOperation('mod', mod),
+	'pow': MathOperation('pow', pow),
+	'abs': UnaryOperation('abs', abs)
 }
