@@ -2,30 +2,24 @@ import { forwardRef, useContext, useRef, useState } from 'react';
 import { AuthContext, color, logError, logMessage } from '../../app';
 import { apiPost, cn, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
 import { parseColumnValue, isValidColumnValue, useEventsSettings } from '../core/util';
-import { useSampleState, applySample, type FilterWithId } from './sample';
+import { useSampleState, applySample, type FilterWithId, isFilterInvalid } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { withConfirmation } from '../../components/Confirmation';
 import { filterOperations, type Column, type Filter, type Sample } from '../../api';
 import { useTable } from '../core/editableTables';
-import { useFeidSample } from '../core/feid';
-import { Select, SelectContent, SelectSeparator, SelectTrigger, SelectValue, SelectItem } from '../../components/Select';
-import { Button } from '../../components/Button';
-
-function isFilterInvalid({ operation, value }: Filter, column?: Column) {
-	if (!column) return true;
-	if (['is null', 'not null'].includes(operation)) return false;
-	if ('regexp' === operation) {
-		try {
-			new RegExp(value);
-		} catch (e) {
-			return true;
-		}
-		return false;
-	}
-	if (['<=', '>='].includes(operation) && column.dtype === 'enum') return true;
-	const val = parseColumnValue(value, column);
-	return !isValidColumnValue(val, column);
-}
+import { useFeidSample, useFeidTableView } from '../core/feid';
+import {
+	Select,
+	SelectContent,
+	SelectSeparator,
+	SelectTrigger,
+	SelectValue,
+	SelectItem,
+	SimpleSelect,
+} from '../../components/Select';
+import { Button, CloseButton } from '../../components/Button';
+import { Input } from '../../components/Input';
+import { FilterCard } from './Filters';
 
 function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disabled?: boolean }) {
 	const { samples } = useFeidSample();
@@ -64,107 +58,6 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 				</select>
 			)}
 			{id && !disabled && <div className="CloseButton" onClick={() => removeInclude(id)} />}
-		</div>
-	);
-}
-
-function FilterCard({ filter: filterOri, disabled }: { filter: FilterWithId; disabled?: boolean }) {
-	const { columns } = useTable('feid');
-	const { shownColumns } = useEventsSettings();
-	const [filter, setFilter] = useState({ ...filterOri });
-	const { changeFilter, removeFilter } = useSampleState();
-
-	const { value, operation, column: columnId } = filter;
-	const column = columns.find((col) => col.sql_name === columnId);
-
-	const isSelectInput = column && column.dtype === 'enum' && operation !== 'regexp';
-	const isInvalid = isFilterInvalid(filter, column);
-
-	const set = (what: string) => (e: any) => {
-		if (!column && what !== 'column') return;
-		const fl = { ...filter, [what]: e.target.value.trim() };
-		if (isSelectInput && column.type === 'static' && column.enum && !column.enum.includes(fl.value))
-			fl.value = column.enum[0];
-		setFilter(fl);
-		if (!isFilterInvalid(fl, column)) changeFilter(fl);
-		if (e.target instanceof HTMLSelectElement) e.target.blur();
-	};
-
-	return (
-		<div className="FilterCard" onKeyDown={(e) => e.code === 'Escape' && (e.target as HTMLElement).blur?.()}>
-			<select
-				disabled={disabled}
-				style={{ width: 400, flex: '4', textAlign: 'right', borderColor: column ? 'transparent' : color('red') }}
-				value={columnId}
-				onChange={set('column')}
-			>
-				{shownColumns
-					?.map((show) => columns.find((col) => col.sql_name === show))
-					.filter((col): col is Column => !!col)
-					.map((col) => (
-						<option value={col.sql_name} key={col.sql_name}>
-							{col.name}
-						</option>
-					))}
-				{column && !shownColumns?.includes(columnId) && (
-					<option value={columnId} key={columnId}>
-						{column.name}
-					</option>
-				)}
-				{!column && (
-					<option value={columnId} key={columnId}>
-						{columnId}
-					</option>
-				)}
-			</select>
-			<select
-				disabled={disabled}
-				style={{
-					flex: '2',
-					textAlign: 'center',
-					maxWidth: operation.includes('null') ? 'max-content' : '6.5ch',
-					borderColor: column?.dtype === 'enum' && isInvalid ? color('red') : 'transparent',
-					marginRight: '4px',
-				}}
-				value={operation}
-				onChange={set('operation')}
-			>
-				{filterOperations.map((op) => (
-					<option key={op} value={op}>
-						{op}
-					</option>
-				))}
-			</select>
-			{!operation.includes('null') && !isSelectInput && (
-				<input
-					type="text"
-					disabled={disabled}
-					style={{
-						textAlign: 'center',
-						flex: '2',
-						minWidth: 0,
-						maxWidth: '8em',
-						...(isInvalid && { borderColor: color('red') }),
-					}}
-					value={value}
-					onChange={set('value')}
-				/>
-			)}
-			{!operation.includes('null') && isSelectInput && column.type === 'static' && (
-				<select
-					disabled={disabled}
-					style={{ flex: '2', maxWidth: '8em', minWidth: 0 }}
-					value={value}
-					onChange={set('value')}
-				>
-					{column.enum?.map((val) => (
-						<option key={val} value={val}>
-							{val}
-						</option>
-					))}
-				</select>
-			)}
-			{!disabled && <div className="CloseButton" onClick={() => removeFilter(filter.id)} />}
 		</div>
 	);
 }
@@ -208,9 +101,9 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						case 'remove':
 							return { id: ow?.id ?? sample?.id };
 						case 'update':
-							return ow ? ow : stripFilters ?? {};
+							return ow ? ow : (stripFilters ?? {});
 					}
-				})()
+				})(),
 			),
 		onSuccess: () => queryClient.refetchQueries({ queryKey: ['samples'] }),
 		onError: logError,
@@ -239,8 +132,8 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						toDelete.current = null;
 						setSample(null);
 					},
-				}
-			)
+				},
+			),
 		);
 
 	const createSample = () =>
@@ -253,7 +146,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					clearFilters();
 					setSample({ ...smpl, filters: [] });
 				},
-			}
+			},
 		);
 	const copySample = () =>
 		mutate(
@@ -268,7 +161,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					setSample(newSample);
 					mutate({ action: 'update', ow: newSample }, {});
 				},
-			}
+			},
 		);
 
 	const unsavedChanges =
@@ -393,7 +286,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				</div>
 			)}
 			{show && sample?.filters && (
-				<div className="Filters">
+				<div className="flex flex-wrap gap-[2px]">
 					{sample.filters.map((filter) => (
 						<FilterCard key={filter.id} filter={filter} disabled={!allowEdit} />
 					))}
@@ -455,7 +348,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 					)}
 					<div
 						title={`Created at: ${prettyDate(new Date(sample.created))}\nModified at: ${prettyDate(
-							new Date(sample.modified)
+							new Date(sample.modified),
 						)}`}
 						style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}
 					>
@@ -518,7 +411,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 												logMessage('Sample edited: ' + sample.name);
 												setHoverAuthors(0);
 											},
-										}
+										},
 									)
 								}
 							>
@@ -529,7 +422,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				</>
 			)}
 			{filters.length > 0 && (
-				<div className="Filters" style={{ padding: '2px 0 2px 0' }}>
+				<div className="flex flex-wrap gap-[2px] py-[2px]">
 					{filters.map((filter) => (
 						<FilterCard key={filter.id} filter={filter} />
 					))}

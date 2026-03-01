@@ -73,7 +73,7 @@
 	transform: translate(1px, -3px);
 }
 
-.Filters {
+/* .Filters {
 	justify-content: left;
 	display: flex;
 	flex-wrap: wrap;
@@ -94,7 +94,7 @@
 .FilterCard > select {
 	min-width: 2em;
 	max-width: max-content;
-}
+} */
 
 .keyComb {
 	margin-left: 1em;

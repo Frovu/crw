@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { parseColumnValue } from '../core/util';
+import { isValidColumnValue, parseColumnValue } from '../core/util';
 import { immer } from 'zustand/middleware/immer';
 import type { Column, Filter, Sample } from '../../api';
 import type { TableRow, TableValue } from '../core/editableTables';
@@ -89,7 +89,7 @@ export const useSampleState = create<SampleState>()(
 					state.current = { ...sample, filters: sample.filters?.map((f, i) => ({ ...f, id: Date.now() + i })) ?? [] };
 				}
 			}),
-	}))
+	})),
 );
 
 export function pickEventForSample(action: 'whitelist' | 'blacklist', id: number) {
@@ -135,6 +135,22 @@ export function renderFilters(filters: Filter[], columns: Column[]) {
 	return (row: TableRow) => !fns.some((fn) => !fn(row));
 }
 
+export function isFilterInvalid({ operation, value }: Filter, column?: Column) {
+	if (!column) return true;
+	if (['is null', 'not null'].includes(operation)) return false;
+	if ('regexp' === operation) {
+		try {
+			new RegExp(value);
+		} catch (e) {
+			return true;
+		}
+		return false;
+	}
+	if (['<=', '>='].includes(operation) && column.dtype === 'enum') return true;
+	const val = parseColumnValue(value, column);
+	return !isValidColumnValue(val, column);
+}
+
 export function applySample(data: TableRow[], sample: Sample | null, columns: Column[], samples: Sample[]): TableRow[] {
 	if (!sample) return data;
 	const filter = sample.filters?.length && renderFilters(sample.filters, columns);
@@ -150,7 +166,7 @@ export function applySample(data: TableRow[], sample: Sample | null, columns: Co
 				}, {}) as { [k: number]: TableRow };
 				const timeIdx = columns.findIndex((col) => col.name === 'time');
 				return Object.values(set).sort((a, b) => (a[timeIdx] as any) - (b[timeIdx] as any));
-		  })();
+			})();
 	return base
 		.filter((row) => (filter ? filter(row) : !sample.whitelist.length) || sample.whitelist.includes(row[0]))
 		.filter((row) => !sample.blacklist.includes(row[0]));

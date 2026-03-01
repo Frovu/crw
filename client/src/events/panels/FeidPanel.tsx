@@ -167,7 +167,7 @@ function Panel() {
 			: (shownColumns.find((col) => col.name === 'magnitude') ??
 				shownColumns.find((col) => col.dtype === 'real') ??
 				columns.find((col) => col.dtype === 'real')!);
-		const val = cursor ? shownData[cursor.row][cursor.column + 1] : undefined;
+		const val = cursor ? shownData[cursor.row][cursor.column] : undefined;
 		addFilter(column, val);
 	});
 
