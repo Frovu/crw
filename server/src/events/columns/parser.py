@@ -34,7 +34,6 @@ class ColumnComputer(Transformer):
 		fn = helpers.get(name)
 		if not fn:
 			raise NameError(f'Unknown helper: @{name}')
-		print(fn(self.ctx))
 		return fn(self.ctx)
 
 	def fn_call(self, name, *args: Value):

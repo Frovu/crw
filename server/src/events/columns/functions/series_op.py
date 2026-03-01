@@ -19,15 +19,14 @@ def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
 class SeriesOperation(Function):
-	subtract_trend = False
-	normalize_variation = False
-
-	def __init__(self, name: str) -> None:
+	def __init__(self, name: str, subtract_trend=False, normalize_variation=False) -> None:
 		super().__init__(name, [
 			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
 			ArgDef('from', [TYPE.COLUMN], [DTYPE.TIME], default='@start'),
 			ArgDef('to', [TYPE.COLUMN], [DTYPE.TIME], default='@end')
 		])
+		self.subtract_trend = subtract_trend
+		self.normalize_variation = normalize_variation
 
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
@@ -47,11 +46,6 @@ class SeriesOperation(Function):
 			result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) / ((sl.stop - sl.start) or 1) * 100 for sl in slices])
 			return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
-		if self.normalize_variation or self.subtract_trend:
-			prepare = lambda d: gsm.normalize_variation(d, with_trend=self.subtract_trend)
-		else:
-			prepare = None
-
 		func = {
 			'tmax': np.nanargmax,
 			'tmin': np.nanargmin,
@@ -63,6 +57,12 @@ class SeriesOperation(Function):
 
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore", category=RuntimeWarning)
+
+			if self.normalize_variation or self.subtract_trend:
+				prepare = lambda d: gsm.normalize_variation(d, with_trend=self.subtract_trend)
+			else:
+				prepare = None
+
 			if prepare:
 				result = np.array([func(prepare(d_value[sl])) for sl in slices])
 			else:
@@ -76,5 +76,8 @@ class SeriesOperation(Function):
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
 functions = {
-	**{ nm: SeriesOperation(nm) for nm in ['tmin', 'tmax', 'min', 'max', 'mean', 'median'] },
+	'coverage': SeriesOperation('coverage')
 }
+for name_op in ['tmin', 'tmax', 'min', 'max', 'mean', 'median']:
+	for functor in ['', 'v', 'vt']:
+		functions[name_op+functor] = SeriesOperation(name_op, normalize_variation='v' in functor, subtract_trend='t' in functor)
