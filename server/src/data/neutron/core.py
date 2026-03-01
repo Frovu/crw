@@ -135,9 +135,15 @@ def obtain_many(interval, stations: list[Station]):
 	if nmdb_stations:
 		_obtain_similar(interval, nmdb_stations, 'nmdb')
 	
-	other_stations = [s.id for s in stations if s.id not in nmdb_stations]
-	for s in other_stations:
-		_obtain_similar(interval, [s], 'archive')
+	try:
+		other_stations = [s.id for s in stations if s.id not in nmdb_stations]
+		for s in other_stations:
+			_obtain_similar(interval, [s], 'archive')
+	except:
+		import traceback
+		traceback.print_exc()
+		log.error('Failed to obtain archive')
+		
 
 def select(interval, station_ids, description=False):
 	with pool.connection() as conn:
