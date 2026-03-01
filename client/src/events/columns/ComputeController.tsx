@@ -55,7 +55,7 @@ export default function ComputeController() {
 		if (targetIdx < 0) return logError(`Row #${targetId} not found`);
 
 		const sliceFrom = Math.max(0, targetIdx - COMPUTE_ROWS_MARGIN);
-		const sliceTo = targetIdx + COMPUTE_ROWS_MARGIN;
+		const sliceTo = targetIdx + COMPUTE_ROWS_MARGIN + 1;
 		const computeIds = data.slice(sliceFrom, sliceTo).map((r) => r[0]);
 		computeRows(computeIds);
 	});

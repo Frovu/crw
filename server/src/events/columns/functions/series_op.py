@@ -46,7 +46,6 @@ class SeriesOperation(Function):
 			result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) / ((sl.stop - sl.start) or 1) * 100 for sl in slices])
 			return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
-
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore", category=RuntimeWarning)
 

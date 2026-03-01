@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from time import time
+from datetime import datetime, timezone
 from typing import Literal
 import numpy as np
 
@@ -39,9 +40,11 @@ class Series:
 		if len(arr) < 1:
 			return arr
 		
-		if (arr[-1,0] - arr[0,0]) // 3600 - len(arr) > 1: # FIXME: data may shift by 1 hour ??
-			log.error('Data is not continous for %s', self.name)
-			raise BaseException('Data is not continous')
+		holes = np.where(arr[1:,0] - arr[:-1,0] != 3600)[0]
+		if len(holes):
+			hole_tm = datetime.fromtimestamp(arr[holes[0], 0] + 3600, timezone.utc)
+			log.error('Data is not continous for %s at %s', self.name, hole_tm)
+			raise Exception(f'Data is not continous at {hole_tm}')
 		
 		log.debug(f'Got {self.display_name} [{len(arr)}] in {round(time()-t_data, 3)}s')
 		return arr

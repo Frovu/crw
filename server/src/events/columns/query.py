@@ -129,7 +129,7 @@ def compute_rows(row_ids: list[int]):
 			func = lambda col: _compute_and_upsert(col, row_ids)
 			errors = executor.map(func, columns)
 
-		str_errors = '\n'.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
+		str_errors = '; '.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
 		if str_errors:
 			return ComputationResponse(time=time()-t_start, error=str_errors).to_dict()
 
