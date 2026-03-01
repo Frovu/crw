@@ -96,4 +96,4 @@ def apply_changes(conn, col: BaseColumn):
 		f'WHERE tgt.{id_col} = event_id AND (new_value IS NULL OR new_value != \'auto\')') \
 		.format(sql.Identifier(col.entity), sql.Identifier(col.sql_name), col.sql_type())
 	curs = conn.execute(query, [col.sql_name])
-	log.info(f'Applied {curs.rowcount} overriding changes to {col.name}')
+	log.debug(f'Applied {curs.rowcount} overriding changes to {col.name}')

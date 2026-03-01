@@ -2,51 +2,34 @@ from time import time
 import traceback
 import numpy as np
 from datetime import datetime, timezone
-
 from psycopg import rows, sql
-from database import pool, log, upsert_many, ComputationResponse
+from concurrent.futures import ThreadPoolExecutor
 
-from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, apply_changes, DATA_TABLE, DEF_TABLE
+from database import pool, log, upsert_many, ComputationResponse
+from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, select_computed_columns, apply_changes, DATA_TABLE, DEF_TABLE
 from events.columns.parser import columnParser, ColumnComputer
 from events.columns.functions.common import Value, TYPE, DTYPE, value_to_sql_dtype
 
 def _compute(definition: str, target_ids: list[int] | None = None):
-	t_start = time()
+	try:
+		parsed = columnParser.parse(definition)
 
-	parsed = columnParser.parse(definition)
+		computer = ColumnComputer(target_ids=target_ids)
+		ids = np.array(computer.ctx.select_columns_by_name(['id'])[0]).astype(int)
+		result = computer.transform(parsed)
 
-	computer = ColumnComputer(target_ids=target_ids)
-	ids = np.array(computer.ctx.select_columns_by_name(['id'])[0]).astype(int)
-	result = computer.transform(parsed)
+		if result.type == TYPE.SERIES:
+			raise Exception('Computation result was a time series')
 
-	if result.type == TYPE.SERIES:
-		raise Exception('Computation result was a time series')
+		if result.type == TYPE.LITERAL:
+			result = Value(TYPE.COLUMN, result.dtype, np.full_like(ids, result.value))
+	except Exception as e:
+		traceback.print_exc()
+		return None, None, e
 
-	if not target_ids:
-		log.debug('Computed %s in %ss', definition, round(time() - t_start, 2))
-
-	if result.type == TYPE.LITERAL:
-		result = Value(TYPE.COLUMN, result.dtype, np.full_like(ids, result.value))
-
-	return ids, result
-
-	# if target_ids is not None:
-	# 	ids = _select(None, ('id',))[0].astype(int)
-	# 	idx = np.where(ids == for_row)[0][0]
-	# 	margin = 3 if len(target_ids) > 6 else len(target_ids) // 3
-	# 	target_id, result = _do_compute(g, ids[idx-margin:idx+margin+1].tolist())
-	# 	target_id, result = target_id[margin:-margin], result[margin:-margin]
-	# else:
-	# 	locol.debug(f'Computing {col.name}')
-	# 	target_id, result = _do_compute(g)
-
-
-	# if result is None:
-	# 	return f'{col.name}: empty result'
-	# if target_ids is None:
-	# 	log.info(f'Computed {col.name} in {round(time()-t_start,2)}s')
+	return ids, result, None
 			
-def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = False):
+def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_column: bool = False):
 	res = result.value
 	if result.dtype == DTYPE.TIME:
 		val = [datetime.fromtimestamp(v, timezone.utc) for v in res]
@@ -63,13 +46,22 @@ def _upsert_data(col: ComputedColumn, ids, result: Value, whole_column: bool = F
 		apply_changes(conn, col)
 		if whole_column:
 			conn.execute(f'UPDATE events.{DEF_TABLE} SET computed_at = CURRENT_TIMESTAMP WHERE id = %s', [col.id])
-	
 
-def upsert_column(user_id, json_body, col_id):
+def _compute_and_upsert(col: ComputedColumn, target_ids: list[int] | None = None):
+	ids, result, err = _compute(col.definition, target_ids)
+	if err: return err
+	assert ids is not None and result
+	_upsert_data(col, ids, result, whole_column=not target_ids)
+	return None
+
+def upsert_column(user_id: int, json_body, col_id: int):
 	name, description, definition, is_public = \
 		[json_body.get(i) for i in ('name', 'description', 'definition', 'is_public')]
 
-	ids, result = _compute(definition)
+	ids, result, err = _compute(definition)
+	if err: raise err
+	assert ids is not None and result
+	
 	dtype = value_to_sql_dtype(result.dtype)
 
 	with pool.connection() as conn:
@@ -98,7 +90,7 @@ def upsert_column(user_id, json_body, col_id):
 
 	return column
 
-def delete_column(user_id, col_id):
+def delete_column(user_id: int, col_id: int):
 	column = select_computed_column_by_id(col_id, user_id)
 
 	if not column:
@@ -109,7 +101,7 @@ def delete_column(user_id, col_id):
 		conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} DROP COLUMN {{}}').format(sql.Identifier(column.sql_name)))
 		log.info(f'Column deleted by ({user_id}): #{column.id} {column.name} = {column.definition}')
 
-def compute_by_id(user_id, col_id):
+def compute_by_id(user_id: int, col_id: int):
 	t_start = time()
 
 	try:
@@ -117,17 +109,35 @@ def compute_by_id(user_id, col_id):
 		if not column: 
 			raise ValueError('Column not found')
 		
-		ids, result =_compute(column.definition)
-		_upsert_data(column, ids, result, whole_column=True)
+		err = _compute_and_upsert(column)
+		if err: raise err
+
+		log.debug('Computed %s in %ss', column.definition, round(time() - t_start, 2))
 
 	except Exception as e:
 		traceback.print_exc()
-		return ComputationResponse(time=time()-t_start, done=False, error=str(e)).to_dict()
+		return ComputationResponse(time=time()-t_start, error=str(e)).to_dict()
 	
 	return ComputationResponse(time=time()-t_start).to_dict()
 
-def compute_row(row_id):
-	pass
+def compute_rows(row_ids: list[int]):
+	t_start = time()
+
+	try:
+		columns = select_computed_columns(select_all=True)
+		with ThreadPoolExecutor() as executor:
+			func = lambda col: _compute_and_upsert(col, row_ids)
+			errors = executor.map(func, columns)
+
+		str_errors = '\n'.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
+		if str_errors:
+			return ComputationResponse(time=time()-t_start, error=str_errors).to_dict()
+
+	except Exception as e:
+		traceback.print_exc()
+		return ComputationResponse(time=time()-t_start, error=str(e)).to_dict()
+
+	return ComputationResponse(time=time()-t_start).to_dict()
 
 def compute_all():
 	pass

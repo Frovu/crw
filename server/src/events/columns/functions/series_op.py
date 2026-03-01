@@ -46,17 +46,18 @@ class SeriesOperation(Function):
 			result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) / ((sl.stop - sl.start) or 1) * 100 for sl in slices])
 			return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
-		func = {
-			'tmax': np.nanargmax,
-			'tmin': np.nanargmin,
-			'max': np.nanmax,
-			'min': np.nanmin,
-			'mean': np.nanmean,
-			'median': np.nanmedian
-		}[self.name]
 
 		with warnings.catch_warnings():
 			warnings.simplefilter("ignore", category=RuntimeWarning)
+
+			func = {
+				'tmax': np.nanargmax,
+				'tmin': np.nanargmin,
+				'max': np.nanmax,
+				'min': np.nanmin,
+				'mean': np.nanmean,
+				'median': np.nanmedian
+			}[self.name]
 
 			if self.normalize_variation or self.subtract_trend:
 				prepare = lambda d: gsm.normalize_variation(d, with_trend=self.subtract_trend)

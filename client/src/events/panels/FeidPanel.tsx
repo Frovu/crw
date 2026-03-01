@@ -66,7 +66,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 			{column && (
 				<>
 					{role && feidId != null && (
-						<Button onClick={() => dispatchCustomEvent('computeRow', { id: feidId })}>Recompute row</Button>
+						<Button onClick={() => dispatchCustomEvent('computeRowsNear', { id: feidId })}>Recompute row</Button>
 					)}
 					{(column.name === 'duration' || column.type === 'computed') && role && (
 						<Button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</Button>
@@ -157,7 +157,10 @@ function Panel() {
 
 	useEventListener('action+setX', () => cursor && setStatColumn(shownColumns[cursor.column], 0));
 	useEventListener('action+setY', () => cursor && setStatColumn(shownColumns[cursor.column], 1));
-	useEventListener('action+computeRow', () => cursor && dispatchCustomEvent('computeRow', { id: shownData[cursor.row][0] }));
+	useEventListener(
+		'action+computeRow',
+		() => cursor && dispatchCustomEvent('computeRowsNear', { id: shownData[cursor.row][0] }),
+	);
 	useEventListener('action+addFilter', () => {
 		const column = cursor
 			? shownColumns[cursor.column]

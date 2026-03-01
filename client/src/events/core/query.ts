@@ -3,7 +3,7 @@ import { sourceLabels, type Column, type TableDataResponse, type Tables } from '
 import { apiGet } from '../../util';
 import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
-import { logError } from '../../app';
+import { logError, logMessage } from '../../app';
 
 const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
@@ -49,10 +49,10 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 				...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values(),
 			] as Column[];
 			const indexes = tables.map((_, ti) =>
-				cols.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name))
+				cols.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name)),
 			);
 			const data = sData.flatMap((rows, ti) =>
-				rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))])
+				rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))]),
 			);
 			const tIdx = cols.findIndex((col) => col.sql_name === (which === 'flare' ? 'start_time' : 'time')) + 1;
 			data.sort((a, b) => (a[tIdx] as Date)?.getTime() - (b[tIdx] as Date)?.getTime());
@@ -84,6 +84,7 @@ export function useTableDataQuery(tbl: EditableTable) {
 		queryFn: async () => {
 			const { columns, data, changelog } = await fetchTable(tbl, tbl === 'feid');
 			console.log('%cloaded table:', 'color: #0ff', tbl, columns, data, changelog);
+			logMessage('Loaded table: ' + tbl, 'debug');
 			setRawData(tbl, data, columns, changelog);
 			return { columns, data, changelog };
 		},

@@ -2,8 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logMessage, logSuccess, logError } from '../../app';
 import { apiPost, useEventListener } from '../../util';
 import type { ComputationResponse, ComputedColumn } from '../../api';
+import { useTable } from '../core/editableTables';
+
+const COMPUTE_ROWS_MARGIN = 2;
 
 export default function ComputeController() {
+	const { data } = useTable('feid');
 	const queryClient = useQueryClient();
 
 	const { mutate: computeAll } = useMutation({
@@ -18,14 +22,13 @@ export default function ComputeController() {
 		onError: (err: any) => logError('compute all: ' + err.toString()),
 	});
 
-	const { mutate: computeRow } = useMutation({
-		mutationFn: (rowId: number) => apiPost<ComputationResponse>('events/compute/row', { id: rowId }),
-		onMutate: (rowId) => logMessage('Computing row #' + rowId.toString(), 'debug'),
-		onSuccess: ({ time, done, error }, rowId) => {
-			if (!done) return setTimeout(() => computeRow(rowId), 1000);
+	const { mutate: computeRows } = useMutation({
+		mutationFn: (ids: number[]) => apiPost<ComputationResponse>('events/compute/rows', { ids }),
+		onMutate: (ids) => logMessage(`Computing rows #${ids.at(0)}-${ids.at(-1)}`, 'debug'),
+		onSuccess: ({ time, error }, ids) => {
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
-			logSuccess(`Computed row #${rowId} in ${time} s`);
-			if (error) logError(error);
+			logSuccess(`Computed rows #${ids.at(0)}-${ids.at(-1)} in ${time} s`);
+			if (error) logError(`Errors in rows #${ids.at(0)}-${ids.at(-1)}:\n` + error);
 		},
 		onError: (err: any, rowId) => logError(`compute row #${rowId}: ` + err.toString()),
 	});
@@ -35,7 +38,9 @@ export default function ComputeController() {
 		onMutate: (column) => {
 			logMessage('Computing ' + column.name, 'debug');
 		},
-		onSuccess: ({ time }, column) => {
+		onSuccess: ({ time, error }, column) => {
+			if (error) return logError(`compute ${column.name}: ` + error);
+
 			logSuccess(`Computed ${column.name} in ${time} s`);
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 		},
@@ -44,7 +49,16 @@ export default function ComputeController() {
 		},
 	});
 
-	useEventListener('computeRow', (e: CustomEvent<{ id: number }>) => computeRow(e.detail.id));
+	useEventListener('computeRowsNear', (e: CustomEvent<{ id: number }>) => {
+		const targetId = e.detail.id;
+		const targetIdx = data.findIndex((r) => r[0] === targetId);
+		if (targetIdx < 0) return logError(`Row #${targetId} not found`);
+
+		const sliceFrom = Math.max(0, targetIdx - COMPUTE_ROWS_MARGIN);
+		const sliceTo = targetIdx + COMPUTE_ROWS_MARGIN;
+		const computeIds = data.slice(sliceFrom, sliceTo).map((r) => r[0]);
+		computeRows(computeIds);
+	});
 	useEventListener('computeAll', () => computeAll());
 	useEventListener('computeColumn', (e: CustomEvent<{ column: ComputedColumn }>) => computeColumn(e.detail.column));
 

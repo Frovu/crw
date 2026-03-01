@@ -267,11 +267,13 @@ def _compute_column(col_id):
 	uid = session.get('uid')
 	return comp_columns.compute_by_id(uid, col_id)
 
-@bp.route('/compute/row/<int:id>', methods=['POST'])
+@bp.route('/compute/rows', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _compute_row_column(row_id):
-	return comp_columns.compute_row(row_id)
+def _compute_row_column():
+	assert request.json
+	ids = request.json.get('ids')
+	return comp_columns.compute_rows(ids)
 
 @bp.route('/compute/all', methods=['POST'])
 @route_shielded

@@ -19,7 +19,7 @@ helpers = {
 class ColumnComputer(Transformer):
 	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None):
 		super().__init__(visit_tokens)
-		self.ctx = ComputationContext()
+		self.ctx = ComputationContext(target_ids)
 
 	def number(self, txt):
 		return num_literal(float(txt))

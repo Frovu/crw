@@ -26,8 +26,10 @@ class Series:
 		t_data = time()
 
 		if self.source == 'omni':
+			omni.ensure_prepared(interval)
 			res = omni.select(interval, [self.db_name])[0]
 		elif self.source == 'sat':
+			# TODO: sat.ensure_prepared
 			res = sat.select_hourly_averaged(interval, self.db_name)
 		else:
 			res = gsm.select(interval, [self.db_name])
@@ -41,7 +43,7 @@ class Series:
 			log.error('Data is not continous for %s', self.name)
 			raise BaseException('Data is not continous')
 		
-		log.debug(f'Got {self.display_name} in {round(time()-t_data, 3)}s')
+		log.debug(f'Got {self.display_name} [{len(arr)}] in {round(time()-t_data, 3)}s')
 		return arr
 
 	def as_dict(self):
