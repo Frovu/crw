@@ -2,19 +2,19 @@ import type { ComponentProps } from 'react';
 import { cn } from '../util';
 
 const variants = {
-	text: 'border-0 hover:underline hover:text-active',
-	default: 'px-2 border hover:border-active',
+	text: 'border-0 hover:underline hover:text-active focus:ring ring-active',
+	default: 'px-2 border hover:border-active focus:border-active',
 } as const;
 
 export function Button(props: ComponentProps<'button'> & { variant?: keyof typeof variants }) {
 	const cls =
-		'cursor-pointer hover:active:text-active/80 disabled:pointer-events-none disabled:opacity-60 focus:outline-none focus:ring ring-active ';
+		'cursor-pointer hover:active:text-active/80 disabled:pointer-events-none disabled:opacity-60 focus:outline-none';
 	return <button {...props} className={cn(cls, variants[props.variant ?? 'text'], props.className)} />;
 }
 
 export function CloseButton(props: ComponentProps<'button'>) {
 	const cls =
-		'relative text-red h-4 w-4 overflow-clip cursor-pointer hover:text-active hover:active:text-active/80 focus:outline-none focus:ring ring-active';
+		'relative text-red h-4 w-4 overflow-clip cursor-pointer hover:text-active hover:active:text-active/80 focus:outline-none focus:text-active';
 	return (
 		<button {...props} className={cn(cls, props.className)}>
 			<div className="absolute text-2xl -top-[10px]">×</div>

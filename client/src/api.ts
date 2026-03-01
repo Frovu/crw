@@ -93,7 +93,7 @@ export type Series = {
     name: string;
     db_name: string;
     display_name: string;
-    description: string;
+    dtype: 'real' | 'str';
 };
 
 export type ChangelogEntry = {
@@ -130,8 +130,8 @@ export type Sample = {
     filters: Filter[];
     whitelist: number[];
     blacklist: number[];
-    created: string;
-    modified: string;
+    created_at: string;
+    modified_at: string;
 };
 
 export interface Tables {

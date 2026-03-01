@@ -84,7 +84,7 @@ export const useEventsState = create<EventsState>()(
 			set((st) => {
 				st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null;
 			}),
-	}))
+	})),
 );
 
 export const useEntityCursor = (ent: Cursor['entity']) =>

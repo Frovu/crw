@@ -18,7 +18,7 @@ type TextInputProps = {
 	onSubmit?: (val: string) => void;
 } & Omit<ComponentProps<'input'>, 'value' | 'onSubmit'>;
 
-export function TextInput({ value, onSubmit, onChange, onKeyDown, ...props }: TextInputProps) {
+export function TextInput({ value, onSubmit, onChange, onKeyDown, onBlur, ...props }: TextInputProps) {
 	const [input, setInput] = useState(value);
 
 	useEffect(() => setInput(value), [value]);
@@ -35,7 +35,10 @@ export function TextInput({ value, onSubmit, onChange, onKeyDown, ...props }: Te
 				['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.();
 				onKeyDown?.(e);
 			}}
-			onBlur={() => onSubmit?.(input)}
+			onBlur={(e) => {
+				onSubmit?.(input);
+				onBlur?.(e);
+			}}
 			{...props}
 		/>
 	);

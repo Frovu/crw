@@ -25,8 +25,8 @@ class Sample:
 	filters: list[Filter]
 	whitelist: list[int]
 	blacklist: list[int]
-	created: datetime
-	modified: datetime
+	created_at: datetime
+	modified_at: datetime
 
 	def to_dict(self):
 		return asdict(self)
@@ -62,8 +62,8 @@ def create_sample(uid, name, filters_json, includes):
 			raise ValueError('Already exists')
 		curs = conn.execute('INSERT INTO events.samples(name, authors, filters, includes) VALUES (%s, %s, %s, %s) RETURNING '+
 		'id, name, array(select login from users where uid = ANY(authors)) as authors, ' +\
-		' public, filters, whitelist, blacklist, includes', [name, [uid,], filters_json, includes or []])
-		return Sample(*curs.fetchone() or [])
+		'public, includes, filters, whitelist, blacklist, created, last_modified as modified', [name, [uid,], filters_json, includes or []])
+		return Sample(*curs.fetchone() or []).to_dict()
 
 def remove_sample(uid, sid):
 	with pool.connection() as conn:

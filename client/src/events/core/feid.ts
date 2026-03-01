@@ -21,7 +21,7 @@ export function useFeidSample() {
 		console.time('render feid sample');
 		const isOwn = (s: Sample) => (s.authors.includes(login as any) ? -1 : 1);
 		const sorted = samplesQuery.data
-			?.sort((a, b) => -a.modified.localeCompare(b.modified))
+			?.sort((a, b) => -a.modified_at.localeCompare(b.modified_at))
 			.sort((a, b) => isOwn(a) - isOwn(b));
 		const applied = isPicking || !sorted ? tableData : applySample(tableData, sample, columns, sorted);
 		const filterFn = renderFilters(filters, columns);
@@ -31,7 +31,7 @@ export function useFeidSample() {
 	};
 
 	return useQuery({
-		queryKey: ['feidSample', updatedAt, isPicking, sample, columns, JSON.stringify(filters)],
+		queryKey: ['feidSample', updatedAt, isPicking, sample, columns, JSON.stringify(filters), samplesQuery.dataUpdatedAt],
 		staleTime: Infinity,
 		queryFn: computeSample,
 		initialData: computeSample,
@@ -82,7 +82,7 @@ export function useFeidTableView() {
 				sort.direction *
 				(['text', 'enum'].includes(sortColumn?.type)
 					? ((renderedData[a][sortIdx] as string) ?? '').localeCompare((renderedData[b][sortIdx] as string) ?? '')
-					: (renderedData[a][sortIdx] ?? (0 as any)) - (renderedData[b][sortIdx] ?? (0 as any)))
+					: (renderedData[a][sortIdx] ?? (0 as any)) - (renderedData[b][sortIdx] ?? (0 as any))),
 		);
 		if (markers && sort.column === '_sample') {
 			const weights = { '  ': 0, 'f ': 1, ' +': 2, 'f+': 3, ' -': 4, 'f-': 5 } as any;
@@ -97,7 +97,16 @@ export function useFeidTableView() {
 	};
 
 	return useQuery({
-		queryKey: ['feidView', updatedAt, isPicking, sample, columns, JSON.stringify(shownColumns), sort.column],
+		queryKey: [
+			'feidView',
+			updatedAt,
+			isPicking,
+			sample,
+			columns,
+			JSON.stringify(shownColumns),
+			sort.column,
+			sort.direction,
+		],
 		staleTime: Infinity,
 		queryFn: renderTable,
 		initialData: renderTable,

@@ -1,13 +1,12 @@
 import { forwardRef, useContext, useRef, useState } from 'react';
-import { AuthContext, color, logError, logMessage } from '../../app';
+import { AuthContext, logError, logMessage } from '../../app';
 import { apiPost, cn, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
-import { parseColumnValue, isValidColumnValue, useEventsSettings } from '../core/util';
-import { useSampleState, applySample, type FilterWithId, isFilterInvalid } from './sample';
+import { useSampleState, applySample } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { withConfirmation } from '../../components/Confirmation';
-import { filterOperations, type Column, type Filter, type Sample } from '../../api';
+import { type Sample } from '../../api';
 import { useTable } from '../core/editableTables';
-import { useFeidSample, useFeidTableView } from '../core/feid';
+import { useFeidSample } from '../core/feid';
 import {
 	Select,
 	SelectContent,
@@ -18,8 +17,9 @@ import {
 	SimpleSelect,
 } from '../../components/Select';
 import { Button, CloseButton } from '../../components/Button';
-import { Input } from '../../components/Input';
+import { Input, TextInput } from '../../components/Input';
 import { FilterCard } from './Filters';
+import { Checkbox } from '../../components/Checkbox';
 
 function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disabled?: boolean }) {
 	const { samples } = useFeidSample();
@@ -32,32 +32,19 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 	const sample = samples.find((s) => s.id === id);
 
 	return (
-		<div>
-			{!blank && <span style={{ fontSize: 14, color: color('dark'), paddingLeft: 8 }}>include</span>}
-			{!blank && !sample && <span style={{ fontSize: 14, color: color('red'), padding: 6 }}>DELETED</span>}
+		<div className="flex gap-1 items-center">
+			{!blank && <span className="text-dark text-sm">include</span>}
+			{!blank && !sample && <span className="text-red text-sm">DELETED</span>}
 			{(blank || sample) && (
-				<select
-					style={{
-						color: color(blank && !current?.includes?.length ? 'dark' : 'text'),
-						borderColor: 'transparent',
-						width: sample ? sample.name.length + 4 + 'ch' : 'auto',
-					}}
-					value={id ?? '__none'}
-					onChange={(e) => changeInclude(id, parseInt(e.target.value))}
-				>
-					{blank && (
-						<option disabled value="__none" style={{ lineHeight: 2 }}>
-							include sample
-						</option>
-					)}
-					{opts.map(({ id: s, name }) => (
-						<option key={s} value={s}>
-							{name}
-						</option>
-					))}
-				</select>
+				<SimpleSelect
+					className="max-w-42"
+					placeholder="include sample"
+					options={opts.map(({ id: s, name }) => [s, name])}
+					onChange={(val) => changeInclude(id, val!)}
+					value={id ?? null}
+				/>
 			)}
-			{id && !disabled && <div className="CloseButton" onClick={() => removeInclude(id)} />}
+			{id && !disabled && <CloseButton className="w-6" onClick={() => removeInclude(id)} />}
 		</div>
 	);
 }
@@ -170,7 +157,6 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 	const nameValid =
 		nameInput?.length && !samples.find((s) => sample?.id !== s.id && sample?.public === s.public && s.name === nameInput);
 
-	// FIXME: this was a memo, is optimization rly needed here?
 	const sampleStats = (() => {
 		if (sample == null) return null;
 		const { whitelist, blacklist } = sample;
@@ -178,17 +164,17 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 		const whitelisted = whitelist.filter((id) => tableData.find((row) => row[0] === id)).length;
 		const blacklisted = blacklist.filter((id) => tableData.find((row) => row[0] === id)).length;
 		return (
-			<span style={{ minWidth: 'max-content' }}>
-				<span title="Whitelisted events: found/total" style={{ color: whitelisted ? color('cyan') : color('dark') }}>
+			<span className="min-w-max">
+				<span title="Whitelisted events: found/total" className={whitelisted ? 'text-cyan' : 'text-dark'}>
 					[+{whitelisted}
 					{whitelist.length ? '/' + whitelist.length : ''}]
 				</span>
-				<span title="Blacklisted events: found/total" style={{ color: blacklisted ? color('magenta') : color('dark') }}>
+				<span title="Blacklisted events: found/total" className={blacklisted ? 'text-magenta' : 'text-dark'}>
 					{' '}
 					[-{blacklisted}
 					{blacklist.length ? '/' + blacklist.length : ''}]
 				</span>
-				<span title="Total members in sample" style={{ color: color('dark') }}>
+				<span title="Total members in sample" className="text-dark">
 					{' '}
 					= [{applied.length}]
 				</span>
@@ -203,14 +189,15 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			.find((col) => col?.type === 'computed' && !col.is_public);
 
 	return (
-		<div ref={ref} style={{ maxWidth: '46em' }}>
-			<div style={{ display: 'flex', paddingBottom: 2, gap: 2, flexWrap: 'wrap' }}>
+		<div ref={ref} className="max-w-[720px]">
+			<div className="flex pb-0.5 gap-0.5 flex-wrap">
 				{nameInput != null && (
-					<input
-						type="text"
-						style={{ flex: '6 8em', padding: 0, minWidth: 0, ...(!nameValid && { borderColor: color('red') }) }}
+					<Input
+						className={cn(
+							'grow-6 basis-7 min-w-0 p-0 border focus:ring-0 focus:border-active',
+							!nameValid && 'border-red',
+						)}
 						onKeyDown={(e) => ['NumpadEnter', 'Enter'].includes(e.code) && (e.target as any)?.blur()}
-						placeholder="Sample name"
 						autoFocus
 						onFocus={(e) => e.target.select()}
 						onBlur={(e) => {
@@ -279,7 +266,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 			</div>
 
 			{show && sample?.filters && (
-				<div className="Filters">
+				<div className="flex flex-wrap gap-[2px]">
 					{sample.includes?.map((sid) => (
 						<IncludeCard key={sid} sampleId={sid} disabled={!allowEdit} />
 					))}
@@ -293,73 +280,56 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				</div>
 			)}
 			{sample && show && !allowEdit && (
-				<div style={{ padding: 4, display: 'flex', flexWrap: 'wrap' }}>
+				<div className="flex flex-wrap p-1">
 					{sampleStats}
-					<span style={{ marginLeft: '1em', color: color('dark') }}>by {sample.authors.join(',')}</span>
-					<div style={{ flex: 1 }} />
+					<span className="pl-1 text-dark">by {sample.authors.join(',')}</span>
+					<div className="grow" />
 					{login && (
-						<Button className="TextButton" style={{ paddingRight: 4 }} onClick={copySample}>
-							Make copy
+						<Button className="TextButton" onClick={copySample}>
+							Make a copy
 						</Button>
 					)}
 				</div>
 			)}
 			{allowEdit && show && (
 				<>
-					<div
-						style={{
-							padding: 4,
-							display: 'flex',
-							flexWrap: 'wrap',
-							gap: 8,
-							justifyContent: 'right',
-							alignItems: 'center',
-						}}
-					>
+					<div className="flex flex-wrap p-1 gap-2 itemts-center">
 						{sampleStats}
 						{<IncludeCard sampleId={null} />}
-						<div style={{ flex: 1 }} />
-						<label
-							className="MenuInput"
-							style={{ minWidth: 'max-content', ...(isPicking && { color: color('magenta') }) }}
-						>
-							pick events
-							<input checked={isPicking} onChange={(e) => setPicking(e.target.checked)} type="checkbox" />
-						</label>
-						<label className="MenuInput" style={{ minWidth: 'max-content' }}>
-							public
-							<input
-								checked={sample.public}
-								onChange={(e) => set({ public: e.target.checked })}
-								type="checkbox"
-							/>
-						</label>
-						<Button className="TextButton" style={{ paddingLeft: 8 }} onClick={copySample}>
-							Make copy
+						<div className="grow" />
+						<Checkbox
+							className={isPicking ? 'text-magenta' : ''}
+							label="pick events"
+							checked={isPicking}
+							onCheckedChange={setPicking}
+						/>
+						<Checkbox label="public" checked={sample.public} onCheckedChange={(val) => set({ public: val })} />
+						<Button className="pl-2" onClick={copySample}>
+							Make a copy
 						</Button>
 					</div>
 					{publicIssue && (
 						<div
 							title="Other users will not be able to use this sample, please make all required columns public"
-							style={{ color: color('red') }}
+							className="text-red"
 						>
 							! Public sample depends on a private column: {publicIssue.name}
 						</div>
 					)}
 					<div
-						title={`Created at: ${prettyDate(new Date(sample.created))}\nModified at: ${prettyDate(
-							new Date(sample.modified),
+						title={`Created at: ${prettyDate(new Date(sample.created_at))}\nModified at: ${prettyDate(
+							new Date(sample.modified_at),
 						)}`}
-						style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 1px', justifyContent: 'right' }}
+						className="flex flex-wrap gap-1 py-1 px-[1px] justify-end"
 					>
 						<div
-							style={{ width: 'max-content', paddingTop: 2, paddingRight: 4 }}
+							className="w-max pt-0.5 pr-1"
 							onMouseEnter={() => setHoverAuthors((a) => (a < 1 ? 1 : a))}
 							onMouseLeave={() => setHoverAuthors((a) => (a > 1 ? a : 0))}
 						>
-							{hoverAuthors === 0 && <span style={{ color: color('dark') }}>by {sample.authors.join(',')}</span>}
+							{hoverAuthors === 0 && <span className="text-dark">by {sample.authors.join(',')}</span>}
 							{hoverAuthors === 1 && (
-								<div style={{ cursor: 'pointer', color: color('active') }} onClick={() => setHoverAuthors(2)}>
+								<div className="cursor-pointer text-active" onClick={() => setHoverAuthors(2)}>
 									Edit authors?
 								</div>
 							)}
@@ -367,14 +337,14 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						{hoverAuthors === 2 && (
 							<>
 								<span>by </span>
-								<input
+								<TextInput
+									className="grow-2 max-w-40 min-w-20"
 									autoFocus
 									onBlur={() => setHoverAuthors(0)}
-									defaultValue={sample.authors.join(',')}
-									style={{ flex: 2, maxWidth: '12em', minWidth: '6em' }}
-									onChange={(e) =>
+									value={sample.authors.join(',')}
+									onSubmit={(text) =>
 										set({
-											authors: e.target.value
+											authors: text
 												.trim()
 												.split(/[,\s]+/g)
 												.sort(),
@@ -385,23 +355,20 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 						)}
 						<Button
 							id="rename"
-							style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }}
+							variant="default"
+							className="grow basis-2 min-w-fit max-w-28"
 							onClick={() => setNameInput(nameInput ? null : sample.name)}
 						>
 							Rename
 						</Button>
-						<Button style={{ flex: '1 4em', minWidth: 'fit-content', maxWidth: '7em' }} onClick={deleteSample}>
+						<Button variant="default" className="grow basis-2 min-w-fit max-w-28" onClick={deleteSample}>
 							Delete
 						</Button>
 						{show && allowEdit && (
 							<Button
+								variant="default"
 								disabled={!unsavedChanges}
-								style={{
-									flex: '2 4em',
-									minWidth: 'fit-content',
-									maxWidth: '12em',
-									...(unsavedChanges && { color: color('active') }),
-								}}
+								className={cn('grow basis-4 min-w-fit max-w-40', unsavedChanges && 'text-active')}
 								onClick={() =>
 									mutate(
 										{ action: 'update' },
