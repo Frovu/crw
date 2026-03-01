@@ -3,12 +3,16 @@ import traceback
 import numpy as np
 from datetime import datetime, timezone
 from psycopg import rows, sql
+from threading import Thread, Lock
 from concurrent.futures import ThreadPoolExecutor
 
 from database import pool, log, upsert_many, ComputationResponse
 from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, select_computed_columns, apply_changes, DATA_TABLE, DEF_TABLE
 from events.columns.parser import columnParser, ColumnComputer
 from events.columns.functions.common import Value, TYPE, DTYPE, value_to_sql_dtype
+
+compute_lock = Lock()
+compute_all_active: None | tuple[float, bool, str | None] = None
 
 def _compute(definition: str, target_ids: list[int] | None = None):
 	try:
@@ -32,7 +36,7 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_column: bool = False):
 	res = result.value
 	if result.dtype == DTYPE.TIME:
-		val = [datetime.fromtimestamp(v, timezone.utc) for v in res]
+		val = [None if np.isnan(v) else datetime.fromtimestamp(v, timezone.utc) for v in res]
 	elif result.dtype == DTYPE.INT:
 		val = np.where(~np.isfinite(res), None, np.round(res).astype(int))
 	else:
@@ -40,7 +44,7 @@ def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_colu
 		
 	data = zip(ids, val)
 
-	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id')
+	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id', write_nulls=True)
 	
 	with pool.connection() as conn:
 		apply_changes(conn, col)
@@ -104,40 +108,53 @@ def delete_column(user_id: int, col_id: int):
 def compute_by_id(user_id: int, col_id: int):
 	t_start = time()
 
-	try:
-		column = select_computed_column_by_id(col_id, user_id)
-		if not column: 
-			raise ValueError('Column not found')
-		
-		err = _compute_and_upsert(column)
-		if err: raise err
-
-		log.debug('Computed %s in %ss', column.definition, round(time() - t_start, 2))
-
-	except Exception as e:
-		traceback.print_exc()
-		return ComputationResponse(time=time()-t_start, error=str(e)).to_dict()
+	column = select_computed_column_by_id(col_id, user_id)
+	if not column: 
+		raise ValueError('Column not found')
 	
-	return ComputationResponse(time=time()-t_start).to_dict()
+	err = _compute_and_upsert(column)
+	if err: raise err
+
+	if not err:
+		log.debug('Computed %s in %ss', column.definition, round(time() - t_start, 2))
+	return ComputationResponse(time=time()-t_start, error=str(err) if err else None).to_dict()
 
 def compute_rows(row_ids: list[int]):
 	t_start = time()
 
-	try:
-		columns = select_computed_columns(select_all=True)
-		with ThreadPoolExecutor() as executor:
-			func = lambda col: _compute_and_upsert(col, row_ids)
-			errors = executor.map(func, columns)
+	columns = select_computed_columns(select_all=True)
+	with ThreadPoolExecutor() as executor:
+		func = lambda col: _compute_and_upsert(col, row_ids)
+		errors = executor.map(func, columns)
 
-		str_errors = '; '.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
-		if str_errors:
-			return ComputationResponse(time=time()-t_start, error=str_errors).to_dict()
+	str_errors = '; '.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
+	return ComputationResponse(time=time()-t_start, error=str_errors if str_errors else None).to_dict()
 
-	except Exception as e:
-		traceback.print_exc()
-		return ComputationResponse(time=time()-t_start, error=str(e)).to_dict()
+def _do_compute_all():
+	global compute_all_active
+	columns = select_computed_columns(select_all=True)
 
-	return ComputationResponse(time=time()-t_start).to_dict()
+	# TODO: shared computation context
+	with ThreadPoolExecutor() as executor:
+		func = lambda col: _compute_and_upsert(col)
+		errors = executor.map(func, columns)
+	
+	str_errors = '; '.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
+	compute_all_active = (compute_all_active[0] if compute_all_active else time(), True, str_errors)
 
-def compute_all():
-	pass
+def compute_all(for_row=None):
+	global compute_all_active
+	with compute_lock:
+		if compute_all_active:
+			start, finish, err = compute_all_active
+			if finish:
+				compute_all_active = None
+				return ComputationResponse(time=time()-start, error=str(err) if err else None).to_dict()
+			else:
+				return ComputationResponse(time=time()-start, done=False).to_dict()
+		else:
+			compute_all_active = (time(), False, None)
+
+	t = Thread(target=_do_compute_all)
+	t.start()
+	return ComputationResponse(time=0, done=False).to_dict()

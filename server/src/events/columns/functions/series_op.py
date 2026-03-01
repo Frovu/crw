@@ -50,8 +50,8 @@ class SeriesOperation(Function):
 			warnings.simplefilter("ignore", category=RuntimeWarning)
 
 			func = {
-				'tmax': np.nanargmax,
-				'tmin': np.nanargmin,
+				'tmax': lambda sl: -1 if np.isnan(sl).all() else np.nanargmax(sl),
+				'tmin': lambda sl: -1 if np.isnan(sl).all() else np.nanargmin(sl),
 				'max': np.nanmax,
 				'min': np.nanmin,
 				'mean': np.nanmean,
@@ -69,8 +69,8 @@ class SeriesOperation(Function):
 				result = np.array([func(d_value[sl]) for sl in slices])
 
 		if self.name in ['tmax', 'tmin']:
-			t_idx = result + np.array([sl.start for sl in slices]) 
-			t_result = d_time[t_idx]
+			t_idx = result + np.array([sl.start for sl in slices])
+			t_result = np.where(result == -1, np.nan, d_time[t_idx]) 
 			return Value(TYPE.COLUMN, DTYPE.TIME, t_result)
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)

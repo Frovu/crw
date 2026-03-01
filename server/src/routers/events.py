@@ -270,7 +270,7 @@ def _compute_column(col_id):
 @bp.route('/compute/rows', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _compute_row_column():
+def _compute_row():
 	assert request.json
 	ids = request.json.get('ids')
 	return comp_columns.compute_rows(ids)

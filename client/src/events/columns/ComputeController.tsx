@@ -30,7 +30,7 @@ export default function ComputeController() {
 			logSuccess(`Computed rows #${ids.at(0)}-${ids.at(-1)} in ${time} s`);
 			if (error) logError(`Errors in rows #${ids.at(0)}-${ids.at(-1)}:\n` + error);
 		},
-		onError: (err: any, rowId) => logError(`compute row #${rowId}: ` + err.toString()),
+		onError: (err: any, ids) => logError(`compute rows #${ids.at(0)}-${ids.at(-1)}: ` + err.toString()),
 	});
 
 	const { mutate: computeColumn } = useMutation({
