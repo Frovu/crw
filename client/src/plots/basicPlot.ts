@@ -159,7 +159,7 @@ export function drawCustomLegend({
 				px(makrerWidth + 16) +
 				Math.max.apply(
 					null,
-					series.map(({ legend }) => measureStyled(u.ctx, legend))
+					series.map(({ legend }) => measureStyled(u.ctx, legend)),
 				);
 			const lineHeight = getFontSize() * devicePixelRatio + px(2);
 			const height = series.length * lineHeight + px(4);
@@ -189,7 +189,7 @@ export function drawCustomLegend({
 					u.ctx.stroke();
 				}
 				u.ctx.lineWidth = marker === 'arrow' ? px(2) : px(1);
-				const mrkr = bars ? marker ?? 'square' : marker;
+				const mrkr = bars ? (marker ?? 'square') : marker;
 				if (mrkr) draw[mrkr](x + px(6 + makrerWidth / 2), y);
 				if (mrkr !== 'arrow') u.ctx.fill();
 				u.ctx.fillStyle = color('text');
@@ -223,7 +223,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 					const re = (label: string) =>
 						new RegExp(`(?<!(?:d|e)\\()${label.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&')}(?![_a-z])`);
 					const series = u.series.find(
-						(ser) => ser && !marked[ser.label as string] && txt.match(re(ser.label as string))
+						(ser) => ser && !marked[ser.label as string] && ser.label && txt.match(re(ser.label as string)),
 					);
 					if (!series) return [[txt, color('text')]];
 					const label = series.label as string;
@@ -238,7 +238,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 					: rec().flatMap(([text, stroke]) => {
 							const nodes = parseText(applyTextTransform(text));
 							return nodes.map((n) => ({ ...n, stroke }));
-					  });
+						});
 
 				const fontSize = measureDigit();
 				const textWidth = measureStyled(u.ctx, parts);
@@ -255,7 +255,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				let posX, posY;
 				if (isHorizontal) {
 					posX = clamp(px(2), u.width * devicePixelRatio - textWidth - px(4), targetLeft - textWidth);
-					posY = axis.side === 0 ? axis.labelSize ?? fontSize.height : u.height * devicePixelRatio - px(2);
+					posY = axis.side === 0 ? (axis.labelSize ?? fontSize.height) : u.height * devicePixelRatio - px(2);
 				} else {
 					const bottomX = u.height * devicePixelRatio;
 					posX = Math.round(baseTop + axis.labelGap! * -flowDir) * devicePixelRatio;
@@ -312,7 +312,7 @@ export async function basicDataQuery(path: string, interval: [number, number], q
 		ordered.splice(
 			timeIdx,
 			1,
-			ordered[timeIdx].map((t) => (t == null ? null : t + period / 2))
+			ordered[timeIdx].map((t) => (t == null ? null : t + period / 2)),
 		);
 	return ordered;
 }
@@ -421,7 +421,7 @@ export function tooltipPlugin({
 			],
 			setCursor: [
 				(u) => {
-					const idx = userDidx ? userDidx() : u.cursor.idxs?.[seriesIdx!] ?? null;
+					const idx = userDidx ? userDidx() : (u.cursor.idxs?.[seriesIdx!] ?? null);
 					if (dataIdx !== idx) {
 						dataIdx = idx;
 						setTooltip(u);
@@ -456,7 +456,7 @@ export function titlePlugin({
 				: {
 						...opts,
 						padding: opts.padding?.toSpliced(0, 1, (opts.padding as any)[0] + pad) as any,
-				  },
+					},
 		hooks: !showTitle
 			? {}
 			: {
@@ -507,7 +507,7 @@ export function titlePlugin({
 								u.ctx.restore();
 							}, captureOverrides),
 					],
-			  },
+				},
 	};
 }
 

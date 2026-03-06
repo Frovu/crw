@@ -121,7 +121,7 @@ export function ColumnsView() {
 						}}
 					>
 						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
-							<div className="flex w-40 items-center gap-1" key={sql_name}>
+							<div key={sql_name} className="flex w-40 items-center gap-1">
 								<Button
 									title={description ?? ''}
 									className={cn(

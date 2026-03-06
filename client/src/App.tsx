@@ -139,7 +139,7 @@ function App() {
 				/>
 				<h2 className="text-xl p-4 font-bold">Select an application:</h2>
 				{Object.entries(APP_NAME).map(([ap, aname]) => (
-					<Button className="block p-1 ml-8 text-lg" onClick={() => selectApp(ap as keyof typeof APP_NAME)}>
+					<Button key={ap} className="block p-1 ml-8 text-lg" onClick={() => selectApp(ap as keyof typeof APP_NAME)}>
 						- {aname}
 					</Button>
 				))}
@@ -161,7 +161,7 @@ function App() {
 			</CatchErrors>
 			{showNav && (
 				<div
-					className="flex z-20 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
+					className="flex z-10 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
 					onContextMenu={openContextMenu('app')}
 				>
 					<SimpleSelect

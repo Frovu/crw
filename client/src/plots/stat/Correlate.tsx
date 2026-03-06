@@ -65,8 +65,8 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParam
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
 		(col) =>
-			(['integer', 'real'].includes(col.dtype) && shownColumns?.includes(col.sql_name)) ||
-			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name)
+			(['integer', 'real'].includes(col.dtype) && shownColumns[col.sql_name]) ||
+			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name),
 	);
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
 
@@ -102,7 +102,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParam
 				</div>
 			))}
 			{limitKeys.map(([label, kmin, kmax]) => (
-				<div key="label" className="flex gap-1 h-6">
+				<div key={label} className="flex gap-1 h-6">
 					<Button title="Reset limits" onClick={() => setParams({ [kmin]: null, [kmax]: null })}>
 						Limit {label}:
 					</Button>
@@ -157,21 +157,21 @@ function Panel() {
 			sample0 === '<current>'
 				? currentData
 				: sample0 === '<none>'
-				? allData
-				: applySample(
-						allData,
-						samplesList?.find((s) => s.id.toString() === sample0) ?? null,
-						columns,
-						samplesList ?? []
-				  );
+					? allData
+					: applySample(
+							allData,
+							samplesList?.find((s) => s.id.toString() === sample0) ?? null,
+							columns,
+							samplesList ?? [],
+						);
 
 		if (!sampleData.length) return null;
 		const colIdx = ['column0', 'column1'].map((c) =>
-			columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams])
+			columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams]),
 		);
 		if (colIdx.includes(-1)) return null;
 		const [colX, colY] = colIdx.map((c) => columns[c]);
-		if (!['integer', 'real'].includes(colX.type) || !['integer', 'real'].includes(colY.type)) return null;
+		if (!['integer', 'real'].includes(colX.dtype) || !['integer', 'real'].includes(colY.dtype)) return null;
 
 		const filter = loglog ? (r: number[]) => r[0] > 1 && r[1] > 1 : (r: number[]) => r[0] != null && r[1] != null;
 		const data = (sampleData as number[][])
@@ -201,7 +201,7 @@ function Panel() {
 			.fill(0)
 			.map((_, i) => minx + (i * (maxx - minx)) / 128);
 		const regrPredicts = regrPoints.map((x) =>
-			loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]
+			loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1],
 		);
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
@@ -254,8 +254,8 @@ function Panel() {
 								const row = findRow(didx);
 								return row
 									? `${prettyDate(row[index.time] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(
-											row[colIdx[1]]
-									  )}`
+											row[colIdx[1]],
+										)}`
 									: '??';
 							},
 						}),
@@ -296,7 +296,7 @@ function Panel() {
 								vals.map((v) =>
 									loglog && logx
 										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
-										: v?.toString()
+										: v?.toString(),
 								),
 						},
 						{
@@ -309,15 +309,15 @@ function Panel() {
 									(values
 										? Math.max.apply(
 												null,
-												values.map((v) => v?.toString().length ?? 0)
-										  )
+												values.map((v) => v?.toString().length ?? 0),
+											)
 										: 4),
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 							values: (u, vals) =>
 								vals.map((v) =>
 									loglog
 										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
-										: v?.toString()
+										: v?.toString(),
 								),
 						} as CustomAxis,
 					],
@@ -344,14 +344,15 @@ function Panel() {
 								sample0 === '<current>'
 									? undefined
 									: sample0 === '<none>'
-									? 'all events'
-									: samplesList?.find((s) => s.id.toString() === sample0)?.name,
+										? 'all events'
+										: samplesList?.find((s) => s.id.toString() === sample0)?.name,
 							marker: 'circle',
 							bars: true,
 							stroke: color(params.color),
 							paths: pointPaths(scaled(4), (r: any) => qt.add(r)),
 						},
 						{
+							label: '',
 							facets: [
 								{ scale: 'x', auto: true },
 								{ scale: 'y', auto: true },

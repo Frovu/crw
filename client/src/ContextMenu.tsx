@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { LayoutContextMenu } from './Layout';
-import { AuthContext, useContextMenuStore, closeContextMenu } from './app';
+import { AuthContext, useContextMenuStore } from './app';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
 import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/ExportPlot';
@@ -16,7 +16,7 @@ export default function ContextMenu() {
 	return !menu ? null : (
 		<div
 			ref={setDiv}
-			className="fixed flex flex-col gap-1 items-start p-2 border bg-bg text-sm z-5 [&>*]:w-full [&>*]:text-left"
+			className="fixed flex flex-col gap-1 items-start p-2 border bg-bg text-sm z-15 [&>*]:w-full [&>*]:text-left"
 			style={{
 				left: Math.min(menu.x, document.body.offsetWidth - (div?.offsetWidth ?? 260)),
 				top: Math.min(menu.y, document.body.offsetHeight - (div?.offsetHeight ?? 260)),
