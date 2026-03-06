@@ -282,20 +282,26 @@ function Panel() {
 					? sampleData
 					: sampleId === '<none>'
 						? allData
-						: applySample(allData, samplesList.find((s) => s.name === sampleId) ?? null, columns, samplesList);
+						: applySample(
+								allData,
+								samplesList.find((s) => s.id.toString() === sampleId) ?? null,
+								columns,
+								samplesList,
+							);
 			return data.map((row) => row[colIdx]).filter((val) => val != null || column.dtype === 'enum');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
 		const colEnum = column.type === 'static' ? column.enum : null;
-		const samples = colEnum ? [allSamples[firstIdx].map((v) => (!v ? 0 : colEnum.indexOf(v as any) + 1))] : allSamples;
+		const samples = colEnum
+			? allSamples.map((smpl) => smpl.map((v) => (!v ? 0 : colEnum.indexOf(v as any) + 1)))
+			: allSamples;
 
 		const everything = samples.flat() as number[];
 		const min = params.forceMin ?? Math.min.apply(null, everything);
 		let max = params.forceMax ?? Math.max.apply(null, everything) + 1;
 		const binCount = colEnum ? colEnum.length + (everything.includes(0) ? 1 : 0) : params.binCount;
-		console.log(binCount);
 		if (params.forceMax == null) {
 			const countMax = everything.reduce((a, b) => (b === max ? a + 1 : a), 0);
 			if (countMax > 1)
@@ -313,6 +319,7 @@ function Panel() {
 			}
 			return bins as number[];
 		});
+		console.log(samplesBins);
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
 		const transformed = samplesBins
 			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))
@@ -327,7 +334,7 @@ function Panel() {
 			.map((id) =>
 				['<current>', '<none>'].includes(id)
 					? ''
-					: ' of ' + (samplesList.find((s) => s.name === id)?.name ?? 'UNKNOWN'),
+					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
 			);
 
 		// try to prevent short bars from disappearing
