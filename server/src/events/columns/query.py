@@ -1,6 +1,7 @@
 from time import time
-import traceback
+import traceback, ts_type
 import numpy as np
+from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from psycopg import rows, sql
 from threading import Thread, Lock
@@ -8,8 +9,19 @@ from concurrent.futures import ThreadPoolExecutor
 
 from database import pool, log, upsert_many, ComputationResponse
 from events.columns.computed_column import ComputedColumn, select_computed_column_by_id, select_computed_columns, apply_changes, DATA_TABLE, DEF_TABLE
-from events.columns.parser import columnParser, ColumnComputer
+from events.columns.parser import columnParser, ColumnComputer, functions
+from events.columns.series import Series, SERIES
 from events.columns.functions.common import Value, TYPE, DTYPE, value_to_sql_dtype
+
+@ts_type.gen_type
+@dataclass
+class FeidInfoResponse:
+	series: list[Series]
+	functions: list[None]
+	helpers: list[None]
+
+	def to_dict(self):
+		return asdict(self)
 
 compute_lock = Lock()
 compute_all_active: None | tuple[float, bool, str | None] = None
@@ -158,3 +170,6 @@ def compute_all(for_row=None):
 	t = Thread(target=_do_compute_all)
 	t.start()
 	return ComputationResponse(time=0, done=False).to_dict()
+
+def get_info():
+	return FeidInfoResponse(SERIES, [], []).to_dict()

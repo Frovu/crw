@@ -3,8 +3,8 @@ import sys, os, re
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), './src'))
 
 from events.columns.column import Column, DTYPE
+import events.columns.query
 import events.columns.computed_column
-import events.columns.series
 import events.query
 from events.source import chimera
 from events.samples import FILTER_OPS
@@ -68,6 +68,8 @@ with open(TARGET, 'w') as f:
 		# if src == 'events/changelog':
 		# 	continue
 		if src == 'events/query':
+			text = text.split('\n\n')[0]
+		if src == 'events/columns/query':
 			text = text.split('\n\n')[0]
 		f.write(text + '\n\n')
 

@@ -164,6 +164,11 @@ def _submit_changes():
 	query.submit_changes(uid, entities)
 	return msg('OK')
 
+@bp.route('/info', methods=['GET'])
+@route_shielded
+def get_info():
+	return comp_columns.get_info()
+
 @bp.route('/samples', methods=['GET'])
 @route_shielded
 def get_samples():
