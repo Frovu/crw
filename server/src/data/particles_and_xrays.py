@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import pymysql
 
 from database import pool, upsert_many, log
+import numpy as np
 
 T_PART = 'sat_particles'
 T_XRAY = 'sat_xrays'
@@ -19,6 +20,7 @@ PARTICLES = {
 	'e8k': '1000-1900 keV',
 	'e9k': '1900-3200 keV',
 	'e10k': '3200-6500 keV',
+	'e2': '>2 MeV',
 	'p1': '>1 MeV',
 	'p2': '>5 MeV',
 	'p3': '>10 MeV',
@@ -36,20 +38,21 @@ GOES_X_EPOCH = datetime(2009, 11, 26)
 
 def _init():
 	with pool.connection() as conn:
-		pcols = ', '.join([c+' real' for c in PARTICLES])
-		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key, {pcols})')
+		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key)')
+		for c in PARTICLES:
+			conn.execute(f'ALTER TABLE {T_PART} ADD COLUMN IF NOT EXISTS {c} real')
 		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_XRAY} (time timestamptz primary key, s real, l real)')
 _init()
 
 def _obtain_goes(which, t_from, t_to):
 	xra = which == 'xrays'
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in (t_from, t_to)]
-	dt_from = dt_from.replace(day=1, hour=0, minute=0, second=0)
-	dt_to = (dt_from + timedelta(days=31)).replace(day=1)
+	# dt_from = dt_from.replace(day=1, hour=0, minute=0, second=0)
+	# dt_to = (dt_from + timedelta(days=31)).replace(day=1)
 	table = ('goes_xrays_goes_x' if dt_from < GOES_X_EPOCH else 'goes_xrays') if xra else 'goes_particles'
 	cols = ['s', 'l'] if xra else PARTICLES.keys()
+	log.debug('GOES: obtaining %s: %s - %s', which, dt_from, dt_to)
 	try:
-		log.debug('GOES: obtaining %s: %s - %s', which, dt_from, dt_to)
 		conn = pymysql.connect(
 			host=os.environ.get('CRS_HOST'),
 			port=int(os.environ.get('CRS_PORT', 0)),
@@ -59,11 +62,16 @@ def _obtain_goes(which, t_from, t_to):
 		with conn.cursor() as cursor:
 			q = f'SELECT dt, {",".join(cols)} FROM {table} WHERE dt >= %s AND dt < %s'
 			cursor.execute(q, [dt_from, dt_to])
-			data = list(cursor.fetchall())
-			upsert_many(T_XRAY if xra else T_PART, ['time', *cols], data)
+			data = np.array(cursor.fetchall())
+			if len(data):
+				data[:,1:][data[:,1:] < 0] = None
+				upsert_many(T_XRAY if xra else T_PART, ['time', *cols], data.tolist())
+			else:
+				log.debug('GOES: empty response')
 	except Exception as e:
 		log.error(f'GOES: failed to obtain (crs): {e}')
 	finally:
+		log.debug('GOES: obtained %s', which)
 		conn.close()
 
 def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):

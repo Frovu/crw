@@ -339,7 +339,7 @@ function Panel() {
 	return (
 		<>
 			<ExportableUplot {...{ options, data }} />
-			<div style={{ position: 'absolute', color: color('text-dark'), top: 0, right: 3, fontSize: 12 }}>
+			<div className="absolute top-[1px] right-[3px] text-xs text-dark bg-bg">
 				{queries
 					.map(
 						(q, i) =>

@@ -249,7 +249,11 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				const first = axis._splits?.[axis._values?.findIndex((v) => !!v || (v as any) === 0)!]!;
 				const last = axis._splits?.[axis._values?.findLastIndex((v) => !!v || (v as any) === 0)!]!;
 				const targetLeft =
-					(axis.distr === 3 ? u.bbox.top + u.bbox.height / 2 : u.valToPos((last + first) / 2, axis.scale!, true)) +
+					(axis.distr === 3
+						? !isHorizontal
+							? u.bbox.top + u.bbox.height / 2
+							: u.bbox.left + u.bbox.width / 2
+						: u.valToPos((last + first) / 2, axis.scale!, true)) +
 					(flowDir * textWidth) / 2;
 
 				let posX, posY;

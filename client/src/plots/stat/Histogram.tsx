@@ -310,7 +310,7 @@ function Panel() {
 			}
 			return bins as number[];
 		});
-		console.log(samplesBins);
+
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
 		const transformed = samplesBins
 			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))

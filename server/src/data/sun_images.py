@@ -12,7 +12,8 @@ def scrape_day_list(tstmp, src):
 	dt = datetime.utcfromtimestamp(tstmp)
 	log.debug('Scraping images %s for %s', src, dt)
 	lasco = 'LASCO' in src
-	dp = ('soho/lasco' if lasco else ('sdo/aia_synoptic_rdf/' if 'diff' in src else 'sdo/aia_synoptic_nrt/') + src.split()[1])
+	aiadir = 'sdo/aia_synoptic/' if (dt.year, dt.month) in [(2024, 11), (2024, 12), (2025, 1)] else 'sdo/aia_synoptic_nrt/'
+	dp = ('soho/lasco' if lasco else ('sdo/aia_synoptic_rdf/' if 'diff' in src else aiadir) + src.split()[1])
 	url = f'{URL}/{dp}/{dt.year}/{dt.month:02}/{dt.day:02}/'
 	res = requests.get(url, timeout=10)
 	if res.status_code == 404:

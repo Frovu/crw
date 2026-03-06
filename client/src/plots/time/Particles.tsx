@@ -26,6 +26,7 @@ const PARTICLES = {
 	e8k: '1000-1900 keV',
 	e9k: '1900-3200 keV',
 	e10k: '3200-6500 keV',
+	e2: '>2 MeV',
 };
 export const particlesOptions = Object.keys(PARTICLES);
 
@@ -94,7 +95,7 @@ function Panel() {
 							...para,
 							onsets: [],
 							clouds: [],
-					  }
+						}
 					: para,
 				options: () => ({
 					padding: [scaled(8), scaled(solarTime ? 6 : 36), scaled(showTimeAxis ? 0 : 6), 0],
@@ -102,19 +103,19 @@ function Panel() {
 				axes: () => [
 					{
 						...axisDefaults(showGrid, (u, splits) => splits.map((s) => (Math.log10(s) % 1 === 0 ? s : null))),
-						label: 'ions',
+						label: 'part',
 						fullLabel: 'N / cm²⋅s⋅sr',
 						distr: 3,
 						values: (u, vals) =>
 							vals.map((v) =>
-								v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : ''
+								v <= 100 && v > 0.001 ? v : Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '',
 							),
 					},
 				],
 				series: () =>
 					showParticles.map((part, i) => ({
 						label: part,
-						scale: 'ions',
+						scale: 'part',
 						stroke: color(colors[i % colors.length], i >= colors.length ? 0.8 : 1),
 						legend: name(part),
 					})),

@@ -102,7 +102,8 @@ def _select_series(t_1, t_2, series):
 	arr = np.array(res, dtype='object' if series == 'sw_type' else 'f8')
 	if len(arr) < 1:
 		return arr, arr
-	if (arr[-1,0] - arr[0,0]) // HOUR - len(arr) > 1: # FIXME: data may shift by 1 hour ??
+
+	if (arr[-1,0] - arr[0,0]) // HOUR - len(arr) != -1:
 		log.error('Data is not continous for %s', series)
 		raise BaseException('Data is not continous')
 	log.debug(f'Got {actual_series} in {round(time()-t_data, 3)}s')
@@ -125,6 +126,7 @@ def get_ref_time(for_rows, ref: GenericRefPoint, cache): # always (!) rounds dow
 	elif ref.type == 'sw_structure':
 		r_time = find_sw_structure(for_rows, ref.structure, ref.end, default_window(), cache=cache)
 	else:
+		r_time = np.array([1])
 		assert not 'reached'
 	return r_time + ref.hours_offset * HOUR
 					
