@@ -18,6 +18,7 @@ import { pointPaths, linePaths } from '../plotPaths';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
 import { Quadtree } from '../quadtree';
 import { color } from '../../app';
+import { useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
 
@@ -32,7 +33,7 @@ const limitKeys = [
 ] as const;
 
 const defaultParams = {
-	sample0: '<current>' as '<current>' | '<none>' | string,
+	sample0: '<current>' as SampleOption,
 	column0: null as string | null,
 	column1: null as string | null,
 	forceMin: null as number | null,
@@ -45,23 +46,11 @@ const defaultParams = {
 	logx: true,
 };
 
-export type CorrelationParams = {
-	sample0: '<current>' | '<none>' | string;
-	column0: string | null;
-	column1: string | null;
-	forceMin: number | null;
-	forceMax: number | null;
-	forceMinY: number | null;
-	forceMaxY: number | null;
-	color: string;
-	showRegression: boolean;
-	loglog: boolean;
-	logx: boolean;
-};
+export type CorrelationParams = typeof defaultParams;
 
 function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
 	const { columns } = useTable('feid');
-	const { samples } = useFeidSample();
+	const sampleOpts = useSampleOptions();
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
 		(col) =>
@@ -69,12 +58,6 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParam
 			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name),
 	);
 	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
-
-	const sampleOpts = [
-		['<none>', '<none>'],
-		['<current>', '<current>'],
-		...(samples?.map((sm) => [sm.id.toString(), sm.name]) ?? []),
-	] as [string, string][];
 
 	return (
 		<>
@@ -158,12 +141,7 @@ function Panel() {
 				? currentData
 				: sample0 === '<none>'
 					? allData
-					: applySample(
-							allData,
-							samplesList?.find((s) => s.id.toString() === sample0) ?? null,
-							columns,
-							samplesList ?? [],
-						);
+					: applySample(allData, samplesList?.find((s) => s.id === sample0) ?? null, columns, samplesList ?? []);
 
 		if (!sampleData.length) return null;
 		const colIdx = ['column0', 'column1'].map((c) =>
@@ -345,7 +323,7 @@ function Panel() {
 									? undefined
 									: sample0 === '<none>'
 										? 'all events'
-										: samplesList?.find((s) => s.id.toString() === sample0)?.name,
+										: samplesList?.find((s) => s.id === sample0)?.name,
 							marker: 'circle',
 							bars: true,
 							stroke: color(params.color),

@@ -15,6 +15,7 @@ import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../b
 import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../plotUtil';
 import { color } from '../../app';
 import { Button } from '../../components/Button';
+import { useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -30,11 +31,11 @@ export type HistogramParams = {
 	showYLabel: boolean;
 	showResiduals: boolean;
 	yScale: (typeof yScaleOptions)[number];
-	sample0: string;
+	sample0: SampleOption;
 	column0: string | null;
-	sample1: string;
+	sample1: SampleOption;
 	column1: string | null;
-	sample2: string;
+	sample2: SampleOption;
 	column2: string | null;
 };
 
@@ -57,13 +58,14 @@ const defaultParams: HistogramParams = {
 
 function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
 	const { columns } = useFeidTableView();
-	const { samples } = useFeidSample();
+	const sampleOpts = useSampleOptions();
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
 		(c) =>
 			(['integer', 'real', 'enum'].includes(c.dtype) && shownColumns[c.sql_name]) ||
 			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name),
 	);
+
 	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
 
 	return (
@@ -96,11 +98,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 								'w-30 bg-input-bg/80 justify-center',
 								params[sampleKeys[i]] === '<current>' && 'text-dark',
 							)}
-							options={[
-								['<none>', '<none>'],
-								['<current>', '<current>'],
-								...(samples?.map(({ id, name }) => [id.toString(), name] as [string, string]) ?? []),
-							]}
+							options={sampleOpts}
 							value={params[sampleKeys[i]]}
 							onChange={(val) => set(sampleKeys[i], val)}
 						/>
@@ -282,12 +280,7 @@ function Panel() {
 					? sampleData
 					: sampleId === '<none>'
 						? allData
-						: applySample(
-								allData,
-								samplesList.find((s) => s.id.toString() === sampleId) ?? null,
-								columns,
-								samplesList,
-							);
+						: applySample(allData, samplesList.find((s) => s.id === sampleId) ?? null, columns, samplesList);
 			return data.map((row) => row[colIdx]).filter((val) => val != null || column.dtype === 'enum');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
@@ -332,9 +325,9 @@ function Panel() {
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
 			.map((id) =>
-				['<current>', '<none>'].includes(id)
+				['<current>', '<none>'].includes(id as any)
 					? ''
-					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN'),
+					: ' of ' + (samplesList.find((s) => s.id === id)?.name ?? 'UNKNOWN'),
 			);
 
 		// try to prevent short bars from disappearing
