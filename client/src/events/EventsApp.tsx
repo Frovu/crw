@@ -85,7 +85,7 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
-		<div className="flex flex-col gap-1 items-end">
+		<div className="flex flex-col gap-1 items-end select-none">
 			{isPlot && (
 				<>
 					<div className="flex gap-2">
@@ -145,16 +145,16 @@ const eventsPanels = Object.fromEntries(
 			Icon: p.name.includes('View')
 				? Sun
 				: p.isSolar
-				? ChartSpline
-				: p.isStat
-				? ChartNoAxesColumn
-				: p.isPlot
-				? ChartLine
-				: p.name.includes('Table') || p.name.includes('Holes')
-				? Table
-				: Bolt,
+					? ChartSpline
+					: p.isStat
+						? ChartNoAxesColumn
+						: p.isPlot
+							? ChartLine
+							: p.name.includes('Table') || p.name.includes('Holes')
+								? Table
+								: Bolt,
 		},
-	])
+	]),
 );
 
 export default function EventsApp() {

@@ -1,7 +1,7 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 import uPlot from 'uplot';
 import { useFeidSample, useFeidTableView } from '../../events/core/feid';
-import type { NumberInput } from '../../components/Input';
+import { Input, NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 import type { Value } from '../../events/columns/columns';
 import { useTable } from '../../events/core/editableTables';
@@ -14,6 +14,7 @@ import { cn } from '../../util';
 import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../basicPlot';
 import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../plotUtil';
 import { color } from '../../app';
+import { Button } from '../../components/Button';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -60,9 +61,10 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
 	const columnOpts = columns.filter(
 		(c) =>
-			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.sql_name)) ||
-			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name)
+			(['integer', 'real', 'enum'].includes(c.dtype) && shownColumns[c.sql_name]) ||
+			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name),
 	);
+	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
 
 	return (
 		<>
@@ -79,20 +81,20 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 					<div className="flex">
 						<SimpleSelect
 							title="Column"
-							className={cn('w-24 bg-input-bg/80', params[columnKeys[i]] == null && 'text-dark')}
+							className={cn('w-30 bg-input-bg/80', params[columnKeys[i]] == null && 'text-dark')}
 							options={[
 								[null, '<none>'],
 								...columnOpts.map(({ sql_name, name }) => [sql_name, name] as [string, string]),
 							]}
 							value={params[columnKeys[i]] ?? null}
-							onChange={(val) => setParams({ [columnKeys[i]]: val })}
+							onChange={(val) => set(columnKeys[i], val)}
 						/>
 						:
 						<SimpleSelect
 							title="Sample (none = all events)"
 							className={cn(
-								'w-36 bg-input-bg/80 justify-center',
-								params[sampleKeys[i]] === '<current>' && 'text-dark'
+								'w-30 bg-input-bg/80 justify-center',
+								params[sampleKeys[i]] === '<current>' && 'text-dark',
 							)}
 							options={[
 								['<none>', '<none>'],
@@ -100,57 +102,42 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 								...(samples?.map(({ id, name }) => [id.toString(), name] as [string, string]) ?? []),
 							]}
 							value={params[sampleKeys[i]]}
-							onChange={(val) => setParams({ [sampleKeys[i]]: val })}
+							onChange={(val) => set(sampleKeys[i], val)}
 						/>
 					</div>
 				</div>
 			))}
-			<div className="flex">
-				<div>
-					Y:
-					<select
-						className="Borderless"
-						style={{ width: '5em', marginLeft: 4, padding: 0 }}
-						value={params.yScale}
-						onChange={(e) => set('yScale', e.target.value as any)}
-					>
-						{yScaleOptions.map((o) => (
-							<option key={o} value={o}>
-								{o}
-							</option>
-						))}
-					</select>
-				</div>
-				<div style={{ paddingLeft: 4 }}>
-					Bin count:
-					<input
-						type="number"
-						min="2"
-						max="9999"
-						style={{ width: '4em', margin: '0 4px', padding: 0 }}
-						value={params.binCount}
-						onChange={(e) => set('binCount', e.target.valueAsNumber)}
-					/>
-				</div>
+			<div className="flex items-center">
+				Y:
+				<SimpleSelect
+					className="w-16 mr-4"
+					options={yScaleOptions.map((o) => [o, o])}
+					value={params.yScale}
+					onChange={(val) => set('yScale', val)}
+				/>
+				Bin count:
+				<Input
+					className="w-16"
+					type="number"
+					min="2"
+					max="9999"
+					value={params.binCount}
+					onChange={(e) => set('binCount', e.target.valueAsNumber)}
+				/>
 			</div>
-			<div style={{ textAlign: 'right' }}>
-				<span
-					className="TextButton"
-					title="Reset"
-					style={{ userSelect: 'none', cursor: 'pointer' }}
-					onClick={() => setParams({ forceMin: null, forceMax: null })}
-				>
+			<div className="flex">
+				<Button title="Reset" onClick={() => setParams({ forceMin: null, forceMax: null })}>
 					Limits:
-				</span>
+				</Button>
 				<NumberInput
-					style={{ width: '4em', margin: '0 4px', padding: 0 }}
+					className="w-16 mx-1"
 					value={params.forceMin}
 					onChange={(val) => set('forceMin', val)}
 					allowNull={true}
 				/>
 				&lt;= X &lt;
 				<NumberInput
-					style={{ width: '4em', margin: '0 4px', padding: 0 }}
+					className="w-16 ml-1"
 					value={params.forceMax}
 					onChange={(val) => set('forceMax', val)}
 					allowNull={true}
@@ -189,7 +176,7 @@ function drawResiduals(params: HistogramParams, samples: number[][], min: number
 				px(6) +
 				(Math.max.apply(
 					null,
-					vals.map((v) => v.toString().length)
+					vals.map((v) => v.toString().length),
 				) *
 					ch +
 					ch) *
@@ -268,9 +255,9 @@ function drawAverages(params: HistogramParams, samples: Value[][]) {
 }
 
 function Panel() {
-	const { data: allData, columns } = useTable();
+	const { data: allData, columns } = useTable('feid');
 	const { showGrid, showLegend } = useEventsSettings();
-	const { samples: samplesList, data: sampleData } = useContext(SampleContext);
+	const { samples: samplesList, data: sampleData } = useFeidSample();
 	const params = usePlot<HistogramParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -280,9 +267,10 @@ function Panel() {
 
 	const hist = useMemo(() => {
 		const { yScale } = params;
+		if (!samplesList) return null;
 
 		const cols = [0, 1, 2].map((i) =>
-			columns.findIndex((c) => c.sql_name === params[('column' + i) as keyof HistogramParams])
+			columns.findIndex((c) => c.sql_name === params[('column' + i) as keyof HistogramParams]),
 		);
 		const allSamples = [0, 1, 2].map((i) => {
 			const sampleId = params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'];
@@ -293,27 +281,21 @@ function Panel() {
 				sampleId === '<current>'
 					? sampleData
 					: sampleId === '<none>'
-					? allData
-					: applySample(
-							allData,
-							samplesList.find((s) => s.sql_name.toString() === sampleId) ?? null,
-							columns,
-							samplesList
-					  );
-			return data.map((row) => row[colIdx]).filter((val) => val != null || column.type === 'enum');
+						? allData
+						: applySample(allData, samplesList.find((s) => s.name === sampleId) ?? null, columns, samplesList);
+			return data.map((row) => row[colIdx]).filter((val) => val != null || column.dtype === 'enum');
 		});
 		const firstIdx = allSamples.findIndex((s) => s.length);
 		if (firstIdx < 0) return null;
 		const column = columns[cols[firstIdx]];
-		const enumMode = !!column.enum;
-		const samples = enumMode
-			? [allSamples[firstIdx].map((v) => (!v ? 0 : column.enum!.indexOf(v as any) + 1))]
-			: allSamples;
+		const colEnum = column.type === 'static' ? column.enum : null;
+		const samples = colEnum ? [allSamples[firstIdx].map((v) => (!v ? 0 : colEnum.indexOf(v as any) + 1))] : allSamples;
 
 		const everything = samples.flat() as number[];
 		const min = params.forceMin ?? Math.min.apply(null, everything);
 		let max = params.forceMax ?? Math.max.apply(null, everything) + 1;
-		const binCount = enumMode ? column.enum!.length + (everything.includes(0) ? 1 : 0) : params.binCount;
+		const binCount = colEnum ? colEnum.length + (everything.includes(0) ? 1 : 0) : params.binCount;
+		console.log(binCount);
 		if (params.forceMax == null) {
 			const countMax = everything.reduce((a, b) => (b === max ? a + 1 : a), 0);
 			if (countMax > 1)
@@ -335,17 +317,17 @@ function Panel() {
 		const transformed = samplesBins
 			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))
 			.filter((b) => b);
-		const binsValues = transformed[0]?.map((v, i) => min + (i + (enumMode ? 0 : 0.5)) * binSize) || [];
+		const binsValues = transformed[0]?.map((v, i) => min + (i + (colEnum ? 0 : 0.5)) * binSize) || [];
 
 		const colNames = [0, 1, 2]
 			.map((i) => params[('column' + i) as keyof HistogramParams])
-			.map((c) => columns.find((cc) => cc.sql_name === c)?.fullName);
+			.map((c) => columns.find((cc) => cc.sql_name === c)?.name);
 		const sampleNames = [0, 1, 2]
 			.map((i) => params[('sample' + i) as 'sample0' | 'sample1' | 'sample2'])
 			.map((id) =>
 				['<current>', '<none>'].includes(id)
 					? ''
-					: ' of ' + (samplesList.find((s) => s.sql_name.toString() === id)?.name ?? 'UNKNOWN')
+					: ' of ' + (samplesList.find((s) => s.name === id)?.name ?? 'UNKNOWN'),
 			);
 
 		// try to prevent short bars from disappearing
@@ -365,7 +347,7 @@ function Panel() {
 					hooks: {
 						draw: [
 							drawAverages(params, samples),
-							enumMode ? () => {} : drawResiduals(params, samples as any, min, max),
+							colEnum ? () => {} : drawResiduals(params, samples as any, min, max),
 						],
 					},
 					plugins: [
@@ -390,9 +372,8 @@ function Panel() {
 							label: '',
 							gap: scaled(2),
 							values: (u, vals) => vals.map((v) => v),
-							...(enumMode && {
-								values: (u, vals) =>
-									vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...column.enum!][v] : '')),
+							...(colEnum && {
+								values: (u, vals) => vals.map((v) => (v != null && v % 1 === 0 ? ['N/A', ...colEnum][v] : '')),
 							}),
 						},
 						{
@@ -401,7 +382,7 @@ function Panel() {
 								vals.map(
 									(v) =>
 										v &&
-										(yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed())
+										(yScale === '%' ? (v * 100).toFixed(0) + (params.showYLabel ? '' : '%') : v.toFixed()),
 								),
 							gap: scaled(2),
 							fullLabel: params.showYLabel ? yLabel : '',
@@ -413,8 +394,8 @@ function Panel() {
 									(values
 										? Math.max.apply(
 												null,
-												values.map((v) => v?.toString().length ?? 0)
-										  )
+												values.map((v) => v?.toString().length ?? 0),
+											)
 										: 4),
 							space: getFontSize() * 3,
 						} as CustomAxis,
@@ -422,8 +403,7 @@ function Panel() {
 					scales: {
 						x: {
 							time: false,
-							range: () =>
-								!enumMode ? [min, max] : [min - binSize / 2, max + (binSize / 2) * (enumMode ? -1 : 1)],
+							range: () => (!colEnum ? [min, max] : [min - binSize / 2, max - binSize / 2]),
 						},
 						y: {
 							distr: yScale === 'log' ? 3 : 1,
