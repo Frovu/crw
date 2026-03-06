@@ -39,6 +39,7 @@ export type LayoutsMenuDetails = { nodeId: string; window?: NodeParams<{}> };
 export type ContextMenuProps<T> = {
 	params: NodeParams<T>;
 	setParams: ParamsSetter<T>;
+	set: <K extends keyof NodeParams<T>>(k: K, val: NodeParams<T>[K]) => void;
 	Checkbox: (props: { k: keyof T } & Omit<CheckboxProps, 'checked' | 'onCheckedChange'>) => ReactElement;
 };
 
@@ -108,7 +109,7 @@ export const useLayoutsStore = create<LayoutsState>()(
 				set((state) =>
 					state.dragFrom === nodeId
 						? state
-						: { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo }
+						: { ...state, dragFrom: nodeId, dragTo: nodeId == null ? null : state.dragTo },
 				),
 			dragOver: (nodeId) => set((state) => (state.dragFrom ? { ...state, dragTo: nodeId } : state)),
 			finishDrag: () =>
@@ -177,8 +178,8 @@ export const useLayoutsStore = create<LayoutsState>()(
 			version: 2,
 			name: 'crwAppLayouts',
 			partialize: ({ apps }) => ({ apps }),
-		}
-	)
+		},
+	),
 );
 
 export const setNodeParams = <T>(nodeId: string, para: Partial<NodeParams<T>>) =>

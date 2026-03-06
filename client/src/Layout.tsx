@@ -264,11 +264,23 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 			{!isFirstInRoot && type && !window && <div className="separator" />}
 			{window && panel?.Menu && (
 				<panel.Menu
-					{...{ params: windows[id!].params, setParams: (para) => setWindowParams(id, para), Checkbox: cb }}
+					{...{
+						params: windows[id!].params,
+						setParams: (para) => setWindowParams(id, para),
+						set: (key, val) => setWindowParams(id, { [key]: val }),
+						Checkbox: cb,
+					}}
 				/>
 			)}
 			{!window && panel?.Menu && (
-				<panel.Menu {...{ params, setParams: (para) => setNodeParams(id, para), Checkbox: cb }} />
+				<panel.Menu
+					{...{
+						params,
+						setParams: (para) => setNodeParams(id, para),
+						set: (key, val) => setNodeParams(id, { [key]: val }),
+						Checkbox: cb,
+					}}
+				/>
 			)}
 			{item && <div className="separator" />}
 			{!window && (!item || type) && (

@@ -56,7 +56,7 @@ const defaultParams: HistogramParams = {
 	drawMedian: false,
 };
 
-function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
+function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
 	const { columns } = useFeidTableView();
 	const sampleOpts = useSampleOptions();
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
@@ -65,8 +65,6 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<HistogramParams>
 			(['integer', 'real', 'enum'].includes(c.dtype) && shownColumns[c.sql_name]) ||
 			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name),
 	);
-
-	const set = <T extends keyof HistogramParams>(k: T, val: HistogramParams[T]) => setParams({ [k]: val });
 
 	return (
 		<>

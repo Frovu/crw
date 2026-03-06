@@ -48,7 +48,7 @@ const defaultParams = {
 
 export type CorrelationParams = typeof defaultParams;
 
-function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
+function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
 	const { columns } = useTable('feid');
 	const sampleOpts = useSampleOptions();
 	const shownColumns = useEventsSettings((st) => st.shownColumns);
@@ -57,7 +57,6 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<CorrelationParam
 			(['integer', 'real'].includes(col.dtype) && shownColumns[col.sql_name]) ||
 			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name),
 	);
-	const set = <T extends keyof CorrelationParams>(k: T, val: CorrelationParams[T]) => setParams({ [k]: val });
 
 	return (
 		<>

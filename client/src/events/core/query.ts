@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { sourceLabels, type Column, type TableDataResponse, type Tables } from '../../api';
+import { sourceLabels, type Column, type FeidInfoResponse, type TableDataResponse, type Tables } from '../../api';
 import { apiGet } from '../../util';
 import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
@@ -89,4 +89,19 @@ export function useTableDataQuery(tbl: EditableTable) {
 			return { columns, data, changelog };
 		},
 	});
+}
+
+export function useFeidInfo() {
+	return (
+		useQuery({
+			queryKey: ['feidInfo'],
+			queryFn: async () => {
+				const { series } = await apiGet<FeidInfoResponse>('events/info');
+				console.log('%cloaded info:', 'color: #0af', series);
+				return { series };
+			},
+		}).data ?? {
+			series: [],
+		}
+	);
 }

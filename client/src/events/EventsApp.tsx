@@ -81,7 +81,7 @@ function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 	);
 }
 
-function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
+function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
@@ -119,7 +119,7 @@ function MenuWrapper<T>({ panel, params, setParams, Checkbox }: { panel: EventsP
 					{Menu && <div className="separator" />}
 				</>
 			)}
-			{Menu && <Menu {...{ params, setParams, Checkbox }} />}
+			{Menu && <Menu {...{ params, set, setParams, Checkbox }} />}
 			{isPlot && (
 				<div className="w-full">
 					<div className="separator" />
