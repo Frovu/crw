@@ -65,7 +65,7 @@ def _obtain_goes(which, t_from, t_to):
 			data = np.array(cursor.fetchall())
 			if len(data):
 				data[:,1:][data[:,1:] < 0] = None
-				upsert_many(T_XRAY if xra else T_PART, ['time', *cols], data.tolist())
+				upsert_many(T_XRAY if xra else T_PART, ['time', *cols], data.tolist(), schema='public')
 			else:
 				log.debug('GOES: empty response')
 	except Exception as e:

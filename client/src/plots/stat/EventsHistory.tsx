@@ -1,5 +1,20 @@
-import { useContext, useMemo } from 'react';
+import { useMemo } from 'react';
 import type uPlot from 'uplot';
+import type { ContextMenuProps } from '../../layout';
+import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
+import { useTable } from '../../events/core/editableTables';
+import { NumberInput } from '../../components/Input';
+import { SimpleSelect } from '../../components/Select';
+import { usePlot } from '../../events/core/plot';
+import { useEventsSettings } from '../../events/core/util';
+import { ExportableUplot } from '../../events/export/ExportPlot';
+import { applySample } from '../../events/sample/sample';
+import { cn } from '../../util';
+import { tooltipPlugin, legendPlugin, labelsPlugin } from '../basicPlot';
+import { usePlotOverlay, scaled, measureDigit, axisDefaults, markersPaths } from '../plotUtil';
+import { color } from '../../app';
+import { Button } from '../../components/Button';
+import { useFeidSample } from '../../events/core/feid';
 
 const windowOptions = {
 	'2 years': 24,
@@ -15,7 +30,7 @@ const seriesColors = ['green', 'purple', 'magenta', 'acid', 'cyan'] as const;
 const seriesMarkers = ['diamond', 'circle', 'square', 'triangleUp', 'triangleDown'] as const;
 
 type StatSeries = {
-	sample: '<none>' | '<current>' | string;
+	sample: SampleOption;
 	column: null | '<count>' | string;
 };
 
@@ -29,114 +44,68 @@ const defaultParams = {
 };
 
 export type HistoryParams = typeof defaultParams;
-function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
-	const { columns } = useContext(MainTableContext);
-	const { samples } = useContext(SampleContext);
-	const { shownColumns } = useEventsSettings();
+function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistoryParams>) {
 	const { historySeries: series } = params;
+	const sampleOpts = useSampleOptions();
+	const columnOpts = useColumnOptions(
+		['integer', 'real'],
+		series.map((s) => s.column),
+	);
 
-	const set = <T extends keyof HistoryParams>(k: T, val: HistoryParams[T]) => setParams({ [k]: val });
 	const setSample = (i: number, val: StatSeries['sample']) =>
 		set('historySeries', series.toSpliced(i, 1, { ...series[i], sample: val }));
 	const setColumn = (i: number, val: StatSeries['column']) =>
 		set('historySeries', series.toSpliced(i, 1, { ...series[i], column: val }));
-	const Checkbox = ({ text, k }: { text: string; k: keyof HistoryParams }) => (
-		<label>
-			{text}
-			<input
-				type="checkbox"
-				style={{ paddingLeft: 4 }}
-				checked={params[k] as boolean}
-				onChange={(e) => set(k, e.target.checked)}
-			/>
-		</label>
-	);
-
-	const columnOpts = columns.filter(
-		(c) =>
-			(['integer', 'real', 'enum'].includes(c.type) && shownColumns?.includes(c.id)) ||
-			series.some((p) => p.column === c.id)
-	);
 
 	return (
-		<div className="Group">
+		<>
 			{([0, 1, 2, 3, 4] as const).map((i) => (
-				<div key={i} className="flex gap-3" style={{ paddingRight: 4 }}>
-					<span
+				<div key={i} className="flex gap-0.5">
+					<Button
+						className="pr-1"
 						title="Reset"
-						style={{ color: color(seriesColors[i]), cursor: 'pointer', userSelect: 'none' }}
+						style={{ color: color(seriesColors[i]) }}
 						onClick={() => set('historySeries', series.toSpliced(i, 1, { column: null, sample: '<current>' }))}
 					>
 						#{i}
-					</span>
-					<div>
-						<select
-							title="Column"
-							className="Borderless"
-							style={{ width: '10em', color: series[i]?.column == null ? color('dark') : 'unset' }}
-							value={series[i]?.column ?? '__none'}
-							onChange={(e) => setColumn(i, e.target.value === '__none' ? null : e.target.value)}
-						>
-							<option value="__none">&lt;none&gt;</option>
-							<option value="<count>">&lt;count&gt;</option>
-							{columnOpts.map(({ id, fullName }) => (
-								<option key={id} value={id}>
-									{fullName}
-								</option>
-							))}
-						</select>
-						:
-						<select
-							title="Sample (none = all events)"
-							className="Borderless"
-							style={{
-								width: '7em',
-								marginLeft: 1,
-								color: series[i]?.sample === '<current>' ? color('dark') : 'unset',
-							}}
-							value={series[i]?.sample}
-							onChange={(e) => setSample(i, e.target.value)}
-						>
-							<option value="<none>">&lt;none&gt;</option>
-							<option value="<current>">&lt;current&gt;</option>
-							{samples.map(({ id, name }) => (
-								<option key={id} value={id.toString()}>
-									{name}
-								</option>
-							))}
-						</select>
-					</div>
+					</Button>
+					<SimpleSelect
+						title="Column"
+						className={cn('w-30 bg-input-bg/80', !series[i]?.column && 'text-dark')}
+						options={[
+							[null, '<none>'],
+							['<count>', '<count>'],
+							...columnOpts.map(({ sql_name, name }) => [sql_name, name] as [string, string]),
+						]}
+						value={series[i].column}
+						onChange={(val) => setColumn(i, val)}
+					/>
+					:
+					<SimpleSelect
+						title="Sample (none = all events)"
+						className={cn('w-30 bg-input-bg/80 justify-center', series[i].sample === '<current>' && 'text-dark')}
+						options={sampleOpts}
+						value={series[i].sample}
+						onChange={(val) => setSample(i, val)}
+					/>
 				</div>
 			))}
-			<div className="flex gap-3">
-				<Checkbox label="X label" k="showXLabel" />
-				<div>
-					Window:
-					<select
-						className="Borderless"
-						style={{ margin: '0 4px' }}
-						value={params.window}
-						onChange={(e) => set('window', e.target.value as any)}
-					>
-						{Object.keys(windowOptions).map((k) => (
-							<option key={k} value={k}>
-								{k}
-							</option>
-						))}
-					</select>
-				</div>
+			<div className="flex items-center">
+				<Checkbox className="pr-4" label="X label" k="showXLabel" />
+				Window:
+				<SimpleSelect
+					className="w-22"
+					value={params.window}
+					options={Object.keys(windowOptions).map((w) => [w, w])}
+					onChange={(val) => set('window', val as any)}
+				/>
 			</div>
 			<div style={{ textAlign: 'right' }}>
-				<span
-					className="TextButton"
-					title="Reset"
-					style={{ userSelect: 'none', cursor: 'pointer' }}
-					onClick={() => setParams({ forceLeft: null, forceRight: null })}
-				>
+				<Button title="Reset" onClick={() => setParams({ forceLeft: null, forceRight: null })}>
 					Limit years:
-				</span>
+				</Button>
 				<NumberInput
-					style={{ width: '4em', marginLeft: 4, padding: 0 }}
+					className="w-16 ml-1"
 					min={1950}
 					max={new Date().getUTCFullYear()}
 					value={params.forceLeft}
@@ -145,7 +114,7 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 				/>
 				;
 				<NumberInput
-					style={{ width: '4em', margin: '0 4px 0 2px', padding: 0 }}
+					className="w-16"
 					min={1950}
 					max={new Date().getUTCFullYear()}
 					value={params.forceRight}
@@ -153,17 +122,15 @@ function Menu({ params, setParams }: ContextMenuProps<HistoryParams>) {
 					allowNull={true}
 				/>
 			</div>
-			<div className="flex gap-3">
-				<Checkbox label="Merge vertical axes" k="historyOneAxis" />
-			</div>
-		</div>
+			<Checkbox label="Merge vertical axes" k="historyOneAxis" />
+		</>
 	);
 }
 
 function Panel() {
-	const { data: currentData, samples: samplesList } = useContext(SampleContext);
+	const { data: currentData, samples: samplesList } = useFeidSample();
 	const { showGrid, showMarkers, showLegend } = useEventsSettings();
-	const { columns, data: allData } = useTable();
+	const { columns, data: allData } = useTable('feid');
 	const params = usePlot<HistoryParams>();
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -189,8 +156,10 @@ function Panel() {
 			sample === '<none>'
 				? allData
 				: sample === '<current>'
-				? currentData
-				: applySample(allData, samplesList.find((s) => s.id.toString() === sample) ?? null, columns, samplesList)
+					? currentData
+					: samplesList
+						? applySample(allData, samplesList.find((s) => s.id === sample) ?? null, columns, samplesList)
+						: [],
 		);
 
 		for (let bin = 0; bin < 9999; ++bin) {
@@ -203,10 +172,10 @@ function Panel() {
 			for (const [i, { column }] of params.historySeries.entries()) {
 				if (column == null) continue;
 				const batch = samples[i].filter(
-					(row) => start <= (row[timeColIdx] as Date).getTime() && (row[timeColIdx] as Date).getTime() < end
+					(row) => start <= (row[timeColIdx] as Date).getTime() && (row[timeColIdx] as Date).getTime() < end,
 				);
 
-				const colIdx = columns.findIndex((col) => col.id === column);
+				const colIdx = columns.findIndex((col) => col.sql_name === column);
 				const val =
 					column === '<count>'
 						? batch.length
@@ -225,7 +194,7 @@ function Panel() {
 			const ch = measureDigit().width,
 				scale = scaled(1);
 			const columnNames = params.historySeries.map(({ column }) =>
-				column === '<count>' ? 'count' : columns.find((cc) => cc.id === column)?.fullName
+				column === '<count>' ? 'count' : columns.find((cc) => cc.sql_name === column)?.name,
 			);
 			const scaleNames = params.historyOneAxis
 				? [columnNames[0]]
@@ -234,8 +203,8 @@ function Panel() {
 				'<current>' === id
 					? ''
 					: '<none>' === id
-					? ' (all)'
-					: ' of ' + (samplesList.find((s) => s.id.toString() === id)?.name ?? 'UNKNOWN')
+						? ' (all)'
+						: ' of ' + (samplesList?.find((s) => s.id === id)?.name ?? 'UNKNOWN'),
 			);
 			return {
 				padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
@@ -266,14 +235,14 @@ function Panel() {
 									ch *
 										Math.max.apply(
 											null,
-											vals?.map((v) => v.length)
+											vals?.map((v) => v.length),
 										) +
 									scale * 12,
 								values: (u, vals) => vals.map((v) => v.toString()),
 								fullLabel: scl === 'count' ? 'events count' : scl,
 								label: '',
 								incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50],
-							} as uPlot.Axis)
+							}) as uPlot.Axis,
 					),
 				],
 				series: [

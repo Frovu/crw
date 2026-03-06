@@ -18,7 +18,7 @@ import { pointPaths, linePaths } from '../plotPaths';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
 import { Quadtree } from '../quadtree';
 import { color } from '../../app';
-import { useSampleOptions, type SampleOption } from './statPlotUtils';
+import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
 
@@ -49,14 +49,8 @@ const defaultParams = {
 export type CorrelationParams = typeof defaultParams;
 
 function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
-	const { columns } = useTable('feid');
 	const sampleOpts = useSampleOptions();
-	const shownColumns = useEventsSettings((st) => st.shownColumns);
-	const columnOpts = columns.filter(
-		(col) =>
-			(['integer', 'real'].includes(col.dtype) && shownColumns[col.sql_name]) ||
-			(['column0', 'column1'] as const).some((p) => params[p] === col.sql_name),
-	);
+	const columnOpts = useColumnOptions(['integer', 'real'], [params.column0, params.column1]);
 
 	return (
 		<>

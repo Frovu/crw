@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import uPlot from 'uplot';
-import { useFeidSample, useFeidTableView } from '../../events/core/feid';
+import { useFeidSample } from '../../events/core/feid';
 import { Input, NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 import type { Value } from '../../events/columns/columns';
@@ -15,7 +15,7 @@ import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../b
 import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../plotUtil';
 import { color } from '../../app';
 import { Button } from '../../components/Button';
-import { useSampleOptions, type SampleOption } from './statPlotUtils';
+import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const yScaleOptions = ['count', 'log', '%'] as const;
@@ -57,14 +57,8 @@ const defaultParams: HistogramParams = {
 };
 
 function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistogramParams>) {
-	const { columns } = useFeidTableView();
 	const sampleOpts = useSampleOptions();
-	const shownColumns = useEventsSettings((st) => st.shownColumns);
-	const columnOpts = columns.filter(
-		(c) =>
-			(['integer', 'real', 'enum'].includes(c.dtype) && shownColumns[c.sql_name]) ||
-			(['column0', 'column1', 'column2'] as const).some((p) => params[p] === c.sql_name),
-	);
+	const columnOpts = useColumnOptions(['integer', 'real', 'enum'], [params.column0, params.column1, params.column2]);
 
 	return (
 		<>
