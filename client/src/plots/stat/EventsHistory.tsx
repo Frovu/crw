@@ -142,6 +142,7 @@ function Panel() {
 		console.time('Events History data');
 		const window = windowOptions[params.window];
 		const timeColIdx = columns.findIndex((c) => c.name === 'time');
+		if (timeColIdx < 0) return [[], []];
 		const firstEvent = allData[0][timeColIdx] as Date;
 		const lastEvent = params.forceRight
 			? new Date(Date.UTC(params.forceRight, 0, 1))

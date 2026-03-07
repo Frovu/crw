@@ -2,11 +2,11 @@ from datetime import datetime, timezone
 from dataclasses import dataclass, asdict
 import ts_type
 from database import pool, log
-from psycopg.sql import SQL, Identifier
+from psycopg.sql import SQL, Identifier, Placeholder
 
 from events.changelog import ChangelogResponse, select_changelog
 from events.columns.column import Column
-from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FEID_SOURCE, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
+from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FEID_SOURCE, E_SOURCE_CH, E_SOURCE_ERUPT, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
 from events.columns.computed_column import select_computed_columns, DATA_TABLE as CC_TABLE
 
 @ts_type.gen_type
@@ -20,14 +20,14 @@ class TableDataResponse:
 		return asdict(self)
 
 
-def select_events(entity: str, uid: int|None=None, include: list[str]|None=None, changelog=False):
+def select_events(entity: str, user_id: int|None=None, include: list[str]|None=None, changelog=False):
 	if entity not in ALL_TABLES:
 		raise NameError(f'Unknown entity: \'{entity}\'')
 	
 	is_feid = entity == 'feid'
 	cols = ALL_TABLES[entity]
 	if is_feid:
-		cols = [*cols, *select_computed_columns(uid)]
+		cols = [*cols, *select_computed_columns(user_id)]
 	columns = cols if include is None else [c for c in cols if c.name in include]
 
 	col_q = SQL(',').join([c.sql_val() for c in cols])
@@ -46,35 +46,42 @@ def select_events(entity: str, uid: int|None=None, include: list[str]|None=None,
 			resp.changelog = select_changelog(conn, entity, columns)
 
 	if is_feid:
-		log.info('FEID rendered for %s', (('user #'+str(uid)) if uid is not None else 'anon'))
+		log.info('FEID rendered for %s', (('user #'+str(user_id)) if user_id is not None else 'anon'))
 	return resp.to_dict()
 
-def link_source(feid_id, entity, existing_id = None):
+def link_source(feid_id: int, entity: str, existing_id = None):
 	with pool.connection() as conn:
-		assert entity in [SOURCE_CH[0], SOURCE_ERUPT[0]]
-		se_id = existing_id or conn.execute(f'INSERT INTO events.{entity} '+\
-			'DEFAULT VALUES RETURNING id').fetchone()[0]
-		link_col = 'ch_id' if entity == SOURCE_CH[0] else 'erupt_id'
-		src_id = conn.execute(f'INSERT INTO events.{FEID_SOURCE[0]} (feid_id, {link_col}) '+
-			'VALUES (%s, %s) RETURNING id', [feid_id, se_id]).fetchone()[0]
+		assert entity in [E_SOURCE_CH, E_SOURCE_ERUPT]
+		if existing_id is not None:
+			se_id = existing_id
+		else:
+			query = SQL('INSERT INTO events.{} DEFAULT VALUES RETURNING id').format(Identifier(entity))
+			res = conn.execute(query).fetchone()
+			se_id = res and res[0]
+		link_col = 'ch_id' if entity == E_SOURCE_CH else 'erupt_id'
+		query = SQL(f'INSERT INTO events.{E_FEID} (feid_id, {{}}) VALUES (%s, %s) RETURNING id').format(Identifier(link_col))
+		res = conn.execute(query).fetchone()
+		src_id = res and res[0]
 	log.info('%s #%s linked as source #%s of #%s', entity, se_id, src_id, feid_id)
 	return { 'id': se_id, 'source_id': src_id }
 
-def delete(uid, eid, entity):
+def delete(user_id: int, event_id: int, entity: str):
 	assert entity in ALL_TABLES
 	with pool.connection() as conn:
-		conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [eid])
-	log.info('user #%s deleted %s #%s', uid, entity, eid)
+		query = SQL('DELETE FROM events.{} WHERE id = %s').format(Identifier(entity))
+		conn.execute(query, [event_id])
+	log.info('user #%s deleted %s #%s', user_id, entity, event_id)
 
-def create(uid, entity, time, duration):
+def create(user_id, entity, time, duration):
 	assert entity in ALL_TABLES
 	with pool.connection() as conn:
-		eid = conn.execute(f'INSERT INTO events.{entity} (time, duration) '+\
-			' VALUES (%s, %s) RETURNING id', [time, duration]).fetchone()[0]
-	log.info('user #%s inserted %s #%s', uid, entity, eid)
-	return eid
+		query = SQL('INSERT INTO events.{} (time, duration) VALUES (%s, %s) RETURNING id').format(Identifier(entity))
+		res = conn.execute(query, [time, duration]).fetchone()
+		event_id = res and res[0]
+	log.info('user #%s inserted %s #%s', user_id, entity, event_id)
+	return event_id
 
-def submit_changes(uid, entities):
+def submit_changes(user_id, entities):
 	with pool.connection() as conn:
 		try:
 			inserted_ids = {}
@@ -94,30 +101,33 @@ def submit_changes(uid, entities):
 							del created[f]
 
 					cols = list(created.keys())
-					inserted_id = conn.execute(f'INSERT INTO events.{entity} ({",".join(cols)}) ' +\
-						f'VALUES ({",".join(['%s' for c in cols])}) RETURNING id', list(created.values())).fetchone()[0]
+
+					cols_sql = SQL(',').join([Identifier(c) for c in cols])
+					placeholders = SQL(',').join(Placeholder() * len(cols))
+					query = SQL('INSERT INTO events.{} ({}) VALUES ({}) RETURNING id').format(Identifier(entities), cols_sql, placeholders)
+					res = conn.execute(query, list(created.values())).fetchone()
+					inserted_id = res and res[0]
 
 					inserted_ids[create_id] = inserted_id
 
 					conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, special) '+\
-						'VALUES (%s,%s,%s,%s)', [uid, inserted_id, entity, 'create'])
-					log.info(f'Event created by user #{uid}: {entity}#{inserted_id} {created.get('time', '')}')
+						'VALUES (%s,%s,%s,%s)', [user_id, inserted_id, entity, 'create'])
+					log.info(f'Event created by user #{user_id}: {entity}#{inserted_id} {created.get('time', '')}')
 
 				for deleted in entities[entity]['deleted']:
-					conn.execute(f'DELETE FROM events.{entity} WHERE id = %s', [deleted])
-					log.info(f'Event delted by user #{uid}: {entity}#{deleted}')
+					query = SQL('DELETE FROM events.{} WHERE id = %s').format(Identifier(entity))
+					conn.execute(query, [deleted])
+					log.info(f'Event delted by user #{user_id}: {entity}#{deleted}')
 
+				comp_cols = select_computed_columns(user_id)
 				for change in entities[entity]['changes']:
 					change_id, column, value, silent = [change.get(w) for w in ['id', 'column', 'value', 'silent']]
 					target_id = inserted_ids.get(change_id, change_id)
 					found_column = EDITABLE_TABLES[entity].get(column)
-					generics = not found_column and select_generics(uid)
-					found_generic = generics and next((g for g in generics if g.name == column), False)
-					if not found_column and not found_generic:
+					found_column = found_column or next((c for c in comp_cols if c.sql_name == column), None)
+					if not found_column :
 						raise ValueError(f'Column not found: {column}')
-					if found_generic and found_generic.params.operation in G_DERIVED:
-						raise ValueError(f'Can\'t edit derived generics ({found_generic.pretty_name})')
-					dtype = found_column.data_type if found_column else found_generic.data_type
+					dtype = found_column.dtype
 					new_value = value
 					if value is not None:
 						if dtype == 'time':
@@ -126,20 +136,22 @@ def submit_changes(uid, entities):
 							new_value = float(value) if value != 'auto' else None
 						if dtype == 'integer':
 							new_value = int(value) if value != 'auto' else None
-						if dtype == 'enum' and value is not None and value not in found_column.enum:
-							raise ValueError(f'Bad enum value for {found_column.pretty_name}: {value}')
-					table = 'generic_data' if found_generic else entity
-					id_col = 'feid_id' if found_generic else 'id'
+						if dtype == 'enum' and value is not None and isinstance(found_column, Column) and found_column.enum and value not in found_column.enum:
+							raise ValueError(f'Bad enum value for {found_column.name}: {value}')
+					table = entity if isinstance(found_column, Column) else CC_TABLE
+					id_col = 'id' if isinstance(found_column, Column) else 'feid_id'
 
 					if change_id not in inserted_ids:
-						res = conn.execute(f'SELECT {column} FROM events.{table} WHERE {id_col} = %s', [target_id]).fetchone()
+						query = SQL('SELECT {} FROM events.{} WHERE {} = %s').format(Identifier(column), Identifier(table), Identifier(id_col))
+						res = conn.execute(query, [target_id]).fetchone()
 						if not res or target_id in entities[entity]['deleted']:
 							raise ValueError(f'Record not found: {table} #{target_id}')
 						old_value = res[0]
 					else:
 						old_value = None
 
-					conn.execute(f'UPDATE events.{table} SET {column} = %s WHERE {id_col} = %s', [new_value, target_id])
+					query = SQL('UPDATE events.{} SET {} = %s WHERE {} = %s').format(Identifier(table), Identifier(column), Identifier(id_col))
+					conn.execute(query, [new_value, target_id])
 
 					if silent:
 						continue
@@ -150,9 +162,9 @@ def submit_changes(uid, entities):
 						else str(v) for v in [old_value, new_value_str]]
 
 					conn.execute('INSERT INTO events.changes_log (author, event_id, entity_name, column_name, old_value, new_value) '+\
-						'VALUES (%s,%s,%s,%s,%s,%s)', [uid, target_id, entity, column, old_str, new_str])
-					log.info(f'Change by user #{uid}: {entity}#{target_id} {column} {old_value} -> {new_value_str}')
+						'VALUES (%s,%s,%s,%s,%s,%s)', [user_id, target_id, entity, column, old_str, new_str])
+					log.info(f'Change by user #{user_id}: {entity}#{target_id} {column} {old_value} -> {new_value_str}')
 		except Exception as e:
 			conn.rollback()
-			log.info(f'Bad changes by user #%s, rolling back', uid)
+			log.info(f'Bad changes by user #%s, rolling back', user_id)
 			raise e
