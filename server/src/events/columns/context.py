@@ -2,9 +2,9 @@
 from events.columns.column import Column, DTYPE as COL_DTYPE
 from events.columns.computed_column import DATA_TABLE
 from events.columns.series import Series
-from events.table_structure import E_FEID, get_col_by_name
+from events.table_structure import ALL_TABLES, E_FEID, E_SOURCE_CH, ENTITY_CH, E_SOURCE_ERUPT, ENTITY_ERUPT, SOURCE_LINKS, get_col_by_name
 
-from psycopg.sql import SQL
+from psycopg.sql import SQL, Identifier
 from database import pool
 import numpy as np
 
@@ -12,6 +12,9 @@ import numpy as np
 # since it should ideally be the same for all series, it cannot be determined dynamically
 SERIES_FRAME_MARGIN_H = 320
 SERIES_FRAME_MARGIN_S = SERIES_FRAME_MARGIN_H * 3600
+
+SRC_COL_ORDERING_OPTIONS = [opt + desc for desc in ["", "_desc"] for opt in ['time', 'position', 'cme_speed'] ]
+SRC_COL_ENTITY_OPTIONS = [E_SOURCE_ERUPT, *ENTITY_ERUPT, E_SOURCE_CH, *ENTITY_CH]
 
 def	np_dtype(dtype: COL_DTYPE):
 	if dtype in ['text', 'enum']:
@@ -46,6 +49,51 @@ class ComputationContext:
 		if series.name not in self.cache:
 			self.cache[series.name] = series.fetch(self.get_series_frame())
 		return self.cache[series.name]
+	
+	def select_source_column(self, entity: str, column: Column, order: str, infl: list[str], get_count=False):
+		ids = self.select_columns_by_name(['id'])[0] # TODO: this can be optimized
+
+		is_ch = E_SOURCE_CH == entity or entity in ENTITY_CH
+		src_table = E_SOURCE_CH if is_ch else E_SOURCE_ERUPT
+		src_id_col = 'ch_id' if is_ch else 'erupt_id'
+
+		is_end_src = entity not in [E_SOURCE_CH, E_SOURCE_ERUPT]
+		target_prefix = 'tgt.' if is_end_src else 'src.'
+		prefixed_col = Identifier(target_prefix + column.sql_name)
+
+		join_end_src = ''
+		if is_end_src:
+			link_id_col, targ_id_col = SOURCE_LINKS[entity]
+			join_end_src = SQL('LEFT JOIN events.{} tgt ON src.{} = tgt.{}')\
+				.format(Identifier(entity), Identifier(link_id_col), Identifier(targ_id_col))
+		else:
+			targ_id_col = 'id'
+
+		target_val = SQL('COUNT({})').format(Identifier(target_prefix + targ_id_col)) if get_count else prefixed_col
+
+		order_by = '' 
+		if not get_count:
+			if is_ch:
+				order = 'src.time'
+			elif order.startswith('time'):
+				order = 'COALESCE(src.cme_time, src.flr_start)'
+			elif order.startswith('position'):
+				order = '|/(src.lat^2 + src.lon^2)'
+			elif order.startswith('cme_speed'):
+				order = 'src.cme_speed'
+			else:
+				assert not 'reached'
+			order_by = SQL(f'ORDER BY {{}} {"DESC" if order.endswith('desc') else "ASC"} LIMIT 1').format(order_by.replace('_desc', ''))
+
+		subquery = SQL(f'SELECT {{}} FROM events.feid_sources fsrc '+\
+			f'LEFT JOIN events.{src_table} src ON src.id = {src_id_col} {{}} '+\
+			'WHERE fsrc.feid_id = feid.id AND fsrc.cr_influence = ANY(%s) {}').format(target_val, join_end_src, order_by)
+		query = SQL('SELECT ({}) FROM unnest(%s) AS feid(id)').format(subquery)
+
+		with pool.connection() as conn:
+			curs = conn.execute(query, [infl, ids])
+			res = np.array(curs.fetchall()).astype(np_dtype(column.dtype))
+			return res
 
 	def select_columns_by_name(self, names: list[str]):
 		return self.select_columns([get_col_by_name(E_FEID, name) for name in names])

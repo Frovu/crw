@@ -5,6 +5,8 @@ from events.columns.column import Column as Col
 # FIXME: remove noaa flares
 SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = f.flr_time'
 
+INFLUENCE_ENUM = ['primary', 'secondary', 'residual']
+
 E_FEID = 'feid'
 FEID = [
 	Col(E_FEID, 'id', dtype='integer', sql_def='SERIAL PRIMARY KEY'),
@@ -106,7 +108,7 @@ FEID_SOURCE = [
 	Col(E_SRC, 'ch_id',    dtype='integer', sql_def='integer REFERENCES events.sources_ch    ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
 	Col(E_SRC, 'erupt_id', dtype='integer', sql_def='integer REFERENCES events.sources_erupt ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED'),
 
-	Col(E_SRC, 'cr_influence', dtype='enum', enum=['primary', 'secondary', 'residual']),
+	Col(E_SRC, 'cr_influence', dtype='enum', enum=INFLUENCE_ENUM),
 ]
 
 ENTITY_ERUPT = ['solarsoft_flares', 'donki_flares', 'legacy_noaa_flares', 'lasco_cmes', 'cactus_cmes', 'donki_cmes', 'r_c_icmes']
