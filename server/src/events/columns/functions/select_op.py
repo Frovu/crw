@@ -69,7 +69,7 @@ class GetSourceColumn(Function):
 		
 		assert len(args) > 1
 		entity = args[0].value
-		column = args[1].value
+		col_name = args[1].value
 		order = str(args[2].value) if len(args) > 2 else 'time'
 		infl = str(args[3].value) if len(args) > 3 else 'p,s'
 
@@ -77,10 +77,10 @@ class GetSourceColumn(Function):
 			raise ValueError(f'Bad ordering keyword: "{order}". The options are: ' + ', '.join(SRC_COL_ORDERING_OPTIONS))
 		if entity not in SRC_COL_ENTITY_OPTIONS:
 			raise ValueError(f'Unknown entity: "{entity}". The options are: ' + ', '.join(SRC_COL_ENTITY_OPTIONS))
-		column = next((col for col in ALL_TABLES[entity] if col.sql_name == column), None)
+		column = next((col for col in ALL_TABLES[entity] if col.sql_name == col_name), None)
 		if not column:
 			col_opts = ', '.join([col.sql_name for col in ALL_TABLES[entity]])
-			raise ValueError(f'Unknown column: "{column}". The options are: ' + col_opts)
+			raise ValueError(f'Unknown column: "{col_name}". The options are: ' + col_opts)
 		
 		data = ctx.select_source_column(entity, column, order, parse_infl(infl))
 

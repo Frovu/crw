@@ -193,6 +193,7 @@ export function ColumnsView() {
 								</Button>
 								{column.type === 'computed' && column.is_own && (
 									<CloseButton
+										onMouseUp={(e) => e.stopPropagation()}
 										onClick={(e) => {
 											const dependencies = samples?.filter((smpl) =>
 												smpl.filters?.find(({ column: col }) => col === sql_name),

@@ -51,17 +51,16 @@ class ComputationContext:
 		return self.cache[series.name]
 	
 	def select_source_column(self, entity: str, column: Column, order: str, infl: list[str], get_count=False):
-		ids = self.select_columns_by_name(['id'])[0] # TODO: this can be optimized
+		ids = self.select_columns_by_name(['id'])[0].tolist() # TODO: this can be optimized
 
 		is_ch = E_SOURCE_CH == entity or entity in ENTITY_CH
 		src_table = E_SOURCE_CH if is_ch else E_SOURCE_ERUPT
 		src_id_col = 'ch_id' if is_ch else 'erupt_id'
 
 		is_end_src = entity not in [E_SOURCE_CH, E_SOURCE_ERUPT]
-		target_prefix = 'tgt.' if is_end_src else 'src.'
-		prefixed_col = Identifier(target_prefix + column.sql_name)
+		target_prefix = Identifier('tgt' if is_end_src else 'src')
 
-		join_end_src = ''
+		join_end_src = SQL('')
 		if is_end_src:
 			link_id_col, targ_id_col = SOURCE_LINKS[entity]
 			join_end_src = SQL('LEFT JOIN events.{} tgt ON src.{} = tgt.{}')\
@@ -69,21 +68,21 @@ class ComputationContext:
 		else:
 			targ_id_col = 'id'
 
-		target_val = SQL('COUNT({})').format(Identifier(target_prefix + targ_id_col)) if get_count else prefixed_col
+		target_val = SQL('COUNT({}.{})').format(target_prefix, Identifier(targ_id_col)) if get_count else column.sql_val()
 
-		order_by = '' 
+		order_by = SQL('') 
 		if not get_count:
 			if is_ch:
-				order = 'src.time'
+				order_sql = 'src.time'
 			elif order.startswith('time'):
-				order = 'COALESCE(src.cme_time, src.flr_start)'
+				order_sql = 'COALESCE(src.cme_time, src.flr_start)'
 			elif order.startswith('position'):
-				order = '|/(src.lat^2 + src.lon^2)'
+				order_sql = '|/(src.lat^2 + src.lon^2)'
 			elif order.startswith('cme_speed'):
-				order = 'src.cme_speed'
+				order_sql = 'src.cme_speed'
 			else:
 				assert not 'reached'
-			order_by = SQL(f'ORDER BY {{}} {"DESC" if order.endswith('desc') else "ASC"} LIMIT 1').format(order_by.replace('_desc', ''))
+			order_by = SQL(f'ORDER BY {{}} {"DESC" if order.endswith('desc') else "ASC"} LIMIT 1').format(SQL(order_sql)) # type: ignore
 
 		subquery = SQL(f'SELECT {{}} FROM events.feid_sources fsrc '+\
 			f'LEFT JOIN events.{src_table} src ON src.id = {src_id_col} {{}} '+\
@@ -92,7 +91,7 @@ class ComputationContext:
 
 		with pool.connection() as conn:
 			curs = conn.execute(query, [infl, ids])
-			res = np.array(curs.fetchall()).astype(np_dtype(column.dtype))
+			res = np.array(curs.fetchall())[:,0].astype(np_dtype(column.dtype))
 			return res
 
 	def select_columns_by_name(self, names: list[str]):
