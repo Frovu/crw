@@ -155,7 +155,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 				</Button>
 			</div>
 			{infoOpen && (
-				<Popup className="top-1 max-h-[calc(100vh-34px)] w-[600px] flex" onClose={() => setInfoOpen(false)}>
+				<Popup className="top-1 max-h-[calc(100vh-34px)] w-[760px] flex" onClose={() => setInfoOpen(false)}>
 					<CompColumnsReference />
 				</Popup>
 			)}

@@ -12,12 +12,16 @@ functions = {
 
 helpers = {
 	'start': lambda ctx: functions['col']([str_literal('time')], ctx),
-	'end': lambda ctx: functions['add']([functions['col']([str_literal('time')], ctx), functions['col']([str_literal('duration')], ctx)], ctx)
+	'end': lambda ctx: functions['add']([functions['col']([str_literal('time')], ctx), functions['col']([str_literal('duration')], ctx)], ctx),
+	'mc_start': lambda ctx: functions['col']([str_literal('MC time')], ctx),
+	'mc_end': lambda ctx: functions['add']([functions['col']([str_literal('MC time')], ctx), functions['col']([str_literal('MC duration')], ctx)], ctx),
 }
 
 helpers_desc = {
-	'start': 'FEID start: col("time")',
-	'end': 'FEID end: col("time") + col("duration")',
+	'start': ('FEID start', 'col("time")'),
+	'end': ('FEID end', 'col("time") + col("duration")'),
+	'mc_start': ('MC start', 'col("MC time")'),
+	'mc_end': ('MC end', 'col("MC time") + col("MC duration")'),
 }
 
 @v_args(inline=True)

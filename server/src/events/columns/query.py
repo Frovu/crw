@@ -18,7 +18,7 @@ from events.columns.functions.common import Function, Value, TYPE, DTYPE, value_
 class FeidInfoResponse:
 	series: list[Series]
 	functions: dict[str, Function]
-	helpers: dict[str, str]
+	helpers: dict[str, tuple[str, str]]
 
 	def to_dict(self):
 		return asdict(self)

@@ -76,21 +76,17 @@ class SeriesOperation(Function):
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
 functions = {
-	'coverage': SeriesOperation('coverage', 'Percentage of the inteval, where given value is not null')
+	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null')
 }
 descs = {
 	'tmax': 'absolute time of the supremum for a given series within the interval',
 	'tmin': 'absolute time of the infinum for a given series within the interval',
-	'max': 'value of the supremum for a given series within the interval',
-	'min': 'value of the infinum for a given series within the interval',
+	'max': 'maximum value of a given series within the interval',
+	'min': 'minimum value of a given series within the interval',
 	'mean': 'the mean value of a given series within the interval',
 	'median': 'the median value of a given series within the interval'
 }
 for name_op in descs.keys():
 	for functor in ['', 'v', 'vt']:
 		desc = '' if functor != 'vt' else descs[name_op]
-		# if functor == 'v':
-		# 	desc += '\n\nvariations are normalized to the maximum value within the interval: b = (a - max) / (1 + max / 100)'
-		# if functor == 'vt':
-		# 	desc += ' and corrected for to the linear trend if it is positive'
 		functions[name_op+functor] = SeriesOperation(name_op, desc, normalize_variation='v' in functor, subtract_trend='t' in functor)
