@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import StrEnum
 from typing import Any
+import ts_type
 
 TYPE = StrEnum('TYPE', ['LITERAL', 'SERIES', 'COLUMN'])
 DTYPE = StrEnum('DTYPE', ['REAL', 'INT', 'TIME', 'TEXT'])
@@ -36,6 +37,7 @@ def value_to_sql_dtype(dtype: DTYPE):
 		return 'real'
 	return 'text'
 
+@ts_type.gen_type
 @dataclass
 class ArgDef:
 	name: str
@@ -43,19 +45,26 @@ class ArgDef:
 	dtypes: list[DTYPE]
 	default: str | None = None # for documentation purposes, actual implementation in evaluate()
 
+@ts_type.gen_type
+@dataclass
 class Function:
-	def __init__(self, name: str, args_def: list[ArgDef]) -> None:
+	name: str
+	desc: str
+	args: list[ArgDef]
+
+	def __init__(self, name: str, args: list[ArgDef], desc: str) -> None:
 		self.name = name
-		self.args_def = args_def
+		self.desc = desc
+		self.args = args
 
 	def validate(self, args: tuple[Value, ...]) -> None:
-		if len(args) > len(self.args_def):
-			raise TypeError(f'{self.name}() takes {len(self.args_def)} arguments, got {len(args)}')
-		for i, arg_def in enumerate(self.args_def):
+		if len(args) > len(self.args):
+			raise TypeError(f'{self.name}() takes {len(self.args)} arguments, got {len(args)}')
+		for i, arg_def in enumerate(self.args):
 			if i >= len(args):
 				if arg_def.default:
 					break
-				required_cnt = len([d for d in self.args_def if not d.default])
+				required_cnt = len([d for d in self.args if not d.default])
 				raise TypeError(f'{self.name}() requires at least {required_cnt} arguments, got {len(args)}')
 			arg = args[i]
 			if arg.type not in arg_def.types:
@@ -64,4 +73,6 @@ class Function:
 			if arg.dtype not in arg_def.dtypes:
 				supported = ' or '.join(arg_def.dtypes)
 				raise TypeError(f'{self.name}().{arg_def.name} expected type {supported}, got {arg.dtype}')
-			
+	
+	def as_dict(self):
+		return asdict(self)

@@ -1,12 +1,12 @@
 
-from operator import abs, add, sub, mul, pow, mod, truediv as div
+from operator import abs, add, sub, mul, pow, mod, truediv as div, floordiv
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 
 class UnaryOperation(Function):
-	def __init__(self, name: str, fn) -> None:
+	def __init__(self, name: str, fn, desc: str) -> None:
 		types = [t for t in TYPE]
 		dtypes = [DTYPE.REAL, DTYPE.INT]
-		super().__init__(name, [ArgDef('arg', types, dtypes)])
+		super().__init__(name, [ArgDef('value', types, dtypes)], desc)
 		self.fn = fn
 
 	def __call__(self, args: tuple[Value, ...], _) -> Value:
@@ -18,10 +18,10 @@ class UnaryOperation(Function):
 		return Value(arg.type, arg.dtype, res_value)
 
 class MathOperation(Function):
-	def __init__(self, name: str, fn) -> None:
+	def __init__(self, name: str, fn, desc: str) -> None:
 		types = [t for t in TYPE]
 		dtypes = [DTYPE.REAL, DTYPE.INT, DTYPE.TIME]
-		super().__init__(name, [ArgDef('lhs', types, dtypes), ArgDef('rhs', types, dtypes)])
+		super().__init__(name, [ArgDef('a', types, dtypes), ArgDef('b', types, dtypes)], desc)
 		self.fn = fn
 
 	def __call__(self, args: tuple[Value, ...], _) -> Value:
@@ -55,11 +55,12 @@ class MathOperation(Function):
 		return Value(res_type, res_dtype, res_value)
 	
 functions = {
-	'add': MathOperation('add', add),
-	'sub': MathOperation('sub', sub),
-	'mul': MathOperation('mul', mul),
-	'div': MathOperation('div', div),
-	'mod': MathOperation('mod', mod),
-	'pow': MathOperation('pow', pow),
-	'abs': UnaryOperation('abs', abs)
+	'add': MathOperation('add', add, 'the sum of two numbers: a + b'),
+	'sub': MathOperation('sub', sub, 'the difference of two numbers: a - b'),
+	'mul': MathOperation('mul', mul, 'the product: a * b'),
+	'div': MathOperation('div', div, 'the result of folating point division: a / b'),
+	'idiv': MathOperation('idiv', floordiv, 'the quotient of integer division: a // b'),
+	'mod': MathOperation('mod', mod, 'the remainder of integer division: a %% b'),
+	'pow': MathOperation('pow', pow, 'the exponentiation result: a ** b'),
+	'abs': UnaryOperation('abs', abs, 'the absolute value of a number: |a|')
 }

@@ -19,12 +19,12 @@ def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
 	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
 
 class SeriesOperation(Function):
-	def __init__(self, name: str, subtract_trend=False, normalize_variation=False) -> None:
+	def __init__(self, name: str, desc: str, subtract_trend=False, normalize_variation=False) -> None:
 		super().__init__(name, [
 			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
 			ArgDef('from', [TYPE.COLUMN], [DTYPE.TIME], default='@start'),
 			ArgDef('to', [TYPE.COLUMN], [DTYPE.TIME], default='@end')
-		])
+		], desc)
 		self.subtract_trend = subtract_trend
 		self.normalize_variation = normalize_variation
 
@@ -76,8 +76,21 @@ class SeriesOperation(Function):
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
 functions = {
-	'coverage': SeriesOperation('coverage')
+	'coverage': SeriesOperation('coverage', 'Percentage of the inteval, where given value is not null')
 }
-for name_op in ['tmin', 'tmax', 'min', 'max', 'mean', 'median']:
+descs = {
+	'tmax': 'absolute time of the supremum for a given series within the interval',
+	'tmin': 'absolute time of the infinum for a given series within the interval',
+	'max': 'value of the supremum for a given series within the interval',
+	'min': 'value of the infinum for a given series within the interval',
+	'mean': 'the mean value of a given series within the interval',
+	'median': 'the median value of a given series within the interval'
+}
+for name_op in descs.keys():
 	for functor in ['', 'v', 'vt']:
-		functions[name_op+functor] = SeriesOperation(name_op, normalize_variation='v' in functor, subtract_trend='t' in functor)
+		desc = '' if functor != 'vt' else descs[name_op]
+		# if functor == 'v':
+		# 	desc += '\n\nvariations are normalized to the maximum value within the interval: b = (a - max) / (1 + max / 100)'
+		# if functor == 'vt':
+		# 	desc += ' and corrected for to the linear trend if it is positive'
+		functions[name_op+functor] = SeriesOperation(name_op, desc, normalize_variation='v' in functor, subtract_trend='t' in functor)

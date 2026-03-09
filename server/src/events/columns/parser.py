@@ -5,14 +5,19 @@ from events.columns.functions import math_op, select_op, series_op
 from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
-	**math_op.functions,
 	**select_op.functions,
-	**series_op.functions
+	**series_op.functions,
+	**math_op.functions,
 }
 
 helpers = {
 	'start': lambda ctx: functions['col']([str_literal('time')], ctx),
 	'end': lambda ctx: functions['add']([functions['col']([str_literal('time')], ctx), functions['col']([str_literal('duration')], ctx)], ctx)
+}
+
+helpers_desc = {
+	'start': 'FEID start: col("time")',
+	'end': 'FEID end: col("time") + col("duration")',
 }
 
 @v_args(inline=True)

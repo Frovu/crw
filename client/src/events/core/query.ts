@@ -96,12 +96,14 @@ export function useFeidInfo() {
 		useQuery({
 			queryKey: ['feidInfo'],
 			queryFn: async () => {
-				const { series } = await apiGet<FeidInfoResponse>('events/info');
-				console.log('%cloaded info:', 'color: #0af', series);
-				return { series };
+				const { series, functions, helpers } = await apiGet<FeidInfoResponse>('events/info');
+				console.log('%cloaded info:', 'color: #0af', series, functions, helpers);
+				return { series, functions, helpers };
 			},
 		}).data ?? {
 			series: [],
+			functions: {},
+			helpers: {},
 		}
 	);
 }

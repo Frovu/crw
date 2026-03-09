@@ -11,7 +11,7 @@ class GetColumn(Function):
 		super().__init__('col', [
 			ArgDef('column_name', [TYPE.LITERAL], [DTYPE.TEXT]),
 			ArgDef('events_shift', [TYPE.LITERAL], [DTYPE.INT], default='0'),
-		])
+		], 'the values of a static FEID column')
 
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
@@ -38,7 +38,7 @@ class GetSeries(Function):
 	def __init__(self) -> None:
 		super().__init__('col', [
 			ArgDef('series_name', [TYPE.LITERAL], [DTYPE.TEXT])
-		])
+		], 'a data series, for the list of series check a special tab')
 
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)

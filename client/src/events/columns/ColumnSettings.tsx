@@ -9,6 +9,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logSuccess, logError } from '../../app';
 import { useState } from 'react';
 import { useEventsSettings } from '../core/util';
+import { Library } from 'lucide-react';
+import CompColumnsReference from './CompColumnsReference';
+import { Popup } from '../../components/Popup';
 
 function definitionIsValid(def: string) {
 	return def.length;
@@ -19,6 +22,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const { set, resetFocus, reset, ...state } = useColumnsState();
 	const { enableColumn } = useEventsSettings();
 	const [report, setReport] = useState<{ error?: string; success?: string }>({});
+	const [infoOpen, setInfoOpen] = useState(false);
 	const queryClient = useQueryClient();
 
 	const isDirty = state.isDirty();
@@ -112,16 +116,25 @@ export function ColumnSettings({ column }: { column?: Column }) {
 					onCheckedChange={(val) => set('is_public', val)}
 					disabled={inputsDisabled}
 				/>
-				<div className={cn('flex gap-1 items-center', inputsDisabled && 'opacity-50')}>
-					<div className="text-dark">Definition:</div>
-
-					<Input
-						disabled={inputsDisabled}
-						invalid={!definitionValid}
-						className="w-120 px-1 h-7"
-						value={value('definition')}
-						onChange={(e) => set('definition', e.target.value)}
-					/>
+				<div className={cn('flex items-center', inputsDisabled && 'opacity-50')}>
+					<div className="text-dark pr-1">Definition:</div>
+					<div className="flex gap-[1px] bg-input-bg">
+						<Input
+							disabled={inputsDisabled}
+							invalid={!definitionValid}
+							className="w-113 px-1 h-7"
+							value={value('definition')}
+							onChange={(e) => set('definition', e.target.value)}
+						/>
+						<Button
+							title="Open computed columns reference"
+							variant="default"
+							className="bg-input-bg border-input-bg h-7 w-7"
+							onClick={() => setInfoOpen(true)}
+						>
+							<Library size={22} className="-ml-1.5 " />
+						</Button>
+					</div>
 				</div>
 				<Button
 					disabled={loadingUpsert}
@@ -141,6 +154,11 @@ export function ColumnSettings({ column }: { column?: Column }) {
 					{isDirty ? 'Create column' : 'New column'}
 				</Button>
 			</div>
+			{infoOpen && (
+				<Popup className="top-1 max-h-[calc(100vh-34px)] w-[600px] flex" onClose={() => setInfoOpen(false)}>
+					<CompColumnsReference />
+				</Popup>
+			)}
 		</div>
 	);
 }

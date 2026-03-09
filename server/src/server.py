@@ -34,7 +34,7 @@ logging.getLogger('urllib3').propagate = False
 
 logger.critical('STARTING SERVER')
 
-from flask import Flask, session
+from flask import Flask, session, json
 from flask_session import Session
 from flask_bcrypt import Bcrypt
 from flask_compress import Compress
@@ -49,6 +49,7 @@ app.config['JSON_SORT_KEYS'] = False
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_FILE_THRESHOLD'] = 256
 app.url_map.strict_slashes = False
+json.provider.DefaultJSONProvider.sort_keys = False
 
 Session(app)
 bcrypt = Bcrypt(app)

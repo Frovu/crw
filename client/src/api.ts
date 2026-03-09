@@ -72,10 +72,23 @@ export type Series = {
 	dtype: 'real' | 'str';
 };
 
+export type ArgDef = {
+	name: string;
+	types: string[];
+	dtypes: string[];
+	default: string | null;
+};
+
+export type Function = {
+	name: string;
+	desc: string;
+	args: ArgDef[];
+};
+
 export type FeidInfoResponse = {
 	series: Series[];
-	functions: null[];
-	helpers: null[];
+	functions: { [key: string]: Function };
+	helpers: { [key: string]: string };
 };
 
 export type ChangelogEntry = {
@@ -269,6 +282,12 @@ export interface Tables {
 		gamma: number | null;
 		vmbm: number | null;
 		base_period: Date | null;
+		t_ktl: number | null;
+		d_ktl: number | null;
+		ktl_cnt: number | null;
+		t_kth: number | null;
+		d_kth: number | null;
+		kth_cnt: number | null;
 		pre_increase: number | null;
 		pre_inc_width: number | null;
 		pre_inc_direction: number | null;
