@@ -79,12 +79,12 @@ functions = {
 	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null')
 }
 descs = {
-	'tmax': 'absolute time of the supremum for a given series within the interval',
-	'tmin': 'absolute time of the infinum for a given series within the interval',
-	'max': 'maximum value of a given series within the interval',
-	'min': 'minimum value of a given series within the interval',
-	'mean': 'the mean value of a given series within the interval',
-	'median': 'the median value of a given series within the interval'
+	'tmax': 'absolute time of the supremum for a series in the [from, to] interval',
+	'tmin': 'absolute time of the infinum for a series in the [from, to] interval',
+	'max': 'maximum value of a given series in the [from, to] interval',
+	'min': 'minimum value of a given series in the [from, to] interval',
+	'mean': 'the mean value of a given series in the [from, to] interval',
+	'median': 'the median value of a given series in the [from, to] interval'
 }
 for name_op in descs.keys():
 	for functor in ['', 'v', 'vt']:

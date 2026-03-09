@@ -28,7 +28,7 @@ const incMarkerCol: SpecialColumn = {
 	description: 'event included from following samples',
 };
 
-export default function FeidTableView({ size, averages }: { size: Size; averages?: (null | number[])[] }) {
+export default function FeidTableView({ size }: { size: Size }) {
 	const { params } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { data, columns, markers } = useFeidTableView();
 	const { sample, samples } = useFeidSample();

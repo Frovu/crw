@@ -14,6 +14,8 @@ import { logError, logSuccess } from '../../app';
 import { useFeidSample } from '../core/feid';
 import { withConfirmation } from '../../components/Confirmation';
 
+const DEFAULT_COLUMNS = ['time', 'duration', 'magnitude', 'ons type', 'V max', 'B max'];
+
 export function ColumnsView() {
 	const [isOpen, setOpen] = useState(false);
 	const [search, setSearch] = useState('');
@@ -51,7 +53,15 @@ export function ColumnsView() {
 	});
 
 	useEffect(() => {
+		if (Object.keys(shownColumns).length || !columns.length) return;
+		set('shownColumns', Object.fromEntries(columns.map((col) => [col.sql_name, DEFAULT_COLUMNS.includes(col.name)])));
+	}, [shownColumns, columns]); // eslint-disable-line react-hooks/exhaustive-deps
+
+	useEffect(() => {
 		const newObj = Object.assign({}, shownColumns);
+		for (const colName in newObj) {
+			if (!columns.find((col) => col.sql_name === colName)) delete newObj[colName];
+		}
 		for (const { sql_name } of columns) {
 			if (newObj[sql_name] == null) newObj[sql_name] = false;
 		}

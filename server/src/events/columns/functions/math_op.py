@@ -45,10 +45,15 @@ class MathOperation(Function):
 			lhv, rhv = [a.value for a in args]
 
 		res_value = self.fn(lhv, rhv)
+
 		res_type = TYPE.SERIES if is_series else TYPE.COLUMN if is_column else TYPE.LITERAL
 
 		if is_time:
 			res_dtype = DTYPE.TIME
+			if self.name in ['sub']: # TIME - TIME = INT (hours)
+				res_value //= 3600
+				res_dtype = DTYPE.INT
+
 		else:
 			res_dtype = DTYPE.INT if self.name != 'div' and all(a.dtype == DTYPE.INT for a in args) else DTYPE.REAL
 

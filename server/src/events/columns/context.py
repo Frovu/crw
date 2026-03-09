@@ -52,4 +52,4 @@ class ComputationContext:
 	
 	def get_series_frame(self):
 		times = self.select_columns_by_name(['time'])[0]
-		return [times[0] - SERIES_FRAME_MARGIN_S, times[-1] + SERIES_FRAME_MARGIN_S]
+		return [int(times[0]) - SERIES_FRAME_MARGIN_S, int(times[-1]) + SERIES_FRAME_MARGIN_S]

@@ -55,7 +55,7 @@ export function TableAverages({ columns, data }: { columns: TableColumn[]; data:
 									})}
 									title={(!isLabel && val?.toString()) || ''}
 								>
-									{isLabel ? label : val ? val.toFixed?.(ari > 2 ? 3 : avgs[1] > 99 ? 1 : 2) : ''}
+									{isLabel ? label : val != null ? val.toFixed?.(ari > 2 ? 3 : avgs![1] > 99 ? 1 : 2) : ''}
 								</td>
 							);
 						})}

@@ -44,8 +44,8 @@ export const useEventsSettings = create<EventsSettings>()(
 		{
 			version: 2,
 			name: 'eventsAppSettings',
-		}
-	)
+		},
+	),
 );
 
 export type EventsPanel<T> = Panel<T> & {

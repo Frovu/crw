@@ -79,7 +79,7 @@ def _obtain_omniweb(columns, interval):
 		'start_date': dstart,
 		'end_date': dend,
 		'vars': [c.omniweb_id for c in columns]
-	}, timeout=5000, proxies=proxies)
+	}, timeout=5, proxies=proxies)
 	if r.status_code != 200:
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
 

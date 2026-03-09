@@ -109,8 +109,8 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 					supported: <b>REAL, INT, TIME, TEXT</b>. These types are determined based on the operation and operands, for
 					example <i>INT * INT = INT</i> but <i>INT / INT = REAL</i>. When <b>TIME</b> and <b>REAL, INT</b> are in the
 					same operation, all numbers are regarded as an <u>amount of hours</u>, so <i>@start + 24</i> returns event
-					start + one day. ENUM values are converted to TEXT. In the end, each expression must evaluate to{' '}
-					<b>COLUMN or LITERAL</b> to be a valid result.
+					start + one day, and also <i>TIME - TIME = INT</i>. ENUM values are converted to TEXT. In the end, each
+					expression must evaluate to <b>COLUMN or LITERAL</b> to be a valid result.
 					<br />
 				</div>
 			)}

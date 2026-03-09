@@ -79,7 +79,7 @@ export function EventsTable({
 
 	const ref = useRef<HTMLDivElement | null>(null);
 
-	const rowsHeight = size.height - 34 - (showAverages ? 98 : 0) - (showChangelog ? 62 : 0);
+	const rowsHeight = size.height - 35 - (showAverages ? 98 : 0) - (showChangelog ? 62 : 0);
 	const rowH = devicePixelRatio === 1 ? 23.5 : Math.pow(Math.E, -2.35 * devicePixelRatio + 1.6) + 23;
 	const viewSize = Math.max(0, Math.floor(rowsHeight / rowH));
 	const hRem = rowsHeight % rowH;
@@ -227,7 +227,7 @@ export function EventsTable({
 								className="relative leading-none text-sm border [clip-path:polygon(0_0,0_100%,100%_100%,100%_0)]"
 								key={col.sql_name}
 								onClick={() => entity === 'feid' && toggleSort(col.name)}
-								title={`[${col.name}] ${col.description ?? ''}`}
+								title={`[${col.name}] ${col.description || (col.type === 'computed' ? `= ${col.definition}` : '')}`}
 								style={{
 									width: col.type === 'special' ? col.width : computeColumnWidth(col),
 									height: headerHeight,
