@@ -15,7 +15,7 @@ SERIES_FRAME_MARGIN_S = SERIES_FRAME_MARGIN_H * 3600
 
 def	np_dtype(dtype: COL_DTYPE):
 	if dtype in ['text', 'enum']:
-		return 'U'
+		return 'object'
 	return 'f8'
 
 class ComputationContext:

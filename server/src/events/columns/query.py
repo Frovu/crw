@@ -51,8 +51,10 @@ def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_colu
 		val = [None if np.isnan(v) else datetime.fromtimestamp(v, timezone.utc) for v in res]
 	elif result.dtype == DTYPE.INT:
 		val = np.where(~np.isfinite(res), None, np.round(res).astype(int))
-	else:
+	elif result.dtype == DTYPE.REAL:
 		val = np.where(~np.isfinite(res), None, np.round(res, 2))
+	else:
+		val = res
 		
 	data = zip(ids, val)
 
