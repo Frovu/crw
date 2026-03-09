@@ -62,6 +62,7 @@ export function ColumnsView() {
 		setOpen((o) => !o);
 		if (!isDirty()) resetColumns();
 		resetFocus();
+		setDragging(null);
 	});
 
 	return (
@@ -121,54 +122,56 @@ export function ColumnsView() {
 						}}
 					>
 						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
-							<div key={sql_name} className="flex w-40 items-center gap-1">
+							<div
+								key={sql_name}
+								className="flex w-40 items-center gap-1"
+								onMouseEnter={(e) => {
+									if ((e.shiftKey || e.ctrlKey) && e.buttons === 1) return enableColumn(sql_name, bulkAction);
+									setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
+
+									if (!focusStick && !isDirty())
+										setCol('focusColumn', { sql_name, name, description, ...column });
+								}}
+								onMouseDown={(e) => {
+									setCol('focusColumn', { sql_name, name, description, ...column });
+									setCol('focusStick', true);
+
+									if (!e.shiftKey && !e.ctrlKey)
+										return setDragging({
+											y: e.clientY,
+											col: sql_name,
+											pos: newOrder.indexOf(sql_name),
+										});
+									const chk = !shownColumns[sql_name];
+									setBulkAction(chk);
+									enableColumn(sql_name, chk);
+								}}
+								onMouseUp={(e) => {
+									e.stopPropagation();
+									if (!drag || Math.abs(e.clientY - drag.y) < 4) {
+										if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
+											enableColumn(sql_name, !shownColumns[sql_name]);
+									} else {
+										set(
+											'shownColumns',
+											Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])),
+										);
+									}
+									setDragging(null);
+								}}
+							>
 								<Button
 									title={description ?? ''}
 									className={cn(
 										'flex gap-2 items-center text-left',
 										sql_name === focusColumn?.sql_name && 'text-active',
 									)}
-									onMouseEnter={(e) => {
-										if ((e.shiftKey || e.ctrlKey) && e.buttons === 1)
-											return enableColumn(sql_name, bulkAction);
-										setDragging((dr) => dr && { ...dr, pos: newOrder.indexOf(sql_name) });
-
-										if (!focusStick && !isDirty())
-											setCol('focusColumn', { sql_name, name, description, ...column });
-									}}
 									onClick={(e) => {
 										if (e.pageX === 0 && e.pageY === 0) {
 											setCol('focusColumn', { sql_name, name, description, ...column });
 											setCol('focusStick', true);
 											enableColumn(sql_name, !shownColumns[sql_name]);
 										}
-									}}
-									onMouseDown={(e) => {
-										setCol('focusColumn', { sql_name, name, description, ...column });
-										setCol('focusStick', true);
-
-										if (!e.shiftKey && !e.ctrlKey)
-											return setDragging({
-												y: e.clientY,
-												col: sql_name,
-												pos: newOrder.indexOf(sql_name),
-											});
-										const chk = !shownColumns[sql_name];
-										setBulkAction(chk);
-										enableColumn(sql_name, chk);
-									}}
-									onMouseUp={(e) => {
-										e.stopPropagation();
-										if (!drag || Math.abs(e.clientY - drag.y) < 4) {
-											if (e.button === 0 && !e.shiftKey && !e.ctrlKey)
-												enableColumn(sql_name, !shownColumns[sql_name]);
-										} else {
-											set(
-												'shownColumns',
-												Object.fromEntries(newOrder.map((col) => [col, shownColumns[col]])),
-											);
-										}
-										setDragging(null);
 									}}
 								>
 									{shownColumns[sql_name] ? (

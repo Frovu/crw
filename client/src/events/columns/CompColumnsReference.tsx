@@ -19,7 +19,7 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 				))}
 			</div>
 			{activeTab === 'Functions' && (
-				<div className="text-justify flex flex-col gap-2 pl-2 overflow-y-scroll">
+				<div className="text-justify flex flex-col gap-2 px-2 overflow-y-scroll">
 					{Object.entries(functions).map(([name, func]) => (
 						<div key={name}>
 							<div>
@@ -49,7 +49,7 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 				</div>
 			)}
 			{activeTab === 'Data series' && (
-				<div className="text-justify w-full flex flex-col gap-2 pl-2 overflow-y-scroll">
+				<div className="text-justify w-full flex flex-col gap-2 px-2 overflow-y-scroll">
 					<div>
 						Both the left and the right names are valid for series selection. Remember that $asd is equivalent to
 						ser("asd")
