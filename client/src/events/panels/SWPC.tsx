@@ -6,6 +6,8 @@ import { logError, logSuccess } from '../../app';
 import { LayoutContext } from '../../layout';
 import { useFeidCursor } from '../core/eventsState';
 import { useSolarPlot } from '../core/plot';
+import { Input } from '../../components/Input';
+import { Button } from '../../components/Button';
 
 type ApiData = [number, string, string][];
 type Data = (string | null)[][];
@@ -51,7 +53,7 @@ function Menu() {
 
 	return (
 		<>
-			<input
+			<Input
 				type="file"
 				onChange={(e) =>
 					e.target.files?.[0]
@@ -60,9 +62,9 @@ function Menu() {
 						.catch(() => {})
 				}
 			/>
-			<button className="TextButton" disabled={!data || isPending} onClick={onClick}>
+			<Button disabled={!data || isPending} onClick={onClick}>
 				Import SWPC data
-			</button>
+			</Button>
 		</>
 	);
 }
@@ -98,7 +100,7 @@ function Panel() {
 									'flex grow basis-0 min-h-0 overflow-clip text-[11px]',
 									offset !== 0 && 'text-text/80',
 									(offset >= 0 || (vertical && side === 1)) && 'border-t-1',
-									!vertical && side === 1 && 'border-l-1'
+									!vertical && side === 1 && 'border-l-1',
 								)}
 							>
 								<div className="border-r-1 w-5 text-center pt-[2px]" style={{}}>

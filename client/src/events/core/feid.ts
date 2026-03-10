@@ -70,7 +70,6 @@ export function useFeidTableView() {
 		const cols = ['id', ...shown]
 			.map((name) => columns.find((col) => col.sql_name === name))
 			.filter((col): col is NonNullable<typeof col> => !!col);
-		console.log(cols);
 		const enabledIdxs = cols.map((col) => columns.findIndex((cc) => cc.sql_name === col.sql_name));
 		const srtIdx = cols.findIndex((col) => col.sql_name === sort.column);
 		const sortIdx = srtIdx >= 0 ? srtIdx : cols.findIndex((col) => col.name === 'time');
@@ -96,8 +95,6 @@ export function useFeidTableView() {
 			columns: cols,
 		};
 	};
-
-	console.log(sort);
 
 	return useQuery({
 		queryKey: [

@@ -9,7 +9,7 @@ import { useEventsState } from './eventsState';
 export const compoundTables = {
 	cme: ['lasco_cmes', 'donki_cmes', 'cactus_cmes'],
 	icme: ['r_c_icmes'],
-	flare: ['solarsoft_flares', 'donki_flares'],
+	flare: ['solarsoft_flares', 'donki_flares', 'legacy_noaa_flares'],
 } as const;
 
 export type ChimeraCH = { chimera_time: Date } & Tables['chimera_holes'];
@@ -22,7 +22,7 @@ export type EruptTable = keyof EruptSrc;
 type EruptEnt = keyof EruptSrc;
 
 export type CHEnt = 'solen_holes' | 'chimera_holes';
-type EruptSrcLabel<T extends EruptEnt> = (typeof sourceLabels)[EruptSrc[T]];
+export type EruptSrcLabel<T extends EruptEnt> = (typeof sourceLabels)[EruptSrc[T]];
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 export type EruptiveEvent<T extends EruptEnt> = { src: EruptSrcLabel<T> } & Tables[EruptSrc[T]] &
@@ -110,7 +110,7 @@ export function linkEruptiveSourceEvent<T extends EruptEnt>(ent: T, event: Erupt
 			!alreadyLinked ||
 			(await askConfirmation(
 				`Replace ${event.src} ${ent}?`,
-				`${ent} from ${event.src} list is already linked to this eruption, replace?`
+				`${ent} from ${event.src} list is already linked to this eruption, replace?`,
 			));
 		if (!confirmed) return;
 
@@ -199,7 +199,7 @@ export function linkHoleSourceEvent<T extends CHEnt>(ent: T, event: Tables[T], f
 export function inputEruptionManually(
 	{ lat, lon, time }: { lat: number; lon: number; time: Date },
 	feidId: number,
-	modifyingEruptId: number | null
+	modifyingEruptId: number | null,
 ) {
 	const makeChanges = (eruptId: number) => {
 		const data = [
@@ -215,7 +215,7 @@ export function inputEruptionManually(
 				id: eruptId,
 				column,
 				value,
-			}))
+			})),
 		);
 	};
 	if (modifyingEruptId != null) return makeChanges(modifyingEruptId);

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { logSuccess, logError, color } from '../../app';
-import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent } from '../../util';
+import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent, cn } from '../../util';
+import { Button } from '../../components/Button';
 
 const ENTS = {
 	// [pretty name, is single coverage entry]
@@ -177,39 +178,30 @@ export default function CoverageControls({ date }: { date: Date }) {
 		? 0
 		: Math.max.apply(
 				null,
-				data.flatMap(({ d1, d2 }) => [d1!, d2!])
-		  );
+				data.flatMap(({ d1, d2 }) => [d1!, d2!]),
+			);
 	const colour = gaps ? 'red' : oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
 
 	return (
-		<div
-			style={{
-				position: 'absolute',
-				padding: '1px 3px 3px 3px',
-				background: color('bg'),
-				zIndex: 2,
-				border: !minified ? '1px solid' + color('border') : 'none',
-			}}
-		>
-			<table style={{ textAlign: 'center', width: 'max-content', fontSize: 14, borderCollapse: 'collapse' }}>
+		<div className={cn('absolute p-[3px] top-0 pt-0 bg-bg z-2', !minified && 'border')}>
+			<table className="text-center w-max text-sm">
 				<tbody>
 					<tr
-						style={{ cursor: 'pointer', lineHeight: minified ? 1.1 : 1.5 }}
+						className={cn('cursor-pointer')}
 						onMouseOut={() => setHovered(false)}
 						onMouseOver={() => setHovered(true)}
 					>
 						<td
-							style={{ color: color(colour === 'red' ? 'red' : 'dark'), paddingBottom: 4, width: 84 }}
-							className="TextButton"
+							className={cn('pb-1 w-[84px]', colour === 'red' ? 'text-red' : 'text-dark')}
 							onClick={() => setMinified(minified ? false : true)}
 						>
-							{hovered ? (minified ? 'expand' : 'hide') : 'coverage'}
+							<Button className="w-full h-full">{hovered ? (minified ? 'expand' : 'hide') : 'coverage'}</Button>
 						</td>
 						{minified && (
 							<td
+								className="border"
 								style={{
 									width: 62,
-									border: '1px solid ' + color('border'),
 									color: color(colour),
 									backgroundColor: color(colour, 0.2),
 								}}
@@ -218,13 +210,8 @@ export default function CoverageControls({ date }: { date: Date }) {
 							</td>
 						)}
 						{!minified && hovered && (
-							<td
-								colSpan={2}
-								style={{ width: 112 }}
-								className="TextButton"
-								onClick={() => dispatchCustomEvent('fetchAllSources')}
-							>
-								update all
+							<td colSpan={2} style={{ width: 112 }} onClick={() => dispatchCustomEvent('fetchAllSources')}>
+								<Button className="w-full h-full">update all</Button>
 							</td>
 						)}
 						{!minified && !hovered && (
