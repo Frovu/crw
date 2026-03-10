@@ -226,7 +226,7 @@ export function EventsTable({
 							<th
 								className="relative leading-none text-sm border [clip-path:polygon(0_0,0_100%,100%_100%,100%_0)]"
 								key={col.sql_name}
-								onClick={() => entity === 'feid' && toggleSort(col.name)}
+								onClick={() => entity === 'feid' && toggleSort(col.sql_name)}
 								title={`[${col.name}] ${col.description || (col.type === 'computed' ? `= ${col.definition}` : '')}`}
 								style={{
 									width: col.type === 'special' ? col.width : computeColumnWidth(col),
@@ -234,7 +234,7 @@ export function EventsTable({
 								}}
 							>
 								<div style={{ maxHeight: headerHeight }}>{col.name}</div>
-								{entity === 'feid' && sort.column === col.name && (
+								{entity === 'feid' && sort.column === col.sql_name && (
 									<div
 										className={cn(
 											'shadow-[0_0_28px_6px] absolute left-0 h-[2px] w-[calc(100%)] shadow-active',
