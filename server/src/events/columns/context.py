@@ -2,7 +2,7 @@
 from events.columns.column import Column, DTYPE as COL_DTYPE
 from events.columns.computed_column import DATA_TABLE
 from events.columns.series import Series
-from events.table_structure import ALL_TABLES, E_FEID, E_SOURCE_CH, ENTITY_CH, E_SOURCE_ERUPT, ENTITY_ERUPT, SOURCE_LINKS, get_col_by_name
+from events.table_structure import E_FEID, E_SOURCE_CH, ENTITY_CH, E_SOURCE_ERUPT, ENTITY_ERUPT, SOURCE_LINKS, get_col_by_name
 
 from psycopg.sql import SQL, Identifier
 from database import pool
@@ -14,7 +14,7 @@ SERIES_FRAME_MARGIN_H = 320
 SERIES_FRAME_MARGIN_S = SERIES_FRAME_MARGIN_H * 3600
 
 SRC_COL_ORDERING_OPTIONS = [opt + desc for desc in ["", "_desc"] for opt in ['time', 'position', 'cme_speed'] ]
-SRC_COL_ENTITY_OPTIONS = [E_SOURCE_ERUPT, *ENTITY_ERUPT, E_SOURCE_CH, *ENTITY_CH]
+SRC_COL_ENTITY_OPTIONS = ['erupt', 'ch', *ENTITY_ERUPT, *ENTITY_CH]
 
 def	np_dtype(dtype: COL_DTYPE):
 	if dtype in ['text', 'enum']:
@@ -50,7 +50,7 @@ class ComputationContext:
 			self.cache[series.name] = series.fetch(self.get_series_frame())
 		return self.cache[series.name]
 	
-	def select_source_column(self, entity: str, column: Column, order: str, infl: list[str], get_count=False):
+	def select_source_column(self, entity: str, infl: list[str], column: Column|None=None, order: str|None=None, get_count=False):
 		ids = self.select_columns_by_name(['id'])[0].tolist() # TODO: this can be optimized
 
 		is_ch = E_SOURCE_CH == entity or entity in ENTITY_CH
@@ -68,10 +68,10 @@ class ComputationContext:
 		else:
 			targ_id_col = 'id'
 
-		target_val = SQL('COUNT({}.{})').format(target_prefix, Identifier(targ_id_col)) if get_count else column.sql_val()
+		target_val = SQL('COUNT({}.{})').format(target_prefix, Identifier(targ_id_col)) if get_count else column and column.sql_val()
 
 		order_by = SQL('') 
-		if not get_count:
+		if not get_count and order:
 			if is_ch:
 				order_sql = 'src.time'
 			elif order.startswith('time'):
@@ -91,8 +91,8 @@ class ComputationContext:
 
 		with pool.connection() as conn:
 			curs = conn.execute(query, [infl, ids])
-			res = np.array(curs.fetchall())[:,0].astype(np_dtype(column.dtype))
-			return res
+			res = np.array(curs.fetchall())[:,0]
+			return res.astype(np_dtype(column.dtype)) if column else res.astype('f8')
 
 	def select_columns_by_name(self, names: list[str]):
 		return self.select_columns([get_col_by_name(E_FEID, name) for name in names])
