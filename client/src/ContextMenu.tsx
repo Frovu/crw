@@ -3,7 +3,7 @@ import { LayoutContextMenu } from './Layout';
 import { AuthContext, useContextMenuStore } from './app';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
 import { dispatchCustomEvent } from './util';
-import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/ExportPlot';
+import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/TextTransformMenu';
 import { ExportMenu } from './events/export/ExportTable';
 import { Button } from './components/Button';
 

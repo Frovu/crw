@@ -12,7 +12,7 @@ import { NumberInput } from '../../components/Input';
 import { useEventsState } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
 import { useEventsSettings, equalValues, valueToString } from '../../events/core/util';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import { pointPaths, linePaths } from '../plotPaths';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';

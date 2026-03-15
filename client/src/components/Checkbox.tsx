@@ -6,10 +6,11 @@ export type CheckboxProps = {
 	label: string;
 	checked: boolean;
 	disabled?: boolean;
-	onCheckedChange: (checked: boolean) => void;
+	readOnly?: boolean;
+	onCheckedChange?: (checked: boolean) => void;
 } & ComponentProps<'label'>;
 
-export function Checkbox({ label, checked, disabled, onCheckedChange, ...props }: CheckboxProps) {
+export function Checkbox({ label, checked, disabled, onCheckedChange, readOnly, ...props }: CheckboxProps) {
 	const className = 'flex gap-1 items-center select-none cursor-pointer active:text-active/80 hover:text-active';
 	return (
 		<label
@@ -17,7 +18,13 @@ export function Checkbox({ label, checked, disabled, onCheckedChange, ...props }
 			className={cn(className, disabled && 'text-dark hover:text-dark active:text-dark cursor-default', props.className)}
 		>
 			{label}
-			<input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onCheckedChange(e.target.checked)} />
+			<input
+				type="checkbox"
+				checked={checked}
+				disabled={disabled}
+				onChange={(e) => onCheckedChange?.(e.target.checked)}
+				readOnly={readOnly}
+			/>
 		</label>
 	);
 }

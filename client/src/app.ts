@@ -5,7 +5,7 @@ import { dispatchCustomEvent } from './util';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
-import type { TextTransformMenuDetail } from './events/export/ExportPlot';
+import type { TextTransformMenuDetail } from './events/export/ExportableUplot';
 import type { TableEntity, TableMenuDetails } from './events/tables/Table';
 
 export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
@@ -113,15 +113,15 @@ export const useAppSettings = create<AppSettings>()(
 						Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => [
 							'--color-' + name,
 							rgbaToHexa(val),
-						])
+						]),
 					),
 			}),
 			{
 				name: 'crwAppSettings',
 				partialize: ({ theme, colors }) => ({ theme, colors }),
-			}
-		)
-	)
+			},
+		),
+	),
 );
 
 export const getApp = () => useAppSettings.getState().app ?? 'feid';
@@ -147,7 +147,7 @@ export function getDefaultColor(name: string): RgbaColor {
 
 export const logMessage = (text: string, type: LogMessage['type'] = 'info') =>
 	queueMicrotask(() =>
-		useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) }))
+		useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })),
 	);
 export const logError = (txt?: any) => {
 	txt && logMessage(txt.toString(), 'error');

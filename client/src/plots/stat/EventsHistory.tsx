@@ -7,7 +7,7 @@ import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 import { usePlot } from '../../events/core/plot';
 import { useEventsSettings } from '../../events/core/util';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
 import { tooltipPlugin, legendPlugin, labelsPlugin } from '../basicPlot';

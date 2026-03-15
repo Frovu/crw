@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { basicDataQuery, tooltipPlugin, metainfoPlugin, sliceData, paddedInterval } from '../basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';
 import { usePlot } from '../../events/core/plot';
@@ -67,9 +67,9 @@ function Panel() {
 									stroke: color(COLORS[i]),
 									fill: color(reli === 'high' ? COLORS[i] : 'bg'),
 								},
-							} as uPlot.Series)
-					)
-				)
+							}) as uPlot.Series,
+					),
+				),
 			),
 		} as Omit<uPlot.Options, 'width' | 'height'>;
 	}, [params]);

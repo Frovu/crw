@@ -12,7 +12,7 @@ import {
 	getFontSize,
 } from './plotUtil';
 import uPlot from 'uplot';
-import { ExportableUplot } from '../events/export/ExportPlot';
+import { ExportableUplot } from '../events/export/ExportableUplot';
 import {
 	type BasicPlotParams,
 	type CustomAxis,

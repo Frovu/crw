@@ -7,7 +7,7 @@ import type { Value } from '../../events/columns/columns';
 import { useTable } from '../../events/core/editableTables';
 import { usePlot } from '../../events/core/plot';
 import { useEventsSettings } from '../../events/core/util';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import type { ContextMenuProps } from '../../layout';
 import { cn } from '../../util';

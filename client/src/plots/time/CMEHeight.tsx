@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../util';
 import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
 import type uPlot from 'uplot';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { color } from '../../app';
 import { useSolarPlot } from '../../events/core/plot';
 import { usePlot } from '../../events/core/plot';
@@ -33,7 +33,7 @@ function Panel() {
 				{
 					from: from - 7200,
 					to,
-				}
+				},
 			),
 	});
 

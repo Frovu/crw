@@ -193,6 +193,7 @@ export function ColumnsView() {
 								</Button>
 								{column.type === 'computed' && column.is_own && (
 									<CloseButton
+										onMouseDown={(e) => e.stopPropagation()}
 										onMouseUp={(e) => e.stopPropagation()}
 										onClick={(e) => {
 											const dependencies = samples?.filter((smpl) =>

@@ -14,7 +14,7 @@ import { useFeidSample } from '../../events/core/feid';
 import { useEventsSettings } from '../../events/core/util';
 import { usePlot } from '../../events/core/plot';
 import { applySample } from '../../events/sample/sample';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis, type CustomScale } from '../basicPlot';
 import { usePlotOverlay, scaled, getParam, measureDigit, axisDefaults } from '../plotUtil';
 

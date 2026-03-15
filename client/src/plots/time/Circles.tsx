@@ -26,7 +26,7 @@ import UplotReact from 'uplot-react';
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
 import { themeOptions } from '../../app';
-import { ExportableUplot } from '../../events/export/ExportPlot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { ValidatedInput } from '../../components/ValidatedInput';
 import type { ContextMenuProps } from '../../layout';
 import { usePlot, type Onset } from '../../events/core/plot';
@@ -264,7 +264,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 			...(unknown ? size : sz),
 			height: (unknown ? size : sz).height * (twoPlots ? (i > 0 ? 0.3 : 0.7) : 1) - (interactive ? LEGEND_H : 0),
 		}),
-		[interactive, twoPlots, size]
+		[interactive, twoPlots, size],
 	);
 
 	useLayoutEffect(() => {
@@ -479,7 +479,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 								value: (u, v, si, di) => (u.data as any)[3][1][di!] || 'NaN',
 								paths: linePaths(scaled(1.75)),
 							} as uPlot.Series,
-					  ]
+						]
 					: []),
 			],
 		});
@@ -588,7 +588,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 							{query.isFetching
 								? 'Fetching...'
 								: (query.data.excluded?.length ? 'Excluded: ' + query.data.excluded.join() : '') +
-								  (query.data.filtered ? ' Filtered: ' + query.data.filtered : '')}
+									(query.data.filtered ? ' Filtered: ' + query.data.filtered : '')}
 						</div>
 					)}
 				</div>
@@ -663,7 +663,7 @@ function circlesMomentPlotOptions(params: CirclesParams, allData: CirclesRespons
 async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(
 	params: CirclesPlotParams,
 	base?: Date,
-	moment?: number
+	moment?: number,
 ) {
 	try {
 		const res = await apiGet('cream/ros', {
@@ -907,7 +907,7 @@ export function PlotCirclesStandalone() {
 						],
 						realtime: true,
 						window: 3,
-				  }),
+					}),
 		} as CirclesPlotParams;
 	});
 

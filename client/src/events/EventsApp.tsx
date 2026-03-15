@@ -5,7 +5,8 @@ import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
 import type { EventsPanel } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
-import { ExportControls, ExportPreview, renderOne } from './export/ExportPlot';
+import { ExportControls } from './export/ExportControls';
+import { ExportPreview } from './export/ExportPreview';
 import { FeidTable } from './panels/FeidPanel';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
@@ -36,6 +37,7 @@ import { Button } from '../components/Button';
 import { PlotIntervalInput } from '../components/Input';
 import { ENLILView } from './panels/ENLIL';
 import { SFTFlare } from './panels/SFTFlare';
+import { renderPlotInANewTab } from './export/exportablePlots';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -124,7 +126,7 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 				<div className="w-full">
 					<div className="separator" />
 					{details && (
-						<Button className="h-7" onClick={() => renderOne(details.nodeId)}>
+						<Button className="h-7" onClick={() => renderPlotInANewTab(details.nodeId)}>
 							Open image in new tab
 						</Button>
 					)}
