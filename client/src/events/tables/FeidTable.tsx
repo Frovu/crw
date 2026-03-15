@@ -16,8 +16,6 @@ const sampleMarkerCol: SpecialColumn = {
 	name: '##',
 	description: 'f is for filter, + is whitelist, - is blacklist',
 };
-// onClick={(e) => }
-// if (e.ctrlKey) setPlotId(() => row[0]);
 
 const incMarkerCol: SpecialColumn = {
 	type: 'special',

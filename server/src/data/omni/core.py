@@ -204,7 +204,7 @@ def obtain(source: str, interval: list[int], group: str='all', overwrite=False):
 			if group != 'sw':
 				conn.execute('UPDATE omni SET spacecraft_id_imf = %s WHERE %s <= time AND time <= %s' +
 					(' AND sw_speed IS NULL' if not overwrite else ''), [cid, *dt_interval])
-	upsert_many('omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite)
+	upsert_many('omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite, schema='public')
 
 	return len(data)
 
@@ -221,7 +221,7 @@ def insert(var, data):
 	for row in data:
 		row[0] = datetime.utcfromtimestamp(row[0])
 	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
-	upsert_many('omni', ['time', var], data)
+	upsert_many('omni', ['time', var], data, schema='public')
 
 def select(interval: list[int], query=None, epoch=True):
 	all_series = all_column_names + SW_TYPE_DERIVED_SERIES

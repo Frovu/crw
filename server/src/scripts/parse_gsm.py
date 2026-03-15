@@ -32,7 +32,7 @@ def parse():
 				return
 	print(f'Parsed [{len(data)}] from {data[0][0]} to {data[-1][0]}')
 	print('Inserting...', end='', flush=True)
-	upsert_many('gsm_result', ['time'] + series, data)
+	upsert_many('gsm_result', ['time'] + series, data, schema='public')
 	print('done!')
 
 if __name__ == '__main__':

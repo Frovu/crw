@@ -182,13 +182,14 @@ export function EventsTable({
 
 		if (e.ctrlKey && deltaRow !== 0) {
 			let cur = clamp(0, data.length - 1, row + deltaRow);
-			if (columns[column].dtype === 'time') {
-				const curYear = (data[cur][column + 1] as Date).getUTCFullYear();
+			if (columns[column].dtype === 'time' && data[cur][column]) {
+				const val = () => data[cur][column] as Date | null;
+				const curYear = val()?.getUTCFullYear();
 
-				while ((data[cur][column + 1] as Date).getUTCFullYear() === curYear && cur > 0 && cur < data.length - 1)
+				while ((val() == null || val()?.getUTCFullYear() === curYear) && cur > 0 && cur < data.length - 1)
 					cur += deltaRow;
 			} else {
-				while (data[cur][column + 1] === null && cur > 0 && cur < data.length - 1) cur += deltaRow;
+				while (data[cur][column] === null && cur > 0 && cur < data.length - 1) cur += deltaRow;
 			}
 			return set({ entity, row: cur, column });
 		}

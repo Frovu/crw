@@ -265,7 +265,7 @@ const SampleView = forwardRef<HTMLDivElement>((props, ref) => {
 				</Button>
 			</div>
 
-			{show && sample?.filters && (
+			{show && sample?.includes && (
 				<div className="flex flex-wrap gap-[2px]">
 					{sample.includes?.map((sid) => (
 						<IncludeCard key={sid} sampleId={sid} disabled={!allowEdit} />
