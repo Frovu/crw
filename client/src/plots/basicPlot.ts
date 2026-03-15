@@ -300,6 +300,8 @@ export function sliceData(data: (number | null)[][], interval: [Date, Date]) {
 }
 
 export async function basicDataQuery(path: string, interval: [number, number], query: string[], params?: {}) {
+	for (const val of interval) if (isNaN(val)) return null;
+
 	const body = await apiGet<{ rows: (number | null)[][]; fields: string[] }>(path, {
 		from: interval[0].toFixed(0),
 		to: interval[1].toFixed(0),

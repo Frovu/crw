@@ -30,7 +30,7 @@ export function usePlot<T = {}>() {
 	const plotContext = useMemo(() => {
 		const feid = table.getById(plotId);
 
-		if (!feid) return { interval: [new Date('2023-01-03'), new Date('2023-01-08')] as [Date, Date] };
+		if (!feid) return { interval: [new Date('invalid'), new Date('invalid')] as [Date, Date] };
 
 		const plotDate = setStartAt || feid.time;
 		const baseDate = feid.base_period;
@@ -50,8 +50,8 @@ export function usePlot<T = {}>() {
 						time: new Date(+row[timeIdx]! + end * +row[table.index.duration]!),
 						type: row[table.index.onset_type],
 						secondary: setStartAt || row[0] !== plotId,
-					} as Onset)
-			)
+					}) as Onset,
+			),
 		);
 
 		if (setStartAt) onsets.push({ time: setStartAt, type: null, insert: true });
@@ -101,8 +101,8 @@ export function useSolarPlot() {
 			(cursor?.entity === 'flare'
 				? flr?.entry(flr.data[cursor.row]).start_time
 				: cursor?.entity === 'cme'
-				? cme?.entry(cme.data[cursor.row]).time
-				: erupt?.flr_start ?? erupt?.cme_time) ?? new Date((feidTime.getTime() ?? 0) - 3 * 864e5);
+					? cme?.entry(cme.data[cursor.row]).time
+					: (erupt?.flr_start ?? erupt?.cme_time)) ?? new Date((feidTime.getTime() ?? 0) - 3 * 864e5);
 		const interval = plotOffsetSolar.map((o) => new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
 
 		const flrTidx = flr?.columns.findIndex((col) => col.sql_name === 'start_time');
