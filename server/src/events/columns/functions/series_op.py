@@ -52,8 +52,8 @@ class SeriesOperation(Function):
 			func = {
 				'tmax': lambda sl: -1 if np.isnan(sl).all() else np.nanargmax(sl),
 				'tmin': lambda sl: -1 if np.isnan(sl).all() else np.nanargmin(sl),
-				'max': np.nanmax,
-				'min': np.nanmin,
+				'max': lambda sl: np.nanmax(sl, initial=-np.inf),
+				'min': lambda sl: np.nanmin(sl, initial=np.inf),
 				'mean': np.nanmean,
 				'median': np.nanmedian
 			}[self.name]

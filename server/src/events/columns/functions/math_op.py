@@ -50,7 +50,7 @@ class MathOperation(Function):
 
 		if is_time:
 			res_dtype = DTYPE.TIME
-			if self.name in ['sub']: # TIME - TIME = INT (hours)
+			if self.name in ['sub'] and args[0].dtype == args[1].dtype: # TIME - TIME = INT (hours)
 				res_value //= 3600
 				res_dtype = DTYPE.INT
 

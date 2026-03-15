@@ -133,7 +133,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistogramPa
 					allowNull={true}
 				/>
 			</div>
-			<div className="flex gap-1">
+			<div className="flex gap-2">
 				<Checkbox label="Show Y label" k="showYLabel" />
 				<Checkbox label=" mean" k="drawMean" />
 				<Checkbox label=" median" k="drawMedian" />
