@@ -26,7 +26,11 @@ export default function TextTransformsList() {
 		);
 
 	return (
-		<div className="flex flex-col gap-0.5" onMouseUp={() => setDragging(null)} onMouseLeave={() => setDragging(null)}>
+		<div
+			className="flex flex-col gap-0.5 p-[1px] pr-2"
+			onMouseUp={() => setDragging(null)}
+			onMouseLeave={() => setDragging(null)}
+		>
 			<div className="text-right flex flex-wrap max-w-100">
 				<Button
 					title="Load saved or public transforms (replace current)"

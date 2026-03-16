@@ -16,7 +16,7 @@ export function Input({ className, invalid, ...props }: InputProps) {
 type TextInputProps = {
 	value: string;
 	onSubmit?: (val: string) => void;
-} & Omit<ComponentProps<'input'>, 'value' | 'onSubmit'>;
+} & Omit<InputProps, 'value' | 'onSubmit'>;
 
 export function TextInput({ value, onSubmit, onChange, onKeyDown, onBlur, ...props }: TextInputProps) {
 	const [input, setInput] = useState(value);
