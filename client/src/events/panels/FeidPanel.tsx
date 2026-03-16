@@ -59,7 +59,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 			{feidId == null && <Button onClick={openContextMenu('tableExport', undefined, true)}>Export table</Button>}
 			{!column && role && (
 				<>
-					<Button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</Button>
+					{/* <Button onClick={() => dispatchCustomEvent('action+openImportMenu')}>Import table</Button> */}
 					<Button onClick={() => dispatchCustomEvent('computeAll')}>Recompute everything</Button>
 				</>
 			)}

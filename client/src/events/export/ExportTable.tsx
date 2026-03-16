@@ -1,6 +1,7 @@
 import { computeColumnWidth } from '../columns/columns';
 import { valueToString } from '../core/util';
 import { useFeidTableView } from '../core/feid';
+import { Button } from '../../components/Button';
 
 export function ExportMenu() {
 	const { data: shownData, columns: allColumns, markers: inc } = useFeidTableView();
@@ -29,10 +30,12 @@ export function ExportMenu() {
 			let text =
 				'Note: plaintext export option has limitations and one should consider using JSON instead' +
 				'\r\nAll whitespace in values is replaced by _, missing values are marked as N/A\r\n';
-			const widths = columns.map(computeColumnWidth);
+			const widths = columns.map((col) => Math.ceil(computeColumnWidth(col) / 16));
 			text +=
-				columns.map((col, i) => col.name.replace(/\s/g, '_').padStart(widths[i], ' '.repeat(widths[i]))).join(' ') +
-				'\r\n';
+				columns
+					.slice(1)
+					.map((col, i) => col.name.replace(/\s/g, '_').padStart(widths[i], ' '.repeat(widths[i])))
+					.join(' ') + '\r\n';
 			for (const row of data) {
 				for (const [i] of columns.entries()) {
 					const v = row[i];
@@ -62,23 +65,15 @@ export function ExportMenu() {
 	};
 
 	return (
-		<div style={{ maxWidth: 240, padding: '2px 8px' }}>
-			<button className="TextButton" onClick={doExport('json')}>
-				Download json
-			</button>
-			<button className="TextButton" onClick={doExport('txt')}>
-				Download txt
-			</button>
-			<button className="TextButton" onClick={doExport('csv')}>
-				Download csv
-			</button>
-			<button className="TextButton" onClick={doExport('csv', true)}>
-				Copy csv to clipboard
-			</button>
-			<div className="separator" style={{ margin: '6px 0' }}></div>
-			<div style={{ color: 'var(--color-dark)', fontSize: 12 }}>
+		<>
+			<Button onClick={doExport('json')}>Download json</Button>
+			<Button onClick={doExport('txt')}>Download txt</Button>
+			<Button onClick={doExport('csv')}>Download csv</Button>
+			<Button onClick={doExport('csv', true)}>Copy csv to clipboard</Button>
+			<div className="separator my-1"></div>
+			<div className="text-dark text-xs max-w-76">
 				Note that table is exported as it is currently visible: respecting selected sample, filters and enabled columns
 			</div>
-		</div>
+		</>
 	);
 }
