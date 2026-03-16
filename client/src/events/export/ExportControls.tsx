@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { SimpleSelect } from '../../components/Select';
 import { Checkbox } from '../../components/Checkbox';
 import { cn } from '../../util';
+import TextTransformsList from './TextTransformsList';
 
 async function doExportPlots(inches: number, useCm: boolean, download: boolean = false) {
 	const canvas = await renderPlotsInCanvas();
@@ -182,6 +183,7 @@ function ControlsPanel() {
 						})}
 				</div>
 				<div className="separator" />
+				<TextTransformsList />
 			</div>
 		</div>
 	);

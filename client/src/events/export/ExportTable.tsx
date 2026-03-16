@@ -3,7 +3,7 @@ import { valueToString } from '../core/util';
 import { useFeidTableView } from '../core/feid';
 
 export function ExportMenu() {
-	const { data: shownData, columns: allColumns, includeMarkers: inc } = useFeidTableView();
+	const { data: shownData, columns: allColumns, markers: inc } = useFeidTableView();
 
 	const columns = inc
 		? allColumns.concat({
@@ -11,7 +11,7 @@ export function ExportMenu() {
 				type: 'text',
 				description: 'Included in these samples (separated by ;)',
 				width: 16,
-		  } as any)
+			} as any)
 		: allColumns;
 
 	const renderText = (format: 'json' | 'csv' | 'txt') => {

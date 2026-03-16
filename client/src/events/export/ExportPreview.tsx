@@ -24,7 +24,7 @@ function PreviewPanel() {
 	}, [container, context, show, expState]);
 
 	return (
-		<div className="h-full pb-1" onClick={() => setShow(!show)}>
+		<div className="h-full pb-1 overflow-y-scroll" onClick={() => setShow(!show)}>
 			<Checkbox
 				className="pl-1"
 				label="preview plots (may be slow)"

@@ -3,7 +3,7 @@ import { cn, type BoolKeys } from '../util';
 import { useEventsSettings, type EventsSettings } from '../events/core/util';
 
 export type CheckboxProps = {
-	label: string;
+	label?: string;
 	checked: boolean;
 	disabled?: boolean;
 	readOnly?: boolean;
