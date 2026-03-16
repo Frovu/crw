@@ -72,7 +72,7 @@ def _compute_and_upsert(col: ComputedColumn, target_ids: list[int] | None = None
 	_upsert_data(col, ids, result, whole_column=not target_ids)
 	return None
 
-def upsert_column(user_id: int, json_body, col_id: int):
+def upsert_column(user_id: int, json_body, col_id: int | None):
 	name, description, definition, is_public = \
 		[json_body.get(i) for i in ('name', 'description', 'definition', 'is_public')]
 

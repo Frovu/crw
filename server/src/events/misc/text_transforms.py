@@ -1,4 +1,32 @@
 from database import pool, log
+from dataclasses import dataclass, asdict
+from datetime import datetime
+import ts_type
+
+
+@ts_type.gen_type
+@dataclass
+class TextTransform:
+	id: int
+	search: str
+	replace: str
+	enabled: bool
+
+@ts_type.gen_type
+@dataclass
+class TextTransformsSet:
+	id: int
+	author: str
+	created: datetime
+	modified: datetime
+	name: str
+	public: bool
+	transforms: list[TextTransform]
+
+@ts_type.gen_type
+@dataclass
+class TextTransformsSetsList:
+	list: list[TextTransformsSet]
 
 def _init():
 	with pool.connection() as conn:
@@ -19,8 +47,9 @@ def select(uid=None):
 		'public, created, modified, transforms FROM events.text_transform_sets ' + 
 		'WHERE public ' + ('' if uid is None else ' OR %s = author ') +\
 			'ORDER BY name', [] if uid is None else [uid])
-		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description]
-		return [{ f: val for val, f in zip(row, fields) } for row in rows]
+		rows, fields = curs.fetchall(), [desc[0] for desc in curs.description] # type: ignore
+		ts_list = [TextTransformsSet(**dict(zip(fields, row))) for row in rows]
+		return asdict(TextTransformsSetsList(ts_list))
 
 def remove(uid, name):
 	with pool.connection() as conn:

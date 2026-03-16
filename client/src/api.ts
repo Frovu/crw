@@ -134,6 +134,27 @@ export type TableDataResponse = {
     changelog: ChangelogResponse | null;
 };
 
+export type TextTransform = {
+    id: number;
+    search: string;
+    replace: string;
+    enabled: boolean;
+};
+
+export type TextTransformsSet = {
+    id: number;
+    author: string;
+    created: string;
+    modified: string;
+    name: string;
+    public: boolean;
+    transforms: TextTransform[];
+};
+
+export type TextTransformsSetsList = {
+    list: TextTransformsSet[];
+};
+
 export type Filter = {
     operation: '>=' | '<=' | '==' | '<>' | 'is null' | 'not null' | 'regexp';
     column: string;

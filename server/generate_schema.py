@@ -6,6 +6,7 @@ from events.columns.column import Column, DTYPE
 import events.columns.query
 import events.columns.computed_column
 import events.query
+import events.misc.text_transforms
 from events.source import chimera
 from events.samples import FILTER_OPS
 from events.table_structure import ALL_TABLES, SOURCE_LABELS, SOURCE_LINKS

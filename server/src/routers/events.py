@@ -217,7 +217,7 @@ def update_sample():
 @route_shielded
 def get_tts():
 	uid = session.get('uid')
-	return { 'list': tts.select(uid) }
+	return tts.select(uid)
 
 @bp.route('/text_transforms/upsert', methods=['POST'])
 @route_shielded
@@ -243,7 +243,7 @@ def remove_tts():
 @route_shielded
 @require_role('user')
 def _create_column():
-	uid = session.get('uid')
+	uid = session.get('uid') or -1
 	start = time()
 	col = comp_columns.upsert_column(uid, request.json, None)
 	return { 'column': col.as_dict(), 'time': round(time() - start, 3) }
@@ -252,7 +252,7 @@ def _create_column():
 @route_shielded
 @require_role('user')
 def _mod_column(col_id):
-	uid = session.get('uid')
+	uid = session.get('uid') or -1
 	start = time()
 	col = comp_columns.upsert_column(uid, request.json, col_id)
 	return { 'column': col.as_dict(), 'time': round(time() - start, 3) }
@@ -261,7 +261,7 @@ def _mod_column(col_id):
 @route_shielded
 @require_role('user')
 def _remove_column(col_id):
-	uid = session.get('uid')
+	uid = session.get('uid') or -1
 	comp_columns.delete_column(uid, col_id)
 	return msg('OK')
 
@@ -269,7 +269,7 @@ def _remove_column(col_id):
 @route_shielded
 @require_role('user')
 def _compute_column(col_id):
-	uid = session.get('uid')
+	uid = session.get('uid') or -1
 	return comp_columns.compute_by_id(uid, col_id)
 
 @bp.route('/compute/rows', methods=['POST'])

@@ -1,18 +1,17 @@
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { useContext, useState, useMemo } from 'react';
 import { AuthContext, closeContextMenu, color, logError, logSuccess } from '../../app';
-import type { TextTransform } from '../../plots/basicPlot';
 import { apiGet, apiPost, prettyDate } from '../../util';
 import { usePlotExportSate } from './exportablePlots';
+import type { TextTransformsSetsList } from '../../api';
 
 export type TextTransformMenuDetail = {
 	action: 'save' | 'load';
 };
+
 export function TextTransformContextMenu({ detail: { action } }: { detail: TextTransformMenuDetail }) {
-	const {
-		overrides: { textTransform: current },
-		set,
-	} = usePlotExportSate();
+	const { overrides, set } = usePlotExportSate();
+	const current = overrides.textTransform;
 	const { login } = useContext(AuthContext);
 	const [selected, setSelected] = useState<number | null>(null);
 	const [nameInput, setNameInput] = useState('');
@@ -22,7 +21,7 @@ export function TextTransformContextMenu({ detail: { action } }: { detail: TextT
 
 	const query = useQuery({
 		queryKey: ['textTransforms'],
-		queryFn: () => apiGet<{ list: TransformSet[] }>('events/text_transforms'),
+		queryFn: () => apiGet<TextTransformsSetsList>('events/text_transforms'),
 	});
 
 	const presets = useMemo(() => {

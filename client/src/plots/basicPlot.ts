@@ -18,10 +18,6 @@ import {
 } from './plotUtil';
 import type uPlot from 'uplot';
 
-export type TextTransform = {
-	search: string;
-	replace: string;
-};
 export type ScaleParams = {
 	min: number;
 	max: number;

@@ -2,8 +2,9 @@ import { type MutableRefObject, useRef, useState, useMemo } from 'react';
 import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { applyTextTransform, type BasicPlotParams, type ScaleParams, type TextTransform } from './basicPlot';
+import { applyTextTransform, type BasicPlotParams, type ScaleParams } from './basicPlot';
 import * as APP from '../app';
+import type { TextTransform } from '../api';
 
 export const color = APP.color;
 
@@ -114,7 +115,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 						const text = (showYear ? showYear + '-' : '     ') + month + '-' + day;
 						return applyTextTransform(text);
 					}),
-				captureOverrides
+				captureOverrides,
 			),
 		space: width * 5.5,
 		gap: scaled(1),
@@ -136,7 +137,7 @@ export function drawArrow(
 	dy: number,
 	tox: number,
 	toy: number,
-	hlen: number
+	hlen: number,
 ) {
 	const angle = Math.atan2(dy, dx);
 	ctx.lineTo(tox, toy);
@@ -198,7 +199,7 @@ export function markersPaths(type: Shape, sizePx: number): uPlot.Series.PathBuil
 					p.moveTo(cx + radius, cy);
 					draw(cx, cy);
 				}
-			}
+			},
 		);
 		return { fill: p, stroke: p };
 	};
@@ -354,7 +355,7 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 			},
 			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}),
-		[]
+		[],
 	);
 
 	return handle;

@@ -4,9 +4,10 @@ import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { color, getApp } from '../../app';
 import { useLayoutsStore, gapSize } from '../../layout';
-import type { ScaleParams, TextTransform } from '../../plots/basicPlot';
+import type { ScaleParams } from '../../plots/basicPlot';
 import { type PlotsOverrides, withOverrides } from '../../plots/plotUtil';
 import type { EventsPanel } from '../core/util';
+import type { TextTransform } from '../../api';
 
 type uOptions = Omit<uPlot.Options, 'width' | 'height'>;
 
@@ -16,18 +17,14 @@ type PlotEntryParams = {
 	scales: { [key: string]: ScaleParams };
 };
 
-type TranformEntry = TextTransform & { id: number; enabled: boolean };
-
-type ActualOverrides = Omit<PlotsOverrides, 'textTransform'> & { textTransform?: TranformEntry[] };
-
 type PlotExportState = {
 	inches: number;
-	overrides: ActualOverrides;
+	overrides: PlotsOverrides;
 	perPlotScales: boolean;
 	savedScales: { [id: number]: { [key: string]: ScaleParams } };
 	plots: { [nodeId: string]: PlotEntryParams };
-	set: <T extends keyof ActualOverrides>(k: T, v: ActualOverrides[T]) => void;
-	setTransform: (id: number, val: Partial<TranformEntry>) => void;
+	set: <T extends keyof PlotsOverrides>(k: T, v: PlotsOverrides[T]) => void;
+	setTransform: (id: number, val: Partial<TextTransform>) => void;
 	swapTransforms: (a: number, b: number) => void;
 	setInches: (v: number) => void;
 	addScale: (id: number, k: string, scl: ScaleParams) => void;
