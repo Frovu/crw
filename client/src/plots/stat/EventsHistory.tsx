@@ -207,6 +207,7 @@ function Panel() {
 						? ' (all)'
 						: ' of ' + (samplesList?.find((s) => s.id === id)?.name ?? 'UNKNOWN'),
 			);
+
 			return {
 				padding: [scaled(12), scaled(scaleNames.length <= 1 ? 12 : 8), 0, 0],
 				focus: { alpha: 1 },
@@ -242,7 +243,7 @@ function Panel() {
 								values: (u, vals) => vals.map((v) => v.toString()),
 								fullLabel: scl === 'count' ? 'events count' : scl,
 								label: '',
-								incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50],
+								incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 300, 500, 1e3, 1e4, 1e5, 1e6],
 							}) as uPlot.Axis,
 					),
 				],

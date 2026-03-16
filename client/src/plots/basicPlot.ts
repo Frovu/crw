@@ -230,7 +230,7 @@ export function drawCustomLabels({ params: { showLegend } }: { params: { showLeg
 				};
 
 				const parts = showLegend
-					? parseText(applyTextTransform(axis.fullLabel!)).map((n) => ({ ...n, stroke: color('text') }))
+					? parseText(applyTextTransform(axis.fullLabel)).map((n) => ({ ...n, stroke: color('text') }))
 					: rec().flatMap(([text, stroke]) => {
 							const nodes = parseText(applyTextTransform(text));
 							return nodes.map((n) => ({ ...n, stroke }));

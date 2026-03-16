@@ -45,7 +45,7 @@ export const scaled = (a: number) => a * getParam('scale');
 export const getFontSize = () => Math.round(scaled(getParam('fontSize')));
 
 export function font(sz: number | null = null, scale: boolean = false, style: string = '') {
-	const family = window.getComputedStyle(document.body).font.split(/\s+/g).slice(1).join(' ');
+	const family = window.getComputedStyle(document.body).font.split('px').at(-1);
 	const sclSize = scaled(sz ?? getParam('fontSize'));
 	const size = Math.round(scale ? sclSize * devicePixelRatio : sclSize);
 	const famOv = getParam('fontFamily');
