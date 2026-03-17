@@ -192,8 +192,8 @@ function ControlsPanel() {
 function ControlsMenu() {
 	return (
 		<>
-			<button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save text replaces</button>
-			<button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load text replaces</button>
+			<Button onClick={openContextMenu('textTransform', { action: 'save' }, true)}>Save text replaces</Button>
+			<Button onClick={openContextMenu('textTransform', { action: 'load' }, true)}>Load text replaces</Button>
 		</>
 	);
 }

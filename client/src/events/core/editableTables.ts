@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues } from './util';
-import { sourceLinks, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api';
+import {
+	sourceLinks,
+	type ChangelogEntry,
+	type ChangelogResponse,
+	type Column,
+	type StaticColumn,
+	type Tables,
+} from '../../api';
 import { useTableDataQuery } from './query';
 import { useEventsState } from './eventsState';
 import { useMemo } from 'react';
@@ -141,6 +148,16 @@ export const resetChanges = (keepData: boolean) =>
 			if (!keepData) renderTableData(state, tbl);
 		}
 	});
+
+export const getChangelogEntry = (tbl: EditableTable, eventId: number, columnSql: string) => {
+	const { changelog } = useTablesStore.getState()[tbl];
+
+	const forColumn = changelog?.events[eventId]?.[columnSql];
+
+	if (!forColumn) return null;
+
+	return forColumn.map((row) => Object.fromEntries(changelog.fields.map((f, i) => [f, row[i]])) as ChangelogEntry);
+};
 
 export function deleteEvent(tbl: EditableTable, id: number) {
 	useTablesStore.setState((st) => {

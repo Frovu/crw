@@ -3,10 +3,11 @@ import { LayoutContext, type LayoutContextType } from '../../layout';
 import { type Size } from '../../util';
 import { useEventsState } from '../core/eventsState';
 import { applySample, pickEventForSample } from '../sample/sample';
-import { EventsTable, type SpecialColumn, type TableParams } from './Table';
+import { EventsTable, type SpecialColumn, type TableColumn, type TableParams } from './Table';
 import { useFeidSample, useFeidTableView } from '../core/feid';
-import { type TableRow } from '../core/editableTables';
+import { getChangelogEntry, type TableRow } from '../core/editableTables';
 import { ChangesGadget } from '../core/changes';
+import { valueToString } from '../core/util';
 
 const sampleMarkerCol: SpecialColumn = {
 	type: 'special',
@@ -65,16 +66,12 @@ export default function FeidTableView({ size }: { size: Size }) {
 		};
 	}, [params.showIncludeMarkers, sample?.includes, samples, withSampleMarkers, data, columns]);
 
-	// const isCompModified =
-	// 	wholeChangelog &&
-	// 	columns.map((col) => {
-	// 		if (col.type !== 'computed') return false;
-	// 		const chgs = getChangelogEntry(wholeChangelog, row[0], col.sql_name)?.sort(
-	// 			(a, b) => b.time - a.time
-	// 		);
-	// 		if (!chgs?.length) return false;
-	// 		return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
-	// 	});
+	const isCompModified = (id: number, col: TableColumn) => {
+		if (col.type !== 'computed') return false;
+		const chgs = getChangelogEntry('feid', id, col.sql_name)?.sort((a, b) => b.time - a.time);
+		if (!chgs?.length) return false;
+		return chgs[0].new !== 'auto' && chgs[0].special !== 'import';
+	};
 
 	return (
 		<>
@@ -85,13 +82,19 @@ export default function FeidTableView({ size }: { size: Size }) {
 						height: size.height - 22,
 					},
 					...withIncludeMarkers,
+					entity: 'feid',
+					enableEditing: true,
+					rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
+					cellContent: (val, col, row) => (
+						<>
+							{valueToString(val)}
+							{isCompModified(row[0] as number, col) && <span className="mark-modified" />}
+						</>
+					),
 					onKeydown: (e, cursor) => {
 						if (cursor && ['-', '+', '='].includes(e.key))
 							return pickEventForSample('-' === e.key ? 'blacklist' : 'whitelist', data[cursor.row][0]);
 					},
-					entity: 'feid',
-					enableEditing: true,
-					rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
 					onClick: (e, row, column) => {
 						if (column.sql_name === '_sample') {
 							pickEventForSample(e.ctrlKey ? 'blacklist' : 'whitelist', row[0] as number);

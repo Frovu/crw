@@ -60,6 +60,14 @@ a {
 		top: 50%;
 		transform: translate(-50%, -50%);
 	}
+
+	.mark-modified::after {
+		content: '*';
+		font-size: 14px;
+		display: inline-block;
+		color: var(--color-magenta);
+		transform: translate(1px, -3px);
+	}
 }
 
 .CloseButton {

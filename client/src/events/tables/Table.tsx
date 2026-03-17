@@ -8,6 +8,7 @@ import {
 	type KeyboardEvent,
 	type WheelEvent,
 	type MouseEvent,
+	type ReactNode,
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { valueToString } from '../core/util';
@@ -52,7 +53,7 @@ type TableProps = {
 	focusIdx?: number;
 	enableEditing?: boolean;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
-	cellContent?: (val: TableValue, column: TableColumn) => string | undefined;
+	cellContent?: (val: TableValue, column: TableColumn, row: TableValue[]) => ReactNode | undefined;
 	onKeydown?: (e: KeyboardEvent, curs: Cursor) => void;
 	onClick?: (e: MouseEvent, row: TableValue[], column: TableColumn) => boolean | undefined;
 };
@@ -285,7 +286,7 @@ export function EventsTable({
 													}
 												/>
 											)}
-											{!isEditing && (cellContent?.(row[cidx], column) ?? valueToString(row[cidx]))}
+											{!isEditing && (cellContent?.(row[cidx], column, row) ?? valueToString(row[cidx]))}
 										</td>
 									);
 								})}
