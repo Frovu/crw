@@ -87,7 +87,7 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 						if (erupt && e.key === '-') return unlinkEruptiveSourceEvent(entity, entry(data[cursor.row]));
 						if (['+', '='].includes(e.key)) return linkEruptiveSourceEvent(entity, entry(data[cursor.row]));
 					},
-					rowClassName: (row, ridx) => {
+					rowClassName: (row) => {
 						const event = entry(row);
 						const link = getSourceLink(entity, event.src);
 						const isLinked = equalValues(event[link.id], linked?.[event.src]);

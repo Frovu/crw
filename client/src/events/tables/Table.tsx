@@ -53,7 +53,11 @@ type TableProps = {
 	focusIdx?: number;
 	enableEditing?: boolean;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
-	cellContent?: (val: TableValue, column: TableColumn, row: TableValue[]) => ReactNode | undefined;
+	cellContent?: (val: TableValue, column: TableColumn, ridx: number) => ReactNode | undefined;
+	inputProps?: (
+		row: TableValue[],
+		column: TableColumn,
+	) => { options?: string[]; onChange?: (val: TableValue) => void } | undefined;
 	onKeydown?: (e: KeyboardEvent, curs: Cursor) => void;
 	onClick?: (e: MouseEvent, row: TableValue[], column: TableColumn) => boolean | undefined;
 };
@@ -69,6 +73,7 @@ export function EventsTable({
 	onClick,
 	rowClassName,
 	cellContent,
+	inputProps,
 }: TableProps) {
 	const { id: nodeId, params, size: nodeSize } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
@@ -284,9 +289,10 @@ export function EventsTable({
 															value,
 														})
 													}
+													{...inputProps?.(row, column)}
 												/>
 											)}
-											{!isEditing && (cellContent?.(row[cidx], column, row) ?? valueToString(row[cidx]))}
+											{!isEditing && (cellContent?.(row[cidx], column, ridx) ?? valueToString(row[cidx]))}
 										</td>
 									);
 								})}

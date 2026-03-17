@@ -87,7 +87,7 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { name: type, isPlot, isSolar, isStat, Menu } = panel;
 	return (
-		<div className="flex flex-col gap-1 items-end select-none">
+		<div className="flex flex-col gap-1 items-end select-none [&>*]:w-full [&>*]:text-right [&>*]:justify-end">
 			{isPlot && (
 				<>
 					<div className="flex gap-2">

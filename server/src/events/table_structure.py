@@ -134,7 +134,7 @@ SOURCE_ERUPT = [
 	Col(E_ER, 'cme_speed', 'CME speed'),
 	Col(E_ER, 'cme_source', 'CME src',
 		dtype='enum',
-		enum=['LSC', 'DKI', 'CCT']),
+		enum=['LSC', 'DKI', 'CCT', 'MNL']),
 	Col(E_ER, 'note', dtype='text'),
 
 	Col(E_ER, 'solarsoft_flr_start', 'SFT FLR start', dtype='time'),

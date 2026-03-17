@@ -387,7 +387,7 @@ export interface Tables {
 		coords_source: 'FLR' | 'LSC' | 'DKI' | 'MNL' | null;
 		cme_time: Date | null;
 		cme_speed: number | null;
-		cme_source: 'LSC' | 'DKI' | 'CCT' | null;
+		cme_source: 'LSC' | 'DKI' | 'CCT' | 'MNL' | null;
 		note: string | null;
 		solarsoft_flr_start: Date | null;
 		noaa_flr_start: Date | null;

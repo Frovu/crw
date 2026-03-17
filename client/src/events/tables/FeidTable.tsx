@@ -85,10 +85,10 @@ export default function FeidTableView({ size }: { size: Size }) {
 					entity: 'feid',
 					enableEditing: true,
 					rowClassName: (row) => (plotId === row[0] ? 'text-cyan' : undefined),
-					cellContent: (val, col, row) => (
+					cellContent: (val, col, ridx) => (
 						<>
 							{valueToString(val)}
-							{isCompModified(row[0] as number, col) && <span className="mark-modified" />}
+							{isCompModified(data[ridx][0], col) && <span className="mark-modified" />}
 						</>
 					),
 					onKeydown: (e, cursor) => {

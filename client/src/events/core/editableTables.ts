@@ -100,7 +100,7 @@ const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableS
 	columns,
 	data,
 	index,
-	entry: (row: (typeof data)[number]) => tableRowAsDict<T>(row, columns),
+	entry: (row: TableValue[]) => tableRowAsDict<T>(row, columns),
 	getById: (id: number | null) => {
 		if (id === null) return null;
 		const row = data.find((r) => r[0] === id);

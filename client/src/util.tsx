@@ -75,6 +75,25 @@ export const distToSegment = (xp: number, yp: number, x1: number, y1: number, x2
 	return Math.sqrt(dsq);
 };
 
+export function binarySearch<T>(arr: T[], target: T, returnOnWidth = 0): number {
+	let left = 0;
+	let right = arr.length - 1;
+
+	while (right - left > returnOnWidth) {
+		const mid = Math.floor((left + right) / 2);
+
+		if (arr[mid] === target) return mid;
+
+		if (arr[mid] < target) {
+			left = mid + 1;
+		} else {
+			right = mid - 1;
+		}
+	}
+
+	return returnOnWidth ? left : -1;
+}
+
 export async function apiPost<T = { message?: string }>(url: string, body?: { [k: string]: any }): Promise<T> {
 	const res = await fetch(import.meta.env.VITE_API + 'api/' + url, {
 		method: 'POST',

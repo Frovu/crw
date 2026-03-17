@@ -27,6 +27,18 @@ async function fetchTable(entity: keyof Tables, chlog?: boolean) {
 				}
 			}
 		}
+
+		if (entity === 'sources_ch' || entity === 'sources_erupt') {
+			const colsNames = new Set(['id', ...tablesColumnOrder[entity], ...columns.map((col) => col.sql_name)]);
+			const indexes = [...colsNames.values().map((name) => columns.findIndex((col) => col.sql_name === name))];
+
+			return {
+				columns: indexes.map((i) => columns[i]),
+				data: data.map((row) => indexes.map((i) => row[i]) as TableRow),
+				changelog,
+			};
+		}
+
 		return { columns, data, changelog };
 	} catch (e) {
 		logError(`Fetching ${entity}: ${e}`);
