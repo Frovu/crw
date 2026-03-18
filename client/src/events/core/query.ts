@@ -9,7 +9,17 @@ const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
 	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'central_angle', 'enlil_id', 'note'],
 	icme: ['time'],
-	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed'],
+	sources_erupt: [
+		'flr_start',
+		'cme_time',
+		'lat',
+		'lon',
+		'active_region',
+		'coords_source',
+		'cme_speed',
+		'flr_source',
+		'cme_source',
+	],
 	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
 } as const;
 

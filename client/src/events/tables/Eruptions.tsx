@@ -1,12 +1,13 @@
 import { useContext, useMemo } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../../layout';
+import { LayoutContext } from '../../layout';
 import { EventsTable, type TableColumn } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { logMessage, useContextMenu, useContextMenuStore, useEventsContextMenu } from '../../app';
-import { useFeidCursor, useSelectedSource, useCurrentFeidSources, useEntityCursor } from '../core/eventsState';
+import { logMessage, useEventsContextMenu } from '../../app';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	assignCMEToErupt,
 	assignFlareToErupt,
+	compoundTables,
 	getSourceLink,
 	inputEruptionManually,
 	linkSrcToEvent,
@@ -14,11 +15,12 @@ import {
 	type EruptiveEvent,
 	type EruptSrcLabel,
 } from '../core/sourceActions';
-import { binarySearch, useEventListener } from '../../util';
+import { binarySearch, prettyDate, useEventListener } from '../../util';
 import { deleteEvent, makeSourceChanges, useTable, type TableValue } from '../core/editableTables';
-import { sourceLabels, type Tables } from '../../api';
+import { sourceLabels, sourceLinks, type Tables } from '../../api';
 import { useCompoundTable } from '../core/query';
 import { Button } from '../../components/Button';
+import { SimpleSelect } from '../../components/Select';
 
 const ENT = 'sources_erupt';
 
@@ -55,11 +57,86 @@ function switchCoordsSrc(
 	sth?: EruptiveEvent<'cme' | 'flare'>,
 ) {
 	if (opt !== 'MNL') {
-		erupt.lat = sth?.lat ?? null;
-		erupt.lon = sth?.lon ?? null;
+		erupt.lat = sth?.lat ?? erupt.lat;
+		erupt.lon = sth?.lon ?? erupt.lon;
 	}
 	erupt.coords_source = opt;
 	makeSourceChanges('sources_erupt', erupt);
+}
+
+function Menu() {
+	const { id: feidId, start } = useFeidCursor();
+	const sources = useCurrentFeidSources();
+	const menu = useEventsContextMenu<'sources_erupt'>();
+
+	const flares = useCompoundTable('flare');
+	const cmes = useCompoundTable('cme');
+
+	const { event: erupt } = menu;
+	const eruptId = erupt?.id;
+	const isLinked = sources.find((s) => s.erupt?.id === eruptId);
+
+	const [flrOptions, cmeOptions] = (['flare', 'cme'] as const).map((what) => {
+		const table = what === 'cme' ? cmes : flares;
+		if (!table || !erupt) return [];
+		return Object.values(compoundTables[what])
+			.map((ent) => {
+				const src = sourceLabels[ent];
+				const [lnkCol, idCol] = sourceLinks[ent];
+				const row = table.data?.find((r) => r[0] === src && equalValues(r[table.index[idCol as 'id']!], erupt[lnkCol]));
+				return row ? table.entry(row) : null;
+			})
+			.filter((a): a is EruptiveEvent<'cme'> | EruptiveEvent<'flare'> => !!a);
+	});
+
+	const coordsOptions = ['MNL', ...(flrOptions.length ? ['FLR'] : []), ...cmeOptions.map((cme) => cme.src)];
+
+	return (
+		eruptId && (
+			<>
+				{(
+					[
+						['coords', 'coords_source', coordsOptions],
+						['flare', 'flr_source', flrOptions.map((o) => o.src)],
+						['CME', 'cme_source', cmeOptions.map((o) => o.src)],
+					] as const
+				).map(([what, key, options]) => (
+					<div className="flex" key={what}>
+						Set {what} src:
+						<SimpleSelect
+							className="w-14 ml-1 bg-input-bg"
+							value={erupt[key]}
+							options={options.map((o) => [o, o])}
+							onChange={(val) => {
+								if (what === 'flare') switchMainFlare(erupt, flrOptions.find((flr) => flr.src === val) as any);
+								else if (what === 'CME') switchMainCME(erupt, cmeOptions.find((cme) => cme.src === val) as any);
+								else {
+									if (val === 'MNL') switchCoordsSrc(erupt, val);
+									const sth =
+										val === 'FLR'
+											? flrOptions.find((flr) => flr.src === erupt.flr_source)
+											: cmeOptions.find((cme) => cme.src === val);
+									if (sth) switchCoordsSrc(erupt, val as any, sth);
+								}
+							}}
+						/>
+					</div>
+				))}
+
+				{feidId && !isLinked && (
+					<Button onClick={() => linkSrcToEvent(ENT, eruptId, feidId)}>
+						Link to <span className="text-xs">{prettyDate(start, true)}</span> FEID
+					</Button>
+				)}
+				{feidId && isLinked && (
+					<Button onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>
+						Unlink from <span className="text-xs">{prettyDate(start, true)}</span> FEID
+					</Button>
+				)}
+				<Button onClick={() => deleteEvent(ENT, eruptId)}>Delete eruption</Button>
+			</>
+		)
+	);
 }
 
 function useAssociated<W extends 'flare' | 'cme'>(what: W) {
@@ -69,7 +146,7 @@ function useAssociated<W extends 'flare' | 'cme'>(what: W) {
 	return useMemo(() => {
 		console.time('erupt assoc ' + what);
 		// To optimize for large flares talbe we first use binary search on flares/cmes times to find approx index
-		const srcTimeColIdx = (srcTable?.index as any)[what === 'cme' ? 'time' : 'start_time'];
+		const srcTimeColIdx = (srcTable?.index as any)?.[what === 'cme' ? 'time' : 'start_time'];
 		const srcTimes = srcTable?.data.map((row) => (row[srcTimeColIdx] as Date)?.getTime());
 
 		const res = data.map((eruptRow) => {
@@ -92,33 +169,11 @@ function useAssociated<W extends 'flare' | 'cme'>(what: W) {
 	}, [data, entry, srcTable, what]);
 }
 
-function Menu() {
-	const { id: feidId } = useFeidCursor();
-	const sources = useCurrentFeidSources();
-	const menu = useEventsContextMenu<'sources_erupt'>();
-	const eruptId = menu.event?.id;
-	const isLinked = sources.find((s) => s.erupt?.id === menu?.event);
-
-	return (
-		eruptId && (
-			<>
-				{feidId && !isLinked && <Button onClick={() => linkSrcToEvent(ENT, eruptId, feidId)}>Link Erupt</Button>}
-				{feidId && isLinked && (
-					<Button onClick={() => deleteEvent('feid_sources', isLinked.source.id as number)}>Unlink Erupt</Button>
-				)}
-				<Button onClick={() => deleteEvent(ENT, eruptId)}>Delete row</Button>
-			</>
-		)
-	);
-}
-
 function Panel() {
-	const { id: nodeId, size } = useContext(LayoutContext)!;
-	const cursor = useEntityCursor(ENT);
-	const { data, columns, index, entry } = useTable(ENT);
+	const { size } = useContext(LayoutContext)!;
+	const { data, columns, entry } = useTable(ENT);
 	const selectedErupt = useSelectedSource(ENT);
 	const feidSrc = useTable('feid_sources');
-	const flares = useCompoundTable('flare');
 	const cmes = useCompoundTable('cme');
 	const sources = useCurrentFeidSources();
 	const { start: cursorTime, id: feidId } = useFeidCursor();
@@ -193,7 +248,7 @@ function Panel() {
 				enableEditing: true,
 				rowClassName: (row) => {
 					const eruptId = row[0];
-					const orphan = !feidSrc.data.find((r) => r[feidSrc.index.erupt_id] === eruptId);
+					const orphan = feidSrc.data.length && !feidSrc.data.find((r) => r[feidSrc.index.erupt_id] === eruptId);
 					if (orphan) return 'text-red';
 					const selected = eruptId === selectedErupt?.id;
 					if (selected) return 'text-cyan';
@@ -210,123 +265,6 @@ function Panel() {
 		/>
 	);
 }
-
-/*
-					return (
-						<DefaultRow
-							key={row[0]}
-							{...{ row, idx, columns: columns.slice(1), cursor, className, padRow }}
-							onClick={(e, cidx) => onClick(idx, cidx)}
-							contextMenuData={() => ({ nodeId, cell: { id: row[0] } })}
-							title={(cidx) =>
-								(cidx === 1 ? `id = ${row[0]}; ` : '') +
-								`${columns[cidx].fullName} = ${valueToString(row[cidx + 1])}`
-							}
-						>
-							{({ column, cidx: scidx, curs }) => {
-								const cidx = scidx + 1;
-								const cid = column.id;
-
-								const isLinkedModified = flare_columns[cid]
-									? (() => {
-											if (['lat', 'lon'].includes(cid) && erupt.coords_source !== 'FLR') return false; // FIXME
-											if (!flare) return !flares.data;
-											const val =
-												cid === 'flr_flux'
-													? flare.flux ?? parseFlareFlux(flare.class)
-													: flare[flare_columns[cid]];
-											return !equalValues(val, row[cidx]);
-									  })()
-									: null;
-								const flrOpts =
-									curs && ['flr_source', 'coords_source'].includes(cid)
-										? sourceLabels.flare
-												.map((flrSrc) => {
-													const [linkColId, idColId] = getSourceLink('flare', flrSrc);
-													const idColIdx = flares.columns?.findIndex((col) => col.id === idColId);
-													const flr =
-														erupt[linkColId] &&
-														flares.data?.find(
-															(r) => r[0] === flrSrc && equalValues(r[idColIdx], erupt[linkColId])
-														);
-													return flr ? (rowAsDict(flr, flares.columns!) as Flare) : null;
-												})
-												.filter((s) => s)
-										: [];
-								const cmeOpts =
-									curs && ['cme_source', 'coords_source'].includes(cid)
-										? sourceLabels.cme
-												.map((cmeSrc) => {
-													const [linkColId, idColId] = getSourceLink('cme', cmeSrc);
-													const idColIdx = cmes.columns?.findIndex((col) => col.id === idColId);
-													const cme =
-														erupt[linkColId] &&
-														cmes.data?.find(
-															(r) => r[0] === cmeSrc && equalValues(r[idColIdx], erupt[linkColId])
-														);
-													console.log(linkColId, idColId, cme);
-													return cme ? (rowAsDict(cme, cmes.columns!) as CME) : null;
-												})
-												.filter((s) => s)
-										: [];
-
-								let value = valueToString(row[cidx]);
-								if (['XF peak', 'XF end'].includes(column.name)) value = value.split(' ')[1];
-
-								if (!curs?.editing && (!curs || column.type !== 'enum'))
-									return (
-										<DefaultCell column={column}>
-											{value}
-											{isLinkedModified && <span className="ModifiedMarker" />}
-										</DefaultCell>
-									);
-
-								return (
-									<CellInput
-										{...{
-											table: ENT,
-											options:
-												cid === 'coords_source'
-													? [...(flrOpts.length ? ['FLR'] : ['']), 'MNL'].concat(
-															cmeOpts.map((c) => c!.src as string)
-													  )
-													: (cid === 'flr_source' ? flrOpts : cmeOpts)?.map((a) => a!.src as string),
-											id: row[0],
-											column,
-											value,
-											change:
-												cid === 'flr_source'
-													? (val: any) => {
-															const flr = flrOpts.find((fl) => fl!.src === val);
-															if (flr) switchMainFlare(erupt, flr);
-															return !!flr;
-													  }
-													: cid === 'cme_source'
-													? (val: any) => {
-															const cme = cmeOpts.find((fl) => fl!.src === val);
-															if (cme) switchMainCME(erupt, cme);
-															return !!cme;
-													  }
-													: cid === 'coords_source'
-													? (val: any) => {
-															if (val === 'MNL') {
-																switchCoordsSrc(erupt, val);
-																return true;
-															}
-															const obj =
-																val === 'FLR'
-																	? flrOpts.find((fl) => fl!.src === erupt.flr_source)
-																	: cmeOpts.find((fl) => fl!.src === val);
-															if (obj) switchCoordsSrc(erupt, val, obj);
-															return !!obj;
-													  }
-													: undefined,
-										}}
-									/>
-								);
-							}}
-						</DefaultRow>
-					); */
 
 export const EruptionsTable = {
 	name: 'Erupt Src Table',

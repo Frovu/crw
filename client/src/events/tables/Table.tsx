@@ -73,7 +73,6 @@ export function EventsTable({
 	onClick,
 	rowClassName,
 	cellContent,
-	inputProps,
 }: TableProps) {
 	const { id: nodeId, params, size: nodeSize } = useContext(LayoutContext) as LayoutContextType<TableParams>;
 	const { setStartAt, setEndAt, plotId, modifyId, sort, toggleSort, setCursor, escapeCursor, setEditing } = useEventsState();
@@ -289,7 +288,6 @@ export function EventsTable({
 															value,
 														})
 													}
-													{...inputProps?.(row, column)}
 												/>
 											)}
 											{!isEditing && (cellContent?.(row[cidx], column, ridx) ?? valueToString(row[cidx]))}

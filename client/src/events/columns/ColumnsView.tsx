@@ -53,20 +53,21 @@ export function ColumnsView() {
 	});
 
 	useEffect(() => {
-		if (Object.keys(shownColumns).length || !columns.length) return;
-		set('shownColumns', Object.fromEntries(columns.map((col) => [col.sql_name, DEFAULT_COLUMNS.includes(col.name)])));
-	}, [shownColumns, columns]); // eslint-disable-line react-hooks/exhaustive-deps
-
-	useEffect(() => {
+		if (!columns.length || columns.length === Object.keys(shownColumns).length) return;
 		const newObj = Object.assign({}, shownColumns);
 		for (const colName in newObj) {
 			if (!columns.find((col) => col.sql_name === colName)) delete newObj[colName];
+		}
+		for (const colName of DEFAULT_COLUMNS) {
+			const column = columns.find((col) => col.name === colName);
+			console.log(column?.name);
+			if (column && newObj[column.sql_name] == null) newObj[column.sql_name] = true;
 		}
 		for (const { sql_name } of columns) {
 			if (newObj[sql_name] == null) newObj[sql_name] = false;
 		}
 		set('shownColumns', newObj);
-	}, [columns]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [columns, set, shownColumns]);
 
 	useEventListener('action+openColumnsSelector', () => {
 		setOpen((o) => !o);
