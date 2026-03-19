@@ -4,6 +4,7 @@ import { type TableValue } from '../core/editableTables';
 import { useEventsState } from '../core/eventsState';
 import { parseColumnValue, isValidColumnValue, valueToString } from '../core/util';
 import { cn } from '../../util';
+import { SimpleSelect } from '../../components/Select';
 
 export function TableInput({
 	column,
@@ -27,28 +28,24 @@ export function TableInput({
 		setInvalid(!isOk);
 	};
 
-	const className = cn('w-full border-0 bg-active/15 text-center', invalid && 'text-red bg-red/15');
+	const className = cn('w-full h-full border-0 bg-active/15 text-center', invalid && 'text-red bg-red/15');
 
 	return (
 		<>
-			{column.dtype === 'enum' && (
-				<select
+			{column.dtype === 'enum' && column.type === 'static' && (
+				<SimpleSelect
 					autoFocus
 					className={className}
+					options={[
+						...(!column.not_null ? [[null, '<null>'] as [null, string]] : []),
+						...((options ?? column.enum)?.map((val) => [val, val] as [string, string]) ?? []),
+					]}
 					value={valueToString(value)}
-					onChange={(e) => {
-						handleChange(e, true);
+					onChange={(val) => {
+						onChange(val);
 						escapeCursor();
 					}}
-				>
-					{column.type === 'static' && !column.not_null && <option value="">&lt;null&gt;</option>}
-					{column.type === 'static' &&
-						(options ?? column.enum)?.map((val) => (
-							<option key={val} value={val}>
-								{val}
-							</option>
-						))}
-				</select>
+				/>
 			)}
 			{column.dtype !== 'enum' && (
 				<input
