@@ -5,8 +5,8 @@ import { dispatchCustomEvent } from './util';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
-import type { TextTransformMenuDetail } from './events/export/ExportableUplot';
 import type { TableEntity, TableMenuDetails } from './events/tables/Table';
+import type { TextTransformMenuDetail } from './events/export/TextTransformMenu';
 
 export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
 

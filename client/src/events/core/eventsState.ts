@@ -7,6 +7,8 @@ import type { Cursor } from '../tables/Table';
 
 export type Sort = { column: string; direction: 1 | -1 };
 
+export type FeidSource = ReturnType<typeof useCurrentFeidSources>[number];
+
 const defaultSate = {
 	cursor: null as Cursor | null,
 	sort: { column: 'time', direction: 1 } as Sort,

@@ -35,7 +35,7 @@ export function ChangesGadget() {
 							created: state[tbl].created.map((row) => tableRowAsDict(row, state[tbl].columns)),
 							deleted: state[tbl].deleted,
 						},
-					])
+					]),
 				),
 			}),
 		onError: (e) => {
@@ -57,7 +57,7 @@ export function ChangesGadget() {
 			{totalChanges === 0 ? null : (
 				<div className="group w-42 h-full text-sm flex relative" onClick={(e) => e.stopPropagation()}>
 					<div className="group-hover:invisible text-magenta">&nbsp;&nbsp;With [{totalChanges}] unsaved&nbsp;</div>
-					<div className="absolute flex invisible w-full group-hover:visible">
+					<div className="absolute flex p-[1px] invisible w-full group-hover:visible">
 						<Button className="grow text-right" onClick={() => dispatchCustomEvent('action+commitChanges')}>
 							save
 						</Button>

@@ -88,7 +88,7 @@ function CoverageEntry({
 	const border = { border: '1px solid ' + color('border') };
 	const style = (d: number | null) => {
 		const col = d == null ? 'red' : d >= ORANGE_THRESHOLD ? 'orange' : 'green';
-		return { ...border, width: 56, backgroundColor: color(col, 0.2), color: color(col) };
+		return { ...border, width: 64, backgroundColor: color(col, 0.2), color: color(col) };
 	};
 
 	return (
@@ -114,7 +114,7 @@ function CoverageEntry({
 			{isIdle && !hovered && (
 				<>
 					<td style={style(d1)}>{d1 == null ? 'N/A' : `T-${d1.toFixed()}d`}</td>
-					{<td style={style(d2)}>{d2 == null ? 'N/A' : `T-${d2.toFixed()}d`}</td>}
+					<td style={style(d2)}>{d2 == null ? 'N/A' : `T-${d2.toFixed()}d`}</td>
 				</>
 			)}
 		</tr>
@@ -183,8 +183,8 @@ export default function CoverageControls({ date }: { date: Date }) {
 	const colour = gaps ? 'red' : oldest && oldest >= ORANGE_THRESHOLD ? 'orange' : 'green';
 
 	return (
-		<div className={cn('absolute p-[3px] top-0 pt-0 bg-bg z-2', !minified && 'border')}>
-			<table className="text-center w-max text-sm">
+		<div className={cn('absolute top-0 pt-0 bg-bg z-2', !minified && 'border')}>
+			<table className="text-center w-max text-sm table-fixed">
 				<tbody>
 					<tr
 						className={cn('cursor-pointer')}
@@ -192,15 +192,19 @@ export default function CoverageControls({ date }: { date: Date }) {
 						onMouseOver={() => setHovered(true)}
 					>
 						<td
-							className={cn('pb-1 w-[84px]', colour === 'red' ? 'text-red' : 'text-dark')}
+							className={cn(
+								'pb-1',
+								minified ? 'w-[75px]' : 'w-[100px]',
+								colour === 'red' ? 'text-red' : 'text-dark',
+							)}
 							onClick={() => setMinified(minified ? false : true)}
 						>
-							<Button className="w-full h-full">{hovered ? (minified ? 'expand' : 'hide') : 'coverage'}</Button>
+							<Button className="w-full">{hovered ? (minified ? 'expand' : 'hide') : 'coverage'}</Button>
 						</td>
 						{minified && (
 							<td
-								className="border"
 								style={{
+									height: 10,
 									width: 62,
 									color: color(colour),
 									backgroundColor: color(colour, 0.2),
@@ -210,7 +214,7 @@ export default function CoverageControls({ date }: { date: Date }) {
 							</td>
 						)}
 						{!minified && hovered && (
-							<td colSpan={2} style={{ width: 112 }} onClick={() => dispatchCustomEvent('fetchAllSources')}>
+							<td colSpan={2} width={128} onClick={() => dispatchCustomEvent('fetchAllSources')}>
 								<Button className="w-full h-full">update all</Button>
 							</td>
 						)}

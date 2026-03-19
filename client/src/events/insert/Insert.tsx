@@ -1,20 +1,20 @@
-import { useContext, type MouseEvent } from 'react';
-import { color, logSuccess, openContextMenu, useContextMenuStore } from '../../app';
+import { type MouseEvent } from 'react';
+import { color, logSuccess, useContextMenuStore } from '../../app';
 import { cn, prettyDate, useEventListener } from '../../util';
 import CoverageControls from './CoverageControls';
-import { LayoutContext, openWindow } from '../../layout';
+import { openWindow } from '../../layout';
 import { createFeid, deleteEvent, getTable, linkSource, makeChange, useTable } from '../core/editableTables';
-import { useFeidCursor, useEventsState, useCurrentFeidSources } from '../core/eventsState';
-import { getSourceLink, type EruptSrcLabel, type EruptTable } from '../core/sourceActions';
-import type { StaticColumn, Tables } from '../../api';
+import { useFeidCursor, useEventsState, useCurrentFeidSources, type FeidSource } from '../core/eventsState';
+import type { StaticColumn } from '../../api';
 import { Button } from '../../components/Button';
 import { NumberInput, TextInput } from '../../components/Input';
+import SourcesList from './SourcesList';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
 function Menu() {
 	const { id: feidId } = useFeidCursor();
-	const detail = useContextMenuStore((state) => state.menu?.detail) as { source: Tables['feid_sources'] } | undefined;
+	const detail = useContextMenuStore((state) => state.menu?.detail) as FeidSource | undefined;
 
 	return (
 		<>
@@ -60,7 +60,6 @@ function Panel() {
 	const { modifyId, setStartAt, setEndAt, plotId, modifySourceId, setStart, setEnd, setModify, setModifySource, setPlotId } =
 		useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
-	const { id: nodeId } = useContext(LayoutContext)!;
 	const { columns } = useTable('feid');
 	const sources = useCurrentFeidSources();
 
@@ -68,8 +67,6 @@ function Panel() {
 	const isMove = !isLink && modifyId != null;
 	const isInsert = !isMove && (setStartAt != null || setEndAt != null);
 	const isIdle = !isMove && !isInsert && !isLink;
-
-	const srcs = useTable('feid_sources');
 
 	const escape = () => {
 		setModifySource(null);
@@ -146,8 +143,6 @@ function Panel() {
 	if (plotId == null || feidId == null || !start)
 		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
 
-	const errNoPrimary = !sources.find((s) => s.source.cr_influence === 'primary');
-
 	const cycle = (which: 'onset_type' | 's_confidence', dir: -1 | 1) => {
 		const column = columns.find((c) => c.sql_name === which) as StaticColumn;
 		const opts = column.enum!.concat(which === 'onset_type' ? ([null] as any) : []);
@@ -155,47 +150,16 @@ function Panel() {
 		makeChange('feid', { column: column.sql_name, value, id: feidId, fast: true });
 	};
 
-	const cycleInfl = (src: (typeof sources)[number], dir: -1 | 1) => {
-		const column = srcs.columns?.find((c) => c.sql_name === 'cr_influence')!;
-		const opts = column.enum!;
-		const value = opts[(opts.length + opts.indexOf(src.source.cr_influence as any) + dir) % opts.length];
-		makeChange('feid_sources', { column: column.sql_name, value, id: src.source.id, fast: true });
-	};
-
-	const InflButton = ({ src }: { src: (typeof sources)[number] }) => {
-		const infl = src.source.cr_influence;
-		const inflColor =
-			{ primary: 'text-green', secondary: 'text-text', residual: 'text-dark', def: 'text-red' }[infl ?? 'def'] ??
-			'text-red';
-		return (
-			<td
-				className={cn('min-w-[80px]', inflColor)}
-				onContextMenu={(e) => {
-					e.stopPropagation();
-					e.preventDefault();
-					cycleInfl(src, -1);
-				}}
-				onClick={(e) => {
-					e.stopPropagation();
-					cycleInfl(src, 1);
-				}}
-				onWheel={(e) => cycleInfl(src, e.deltaY > 0 ? 1 : -1)}
-			>
-				<Button className="w-full">{infl ? infl : 'Infl: N/A'}</Button>
-			</td>
-		);
-	};
-
 	const foundFlr = sources.find((s) => s.erupt?.flr_start?.getTime() === feid.flr_time?.getTime());
 	const foundCme = sources.find((s) => s.erupt?.cme_time?.getTime() === feid.cme_time?.getTime());
 
 	return (
-		<div className="flex flex-col h-full p-[1px] text-center text-sm overflow-y-scroll">
+		<div className="flex flex-col h-full p-[2px] text-center text-sm overflow-y-scroll">
 			<div className="flex flex-wrap ">
-				<div className="relative w-[154px] h-[26px] pt-[2px]">
+				<div className="relative w-[140px] h-[26px] pt-[2px]">
 					<CoverageControls date={start} />
 				</div>
-				<div className="flex grow max-w-[163px] text-white gap-0.5 pb-[1px]">
+				<div className="flex grow max-w-[163px] text-white gap-0.5 pb-[2px]">
 					{(isIdle || isInsert) && (
 						<Button variant="default" className="grow" onClick={isInsert ? handleEnter : toggle('insert')}>
 							Insert
@@ -213,224 +177,121 @@ function Panel() {
 					)}
 				</div>
 			</div>
-			<div className="px-[1px]">
-				<table className="[&_td]:border whitespace-nowrap">
-					<tbody>
-						<tr className="h-[23px]">
-							<td className={cn('w-[64px]', !isIdle && 'text-magenta')}>
-								{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}
-							</td>
-							<td title="Event onset time" colSpan={2} className="text-dark">
-								{prettyDate(start)}
-							</td>
-							<td title="Event duration in hours" className="w-[48px] text-dark">
-								+{duration}
-							</td>
-						</tr>
-						<tr className="h-[25px]">
-							<td
-								title="Event onset type"
-								className={cn(feid.onset_type == null && 'text-dark')}
-								onContextMenu={(e) => {
-									e.stopPropagation();
-									e.preventDefault();
-									cycle('onset_type', -1);
-								}}
-								onClick={(e) => {
-									e.stopPropagation();
-									cycle('onset_type', 1);
-								}}
-								onWheel={(e) => cycle('onset_type', e.deltaY > 0 ? 1 : -1)}
-							>
-								<Button className="w-full">{feid.onset_type ? feid.onset_type : 'ons'}</Button>
-							</td>
-							<td className="w-[64px] pl-1" title="Source type number">
-								stype
-								<NumberInput
-									className="w-10 ml-[6px]"
-									value={feid.s_type}
-									onChange={(value) =>
-										makeChange('feid', { id: feidId, column: 's_type', value, fast: true })
-									}
-								/>
-								<span style={{ paddingLeft: 2, color: color('dark', 0.3) }}>(0)</span>
-							</td>
-							<td
-								title="Source identification confidence"
-								colSpan={2}
-								onContextMenu={(e) => {
-									e.stopPropagation();
-									e.preventDefault();
-									cycle('s_confidence', -1);
-								}}
-								onClick={(e) => {
-									e.stopPropagation();
-									cycle('s_confidence', 1);
-								}}
-								onWheel={(e) => cycle('s_confidence', e.deltaY > 0 ? 1 : -1)}
-							>
-								<Button className="w-[83px]">
-									conf
-									<span
-										className={cn(
-											'pl-1',
-											{ low: 'text-orange', avg: 'text-text', high: 'text-green', none: 'text-red' }[
-												feid.s_confidence ?? 'none'
-											],
-										)}
-									>
-										{feid.s_confidence ?? 'N/A'}
-									</span>
-								</Button>
-							</td>
-						</tr>
-						{(feid.flr_time || feid.cme_time) && (
-							<tr className="text-xs">
-								<td colSpan={4}>
-									<div className="flex justify-evenly">
-										{feid.flr_time && (
-											<div className={cn(foundFlr ? 'text-green' : 'text-red')}>
-												flr {prettyDate(feid.flr_time).slice(5, 16)}
-											</div>
-										)}
-										{feid.cme_time && (
-											<div className={cn(foundCme ? 'text-green' : 'text-red')}>
-												cme {prettyDate(feid.cme_time).slice(5, 16)}
-											</div>
-										)}
-									</div>
-								</td>
-							</tr>
-						)}
-						<tr title="Source description">
+			<table className="[&_td]:border whitespace-nowrap max-w-80">
+				<tbody>
+					<tr className="h-[23px]">
+						<td className={cn('w-[64px]', !isIdle && 'text-magenta')}>
+							{setEndAt ? 'SET END' : isInsert ? 'INSERT' : isMove ? 'MOVE' : isLink ? 'LINK' : 'VIEW'}
+						</td>
+						<td title="Event onset time" colSpan={2} className="text-dark">
+							{prettyDate(start)}
+						</td>
+						<td title="Event duration in hours" className="w-[48px] text-dark">
+							+{duration}
+						</td>
+					</tr>
+					<tr className="h-[25px]">
+						<td
+							title="Event onset type"
+							className={cn(feid.onset_type == null && 'text-dark')}
+							onContextMenu={(e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								cycle('onset_type', -1);
+							}}
+							onClick={(e) => {
+								e.stopPropagation();
+								cycle('onset_type', 1);
+							}}
+							onWheel={(e) => cycle('onset_type', e.deltaY > 0 ? 1 : -1)}
+						>
+							<Button className="w-full">{feid.onset_type ? feid.onset_type : 'ons'}</Button>
+						</td>
+						<td className="w-[64px] pl-1" title="Source type number">
+							stype
+							<NumberInput
+								className="w-10 ml-[6px]"
+								value={feid.s_type}
+								onChange={(value) => makeChange('feid', { id: feidId, column: 's_type', value, fast: true })}
+							/>
+							<span style={{ paddingLeft: 2, color: color('dark', 0.3) }}>(0)</span>
+						</td>
+						<td
+							title="Source identification confidence"
+							colSpan={2}
+							onContextMenu={(e) => {
+								e.stopPropagation();
+								e.preventDefault();
+								cycle('s_confidence', -1);
+							}}
+							onClick={(e) => {
+								e.stopPropagation();
+								cycle('s_confidence', 1);
+							}}
+							onWheel={(e) => cycle('s_confidence', e.deltaY > 0 ? 1 : -1)}
+						>
+							<Button className="w-[83px]">
+								conf
+								<span
+									className={cn(
+										'pl-1',
+										{ low: 'text-orange', avg: 'text-text', high: 'text-green', none: 'text-red' }[
+											feid.s_confidence ?? 'none'
+										],
+									)}
+								>
+									{feid.s_confidence ?? 'N/A'}
+								</span>
+							</Button>
+						</td>
+					</tr>
+					{(feid.flr_time || feid.cme_time) && (
+						<tr className="text-xs">
 							<td colSpan={4}>
-								<TextInput
-									className="w-full"
-									value={feid.s_description ?? ''}
-									onSubmit={(value) =>
-										makeChange('feid', {
-											id: feidId,
-											column: 's_description',
-											value: value || null,
-										})
-									}
-								/>
+								<div className="flex justify-evenly">
+									{feid.flr_time && (
+										<div className={cn(foundFlr ? 'text-green' : 'text-red')}>
+											flr {prettyDate(feid.flr_time).slice(5, 16)}
+										</div>
+									)}
+									{feid.cme_time && (
+										<div className={cn(foundCme ? 'text-green' : 'text-red')}>
+											cme {prettyDate(feid.cme_time).slice(5, 16)}
+										</div>
+									)}
+								</div>
 							</td>
 						</tr>
-						<tr title="General notes">
-							<td colSpan={4}>
-								<TextInput
-									className="w-full"
-									value={feid.comment ?? ''}
-									onSubmit={(value) =>
-										makeChange('feid', { id: feidId, column: 'comment', value: value || null })
-									}
-								/>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-			<div className="flex flex-col pt-[1px]">
-				{sources
-					.filter((s) => s.erupt)
-					.map((src, i) => {
-						const srcId = src.source.id as number;
-						const isActive = srcId === modifySourceId;
-
-						const clr = (what: 'flare' | 'cme' | 'icme', which: EruptSrcLabel<EruptTable>) => {
-							const isSet = src.erupt?.[getSourceLink(what, which).link];
-							return {
-								color: color(isSet ? 'green' : 'dark'),
-								backgroundColor: isSet ? color('green', 0.2) : 'unset',
-							};
-						};
-
-						return (
-							<div
-								key={srcId}
-								title={'id=' + src.source.id}
-								onContextMenu={openContextMenu('events', { nodeId, ...(src as any) })}
-								className={cn('border border-bg w-fit cursor-pointer', isActive && 'border-active')}
-								onClick={() => setModifySource(isActive ? null : srcId)}
-							>
-								<table className="[&_td]:border">
-									<tbody>
-										<tr>
-											<td width={84} className="text-dark">
-												ERU{i + 1}
-											</td>
-											<td width={40} className="border-b-bg text-dark text-right">
-												FLR:
-											</td>
-											<td width={36} style={clr('flare', 'SFT')}>
-												SFT
-											</td>
-											<td width={36} style={clr('flare', 'DKI')}>
-												DKI
-											</td>
-											<td width={36} style={clr('flare', 'NOA')}>
-												NOA
-											</td>
-											<td width={36}></td>
-										</tr>
-										<tr>
-											<InflButton src={src} />
-
-											<td className="text-right text-dark">CME:</td>
-											<td style={clr('cme', 'LSC')}>LSC</td>
-											<td style={clr('cme', 'DKI')}>DKI</td>
-											<td style={clr('cme', 'CCT')}>CCT</td>
-											<td style={clr('icme', 'R&C')}>R&C</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						);
-					})}
-				{sources
-					.filter((s) => s.ch)
-					.map((src, i) => {
-						const srcId = src.source.id;
-						const isActive = srcId === modifySourceId;
-
-						const clr = (which: 'solen' | 'chimera') => {
-							const isSet = src.ch?.[which === 'solen' ? 'tag' : 'chimera_id'];
-							return {
-								color: color(isSet ? 'green' : 'dark'),
-								backgroundColor: isSet ? color('green', 0.2) : 'unset',
-							};
-						};
-
-						return (
-							<div
-								key={srcId}
-								title={'id=' + src.source.id}
-								onContextMenu={openContextMenu('events', { nodeId, ...(src as any) })}
-								className={cn('border border-bg w-fit cursor-pointer', isActive && 'border-active')}
-								onClick={() => setModifySource(isActive ? null : srcId)}
-							>
-								<table className="[&_td]:border">
-									<tbody>
-										<tr>
-											<td width={64} className="text-dark">
-												{(src.ch?.tag as string) ?? `CH#${i + 1}`}
-											</td>
-											<InflButton src={src} />
-											<td width={60} style={clr('solen')}>
-												SOLEN
-											</td>
-											<td width={60} style={clr('chimera')}>
-												CHIMR
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							</div>
-						);
-					})}
-				<pre className="m-0 text-red">{errNoPrimary && 'no primary source\n'}</pre>
-			</div>
+					)}
+					<tr title="Source description">
+						<td colSpan={4}>
+							<TextInput
+								className="w-full"
+								value={feid.s_description ?? ''}
+								onSubmit={(value) =>
+									makeChange('feid', {
+										id: feidId,
+										column: 's_description',
+										value: value || null,
+									})
+								}
+							/>
+						</td>
+					</tr>
+					<tr title="General notes">
+						<td colSpan={4}>
+							<TextInput
+								className="w-full"
+								value={feid.comment ?? ''}
+								onSubmit={(value) =>
+									makeChange('feid', { id: feidId, column: 'comment', value: value || null })
+								}
+							/>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<SourcesList />
 			<div className="grow"></div>
 			<div className="text-right p-[1px] text-white">
 				<Button variant="default" onClick={() => deleteFeid()}>
