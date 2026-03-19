@@ -1,5 +1,4 @@
-import { useContext, useMemo } from 'react';
-import { LayoutContext } from '../../layout';
+import { useMemo } from 'react';
 import { EventsTable, type TableColumn } from './Table';
 import { equalValues, valueToString } from '../core/util';
 import { logMessage, useEventsContextMenu } from '../../app';
@@ -170,7 +169,6 @@ function useAssociated<W extends 'flare' | 'cme'>(what: W) {
 }
 
 function Panel() {
-	const { size } = useContext(LayoutContext)!;
 	const { data, columns, entry } = useTable(ENT);
 	const selectedErupt = useSelectedSource(ENT);
 	const feidSrc = useTable('feid_sources');
@@ -186,7 +184,7 @@ function Panel() {
 
 	const associatedCmes = useAssociated('cme');
 
-	if (!data || !feidSrc.data || !columns) return <div className="center">LOADING..</div>;
+	if (!data.length) return <div className="center">LOADING..</div>;
 
 	const focusTime = cursorTime && cursorTime.getTime() - 3 * 864e5;
 	const focusIdxx =
@@ -240,11 +238,10 @@ function Panel() {
 	return (
 		<EventsTable
 			{...{
+				entity: ENT,
 				data,
 				columns,
-				size,
 				focusIdx,
-				entity: ENT,
 				enableEditing: true,
 				rowClassName: (row) => {
 					const eruptId = row[0];

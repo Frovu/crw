@@ -210,7 +210,7 @@ function Panel() {
 						<td className="w-[64px] pl-1" title="Source type number">
 							stype
 							<NumberInput
-								className="w-10 ml-[6px]"
+								className="w-11 ml-[6px]"
 								value={feid.s_type}
 								onChange={(value) => makeChange('feid', { id: feidId, column: 's_type', value, fast: true })}
 							/>
@@ -230,11 +230,11 @@ function Panel() {
 							}}
 							onWheel={(e) => cycle('s_confidence', e.deltaY > 0 ? 1 : -1)}
 						>
-							<Button className="w-[83px]">
+							<Button className="w-full">
 								conf
 								<span
 									className={cn(
-										'pl-1',
+										'pl-2',
 										{ low: 'text-orange', avg: 'text-text', high: 'text-green', none: 'text-red' }[
 											feid.s_confidence ?? 'none'
 										],
