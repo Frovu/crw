@@ -63,7 +63,7 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 	const focusIdx =
 		focusTime == null ? table?.data.length : table?.data.findIndex((r) => (r[timeIdx!] as Date)?.getTime() > focusTime);
 	const linked =
-		erupt && Object.fromEntries(compoundTables.cme.map((ent) => [sourceLabels[ent], erupt[sourceLinks[ent][0]]]));
+		erupt && Object.fromEntries(compoundTables[entity].map((ent) => [sourceLabels[ent], erupt[sourceLinks[ent][0]]]));
 
 	return useMemo(() => {
 		if (!table) return <div className="center">LOADING..</div>;
@@ -91,7 +91,8 @@ export function EruptiveEntityTable<T extends EruptTable>({ entity, rowColorCall
 						const event = entry(row);
 						const link = getSourceLink(entity, event.src);
 						const isLinked = equalValues(event[link.id], linked?.[event.src]);
-						if (isLinked) return erupt?.cme_source === event.src ? 'text-cyan font-bold' : 'text-cyan/90';
+						const srcCol = entity === 'cme' ? 'cme_source' : 'flr_source';
+						if (isLinked) return erupt?.[srcCol] === event.src ? 'text-cyan font-bold' : 'text-cyan/90';
 						if (linked?.[event.src])
 							// Other similar event linked to current erupt
 							return 'text-dark';

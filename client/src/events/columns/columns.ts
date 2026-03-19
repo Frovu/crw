@@ -60,6 +60,8 @@ export const useColumnsState = create<Storage>()(
 );
 
 export function computeColumnWidth(column: Column) {
+	if (column.sql_name === 'class') return 52;
+	if (column.sql_name === 'src') return 42;
 	switch (column.dtype) {
 		case 'enum':
 			return 50;

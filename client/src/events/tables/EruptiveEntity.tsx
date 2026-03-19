@@ -50,11 +50,11 @@ function CMEPanel() {
 		<EruptiveEntityTable
 			entity="cme"
 			rowColorCallback={({ event: cme, erupt, feid }) => {
-				const linkedEvents = cme.linked_events?.split(',');
+				const linkedEvents = cme.linked_events?.split?.(',');
 				const linked = linkedEvents?.find(
 					(lnk) =>
 						(lnk.includes('GST') || lnk.includes('IPS')) &&
-						timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5)
+						timeInMargin(feid.time, new Date(lnk.slice(0, 19) + 'Z'), 8 * 36e5),
 				);
 
 				if (linked) return 'text-orange';
@@ -79,11 +79,11 @@ function FLRPanel() {
 
 				if (flrTime && timeInMargin(flare.start_time, flrTime, 6e5)) return 'text-orange';
 
-				const linkedEvents = flare.linked_events?.split(',');
+				const linkedEvents = flare.linked_events?.split?.(',');
 				const linkedToCme =
 					cmeTime &&
 					linkedEvents?.find(
-						(lnk) => lnk.includes('CME') && timeInMargin(cmeTime, new Date(lnk.slice(0, 19) + 'Z'), 6e5)
+						(lnk) => lnk.includes('CME') && timeInMargin(cmeTime, new Date(lnk.slice(0, 19) + 'Z'), 6e5),
 					);
 
 				return linkedToCme ? 'text-orange' : null;

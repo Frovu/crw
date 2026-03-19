@@ -57,7 +57,7 @@ export default function SourcesList() {
 
 				const clr = (what: keyof typeof sourceLinks | 'chimera') => {
 					const isSet =
-						what === 'chimera' ? src.ch?.chimera_id : (src.erupt ?? (src.ch as any))?.[sourceLinks[what][1]];
+						what === 'chimera' ? src.ch?.chimera_id : (src.erupt ?? (src.ch as any))?.[sourceLinks[what][0]];
 					return cn(isSet && 'text-green bg-green/20');
 				};
 
