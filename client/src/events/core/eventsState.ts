@@ -2,8 +2,10 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Tables } from '../../api';
 import { getTable, useTable } from './editableTables';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Cursor } from '../tables/Table';
+import debounce from 'lodash.debounce';
+import { subscribeWithSelector } from 'zustand/middleware';
 
 export type Sort = { column: string; direction: 1 | -1 };
 
@@ -32,62 +34,74 @@ export type EventsState = typeof defaultSate & {
 };
 
 export const useEventsState = create<EventsState>()(
-	immer((set) => ({
-		...defaultSate,
-		setModifySource: (val) =>
-			set((st) => {
-				st.modifySourceId = val;
-			}),
-		setEditing: (val) =>
-			set((st) => {
-				if (st.cursor) st.cursor.editing = val;
-			}),
-		setModify: (val) =>
-			set((st) => {
-				st.modifyId = val;
-				st.modifySourceId = null;
-			}),
-		setStart: (val) =>
-			set((st) => {
-				st.setStartAt = val;
-				st.setEndAt = null;
-			}),
-		setEnd: (val) =>
-			set((st) => {
-				st.setEndAt = val;
-			}),
-		setCursor: (cursor) =>
-			set((st) => {
-				if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySourceId = null;
+	immer(
+		subscribeWithSelector((set) => ({
+			...defaultSate,
+			setModifySource: (val) =>
+				set((st) => {
+					st.modifySourceId = val;
+				}),
+			setEditing: (val) =>
+				set((st) => {
+					if (st.cursor) st.cursor.editing = val;
+				}),
+			setModify: (val) =>
+				set((st) => {
+					st.modifyId = val;
+					st.modifySourceId = null;
+				}),
+			setStart: (val) =>
+				set((st) => {
+					st.setStartAt = val;
+					st.setEndAt = null;
+				}),
+			setEnd: (val) =>
+				set((st) => {
+					st.setEndAt = val;
+				}),
+			setCursor: (cursor) =>
+				set((st) => {
+					if (cursor?.entity === 'feid' && cursor.id !== (st.cursor?.id ?? st.plotId)) st.modifySourceId = null;
 
-				if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
-					const sources = getTable('feid_sources');
-					const target = cursor?.entity === 'sources_ch' ? 'ch_id' : 'erupt_id';
-					const idIdx = sources.index[target];
-					const src = sources.data.find((row) => row[idIdx] === cursor?.id);
-					if (src) {
-						st.modifySourceId = src[sources.index.id] as number;
-						st.plotId = src[sources.index.feid_id] as number;
+					if (['sources_erupt', 'sources_ch'].includes(cursor?.entity as any)) {
+						const sources = getTable('feid_sources');
+						const target = cursor?.entity === 'sources_ch' ? 'ch_id' : 'erupt_id';
+						const idIdx = sources.index[target];
+						const src = sources.data.find((row) => row[idIdx] === cursor?.id);
+						if (src) {
+							st.modifySourceId = src[sources.index.id] as number;
+							st.plotId = src[sources.index.feid_id] as number;
+						}
 					}
-				}
-				st.cursor = cursor;
-			}),
-		setPlotId: (setter) =>
-			set((st) => {
-				st.plotId = setter(st.plotId);
-				st.modifySourceId = null;
-			}),
-		toggleSort: (column, dir) =>
-			set((st) => ({
-				...st,
-				sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) },
-			})),
-		escapeCursor: () =>
-			set((st) => {
-				st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null;
-			}),
-	})),
+					st.cursor = cursor;
+				}),
+			setPlotId: (setter) =>
+				set((st) => {
+					st.plotId = setter(st.plotId);
+					st.modifySourceId = null;
+				}),
+			toggleSort: (column, dir) =>
+				set((st) => ({
+					...st,
+					sort: { column, direction: dir ?? (st.sort.column === column ? -1 * st.sort.direction : 1) },
+				})),
+			escapeCursor: () =>
+				set((st) => {
+					st.cursor = st.cursor?.editing ? { ...st.cursor, editing: false } : null;
+				}),
+		})),
+	),
 );
+
+export function useEventsDebounced<K extends 'cursor' | 'plotId'>(key: K, delay = 250) {
+	const [value, setValue] = useState(useEventsState.getState()[key]);
+
+	useEffect(() => {
+		return useEventsState.subscribe((st) => st[key], debounce(setValue, delay, { leading: true }));
+	}, [delay, key]);
+
+	return value;
+}
 
 export const useEntityCursor = (ent: Cursor['entity']) =>
 	useEventsState((st) => (st.cursor?.entity === ent ? st.cursor : null));
@@ -100,7 +114,7 @@ export const getPlottedFeid = () => {
 
 export const useFeidCursor = () => {
 	const { data, getById, entry } = useTable('feid');
-	const plotId = useEventsState((st) => st.plotId);
+	const plotId = useEventsDebounced('plotId');
 
 	return useMemo(() => {
 		if (data.length < 1) return { duration: 0, start: new Date('2023-01-01'), end: new Date('2023-01-04'), id: null };
@@ -113,7 +127,7 @@ export const useFeidCursor = () => {
 };
 
 export const useCurrentFeidSources = () => {
-	const plotId = useEventsState((st) => st.plotId);
+	const plotId = useEventsDebounced('plotId');
 	const src = useTable('feid_sources');
 	const erupt = useTable('sources_erupt');
 	const ch = useTable('sources_ch');

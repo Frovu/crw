@@ -1,7 +1,7 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings } from './util';
 import { LayoutContext, type LayoutContextType } from '../../layout';
-import { useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
+import { useEventsDebounced, useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
 import { useCompoundTable } from './query';
@@ -22,7 +22,7 @@ export function usePlot<T = {}>() {
 	const table = useTable('feid');
 	const sample = useFeidSample();
 
-	const plotId = useEventsState((state) => state.plotId);
+	const plotId = useEventsDebounced('plotId');
 	const modifyId = useEventsState((state) => state.modifyId);
 	const setStartAt = useEventsState((state) => state.setStartAt);
 	const setEndAt = useEventsState((state) => state.setEndAt);
@@ -89,7 +89,7 @@ export function usePlot<T = {}>() {
 }
 
 export function useSolarPlot() {
-	const cursor = useEventsState((s) => s.cursor);
+	const cursor = useEventsDebounced('cursor', 1500);
 	const { start: feidTime } = useFeidCursor();
 	const plotOffsetSolar = useEventsSettings((st) => st.plotOffsetSolar);
 	const erupt = useSelectedSource('sources_erupt', true);
