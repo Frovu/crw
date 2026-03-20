@@ -3,14 +3,13 @@ import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
 import './styles/App.css';
-import Info from './Info';
 import TemperatureApp from './data/muon/Temperature';
 import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';
 import OmniApp from './data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
 import EventsApp from './events/EventsApp';
-import { useEventListener } from './util';
+import { dispatchCustomEvent, useEventListener } from './util';
 import {
 	closeContextMenu,
 	handleGlobalKeydown,
@@ -28,6 +27,7 @@ import { Button } from './components/Button';
 import { SimpleSelect } from './components/Select';
 import { CatchErrors } from './components/CatchErrors';
 import { Confirmation } from './components/Confirmation';
+import ManualView from './Manual';
 
 const theQueryClient = new QueryClient();
 
@@ -99,7 +99,7 @@ function Logs() {
 }
 
 function App() {
-	const { app, theme, infoOpen, openInfo, closeInfo, setTheme, setApp } = useAppSettings();
+	const { app, theme, setTheme, setApp } = useAppSettings();
 	const confirmation = useContextMenuStore((s) => s.confirmation);
 
 	useEffect(() => {
@@ -120,7 +120,6 @@ function App() {
 	);
 	document.documentElement.setAttribute('main-theme', theme);
 
-	useEventListener('action+openInfo', () => (infoOpen ? closeInfo() : openInfo()));
 	useEventListener('escape', closeContextMenu);
 	useEventListener('mousedown', (e) => !(e.target instanceof HTMLHtmlElement) && closeContextMenu()); // fix for radix select
 	useEventListener('contextmenu', (e: PointerEvent) => {
@@ -183,7 +182,7 @@ function App() {
 					</div>
 					<div className="grow h-full" />
 					<Logs />
-					<Button className="px-4" onClick={() => openInfo()}>
+					<Button className="px-4" onClick={() => dispatchCustomEvent('action+toggleManual')}>
 						Info & Manual
 					</Button>
 				</div>
@@ -200,7 +199,7 @@ function App() {
 					<ContextMenu />
 				</CatchErrors>
 			)}
-			{infoOpen && <Info />}
+			<ManualView />
 		</div>
 	);
 }

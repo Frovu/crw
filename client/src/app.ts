@@ -22,7 +22,7 @@ export const KEY_COMB = {
 	plotNext: 'BracketRight%]',
 	plotPrevShown: 'Comma%<',
 	plotNextShown: 'Period%<',
-	openInfo: 'H',
+	toggleManual: 'H',
 	switchTheme: 'T',
 	switchLayout: 'L',
 	commitChanges: 'Ctrl+S',
@@ -61,22 +61,15 @@ export const colorKeys = [
 	'area2',
 ];
 
-export const infoPages = ['manual', 'advanced', 'shortcuts', 'credit'] as const;
-
 type AppSettings = {
 	app: (typeof APPS)[number] | null;
 	log: LogMessage[];
-	infoOpen: boolean;
-	infoPage: (typeof infoPages)[number];
 	theme: (typeof themeOptions)[number];
 	colors: { [theme: string]: { [key: string]: RgbaColor } };
 	setApp: (app: (typeof APPS)[number]) => void;
 	setTheme: (theme: AppSettings['theme']) => void;
 	renderColors: () => CSSProperties;
 	setColor: (which: string, val: RgbaColor) => void;
-	openInfo: () => void;
-	closeInfo: () => void;
-	setInfoPage: (page: AppSettings['infoPage']) => void;
 	resetColor: (which: string) => void;
 	resetColors: () => void;
 };
@@ -92,9 +85,6 @@ export const useAppSettings = create<AppSettings>()(
 				theme: themeOptions[0],
 				setApp: (app) => set((state) => ({ ...state, app })),
 				setTheme: (theme) => set((state) => ({ ...state, theme })),
-				openInfo: () => set((state) => ({ ...state, infoOpen: true })),
-				closeInfo: () => set((state) => ({ ...state, infoOpen: false })),
-				setInfoPage: (page) => set((state) => ({ ...state, infoPage: page })),
 				setColor: (col, val) =>
 					set(({ colors, theme }) => {
 						if (!colors[theme]) colors[theme] = {};

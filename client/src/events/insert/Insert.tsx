@@ -140,8 +140,7 @@ function Panel() {
 		setModifySource(nxt.source.id);
 	});
 
-	if (plotId == null || feidId == null || !start)
-		return <div style={{ color: color('red') }}>ERROR: plotted event not found</div>;
+	if (plotId == null || feidId == null || !start) return <div className="center">NO FEID EVENT</div>;
 
 	const cycle = (which: 'onset_type' | 's_confidence', dir: -1 | 1) => {
 		const column = columns.find((c) => c.sql_name === which) as StaticColumn;
