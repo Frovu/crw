@@ -1,4 +1,4 @@
-import { createContext, type ComponentType, type ReactElement } from 'react';
+import { createContext, useMemo, type ComponentType, type ReactElement } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -253,16 +253,20 @@ export const splitNode = (nodeId: string, split: 'row' | 'column', inverse: bool
 		delete items[nodeId];
 	});
 
-export const useLayout = () => ({
-	...useLayoutsStore(({ dragFrom, dragTo, apps }) => {
+export const useLayout = () => {
+	const dragFrom = useLayoutsStore((st) => st.dragFrom);
+	const dragTo = useLayoutsStore((st) => st.dragTo);
+	const apps = useLayoutsStore((st) => st.apps);
+
+	return useMemo(() => {
 		const appLayouts = apps[getApp()];
 		if (!appLayouts) return { tree: {}, items: {} };
 		const { list, active } = appLayouts;
 		const st = list[active] ?? list.default;
 		if (!dragFrom || !dragTo) return st;
 		return { ...st, items: { ...st.items, [dragFrom]: st.items[dragTo], [dragTo]: st.items[dragFrom] } };
-	}),
-});
+	}, [apps, dragFrom, dragTo]);
+};
 
 export const useNodeExists = (type: string) => {
 	const layouts = useLayoutsStore((state) => state.apps[getApp()]);
