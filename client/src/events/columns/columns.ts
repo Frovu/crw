@@ -60,6 +60,11 @@ export const useColumnsState = create<Storage>()(
 );
 
 export function computeColumnWidth(column: Column) {
+	if (column.entity === 'solen_holes') {
+		if (column.name === 'tag') return 48;
+		if (column.name === 'time') return 56;
+		if (column.name === 'polarity') return 36;
+	}
 	if (column.sql_name === 'tag') return 70;
 	if (column.sql_name === 'class') return 52;
 	if (column.sql_name === 'src') return 42;

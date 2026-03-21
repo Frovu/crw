@@ -1,11 +1,14 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, useContextMenuStore } from '../../app';
-import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
+import { useEventsContextMenu } from '../../app';
+import { LayoutContext, openWindow, useNodeExists } from '../../layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
+import { useFeidCursor, useSelectedSource, useCurrentFeidSources, useEntityCursor } from '../core/eventsState';
 import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState } from '../core/sourceActions';
-import { prettyDate } from '../../util';
+import { cn, prettyDate } from '../../util';
+import { Button } from '../../components/Button';
+import { useTableDataQuery } from '../core/query';
+import { tableRowAsDict } from '../core/editableTables';
 
 const SOLEN_PNG_SINCE = new Date(Date.UTC(2015, 12, 12));
 const months = [
@@ -23,28 +26,23 @@ const months = [
 	'december',
 ];
 
-function Menu({ params, setParams }: ContextMenuProps<Partial<{}>>) {
-	const detail = useContextMenuStore((state) => state.menu?.detail) as { ch?: SolenCH };
+function Menu() {
+	const menu = useEventsContextMenu<'solen_holes'>();
 	const { id: feidId } = useFeidCursor();
-	const ch = detail?.ch;
-	const chSrc = useSelectedSource('sources_ch') as CHS | null;
+	const ch = menu?.event;
+	const chSrc = useSelectedSource('sources_ch');
 
 	const isLinked = ch && chSrc && equalValues(ch.tag, chSrc.tag);
 
 	return !ch ? null : (
 		<>
-			<button
-				className="TextButton"
-				style={{ color: color(chSrc?.tag ? 'dark' : 'text') }}
-				onClick={() => feidId && linkHoleSourceEvent('solen', ch, feidId)}
+			<Button
+				className={cn(chSrc?.tag && 'text-dark')}
+				onClick={() => feidId && linkHoleSourceEvent('solen_holes', ch, feidId)}
 			>
 				Link solen CH
-			</button>
-			{isLinked && (
-				<button className="TextButton" onClick={() => unlinkHoleSourceEvent('solen')}>
-					Unlink solen CH
-				</button>
-			)}
+			</Button>
+			{isLinked && <Button onClick={() => unlinkHoleSourceEvent('solen_holes')}>Unlink solen CH</Button>}
 		</>
 	);
 }
@@ -54,15 +52,14 @@ function Panel() {
 	const { id: nodeId, size, isWindow } = useContext(LayoutContext)!;
 	const { time: stateTime, catched } = useHolesViewState();
 	const [frame, setFrame] = useState(0);
-	const sCursor = useEntityCursor();
 	const { start: cursorTime, row: feid, id: feidId } = useFeidCursor();
-	const query = useSolenHolesQuery();
-	const sourceCh = useSelectedSource('sources_ch') as CHS;
+	const query = useTableDataQuery('solen_holes');
+	const sourceCh = useSelectedSource('sources_ch');
 	const sources = useCurrentFeidSources();
-	const anySourceCh = sourceCh ?? (sources.find((s) => s.ch)?.ch as CHS);
+	const anySourceCh = sourceCh ?? sources.find((s) => s.ch)?.ch;
 	const chimeraRules = useNodeExists('Chimera Holes');
 
-	const cursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
+	const cursor = useEntityCursor('solen_holes');
 
 	useEffect(() => {
 		if (chimeraRules) return;
@@ -75,7 +72,14 @@ function Panel() {
 	if (!query.data?.data.length) return <div className="center">LOADING..</div>;
 
 	const { data, columns } = query.data;
-	const cursorCh = (catched?.solenHole as SolenCH) ?? (cursor ? (rowAsDict(data[cursor.row], columns) as SolenCH) : sourceCh);
+	const sourceSolenCh = anySourceCh?.tag && data.find((row) => equalValues(row[0], anySourceCh?.tag));
+	const cursorCh =
+		catched?.solenHole ??
+		(cursor
+			? tableRowAsDict<'solen_holes'>(data[cursor.row], columns)
+			: sourceSolenCh
+				? tableRowAsDict<'solen_holes'>(sourceSolenCh, columns)
+				: null);
 
 	const isSouth = cursorCh?.location === 'southern';
 	const isNorth = cursorCh?.location === 'northern';
@@ -89,7 +93,7 @@ function Panel() {
 	const focusTime = cursorTime && cursorTime?.getTime() - 2 * 864e5;
 	const focusIdx = focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime);
 
-	const dtTarget = cursor ? cursorCh.time : anySourceCh ? anySourceCh.time : focusTime == null ? null : new Date(focusTime);
+	const dtTarget = cursorCh ? cursorCh.time : anySourceCh ? anySourceCh.time : focusTime == null ? null : new Date(focusTime);
 	const dt =
 		chimeraRules && Math.abs(stateTime * 1e3 - (dtTarget?.getTime() ?? stateTime)) < 3 * 864e5
 			? new Date((Math.round(stateTime / 86400) - 1) * 864e5)
@@ -103,73 +107,45 @@ function Panel() {
 		`https://solen.info/solar/old_reports/${y}/${months[m!]}/images/` +
 			`AR_CH_${y}${(m! + 1).toString().padStart(2, '00')}${d!.toString().padStart(2, '00')}.${ext}`;
 
-	const textStyle: CSSProperties = {
-		position: 'absolute',
-		zIndex: 3,
-		fontSize: isWindow ? 16 : 10,
-		color: 'orange',
-		background: 'black',
-		padding: '0px 3px',
-	};
 	return (
 		<div>
 			{!isWindow && (
-				<div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
+				<div style={{ position: 'relative', height: size.height - imgSize, marginTop: -1, marginLeft: -1 }}>
 					{
 						<EventsTable
 							{...{
 								entity: 'solen_holes',
-								hideBorder: true,
 								data,
 								columns,
 								size: { height: size.height - imgSize, width: size.width - 3 },
 								focusIdx,
 								onKeydown: (e) => {
 									if (cursor && cursorCh && ['+', '='].includes(e.key))
-										return feidId && linkHoleSourceEvent('solen', cursorCh, feidId);
-									if (cursor && e.key === '-') return unlinkHoleSourceEvent('solen');
+										return feidId && linkHoleSourceEvent('solen_holes', cursorCh, feidId);
+									if (cursor && e.key === '-') return unlinkHoleSourceEvent('solen_holes');
 								},
-								row: (row, idx, onClick, padRow) => {
-									const ch = rowAsDict(row as any, columns) as SolenCH;
+								onClick: (e, row, column) => {
+									if (feidId != null && column.name === 'tag') {
+										const ch = tableRowAsDict<'solen_holes'>(row, columns);
+										linkHoleSourceEvent('solen_holes', ch, feidId);
+										return true;
+									}
+								},
+								rowClassName: (row) => {
+									const ch = tableRowAsDict<'solen_holes'>(row, columns);
 									const linkedToThisCH = equalValues(sourceCh?.tag, ch.tag);
+									if (linkedToThisCH) return 'text-cyan';
 									const linkedToThisFEID = sources.find((s) => equalValues(s.ch?.tag, ch.tag));
-
-									const orange = !linkedToThisFEID && (feid.s_description as string)?.includes(ch.tag);
-									const dark =
-										!orange &&
-										!timeInMargin(ch.time, focusTime && new Date(focusTime), 5 * 24 * 36e5, 24 * 36e5);
-
-									const className = linkedToThisCH
-										? 'text-cyan'
-										: dark
-										? 'text-dark'
-										: orange
-										? 'text-orange'
-										: 'text-text';
-
-									return (
-										<DefaultRow
-											key={row[0]}
-											{...{ row, idx, columns, cursor, className, padRow }}
-											onClick={(e, cidx) => {
-												if (cidx === 0 && feidId !== null)
-													return linkHoleSourceEvent('solen', ch, feidId);
-												onClick(idx, cidx);
-											}}
-											contextMenuData={() => ({ nodeId, ch })}
-										>
-											{({ column, cidx }) => {
-												const value = valueToString(row[cidx]);
-												const val =
-													column.id === 'tag'
-														? value.slice(2)
-														: column.id === 'time'
-														? value.slice(5, 10)
-														: value;
-												return <DefaultCell column={column}>{val}</DefaultCell>;
-											}}
-										</DefaultRow>
-									);
+									const orange = !linkedToThisFEID && (feid?.s_description as string)?.includes(ch.tag);
+									if (orange) return 'text-orange';
+								},
+								cellContent: (val, column) => {
+									const value = valueToString(val);
+									return column.name === 'tag'
+										? value.slice(2)
+										: column.name === 'time'
+											? value.slice(5, 10)
+											: value;
 								},
 							}}
 						/>
@@ -178,7 +154,8 @@ function Panel() {
 			)}
 			{imgUrl && (
 				<div
-					style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
+					className="cursor-pointer overflow-clip relative select-none"
+					style={{ height: imgSize }}
 					onClick={(e) =>
 						!isWindow &&
 						openWindow({
@@ -201,15 +178,23 @@ function Panel() {
 						}}
 					></img>
 					<a
+						className={cn(
+							'absolute right-0 z-3 !text-orange-400 bg-black px-1',
+							isWindow ? 'text-lg bottom-[6px]' : 'text-xs bottom-[1px]',
+						)}
 						target="_blank"
 						rel="noreferrer"
 						href={imgUrl}
 						onClick={(e) => e.stopPropagation()}
-						style={{ ...textStyle, bottom: isWindow ? 6 : 1, right: 0 }}
 					>
 						≈{prettyDate(new Date(dt.getTime() + 864e5), true)}
 					</a>
-					<div style={{ ...textStyle, top: -2, left: 0, fontSize: 14 }}>
+					<div
+						className={cn(
+							'absolute left-0 z-3 -top-[2px] !text-orange-400 bg-black px-1',
+							isWindow ? 'text-lg' : 'text-xs',
+						)}
+					>
 						<b>{cursorCh?.tag}</b>
 					</div>
 				</div>

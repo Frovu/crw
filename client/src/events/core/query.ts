@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { sourceLabels, type Column, type FeidInfoResponse, type TableDataResponse, type Tables } from '../../api';
 import { apiGet } from '../../util';
-import { setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
+import { editableTables, setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
 import { logError, logMessage } from '../../app';
 
@@ -97,7 +97,7 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 	}).data;
 }
 
-export function useTableDataQuery(tbl: EditableTable) {
+export function useTableDataQuery(tbl: keyof Tables) {
 	return useQuery({
 		staleTime: Infinity,
 		placeholderData: keepPreviousData,
@@ -107,7 +107,7 @@ export function useTableDataQuery(tbl: EditableTable) {
 			const { columns, data, changelog } = await fetchTable(tbl, tbl === 'feid');
 			console.log('%cloaded table:', 'color: #0ff', tbl, columns, data, changelog);
 			logMessage('Loaded table: ' + tbl, 'debug');
-			setRawData(tbl, data, columns, changelog);
+			if (editableTables.includes(tbl as any)) setRawData(tbl as EditableTable, data, columns, changelog);
 			return { columns, data, changelog };
 		},
 	});
