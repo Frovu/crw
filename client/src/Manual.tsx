@@ -4,8 +4,9 @@ import { cn, dispatchCustomEvent, useEventListener } from './util';
 import { create } from 'zustand';
 import { Popup } from './components/Popup';
 import { Button } from './components/Button';
+import CompColumnsReference from './events/columns/CompColumnsReference';
 
-export const infoPages = ['manual', 'advanced', 'shortcuts', 'credit'] as const;
+export const infoPages = ['manual', 'columns', 'advanced', 'shortcuts', 'credit'] as const;
 
 type InfoState = {
 	infoOpen: boolean;
@@ -18,7 +19,7 @@ type InfoState = {
 };
 
 const useInfoState = create<InfoState>()((set) => ({
-	infoOpen: true,
+	infoOpen: false,
 	infoPage: 'manual',
 	scrollPos: 0,
 	openInfo: () => set((state) => ({ ...state, infoOpen: true })),
@@ -57,7 +58,7 @@ export default function ManualView() {
 							{page.at(0)?.toUpperCase() + page.slice(1)}
 						</Button>
 					))
-					.reduce((list, el) => list.concat(<span>|</span>, el), [] as any)
+					.reduce((list, el, i) => list.concat(<span key={i}>|</span>, el), [] as any)
 					.slice(1)}
 			</div>
 			<div
@@ -88,11 +89,11 @@ export default function ManualView() {
 							mainly intended for plot exports.
 						</p>
 						<p>
-							Interaction with program is performed primarily through context menus, which appear after{' '}
-							<b>clicking right mouse button </b>on any panel, or the nav bar. The nav bar context menu containing
-							some general options like changing user password or resetting program settings. On the top of each
-							panel's context menu one should select what is displayed in this panel, be it some type of plot or
-							other useful interface.
+							Interaction with the program is performed primarily through context menus, which appear after{' '}
+							<b>clicking right mouse button </b>on any panel, or the nav bar. The <b>nav bar context menu</b>{' '}
+							contains some importnant general options like changing user password or resetting program settings.
+							On the top of each panel's context menu one should select what is displayed in this panel, be it
+							some type of plot or other useful interface.
 						</p>
 						<p>Tip: Resetting settings can sometimes fix minor program issues.</p>
 						<p>
@@ -106,11 +107,11 @@ export default function ManualView() {
 						</p>
 						<h3>Utilising layouts</h3>
 						<p>
-							Layouts allow the user to quickly change tasks, without the need for repeating the setup. Each
-							layout persists its panels disposition along with each panels settings. By default there are three
-							layouts - one for observing events parameters along with interplanetary medium plots, the other for
-							statistical plots, and the third for exporting the plots. Layouts can be swiftly cycled through with{' '}
-							<b>{KEY_COMB.switchLayout}</b> key.
+							Layouts allow the user to quickly change tasks, without repeating the setup process. Each layout
+							persists its panels disposition along with each panels settings. By default there are four layouts -
+							one for observing events parameters along with interplanetary medium plots, the other for
+							statistical plots, the third for exporting the plots, and the last one for observing solar sources.
+							Layouts can be swiftly cycled through with <b>{KEY_COMB.switchLayout}</b> key.
 						</p>
 						<h3>User accounts</h3>
 						<p>
@@ -135,42 +136,38 @@ export default function ManualView() {
 							without pressing Ctrl in order to change their order. This menu is also used for custom column
 							creation, which will be discussed below.
 						</p>
-						<h3>Navigating table</h3>
+						<h3>Navigating the table</h3>
 						<p>
-							Table is best navigated by moving the{' '}
-							<span style={{ border: '1px var(--color-active) solid' }}>cursor</span> with keyboard arrows.{' '}
-							<b>Ctrl + Home/End</b> allows to quickly get to the top or the bottom of the table. While cursor
-							stands in the time column, <b>Ctrl + Up/Down</b> move it to the previous/next year, it is often much
-							faster than scrolling with mouse wheel or PgUp/PgDown.
+							Table is best navigated by moving the <span className="border border-active">cursor</span> with
+							keyboard arrows. <b>Ctrl + Home/End</b> allows to quickly get to the top or the bottom of the table.
+							While cursor stands in a time column, <b>Ctrl + Up/Down</b> move it to the previous/next year or the
+							next non-null value, it is often much faster than scrolling with mouse wheel or PgUp/PgDown.
 						</p>
 						<p>
 							Tip: When cursor is not set, press <b>{KEY_COMB.plot}</b> to set it to the{' '}
-							<span style={{ background: 'var(--color-area)' }}>plotted row</span>.
+							<span className="text-cyan">plotted row</span>.
 						</p>
-						<p>
-							Click at the column header to order table by this column. This always scrolls table to the end,
-							which can be used to quickly observe minimum and maximum values in a column.
-						</p>
+						<p>Click at the column header to order table by this column. Click again to change the direction.</p>
 						<h3>Filtering events</h3>
 						<p>
-							The <Button>Add filter</Button> button at the top of the table panel can be used to select events
-							based on a paricular parameter. The same can be done by pressing <b>{KEY_COMB.addFilter}</b> key.
-							Each filter consists of a column, operator and value. Several filters can be added to create a
-							complex sample, which can be saved for later usage and comarison with other samples. Samples can
-							also be created by manually picking individual events, it is covered more extensively in the{' '}
-							<PageLink page="advanced" text="advanced section" />.
+							The <Button variant="default">Add filter</Button> button at the top of the table panel can be used
+							to select events based on a paricular parameter. The same can be done by pressing{' '}
+							<b>{KEY_COMB.addFilter}</b> key. Each filter consists of a column, operator and value. Several
+							filters can be added to create a complex sample, which can be saved for later usage and comarison
+							with other samples. Samples can also be created by manually picking individual events, it is covered
+							more extensively in the <PageLink page="advanced" text="advanced section" />.
 						</p>
 						<p>
-							Tip: Press <b>F</b> after setting the{' '}
-							<span style={{ border: '1px var(--color-active) solid' }}>cursor</span> on a cell in order to add
-							new filter based on this cell value and column.
+							Tip: Press <b>F</b> after setting the <span className="border border-active">cursor</span> on a cell
+							in order to add new filter based on this cell value and column.
 						</p>
 						<h3>Downloading the data</h3>
 						<p>
 							In order to download the table data as it is currently viewed (respecting sample and enabled
-							columns) use the "Export table" option in the context menu accessible by pressing on the top part of
-							the table panel. 4 format options are presented, but it is recommended to use the json one. Data can
-							also be accessed via API directly, if you are willing to use it please contact us.
+							columns) use the "Export table" option in the context menu accessible by pressing on the{' '}
+							<b>top part of the table panel</b>. Four format options are presented, but it is recommended to use
+							the json one. Data can also be accessed via API directly, if you are willing to use it please
+							contact us.
 						</p>
 						<h2>Drawing beatiful plots</h2>
 						<p>
@@ -184,10 +181,10 @@ export default function ManualView() {
 							samples statistics and events plots.
 						</p>
 						<p>
-							In order to display an event on plots, use table cell context menu or press <b>P</b> key while{' '}
-							<span style={{ border: '1px var(--color-active) solid' }}>cursor</span> is standing in corresponding
-							row. Use <b>&lt; &gt;</b> keys to jump to the pervious/next event in the current sample, or{' '}
-							<b>[ ]</b> keys to move across all events.
+							In order to display an event on plots, use table context menu or press <b>P</b> key while{' '}
+							<span className="border border-active">cursor</span> is standing in the desired row. Use{' '}
+							<b>&lt; &gt;</b> keys to jump to the pervious/next event in the current sample, or <b>[ ]</b> keys
+							to move across all events.
 						</p>
 						<p>
 							Most of the plots include the legend, which can be toggled in the context menu and can be dragged
@@ -198,19 +195,19 @@ export default function ManualView() {
 						<p>
 							If you only need to quickly save one plot, use the "Open in a new tab" option in plot's context
 							menu. It will provide much better resolution than using a screenshot. However the program provides a
-							lot of special functionality for plot export, allowing to create compound drawings and ensure their
-							size, appearance and resolution. Export layout is pre-made for that task.
+							lot of special functionality for plot export, allowing one to create compound publication-ready
+							drawings and ensure their size, appearance and resolution. Export layout is pre-made for that task.
 						</p>
 						<p>
-							The <i>ExportControls</i> panel includes all the settings used for advanced plots customization.
+							The <i>Export Controls</i> panel includes all the settings used for advanced plots customization.
 							This includes setting the target picture size in centimeters or inches, the font family and size in
 							points and target resolution (which is actually just an upscale multiplier, so ppi values may look
 							odd). It allows to make labels font appear the same size as the paper text, when inserted with the
-							specified width. Note that if so desired, it is possible to achieve exact picture size and ppi by
+							specified width. Note that, if so desired, it is possible to achieve exact picture size and ppi by
 							finetuning plots size in the interface.
 						</p>
 						<p>
-							The <i>ExportControls</i> panel also allowes to manually set plots scales and change labels and
+							The <i>Export Controls</i> panel also allowes to manually set plots scales and change labels and
 							legend text. To alter specific scale, first click it to enable the override, then enter the scale
 							values (left two) and/or scale position relative to plots height (right two, range from 0 to 1). To
 							change plots text one may add infinite number of find and replace entries below the scales setup
@@ -236,6 +233,11 @@ export default function ManualView() {
 						questions.
 					</div>
 				)}
+				{infoPage === 'columns' && (
+					<div>
+						<CompColumnsReference />
+					</div>
+				)}
 				{infoPage === 'advanced' && (
 					<div>
 						<h3>Persist text transforms</h3>
@@ -254,6 +256,7 @@ export default function ManualView() {
 							- Right click on panels border to split it's parent.
 							<br />- Ctrl+click panel border to make left/top panel square.
 						</p>
+						<h2>Sample management</h2>
 						<p>.</p>
 						<p>.</p>
 						<p>.</p>
@@ -276,15 +279,15 @@ export default function ManualView() {
 						server exploitation. If you want an account please email to{' '}
 						<a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a>.<h4>Making changes</h4>
 						Operators can change table values, including ones that are computed from data. To do that one must set{' '}
-						<span style={{ border: '1px var(--color-active) solid' }}>cursor</span> to desired column and press
-						Enter/Insert (or click the cell with mouse). Cell will turn into input field. When finished inputing the
-						new value one should press Enter/Insert again (or click outside) for the change to actually apply.
-						Inputs are validated according to corresponding column's data type, and ones that do not pass validation
-						are marked with red. If entered value is valid it will apply locally (i.e. correlation plot will be
-						redrawn with new data). But for changes to actually persist across sessions one must commit them by
-						pressing <b>Ctrl + S</b> or a button under <Button>Table</Button> menu. A confirmation prompt will
-						popup, listing all the changes that are being commited. One must ensure that list does not contain any
-						unintended modifications, if it does one can discard specific changes using{' '}
+						<span className="border border-active">cursor</span> to desired column and press Enter/Insert (or click
+						the cell with mouse). Cell will turn into input field. When finished inputing the new value one should
+						press Enter/Insert again (or click outside) for the change to actually apply. Inputs are validated
+						according to corresponding column's data type, and ones that do not pass validation are marked with red.
+						If entered value is valid it will apply locally (i.e. correlation plot will be redrawn with new data).
+						But for changes to actually persist across sessions one must commit them by pressing <b>Ctrl + S</b> or
+						a button under <Button>Table</Button> menu. A confirmation prompt will popup, listing all the changes
+						that are being commited. One must ensure that list does not contain any unintended modifications, if it
+						does one can discard specific changes using{' '}
 						<span className="CloseButton" style={{ margin: 0, transform: 'none', fontSize: 16 }}>
 							&times;
 						</span>{' '}
@@ -329,8 +332,8 @@ export default function ManualView() {
 						columns). Use this to get to those filtered events that you want to blacklist.
 						<p>
 							To whitelist an event click on special columns cell of the desired row. Or press <b>+</b> (=) key
-							while <span style={{ border: '1px var(--color-active) solid' }}>cursor</span> stands in the desired
-							row. To blacklist do the same but with <b>Ctrl + click</b> or <b>-</b> key.
+							while <span className="border border-active">cursor</span> stands in the desired row. To blacklist
+							do the same but with <b>Ctrl + click</b> or <b>-</b> key.
 						</p>
 						<p>
 							One can share ownership with co-authors by clicking on authors list and entering new list (separated
@@ -523,8 +526,8 @@ export default function ManualView() {
 				{infoPage === 'credit' && (
 					<div>
 						<div style={{ paddingBottom: 8 }}>(c) IZMIRAN:</div>
-						Anatoly Belov - Initial database author
-						<br /> Semyon Belov&nbsp; - New program author
+						Anatoly Belov - Original database author
+						<br /> Semyon Belov&nbsp; - The new program author
 						<br /> Maria Abunina - Database contributions
 						<br /> Nataly Shlyk&nbsp; - Database contributions
 						<p style={{ paddingTop: 8 }}>

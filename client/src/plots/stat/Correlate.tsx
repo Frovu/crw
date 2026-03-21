@@ -215,7 +215,7 @@ function Panel() {
 								if (!row) return;
 								setCursor({
 									row: shownData.findIndex((r) => r[0] === row[0]),
-									column: 0,
+									column: 1,
 									entity: 'feid',
 									id: row[0],
 								});

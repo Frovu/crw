@@ -12,10 +12,13 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 	return (
 		<div className="p-2 flex flex-col gap-4 select-text w-full">
 			<div className="flex text-lg">
-				{tabs.map((tab) => (
-					<Button key={tab} className={cn('px-4', tab === activeTab ? 'underline' : '')} onClick={() => setTab(tab)}>
-						{tab}
-					</Button>
+				{tabs.map((tab, i) => (
+					<div key={tab}>
+						{i > 0 && <span>|</span>}
+						<Button className={cn('px-4', tab === activeTab ? 'underline' : '')} onClick={() => setTab(tab)}>
+							{tab}
+						</Button>
+					</div>
 				))}
 			</div>
 			{activeTab === 'Functions' && (
