@@ -2,6 +2,9 @@ import { useMemo, useState } from 'react';
 import { color, colorKeys, getDefaultColor, themeOptions, useAppSettings } from './app';
 import Sketch from '@uiw/react-color-sketch';
 import { hexToHsva, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
+import { SimpleSelect } from './components/Select';
+import { Button } from './components/Button';
+import { cn } from './util';
 
 function Panel() {
 	const [picking, setPicking] = useState<string | null>(null);
@@ -9,75 +12,48 @@ function Panel() {
 	const { theme, setTheme, setColor, resetColor, resetColors } = useAppSettings();
 
 	return (
-		<div style={{ height: '100%', width: '100%', display: 'flex' }}>
-			<div style={{ width: 'calc(100% - 224px)', display: 'flex', gap: 4, flexDirection: 'column', padding: '4px 8px' }}>
-				<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-					<label>
-						Theme:
-						<select style={{ padding: 0 }} value={theme} onChange={(e) => setTheme(e.target.value as any)}>
-							{themeOptions.map((opt) => (
-								<option key={opt} value={opt}>
-									{opt}
-								</option>
-							))}
-						</select>
-					</label>
-					<button style={{ padding: '0 8px' }} onClick={() => resetColors()}>
+		<div className="h-full flex">
+			<div className="w-[calc(100%-224px)] flex flex-col gap-1 p-1">
+				<div className="flex flex-wrap gap-2">
+					Theme:
+					<SimpleSelect
+						className="w-30"
+						value={theme}
+						onChange={setTheme}
+						options={themeOptions.map((o) => [o, o])}
+					/>
+					<Button variant="default" className="px-2" onClick={() => resetColors()}>
 						Reset colors
-					</button>
+					</Button>
 				</div>
-				<div
-					style={{
-						flexGrow: 1,
-						overflowY: 'scroll',
-						display: 'grid',
-						gridTemplateColumns: 'repeat(auto-fill, 140px)',
-						gridTemplateRows: 'repeat(auto-fill, 1.5em)',
-					}}
-				>
+				<div className="grow p-[1px] overflow-y-scroll grid grid-cols-[repeat(auto-fill,140px)] grid-rows-[repeat(auto-fill,1.5em)]">
 					{colorKeys.map((col) => (
-						<div
+						<Button
 							key={col}
-							style={{
-								cursor: 'pointer',
-								display: 'flex',
-								alignItems: 'center',
-								gap: 4,
-								width: 'fit-content',
-								padding: 4,
-								...(col === picking && { color: 'var(--color-active)', textDecoration: 'underline' }),
-							}}
+							className={cn('flex items-center gap-1', col === picking && 'text-active underline')}
 							onClick={() => setPicking(col)}
 						>
-							<div
-								style={{
-									display: 'inline-block',
-									border: '1px solid var(--color-grid)',
-									height: '1em',
-									width: '2em',
-									backgroundColor: color(col),
-								}}
-							></div>
-							{color(col) !== rgbaToHexa(getDefaultColor(col)) ? '*' : ''}
+							<div className="border h-4 w-8" style={{ backgroundColor: color(col) }}></div>
+							{color(col) !== rgbaToHexa(getDefaultColor(col)) && <div className="text-magenta">*</div>}
 							{col}
-						</div>
+						</Button>
 					))}
 				</div>
 			</div>
 			{picking && old && (
-				<div style={{ overflow: 'auto', marginRight: 6 }}>
-					<div style={{ display: 'flex', textAlign: 'center', padding: '4px 10px 0 10px', fontSize: 12, gap: 4 }}>
-						<div style={{ flex: '1 1px', cursor: 'pointer' }} onClick={() => resetColor(picking)}>
+				<div>
+					<div className="flex text-sm text-center gap-2 py-1">
+						<Button className="grow basis-1" onClick={() => resetColor(picking)}>
 							default
-							<div style={{ backgroundColor: rgbaToHexa(getDefaultColor(picking)), height: 14, width: '100%' }} />
-						</div>
-						<div style={{ flex: '1 1px', cursor: 'pointer' }} onClick={() => setColor(picking, hexToRgba(old))}>
+							<div className="h-3.5" style={{ backgroundColor: rgbaToHexa(getDefaultColor(picking)) }} />
+						</Button>
+						<Button className="grow basis-1" onClick={() => setColor(picking, hexToRgba(old))}>
 							old
-							<div style={{ backgroundColor: old, height: 14, width: '100%' }} />
-						</div>
-						<div style={{ flex: '1 1px' }}>
+							<div className="h-3.5" style={{ backgroundColor: old }} />
+						</Button>
+						<div className="grow basis-1">
 							new
-							<div style={{ backgroundColor: color(picking), height: 14, width: '100%' }} />
+							<div className="h-3.5" style={{ backgroundColor: color(picking) }} />
 						</div>
 					</div>
 					<Sketch color={hexToHsva(color(picking))} onChange={(col) => setColor(picking, col.rgba)} />
