@@ -215,20 +215,13 @@ function Panel() {
 		setFrame(frames.findIndex((f) => f.timestamp === newHoles));
 		setTime(newHoles);
 		setTimeout(() => {
-			console.log('set', cursor, start, end);
 			setCatched(catched);
 			setCursor(cursor);
 		}, 10);
 	};
 
-	const textStyle: CSSProperties = {
-		position: 'absolute',
-		zIndex: 3,
-		fontSize: isWindow ? 16 : 10,
-		color: 'orange',
-		background: 'black',
-		padding: '0px 2px',
-	};
+	const textCn = 'absolute z-3 !text-orange-400 bg-black px-1';
+
 	return (
 		<div>
 			{!isWindow && (
@@ -243,7 +236,7 @@ function Panel() {
 							sliceCols: 0,
 							size: { height: size.height - imgSize, width: size.width - 3 },
 							onKeydown: (e) => {
-								const cycle = e.altKey && { ArrowLeft: -1, ArrowRight: 1 }[e.code];
+								const cycle = e.altKey && { ',': -1, '.': 1 }[e.code];
 								if (cycle) cycleHoles(cycle as any);
 								if (cursor && cursorCh && ['+', '='].includes(e.key))
 									return feidId && linkHoleSourceEvent('chimera_holes', cursorCh, feidId);
@@ -304,37 +297,37 @@ function Panel() {
 						}}
 					></img>
 				</div>
-				<div style={{ ...textStyle, bottom: isWindow ? 6 : 0, right: 0 }}>
-					<span style={{ paddingRight: 8 }}>
+				<div className={cn(textCn, isWindow ? 'bottom-1 text-lg' : 'bottom-0 text-xs', 'right-0')}>
+					<span>
 						{frame + 1}/{framesTotal}
 					</span>
 					<a
+						className="pl-2 !text-orange-400"
 						target="_blank"
 						rel="noreferrer"
 						href={url}
-						style={{ color: 'orange' }}
 						onClick={(e) => e.stopPropagation()}
 					>
 						{prettyDate(timestamp).slice(5, -3)}
 					</a>
 				</div>
 				{!isWindow && (
-					<div style={{ ...textStyle, top: 0, left: 0 }}>
+					<div className={cn(textCn, 'top-0 left-0', isWindow ? 'text-lg' : 'text-xs')}>
 						<b>^{prettyDate(holesTimestamp).slice(0, -3)}</b>
 					</div>
 				)}
 				{!isWindow && catched && (
 					<div
-						style={{ ...textStyle, top: -4, right: 0, fontSize: 18, padding: '0 4px' }}
-						title="Hint: use alt + arrows"
+						className={cn(textCn, 'top-0 right-0 flex')}
+						title="Hint: use Alt + < and Alt + >"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<button className="TextButton" style={{ lineHeight: 1, padding: 2 }} onClick={() => cycleHoles(-1)}>
+						<Button className="pl-2" onClick={() => cycleHoles(-1)}>
 							<b>&lt;</b>
-						</button>
-						<button className="TextButton" style={{ lineHeight: 1, padding: 2 }} onClick={() => cycleHoles(1)}>
+						</Button>
+						<Button className="px-1" onClick={() => cycleHoles(1)}>
 							<b>&gt;</b>
-						</button>
+						</Button>
 					</div>
 				)}
 				{cursorCh && (
