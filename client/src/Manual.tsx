@@ -3,7 +3,7 @@ import { KEY_COMB } from './app';
 import { cn, dispatchCustomEvent, useEventListener } from './util';
 import { create } from 'zustand';
 import { Popup } from './components/Popup';
-import { Button } from './components/Button';
+import { Button, CloseButton } from './components/Button';
 import CompColumnsReference from './events/columns/CompColumnsReference';
 
 export const infoPages = ['manual', 'columns', 'advanced', 'shortcuts', 'credit'] as const;
@@ -161,6 +161,20 @@ export default function ManualView() {
 							Tip: Press <b>F</b> after setting the <span className="border border-active">cursor</span> on a cell
 							in order to add new filter based on this cell value and column.
 						</p>
+						<p>
+							If you seek for some OR like behavior in filters, <u>regexp</u> filter operators might come in
+							handy.{' '}
+							<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet">
+								Regular expressions
+							</a>{' '}
+							are a powerful search and filter tool. Some examples: <i>okay|high</i> to filter for src
+							confindence; <i>^(4|7|9)$</i> to include deifferent src types; <i>CH.*_2[^\d]</i> to search for
+							second streams of coronal holes.
+						</p>
+						<p>
+							Note: do not use comparison operations on enum type columns (like ons type), use <u>regexp</u>{' '}
+							instead.
+						</p>
 						<h3>Downloading the data</h3>
 						<p>
 							In order to download the table data as it is currently viewed (respecting sample and enabled
@@ -240,6 +254,65 @@ export default function ManualView() {
 				)}
 				{infoPage === 'advanced' && (
 					<div>
+						<h2>Sample management</h2>
+						<p>
+							After a sample is created one can add more filters to it with <Button>Add filter</Button> button.
+							Sample is stored on server in form of filters, the resulting list of events is computed in your
+							browser. Thus, if events ids change sample will not break. But on the other hand if anything happens
+							to columns that are involved in filters, the sample will not work as expected.
+						</p>
+						<p>
+							In order to add/remove specific events to the sample one should check into <b>pick events mode</b>.
+							When this mode is active, table will include special column that shows status of each event in
+							respect to the sample: <b>f</b>: passes sample's filters;{' '}
+							<span style={{ color: 'var(--color-cyan)' }}>+</span>: is whitelisted;
+							<span style={{ color: 'var(--color-magenta)' }}> -</span>: is blacklisted. Event can't be
+							whitelisted and blacklisted at the same time. This column can be used to sort the table (just like
+							with other columns). Use this to get to those filtered events that you want to blacklist.
+						</p>
+						<p>
+							To whitelist an event click on special columns cell of the desired row. Or press <b>+</b> (=) key
+							while <span className="border border-active">cursor</span> stands in the desired row. To blacklist
+							do the same but with <b>Ctrl + click</b> or <b>-</b> key.
+						</p>
+						<p>
+							One can share the sample ownership with co-authors by clicking on authors list and entering new
+							names (separated by comma). All authors are equal in rights and they can for example remove you from
+							your own sample (even you can't), so be careful there. One can also make the sample <b>public</b> so
+							that it will be visible to anyone (only visible, not modifiable).
+							<b>
+								Be aware that public sample will not work properly if it's filters involve computed columns that
+								are not visible to everyone.
+							</b>
+						</p>
+						<p>
+							Tip: Do not forget to <Button variant="default">Save changes</Button>.
+						</p>
+						<h3>Making changes</h3>
+						<p>
+							Operators can change table values, including ones that are computed from data. To do that one must
+							set <span className="border border-active">cursor</span> to desired column and press Enter/Insert
+							(or click the cell with mouse). Cell will turn into input field. When finished inputing the new
+							value one should press Enter/Insert again (or click outside) for the change to actually apply.
+							Inputs are validated according to corresponding column's data type, and ones that do not pass
+							validation are marked with red. If entered value is valid it will apply locally (i.e. correlation
+							plot will be redrawn with new data). But for changes to actually persist across sessions one must
+							commit them by pressing <b>{KEY_COMB.commitChanges}</b> or a button that appears when cursor hovers
+							over the changes display under the table. A confirmation dialog will popup, listing all the changes
+							that are being commited. One must ensure that list does not contain any unintended modifications, if
+							it does, one can discard specific changes using <CloseButton /> button. After confirm button is
+							pressed, changes will be saved to the server and whole table data will be reloaded.
+						</p>
+						<p>
+							If all changes are wrong or were made locally as an experiment, one may discard all of them with the{' '}
+							<b>{KEY_COMB.discardChanges}</b> button under below the FEID table.
+						</p>
+						<p>
+							Note that changes made to computed columns are persisted across computations. Thus, one should only
+							change them if it's really necessary. Manually modified are marked with an{' '}
+							<span className="mark-modified" /> asterisk. In order to opt back to automatically computed value
+							one should change cell value to special word: <span className="text-active">auto</span>
+						</p>
 						<h3>Persist text transforms</h3>
 						<p>
 							The program allows to save text transform presets (sets of search & replace entries) to be used
@@ -256,238 +329,6 @@ export default function ManualView() {
 							- Right click on panels border to split it's parent.
 							<br />- Ctrl+click panel border to make left/top panel square.
 						</p>
-						<h2>Sample management</h2>
-						<p>.</p>
-						<p>.</p>
-						<p>.</p>
-						Work in progress
-						{/* <p>
-					If you seek for some OR like behavior, <u>regexp</u> filter operators might come in handy. <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Cheatsheet">Regular expressions</a> are a powerful search and filter tool, just look at some examples: <i>okay|high</i> to filter for SStype confindence; <i>^(4|7|9)$</i> to include deifferent SStypes; <i>CH.*_2[^\d]</i> to search for second streams of coronal holes.
-					</p>
-					Note: do not use comparison operations on enum type columns, use <u>regexp</u> instead. */}
-					</div>
-				)}
-
-				{infoPage === null && (
-					<div>
-						<h2>
-							<a id="advanced" href="#advanced">
-								Advanced usage
-							</a>
-						</h2>
-						The most cool functionality requires user to be authorized, in order to save changes and also to avoid
-						server exploitation. If you want an account please email to{' '}
-						<a href="mailto:izmiran.crdt@gmail.com">izmiran.crdt@gmail.com</a>.<h4>Making changes</h4>
-						Operators can change table values, including ones that are computed from data. To do that one must set{' '}
-						<span className="border border-active">cursor</span> to desired column and press Enter/Insert (or click
-						the cell with mouse). Cell will turn into input field. When finished inputing the new value one should
-						press Enter/Insert again (or click outside) for the change to actually apply. Inputs are validated
-						according to corresponding column's data type, and ones that do not pass validation are marked with red.
-						If entered value is valid it will apply locally (i.e. correlation plot will be redrawn with new data).
-						But for changes to actually persist across sessions one must commit them by pressing <b>Ctrl + S</b> or
-						a button under <Button>Table</Button> menu. A confirmation prompt will popup, listing all the changes
-						that are being commited. One must ensure that list does not contain any unintended modifications, if it
-						does one can discard specific changes using{' '}
-						<span className="CloseButton" style={{ margin: 0, transform: 'none', fontSize: 16 }}>
-							&times;
-						</span>{' '}
-						Button. After confirm button is pressed, changes will be saved to the server and whole table data will
-						be reloaded.
-						<p>
-							If all changes are wrong or were made locally as an experiment, one may discard all of them with the{' '}
-							<b>Discard changes</b> button under <Button>Table</Button> menu.
-						</p>
-						Note that changes made to computed columns are persisted across computations. Thus, one should only
-						change them if it's really necessary. Modified values of computed columns are marked with{' '}
-						<span
-							style={{
-								fontSize: '14px',
-								display: 'inline-block',
-								color: 'var(--color-magenta)',
-								transform: 'translate(1px, -3px)',
-							}}
-						>
-							*
-						</span>{' '}
-						asterisk.{' '}
-						<b>
-							In order to opt back to automatically computed value one should change cell value to special word:{' '}
-							<span style={{ color: 'var(--color-active)' }}>auto</span>
-						</b>
-						<h4>Creating custom samples</h4>
-						Under <Button>Sample</Button> menu one can choose the sample to work with. Choose <i>None</i> to be able
-						to create a new one. Note that the name of a sample is not restricted.
-						<p>
-							After sample is created one can add filters to it with <Button>Add filter</Button> button. Sample is
-							stored on server in form of filters, the resulting list of events is computed in your browser. Thus,
-							if events ids change sample will not break. But on the other hand if anything happens to columns
-							that are involved in filters, the sample will not work as expected.
-						</p>
-						In order to add/remove specific events to the sample one should check into <b>editing mode</b>. When
-						this mode is active, table will include special column that shows status of each event in respect to the
-						sample: <b>f</b>: passes sample's filters; <span style={{ color: 'var(--color-cyan)' }}>+</span>: is
-						whitelisted;
-						<span style={{ color: 'var(--color-magenta)' }}> -</span>: is blacklisted. Event can't be whitelisted
-						and blacklisted at the same time. This column can be used to sort the table (just like with other
-						columns). Use this to get to those filtered events that you want to blacklist.
-						<p>
-							To whitelist an event click on special columns cell of the desired row. Or press <b>+</b> (=) key
-							while <span className="border border-active">cursor</span> stands in the desired row. To blacklist
-							do the same but with <b>Ctrl + click</b> or <b>-</b> key.
-						</p>
-						<p>
-							One can share ownership with co-authors by clicking on authors list and entering new list (separated
-							by comma). All authors are equal in rights and they can for example remove you from your own sample
-							(even you can't), so be careful there. One can also make the sample <b>public</b> so that it will be
-							visible to anyone (only visible).{' '}
-							<b>
-								Beware that public sample will not work properly if it's filters involve generic columns that
-								are not visible to everyone
-							</b>
-						</p>
-						Tip: Do not forget to <Button>Save changes</Button>.
-						<h2>
-							<a id="generics" href="#generics">
-								Comprehend generic columns
-							</a>
-						</h2>
-						<p>
-							Generic columns is a name for powerful system that allows authorized users to dynamically create
-							desired columns from data/ Press <b>{KEY_COMB.openGenericsSelector}</b> to open column creation
-							menu, on the left you will see list of columns that you've already created (if any) with{' '}
-							<u>recompute</u>{' '}
-							<span
-								className="CloseButton"
-								style={{
-									margin: 0,
-									transform: 'translateY(-3px)',
-									color: 'var(--color-green)',
-									fontSize: 16,
-								}}
-							>
-								o
-							</span>{' '}
-							and <u>remove</u>{' '}
-							<span className="CloseButton" style={{ margin: 0, transform: 'none', fontSize: 16 }}>
-								&times;
-							</span>{' '}
-							Buttons. On the right there will be the column creation form, which includes up to 7 inputs:
-						</p>
-						<ul style={{}}>
-							<li>
-								<b>Entity</b> - target event. Defines the table that the column belongs to and sets the starting
-								point as corresponding event's start;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>Type</b> - Defines what to compute (more details below);
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>Series</b> - Specifies which data series to use;
-							</li>
-							<li style={{ margin: '1em 0 .5em 0' }}>
-								<b>POI</b> - Point of Interest - defines target point in time. Optional for all types except{' '}
-								<i>time_to*</i> and <i>clone</i>. Can be the start of an associated event or its end (if
-								duration specified) or an extremum;
-							</li>
-							<li style={{ margin: '0 0 .5em 2em' }}>
-								<b>Extremum</b> - When POI = <i>&lt;Extremum&gt;</i> one must select the type of extremum;
-							</li>
-							<li style={{ margin: '0 0 0 2em' }}>
-								<b>of Series</b> - .. and data series in which to search for the extremum;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>Shift</b> - For <i>value</i> type specifies window in which to average (in hours from POI);
-								For <i>time_to*</i> and <i>clone</i> types specifies offset <b>in events</b>. For the rest
-								specifes POI shift in hours.
-							</li>
-						</ul>
-						<h4>Available column types</h4>
-						<ul style={{}}>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>time_to</b> - Time offset to POI in hours (can be negative);
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>time_to_%</b> - Same offset but in percents of event duration (only works for entities with
-								explicit duration);
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>min, max, abs_min, abs_max</b> - Extremum value of series in <u>specified window</u>;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>mean, median</b> - Average value of given series in <u>specified window</u>;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>range</b> - Difference between max and min value of series in <u>specified window</u>;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>coverage</b> - Data coverage of series as percentage of <u>specified window</u>;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>value</b> - Value of specified variable at specific hour (shift from poi). See examples
-								below;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>avg_value</b> - Value of specified variable averaged over specified period from poi. See
-								examples below;
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>diff, abs_diff</b> - Difference between two columns values.
-							</li>
-							<li style={{ margin: '1em 0 1em 0' }}>
-								<b>clone</b> - Clone specified column value from next/previous events associated entity of
-								selected type.
-							</li>
-						</ul>
-						<p>
-							One side of the <u>specified window</u> is event start hour, the other (not inclusive) is determined
-							as follows: If <b>POI is not set</b> - start+duration if duration is set explicitly, else the
-							closest of (the hour of next event onset or start + 72 (?) hours); If <b>POI is set</b> - poi hour
-							(always round down) + shift if set.
-						</p>
-						<p>
-							Note: Windows with POI (extremum, range etc) always round hours down. And right boundary is always
-							not inclusive. It means that when window is oriented backwards in time (i.e.{' '}
-							<i>MC min to associated FE</i>) it will always include whole FE start hour and not include MC start
-							hour.
-						</p>
-						<p>
-							<b>Value</b> rounds POI time up if shift is &gt; 0. Look at some examples. Event onset time is shown
-							in parenthesis, resulting interval is shown on the right:
-							<pre style={{ margin: '.5em 0 0 2em', lineHeight: '1.75em' }}>
-								[ons] (18:40) -&gt; 18:00
-								<br />
-								[ons]+1 (18:00) -&gt; 18:00
-								<br />
-								[ons]+1 (18:34) -&gt; 19:00
-								<br />
-								[ons]+2 (18:00) -&gt; [18:00, 19:00]
-								<br />
-								[ons]+2 (18:34) -&gt; [19:00, 20:00]
-								<br />
-								[ons]-1 (18:00) -&gt; 17:00
-								<br />
-								[ons]-1 (18:34) -&gt; 17:00
-								<br />
-								[ons]-3 (18:00) -&gt; [15:00, 17:00]
-								<br />
-								[ons]-3 (18:34) -&gt; [15:00, 17:00]
-								<br />
-							</pre>
-						</p>
-						<p>
-							If <i>value</i> interval is missing floor(len / 2) or more values, it is discarded.
-						</p>
-						<h2>
-							<a id="obscure" href="#obscure">
-								Other obscure knowledge
-							</a>
-						</h2>
-						<h4>Histogram</h4>
-						Histogram range is determined automatically based on sample. It can not know anything about your filters
-						so it is left to work with [a;b] type intervals. The following algorithm is applied here: if samples
-						maximum value is distinct (count=1), then it <u>is discarded</u>, otherwise the range is adjusted to
-						include a separate bin of this maximum values. Such behavior is targeted at integer or stepped data like
-						Kp or SStype.
 					</div>
 				)}
 				{infoPage === 'shortcuts' && (

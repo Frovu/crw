@@ -27,7 +27,7 @@ export const KEY_COMB = {
 	switchLayout: 'L',
 	commitChanges: 'Ctrl+S',
 	discardChanges: 'Ctrl+X',
-} as { [action: string]: string };
+} as const;
 
 export const themeOptions = ['Dark', 'Bright', 'Monochrome'] as const;
 
@@ -222,7 +222,7 @@ export function handleGlobalKeydown(e: KeyboardEvent) {
 	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement) return;
 
 	const keycomb = (e.ctrlKey ? 'Ctrl+' : '') + (e.shiftKey ? 'Shift+' : '') + e.code.replace(/Key|Digit/, '');
-	const action = Object.keys(KEY_COMB).find((k) => KEY_COMB[k].split('%')[0] === keycomb);
+	const action = Object.keys(KEY_COMB).find((k) => KEY_COMB[k as keyof typeof KEY_COMB].split('%')[0] === keycomb);
 	if (action) {
 		e.preventDefault();
 		e.stopPropagation();
