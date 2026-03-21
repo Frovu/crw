@@ -39,7 +39,7 @@ class SeriesOperation(Function):
 			slice_start, dur = ctx.select_columns_by_name(['time', 'duration'])
 			slice_end = slice_start + dur * HOUR
 
-		d_time, d_value = data.value[:,0], data.value[:,1]
+		d_time, d_value = (data.value[:,0], data.value[:,1]) if len(data.value) > 0 else (np.array([]), np.array([]))
 		slices = get_slices(d_time, slice_start, slice_end)
 
 		if self.name == 'coverage':
