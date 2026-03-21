@@ -52,6 +52,7 @@ type TableProps = {
 	columns: TableColumn[];
 	focusIdx?: number;
 	enableEditing?: boolean;
+	sliceCols?: number;
 	rowClassName?: (row: TableValue[], ridx: number) => string | undefined;
 	cellContent?: (val: TableValue, column: TableColumn, ridx: number) => ReactNode | undefined;
 	inputProps?: (
@@ -69,6 +70,7 @@ export function EventsTable({
 	columns,
 	focusIdx,
 	enableEditing,
+	sliceCols,
 	onKeydown,
 	onClick,
 	rowClassName,
@@ -93,7 +95,7 @@ export function EventsTable({
 
 	const headerHeight = 32 + padHeader;
 
-	const sliceId = columns[0]?.sql_name === 'id' ? 1 : 0;
+	const sliceId = sliceCols ?? (columns[0]?.sql_name === 'id' ? 1 : 0);
 
 	const [viewIndex, setViewIndex] = useState(Math.max(0, data.length - viewSize));
 

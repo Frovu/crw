@@ -1,14 +1,18 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, useContextMenuStore } from '../../app';
+import { color, useContextMenuStore, useEventsContextMenu } from '../../app';
 import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
 import { EventsTable } from './Table';
 import { type DataRow } from '../columns/columns';
 import { equalValues, valueToString } from '../core/util';
-import { useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
+import { useEntityCursor, useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
 import { linkHoleSourceEvent, unlinkHoleSourceEvent, useHolesViewState, type ChimeraCH } from '../core/sourceActions';
 import { useQuery } from '@tanstack/react-query';
-import { apiGet, prettyDate } from '../../util';
+import { apiGet, cn, prettyDate } from '../../util';
 import { NumberInput } from '../../components/Input';
+import { Button } from '../../components/Button';
+import { useTableDataQuery } from '../core/query';
+import { tableRowAsDict, type TableValue } from '../core/editableTables';
+import type { StaticColumn } from '../../api';
 
 const URL = 'https://solarmonitor.org/data/';
 const columnOrder = ['id', 'lat', 'lon', 'b', 'phi', 'area_percent', 'width_text'];
@@ -19,11 +23,11 @@ const defaultSettings = {
 };
 type Params = Partial<typeof defaultSettings>;
 
-function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
+function Menu({ params, setParams, Checkbox }: ContextMenuProps<Partial<Params>>) {
 	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
-	const detail = useContextMenuStore((state) => state.menu?.detail) as { ch?: ChimeraCH };
+	const menu = useEventsContextMenu<'chimera_holes'>();
 	const { id: feidId } = useFeidCursor();
-	const ch = detail?.ch;
+	const ch = menu?.event as ChimeraCH;
 	const chs = useSelectedSource('sources_ch');
 
 	const isLinked = ch && chs && equalValues(ch.chimera_time, chs.chimera_time) && equalValues(ch.id, chs.chimera_id);
@@ -32,40 +36,27 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<Params>>) {
 		<>
 			{ch && (
 				<>
-					<button
-						className="TextButton"
-						style={{ color: color(chs?.chimera_time ? 'dark' : 'text') }}
+					<Button
+						className={cn(chs?.chimera_time && 'text-dark')}
 						onClick={() => feidId && linkHoleSourceEvent('chimera_holes', ch, feidId)}
 					>
 						Link CHIMERA CH
-					</button>
-					{isLinked && (
-						<button className="TextButton" onClick={() => unlinkHoleSourceEvent('chimera_holes')}>
-							Unlink CHIMERA CH
-						</button>
-					)}
+					</Button>
+					{isLinked && <Button onClick={() => unlinkHoleSourceEvent('chimera_holes')}>Unlink CHIMERA CH</Button>}
 					<div className="separator" />
 				</>
 			)}
-			<div className="">
+			<div>
 				Frame time:
 				<NumberInput
-					style={{ width: '4em', margin: '0 2px', padding: 0 }}
+					className="w-16 ml-1"
 					min={20}
 					max={1000}
 					value={frameTime}
 					onChange={(val) => setParams({ slowFrameTime: val ?? defaultSettings.slowFrameTime })}
 				/>
 			</div>
-			<label>
-				Animation
-				<input
-					type="checkbox"
-					style={{ paddingLeft: 4 }}
-					checked={holesAnimation}
-					onChange={(e) => setParams({ holesAnimation: e.target.checked })}
-				/>
-			</label>
+			<Checkbox label="Animation" k="holesAnimation" />
 		</>
 	);
 }
@@ -75,21 +66,22 @@ function Panel() {
 	const { slowFrameTime: frameTime, holesAnimation } = { ...defaultSettings, ...params };
 	const { time: stateTime, catched, setTime, setCatched } = useHolesViewState();
 	const [frame, setFrame] = useState(1);
-	const { cursor: sCursor, setCursor } = useEventsState();
+	const { setCursor } = useEventsState();
 	const { start: cursorTime, id: feidId } = useFeidCursor();
-	const cursor = sCursor?.entity === 'chimera_holes' ? sCursor : null;
-	const solenCursor = sCursor?.entity === 'solen_holes' ? sCursor : null;
-	const sourceCh = useSelectedSource('sources_ch') as CHS;
-	const solenQuery = useSolenHolesQuery();
+	const cursor = useEntityCursor('chimera_holes');
+	const solenCursor = useEntityCursor('solen_holes');
+	const sourceCh = useSelectedSource('sources_ch');
+	const solenQuery = useTableDataQuery('solen_holes');
 	const isSlave = useNodeExists('Chimera Holes') && isWindow;
 
-	const solenChOfSrc = (sourceCh?.tag && solenQuery.data && solenQuery.data.data.find((r) => r[0] === sourceCh.tag)) || null;
+	const solenEntry = (row: TableValue[]) => tableRowAsDict<'solen_holes'>(row, solenQuery.data!.columns);
+
+	const solenChOfSrc =
+		(sourceCh?.tag && solenQuery.data && solenQuery.data.data.find((r) => equalValues(r[0], sourceCh.tag))) || null;
 	const solenHole =
 		catched?.solenHole ??
-		(solenChOfSrc && (rowAsDict(solenChOfSrc, solenQuery.data!.columns) as SolenCH)) ??
-		((solenCursor &&
-			solenQuery.data &&
-			rowAsDict(solenQuery.data.data[solenCursor.row], solenQuery.data.columns)) as SolenCH | null) ??
+		(solenChOfSrc && solenEntry(solenChOfSrc)) ??
+		(solenCursor && solenQuery.data && solenEntry(solenQuery.data.data[solenCursor.row])) ??
 		null;
 	const solenTime = solenHole?.time as Date | null;
 
@@ -101,13 +93,11 @@ function Panel() {
 		queryKey: ['chimera_holes', start, end, holesAnimation],
 		queryFn: async () => {
 			if (!start || !end) return null;
-			const res = await apiGet<{ columns: ColumnDef[]; holes: { [dtst: number]: DataRow[] }; images: number[] }>(
-				'events/chimera',
-				{
-					from: start,
-					to: end,
-				}
-			);
+			type CHMResp = { columns: StaticColumn[]; holes: { [dtst: number]: DataRow[] }; images: number[] };
+			const res = await apiGet<CHMResp>('events/chimera', {
+				from: start,
+				to: end,
+			});
 
 			const frames = res.images
 				.filter((tst) => tst >= start && tst <= end)
@@ -141,28 +131,9 @@ function Panel() {
 					return entry;
 				});
 
-			const cols = res.columns
-				.map((col) => ({
-					...col,
-					width: (() => {
-						switch (col.id) {
-							case 'id':
-								return 2.5;
-							case 'lat':
-							case 'lon':
-								return 3.5;
-							case 'area_percent':
-								return 4.5;
-							case 'width_text':
-								return 7.5;
-							default:
-								return 4.5;
-						}
-					})(),
-				}))
-				.concat({ id: 'chimera_time', hidden: true, type: 'time' } as ColumnDef);
-			const reorder = [...new Set([...columnOrder, ...cols.map((c) => c.id)])].map((cid) =>
-				cols.findIndex((col) => col.id === cid)
+			const cols = res.columns.concat({ sql_name: 'chimera_time', hidden: true, type: 'time' } as any as StaticColumn);
+			const reorder = [...new Set([...columnOrder, ...cols.map((c) => c.sql_name)])].map((name) =>
+				cols.findIndex((col) => col.sql_name === name),
 			);
 			const columns = reorder.map((idx) => cols[idx]);
 			const holes = res.holes;
@@ -181,7 +152,7 @@ function Panel() {
 		},
 	});
 
-	const framesTotal = query.data?.frames.length ?? 1;
+	const framesTotal = query.data?.frames.length ?? 0;
 
 	useEffect(() => {
 		const tst = query.data?.frames[frame]?.timestamp;
@@ -205,7 +176,7 @@ function Panel() {
 			return;
 		}
 		const inte = setInterval(() => {
-			if (!catched) setFrame((f) => (f + 1) % framesTotal);
+			if (!catched) setFrame((f) => (framesTotal ? (f + 1) % framesTotal : 0));
 		}, frameTime);
 		return () => clearInterval(inte);
 	}, [frameTime, catched, framesTotal, isSlave, holesAnimation, query.data?.frames, focusTime]);
@@ -216,7 +187,7 @@ function Panel() {
 
 	if (query.isError)
 		return (
-			<div title={query.error.message} className="center" style={{ color: color('red') }}>
+			<div title={query.error.message} className="center text-red">
 				FAILED TO LOAD
 			</div>
 		);
@@ -226,7 +197,7 @@ function Panel() {
 	const { columns, holes, frames } = query.data;
 	const { timestamp, url, holesTimestamp } = frames[frame < frames.length ? frame : 0];
 	const data = holes[holesTimestamp] ?? [];
-	const cursorCh = cursor ? (rowAsDict(data[cursor.row], columns) as ChimeraCH) : null;
+	const cursorCh = cursor ? tableRowAsDict<'chimera_holes'>(data[cursor.row], columns) : null;
 
 	const imgSize = Math.min(size.width, size.height - (isWindow ? 0 : 104));
 	const targetImgWidth = imgSize * (1 + 430 / 1200) - 4;
@@ -261,71 +232,55 @@ function Panel() {
 	return (
 		<div>
 			{!isWindow && (
-				<div style={{ height: size.height - imgSize, position: 'relative', marginTop: -1 }}>
-					{
-						<EventsTable
-							{...{
-								entity: 'chimera_holes',
-								hideBorder: true,
-								focusIdx: 1,
-								data,
-								columns,
-								size: { height: size.height - imgSize, width: size.width - 3 },
-								onKeydown: (e) => {
-									const cycle = e.altKey && { ArrowLeft: -1, ArrowRight: 1 }[e.code];
-									if (cycle) cycleHoles(cycle as any);
-									if (cursor && cursorCh && ['+', '='].includes(e.key))
-										return feidId && linkHoleSourceEvent('chimera', cursorCh, feidId);
-									if (cursor && e.key === '-') return unlinkHoleSourceEvent('chimera');
-								},
-								row: (row, idx, onClick, padRow) => {
-									const ch = rowAsDict(row as any, columns) as ChimeraCH;
+				<div className="relative -mt-[1px] -ml-[1px]" style={{ height: size.height - imgSize }}>
+					<EventsTable
+						{...{
+							entity: 'chimera_holes',
+							hideBorder: true,
+							focusIdx: 1,
+							data,
+							columns,
+							sliceCols: 0,
+							size: { height: size.height - imgSize, width: size.width - 3 },
+							onKeydown: (e) => {
+								const cycle = e.altKey && { ArrowLeft: -1, ArrowRight: 1 }[e.code];
+								if (cycle) cycleHoles(cycle as any);
+								if (cursor && cursorCh && ['+', '='].includes(e.key))
+									return feidId && linkHoleSourceEvent('chimera_holes', cursorCh, feidId);
+								if (cursor && e.key === '-') return unlinkHoleSourceEvent('chimera_holes');
+							},
+							onClick: (e, row, column) => {
+								console.log(start, end, solenHole);
+								if (start && end) setCatched({ start, end, solenHole });
+								setFrame(query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0);
 
-									const linkedToThisCH = false;
+								if (column.name === 'id' && feidId !== null) {
+									const ch = tableRowAsDict(row, columns) as ChimeraCH;
+									linkHoleSourceEvent('chimera_holes', ch, feidId);
+									return true;
+								}
+							},
+							rowClassName: (row) => {
+								const ch = tableRowAsDict(row, columns) as ChimeraCH;
+								const linkedToThisCH =
+									equalValues(sourceCh?.chimera_id, ch.id) &&
+									equalValues(sourceCh?.chimera_time, ch.chimera_time);
+								if (linkedToThisCH) return 'text-cyan';
 
-									const dark =
-										ch.area_percent < 0.4 ||
-										(solenHole?.location === 'northern' && ch.lat <= 10) ||
-										(solenHole?.location === 'southern' && ch.lat >= -10);
+								const dark =
+									(ch.area_percent ?? 0) < 0.4 ||
+									(solenHole?.location === 'northern' && (ch.lat ?? 0) <= 10) ||
+									(solenHole?.location === 'southern' && (ch.lat ?? 0) >= -10);
 
-									const className = linkedToThisCH ? 'text-cyan' : dark ? 'text-dark' : 'text-text';
-
-									return (
-										<DefaultRow
-											key={holesTimestamp + row[0]}
-											{...{ row, idx, columns, cursor, className, padRow }}
-											onClick={(e, cidx) => {
-												if (start && end) setCatched({ start, end, solenHole });
-												setFrame(
-													query.data?.frames.findIndex((f) => f.timestamp === holesTimestamp) ?? 0
-												);
-
-												if (cidx === 0 && feidId !== null)
-													return linkHoleSourceEvent('chimera', ch, feidId);
-												onClick(idx, cidx);
-											}}
-											contextMenuData={() => ({ nodeId, ch })}
-										>
-											{({ column, cidx }) => {
-												const value = valueToString(row[cidx]);
-												const val =
-													column.id === 'tag'
-														? value.slice(2)
-														: column.id === 'time'
-														? value.slice(5, 10)
-														: value;
-												return <DefaultCell column={column}>{val}</DefaultCell>;
-											}}
-										</DefaultRow>
-									);
-								},
-							}}
-						/>
-					}
+								if (dark) return 'text-dark';
+							},
+						}}
+					/>
 				</div>
 			)}
 			<div
-				style={{ cursor: 'pointer', overflow: 'clip', position: 'relative', userSelect: 'none', height: imgSize }}
+				className="cursor-pointer overflow-clip relative select-none"
+				style={{ height: imgSize }}
 				onClick={(e) =>
 					!isWindow &&
 					openWindow({
@@ -338,7 +293,7 @@ function Panel() {
 					})
 				}
 			>
-				<div style={{ position: 'absolute', maxWidth: imgSize, maxHeight: imgSize, overflow: 'clip' }}>
+				<div className="absolute overflow-clip" style={{ maxWidth: imgSize, maxHeight: imgSize }}>
 					<img
 						alt=""
 						src={url}
@@ -393,10 +348,10 @@ function Panel() {
 							transform: 'translate(-50%, -50%)',
 							color: 'orange',
 							textAlign: 'center',
-							left: arcSecToPx(cursorCh.xcen),
+							left: arcSecToPx(cursorCh.xcen ?? 0),
 							fontSize: 24,
 							lineHeight: 1.2,
-							top: arcSecToPx(-cursorCh.ycen),
+							top: arcSecToPx(-(cursorCh.ycen ?? 0)),
 						}}
 					>
 						<b>{cursorCh.id}</b>

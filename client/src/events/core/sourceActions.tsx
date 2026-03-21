@@ -39,7 +39,7 @@ export const useHolesViewState = create<{
 	catched: null,
 	time: 0,
 	setTime: (time) => set((s) => ({ ...s, time })),
-	setCatched: (cachimeraed) => set((s) => ({ ...s, cachimeraed })),
+	setCatched: (catched) => set((s) => ({ ...s, catched })),
 }));
 
 export function getSourceLink<T extends EruptEnt>(ent: T, src: EruptSrcLabel<T>) {

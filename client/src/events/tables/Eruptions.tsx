@@ -187,9 +187,11 @@ function Panel() {
 	if (!data.length) return <div className="center">LOADING..</div>;
 
 	const focusTime = cursorTime && cursorTime.getTime() - 3 * 864e5;
-	const focusIdxx =
-		sources.map((src) => data.findIndex((r) => src.erupt?.id === r[0])).find((i) => i > 0) ||
-		(focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime));
+	const focusIdxx = selectedErupt
+		? data.findIndex((r) => selectedErupt?.id === r[0])
+		: focusTime == null
+			? data.length
+			: data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime);
 	const focusIdx = focusIdxx < 0 ? data.length : focusIdxx;
 
 	const isLinkedModified = (val: TableValue, col: TableColumn, ridx: number) => {

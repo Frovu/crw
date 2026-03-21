@@ -40,9 +40,11 @@ function Panel() {
 	if (!data.length) return <div className="center">LOADING..</div>;
 
 	const focusTime = cursorTime && cursorTime.getTime() - 3 * 864e5;
-	const focusIdxFound =
-		sources.map((src) => data.findIndex((r) => src.ch?.id === r[0])).find((i) => i > 0) ||
-		(focusTime == null ? data.length : data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime));
+	const focusIdxFound = selectedCh
+		? data.findIndex((r) => selectedCh?.id === r[0])
+		: focusTime == null
+			? data.length
+			: data.findIndex((r) => (r[1] as Date)?.getTime() > focusTime);
 	const focusIdx = focusIdxFound < 0 ? data.length - 1 : focusIdxFound;
 
 	return (

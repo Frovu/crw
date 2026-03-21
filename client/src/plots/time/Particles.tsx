@@ -46,7 +46,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 	const opts = particlesOptions;
 
 	return (
-		<div className="flex flex-wrap justify-end gap-0.5 w-80">
+		<div className="flex flex-wrap justify-end gap-0.5 max-w-80">
 			{opts.map((part) => (
 				<Checkbox
 					className="pl-2"

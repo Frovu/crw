@@ -65,6 +65,10 @@ export function computeColumnWidth(column: Column) {
 		if (column.name === 'time') return 56;
 		if (column.name === 'polarity') return 36;
 	}
+	if (column.entity === 'chimera_holes') {
+		if (column.name === 'id') return 36;
+	}
+	if (column.name === 'lat' || column.name === 'lon') return 42;
 	if (column.sql_name === 'tag') return 70;
 	if (column.sql_name === 'class') return 52;
 	if (column.sql_name === 'src') return 42;
@@ -78,6 +82,6 @@ export function computeColumnWidth(column: Column) {
 		case 'integer':
 			return 48;
 		default:
-			return 64;
+			return 56;
 	}
 }
