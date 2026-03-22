@@ -236,12 +236,11 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 	const parent = Object.keys(tree).find((node) => tree[node]?.children.includes(id));
 	const isFirst = parent && tree[parent]?.children[0] === id;
 	const relDir = parent && tree[parent]?.split === 'row' ? (isFirst ? 'right' : 'left') : isFirst ? 'bottom' : 'top';
-	const isFirstInRoot = isFirst && parent === 'root';
 	const dupable = !!panel?.isDuplicatable;
 
 	return (
 		<CatchErrors>
-			{item && !(type && isFirstInRoot) && (
+			{item && (
 				<Select value={type ?? ''} onValueChange={(val) => setNodeParams(id, { type: val })}>
 					<SelectTrigger>
 						<SelectValue placeholder={'Select panel'} />
@@ -261,7 +260,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 					</SelectContent>
 				</Select>
 			)}
-			{!isFirstInRoot && type && !window && <div className="separator" />}
+			{type && !window && <div className="separator" />}
 			{window && panel?.Menu && (
 				<panel.Menu
 					{...{
@@ -291,9 +290,7 @@ export function LayoutContextMenu({ id: argId, detail }: { id?: string; detail?:
 					{<Button onClick={() => splitNode(id, 'column', false, dupable)}>Split bottom</Button>}
 				</>
 			)}
-			{item && id !== 'root' && !(item.type && isFirstInRoot) && (
-				<Button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</Button>
-			)}
+			{item && id !== 'root' && <Button onClick={() => relinquishNode(id)}>Relinquish ({relDir})</Button>}
 		</CatchErrors>
 	);
 }
