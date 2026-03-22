@@ -84,9 +84,9 @@ export default function BasicPlot({
 						range: (u, dmin, dmax) => {
 							const override = scaleOverrides?.[ax.label];
 							const [fmin, fmax] = ax.minMax ?? [null, null];
-							const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin) - 0.0001;
-							const min = ax.distr !== 3 ? pmin : Math.max(0.1, pmin);
-							const max = override?.max ?? Math.max(dmax, fmax ?? dmax) + 0.0001;
+							const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin);
+							const min = ax.distr !== 3 ? pmin : Math.max(1e-10, pmin);
+							const max = override?.max ?? Math.max(dmax, fmax ?? dmax);
 							const [bottom, top] =
 								override && ax.distr !== 3 ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
 							const scale: CustomScale = u.scales[ax.label];
@@ -123,7 +123,12 @@ export default function BasicPlot({
 								},
 					),
 					values: (u, vals) => vals.map((v) => v?.toString().replace('-', '−')),
-					...(ax.whole && { incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50] }),
+					// ...(ax.distr === 3 && {
+					// 	incrs: [1e-4, 1e-3, 1e-2, 0.1, 1, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10],
+					// }),
+					...(ax.whole && {
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 1e3],
+					}),
 					scale: ax.label,
 					...ax,
 					label: '',
@@ -163,16 +168,11 @@ export default function BasicPlot({
 	}, [query.data, params.interval]);
 
 	if (query.isLoading) return <div className="center">LOADING...</div>;
-	if (query.isError)
-		return (
-			<div className="center" style={{ color: color('red') }}>
-				FAILED TO LOAD
-			</div>
-		);
+	if (query.isError) return <div className="center text-red">FAILED TO LOAD</div>;
 	if (!query.data?.[0]?.length) return <div className="center">NO DATA</div>;
 
 	return (
-		<div style={{ position: 'absolute' }}>
+		<div className="absolute">
 			<ExportableUplot {...{ size: calcSize, options, data: data!, onCreate: setUpl }} />
 			{(layoutContext?.panel as any)?.isSolar && upl && <SolarPlotOverlay upl={upl} />}
 		</div>
@@ -183,9 +183,7 @@ export function SolarPlotOverlay({ upl }: { upl: uPlot }) {
 	const { time } = useSunViewState();
 
 	const x = upl.valToPos(time, 'x', true);
-	const out = x < upl.bbox.left || x > upl.bbox.left + upl.bbox.width;
+	const out = isNaN(x) || x < upl.bbox.left || x > upl.bbox.left + upl.bbox.width;
 
-	return out ? null : (
-		<div style={{ position: 'absolute', top: 0, left: x, height: '100%', width: 2, background: color('text', 0.5) }} />
-	);
+	return out ? null : <div className="absolute top-0 h-full w-[2px] bg-text/50" style={{ left: x }} />;
 }

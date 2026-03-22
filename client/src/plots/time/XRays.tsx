@@ -55,8 +55,8 @@ export function flaresOnsetsPlugin({
 							focusTime.getTime() === time.getTime()
 								? 'active'
 								: ['A', 'B', 'C'].includes((flare.class ?? 'A')[0])
-								? 'dark'
-								: 'white';
+									? 'dark'
+									: 'white';
 						ctx.strokeStyle = ctx.fillStyle = color(col);
 						const tm = (flare.peak_time?.getTime() ?? time.getTime()) / 1e3;
 						const x = u.valToPos(tm, 'x', true);
@@ -115,10 +115,9 @@ function Panel() {
 						fullLabel: 'X-Ray, W/m²',
 						distr: 3,
 						gap: scaled(4),
-						// minMax: [null, 1e-5],
 						values: (u, vals) =>
 							vals.map((v) =>
-								Math.log10(v) % 1 === 0 ? ['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '' : ''
+								Math.log10(v) % 1 === 0 ? (['A', 'B', 'C', 'M', 'X'][Math.log10(v) + 8] ?? '') : '',
 							),
 					},
 				],

@@ -358,12 +358,14 @@ export function tooltipPlugin({
 		const top = u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(xval, 'x');
 		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
+		const flipY = tooltipTopOffset + top + tooltip.clientHeight + 5 >= u.height;
 
 		const left = tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1);
 		tooltip.style.top = tooltipTopOffset + top + shiftY + 'px';
 		tooltip.style.left =
 			(flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
-		tooltip.style.transform = flip ? 'translateX(-100%)' : 'unset';
+		tooltip.style.transform =
+			flip && flipY ? 'translate(-100%,-100%)' : flip ? 'translateX(-100%)' : flipY ? 'translateY(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
 		tooltip.innerHTML = html
 			? html(u, sidx, dataIdx!)
