@@ -23,6 +23,7 @@ helpers = {
 helpers_desc = {
 	'start': ('FEID start', 'col("time")'),
 	'end': ('FEID end', 'col("time") + col("duration")'),
+	'dur': ('FEID duration', 'col("duration")'),
 	'mc_start': ('MC start', 'col("MC time")'),
 	'mc_end': ('MC end', 'col("MC time") + col("MC duration")'),
 }

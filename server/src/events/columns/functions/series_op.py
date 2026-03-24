@@ -13,7 +13,7 @@ def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
 	t_l = np.minimum(t_1, t_2)
 	t_r = np.maximum(t_1, t_2)
 	left = (t_l - t_time[0]) // HOUR
-	slice_len = (t_r - t_l) // HOUR + 1 # end inclusive
+	slice_len = (t_r - t_l) // HOUR
 	left[np.isnan(left)] = -1
 	slice_len[left < 0] = 1
 	slice_len[np.isnan(slice_len)] = 1

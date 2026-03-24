@@ -24,7 +24,7 @@ class IntervalOperation(Function):
 			slice_start, dur = ctx.select_columns_by_name(['time', 'duration'])
 			slice_end = slice_start + dur * HOUR
 
-		d_time, d_value = (data.value[:,0], data.value[:,1]) if len(data.value) > 0 else (np.array([]), np.array([]))
+		d_time, d_value = data.value[:,0], data.value[:,1].astype(bool)
 		slices = get_slices(d_time, slice_start, slice_end)
 
 		if self.name == 'ilen':
@@ -36,8 +36,9 @@ class IntervalOperation(Function):
 			if self.name == 'icount':
 				for i, slice in enumerate(slices):
 					preceding = np.roll(d_value[slice], 1)
-					preceding[0] = False
-					res[i] = np.count_nonzero(d_value[slice] & ~preceding)
+					if len(preceding) > 0:
+						preceding[0] = False
+						res[i] = np.count_nonzero(d_value[slice] & ~preceding)
 			
 			elif self.name == 'itime':
 				for i, slice in enumerate(slices):
@@ -46,11 +47,11 @@ class IntervalOperation(Function):
 					else:
 						res[i] = (d_time[np.argmax(d_value[slice]) + slice.start] - slice_start[i]) / HOUR
 
-		dtype = DTYPE.TIME if self.name == 'time' else DTYPE.INT
+		dtype = DTYPE.REAL if self.name == 'itime' else DTYPE.INT
 		return Value(TYPE.COLUMN, dtype, res)
 
 functions = {
 	'icount': IntervalOperation('icount', 'count of periods where condition is true for 1+ hours consecutively, within given interval'),
-	'itime': IntervalOperation('itime', 'get time of the first hour where the condition is true, within given interval'),
+	'itime': IntervalOperation('itime', 'get offset of the first hour where the condition is true, within given interval'),
 	'ilen': IntervalOperation('ilen', 'total count of the hours where condition is true within given interval'),
 }
