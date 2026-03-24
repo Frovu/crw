@@ -25,6 +25,7 @@ export function ColumnsView() {
 	const { shownColumns, enableColumn, set } = useEventsSettings();
 	const queryClient = useQueryClient();
 	const [bulkAction, setBulkAction] = useState(true);
+	const [container, setContainer] = useState<HTMLDivElement | null>();
 	const [drag, setDragging] = useState<null | { y: number; col: string; pos: number }>(null);
 
 	const newOrder = Object.keys(shownColumns);
@@ -75,6 +76,27 @@ export function ColumnsView() {
 		setDragging(null);
 	});
 
+	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (!isOpen || !container) return;
+
+		const diff = {
+			Home: -9999,
+			ArrowUp: -1,
+			ArrowLeft: -1,
+			ArrowDown: 1,
+			ArrowRight: 1,
+			End: 9999,
+		}[e.key];
+		if (!diff) return;
+
+		const idx = [...container.children].findIndex((el) => el.firstElementChild?.matches(':focus'));
+
+		const index = idx < 0 ? (diff < 0 ? 9999 : -99) : idx;
+
+		const newIndex = clamp(0, container.children.length - 1, index + diff);
+		(container.children[newIndex].firstElementChild as any)?.focus?.();
+	});
+
 	return (
 		<>
 			<ComputeController />
@@ -108,27 +130,10 @@ export function ColumnsView() {
 						</Button>
 					</div>
 					<div
+						ref={setContainer}
 						className="p-2 grow shrink min-h-0 flex flex-col flex-wrap content-start"
 						onMouseLeave={() => {
 							if (!focusStick) resetFocus();
-						}}
-						onKeyDown={(e) => {
-							const diff = {
-								Home: -9999,
-								ArrowUp: -1,
-								ArrowLeft: -1,
-								ArrowDown: 1,
-								ArrowRight: 1,
-								End: 9999,
-							}[e.key];
-							if (!diff || !(e.target instanceof HTMLButtonElement)) return;
-
-							const parent = e.target.parentElement?.parentElement;
-							if (!parent) return;
-							const index = [...parent.children].findIndex((el) => el.firstChild === e.target);
-
-							const newIndex = clamp(0, parent.children.length - 1, index + diff);
-							(parent.children[newIndex].firstElementChild as any)?.focus?.();
 						}}
 					>
 						{filteredColumns.map(({ sql_name, name, description, ...column }) => (
