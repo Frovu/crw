@@ -4,7 +4,7 @@ from typing import Any
 import ts_type
 
 TYPE = StrEnum('TYPE', ['LITERAL', 'SERIES', 'COLUMN'])
-DTYPE = StrEnum('DTYPE', ['REAL', 'INT', 'TIME', 'TEXT'])
+DTYPE = StrEnum('DTYPE', ['REAL', 'INT', 'TIME', 'TEXT', 'BOOL'])
 
 @dataclass
 class Value:
@@ -35,6 +35,8 @@ def value_to_sql_dtype(dtype: DTYPE):
 		return 'integer'
 	if dtype == DTYPE.REAL:
 		return 'real'
+	if dtype == DTYPE.BOOL:
+		return 'integer'
 	return 'text'
 
 @ts_type.gen_type

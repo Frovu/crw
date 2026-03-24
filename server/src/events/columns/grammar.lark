@@ -9,6 +9,14 @@ fn_call: NAME "(" (sum ("," sum)*)? ")"
 	| product "*" atom  -> mul
 	| product "/" atom  -> div
 
+?condition: sum
+	| sum "<"  sum 	-> lt
+	| sum "<=" sum	-> le
+	| sum "==" sum	-> eq
+	| sum "!=" sum	-> ne
+	| sum ">=" sum	-> ge
+	| sum ">"  sum	-> gt
+
 ?atom: SIGNED_NUMBER    -> number
 	| ESCAPED_STRING    -> string
 	| "$" NAME          -> series
@@ -16,7 +24,7 @@ fn_call: NAME "(" (sum ("," sum)*)? ")"
 	| "(" sum ")"
 	| fn_call          
 
-?start: sum
+?start: condition
 
 %import common.CNAME -> NAME
 %import common.SIGNED_NUMBER

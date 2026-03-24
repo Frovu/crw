@@ -12,3 +12,6 @@ abs(tmax($B) - tmin($A0m))
 pow(pow(scol("erupt", "lat", "time", "p,s"), 2) + pow(scol("erupt", "lon", "time", "p,s"), 2), 0.5)
 scnt("DKI FLR", "p")
 tmax($e1000 + $e2000, tmax($V) + 24, tmax($V) + 124) - @start
+itime($Tidx > 0, @start, @start+10)
+icount($Tidx <= 0.5)
+ilen($Tidx)

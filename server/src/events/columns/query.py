@@ -53,6 +53,8 @@ def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_colu
 		val = np.where(~np.isfinite(res), None, np.round(res).astype(int))
 	elif result.dtype == DTYPE.REAL:
 		val = np.where(~np.isfinite(res), None, np.round(res, 2))
+	elif result.dtype == DTYPE.BOOL:
+		val = np.where(~np.isfinite(res), 0, res.astype(int))
 	else:
 		val = res
 		

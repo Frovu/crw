@@ -1,13 +1,14 @@
 from lark import Lark, Transformer, v_args
 
 from events.columns.context import ComputationContext
-from events.columns.functions import math_op, select_op, series_op
+from events.columns.functions import math_op, select_op, series_op, bool_op
 from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
 	**select_op.functions,
 	**series_op.functions,
 	**math_op.functions,
+	**bool_op.functions,
 }
 
 helpers = {
@@ -59,6 +60,19 @@ class ColumnComputer(Transformer):
 		return self.fn_call('mul', *args)
 	def div(self, *args):
 		return self.fn_call('div', *args)
+	
+	def lt(self, *args):
+		return self.fn_call('lt', *args)
+	def le(self, *args):
+		return self.fn_call('le', *args)
+	def eq(self, *args):
+		return self.fn_call('eq', *args)
+	def ne(self, *args):
+		return self.fn_call('ne', *args)
+	def gt(self, *args):
+		return self.fn_call('gt', *args)
+	def ge(self, *args):
+		return self.fn_call('ge', *args)
 
 columnParser = Lark.open('grammar.lark', rel_to=__file__)
 

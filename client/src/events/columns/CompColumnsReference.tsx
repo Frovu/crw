@@ -76,9 +76,10 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 					these expressions closely resembles standard mathematical notation.
 					<br />
 					<br />
-					Following operations are directly supporeted in the language: <b className="text-active">+, -, *, /</b>.
-					Parentheses <b className="text-active">( )</b> can be used to manage operations order. Other operations are
-					performed through <b>function calls</b>, in a form of{' '}
+					Following operations are directly supporeted in the language:{' '}
+					<b className="text-active">+, -, *, /, &lt;, &lt;=, ==, !=, &gt;, &gt;=</b>. Parentheses{' '}
+					<b className="text-active">( )</b> can be used to manage operations order. Other operations are performed
+					through <b>function calls</b>, in a form of{' '}
 					<span className="text-active">function_name(arg_1, arg_2...)</span>, where each argument can be any
 					expression, yielding suitable result. Full list of functions with their descriptions can be found in{' '}
 					<Button className="underline" onClick={() => setTab('Functions')}>
@@ -109,11 +110,12 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 					a value for each FEID event. <b>LITREAL</b> represents a single value. And <b>SERIES</b> represents a
 					hourly-averaged time-data series of some physical measurement. Logically, mathematical operations are
 					forbidden between <b>COLUMN and SERIES</b>. For each of these three types, following data types are
-					supported: <b>REAL, INT, TIME, TEXT</b>. These types are determined based on the operation and operands, for
-					example <i>INT * INT = INT</i> but <i>INT / INT = REAL</i>. When <b>TIME</b> and <b>REAL, INT</b> are in the
-					same operation, all numbers are regarded as an <u>amount of hours</u>, so <i>@start + 24</i> returns event
-					start + one day, and also <i>TIME - TIME = INT</i>. ENUM values are converted to TEXT. In the end, each
-					expression must evaluate to <b>COLUMN or LITERAL</b> to be a valid result.
+					supported: <b>REAL, INT, BOOL, TIME, TEXT</b>. These types are determined based on the operation and
+					operands, for example <i>INT * INT = INT</i> but <i>INT / INT = REAL</i>. When <b>TIME</b> and{' '}
+					<b>REAL, INT</b> are in the same operation, all numbers are regarded as an <u>amount of hours</u>, so{' '}
+					<i>@start + 24</i> returns event start + one day, and also <i>TIME - TIME = INT</i>. ENUM values are
+					converted to TEXT. In the end, each expression must evaluate to <b>COLUMN or LITERAL</b> to be a valid
+					result.
 					<br />
 				</div>
 			)}
