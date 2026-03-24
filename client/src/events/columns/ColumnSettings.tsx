@@ -48,7 +48,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 			queryClient.invalidateQueries({ queryKey: ['tableData'] });
 			set('focusColumn', col);
 			set('focusStick', true);
-			enableColumn(col.sql_name, true);
+			setTimeout(() => enableColumn(col.sql_name, true), 500);
 			setReport({ success: `Done in ${time} s` });
 			logSuccess(`${targetId ? 'Modified' : 'Created'} column ${col.name} in ${time} s`);
 		},

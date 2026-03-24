@@ -60,7 +60,6 @@ export function ColumnsView() {
 		}
 		for (const colName of DEFAULT_COLUMNS) {
 			const column = columns.find((col) => col.name === colName);
-			console.log(column?.name);
 			if (column && newObj[column.sql_name] == null) newObj[column.sql_name] = true;
 		}
 		for (const { sql_name } of columns) {

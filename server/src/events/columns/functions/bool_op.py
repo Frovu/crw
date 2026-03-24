@@ -28,7 +28,11 @@ class BoolOperation(Function):
 		lhv, rhv = [a.value for a in args]
 
 		if is_series:
-			res_value = np.column_stack((lhv[:,0], self.fn(lhv[:,1], rhv[:,1])))
+			lhv = lhv[:,1] if args[0].type == TYPE.SERIES else lhv
+			rhv = rhv[:,1] if args[1].type == TYPE.SERIES else rhv
+			tm = args[0 if args[0].type == TYPE.SERIES else 1].value[:,0]
+			
+			res_value = np.column_stack((tm, self.fn(lhv, rhv)))
 		else:
 			res_value = self.fn(lhv, rhv)
 

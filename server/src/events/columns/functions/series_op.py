@@ -8,7 +8,8 @@ HOUR = 3600
 
 def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
 	if len(t_time) < 1:
-		return []
+		return [slice(0, 0) for _ in t_1]
+	
 	t_l = np.minimum(t_1, t_2)
 	t_r = np.maximum(t_1, t_2)
 	left = (t_l - t_time[0]) // HOUR
@@ -16,7 +17,8 @@ def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
 	left[np.isnan(left)] = -1
 	slice_len[left < 0] = 1
 	slice_len[np.isnan(slice_len)] = 1
-	return [np.s_[int(l):int(l+sl)] for l, sl in zip(left, slice_len)]
+
+	return [np.s_[int(max(0, l)):int(max(0, l+sl))] for l, sl in zip(left, slice_len)]
 
 class SeriesOperation(Function):
 	def __init__(self, name: str, desc: str, subtract_trend=False, normalize_variation=False) -> None:
@@ -39,7 +41,7 @@ class SeriesOperation(Function):
 			slice_start, dur = ctx.select_columns_by_name(['time', 'duration'])
 			slice_end = slice_start + dur * HOUR
 
-		d_time, d_value = (data.value[:,0], data.value[:,1]) if len(data.value) > 0 else (np.array([]), np.array([]))
+		d_time, d_value = data.value[:,0], data.value[:,1]
 		slices = get_slices(d_time, slice_start, slice_end)
 
 		if self.name == 'coverage':

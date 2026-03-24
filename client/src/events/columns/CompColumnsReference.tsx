@@ -29,6 +29,7 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 								<span className="text-active">{name}</span>(
 								{func.args.map((arg, i) => (
 									<span
+										key={arg.name}
 										title={`Can be: ${arg.types.join(' or ')}\nOf type: ${arg.dtypes.join(' or ')}`}
 										className={cn('hover:text-active/90 cursor-default', arg.default && 'text-dark')}
 									>

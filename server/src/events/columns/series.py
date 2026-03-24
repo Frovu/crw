@@ -35,10 +35,11 @@ class Series:
 		else:
 			res = gsm.select(interval, [self.db_name])
 
-		arr = np.array(res, dtype='object' if self.name == 'sw_type' else 'f8')
-
-		if len(arr) < 1:
-			return arr
+		if len(res) < 1:
+			return np.empty((0, 2))
+		
+		dtype = 'object' if self.name == 'sw_type' else 'f8'
+		arr = np.array(res, dtype=dtype)
 		
 		holes = np.where(arr[1:,0] - arr[:-1,0] != 3600)[0]
 		if len(holes):
