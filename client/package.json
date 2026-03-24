@@ -25,6 +25,7 @@
 		"regression": "^2.0.1",
 		"tailwind-merge": "^3.5.0",
 		"tailwindcss": "^4.2.2",
+		"textarea-caret": "^3.1.0",
 		"typescript": "^5.9.3",
 		"uplot": "^1.6.32",
 		"uplot-react": "^1.2.4",
@@ -53,6 +54,7 @@
 		"@tanstack/eslint-plugin-query": "^5.91.5",
 		"@types/lodash.debounce": "^4.0.9",
 		"@types/regression": "^2.0.6",
+		"@types/textarea-caret": "^3.0.4",
 		"eslint-config-react-app": "^7.0.1",
 		"eslint-plugin-react-refresh": "^0.5.2",
 		"zustand": "^5.0.12"

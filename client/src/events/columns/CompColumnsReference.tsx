@@ -100,7 +100,7 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 					complete list of them:
 					<div className="flex flex-col gap-1 pt-2 pl-4">
 						{Object.entries(helpers).map(([name, [desc, expr]]) => (
-							<div>
+							<div key={name}>
 								<b className="text-green">@{name}</b>: {desc} = <span className="text-dark">{expr}</span>
 							</div>
 						))}

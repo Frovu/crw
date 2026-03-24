@@ -199,8 +199,8 @@ function Panel() {
 		const cme = associatedCmes[ridx];
 		const erupt = entry(data[ridx]);
 
-		if (col.sql_name === 'cme_source') return erupt.cme_source && !cme;
-		if (col.sql_name === 'flr_source') return erupt.flr_source && !flr;
+		if (col.sql_name === 'cme_source') return erupt.cme_source && erupt.cme_source !== 'MNL' && !cme;
+		if (col.sql_name === 'flr_source') return erupt.flr_source && erupt.cme_source !== 'MNL' && !flr;
 
 		const colKey = col.sql_name as keyof typeof erupt;
 
@@ -222,7 +222,7 @@ function Panel() {
 
 		const cmeKey = cmeSourcedColumns[colKey as keyof typeof cmeSourcedColumns];
 		if (cmeKey) {
-			if (!erupt.cme_source && val == null) return false;
+			if (erupt.cme_source === 'MNL' || (!erupt.cme_source && val == null)) return false;
 			return !cme || !equalValues(val, cme[cmeKey]);
 		}
 

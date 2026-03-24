@@ -7,6 +7,7 @@ import events.columns.query
 import events.columns.computed_column
 import events.query
 import events.misc.text_transforms
+from events.columns.context import SRC_COL_ORDERING_OPTIONS
 from events.source import chimera
 from events.samples import FILTER_OPS
 from events.table_structure import ALL_TABLES, SOURCE_LABELS, SOURCE_LINKS
@@ -52,6 +53,14 @@ with open(TARGET, 'w') as f:
 	text = json.dumps(SOURCE_LABELS, indent=4)
 	text = re.sub(r'"([a-z_]+)":', r'\1:', text) 
 	f.write(f'export const sourceLabels = {text.replace('"', "'")} as const;\n\n')
+
+	text = json.dumps(SRC_COL_ORDERING_OPTIONS, indent=4)
+	text = re.sub(r'"([a-z_]+)":', r'\1:', text) 
+	f.write(f'export const sourceColumnOrderingOptions = {text.replace('"', "'")} as const;\n\n')
+	
+	text = json.dumps({ tbl: [col.sql_name for col in cols] for tbl, cols in ALL_TABLES.items() }, indent=4)
+	text = re.sub(r'"([a-z_]+)":', r'\1:', text) 
+	f.write(f'export const tablesColumns = {text.replace('"', "'")} as const;\n\n')
 
 	text = json.dumps(FILTER_OPS)
 	text = re.sub(r'"([a-z_]+)":', r'\1:', text) 

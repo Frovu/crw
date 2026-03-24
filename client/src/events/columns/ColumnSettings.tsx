@@ -1,4 +1,4 @@
-import type { Column, ComputedColumn } from '../../api';
+import { sourceColumnOrderingOptions, sourceLinks, tablesColumns, type Column, type ComputedColumn } from '../../api';
 import { Input } from '../../components/Input';
 import { Checkbox } from '../../components/Checkbox';
 import { Button } from '../../components/Button';
@@ -12,10 +12,7 @@ import { useEventsSettings } from '../core/util';
 import { Library } from 'lucide-react';
 import CompColumnsReference from './CompColumnsReference';
 import { Popup } from '../../components/Popup';
-
-function definitionIsValid(def: string) {
-	return def.length;
-}
+import getCaretCoordinates from 'textarea-caret';
 
 export function ColumnSettings({ column }: { column?: Column }) {
 	const { columns } = useTable('feid');
@@ -23,6 +20,8 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const { enableColumn } = useEventsSettings();
 	const [report, setReport] = useState<{ error?: string; success?: string }>({});
 	const [infoOpen, setInfoOpen] = useState(false);
+	const [inp, setDefInput] = useState<HTMLInputElement | null>();
+	const [hint, setHint] = useState<null | { left: number; top: number; opts: readonly string[]; val: string | null }>();
 	const queryClient = useQueryClient();
 
 	const isDirty = state.isDirty();
@@ -58,8 +57,67 @@ export function ColumnSettings({ column }: { column?: Column }) {
 		},
 	});
 
+	function trackDefinition(setValue?: string) {
+		if (!inp) return;
+		if (!setValue && !inp.matches(':focus')) return setHint(null);
+
+		const cur = inp.selectionStart ?? 0;
+		const text = value('definition');
+		const lpar = text.lastIndexOf('(', cur - 1);
+		const ll = Math.max(lpar, text.lastIndexOf(',', cur - 1));
+		const rcom = text.indexOf(',', cur);
+		const rr = rcom >= 0 ? rcom : text.indexOf(')', cur);
+
+		if (ll < 0 || rr < 0) return setHint(null);
+
+		const fn = text
+			.slice(0, lpar)
+			.match(/[a-z\s]+$/)
+			?.at(0)
+			?.trim();
+		const argNum = Math.floor((text.slice(lpar, cur - 1).split('"').length - 1) / 2);
+		const val = text
+			.slice(ll + 1, rr)
+			.trim()
+			.slice(1, -1);
+
+		if (!['scol', 'scnt'].includes(fn as any) || (fn === 'scnt' && argNum !== 0) || argNum === 2) return setHint(null);
+
+		const opts =
+			argNum === 0
+				? ['erupt', 'ch', ...Object.keys(sourceLinks)]
+				: argNum === 3
+					? sourceColumnOrderingOptions
+					: (() => {
+							const arg = text
+								.slice(lpar + 1, text.indexOf(','))
+								.trim()
+								.slice(1, -1);
+							const entity = arg === 'ch' ? 'sources_ch' : arg === 'erupt' ? 'sources_erupt' : arg;
+							console.log(arg, entity);
+							return tablesColumns[entity as keyof typeof tablesColumns] ?? [];
+						})();
+
+		if (setValue) {
+			const newText = text.slice(0, ll + 1) + '"' + setValue + '"' + text.slice(rr);
+			set('definition', newText);
+			setTimeout(() => {
+				const ncom = inp.value.indexOf(',', ll + 1);
+				const nr = ncom >= 0 ? ncom : inp.value.indexOf(')', ll);
+				console.log(nr, inp.selectionStart, inp.matches(':focus'));
+				inp.focus();
+				inp.setSelectionRange(nr, nr);
+			});
+		}
+
+		const coords = getCaretCoordinates(inp, cur);
+		const left = inp.offsetLeft + coords.left;
+		const top = inp.offsetTop + coords.top;
+		setHint({ left, top, opts, val: (opts as any).includes(val) ? val : null });
+	}
+
 	const inputsDisabled = !isCreating && !isModifiable;
-	const definitionValid = !isDirty || definitionIsValid(value('definition'));
+	const defValid = !isDirty || (value('definition') && (!hint || hint.val));
 	const nameValid =
 		!isDirty ||
 		(value('name').length && !columns.find((col) => col.name === value('name') && col.sql_name !== column?.sql_name));
@@ -71,6 +129,22 @@ export function ColumnSettings({ column }: { column?: Column }) {
 				if (isDirty && targetId && ['Enter', 'NumpadEnter'].includes(e.key)) upsertGeneric(true);
 			}}
 		>
+			{hint && (
+				<div
+					className="absolute max-h-100 overflow-y-scroll border rounded-xl flex flex-col py-1 -translate-y-full z-20 bg-bg"
+					style={{ left: hint.left, top: hint.top - 8 }}
+				>
+					{hint.opts.map((opt) => (
+						<Button
+							key={opt}
+							className={cn('px-3 py-0.5', hint.val && 'text-dark', opt === hint.val && 'text-active')}
+							onMouseDown={() => trackDefinition(opt)}
+						>
+							{opt}
+						</Button>
+					))}
+				</div>
+			)}
 			<div
 				className="absolute right-1 -top-1 max-h-18 max-w-[400px] text-left overflow-y-clip -translate-y-full"
 				title={report?.error ?? report?.success}
@@ -120,11 +194,31 @@ export function ColumnSettings({ column }: { column?: Column }) {
 					<div className="text-dark pr-1">Definition:</div>
 					<div className="flex gap-[1px] bg-input-bg">
 						<Input
+							ref={setDefInput}
 							disabled={inputsDisabled}
-							invalid={!definitionValid}
+							invalid={!defValid}
 							className="w-113 px-1 h-7"
 							value={value('definition')}
 							onChange={(e) => set('definition', e.target.value)}
+							onKeyDown={(e) => {
+								const diff = {
+									ArrowUp: -1,
+									ArrowDown: 1,
+								}[e.key];
+								const opts = hint?.opts;
+								if (['Enter', 'NumpadEnter'].includes(e.code)) return (e.target as any).blur?.();
+
+								if (!opts?.length || !diff) return;
+
+								const next = opts.at((opts.length + opts.indexOf(hint?.val ?? '') + diff) % opts.length);
+								e.stopPropagation();
+								e.preventDefault();
+
+								trackDefinition(next);
+							}}
+							onKeyUp={() => trackDefinition()}
+							onClick={() => trackDefinition()}
+							onBlur={() => trackDefinition()}
 						/>
 						<Button
 							title="Open computed columns reference"
