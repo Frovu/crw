@@ -1,12 +1,13 @@
 from lark import Lark, Transformer, v_args
 
 from events.columns.context import ComputationContext
-from events.columns.functions import math_op, select_op, series_op, bool_op
+from events.columns.functions import math_op, select_op, series_op, bool_op, interval_op
 from events.columns.functions.common import str_literal, num_literal, Value
 
 functions = {
 	**select_op.functions,
 	**series_op.functions,
+	**interval_op.functions,
 	**math_op.functions,
 	**bool_op.functions,
 }
@@ -14,6 +15,7 @@ functions = {
 helpers = {
 	'start': lambda ctx: functions['col']([str_literal('time')], ctx),
 	'end': lambda ctx: functions['add']([functions['col']([str_literal('time')], ctx), functions['col']([str_literal('duration')], ctx)], ctx),
+	'dur': lambda ctx: functions['col']([str_literal('duration')], ctx),
 	'mc_start': lambda ctx: functions['col']([str_literal('MC time')], ctx),
 	'mc_end': lambda ctx: functions['add']([functions['col']([str_literal('MC time')], ctx), functions['col']([str_literal('MC duration')], ctx)], ctx),
 }

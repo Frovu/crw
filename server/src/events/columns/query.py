@@ -35,7 +35,7 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 		result = computer.transform(parsed)
 
 		if result.type == TYPE.SERIES:
-			raise Exception('Computation result was a time series')
+			raise Exception('Computation result was a series, not a column')
 
 		if result.type == TYPE.LITERAL:
 			result = Value(TYPE.COLUMN, result.dtype, np.full_like(ids, result.value))

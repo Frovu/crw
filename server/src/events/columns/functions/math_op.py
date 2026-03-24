@@ -20,7 +20,7 @@ class UnaryOperation(Function):
 class MathOperation(Function):
 	def __init__(self, name: str, fn, desc: str) -> None:
 		types = [t for t in TYPE]
-		dtypes = [DTYPE.REAL, DTYPE.INT, DTYPE.TIME]
+		dtypes = [DTYPE.REAL, DTYPE.INT, DTYPE.BOOL, DTYPE.TIME]
 		super().__init__(name, [ArgDef('a', types, dtypes), ArgDef('b', types, dtypes)], desc)
 		self.fn = fn
 

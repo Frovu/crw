@@ -1,5 +1,5 @@
 
-fn_call: NAME "(" (sum ("," sum)*)? ")"
+fn_call: NAME "(" (condition ("," condition)*)? ")"
 
 ?sum: product
 	| sum "+" product   -> add
@@ -21,7 +21,7 @@ fn_call: NAME "(" (sum ("," sum)*)? ")"
 	| ESCAPED_STRING    -> string
 	| "$" NAME          -> series
 	| "@" NAME          -> helper
-	| "(" sum ")"
+	| "(" condition ")"
 	| fn_call          
 
 ?start: condition
