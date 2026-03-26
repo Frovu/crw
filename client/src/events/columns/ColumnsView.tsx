@@ -77,7 +77,7 @@ export function ColumnsView() {
 	});
 
 	useEventListener('keydown', (e: KeyboardEvent) => {
-		if (!isOpen || !container) return;
+		if (!isOpen || !container || e.target instanceof HTMLInputElement) return;
 
 		const diff = {
 			Home: -9999,
