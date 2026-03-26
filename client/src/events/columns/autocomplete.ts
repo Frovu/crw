@@ -30,12 +30,25 @@ export function trackDefinition(
 	const stringPos = textBefore.search(/[a-zA-Z\d_]+\s*$/);
 	const quotNum = textBefore.split('"').length - 1;
 	const startPos = stringPos >= 0 ? stringPos : cur;
-	const endFound = text.slice(startPos).search(/[^a-zA-Z\d_]*$/);
+	const endFound = text.slice(startPos).search(/[^a-zA-Z\d_]/);
 	const endPos = endFound >= 0 ? endFound : text.length;
 	const sval = text.slice(startPos, startPos + endPos);
 
 	if (text[startPos - 1] === '@') {
 		// helpers autocomplete
+		const opts = Object.keys(helpers);
+
+		if (pickValue) {
+			const newText = text.slice(0, startPos - 1) + '@' + autoCompVal(pickValue) + text.slice(startPos + endPos);
+			setText(newText);
+			queueMicrotask(() => {
+				const npos = startPos + autoCompVal(pickValue).length;
+				inp.focus();
+				inp.setSelectionRange(npos, npos);
+			});
+		}
+
+		return set(opts, sval);
 	}
 
 	if (text[startPos - 1] === '$') {
@@ -47,14 +60,12 @@ export function trackDefinition(
 		if (pickValue) {
 			const newText = text.slice(0, startPos - 1) + '$' + autoCompVal(pickValue) + text.slice(startPos + endPos);
 			setText(newText);
-			setTimeout(() => {
+			queueMicrotask(() => {
 				const npos = startPos + autoCompVal(pickValue).length;
 				inp.focus();
 				inp.setSelectionRange(npos, npos);
 			});
 		}
-
-		console.log('set', sval);
 
 		return set(opts, sval);
 	}
@@ -102,7 +113,7 @@ export function trackDefinition(
 	if (pickValue) {
 		const newText = text.slice(0, ll + 1) + '"' + pickValue + '"' + text.slice(rr);
 		setText(newText);
-		setTimeout(() => {
+		queueMicrotask(() => {
 			const ncom = inp.value.indexOf(',', ll + 1);
 			const nr = ncom >= 0 ? ncom : inp.value.indexOf(')', ll);
 			inp.focus();

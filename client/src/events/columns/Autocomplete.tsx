@@ -3,7 +3,6 @@ import { cn } from '../../util';
 import type { AutocompleteHint } from './autocomplete';
 
 export default function AutocompleteView({ hint, onPick }: { hint: AutocompleteHint; onPick: (val: string) => void }) {
-	console.log(hint);
 	return !hint ? null : (
 		<div
 			className="absolute max-h-100 overflow-y-scroll border rounded-xl flex flex-col py-1 -translate-y-full z-20 bg-bg"
