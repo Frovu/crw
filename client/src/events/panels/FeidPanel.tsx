@@ -68,7 +68,7 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 					{role && feidId != null && (
 						<Button onClick={() => dispatchCustomEvent('computeRowsNear', { id: feidId })}>Recompute row</Button>
 					)}
-					{(column.name === 'duration' || column.type === 'computed') && role && (
+					{((column.type === 'static' && column.is_computed) || column.type === 'computed') && role && (
 						<Button onClick={() => dispatchCustomEvent('computeColumn', { column })}>Recompute column</Button>
 					)}
 					<Button onClick={() => toggleSort(column.sql_name, 1)}>Sort ascending</Button>

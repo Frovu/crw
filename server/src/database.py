@@ -49,14 +49,14 @@ def upsert_coverage(entity, start, end=None, single=False):
 			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
 
 def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: list[Any]=[],  \
-		conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True):
+		conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True, only_update=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		tmpname = Identifier(table.split('.')[-1] + '_tmp')
 		itable = SQL('.').join([Identifier(schema), Identifier(table)])
 		icolumns = [Identifier(c) for c in columns]
 
 		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
-		cur.execute(SQL('CREATE TEMP TABLE {} (LIKE {} INCLUDING DEFAULTS) ON COMMIT DROP').format(tmpname, itable))
+		cur.execute(SQL('CREATE TEMP TABLE {} ON COMMIT DROP AS SELECT * FROM {} LIMIT 0').format(tmpname, itable))
 		for col in icolumns[:len(constants)]:
 			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(tmpname, col))
 
@@ -64,6 +64,11 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 		with cur.copy(SQL('COPY {}({}) FROM STDIN').format(tmpname, val_columns)) as copy:
 			for row in data:
 				copy.write_row(row)
+
+		if only_update:
+			setcols = SQL(',').join([SQL('{} = tmp.{}').format(col, col) for col in icolumns])
+			query = SQL('UPDATE {} AS t SET {} FROM {} AS tmp WHERE t.id = tmp.id').format(itable, setcols, tmpname)
+			return cur.execute(query)
 				
 		if do_nothing:
 			on_conflict = SQL('ON CONFLICT DO NOTHING')

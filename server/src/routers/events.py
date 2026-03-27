@@ -265,12 +265,12 @@ def _remove_column(col_id):
 	comp_columns.delete_column(uid, col_id)
 	return msg('OK')
 
-@bp.route('/compute/column/<int:col_id>', methods=['POST'])
+@bp.route('/compute/column/<col_name>', methods=['POST'])
 @route_shielded
 @require_role('user')
-def _compute_column(col_id):
+def _compute_column(col_name):
 	uid = session.get('uid') or -1
-	return comp_columns.compute_by_id(uid, col_id)
+	return comp_columns.compute_by_name(uid, col_name)
 
 @bp.route('/compute/rows', methods=['POST'])
 @route_shielded

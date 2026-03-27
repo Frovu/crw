@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logMessage, logSuccess, logError } from '../../app';
 import { apiPost, useEventListener } from '../../util';
-import type { ComputationResponse, ComputedColumn } from '../../api';
+import type { Column, ComputationResponse, ComputedColumn } from '../../api';
 import { useTable } from '../core/editableTables';
 
 const COMPUTE_ROWS_MARGIN = 2;
@@ -34,7 +34,7 @@ export default function ComputeController() {
 	});
 
 	const { mutate: computeColumn } = useMutation({
-		mutationFn: (column: ComputedColumn) => apiPost<ComputationResponse>('events/compute/column/' + column.id),
+		mutationFn: (column: Column) => apiPost<ComputationResponse>('events/compute/column/' + column.sql_name),
 		onMutate: (column) => {
 			logMessage('Computing ' + column.name, 'debug');
 		},
@@ -60,7 +60,7 @@ export default function ComputeController() {
 		computeRows(computeIds);
 	});
 	useEventListener('computeAll', () => computeAll());
-	useEventListener('computeColumn', (e: CustomEvent<{ column: ComputedColumn }>) => computeColumn(e.detail.column));
+	useEventListener('computeColumn', (e: CustomEvent<{ column: Column }>) => computeColumn(e.detail.column));
 
 	return null;
 }

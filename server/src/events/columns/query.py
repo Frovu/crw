@@ -12,6 +12,7 @@ from events.columns.computed_column import ComputedColumn, select_computed_colum
 from events.columns.parser import columnParser, ColumnComputer, functions, helpers_desc
 from events.columns.series import Series, SERIES
 from events.columns.functions.common import Function, Value, TYPE, DTYPE, value_to_sql_dtype
+from events.columns.special_columns import compute_and_upsert_duration
 from events.changelog import clear_comp_col_changelog
 
 @ts_type.gen_type
@@ -123,23 +124,30 @@ def delete_column(user_id: int, col_id: int):
 		clear_comp_col_changelog(conn, column.sql_name)
 		log.info(f'Column deleted by ({user_id}): #{column.id} {column.name} = {column.definition}')
 
-def compute_by_id(user_id: int, col_id: int):
+def compute_by_name(user_id: int, col_name: str):
 	t_start = time()
 
-	column = select_computed_column_by_id(col_id, user_id)
-	if not column: 
-		raise ValueError('Column not found')
-	
-	err = _compute_and_upsert(column)
+	if col_name == 'duration':
+		col_def = col_name
+		err = compute_and_upsert_duration() 
+	else:
+		column = select_computed_column_by_id(int(col_name.split('_')[-1]), user_id)
+		if not column: 
+			raise ValueError('Column not found')
+		col_def = column.definition
+		
+		err = _compute_and_upsert(column)
+		
 	if err: raise err
 
 	if not err:
-		log.debug('Computed %s in %ss', column.definition, round(time() - t_start, 2))
+		log.debug('Computed %s in %ss', col_def, round(time() - t_start, 2))
 	return ComputationResponse(time=time()-t_start, error=str(err) if err else None).to_dict()
 
 def compute_rows(row_ids: list[int]):
 	t_start = time()
 
+	compute_and_upsert_duration(row_ids) 
 	columns = select_computed_columns(select_all=True)
 	with ThreadPoolExecutor() as executor:
 		func = lambda col: _compute_and_upsert(col, row_ids)
@@ -152,6 +160,7 @@ def _do_compute_all():
 	global compute_all_active
 	columns = select_computed_columns(select_all=True)
 
+	compute_and_upsert_duration()
 	# TODO: shared computation context
 	with ThreadPoolExecutor() as executor:
 		func = lambda col: _compute_and_upsert(col)
@@ -160,7 +169,7 @@ def _do_compute_all():
 	str_errors = '; '.join([f'{col.name}: {err}' for col, err in zip(columns, errors) if err])
 	compute_all_active = (compute_all_active[0] if compute_all_active else time(), True, str_errors)
 
-def compute_all(for_row=None):
+def compute_all():
 	global compute_all_active
 	with compute_lock:
 		if compute_all_active:
