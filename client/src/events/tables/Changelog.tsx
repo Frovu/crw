@@ -9,7 +9,7 @@ export function TableChangelog({ entity, columns }: { entity: EditableTable; col
 	const { columns: allColumns } = useTablesStore()[entity];
 
 	const changelog = useMemo(() => {
-		if (cursor?.id == null) return null;
+		if (cursor?.id == null || !columns[cursor.column]) return null;
 
 		const cursCol = columns[cursor.column].sql_name;
 		const changelogCols = allColumns.map((c) => [c.sql_name, getChangelogEntry(entity, cursor.id!, c.sql_name)]);

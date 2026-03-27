@@ -12,6 +12,7 @@ from events.columns.computed_column import ComputedColumn, select_computed_colum
 from events.columns.parser import columnParser, ColumnComputer, functions, helpers_desc
 from events.columns.series import Series, SERIES
 from events.columns.functions.common import Function, Value, TYPE, DTYPE, value_to_sql_dtype
+from events.changelog import clear_comp_col_changelog
 
 @ts_type.gen_type
 @dataclass
@@ -119,6 +120,7 @@ def delete_column(user_id: int, col_id: int):
 	with pool.connection() as conn:
 		conn.execute(f'DELETE FROM events.{DEF_TABLE} WHERE id = %s', [column.id])
 		conn.execute(sql.SQL(f'ALTER TABLE events.{DATA_TABLE} DROP COLUMN {{}}').format(sql.Identifier(column.sql_name)))
+		clear_comp_col_changelog(conn, column.sql_name)
 		log.info(f'Column deleted by ({user_id}): #{column.id} {column.name} = {column.definition}')
 
 def compute_by_id(user_id: int, col_id: int):

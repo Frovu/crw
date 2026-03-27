@@ -6,7 +6,7 @@ import ts_type
 
 from events.columns.column import Column
 
-TABLE = 'changes_log'
+TABLE = 'events.changes_log'
 
 @ts_type.gen_type
 @dataclass
@@ -25,7 +25,7 @@ class ChangelogResponse:
 
 def _init():
 	with pool.connection() as conn:
-		conn.execute(f'''CREATE TABLE IF NOT EXISTS events.{TABLE} (
+		conn.execute(f'''CREATE TABLE IF NOT EXISTS {TABLE} (
 			id SERIAL PRIMARY KEY,
 			author integer references users on delete set null,
 			time timestamptz not null default CURRENT_TIMESTAMP,
@@ -38,13 +38,16 @@ def _init():
 		
 _init()
 
+def clear_comp_col_changelog(conn: Connection, column: str):
+	conn.execute(f'DELETE FROM {TABLE} WHERE column_name = %s', [column])
+
 def select_changelog(conn: Connection, entity: str, columns: list[Column]):
 	# TODO: optimization
 	changelog = ChangelogResponse(['time', 'author', 'old', 'new', 'special'], {})
-	query = '''SELECT event_id, column_name, special, old_value, new_value,
+	query = f'''SELECT event_id, column_name, special, old_value, new_value,
 		EXTRACT (EPOCH FROM changes_log.time)::integer,
 		(select login from users where uid = author) as author
-		FROM events.changes_log WHERE event_id is not null
+		FROM {TABLE} WHERE event_id is not null
 		AND entity_name=%s AND column_name = ANY(%s)'''
 	res = conn.execute(query, [entity, [c.sql_name for c in columns]]).fetchall()
 
