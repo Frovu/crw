@@ -103,7 +103,7 @@ export function ColumnsView() {
 			{isOpen && (
 				<Popup
 					onClose={() => setOpen(false)}
-					className="h-[min(calc(100vh-34px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2"
+					className="h-[min(calc(100vh-34px),600px)] w-fit max-w-[calc(100vw-16px)] flex flex-col top-1 left-1 p-2 overflow-visible"
 				>
 					<div className="flex gap-2">
 						<div className="w-80 bg-input-bg border flex items-center" onDoubleClick={() => setSearch('')}>

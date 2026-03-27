@@ -2,8 +2,32 @@ import { useState } from 'react';
 import { Button } from '../../components/Button';
 import { useFeidInfo } from '../core/query';
 import { cn } from '../../util';
+import type { Function } from '../../api';
 
 const tabs = ['General', 'Functions', 'Data series'] as const;
+
+export function RefFunctionView({ name, args, desc }: Function) {
+	return (
+		<div>
+			<div>
+				<span className="text-active">{name}</span>(
+				{args.map((arg, i) => (
+					<span
+						key={arg.name}
+						title={`Can be: ${arg.types.join(' or ')}\nOf type: ${arg.dtypes.join(' or ')}`}
+						className={cn('hover:text-active/90 cursor-default', arg.default && 'text-dark')}
+					>
+						{i > 0 && ', '}
+						<u>{arg.name}</u>
+						{arg.default && `=${arg.default}`}
+					</span>
+				))}
+				)
+			</div>
+			<div className="pl-4">{desc}</div>
+		</div>
+	);
+}
 
 export default function CompColumnsReference({ initialTab }: { initialTab?: (typeof tabs)[number] }) {
 	const { series, functions, helpers } = useFeidInfo();
@@ -24,24 +48,7 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 			{activeTab === 'Functions' && (
 				<div className="text-justify flex flex-col gap-2 px-2 overflow-y-scroll">
 					{Object.entries(functions).map(([name, func]) => (
-						<div key={name}>
-							<div>
-								<span className="text-active">{name}</span>(
-								{func.args.map((arg, i) => (
-									<span
-										key={arg.name}
-										title={`Can be: ${arg.types.join(' or ')}\nOf type: ${arg.dtypes.join(' or ')}`}
-										className={cn('hover:text-active/90 cursor-default', arg.default && 'text-dark')}
-									>
-										{i > 0 && ', '}
-										<u>{arg.name}</u>
-										{arg.default && `=${arg.default}`}
-									</span>
-								))}
-								)
-							</div>
-							<div className="pl-4">{func.desc}</div>
-						</div>
+						<RefFunctionView key={name} {...func} name={name} />
 					))}
 					<div className="pt-2">
 						Note that functions related to series come in groups of three. In the function ending with{' '}
