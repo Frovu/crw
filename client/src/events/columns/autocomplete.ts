@@ -1,8 +1,14 @@
 import getCaretCoordinates from 'textarea-caret';
-import { sourceColumnOrderingOptions, sourceLinks, tablesColumns } from '../../api';
+import { sourceColumnOrderingOptions, sourceLinks, tablesColumns, type Function } from '../../api';
 import type { useFeidInfo } from '../core/query';
 
-export type AutocompleteHint = null | { left: number; top: number; opts: readonly string[]; val: string | null };
+export type AutocompleteHint = null | {
+	left: number;
+	top: number;
+	opts: readonly string[];
+	val: string | null;
+	func?: Function;
+};
 
 export const autoCompVal = (val: string) => val.split(' ')[0];
 
@@ -17,17 +23,30 @@ export function trackDefinition(
 	if (!inp) return;
 	if (!pickValue && !inp.matches(':focus')) return setHint(null);
 
-	const set = (opts: readonly string[], val: string | null) => {
+	const set = (opts: readonly string[], val: string | null, fname?: string) => {
 		const coords = getCaretCoordinates(inp, cur);
 		const left = inp.offsetLeft + coords.left;
 		const top = inp.offsetTop + coords.top;
-		setHint({ left, top, opts, val: opts.find((o) => autoCompVal(o) === val) ? val : null });
+		const func = fname ? { ...functions[fname], name: fname } : undefined;
+		setHint({ left, top, opts, val: opts.find((o) => autoCompVal(o) === val) ? val : null, func });
+	};
+
+	const ifPick = (genText: (val: string) => string, genPos?: (val: string) => number) => {
+		if (pickValue) {
+			const val = autoCompVal(pickValue);
+			setText(genText(val));
+			setTimeout(() => {
+				const npos = genPos?.(val) ?? startPos + val.length;
+				inp.focus();
+				inp.setSelectionRange(npos, npos);
+			});
+		}
 	};
 
 	const cur = inp.selectionStart ?? 0;
 
 	const textBefore = text.slice(0, cur);
-	const stringPos = textBefore.search(/[a-zA-Z\d_]+\s*$/);
+	const stringPos = textBefore.search(/[a-zA-Z][a-zA-Z\d_]*\s*$/);
 	const quotNum = textBefore.split('"').length - 1;
 	const startPos = stringPos >= 0 ? stringPos : cur;
 	const endFound = text.slice(startPos).search(/[^a-zA-Z\d_]/);
@@ -38,15 +57,7 @@ export function trackDefinition(
 		// helpers autocomplete
 		const opts = Object.keys(helpers);
 
-		if (pickValue) {
-			const newText = text.slice(0, startPos - 1) + '@' + autoCompVal(pickValue) + text.slice(startPos + endPos);
-			setText(newText);
-			queueMicrotask(() => {
-				const npos = startPos + autoCompVal(pickValue).length;
-				inp.focus();
-				inp.setSelectionRange(npos, npos);
-			});
-		}
+		ifPick((val) => text.slice(0, startPos - 1) + '@' + val + text.slice(startPos + endPos));
 
 		return set(opts, sval);
 	}
@@ -57,36 +68,33 @@ export function trackDefinition(
 			.map((s) => `${s.name} (${s.display_name})`)
 			.filter((s) => !sval || autoCompVal(s).startsWith(sval[0].toLowerCase()));
 
-		if (pickValue) {
-			const newText = text.slice(0, startPos - 1) + '$' + autoCompVal(pickValue) + text.slice(startPos + endPos);
-			setText(newText);
-			queueMicrotask(() => {
-				const npos = startPos + autoCompVal(pickValue).length;
-				inp.focus();
-				inp.setSelectionRange(npos, npos);
-			});
-		}
+		ifPick((val) => text.slice(0, startPos - 1) + '$' + val + text.slice(startPos + endPos));
 
 		return set(opts, sval);
 	}
 
 	if (stringPos >= 0 && quotNum % 2 !== 1) {
 		// function call autocomplete
+		const opts = Object.keys(functions).filter((o) => o.startsWith(sval[0]));
+
+		ifPick((val) => text.slice(0, startPos) + val + '(' + text.slice(startPos + endPos + 1));
+
+		return set(opts, sval, functions[sval] && sval);
 	}
 
-	// check for function arg autocomplete
+	// function arg autocomplete
 
 	const lpar = text.lastIndexOf('(', cur - 1);
 	const ll = Math.max(lpar, text.lastIndexOf(',', cur - 1));
 	const rcom = text.indexOf(',', cur);
-	const rr = rcom >= 0 ? rcom : text.indexOf(')', cur);
+	const rpa = rcom >= 0 ? rcom : text.indexOf(')', cur);
+	const rr = rpa >= 0 ? rpa : text.length;
 
-	if (ll < 0 || rr < 0) return setHint(null);
+	if (ll < 0 || text.slice(0, rr).lastIndexOf(')') > ll) return setHint(null);
 
 	const fn = text
 		.slice(0, lpar)
-		.match(/[a-z\s]+$/)
-		?.at(0)
+		.match(/[a-z\s]*$/)?.[0]
 		?.trim();
 	const argNum = Math.floor((text.slice(lpar, cur - 1).split('"').length - 1) / 2);
 	const val = text
@@ -110,16 +118,13 @@ export function trackDefinition(
 						return tablesColumns[entity as keyof typeof tablesColumns] ?? [];
 					})();
 
-	if (pickValue) {
-		const newText = text.slice(0, ll + 1) + '"' + pickValue + '"' + text.slice(rr);
-		setText(newText);
-		queueMicrotask(() => {
+	ifPick(
+		(val) => text.slice(0, ll + 1) + '"' + val + '"' + text.slice(rr),
+		() => {
 			const ncom = inp.value.indexOf(',', ll + 1);
-			const nr = ncom >= 0 ? ncom : inp.value.indexOf(')', ll);
-			inp.focus();
-			inp.setSelectionRange(nr, nr);
-		});
-	}
+			return ncom >= 0 ? ncom : inp.value.indexOf(')', ll);
+		},
+	);
 
-	set(opts, val);
+	set(opts, val, fn);
 }
