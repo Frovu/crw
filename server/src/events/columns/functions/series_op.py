@@ -90,5 +90,9 @@ descs = {
 }
 for name_op in descs.keys():
 	for functor in ['', 'v', 'vt']:
-		desc = '' if functor != 'vt' else descs[name_op]
+		desc = descs[name_op]
+		if 'v' in functor:
+			desc += '. treated as variation, normalized to max value'
+		if 'vt' in functor:
+			desc += '. corrected for positive linear trend'
 		functions[name_op+functor] = SeriesOperation(name_op, desc, normalize_variation='v' in functor, subtract_trend='t' in functor)
