@@ -1,33 +1,23 @@
 from datetime import timedelta
 import numpy as np
-from database import pool
-from events.columns_old.generic_core import G_SERIES
+
+from database import pool, SQL, Identifier
 from cream.gsm import normalize_variation
+from events.columns.series import find_series
 
-def epoch_collision(times: list[int], interval: list[int], series: str):
-	if series not in G_SERIES:
-		raise ValueError('series not found')
-	src, ser, _ = G_SERIES[series]
-
-	table = 'gsm_result' if src == 'gsm' else ('sat_xrays' if ser in ['s', 'l'] else 'sat_particles') if src == 'sat' else 'omni'
-
-	is_delta = series.startswith('$d_')
-	if is_delta:
-		interval[0] -= 1
+def epoch_collision(times: list[int], interval: list[int], ser_name: str):
+	series = find_series(ser_name)
 
 	with pool.connection() as conn:
-		query = f'''SELECT array(
-			SELECT {ser} FROM generate_series(to_timestamp(epoch) + %s, to_timestamp(epoch) + %s, '1 hour'::interval) tm
-			LEFT JOIN {table} ON time = tm {'AND NOT is_gle' if src == 'gsm' else ''}
-		) FROM (select unnest(%s)) vals(epoch);'''
+		query = SQL(f'''SELECT array(
+			SELECT {{}} FROM generate_series(to_timestamp(epoch) + %s, to_timestamp(epoch) + %s, '1 hour'::interval) tm
+			LEFT JOIN {{}} ON time = tm {'AND NOT is_gle' if series.source == 'gsm' else ''}
+		) FROM (select unnest(%s)) vals(epoch);''').format(Identifier(series.db_name), Identifier(series.table_name()))
 		resp = conn.execute(query, [*[timedelta(hours=i) for i in interval], times]).fetchall()
 		windows = np.array([r[0] for r in resp], dtype='f8')
-	if ser in ['a10', 'a10m']:
-		windows = np.array([normalize_variation(w) for w in windows])
 
-	if is_delta:
-		windows[:,1:] = windows[:,1:] - windows[:,:-1]
-		windows = windows[:,1:]
+	if series.name in ['a10', 'a10m']:
+		windows = np.array([normalize_variation(w) for w in windows])
 
 	offset = np.arange(windows.shape[1]) + interval[0]
 	median = np.nanmedian(windows, axis=0)

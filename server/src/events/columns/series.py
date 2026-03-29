@@ -23,6 +23,15 @@ class Series:
 	display_name: str
 	dtype: SDTYPE = 'real'
 
+	def table_name(self):
+		if self.source == 'omni':
+			return 'omni'
+		if self.source == 'gsm':
+			return 'gsm_result'
+		if self.source == 'sat':
+			return sat.sat_table(self.db_name)
+		return self.source
+
 	def fetch(self, interval: list[int]) -> np.ndarray:
 		t_data = time()
 

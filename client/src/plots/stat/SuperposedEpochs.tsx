@@ -314,7 +314,6 @@ function Panel() {
 				} as Omit<uPlot.Options, 'width' | 'height'>;
 			},
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		params.showEpochMedian,
 		params.showEpochStd,
@@ -328,14 +327,10 @@ function Panel() {
 		showLegend,
 	]);
 
-	if (queries.some((q) => q.isError))
-		return (
-			<div className="Center" style={{ color: color('red') }}>
-				FAILED TO LOAD
-			</div>
-		);
-	if (queries.some((q) => !q.data && q.isLoading)) return <div className="Center">LOADING...</div>;
-	if (!queries.some((q) => q.data)) return <div className="Center">EMPTY SAMPLE</div>;
+	if (queries.some((q) => q.isError)) return <div className="center text-red">FAILED TO LOAD</div>;
+	if (queries.some((q) => !q.data && q.isLoading)) return <div className="center">LOADING...</div>;
+	if (!queries.some((q) => q.data)) return <div className="center">EMPTY SAMPLE</div>;
+
 	return (
 		<>
 			<ExportableUplot {...{ options, data }} />

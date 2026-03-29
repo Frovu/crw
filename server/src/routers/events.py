@@ -34,7 +34,7 @@ def _epoch_collision():
 		raise ValueError('interval too large')
 
 	res = epoch_collision(times, interval, series)
-	offset, median, mean, std = [np.where(np.isnan(v), None, np.round(v, 3)).tolist() for v in res]
+	offset, median, mean, std = [np.where(np.isnan(v), None, np.round(v, 3)).tolist() for v in res] # type: ignore
 	return { 'offset': offset, 'median': median, 'mean': mean, 'std': std }
 
 @bp.route('/coverage', methods=['GET'])
