@@ -82,7 +82,7 @@ class Derivative(Function):
 		super().__init__('der', [
 			ArgDef('series', [TYPE.SERIES], [dt for dt in DTYPE]),
 			ArgDef('order', [TYPE.LITERAL], [DTYPE.INT], default='1'),
-		], 'n-th order derivative of the series (difference between cur and prev measurement interval)')
+		], 'n-th order "derivative" of the series (difference between cur and prev measurement interval)')
 
 	def __call__(self, args: tuple[Value, ...], _: ComputationContext) -> Value:
 		super().validate(args)
@@ -101,6 +101,24 @@ class Derivative(Function):
 		result = np.column_stack((s_time, res))
 
 		return Value(TYPE.SERIES, DTYPE.REAL, result)
+
+class ValueOp(Function):
+	def __init__(self) -> None:
+		super().__init__('der', [
+			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
+			ArgDef('time', [TYPE.COLUMN], [DTYPE.TIME]),
+		], 'series value at given hour')
+
+	def __call__(self, args: tuple[Value, Value], _: ComputationContext) -> Value:
+		super().validate(args)
+
+		data, t_time = args[0].value, args[1].value
+		s_time, s_val = data[:,0], data[:,1]
+		
+		res_idx = (t_time - s_time[0]) // HOUR
+		result = s_val[res_idx.astype(int)]
+
+		return Value(TYPE.COLUMN, args[0].dtype, result)
 
 functions = {
 	'val': ValueOp(),
