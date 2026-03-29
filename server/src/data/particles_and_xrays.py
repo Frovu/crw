@@ -1,10 +1,9 @@
 import os
-from datetime import datetime, timedelta
-
+from datetime import datetime
+import numpy as np
 import pymysql
 
-from database import pool, upsert_many, log
-import numpy as np
+from database import pool, log, upsert_many, SQL, Identifier
 
 T_PART = 'sat_particles'
 T_XRAY = 'sat_xrays'
@@ -40,25 +39,24 @@ def _init():
 	with pool.connection() as conn:
 		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_PART} (time timestamptz primary key)')
 		for c in PARTICLES:
-			conn.execute(f'ALTER TABLE {T_PART} ADD COLUMN IF NOT EXISTS {c} real')
+			conn.execute(SQL(f'ALTER TABLE {T_PART} ADD COLUMN IF NOT EXISTS {{}} real').format(Identifier(c)))
 		conn.execute(f'CREATE TABLE IF NOT EXISTS {T_XRAY} (time timestamptz primary key, s real, l real)')
 _init()
 
 def _obtain_goes(which, t_from, t_to):
 	xra = which == 'xrays'
 	dt_from, dt_to = [datetime.utcfromtimestamp(t) for t in (t_from, t_to)]
-	# dt_from = dt_from.replace(day=1, hour=0, minute=0, second=0)
-	# dt_to = (dt_from + timedelta(days=31)).replace(day=1)
 	table = ('goes_xrays_goes_x' if dt_from < GOES_X_EPOCH else 'goes_xrays') if xra else 'goes_particles'
 	cols = ['s', 'l'] if xra else PARTICLES.keys()
 	log.debug('GOES: obtaining %s: %s - %s', which, dt_from, dt_to)
+	conn = None
 	try:
 		conn = pymysql.connect(
 			host=os.environ.get('CRS_HOST'),
 			port=int(os.environ.get('CRS_PORT', 0)),
 			user=os.environ.get('CRS_USER'),
-			password=os.environ.get('CRS_PASS'),
-			database='goes')
+			password=os.environ.get('CRS_PASS') or '',
+			database='goes') # type: ignore
 		with conn.cursor() as cursor:
 			q = f'SELECT dt, {",".join(cols)} FROM {table} WHERE dt >= %s AND dt < %s'
 			cursor.execute(q, [dt_from, dt_to])
@@ -72,7 +70,7 @@ def _obtain_goes(which, t_from, t_to):
 		log.error(f'GOES: failed to obtain (crs): {e}')
 	finally:
 		log.debug('GOES: obtained %s', which)
-		conn.close()
+		if conn: conn.close()
 
 def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 	xra = which == 'xrays'
@@ -81,11 +79,12 @@ def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 	if len(query) < 1:
 		raise ValueError('Empty query')
 	with pool.connection() as conn:
-		cl = ','.join(query)
-		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {cl} FROM {T_XRAY if xra else T_PART} '+\
-			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) '+\
-				'ORDER BY time', [t_from, t_to])
-		res, cols = curs.fetchall(), [desc[0] for desc in curs.description]
+		cl = SQL(',').join([Identifier(c) for c in query])
+		tbl = Identifier(T_XRAY if xra else T_PART)
+		qq = SQL('SELECT EXTRACT(EPOCH FROM time)::integer as time, {} FROM {} '+\
+			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time').format(cl, tbl)
+		curs = conn.execute(qq, [t_from, t_to])
+		res, cols = curs.fetchall(), [desc[0] for desc in curs.description] # type: ignore
 	if (len(res) > 0 and len(res) >= expected_count - 3) or not obtain:
 		return res, cols
 
@@ -97,11 +96,10 @@ def sat_table(ser_db_name: str):
 
 def select_hourly_averaged(interval: list[int], ser_db_name: str):
 	table = sat_table(ser_db_name)
-
-	query = f'SELECT EXTRACT(EPOCH FROM hour)::integer, AVG({ser_db_name}) ' +\
+	query = SQL('SELECT EXTRACT(EPOCH FROM hour)::integer, AVG({}) ' +\
 	'FROM generate_series(to_timestamp(%s), to_timestamp(%s), \'1 hour\'::interval) hour ' +\
-	f'LEFT JOIN {table} t ON hour <= t.time AND t.time <= hour + \'1 hour\'::interval ' +\
-	'GROUP BY hour ORDER BY hour'
+	'LEFT JOIN {} t ON hour <= t.time AND t.time <= hour + \'1 hour\'::interval ' +\
+	'GROUP BY hour ORDER BY hour').format(Identifier(ser_db_name), Identifier(table))
 
 	with pool.connection() as conn:
 		return conn.execute(query, interval).fetchall()

@@ -1,9 +1,12 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from data.particles_and_xrays import _obtain_goes
+from data.particles_and_xrays import fetch
 import logging
 from database import pool
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -17,7 +20,8 @@ def obtain():
 	year = EPOCH
 	while year < datetime.now(timezone.utc):
 		end = year.replace(year=year.year + 1)
-		_obtain_goes('particles', year.timestamp(), end.timestamp())
+		fetch('particles', year.timestamp(), end.timestamp(), ['p1'])
+		print(year.year, 'OK')
 		year = end
 
 if __name__ == '__main__':
