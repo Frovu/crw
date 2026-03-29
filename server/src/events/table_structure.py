@@ -2,9 +2,6 @@
 from events.source import cactus_cme, donki, lasco_cme, noaa_flares, r_c_icme, solardemon, solarsoft, solen_info
 from events.columns.column import Column as Col
 
-# FIXME: remove noaa flares
-SELECT_FEID = 'events.feid LEFT JOIN events.generic_data ON id = feid_id LEFT JOIN events.legacy_noaa_flares fl ON fl.start_time = f.flr_time'
-
 INFLUENCE_ENUM = ['primary', 'secondary', 'residual']
 
 E_FEID = 'feid'
@@ -40,36 +37,9 @@ FEID = [
 		parse_name='MagnM'),
 	Col(E_FEID, 'gamma', 'gamma', '(AB), rigidity spectrum exponent during the hour of minimum CR density',
 		parse_name='GammaM'),
-	Col(E_FEID, 'vmbm', 'VmBm',  'Vmax / 400 * Bmax / 5',
-		is_computed=True),
 
 	Col(E_FEID, 'base_period', 'base', '24-h base period start',
 	  	dtype='time'),
-
-	Col(E_FEID, 't_ktl',
-	  	name='t ktl',
-		description='time to first kt <= 0.5',
-		is_computed=True),
-	Col(E_FEID, 'd_ktl',
-	  	name='d ktl',
-		description='count of kt <= 0.5 hours',
-		is_computed=True),
-	Col(E_FEID, 'ktl_cnt',
-	  	name='ktl cnt',
-		description='count of hours kt <= 0.5 where previous hour is kt > 0.5',
-		is_computed=True),
-	Col(E_FEID, 't_kth',
-	  	name='t kth',
-		description='time to first kt >= 1.5',
-		is_computed=True),
-	Col(E_FEID, 'd_kth',
-	  	name='d kth',
-		description='count of kt >= 1.5 hours',
-		is_computed=True),
-	Col(E_FEID, 'kth_cnt',
-	  	name='kth cnt',
-		description='count of hours kt >= 1.5 where previous hour is kt < 1.5',
-		is_computed=True),
 
 	Col(E_FEID, 'pre_increase', 'pre incr', '0 - no pre-increse, 1 - questionable, 2 - confident'),
 	Col(E_FEID, 'pre_inc_width', 'p-inc width', 'Average longitudinal width of the pre-increase'),
@@ -82,7 +52,6 @@ FEID = [
 	Col(E_FEID, 'pre_dec_direction', 'p-dec lon', 'Longitude of the pre-decrease maximum'),
 	Col(E_FEID, 'pre_dec_duration', 'p-dec dur', 'Pre-decrease duration in hours'),
 	Col(E_FEID, 'pre_dec_magnitude', 'p-dec magn', 'Pre-decrease magnitude according to RSM'),
-
 
 	Col(E_FEID, 'comment', dtype='text', description='Additional information'),
 

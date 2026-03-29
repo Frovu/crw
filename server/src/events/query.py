@@ -6,7 +6,7 @@ from psycopg.sql import SQL, Identifier, Placeholder
 
 from events.changelog import ChangelogResponse, select_changelog
 from events.columns.column import Column
-from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, FEID, FEID_SOURCE, E_SOURCE_CH, E_SOURCE_ERUPT, SOURCE_CH, SOURCE_ERUPT, SELECT_FEID
+from events.table_structure import ALL_TABLES, E_FEID, EDITABLE_TABLES, E_SOURCE_CH, E_SOURCE_ERUPT
 from events.columns.computed_column import select_computed_columns, DATA_TABLE as CC_TABLE
 
 @ts_type.gen_type
