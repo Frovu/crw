@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { PlotCirclesStandalone } from './plots/time/Circles';
 import './styles/index.css';
-import './styles/App.css';
 import TemperatureApp from './data/muon/Temperature';
 import Neutron from './data/neutron/Neutron';
 import MuonApp from './data/muon/Muon';

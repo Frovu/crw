@@ -9,5 +9,4 @@ Developed and used at IZMIRAN
 ## FEID
 
 - Autolink
-
-- FIX: commit message clips outside the screen when too many changes
+- New sun images

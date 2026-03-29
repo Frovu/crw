@@ -20,9 +20,9 @@ export function Confirmation({
 		closeSelf();
 	});
 	return (
-		<Popup onClose={closeSelf} className="p-8">
+		<Popup onClose={closeSelf} className="p-8 flex flex-col top-1/2 -translate-y-1/2 max-h-[calc(100vh-64px)]">
 			{children}
-			<div className="flex gap-4 justify-center pt-6">
+			<div className="flex gap-4 justify-center pt-6 text-text">
 				<Button
 					variant="default"
 					onClick={() => {
@@ -54,7 +54,7 @@ export function askConfirmation(head: string, body: string) {
 					callback: () => resolve(true),
 					onClose: () => resolve(false),
 				}),
-			20
+			20,
 		);
 	});
 }
