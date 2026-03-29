@@ -154,6 +154,7 @@ export const useSelectedSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl:
 	if (!soft) return null;
 
 	const found =
-		sources.find((src) => src[what] && src.source.cr_influence === 'primary')?.[what] ?? sources.find((src) => src[what]);
+		sources.find((src) => src[what] && src.source.cr_influence === 'primary')?.[what] ??
+		sources.find((src) => src[what])?.[what];
 	return (found as Tables[T]) ?? null;
 };
