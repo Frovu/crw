@@ -64,7 +64,7 @@ export function ColumnSettings({ column }: { column?: Column }) {
 		trackDefinition(inp, value('definition'), (val) => set('definition', val), setHint, feidInfo, setVal);
 
 	const inputsDisabled = !isCreating && !isModifiable;
-	const defValid = !isDirty || (value('definition') && (!hint || hint.val));
+	const defValid = !isDirty || (value('definition') && (!hint || !hint.opts.length || hint.val));
 	const nameValid =
 		!isDirty ||
 		(value('name').length && !columns.find((col) => col.name === value('name') && col.sql_name !== column?.sql_name));

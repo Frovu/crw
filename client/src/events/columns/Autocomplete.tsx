@@ -6,9 +6,9 @@ import { RefFunctionView } from './CompColumnsReference';
 export default function AutocompleteView({ hint, onPick }: { hint: AutocompleteHint; onPick: (val: string) => void }) {
 	return (
 		<>
-			{hint && (
+			{hint && hint.opts.length > 0 && (
 				<div
-					className="absolute max-h-100 overflow-y-scroll border rounded-xl flex flex-col py-1 -translate-y-full z-20 bg-bg"
+					className="absolute max-h-100 overflow-y-scroll border z-20 bg-bg rounded-xl flex flex-col py-1 -translate-y-full [@media(max-height:700px)]:-translate-x-full"
 					style={{ left: hint.left, top: hint.top - 8 }}
 				>
 					{hint.opts.map((opt) => (
@@ -28,8 +28,8 @@ export default function AutocompleteView({ hint, onPick }: { hint: AutocompleteH
 			)}
 			{hint?.func && (
 				<div
-					className="absolute border z-20 bg-bg p-2 text-left rounded-xl max-w-[640px]"
-					style={{ right: 0, top: hint.top + 38 }}
+					className="absolute border z-20 bg-bg p-2 text-left rounded-xl w-max max-w-[560px] [@media(max-height:700px)]:-translate-y-full [@media(max-height:700px)]:translate-x-[24px]"
+					style={{ left: hint.left, top: hint.top + 38 }}
 				>
 					<RefFunctionView {...hint.func} />
 				</div>

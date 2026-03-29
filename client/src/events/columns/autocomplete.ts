@@ -23,14 +23,6 @@ export function trackDefinition(
 	if (!inp) return;
 	if (!pickValue && !inp.matches(':focus')) return setHint(null);
 
-	const set = (opts: readonly string[], val: string | null, fname?: string) => {
-		const coords = getCaretCoordinates(inp, cur);
-		const left = inp.offsetLeft + coords.left;
-		const top = inp.offsetTop + coords.top;
-		const func = fname ? { ...functions[fname], name: fname } : undefined;
-		setHint({ left, top, opts, val: opts.find((o) => autoCompVal(o) === val) ? val : null, func });
-	};
-
 	const ifPick = (genText: (val: string) => string, genPos?: (val: string) => number) => {
 		if (pickValue) {
 			const val = autoCompVal(pickValue);
@@ -44,6 +36,29 @@ export function trackDefinition(
 	};
 
 	const cur = inp.selectionStart ?? 0;
+
+	// find effective function block
+	const fns = new Map<number, string>();
+	let depth = 0;
+	for (let i = 0; i < cur; ++i) {
+		if (text[i] === '(') {
+			depth += 1;
+			const fname = text.slice(0, i).match(/[a-z][a-z\s]*$/)?.[0];
+			fns.set(depth, fname ?? fns.get(depth - 1) ?? '');
+		} else if (text[i] === ')') {
+			depth -= 1;
+		}
+	}
+	const effectiveFn = fns.get(depth) || null;
+
+	const set = (opts: readonly string[], val: string | null, fname?: string) => {
+		const fn = fname ?? effectiveFn;
+		const coords = getCaretCoordinates(inp, cur);
+		const left = inp.offsetLeft + coords.left;
+		const top = inp.offsetTop + coords.top;
+		const func = fn ? { ...functions[fn], name: fn } : undefined;
+		setHint({ left, top, opts, val: opts.find((o) => autoCompVal(o) === val) ? val : null, func });
+	};
 
 	const textBefore = text.slice(0, cur);
 	const stringPos = textBefore.search(/[a-zA-Z][a-zA-Z\d_]*\s*$/);
@@ -90,7 +105,7 @@ export function trackDefinition(
 	const rpa = rcom >= 0 ? rcom : text.indexOf(')', cur);
 	const rr = rpa >= 0 ? rpa : text.length;
 
-	if (ll < 0 || text.slice(0, rr).lastIndexOf(')') > ll) return setHint(null);
+	if (ll < 0 || text.slice(0, rr).lastIndexOf(')') > ll) return set([], null);
 
 	const fn = text
 		.slice(0, lpar)
@@ -102,7 +117,7 @@ export function trackDefinition(
 		.trim()
 		.slice(1, -1);
 
-	if (!['scol', 'scnt'].includes(fn as any) || (fn === 'scnt' && argNum !== 0) || argNum === 2) return setHint(null);
+	if (!['scol', 'scnt'].includes(fn as any) || (fn === 'scnt' && argNum !== 0) || argNum === 2) return set([], null);
 
 	const opts =
 		argNum === 0
