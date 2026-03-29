@@ -77,7 +77,34 @@ class SeriesOperation(Function):
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
+class Derivative(Function):
+	def __init__(self) -> None:
+		super().__init__('der', [
+			ArgDef('series', [TYPE.SERIES], [dt for dt in DTYPE]),
+			ArgDef('order', [TYPE.LITERAL], [DTYPE.INT], default='1'),
+		], 'n-th order derivative of the series (difference between cur and prev measurement interval)')
+
+	def __call__(self, args: tuple[Value, ...], _: ComputationContext) -> Value:
+		super().validate(args)
+
+		s_time, data = args[0].value[:,0],  args[0].value[:,1]
+		order: int = int(args[1].value) if len(args) > 1 else 1
+
+		res = np.empty_like(data)
+		res[:order] = np.nan
+
+		temp = data
+		for i in range(order):
+			temp = temp[1:] - temp[:-1]
+
+		res[order:] = temp
+		result = np.column_stack((s_time, res))
+
+		return Value(TYPE.SERIES, DTYPE.REAL, result)
+
 functions = {
+	'val': ValueOp(),
+	'der': Derivative(),
 	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null')
 }
 descs = {

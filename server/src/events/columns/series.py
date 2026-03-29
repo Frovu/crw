@@ -80,7 +80,7 @@ SERIES = [ # order matters (no it does not)
 	*[Series('sat', s, s, 'xra '+d) for s, d in sat.XRAYS.items()]
 ]
 
-def find_series(name):
+def find_series(name: str):
 	found = next((s for s in SERIES if s.name == name), None)
 	found = found or next((s for s in SERIES if s.display_name.lower() == name.lower()), None)
 
