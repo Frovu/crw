@@ -37,9 +37,11 @@ export function usePlot<T = {}>() {
 		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
 		const interval = plotOffset.map((h) => new Date(hour + h * 36e5));
 
-		const timeIdx = table.index.time;
+		const timeIdx = table.index.time,
+			durIdx = table.index.duration;
+		const end = (row: (typeof table.data)[number]) => (row[timeIdx] as Date).getTime() + (row[durIdx] as number) * 36e5;
 		const events = table.data
-			.filter((row) => interval[0] <= (row[timeIdx] as Date) && (row[timeIdx] as Date) <= interval[1])
+			.filter((row) => interval[0].getTime() <= end(row) && (row[timeIdx] as Date) <= interval[1])
 			.filter((row) => plotUnlistedEvents || sample.data.find((sr) => sr[0] === row[0]))
 			.filter((row) => (!setStartAt && !setEndAt) || row[0] !== modifyId);
 
