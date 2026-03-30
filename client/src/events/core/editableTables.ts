@@ -68,7 +68,8 @@ export const setRawData = (tbl: EditableTable, rdata: TableRow[], columns: Colum
 		}),
 	);
 
-const renderTableData = (state: TablesState, tbl: EditableTable) => {
+type Uhhhh = Parameters<Extract<Parameters<typeof useTablesStore.setState>[0], (...args: any[]) => any>>[0];
+const renderTableData = (state: Uhhhh, tbl: EditableTable) => {
 	const { columns, rawData, deleted, created, changes } = state[tbl];
 
 	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter(
@@ -167,7 +168,7 @@ export function deleteEvent(tbl: EditableTable, id: number) {
 			st.feid_sources.data
 				?.filter((r) => r[idIdx] === id)
 				.forEach((sRow) => {
-					st.feid_sources.deleted = [...st.feid_sources.deleted, sRow[0]];
+					st.feid_sources.deleted = [...st.feid_sources.deleted, sRow[0] as number];
 				});
 		}
 		st[tbl].data = st[tbl].data?.filter((r) => r[0] !== id);

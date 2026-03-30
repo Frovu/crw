@@ -10,7 +10,7 @@ export function CatchErrors({ children }: { children: ReactNode }) {
 					onMouseEnter={() => resetErrorBoundary()}
 					onMouseLeave={() => resetErrorBoundary()}
 				>
-					<div className="center text-red">ERROR: {error.message}</div>
+					<div className="center text-red">ERROR: {(error as Error).message}</div>
 				</div>
 			)}
 		>
