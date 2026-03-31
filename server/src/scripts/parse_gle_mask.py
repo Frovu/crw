@@ -4,9 +4,9 @@
 from datetime import datetime, timedelta
 import sys, os, json
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '../'))
-from data_series.gsm.database import pool
+from database import pool
 
-PATH = 'data/gle_list.json'
+PATH = 'tmp/gle_list.json'
 
 def parse():
 	with open(PATH) as file:

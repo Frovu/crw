@@ -21,7 +21,7 @@ def parse():
 			try:
 				split = line.split()
 				time = datetime(*[int(d) for d in split[0].split('.')], int(split[1])-1)
-				values = [float(v) for v in split[3:]]
+				values = [float(v) for v in split[2:]]
 				ax, ay = values[series.index('ax')], values[series.index('ay')]
 				phi_axy = round(atan2(ay, ax) / pi * 180, 1)
 				data.append((time, *values, phi_axy if phi_axy >= 0 else 360 + phi_axy))
