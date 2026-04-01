@@ -22,7 +22,7 @@ const defaultTableParams: TableParams = {
 	showIncludeMarkers: true,
 };
 
-function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
+function Menu({ Checkbox }: ContextMenuProps<TableParams>) {
 	const queryClient = useQueryClient();
 	const { role } = useContext(AuthContext);
 	const menu = useEventsContextMenu<'feid'>();
@@ -89,11 +89,11 @@ function Menu({ params, Checkbox }: ContextMenuProps<TableParams>) {
 			{feidId == null && (
 				<>
 					<div className="separator" />
-					<div className="Group">
+					<>
 						<Checkbox label="Show include markers" k="showIncludeMarkers" />
 						<Checkbox label="Show column averages" k="showAverages" />
 						<Checkbox label="Show changes log" k="showChangelog" />
-					</div>
+					</>
 				</>
 			)}
 		</>

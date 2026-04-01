@@ -104,7 +104,7 @@ class Derivative(Function):
 
 class ValueOp(Function):
 	def __init__(self) -> None:
-		super().__init__('der', [
+		super().__init__('val', [
 			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
 			ArgDef('time', [TYPE.COLUMN], [DTYPE.TIME]),
 		], 'series value at given hour')

@@ -10,8 +10,9 @@ import numpy as np
 
 # margin in hours before first and after last event where series data will be available for computation
 # since it should ideally be the same for all series, it cannot be determined dynamically
+HOUR = 3600
 SERIES_FRAME_MARGIN_H = 320
-SERIES_FRAME_MARGIN_S = SERIES_FRAME_MARGIN_H * 3600
+SERIES_FRAME_MARGIN_S = SERIES_FRAME_MARGIN_H * HOUR
 
 SRC_COL_ORDERING_OPTIONS = [opt + desc for desc in ["", "_desc"] for opt in ['time', 'position', 'cme_speed'] ]
 SRC_COL_ENTITY_OPTIONS = ['erupt', 'ch', *ENTITY_ERUPT, *ENTITY_CH]
@@ -98,5 +99,5 @@ class ComputationContext:
 		return self.select_columns([get_col_by_name(E_FEID, name) for name in names])
 	
 	def get_series_frame(self):
-		times = self.select_columns_by_name(['time'])[0]
+		times = self.select_columns_by_name(['time'])[0] // HOUR * HOUR
 		return [int(times[0]) - SERIES_FRAME_MARGIN_S, int(times[-1]) + SERIES_FRAME_MARGIN_S]

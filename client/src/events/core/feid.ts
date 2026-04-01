@@ -44,7 +44,7 @@ export function useFeidTableView() {
 	const [shownColumns, setShownColumns] = useState(useEventsSettings.getState().shownColumns);
 
 	useEffect(() => {
-		useEventsSettings.subscribe((st) => {
+		return useEventsSettings.subscribe((st) => {
 			if (Date.now() - cols_last_updated_at > DEBOUNCE_COLUMN_SWITCH) {
 				cols_last_updated_at = Date.now();
 				setShownColumns(st.shownColumns);

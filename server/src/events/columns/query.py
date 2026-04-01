@@ -62,7 +62,8 @@ def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_colu
 		
 	data = zip(ids, val)
 
-	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id', write_nulls=True)
+	# NOTE: only write nulls when recomputing whole column, this is a hack for cols with event shift
+	upsert_many(DATA_TABLE, ['feid_id', col.sql_name], data, conflict_constraint='feid_id', write_nulls=whole_column)
 	
 	with pool.connection() as conn:
 		apply_changes(conn, col)
