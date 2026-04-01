@@ -1,5 +1,6 @@
-import { type CSSProperties, useState, useRef, useEffect } from 'react';
-import { useEventListener } from '../util';
+import { useState, useRef, useEffect } from 'react';
+import { cn, useEventListener } from '../util';
+import { Input } from './Input';
 
 function parseInput(type: 'text' | 'time' | 'number', val: string): any {
 	switch (type) {
@@ -18,14 +19,12 @@ export function ValidatedInput({
 	callback,
 	placeholder,
 	allowEmpty,
-	style,
 }: {
 	type: 'text' | 'time' | 'number';
 	value: any;
 	callback: (val: any) => void;
 	placeholder?: string;
 	allowEmpty?: boolean;
-	style?: CSSProperties;
 }) {
 	const [valid, setValid] = useState(true);
 	const [input, setInput] = useState(value);
@@ -39,7 +38,7 @@ export function ValidatedInput({
 			if (e.code === 'Escape') ref.current?.blur();
 			if (['NumpadEnter', 'Enter'].includes(e.code)) valid && callback(input && parseInput(type, input));
 		},
-		ref
+		ref,
 	);
 
 	const onChange = (e: any) => {
@@ -56,14 +55,13 @@ export function ValidatedInput({
 	};
 
 	return (
-		<input
-			style={{ ...(!valid && { borderColor: 'var(--color-red)' }), ...style }}
-			type="text"
+		<Input
+			className={cn('w-42 h-7 border-0', !valid && 'text-red')}
 			value={input || ''}
 			placeholder={placeholder}
 			ref={ref}
 			onChange={onChange}
 			onBlur={onBlur}
-		></input>
+		/>
 	);
 }

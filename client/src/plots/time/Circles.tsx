@@ -31,6 +31,7 @@ import { ValidatedInput } from '../../components/ValidatedInput';
 import type { ContextMenuProps } from '../../layout';
 import { usePlot, type Onset } from '../../events/core/plot';
 import { Input } from '../../components/Input';
+import { SimpleSelect } from '../../components/Select';
 
 const defaultParams = {
 	rsmExtended: false,
@@ -855,14 +856,15 @@ function CirclesParamsInput({ params, setParams }: { params: CirclesPlotParams; 
 				callback={callback('onset')}
 				allowEmpty={true}
 			/>
-			<br /> Theme:{' '}
-			<select value={params.theme || 'Dark'} onChange={(e) => callback('theme')(e.target.value)}>
-				{themeOptions.map((opt) => (
-					<option key={opt} value={opt}>
-						{opt}
-					</option>
-				))}
-			</select>
+			<div className="flex gap-1 justify-end items-center">
+				Theme:
+				<SimpleSelect
+					className="w-40 bg-input-bg"
+					options={themeOptions.map((o) => [o, o])}
+					value={params.theme || 'Dark'}
+					onChange={callback('theme')}
+				/>
+			</div>
 			<div style={{ lineHeight: '2em' }}>
 				<Checkbox text="Automatic filtering" k="autoFilter" />
 				<br />
