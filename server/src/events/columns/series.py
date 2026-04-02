@@ -77,6 +77,7 @@ SERIES = [ # order matters (no it does not)
 	Series('omni', 'dst', 'dst_index', 'Dst'),
 	Series('omni', 'kp', 'kp_index', 'Kp'),
 	Series('omni', 'ap', 'ap_index', 'Ap'),
+	Series('omni', 'ae', 'ae_index', 'AE'),
 	Series('omni', 'sw_type', 'sw_type', 'SW_type', dtype='str'),
 	Series('gsm', 'a10m', 'a10m', 'A0m'),
 	Series('gsm', 'a10', 'a10', 'A0'),

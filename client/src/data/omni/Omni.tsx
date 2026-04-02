@@ -44,8 +44,8 @@ const useOmniState = create<OmniState>()(
 		{
 			name: 'crwOmniSettings',
 			partialize: ({ group, interval }) => ({ group, interval }),
-		}
-	)
+		},
+	),
 );
 
 function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
@@ -101,12 +101,12 @@ function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
 			},
 			{
 				...seriesDefaults('🛰sw', 'white'),
-				value: (u, val) => (val ? spacecraft[val] ?? val?.toString() : '--'),
+				value: (u, val) => (val ? (spacecraft[val] ?? val?.toString()) : '--'),
 				show: false,
 			},
 			{
 				...seriesDefaults('🛰imf', 'white', '🛰sw'),
-				value: (u, val) => (val ? spacecraft[val] ?? val?.toString() : '--'),
+				value: (u, val) => (val ? (spacecraft[val] ?? val?.toString()) : '--'),
 				show: false,
 			},
 			{
@@ -157,13 +157,17 @@ function plotOptions(): Omit<uPlot.Options, 'height' | 'width'> {
 				...seriesDefaults('Ap', 'cyan'),
 				show: false,
 			},
+			{
+				...seriesDefaults('AE', 'cyan'),
+				show: false,
+			},
 		],
 		hooks: {
 			ready: [
 				(u) => {
 					if (!u.root.children[1]) return;
 					const values = Array.from((u.root as any).children[1].firstChild!.children).map(
-						(tr: any) => tr.children[1]
+						(tr: any) => tr.children[1],
 					);
 					values.forEach((td) => {
 						td.parentElement!.style.marginRight = '8px';
@@ -196,7 +200,7 @@ export default function OmniApp() {
 			apiGet<{ fields: string[]; rows: number[][] }>('omni', {
 				from: interval[0],
 				to: interval[1],
-				query: 'sw_type_present,spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index',
+				query: 'sw_type_present,spacecraft_id_sw,spacecraft_id_imf,sw_temperature,sw_density,sw_speed,temperature_idx,plasma_beta,imf_scalar,imf_x,imf_y,imf_z,dst_index,kp_index,ap_index,ae_index',
 			}),
 	});
 
@@ -219,8 +223,8 @@ export default function OmniApp() {
 			const [from, to] = !rm
 				? [fetchFrom, fetchTo]
 				: !selection
-				? Array(2).fill(data![0][cursor!.idx])
-				: [selection!.min, selection!.max].map((i) => data![0][i]);
+					? Array(2).fill(data![0][cursor!.idx])
+					: [selection!.min, selection!.max].map((i) => data![0][i]);
 
 			const res = await apiPost(rm ? 'omni/remove' : 'omni/fetch', {
 				from,
@@ -254,7 +258,7 @@ export default function OmniApp() {
 		if (what)
 			set(
 				'group',
-				['V', 'T', 'Tidx', 'D'].includes(what) ? 'SW' : ['|B|', 'Bx', 'By', 'Bz'].includes(what) ? 'IMF' : 'all'
+				['V', 'T', 'Tidx', 'D'].includes(what) ? 'SW' : ['|B|', 'Bx', 'By', 'Bz'].includes(what) ? 'IMF' : 'all',
 			);
 	}, [navigation.state.chosen, set]);
 
@@ -274,7 +278,7 @@ export default function OmniApp() {
 										PARAM_GROUP[
 											(PARAM_GROUP.indexOf(g) + (e.deltaY > 0 ? 1 : -1) + PARAM_GROUP.length) %
 												PARAM_GROUP.length
-										]
+										],
 								)
 							}
 						>
@@ -407,7 +411,7 @@ function CovregareView() {
 		setEditing(false);
 	}, [query.data]);
 
-	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : newTo ?? new Date(0));
+	const to = prettyDate(query.data?.to ? new Date(1e3 * query.data.to) : (newTo ?? new Date(0)));
 	return !query.data ? null : (
 		<div
 			style={{ cursor: 'pointer', padding: 8, lineHeight: 1.25, color: color(editing ? 'text' : 'dark') }}

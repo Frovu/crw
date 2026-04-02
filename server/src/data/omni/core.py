@@ -149,7 +149,7 @@ def _cols(group, source='omniweb', do_remove=False):
 	if 'yermolaev' in [source, group]:
 		return []
 	if 'geomag' in [source, group]:
-		return [c for c in omni_columns if c.name in ['kp_index', 'ap_index', 'dst_index']]
+		return [c for c in omni_columns if c.name in ['kp_index', 'ap_index', 'ae_index', 'dst_index']]
 
 	if group not in ['all', 'sw', 'imf']:
 		raise ValueError('Bad param group')

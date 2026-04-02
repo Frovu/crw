@@ -17,6 +17,7 @@
 	"sw_speed": ["REAL", 25, "vsw"],
 	"plasma_beta": ["REAL", 37],
 	"dst_index": ["SMALLINT", 41, "dst"],
+	"ae_index": ["SMALLINT", 42, "ae"],
 	"kp_index": ["SMALLINT", 39, "kp"],
 	"ap_index": ["SMALLINT", 50, "ap"]
 }
