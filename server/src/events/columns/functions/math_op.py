@@ -39,10 +39,7 @@ class MathOperation(Function):
 		if is_time and self.name not in ['add', 'sub']:
 			raise TypeError(f'{self.name}() not supported with time values')
 
-		if is_time:
-			lhv, rhv = [a.value * 3600 if a.dtype in [DTYPE.REAL, DTYPE.INT] else a.value for a in args]
-		else:
-			lhv, rhv = [a.value for a in args]
+		lhv, rhv = [a.value * (3600 if is_time and a.dtype in [DTYPE.REAL, DTYPE.INT] else 1) for a in args]
 
 		res_value = self.fn(lhv, rhv)
 
@@ -53,7 +50,6 @@ class MathOperation(Function):
 			if self.name in ['sub'] and args[0].dtype == args[1].dtype: # TIME - TIME = INT (hours)
 				res_value //= 3600
 				res_dtype = DTYPE.INT
-
 		else:
 			res_dtype = DTYPE.INT if self.name != 'div' and all(a.dtype == DTYPE.INT for a in args) else DTYPE.REAL
 

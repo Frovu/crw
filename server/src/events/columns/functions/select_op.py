@@ -15,7 +15,7 @@ class GetSeries(Function):
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
 		
-		series = find_series(args[0].value)
+		series = find_series(str(args[0].value))
 		data = ctx.select_series(series)
 		dtype = DTYPE.TEXT if series.dtype == 'str' else DTYPE.REAL
 
@@ -30,7 +30,7 @@ class GetColumn(Function):
 
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
-		col_name = args[0].value
+		col_name = str(args[0].value)
 		shift = int(args[1].value) if len(args) > 1 else 0
 
 		column = get_col_by_name(E_FEID, col_name)
@@ -72,8 +72,8 @@ class GetSourceColumn(Function):
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
 		
-		entity = parse_entity(args[0].value)
-		col_name = args[1].value
+		entity = parse_entity(str(args[0].value))
+		col_name = str(args[1].value)
 		infl = str(args[2].value) if len(args) > 2 else 'p,s'
 		order = str(args[3].value) if len(args) > 3 else 'time'
 		
@@ -100,7 +100,7 @@ class GetSourceCount(Function):
 	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
 		super().validate(args)
 		
-		entity = parse_entity(args[0].value)
+		entity = parse_entity(str(args[0].value))
 		infl = str(args[1].value) if len(args) > 1 else 'p,s'
 		
 		data = ctx.select_source_column(entity, parse_infl(infl), get_count=True)

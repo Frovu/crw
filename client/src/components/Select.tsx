@@ -20,7 +20,7 @@ const SelectTrigger = React.forwardRef<
 		ref={ref}
 		className={cn(
 			'flex [&>:first-child]:grow [&>:first-child]:px-1 pl-1 h-6 cursor-pointer hover:text-active w-full items-center justify-between whitespace-nowrap ring-offset-background placeholder:text-dark focus:outline-hidden focus:ring-1 focus:ring-active disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1',
-			className
+			className,
 		)}
 		{...props}
 	>
@@ -73,7 +73,7 @@ const SelectContent = React.forwardRef<
 				'relative max-h-96 min-w-[8rem] overflow-hidden border bg-bg shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
 				position === 'popper' &&
 					'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
-				className
+				className,
 			)}
 			style={{ zIndex: 2147483647 }}
 			position={position}
@@ -83,7 +83,7 @@ const SelectContent = React.forwardRef<
 			<SelectPrimitive.Viewport
 				className={cn(
 					'p-1',
-					position === 'popper' && 'h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)'
+					position === 'popper' && 'h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)',
 				)}
 			>
 				{children}
@@ -110,7 +110,7 @@ const SelectItem = React.forwardRef<
 		ref={ref}
 		className={cn(
 			'relative flex w-full cursor-pointer text-sm py-1 pl-2 pr-8 hover:text-active select-none items-center outline-hidden focus:text-active data-disabled:pointer-events-none data-disabled:opacity-50',
-			className
+			className,
 		)}
 		{...props}
 	>
@@ -148,8 +148,8 @@ const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, ..
 				<SelectValue placeholder={placeholder} />
 			</SelectTrigger>
 			<SelectContent side="top">
-				{options.map(([, lbl]) => (
-					<SelectItem key={lbl} value={lbl}>
+				{options.map(([val, lbl]) => (
+					<SelectItem key={(val as any).toString?.() ?? lbl} value={lbl}>
 						{lbl}
 					</SelectItem>
 				))}

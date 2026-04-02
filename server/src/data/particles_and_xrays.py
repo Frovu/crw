@@ -94,7 +94,7 @@ def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 def sat_table(ser_db_name: str):
 	return T_XRAY if ser_db_name in ['s', 'l'] else T_PART
 
-def select_hourly_averaged(interval: list[int], ser_db_name: str):
+def select_hourly_averaged(interval: tuple[int, int], ser_db_name: str):
 	table = sat_table(ser_db_name)
 	query = SQL('SELECT EXTRACT(EPOCH FROM hour)::integer, AVG({}) ' +\
 	'FROM generate_series(to_timestamp(%s), to_timestamp(%s), \'1 hour\'::interval) hour ' +\

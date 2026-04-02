@@ -5,7 +5,9 @@ from events.columns.series import Series
 from events.table_structure import E_FEID, E_SOURCE_CH, ENTITY_CH, E_SOURCE_ERUPT, ENTITY_ERUPT, SOURCE_LINKS, get_col_by_name
 
 from psycopg.sql import SQL, Identifier
-from database import pool
+from datetime import datetime, timezone
+from database import pool, log
+from time import time
 import numpy as np
 
 # margin in hours before first and after last event where series data will be available for computation
@@ -26,6 +28,18 @@ class ComputationContext:
 	def __init__(self, target_ids: list[int] | None = None) -> None:
 		self.target_ids = target_ids
 		self.cache: dict[str, np.ndarray] = {}
+		self.series_frame: tuple[int, int] = None # type: ignore
+	
+	def get_slices(self, t_1: np.ndarray, t_2: np.ndarray):
+		t_0 = self.series_frame[0]
+		t_l = np.minimum(t_1, t_2)
+		t_r = np.maximum(t_1, t_2)
+		left = (t_l - t_0) // HOUR
+		slice_len = (t_r - t_l) // HOUR
+		left[np.isnan(left)] = -1
+		slice_len[left < 0] = 1
+		slice_len[np.isnan(slice_len)] = 1
+		return [np.s_[int(max(0, l)):int(max(0, l+sl))] for l, sl in zip(left, slice_len)]
 
 	def select_columns(self, columns: list[Column]):
 		to_fetch = [c for c in columns if c.sql_name not in self.cache]
@@ -48,7 +62,27 @@ class ComputationContext:
 	
 	def select_series(self, series: Series):
 		if series.name not in self.cache:
-			self.cache[series.name] = series.fetch(self.get_series_frame())
+			frame = self.series_frame or self.get_series_frame()
+			t_data = time()
+			res = series.fetch(frame)
+			res_time = res[:,0]
+
+			holes = np.where(res_time[1:] - res_time[:-1] != 3600)[0]
+			if len(holes):
+				hole_tm = datetime.fromtimestamp(res_time[holes[0]] + 3600, timezone.utc) # type: ignore
+				log.error('Data is not continous for %s at %s', series.name, hole_tm)
+				raise Exception(f'Data is not continous for {series.name} at {hole_tm}')
+			
+			if self.series_frame:
+				if self.series_frame[0] != res_time[0] or self.series_frame[-1] != res_time[-1]:
+					log.error('Series frame mismatch for %s', series.name)
+					raise Exception(f'Series frame mismatch for {series.name}')
+			else:
+				self.series_frame = (res_time[0], res_time[-1])
+
+			log.debug(f'Got {series.display_name} [{len(res)}] in {round(time()-t_data, 3)}s')
+			self.cache[series.name] = res[:,1]
+
 		return self.cache[series.name]
 	
 	def select_source_column(self, entity: str, infl: list[str], column: Column|None=None, order: str|None=None, get_count=False):
@@ -100,4 +134,4 @@ class ComputationContext:
 	
 	def get_series_frame(self):
 		times = self.select_columns_by_name(['time'])[0] // HOUR * HOUR
-		return [int(times[0]) - SERIES_FRAME_MARGIN_S, int(times[-1]) + SERIES_FRAME_MARGIN_S]
+		return (int(times[0]) - SERIES_FRAME_MARGIN_S, int(times[-1]) + SERIES_FRAME_MARGIN_S)

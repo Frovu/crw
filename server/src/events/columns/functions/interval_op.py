@@ -1,5 +1,4 @@
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
-from events.columns.functions.series_op import get_slices
 from events.columns.context import ComputationContext
 import numpy as np
 
@@ -18,20 +17,20 @@ class IntervalOperation(Function):
 
 		data = args[0]
 		if len(args) == 3:
-			slice_start = args[1].value
-			slice_end = args[2].value
+			slice_start: np.ndarray = args[1].value # type: ignore
+			slice_end: np.ndarray = args[2].value # type: ignore
 		else:
 			slice_start, dur = ctx.select_columns_by_name(['time', 'duration'])
 			slice_end = slice_start + dur * HOUR
 
-		d_time, d_value = data.value[:,0], data.value[:,1].astype(bool)
-		slices = get_slices(d_time, slice_start, slice_end)
+		d_value = data.value.astype(bool) # type: ignore
+		slices = ctx.get_slices(slice_start, slice_end)
 
 		if self.name == 'ilen':
 			res = np.array([np.count_nonzero(d_value[sl]) for sl in slices])
 			
 		else:
-			res = np.full(len(slices), np.nan)
+			res: np.ndarray = np.full(len(slices), np.nan)
 
 			if self.name == 'icount':
 				for i, slice in enumerate(slices):
@@ -45,7 +44,7 @@ class IntervalOperation(Function):
 					if np.count_nonzero(d_value[slice]) == 0:
 						res[i] = np.nan
 					else:
-						res[i] = (d_time[np.argmax(d_value[slice]) + slice.start] - slice_start[i]) / HOUR
+						res[i] = np.argmax(d_value[slice]) 
 
 		dtype = DTYPE.REAL if self.name == 'itime' else DTYPE.INT
 		return Value(TYPE.COLUMN, dtype, res)

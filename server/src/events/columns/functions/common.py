@@ -1,16 +1,18 @@
 from dataclasses import dataclass, asdict
 from enum import StrEnum
-from typing import Any
+from typing import Tuple, Union
 import ts_type
+import numpy as np
 
 TYPE = StrEnum('TYPE', ['LITERAL', 'SERIES', 'COLUMN'])
 DTYPE = StrEnum('DTYPE', ['REAL', 'INT', 'TIME', 'TEXT', 'BOOL'])
+ValueArray = np.ndarray[Tuple[int], np.dtype[np.float64]]
 
 @dataclass
-class Value:
+class Value[T: Union[ValueArray, str, int, float] = Union[ValueArray, str, int, float]]:
 	type: TYPE
 	dtype: DTYPE
-	value: Any
+	value: T
 
 def str_literal(val: str):
 	return Value(TYPE.LITERAL, DTYPE.TEXT, val)
@@ -59,7 +61,7 @@ class Function:
 		self.desc = desc
 		self.args = args
 
-	def validate(self, args: tuple[Value, ...]) -> None:
+	def validate(self, args: Tuple[Value, ...]) -> None:
 		if len(args) > len(self.args):
 			raise TypeError(f'{self.name}() takes {len(self.args)} arguments, got {len(args)}')
 		for i, arg_def in enumerate(self.args):

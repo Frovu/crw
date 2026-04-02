@@ -1,24 +1,10 @@
-from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
+from events.columns.functions.common import TYPE, DTYPE, Value, ValueArray, ArgDef, Function
 from events.columns.context import ComputationContext
 from cream import gsm
 import numpy as np
 import warnings
 
 HOUR = 3600
-
-def get_slices(t_time: np.ndarray, t_1: np.ndarray, t_2: np.ndarray):
-	if len(t_time) < 1:
-		return [slice(0, 0) for _ in t_1]
-	
-	t_l = np.minimum(t_1, t_2)
-	t_r = np.maximum(t_1, t_2)
-	left = (t_l - t_time[0]) // HOUR
-	slice_len = (t_r - t_l) // HOUR
-	left[np.isnan(left)] = -1
-	slice_len[left < 0] = 1
-	slice_len[np.isnan(slice_len)] = 1
-
-	return [np.s_[int(max(0, l)):int(max(0, l+sl))] for l, sl in zip(left, slice_len)]
 
 class SeriesOperation(Function):
 	def __init__(self, name: str, desc: str, subtract_trend=False, normalize_variation=False) -> None:
@@ -30,10 +16,10 @@ class SeriesOperation(Function):
 		self.subtract_trend = subtract_trend
 		self.normalize_variation = normalize_variation
 
-	def __call__(self, args: tuple[Value, ...], ctx: ComputationContext) -> Value:
-		super().validate(args)
+	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
 
-		data = args[0]
+		value = args[0].value
 		if len(args) == 3:
 			slice_start = args[1].value
 			slice_end = args[2].value
@@ -41,11 +27,10 @@ class SeriesOperation(Function):
 			slice_start, dur = ctx.select_columns_by_name(['time', 'duration'])
 			slice_end = slice_start + dur * HOUR
 
-		d_time, d_value = data.value[:,0], data.value[:,1]
-		slices = get_slices(d_time, slice_start, slice_end)
+		slices = ctx.get_slices(slice_start, slice_end)
 
 		if self.name == 'coverage':
-			result = np.array([np.count_nonzero(~np.isnan(d_value[sl])) / ((sl.stop - sl.start) or 1) * 100 for sl in slices])
+			result = np.array([np.count_nonzero(~np.isnan(value[sl])) / ((sl.stop - sl.start) or 1) * 100 for sl in slices])
 			return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
 		with warnings.catch_warnings():
@@ -66,13 +51,13 @@ class SeriesOperation(Function):
 				prepare = None
 
 			if prepare:
-				result = np.array([func(prepare(d_value[sl])) for sl in slices])
+				result = np.array([func(prepare(value[sl])) for sl in slices])
 			else:
-				result = np.array([func(d_value[sl]) for sl in slices])
+				result = np.array([func(value[sl]) for sl in slices])
 
 		if self.name in ['tmax', 'tmin']:
 			t_idx = result + np.array([sl.start for sl in slices])
-			t_result = np.where(result == -1, np.nan, d_time[t_idx]) 
+			t_result = np.where(result == -1, np.nan, ctx.series_frame[0] + t_idx * HOUR) 
 			return Value(TYPE.COLUMN, DTYPE.TIME, t_result)
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
@@ -84,23 +69,22 @@ class Derivative(Function):
 			ArgDef('order', [TYPE.LITERAL], [DTYPE.INT], default='1'),
 		], 'n-th order "derivative" of the series (difference between cur and prev measurement interval)')
 
-	def __call__(self, args: tuple[Value, ...], _: ComputationContext) -> Value:
-		super().validate(args)
+	def __call__(self, args: tuple[Value[ValueArray], ...], _: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
 
-		s_time, data = args[0].value[:,0],  args[0].value[:,1]
-		order: int = int(args[1].value) if len(args) > 1 else 1
+		value = args[0].value
+		order = int(args[1].value) if len(args) > 1 else 1
 
-		res = np.empty_like(data)
+		res = np.empty_like(value)
 		res[:order] = np.nan
 
-		temp = data
+		temp = value
 		for i in range(order):
 			temp = temp[1:] - temp[:-1]
 
 		res[order:] = temp
-		result = np.column_stack((s_time, res))
 
-		return Value(TYPE.SERIES, DTYPE.REAL, result)
+		return Value(TYPE.SERIES, DTYPE.REAL, res)
 
 class ValueOp(Function):
 	def __init__(self) -> None:
@@ -109,14 +93,14 @@ class ValueOp(Function):
 			ArgDef('time', [TYPE.COLUMN], [DTYPE.TIME]),
 		], 'series value at given hour')
 
-	def __call__(self, args: tuple[Value, Value], _: ComputationContext) -> Value:
-		super().validate(args)
+	def __call__(self, args: tuple[Value[ValueArray], Value[ValueArray]], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
 
-		data, t_time = args[0].value, args[1].value
-		s_time, s_val = data[:,0], data[:,1]
+		value = args[0].value 
+		t_time = args[1].value
 		
-		res_idx = (t_time - s_time[0]) // HOUR
-		result = s_val[res_idx.astype(int)]
+		res_idx = (t_time - ctx.series_frame[0]) // HOUR
+		result = value[res_idx.astype(int)]
 
 		return Value(TYPE.COLUMN, args[0].dtype, result)
 

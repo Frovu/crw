@@ -49,6 +49,7 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 		<div className="flex flex-wrap justify-end gap-0.5 max-w-80">
 			{opts.map((part) => (
 				<Checkbox
+					key={part}
 					className="pl-2"
 					label={name(part)}
 					checked={show.includes(part)}

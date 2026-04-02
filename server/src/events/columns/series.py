@@ -1,10 +1,7 @@
 from dataclasses import dataclass, asdict
-from time import time
-from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, Tuple
 import numpy as np
 
-from database import log
 import data.omni.core as omni
 from cream import gsm
 import data.particles_and_xrays as sat
@@ -32,8 +29,7 @@ class Series:
 			return sat.sat_table(self.db_name)
 		return self.source
 
-	def fetch(self, interval: list[int]) -> np.ndarray:
-		t_data = time()
+	def fetch(self, interval: tuple[int, int]) -> np.ndarray[Tuple[int, Literal[2]], np.dtype[np.float64]]:
 
 		if self.source == 'omni':
 			omni.ensure_prepared(interval)
@@ -45,19 +41,9 @@ class Series:
 			res = gsm.select(interval, [self.db_name])
 
 		if len(res) < 1:
-			return np.empty((0, 2))
+			return np.empty((0, 2)) # type: ignore
 		
-		dtype = 'object' if self.name == 'sw_type' else 'f8'
-		arr = np.array(res, dtype=dtype)
-		
-		holes = np.where(arr[1:,0] - arr[:-1,0] != 3600)[0]
-		if len(holes):
-			hole_tm = datetime.fromtimestamp(arr[holes[0], 0] + 3600, timezone.utc)
-			log.error('Data is not continous for %s at %s', self.name, hole_tm)
-			raise Exception(f'Data is not continous at {hole_tm}')
-		
-		log.debug(f'Got {self.display_name} [{len(arr)}] in {round(time()-t_data, 3)}s')
-		return arr
+		return np.array(res, dtype=np.float64)
 
 	def as_dict(self):
 		return asdict(self)

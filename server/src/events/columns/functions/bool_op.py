@@ -1,7 +1,6 @@
 
 from operator import lt, le, eq, ne, gt, ge
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
-import numpy as np
 
 class BoolOperation(Function):
 	def __init__(self, name: str, fn, op: str) -> None:
@@ -26,15 +25,8 @@ class BoolOperation(Function):
 		is_column = any(a.type == TYPE.COLUMN for a in args)
 
 		lhv, rhv = [a.value for a in args]
-
-		if is_series:
-			lhv = lhv[:,1] if args[0].type == TYPE.SERIES else lhv
-			rhv = rhv[:,1] if args[1].type == TYPE.SERIES else rhv
-			tm = args[0 if args[0].type == TYPE.SERIES else 1].value[:,0]
-			
-			res_value = np.column_stack((tm, self.fn(lhv, rhv)))
-		else:
-			res_value = self.fn(lhv, rhv)
+	
+		res_value = self.fn(lhv, rhv)
 
 		res_type = TYPE.SERIES if is_series else TYPE.COLUMN if is_column else TYPE.LITERAL
 

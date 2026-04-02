@@ -166,7 +166,7 @@ def _cols(group, source='omniweb', do_remove=False):
 			if source == 'omniweb' or do_remove else []) + imf_cols
 	}[group]
 
-def obtain(source: str, interval: list[int], group: str='all', overwrite=False):
+def obtain(source: str, interval: tuple[int, int], group: str='all', overwrite=False):
 	interval = [
 		floor(interval[0] / PERIOD) * PERIOD,
 		 ceil(interval[1] / PERIOD) * PERIOD ]
@@ -208,7 +208,7 @@ def obtain(source: str, interval: list[int], group: str='all', overwrite=False):
 
 	return len(data)
 
-def remove(interval: list[int], group):
+def remove(interval: tuple[int, int], group):
 	cols = [c.name for c in _cols(group, do_remove=True)]
 	with pool.connection() as conn:
 		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
@@ -223,7 +223,7 @@ def insert(var, data):
 	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
 	upsert_many('omni', ['time', var], data, schema='public')
 
-def select(interval: list[int], query=None, epoch=True):
+def select(interval: tuple[int, int], query=None, epoch=True):
 	all_series = all_column_names + SW_TYPE_DERIVED_SERIES
 	columns = [c for c in query if c in all_column_names] if query else all_column_names
 	any_sw_type_dervied = query and next((q for q in query if q in SW_TYPE_DERIVED_SERIES), None)
@@ -235,7 +235,7 @@ def select(interval: list[int], query=None, epoch=True):
 		data, fields = np.array(curs.fetchall(), dtype='object'), [desc[0] for desc in curs.description]
 	return derive_from_sw_type(data, fields, [c for c in query if c in all_series]) if any_sw_type_dervied else (data, fields)
 
-def ensure_prepared(interval: list[int], trust=False):
+def ensure_prepared(interval: tuple[int, int], trust=False):
 	global dump_info
 	with omni_mutex:
 		if not trust:

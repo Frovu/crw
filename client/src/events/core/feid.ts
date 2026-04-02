@@ -31,7 +31,15 @@ export function useFeidSample() {
 	};
 
 	return useQuery({
-		queryKey: ['feidSample', updatedAt, isPicking, sample, columns, JSON.stringify(filters), samplesQuery.dataUpdatedAt],
+		queryKey: [
+			'feidSample',
+			updatedAt,
+			isPicking,
+			sample,
+			JSON.stringify(columns.map((c) => c.sql_name)),
+			JSON.stringify(filters),
+			samplesQuery.dataUpdatedAt,
+		],
 		staleTime: Infinity,
 		queryFn: computeSample,
 		initialData: computeSample,
@@ -46,7 +54,7 @@ export function useFeidTableView() {
 	useEffect(() => {
 		return useEventsSettings.subscribe((st) => {
 			if (Date.now() - cols_last_updated_at > DEBOUNCE_COLUMN_SWITCH) {
-				cols_last_updated_at = Date.now();
+				console.log(shownColumns['c_77']);
 				setShownColumns(st.shownColumns);
 			} else {
 				if (cols_update_timeout != null) clearTimeout(cols_update_timeout);
@@ -102,7 +110,7 @@ export function useFeidTableView() {
 			updatedAt,
 			isPicking,
 			sample,
-			columns,
+			JSON.stringify(columns.map((c) => c.sql_name)),
 			JSON.stringify(shownColumns),
 			sort.column,
 			sort.direction,
