@@ -26,7 +26,7 @@ export default function AutocompleteView({ hint, onPick }: { hint: AutocompleteH
 					))}
 				</div>
 			)}
-			{hint?.func && (
+			{hint?.func?.args && (
 				<div
 					className="absolute border z-20 bg-bg p-2 text-left rounded-xl w-max max-w-[560px] [@media(max-height:700px)]:-translate-y-full [@media(max-height:700px)]:translate-x-[24px]"
 					style={{ left: hint.left, top: hint.top + 38 }}

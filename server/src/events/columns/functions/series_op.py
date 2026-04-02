@@ -1,7 +1,7 @@
 from events.columns.functions.common import TYPE, DTYPE, Value, ValueArray, ArgDef, Function
 from events.columns.context import ComputationContext
-from cream import gsm
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 import warnings
 
 HOUR = 3600
@@ -131,10 +131,30 @@ class RebaseOp(Function):
 		res = 1 / (1 + base_val / 100)
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, res)
+	
+class MovingAverage(Function):
+	def __init__(self):
+		super().__init__('movavg', [
+			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL, DTYPE.INT]),
+			ArgDef('window_size', [TYPE.LITERAL], [DTYPE.INT], default='2'),
+		], 'moving average of the series (windows are always trailing)')
+
+	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
+
+		value = args[0].value
+		window = int(args[1].value) if len(args) > 1 else 2
+
+		res = np.empty_like(value)
+		res[window-1:] = np.nanmean(sliding_window_view(value, window_shape=window), axis=1)
+		res[:window] = np.nan
+
+		return Value(TYPE.SERIES, DTYPE.REAL, res)
 		
 functions = {
 	'val': ValueOp(),
 	'der': Derivative(),
+	'movavg': MovingAverage(),
 	'rebase': RebaseOp(),
 	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null'),
 	'mean': SeriesOperation('mean', 'the mean value of a given series in the [from, to) interval'),
