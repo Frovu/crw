@@ -5,9 +5,12 @@ import { color } from '../plotUtil';
 import type { ContextMenuProps } from '../../layout';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
+import { Checkbox } from '../../components/Checkbox';
 
 const defaultParams = {
-	useAp: false,
+	showAE: false,
+	showAp: false,
+	showKp: true,
 };
 
 export type GeomagnParams = typeof defaultParams;
@@ -15,7 +18,7 @@ export type GeomagnParams = typeof defaultParams;
 const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
 	const colors = [color('green'), color('yellow'), color('orange'), color('red')];
 	const lastColor = color('crimson');
-	const range = params.useAp ? [18, 39, 67, 179] : [36, 46, 56, 76];
+	const range = params.showAp ? [18, 39, 67, 179] : [36, 46, 56, 76];
 	const values = (u: uPlot, sidx: number) =>
 		(u.data[sidx] as number[]).map((v) => {
 			for (const [i, mx] of range.entries()) if (v < mx) return colors[i];
@@ -45,10 +48,20 @@ const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesId
 	})(upl, seriesIdx, i0, i1);
 };
 
-function Menu({ Checkbox }: ContextMenuProps<GeomagnParams>) {
+function Menu({ params, setParams }: ContextMenuProps<GeomagnParams>) {
+	const onChange = (what: 'showAp' | 'showKp' | 'showAE') => (chk: boolean) => {
+		setParams({
+			showAp: chk && what === 'showAp',
+			showKp: chk && what === 'showKp',
+			showAE: chk && what === 'showAE',
+		});
+	};
+
 	return (
 		<>
-			<Checkbox label="Use Ap index" k="useAp" />
+			<Checkbox label="Show Ap index" checked={params.showAp} onCheckedChange={onChange('showAp')} />
+			<Checkbox label="Show Kp index" checked={params.showKp} onCheckedChange={onChange('showKp')} />
+			<Checkbox label="Show AE index" checked={params.showAE} onCheckedChange={onChange('showAE')} />
 		</>
 	);
 }
@@ -59,16 +72,18 @@ function Panel() {
 		<BasicPlot
 			{...{
 				queryKey: (interval) => ['geomagn', interval],
-				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'kp_index', 'ap_index', 'dst_index']),
+				queryFn: (interval) =>
+					basicDataQuery('omni', interval, ['time', 'kp_index', 'ap_index', 'dst_index', 'ae_index']),
 				params,
 				axes: () => [
 					{
+						show: params.showKp || params.showAp,
 						label: 'Kp',
-						fullLabel: (params.useAp ? 'Ap' : 'Kp') + ' index',
+						fullLabel: (params.showAp ? 'Ap' : 'Kp') + ' index',
 						position: [0, 2 / 5 - 1 / 20],
 						minMax: [0, 50],
 						showGrid: false,
-						values: (u, vals) => vals.map((v) => (v == null ? v : (params.useAp ? v : v / 10).toFixed(0))),
+						values: (u, vals) => vals.map((v) => (v == null ? v : (params.showAp ? v : v / 10).toFixed(0))),
 						splits: (u, aidx, min, max) => [0, max > 50 ? 90 : 50],
 					},
 					{
@@ -80,10 +95,16 @@ function Panel() {
 						ticks: { show: false },
 						gap: 0,
 					},
+					{
+						show: params.showAE,
+						label: 'AE',
+						fullLabel: 'AE, nT',
+						position: [0, 1],
+					},
 				],
 				series: () => [
 					{
-						show: !params.useAp,
+						show: params.showKp,
 						label: 'Kp',
 						scale: 'Kp',
 						legend: 'Kp index',
@@ -93,7 +114,7 @@ function Panel() {
 						myPaths: myBars(params),
 					},
 					{
-						show: params.useAp,
+						show: params.showAp,
 						label: 'Ap',
 						scale: 'Kp',
 						width: 0,
@@ -107,6 +128,14 @@ function Panel() {
 						stroke: color('skyblue'),
 						width: 2,
 						marker: 'circle',
+					},
+					{
+						show: params.showAE,
+						label: 'AE',
+						legend: 'AE, nT',
+						stroke: color('magenta'),
+						width: 2,
+						marker: 'diamond',
 					},
 				],
 			}}
