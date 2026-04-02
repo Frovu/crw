@@ -10,3 +10,4 @@ Developed and used at IZMIRAN
 
 - Autolink
 - New sun images
+- Multiple variation (+ display multiple samples on one corr)

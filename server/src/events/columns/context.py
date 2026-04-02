@@ -31,6 +31,8 @@ class ComputationContext:
 		self.series_frame: tuple[int, int] = None # type: ignore
 	
 	def get_slices(self, t_1: np.ndarray, t_2: np.ndarray):
+		if not self.series_frame:
+			return [slice(0, 0) for _ in t_1]
 		t_0 = self.series_frame[0]
 		t_l = np.minimum(t_1, t_2)
 		t_r = np.maximum(t_1, t_2)
@@ -77,7 +79,7 @@ class ComputationContext:
 				if self.series_frame[0] != res_time[0] or self.series_frame[-1] != res_time[-1]:
 					log.error('Series frame mismatch for %s', series.name)
 					raise Exception(f'Series frame mismatch for {series.name}')
-			else:
+			elif len(res) > 0:
 				self.series_frame = (res_time[0], res_time[-1])
 
 			log.debug(f'Got {series.display_name} [{len(res)}] in {round(time()-t_data, 3)}s')

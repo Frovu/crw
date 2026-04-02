@@ -149,7 +149,7 @@ const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, ..
 			</SelectTrigger>
 			<SelectContent side="top">
 				{options.map(([val, lbl]) => (
-					<SelectItem key={(val as any).toString?.() ?? lbl} value={lbl}>
+					<SelectItem key={(val as any)?.toString?.() ?? lbl} value={lbl}>
 						{lbl}
 					</SelectItem>
 				))}

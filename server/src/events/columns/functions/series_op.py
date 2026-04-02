@@ -6,15 +6,24 @@ import warnings
 
 HOUR = 3600
 
+def _subtract_trend(data: np.ndarray):
+	xs = np.arange(data.shape[0])
+	mask = np.isfinite(data)
+	if np.count_nonzero(mask) > 1:
+		trend = np.polyfit(xs[mask], data[mask], 1)
+		if trend[0] > 0 and data[-1] > data[0]:
+			ys = np.poly1d(trend)(xs)
+			data = data - ys + ys[0]
+	return data
+
 class SeriesOperation(Function):
-	def __init__(self, name: str, desc: str, subtract_trend=False, normalize_variation=False) -> None:
+	def __init__(self, name: str, desc: str, subtract_trend=False) -> None:
 		super().__init__(name, [
 			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
 			ArgDef('from', [TYPE.COLUMN], [DTYPE.TIME], default='@start'),
 			ArgDef('to', [TYPE.COLUMN], [DTYPE.TIME], default='@end')
 		], desc)
 		self.subtract_trend = subtract_trend
-		self.normalize_variation = normalize_variation
 
 	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
 		super().validate(args) # type: ignore
@@ -45,8 +54,8 @@ class SeriesOperation(Function):
 				'median': np.nanmedian
 			}[self.name]
 
-			if self.normalize_variation or self.subtract_trend:
-				prepare = lambda d: gsm.normalize_variation(d, with_trend=self.subtract_trend)
+			if self.subtract_trend:
+				prepare = lambda d: _subtract_trend(d)
 			else:
 				prepare = None
 
@@ -63,7 +72,7 @@ class SeriesOperation(Function):
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)
 
 class Derivative(Function):
-	def __init__(self) -> None:
+	def __init__(self):
 		super().__init__('der', [
 			ArgDef('series', [TYPE.SERIES], [dt for dt in DTYPE]),
 			ArgDef('order', [TYPE.LITERAL], [DTYPE.INT], default='1'),
@@ -87,41 +96,59 @@ class Derivative(Function):
 		return Value(TYPE.SERIES, DTYPE.REAL, res)
 
 class ValueOp(Function):
-	def __init__(self) -> None:
+	def __init__(self):
 		super().__init__('val', [
 			ArgDef('series', [TYPE.SERIES], [DTYPE.REAL]),
-			ArgDef('time', [TYPE.COLUMN], [DTYPE.TIME]),
+			ArgDef('time', [TYPE.COLUMN], [DTYPE.TIME], default='@start'),
 		], 'series value at given hour')
 
-	def __call__(self, args: tuple[Value[ValueArray], Value[ValueArray]], ctx: ComputationContext) -> Value:
+	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
 		super().validate(args) # type: ignore
 
 		value = args[0].value 
-		t_time = args[1].value
+		t_time = args[1].value if len(args) > 1 else ctx.select_columns_by_name(['time'])[0]
+
+		if not ctx.series_frame:
+			result = np.full_like(t_time, np.nan)
+		else:
+			res_idx = (t_time - ctx.series_frame[0]) // HOUR
+			res_idx[res_idx < 0] = -1
+			result = np.where(res_idx >= 0, value[res_idx.astype(int)], np.nan)
+
+		return Value(TYPE.COLUMN, DTYPE.REAL, result)
+
+class RebaseOp(Function):
+	def __init__(self):
+		super().__init__('rebase', [
+			ArgDef('base_series', [TYPE.SERIES], [DTYPE.REAL]),
+			ArgDef('base_time', [TYPE.COLUMN], [DTYPE.TIME], default='@start'),
+		], 'variation rebase correction: = 1 / (1 + b / 100)')
+
+	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
+
+		base_val: np.ndarray = ValueOp()((*args,), ctx).value # type: ignore
+		res = 1 / (1 + base_val / 100)
+
+		return Value(TYPE.COLUMN, DTYPE.REAL, res)
 		
-		res_idx = (t_time - ctx.series_frame[0]) // HOUR
-		result = value[res_idx.astype(int)]
-
-		return Value(TYPE.COLUMN, args[0].dtype, result)
-
 functions = {
 	'val': ValueOp(),
 	'der': Derivative(),
-	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null')
+	'rebase': RebaseOp(),
+	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null'),
+	'mean': SeriesOperation('mean', 'the mean value of a given series in the [from, to) interval'),
+	'median': SeriesOperation('median', 'the median value of a given series in the [from, to) interval')
 }
 descs = {
 	'tmax': 'absolute time of the supremum for a series in the [from, to) interval',
 	'tmin': 'absolute time of the infinum for a series in the [from, to) interval',
 	'max': 'maximum value of a given series in the [from, to) interval',
 	'min': 'minimum value of a given series in the [from, to) interval',
-	'mean': 'the mean value of a given series in the [from, to) interval',
-	'median': 'the median value of a given series in the [from, to) interval'
 }
 for name_op in descs.keys():
-	for functor in ['', 'v', 'vt']:
+	for functor in ['', 't']:
 		desc = descs[name_op]
-		if 'v' in functor:
-			desc += '. treated as variation, normalized to max value'
-		if 'vt' in functor:
-			desc += '. corrected for positive linear trend'
-		functions[name_op+functor] = SeriesOperation(name_op, desc, normalize_variation='v' in functor, subtract_trend='t' in functor)
+		if 't' in functor:
+			desc += '. data is first corrected for positive linear trend (if present) in each interval'
+		functions[name_op+functor] = SeriesOperation(name_op, desc, subtract_trend='t' in functor)
