@@ -1,8 +1,9 @@
 from lark import Lark, Transformer, v_args
+import math
 
 from events.columns.context import ComputationContext
 from events.columns.functions import math_op, select_op, series_op, bool_op, interval_op
-from events.columns.functions.common import str_literal, num_literal, Value
+from events.columns.functions.common import str_literal, num_literal, Value, TYPE, DTYPE
 
 functions = {
 	**select_op.functions,
@@ -18,6 +19,8 @@ helpers = {
 	'dur': lambda ctx: functions['col']([str_literal('duration')], ctx),
 	'mc_start': lambda ctx: functions['col']([str_literal('MC time')], ctx),
 	'mc_end': lambda ctx: functions['add']([functions['col']([str_literal('MC time')], ctx), functions['col']([str_literal('MC duration')], ctx)], ctx),
+	'e': lambda _: Value(TYPE.LITERAL, DTYPE.REAL, math.e),
+	'pi': lambda _: Value(TYPE.LITERAL, DTYPE.REAL, math.pi)
 }
 
 helpers_desc = {
@@ -26,6 +29,8 @@ helpers_desc = {
 	'dur': ('FEID duration', 'col("duration")'),
 	'mc_start': ('MC start', 'col("MC time")'),
 	'mc_end': ('MC end', 'col("MC time") + col("MC duration")'),
+	'e': ('', 'e'),
+	'pi': ('', 'π')
 }
 
 @v_args(inline=True)
@@ -41,7 +46,7 @@ class ColumnComputer(Transformer):
 		return str_literal(str(txt)[1:-1])
 
 	def series(self, name):
-		return self.fn_call('ser', str_literal(name))
+		return self.fn_call('ser', str_literal(name)) # type: ignore
 	
 	def helper(self, name):
 		fn = helpers.get(name)

@@ -1,5 +1,6 @@
 
 from operator import abs, add, sub, mul, pow, mod, truediv as div, floordiv
+from numpy import sin, asin, cos, acos, tan, atan, atan2
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 
 class UnaryOperation(Function):
@@ -12,10 +13,20 @@ class UnaryOperation(Function):
 	def __call__(self, args: tuple[Value, ...], _) -> Value:
 		super().validate(args)
 		arg = args[0]
-
 		res_value = self.fn(arg.value)
-
 		return Value(arg.type, arg.dtype, res_value)
+	
+class Atan2(Function):
+	def __init__(self) -> None:
+		super().__init__('atan2', [
+			ArgDef('y', [t for t in TYPE], [DTYPE.REAL, DTYPE.INT]),
+			ArgDef('x', [t for t in TYPE], [DTYPE.REAL, DTYPE.INT]),
+		], 'atan(y/x), accounting for the quadrant of (result range: [-π, π])')
+	
+	def __call__(self, args: tuple[Value, ...], _) -> Value:
+		super().validate(args)
+		res_value = atan2(args[0].value, args[1].value)
+		return Value(args[0].type, DTYPE.REAL, res_value)
 
 class MathOperation(Function):
 	def __init__(self, name: str, fn, desc: str) -> None:
@@ -63,5 +74,7 @@ functions = {
 	'idiv': MathOperation('idiv', floordiv, 'the quotient of integer division: a // b'),
 	'mod': MathOperation('mod', mod, 'the remainder of integer division: a %% b'),
 	'pow': MathOperation('pow', pow, 'the exponentiation result: a ** b'),
-	'abs': UnaryOperation('abs', abs, 'the absolute value of a number: |a|')
+	'abs': UnaryOperation('abs', abs, 'the absolute value of a number: |a|'),
+	**{ op: UnaryOperation(op, fn, '') for op, fn in [['sin', sin], ['asin', asin], ['cos', cos], ['acos', acos], ['tan', tan], ['atan', atan], ['atan2', atan2]] },
+	'atan2': Atan2()
 }
