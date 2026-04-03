@@ -38,7 +38,7 @@ import { PlotIntervalInput } from '../components/Input';
 import { ENLILView } from './panels/ENLIL';
 import { SFTFlare } from './panels/SFTFlare';
 import { renderPlotInANewTab } from './export/exportablePlots';
-import { CustomPlot } from '../plots/time/Custom';
+import { CustomPlot } from '../plots/time/CustomPlot';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,

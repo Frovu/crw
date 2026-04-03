@@ -12,9 +12,7 @@ import { useEventsSettings } from '../core/util';
 import { Library } from 'lucide-react';
 import CompColumnsReference from './CompColumnsReference';
 import { Popup } from '../../components/Popup';
-import { autoCompVal, trackDefinition, type AutocompleteHint } from './autocomplete';
-import { useFeidInfo } from '../core/query';
-import AutocompleteView from './Autocomplete';
+import { DefinitionInput } from './Autocomplete';
 
 export function ColumnSettings({ column }: { column?: Column }) {
 	const { columns } = useTable('feid');
@@ -22,9 +20,6 @@ export function ColumnSettings({ column }: { column?: Column }) {
 	const { enableColumn } = useEventsSettings();
 	const [report, setReport] = useState<{ error?: string; success?: string }>({});
 	const [infoOpen, setInfoOpen] = useState(false);
-	const [inp, setDefInput] = useState<HTMLInputElement | null>(null);
-	const [hint, setHint] = useState<AutocompleteHint>(null);
-	const feidInfo = useFeidInfo();
 	const queryClient = useQueryClient();
 
 	const isDirty = state.isDirty();
@@ -60,11 +55,8 @@ export function ColumnSettings({ column }: { column?: Column }) {
 		},
 	});
 
-	const trackDef = (setVal?: string) =>
-		trackDefinition(inp, value('definition'), (val) => set('definition', val), setHint, feidInfo, setVal);
-
 	const inputsDisabled = !isCreating && !isModifiable;
-	const defValid = !isDirty || (value('definition') && (!hint || !hint.opts.length || hint.val));
+	const defValid = !isDirty || value('definition');
 	const nameValid =
 		!isDirty ||
 		(value('name').length && !columns.find((col) => col.name === value('name') && col.sql_name !== column?.sql_name));
@@ -76,7 +68,6 @@ export function ColumnSettings({ column }: { column?: Column }) {
 				if (isDirty && targetId && ['Enter', 'NumpadEnter'].includes(e.key)) upsertGeneric(true);
 			}}
 		>
-			<AutocompleteView hint={hint} onPick={trackDef} />
 			<div
 				className="absolute right-1 -top-1 max-h-18 max-w-[400px] text-left overflow-y-clip -translate-y-full"
 				title={report?.error ?? report?.success}
@@ -125,34 +116,12 @@ export function ColumnSettings({ column }: { column?: Column }) {
 				<div className={cn('flex items-center', inputsDisabled && 'opacity-50')}>
 					<div className="text-dark pr-1">Definition:</div>
 					<div className="flex gap-[1px] bg-input-bg">
-						<Input
-							ref={setDefInput}
+						<DefinitionInput
 							disabled={inputsDisabled}
 							invalid={!defValid}
 							className="w-113 px-1 h-7"
 							value={value('definition')}
-							onChange={(e) => set('definition', e.target.value)}
-							onKeyDown={(e) => {
-								const diff = {
-									ArrowUp: -1,
-									ArrowDown: 1,
-								}[e.key];
-								const opts = hint?.opts;
-								if (['Enter', 'NumpadEnter'].includes(e.code)) return (e.target as any).blur?.();
-
-								if (!opts?.length || !diff) return;
-
-								const next = opts.at(
-									(opts.length + opts.findIndex((o) => autoCompVal(o) === hint?.val) + diff) % opts.length,
-								);
-								e.stopPropagation();
-								e.preventDefault();
-
-								trackDef(next);
-							}}
-							onKeyUp={() => trackDef()}
-							onClick={() => trackDef()}
-							onBlur={() => trackDef()}
+							onChange={(val) => set('definition', val)}
 						/>
 						<Button
 							title="Open computed columns reference"

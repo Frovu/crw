@@ -1,6 +1,7 @@
 import getCaretCoordinates from 'textarea-caret';
 import { sourceColumnOrderingOptions, sourceLinks, tablesColumns, type Function } from '../../api';
 import type { useFeidInfo } from '../core/query';
+import { create } from 'zustand';
 
 export type AutocompleteHint = null | {
 	left: number;
@@ -9,6 +10,12 @@ export type AutocompleteHint = null | {
 	val: string | null;
 	func?: Function;
 };
+
+export const useAutocompleteState = create<{ hint: AutocompleteHint }>()(() => ({
+	hint: null,
+}));
+
+export const serAutocompleteHint = (hint: AutocompleteHint) => useAutocompleteState.setState(() => ({ hint }));
 
 export const autoCompVal = (val: string) => val.split(' ')[0];
 

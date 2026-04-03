@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { colorKeys, color } from '../../app';
 import { Button, CloseButton } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
@@ -10,6 +11,9 @@ import type { ContextMenuProps } from '../../layout';
 import { apiPost } from '../../util';
 import BasicPlot from '../BasicPlot';
 import { superScript, type Shape } from '../plotUtil';
+import { autoCompVal, trackDefinition, type AutocompleteHint } from '../../events/columns/autocomplete';
+import { AutocompleteView, DefinitionInput } from '../../events/columns/Autocomplete';
+import { useFeidInfo } from '../../events/core/query';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
 const defaultColors: (typeof colorKeys)[number][] = ['cyan', 'green', 'peach', 'magenta'];
@@ -59,7 +63,7 @@ function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<Custo
 	return (
 		<>
 			{params.series.map(({ definition, label, color: clr, rightAxis, hideMarkers }, i) => (
-				<div key={i + definition + clr} className="flex gap-[1px] pt-0.5 items-center">
+				<div key={i + (label ?? '') + clr} className="flex gap-[1px] pt-0.5 items-center">
 					<Select value={clr} onValueChange={(val) => setSer(i, 'color', val as any)}>
 						<SelectTrigger className="w-5 h-5 mr-1 rounded-xl" style={{ background: color(clr) }} />
 						<SelectContent side="top">
@@ -74,10 +78,11 @@ function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<Custo
 						</SelectContent>
 					</Select>
 					<TextInput className="w-12 h-6" value={label ?? ''} onSubmit={(val) => setSer(i, 'label', val || null)} />=
-					<TextInput
+					<DefinitionInput
+						submitMode={true}
 						className="w-80 h-6 text-left pl-1"
 						value={definition}
-						onSubmit={(val) => setSer(i, 'definition', val)}
+						onChange={(val) => setSer(i, 'definition', val)}
 					/>
 					<Checkbox
 						className="pr-1"

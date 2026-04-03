@@ -1,48 +1,55 @@
-import { useEffect, useState, type ChangeEvent, type ComponentProps } from 'react';
+import React, { useEffect, useState, type ChangeEvent, type ComponentProps, type ComponentPropsWithoutRef } from 'react';
 import { cn } from '../util';
 import { useEventsSettings } from '../events/core/util';
 
 const cls =
 	'bg-input-bg text-center w-40 focus:outline-none focus:ring ring-active disabled:text-dark disabled:cursor-not-allowed';
 
-type InputProps = ComponentProps<'input'> & {
+type InputProps = ComponentPropsWithoutRef<'input'> & {
 	invalid?: boolean;
 };
 
-export function Input({ className, invalid, ...props }: InputProps) {
-	return <input className={cn(cls, invalid && 'ring ring-red', className)} {...props} />;
-}
+export const Input = React.forwardRef<React.ComponentRef<'input'>, InputProps>(({ className, invalid, ...props }, ref) => {
+	return <input ref={ref} className={cn(cls, invalid && 'ring ring-red', className)} {...props} />;
+});
 
-type TextInputProps = {
+export type TextInputProps = {
 	value: string;
 	onSubmit?: (val: string) => void;
 } & Omit<InputProps, 'value' | 'onSubmit'>;
 
-export function TextInput({ value, onSubmit, onChange, onKeyDown, onBlur, ...props }: TextInputProps) {
-	const [input, setInput] = useState(value);
+export const TextInput = React.forwardRef<React.ComponentRef<'input'>, TextInputProps>(
+	({ value, onSubmit, onChange, onKeyDown, onBlur, ...props }, ref) => {
+		const [input, setInput] = useState(value);
 
-	useEffect(() => setInput(value), [value]);
+		useEffect(() => setInput(value), [value]);
 
-	return (
-		<Input
-			value={input}
-			onChange={(e) => {
-				setInput(e.target.value);
-				onChange?.(e);
-			}}
-			type="text"
-			onKeyDown={(e) => {
-				['Enter', 'NumpadEnter'].includes(e.code) && (e.target as any).blur?.();
-				onKeyDown?.(e);
-			}}
-			onBlur={(e) => {
-				onSubmit?.(input);
-				onBlur?.(e);
-			}}
-			{...props}
-		/>
-	);
-}
+		return (
+			<Input
+				ref={ref}
+				value={input}
+				onChange={(e) => {
+					setInput(e.target.value);
+					onChange?.(e);
+				}}
+				type="text"
+				onKeyDown={(e) => {
+					if (['Enter', 'NumpadEnter'].includes(e.code)) {
+						(e.target as any).blur?.();
+						e.stopPropagation();
+					}
+					onKeyDown?.(e);
+				}}
+				onBlur={(e) => {
+					onSubmit?.(input);
+					onBlur?.(e);
+				}}
+				{...props}
+			/>
+		);
+	},
+);
+TextInput.displayName = 'TextInput';
 
 export function NumberInput<NULL extends boolean | undefined = true>({
 	value,

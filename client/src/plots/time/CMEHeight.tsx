@@ -15,7 +15,7 @@ const colors = {
 	east: 'purple',
 	south: 'acid',
 	west: 'magenta',
-};
+} as const;
 
 function Panel() {
 	const params = usePlot<{}>();
