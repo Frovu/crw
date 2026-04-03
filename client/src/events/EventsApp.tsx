@@ -125,14 +125,14 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 			)}
 			{Menu && <Menu {...{ params, set, setParams, Checkbox }} />}
 			{isPlot && (
-				<div className="w-full">
+				<>
 					<div className="separator" />
 					{details && (
 						<Button className="h-7" onClick={() => renderPlotInANewTab(details.nodeId)}>
 							Open image in new tab
 						</Button>
 					)}
-				</div>
+				</>
 			)}
 		</div>
 	);

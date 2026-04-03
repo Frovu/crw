@@ -132,6 +132,27 @@ class RebaseOp(Function):
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, res)
 	
+class ShiftOp(Function):
+	def __init__(self):
+		super().__init__('shift', [
+			ArgDef('value', [TYPE.SERIES, TYPE.COLUMN], [dt for dt in DTYPE]),
+			ArgDef('shift', [TYPE.LITERAL], [DTYPE.INT], default='1'),
+		], 'shift an array: shift([1, 2, 3, 4], 2) = [nan, nan, 1, 2]')
+
+	def __call__(self, args: tuple[Value[ValueArray], ...], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
+
+		value = args[0].value
+		shift = int(args[1].value) if len(args) > 1 else 1
+
+		res = np.roll(value, shift)
+		if shift >= 0:
+			res[:shift] = np.nan
+		else:
+			res[shift:] = np.nan
+
+		return Value(args[0].type, args[0].dtype, res) # type: ignore
+	
 class MovingAverage(Function):
 	def __init__(self):
 		super().__init__('movavg', [
@@ -154,6 +175,7 @@ class MovingAverage(Function):
 functions = {
 	'val': ValueOp(),
 	'der': Derivative(),
+	'shift': ShiftOp(),
 	'movavg': MovingAverage(),
 	'rebase': RebaseOp(),
 	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null'),
