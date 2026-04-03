@@ -61,6 +61,8 @@ export const colorKeys = [
 	'area2',
 ] as const;
 
+export type Color = (typeof colorKeys)[number];
+
 type AppSettings = {
 	app: (typeof APPS)[number] | null;
 	log: LogMessage[];
@@ -116,7 +118,7 @@ export const useAppSettings = create<AppSettings>()(
 
 export const getApp = () => useAppSettings.getState().app ?? 'feid';
 
-export function color(name: (typeof colorKeys)[number], alpha?: number) {
+export function color(name: Color, alpha?: number) {
 	const { colors, theme } = useAppSettings.getState();
 	const col = colors[theme]?.[name] ?? getDefaultColor(name);
 	return rgbaToHexa({ ...col, a: alpha ?? col.a });

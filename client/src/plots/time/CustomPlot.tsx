@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { colorKeys, color } from '../../app';
+import { colorKeys, color, type Color } from '../../app';
 import { Button, CloseButton } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { TextInput } from '../../components/Input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/Select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '../../components/Select';
 import { useFeidCursor } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
@@ -11,18 +10,16 @@ import type { ContextMenuProps } from '../../layout';
 import { apiPost } from '../../util';
 import BasicPlot from '../BasicPlot';
 import { superScript, type Shape } from '../plotUtil';
-import { autoCompVal, trackDefinition, type AutocompleteHint } from '../../events/columns/autocomplete';
-import { AutocompleteView, DefinitionInput } from '../../events/columns/Autocomplete';
-import { useFeidInfo } from '../../events/core/query';
+import { DefinitionInput } from '../../events/columns/Autocomplete';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
-const defaultColors: (typeof colorKeys)[number][] = ['cyan', 'green', 'peach', 'magenta'];
+const defaultColors: Color[] = ['cyan', 'green', 'peach', 'magenta'];
 const markers: Shape[] = ['circle', 'diamond', 'square', 'triangleDown', 'triangleUp'];
 
 type Series = {
 	definition: string;
 	label: string | null;
-	color: (typeof colorKeys)[number];
+	color: Color;
 	rightAxis?: boolean;
 	hideMarkers?: boolean;
 };

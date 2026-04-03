@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { color, colorKeys, getDefaultColor, themeOptions, useAppSettings } from './app';
+import { color, colorKeys, getDefaultColor, themeOptions, useAppSettings, type Color } from './app';
 import Sketch from '@uiw/react-color-sketch';
 import { hexToHsva, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { SimpleSelect } from './components/Select';
@@ -7,7 +7,7 @@ import { Button } from './components/Button';
 import { cn } from './util';
 
 function Panel() {
-	const [picking, setPicking] = useState<string | null>(null);
+	const [picking, setPicking] = useState<Color | null>(null);
 	const old = useMemo(() => picking && color(picking), [picking]);
 	const { theme, setTheme, setColor, resetColor, resetColors } = useAppSettings();
 

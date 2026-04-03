@@ -8,7 +8,7 @@ import { usePlot } from '../../events/core/plot';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 
-const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach', 'purple'];
+const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach', 'purple'] as const;
 
 function Panel() {
 	const params = usePlot();

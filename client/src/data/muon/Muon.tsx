@@ -124,7 +124,7 @@ function options(): Omit<uPlot.Options, 'width' | 'height'> {
 				show: false,
 			},
 			{
-				...seriesDefaults('corrected', '', 'variation'),
+				...seriesDefaults('corrected', 'green', 'variation'),
 				stroke: 'rgb(0,170,90)',
 				value: (u, val) => val?.toFixed(2) ?? '--',
 			},
@@ -226,17 +226,17 @@ function MuonApp() {
 
 		const variationSeries = ['revised', 'corrected', 'a0', 'expected'];
 		const varAverages = variationSeries.map(
-			(ii) => data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter((v) => v != null).length
+			(ii) => data[ii].reduce((a, b) => a! + (b ?? 0), 0)! / data[ii].filter((v) => v != null).length,
 		);
 		data['original'] = data['original'].map((v, i) => (v !== data['revised'][i] ? v : null));
 		for (const [i, ser] of [...variationSeries.entries()].concat([[0, 'original']]))
 			data[ser] = data[ser].map((v) => (v == null ? null : (v - varAverages[i]) / (1 + varAverages[i] / 100)));
 		data['expected+'] = data['expected+'].map((v) =>
-			v == null ? null : (v - varAverages.at(-1)!) / (1 + varAverages.at(-1)! / 100)
+			v == null ? null : (v - varAverages.at(-1)!) / (1 + varAverages.at(-1)! / 100),
 		);
 
 		const counts = Object.fromEntries(
-			Object.entries(data).map(([ser, vals]) => [ser, vals.filter((v) => v != null).length])
+			Object.entries(data).map(([ser, vals]) => [ser, vals.filter((v) => v != null).length]),
 		);
 
 		const series = ORDER.map((s) => data[s]);
@@ -275,7 +275,7 @@ function MuonApp() {
 		const filtered: [number, number][] = [...data[0].keys()]
 			.filter(
 				(i) =>
-					fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo && data[xColIdx][i] != null && data[yColIdx][i] != null
+					fetchFrom <= data[0][i]! && data[0][i]! <= fetchTo && data[xColIdx][i] != null && data[yColIdx][i] != null,
 			)
 			.map((i) => [data[xColIdx][i]!, data[yColIdx][i]!]);
 		if (filtered.length < 2) return null;
@@ -364,7 +364,7 @@ function MuonApp() {
 
 	const defaultInput = () =>
 		Object.fromEntries(
-			(['p', 'tm'] as const).map((coef) => [coef, corrInfo ? ((corrInfo.coef?.[coef] ?? 0) * 100).toFixed(3) : '?'])
+			(['p', 'tm'] as const).map((coef) => [coef, corrInfo ? ((corrInfo.coef?.[coef] ?? 0) * 100).toFixed(3) : '?']),
 		);
 	const [input, setInputState] = useState(defaultInput);
 	useEffect(() => setInputState(defaultInput()), [corrInfo]); // eslint-disable-line
@@ -380,7 +380,7 @@ function MuonApp() {
 				inf.error['phi'] = Math.abs(
 					(Math.atan2((inf.error['cy'] - inf.coef['cy']) * 100, (inf.error['cx'] - inf.coef['cx']) * 100) * 180) /
 						Math.PI -
-						inf.coef['phi']
+						inf.coef['phi'],
 				);
 			}
 			const grey = fitCoefs === 'gsm' ? ['tm', 'p'] : fitCoefs === 'axy' ? ['tm', 'p', 'c0', 'cz'] : [];
@@ -396,7 +396,7 @@ function MuonApp() {
 								: ''}
 						</td>
 					)),
-				])
+				]),
 			) as any;
 		};
 		return [queryCoef.data?.info && calcDisplayCoef(queryCoef.data.info), corrInfo && calcDisplayCoef(corrInfo)];

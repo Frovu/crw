@@ -284,7 +284,9 @@ export default function OmniApp() {
 						>
 							Parameter group:{' '}
 							<select
-								style={{ color: color({ all: 'cyan', SW: 'acid', IMF: 'purple', Geomag: 'peach' }[group]) }}
+								style={{
+									color: color(({ all: 'cyan', SW: 'acid', IMF: 'purple', Geomag: 'peach' } as const)[group]),
+								}}
 								value={group}
 								onChange={(e) => set('group', e.target.value as any)}
 							>

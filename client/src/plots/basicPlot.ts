@@ -1,3 +1,4 @@
+import type { Color } from '../app';
 import type { MagneticCloud, Onset } from '../events/core/plot';
 import type { EventsSettings } from '../events/core/util';
 import { clamp, apiGet, prettyDate, dispatchCustomEvent } from '../util';
@@ -448,7 +449,7 @@ export function titlePlugin({
 	text: textParts,
 	params: { showTitle },
 }: {
-	text: { text: string; styles?: TextNode['styles']; color: string }[];
+	text: { text: string; styles?: TextNode['styles']; color: Color }[];
 	params: { showTitle: boolean };
 }): uPlot.Plugin {
 	const pad = getFontSize() + scaled(2);

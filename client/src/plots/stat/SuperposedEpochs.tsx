@@ -18,7 +18,7 @@ import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis, type CustomScale } from '../basicPlot';
 import { usePlotOverlay, scaled, getParam, measureDigit, axisDefaults } from '../plotUtil';
 
-const colors = ['green', 'purple', 'magenta'];
+const colors = ['green', 'purple', 'magenta'] as const;
 const seriesKeys = ['series0', 'series1', 'series2'] as const;
 const sampleKeys = ['sample0', 'sample1', 'sample2'] as const;
 

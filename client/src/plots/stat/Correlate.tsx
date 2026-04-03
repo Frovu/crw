@@ -17,7 +17,7 @@ import { applySample } from '../../events/sample/sample';
 import { pointPaths, linePaths } from '../plotPaths';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
 import { Quadtree } from '../quadtree';
-import { color } from '../../app';
+import { color, type Color } from '../../app';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
@@ -40,7 +40,7 @@ const defaultParams = {
 	forceMax: null as number | null,
 	forceMinY: null as number | null,
 	forceMaxY: null as number | null,
-	color: 'green',
+	color: 'green' as Color,
 	showRegression: true,
 	loglog: false,
 	logx: true,

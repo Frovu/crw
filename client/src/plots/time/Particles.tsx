@@ -35,7 +35,7 @@ const defaultParams = {
 	showParticles: ['p3', 'p5', 'p7'],
 };
 
-const colors = ['peach', 'cyan', 'green'];
+const colors = ['peach', 'cyan', 'green'] as const;
 
 export type SatPartParams = typeof defaultParams;
 

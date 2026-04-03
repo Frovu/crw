@@ -62,11 +62,13 @@ function Panel() {
 						width: 2,
 						marker: 'circle',
 					},
-					...[
-						['Bx', 'green', 'triangleDown'],
-						['By', 'cyan', 'triangleUp'],
-						['Bz', 'magenta', 'square'],
-					].map(
+					...(
+						[
+							['Bx', 'green', 'triangleDown'],
+							['By', 'cyan', 'triangleUp'],
+							['Bz', 'magenta', 'square'],
+						] as const
+					).map(
 						([label, stroke, marker]) =>
 							({
 								show: label === 'Bz' ? params.showBz : params.showBxBy,
@@ -75,7 +77,7 @@ function Panel() {
 								scale: 'IMF',
 								stroke: color(stroke),
 								marker,
-							} as CustomSeries)
+							}) as CustomSeries,
 					),
 				],
 			}}
