@@ -123,7 +123,7 @@ export default function BasicPlot({
 									);
 								},
 					),
-					values: (u, vals) => vals.map((v) => v?.toString().replace('-', '−')),
+					values: (u, vals) => vals.map((v) => v?.toString().replace('-', '−').replace('0.', '.')),
 					// ...(ax.distr === 3 && {
 					// 	incrs: [1e-4, 1e-3, 1e-2, 0.1, 1, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10],
 					// }),

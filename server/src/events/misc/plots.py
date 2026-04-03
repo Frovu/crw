@@ -33,19 +33,24 @@ def epoch_collision(times: list[int], interval: list[int], ser_name: str):
 
 def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int):
 	interval = tuple(a // HOUR * HOUR + margin * HOUR for a, margin in zip(interval, [-24, 24])) # type: ignore
+	computer = ColumnComputer(force_frame=interval, target_ids=[feid_id])
 	time = [tm for tm in range(interval[0], interval[1]+1, HOUR)]
 	results = [time]
 	for definition in definitions:
 		parsed = columnParser.parse(definition)
-		result = ColumnComputer(force_frame=interval, target_ids=[feid_id]).transform(parsed)
+		result = computer.transform(parsed)
 		res: np.ndarray = result.value
 
 		if result.type != TYPE.SERIES:
-			raise Exception('Computation result was not a series')
+			val = result.value if result.type == TYPE.LITERAL else result.value[0]
+			val = None if ~np.isfinite(res) else val
+			results.append([val for i in range(len(time))]) # type: ignore
+			continue
+	
 		if len(res) != len(time):
 			raise Exception(f'Length mismatch for {definition}: {len(res)} != {len(time)}')
 		
-		val = np.where(~np.isfinite(res), None, np.round(res, 2)).tolist() # type: ignore
+		val = np.where(~np.isfinite(res), None, res).tolist() # type: ignore
 		results.append(val)
 
 	return results

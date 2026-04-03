@@ -9,22 +9,27 @@ import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 import { apiPost } from '../../util';
 import BasicPlot from '../BasicPlot';
+import { superScript, type Shape } from '../plotUtil';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
 const defaultColors: (typeof colorKeys)[number][] = ['cyan', 'green', 'peach', 'magenta'];
+const markers: Shape[] = ['circle', 'diamond', 'square', 'triangleDown', 'triangleUp'];
 
 type Series = {
 	definition: string;
 	label: string | null;
 	color: (typeof colorKeys)[number];
 	rightAxis?: boolean;
+	hideMarkers?: boolean;
 };
 
 export type CustomPlotParams = {
 	series: Series[];
+	logScale: boolean;
 };
 
 const defaultParams: CustomPlotParams = {
+	logScale: false,
 	series: [
 		{
 			definition: '($a10m - val($a10m)) * rebase($a10m)',
@@ -46,15 +51,15 @@ async function customPlotDataQuery(interval: [number, number], definitions: stri
 	return [timeShifted, ...body.data.slice(1)];
 }
 
-function Menu({ params, setParams }: ContextMenuProps<CustomPlotParams>) {
+function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<CustomPlotParams>) {
 	const { series } = params;
 	const setSer = <K extends keyof Series>(i: number, key: K, val: Series[K]) =>
 		setParams({ series: series.toSpliced(i, 1, { ...series[i], [key]: val }) });
 
 	return (
 		<>
-			{params.series.map(({ definition, label, color: clr, rightAxis }, i) => (
-				<div key={i + definition + clr} className="flex gap-[1px] items-center">
+			{params.series.map(({ definition, label, color: clr, rightAxis, hideMarkers }, i) => (
+				<div key={i + definition + clr} className="flex gap-[1px] pt-0.5 items-center">
 					<Select value={clr} onValueChange={(val) => setSer(i, 'color', val as any)}>
 						<SelectTrigger className="w-5 h-5 mr-1 rounded-xl" style={{ background: color(clr) }} />
 						<SelectContent side="top">
@@ -68,17 +73,24 @@ function Menu({ params, setParams }: ContextMenuProps<CustomPlotParams>) {
 							))}
 						</SelectContent>
 					</Select>
-					<TextInput className="w-12" value={label ?? ''} onSubmit={(val) => setSer(i, 'label', val || null)} />=
+					<TextInput className="w-12 h-6" value={label ?? ''} onSubmit={(val) => setSer(i, 'label', val || null)} />=
 					<TextInput
-						className="w-80 text-left pl-1"
+						className="w-80 h-6 text-left pl-1"
 						value={definition}
 						onSubmit={(val) => setSer(i, 'definition', val)}
 					/>
 					<Checkbox
+						className="pr-1"
 						title="Display on the right axis"
 						label="r"
 						checked={!!rightAxis}
 						onCheckedChange={(val) => setSer(i, 'rightAxis', val)}
+					/>
+					<Checkbox
+						title="Show point markers"
+						label="m"
+						checked={!hideMarkers}
+						onCheckedChange={(val) => setSer(i, 'hideMarkers', !val)}
 					/>
 					<CloseButton className="pl-1" onClick={() => setParams({ series: series.toSpliced(i, 1) })} />
 				</div>
@@ -99,6 +111,7 @@ function Menu({ params, setParams }: ContextMenuProps<CustomPlotParams>) {
 			>
 				+ add series
 			</Button>
+			<PCheckbox label="log left axis" k="logScale" />
 		</>
 	);
 }
@@ -106,7 +119,7 @@ function Menu({ params, setParams }: ContextMenuProps<CustomPlotParams>) {
 function Panel() {
 	const { id: feidId } = useFeidCursor();
 	const params = usePlot<CustomPlotParams>();
-	const { series } = params;
+	const { series, logScale } = params;
 	const definitions = series.map((ser) => ser.definition).filter((def) => !!def);
 
 	const leftLabel = series
@@ -126,14 +139,17 @@ function Panel() {
 				params,
 				axes: () => [
 					{
+						distr: logScale ? 3 : 1,
 						label: 'c left',
 						fullLabel: leftLabel,
-						whole: true,
+						...(logScale && {
+							values: (u, vals) =>
+								vals.map((v) => (Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
+						}),
 					},
 					{
 						label: 'c right',
 						fullLabel: rightLabel,
-						whole: true,
 						side: 1,
 						showGrid: false,
 					},
@@ -141,13 +157,13 @@ function Panel() {
 				series: () =>
 					series
 						.filter((ser) => ser.definition)
-						.map(({ label, definition, color: clr, rightAxis }) => ({
+						.map(({ label, definition, color: clr, rightAxis, hideMarkers }, i) => ({
 							label: label ?? definition,
 							legend: label ?? definition,
 							scale: rightAxis ? 'c right' : 'c left',
 							stroke: color(clr),
 							width: 2,
-							marker: 'circle',
+							marker: hideMarkers ? undefined : markers[i % markers.length],
 						})),
 			}}
 		/>
