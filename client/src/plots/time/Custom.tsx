@@ -1,4 +1,5 @@
 import { colorKeys, color } from '../../app';
+import { useFeidCursor } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
@@ -19,23 +20,23 @@ export type CustomPlotParams = {
 const defaultParams: CustomPlotParams = {
 	series: [
 		{
-			definition: '$a10m',
+			definition: '($a10m - val($a10m)) * rebase($a10m)',
 			label: 'A0m',
 			color: 'cyan',
 		},
 	],
 };
 
-async function customPlotDataQuery([from, to]: [number, number], definitions: string[]) {
-	const body = await apiPost<{ rows: (number | null)[][] }>('plot', {
-		from: from.toFixed(0),
-		to: to.toFixed(0),
+async function customPlotDataQuery(interval: [number, number], definitions: string[], feidId: number | null) {
+	if (feidId == null) return null;
+	const body = await apiPost<{ data: (number | null)[][] }>('events/plot', {
+		interval,
 		definitions,
+		feidId,
 	});
-	const timeShifted = body.rows.map((row) => (row[0] == null ? null : row[0] + 3600 / 2));
-	const transposed = definitions.map((d, i) => body.rows.map((row) => row[i + 1]));
-	console.log('custom =>', transposed, definitions);
-	return [timeShifted, ...transposed];
+	const timeShifted = body.data[0].map((tm) => tm! + 3600 / 2);
+	console.log('custom =>', body.data, definitions);
+	return [timeShifted, ...body.data.slice(1)];
 }
 
 function Menu({ Checkbox }: ContextMenuProps<CustomPlotParams>) {
@@ -43,6 +44,7 @@ function Menu({ Checkbox }: ContextMenuProps<CustomPlotParams>) {
 }
 
 function Panel() {
+	const { id: feidId } = useFeidCursor();
 	const params = usePlot<CustomPlotParams>();
 	const { series } = params;
 	const definitions = series.map((ser) => ser.definition);
@@ -60,7 +62,7 @@ function Panel() {
 		<BasicPlot
 			{...{
 				queryKey: (interval) => ['CustomPlot', JSON.stringify(definitions), interval],
-				queryFn: (interval) => customPlotDataQuery(interval, definitions),
+				queryFn: (interval) => customPlotDataQuery(interval, definitions, feidId),
 				params,
 				axes: () => [
 					{
@@ -70,6 +72,7 @@ function Panel() {
 					{
 						label: 'c right',
 						fullLabel: rightLabel,
+						side: 1,
 						showGrid: false,
 					},
 				],

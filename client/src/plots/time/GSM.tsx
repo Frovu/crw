@@ -25,7 +25,7 @@ function tracePaths(
 	scl: number,
 	{ size, position, defaultPos }: PlotOverlayHandle,
 	params: GSMParams & BasicPlotParams,
-	posCache: VectorCache
+	posCache: VectorCache,
 ): uPlot.Series.PathBuilder {
 	const colorLine = color('skyblue');
 	const colorArrow = color('magenta');
@@ -148,12 +148,12 @@ function tracePaths(
 		u.ctx.fillText(
 			applyTextTransform(`Ax, ${yArrowPercent}%`),
 			x + arrowRadius + px(2),
-			y + yArrowPercent * scaley - px(4)
+			y + yArrowPercent * scaley - px(4),
 		);
 		u.ctx.fillText(
 			applyTextTransform(`Ay, ${xArrowPercent}%`),
 			x + Math.max(0, xArrowPercent * scalex - lineW),
-			y - lineH / 2 - arrowRadius + px(2)
+			y - lineH / 2 - arrowRadius + px(2),
 		);
 		u.ctx.stroke();
 
@@ -194,9 +194,9 @@ function Panel() {
 						interval,
 						['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'],
 						{
-							mask_gle: maskGLE ? 'true' : 'false', // eslint-disable-line camelcase
-							subtract_trend: subtractTrend ? 'true' : 'false', // eslint-disable-line camelcase
-						}
+							mask_gle: maskGLE ? 'true' : 'false',
+							subtract_trend: subtractTrend ? 'true' : 'false',
+						},
 					);
 					if (data) data[2] = data[2].map((d, i) => data[3][i]! + d!);
 					return data;

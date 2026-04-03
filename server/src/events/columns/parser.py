@@ -35,9 +35,9 @@ helpers_desc = {
 
 @v_args(inline=True)
 class ColumnComputer(Transformer):
-	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None):
+	def __init__(self, visit_tokens: bool = True, target_ids: list[int] | None = None, force_frame: tuple[int, int] | None = None):
 		super().__init__(visit_tokens)
-		self.ctx = ComputationContext(target_ids)
+		self.ctx = ComputationContext(target_ids, force_frame)
 
 	def number(self, txt):
 		return num_literal(float(txt))

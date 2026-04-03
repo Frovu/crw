@@ -169,7 +169,7 @@ export default function BasicPlot({
 	}, [query.data, params.interval]);
 
 	if (query.isLoading) return <div className="center">LOADING...</div>;
-	if (query.isError) return <div className="center text-red">FAILED TO LOAD</div>;
+	if (query.isError) throw query.error;
 	if (!query.data?.[0]?.length) return <div className="center">NO DATA</div>;
 
 	return (

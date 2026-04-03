@@ -25,10 +25,10 @@ def	np_dtype(dtype: COL_DTYPE):
 	return 'f8'
 
 class ComputationContext:
-	def __init__(self, target_ids: list[int] | None = None) -> None:
+	def __init__(self, target_ids: list[int] | None = None, force_frame: tuple[int, int] | None = None):
 		self.target_ids = target_ids
 		self.cache: dict[str, np.ndarray] = {}
-		self.series_frame: tuple[int, int] = None # type: ignore
+		self.series_frame: tuple[int, int] = force_frame # type: ignore
 	
 	def get_slices(self, t_1: np.ndarray, t_2: np.ndarray):
 		if not self.series_frame:

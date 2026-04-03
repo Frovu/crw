@@ -38,9 +38,9 @@ class MathOperation(Function):
 	def __call__(self, args: tuple[Value, ...], _) -> Value:
 		super().validate(args)
 		for one, other in [args, args[::-1]]:
-			if one.type == TYPE.SERIES and other.type not in [TYPE.SERIES, TYPE.LITERAL]:
+			if one.type == TYPE.SERIES and other.type not in [TYPE.SERIES, TYPE.LITERAL] and len(other.value) > 1: # type: ignore
 				raise TypeError(f'{self.name}() not supported between {one.type} and {other.type}')
-			if one.type == TYPE.COLUMN and other.type not in [TYPE.COLUMN, TYPE.LITERAL]:
+			if one.type == TYPE.COLUMN and other.type not in [TYPE.COLUMN, TYPE.LITERAL] and len(one.value) > 1: # type: ignore
 				raise TypeError(f'{self.name}() not supported between {one.type} and {other.type}')
 			
 		is_time = any(a.dtype == DTYPE.TIME for a in args)
