@@ -1,10 +1,17 @@
 import { colorKeys, color } from '../../app';
+import { Button, CloseButton } from '../../components/Button';
+import { Checkbox } from '../../components/Checkbox';
+import { TextInput } from '../../components/Input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/Select';
 import { useFeidCursor } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../layout';
 import { apiPost } from '../../util';
 import BasicPlot from '../BasicPlot';
+
+const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
+const defaultColors: (typeof colorKeys)[number][] = ['cyan', 'green', 'peach', 'magenta'];
 
 type Series = {
 	definition: string;
@@ -39,15 +46,68 @@ async function customPlotDataQuery(interval: [number, number], definitions: stri
 	return [timeShifted, ...body.data.slice(1)];
 }
 
-function Menu({ Checkbox }: ContextMenuProps<CustomPlotParams>) {
-	return <></>;
+function Menu({ params, setParams }: ContextMenuProps<CustomPlotParams>) {
+	const { series } = params;
+	const setSer = <K extends keyof Series>(i: number, key: K, val: Series[K]) =>
+		setParams({ series: series.toSpliced(i, 1, { ...series[i], [key]: val }) });
+
+	return (
+		<>
+			{params.series.map(({ definition, label, color: clr, rightAxis }, i) => (
+				<div key={i + definition + clr} className="flex gap-[1px] items-center">
+					<Select value={clr} onValueChange={(val) => setSer(i, 'color', val as any)}>
+						<SelectTrigger className="w-5 h-5 mr-1 rounded-xl" style={{ background: color(clr) }} />
+						<SelectContent side="top">
+							{plotColors.map((col) => (
+								<SelectItem key={col} value={col}>
+									<div className="flex items-center gap-1">
+										<div className="w-4 h-4" style={{ background: color(col) }} />
+										{col}
+									</div>
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<TextInput className="w-12" value={label ?? ''} onSubmit={(val) => setSer(i, 'label', val || null)} />=
+					<TextInput
+						className="w-80 text-left pl-1"
+						value={definition}
+						onSubmit={(val) => setSer(i, 'definition', val)}
+					/>
+					<Checkbox
+						title="Display on the right axis"
+						label="r"
+						checked={!!rightAxis}
+						onCheckedChange={(val) => setSer(i, 'rightAxis', val)}
+					/>
+					<CloseButton className="pl-1" onClick={() => setParams({ series: series.toSpliced(i, 1) })} />
+				</div>
+			))}
+			<Button
+				onClick={() =>
+					setParams({
+						series: [
+							...series,
+							{
+								definition: '',
+								label: null,
+								color: defaultColors.find((col) => !series.find((ser) => ser.color === col)) ?? 'white',
+							},
+						],
+					})
+				}
+			>
+				+ add series
+			</Button>
+		</>
+	);
 }
 
 function Panel() {
 	const { id: feidId } = useFeidCursor();
 	const params = usePlot<CustomPlotParams>();
 	const { series } = params;
-	const definitions = series.map((ser) => ser.definition);
+	const definitions = series.map((ser) => ser.definition).filter((def) => !!def);
 
 	const leftLabel = series
 		.filter((s) => !s.rightAxis)
@@ -68,23 +128,27 @@ function Panel() {
 					{
 						label: 'c left',
 						fullLabel: leftLabel,
+						whole: true,
 					},
 					{
 						label: 'c right',
 						fullLabel: rightLabel,
+						whole: true,
 						side: 1,
 						showGrid: false,
 					},
 				],
 				series: () =>
-					series.map(({ label, definition, color: clr, rightAxis }) => ({
-						label: label ?? definition,
-						legend: label ?? definition,
-						scale: rightAxis ? 'c right' : 'c left',
-						stroke: color(clr),
-						width: 2,
-						marker: 'circle',
-					})),
+					series
+						.filter((ser) => ser.definition)
+						.map(({ label, definition, color: clr, rightAxis }) => ({
+							label: label ?? definition,
+							legend: label ?? definition,
+							scale: rightAxis ? 'c right' : 'c left',
+							stroke: color(clr),
+							width: 2,
+							marker: 'circle',
+						})),
 			}}
 		/>
 	);
