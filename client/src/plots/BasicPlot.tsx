@@ -56,6 +56,7 @@ export default function BasicPlot({
 	const query = useQuery({
 		queryKey: queryKey(paddedInterval(params.interval)),
 		queryFn: () => queryFn(paddedInterval(params.interval)),
+		retry: 1,
 	});
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({

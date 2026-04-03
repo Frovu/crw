@@ -21,7 +21,7 @@ class Atan2(Function):
 		super().__init__('atan2', [
 			ArgDef('y', [t for t in TYPE], [DTYPE.REAL, DTYPE.INT]),
 			ArgDef('x', [t for t in TYPE], [DTYPE.REAL, DTYPE.INT]),
-		], 'atan(y/x), accounting for the quadrant of (result range: [-π, π])')
+		], 'atan(y/x), accounting for the quadrant (result range: [-π, π])')
 	
 	def __call__(self, args: tuple[Value, ...], _) -> Value:
 		super().validate(args)

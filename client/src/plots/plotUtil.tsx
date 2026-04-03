@@ -76,7 +76,7 @@ export function axisDefaults(grid: boolean, filter?: uPlot.Axis.Filter): uPlot.A
 	};
 }
 
-export function seriesDefaults(name: string, colour: string, scale?: string) {
+export function seriesDefaults(name: string, colour: (typeof APP.colorKeys)[number], scale?: string) {
 	return {
 		width: scaled(1),
 		scale: scale ?? name,
@@ -361,7 +361,7 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 	return handle;
 }
 
-export function ScatterPlot({ data, colour }: { data: [number[], number[]][]; colour: string }) {
+export function ScatterPlot({ data, colour }: { data: [number[], number[]][]; colour: (typeof APP.colorKeys)[number] }) {
 	const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const size = useSize(container?.parentElement);
 	return (

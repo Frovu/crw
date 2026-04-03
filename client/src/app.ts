@@ -59,7 +59,7 @@ export const colorKeys = [
 	'active',
 	'area',
 	'area2',
-];
+] as const;
 
 type AppSettings = {
 	app: (typeof APPS)[number] | null;

@@ -38,6 +38,7 @@ import { PlotIntervalInput } from '../components/Input';
 import { ENLILView } from './panels/ENLIL';
 import { SFTFlare } from './panels/SFTFlare';
 import { renderPlotInANewTab } from './export/exportablePlots';
+import { CustomPlot } from '../plots/time/Custom';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -46,6 +47,7 @@ const panels: EventsPanel<any>[] = [
 	SWTypesPlot,
 	GeomagnPlot,
 	RSMPlot,
+	CustomPlot,
 	Correlation,
 	Histogram,
 	SuperposedEpochs,
