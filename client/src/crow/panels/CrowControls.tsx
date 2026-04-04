@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { clamp, cn, prettyDate } from '../../util';
+import { clamp, cn, prettyDate, useEventListener } from '../../util';
 import { useCrowSettings, useCrowWindowDebounced } from '../core/crowSettings';
 import { Button } from '../../components/Button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
@@ -46,6 +46,28 @@ function Panel() {
 			state.windowMode = '10 days';
 			state.windowStart = Date.UTC(curYear, curMonth ?? 0, val) / 1e3;
 		});
+	const cycleWindow = (delta: number) => {
+		if (windowMode === 'year') return setYear(curYear + delta);
+		if (windowMode === 'month') return setMonth(curMonth! + delta);
+		if (windowMode === '10 days') {
+			const days = [1, 11, 21];
+			const idx = days.indexOf(curDay!);
+			const newDay = days[(idx + delta + days.length) % days.length];
+			const monthDelta = idx + delta < 0 ? -1 : idx + delta >= days.length ? 1 : 0;
+			const newDate = Date.UTC(curYear, curMonth! + monthDelta, newDay) / 1e3;
+			useCrowSettings.setState((state) => {
+				state.windowStart = newDate;
+			});
+		}
+	};
+
+	useEventListener('action+plotPrevCrow', () => cycleWindow(-1));
+	useEventListener('action+plotNextCrow', () => cycleWindow(1));
+	useEventListener('action+zoom', () => {
+		if (windowMode === 'year') return setMonth(0);
+		if (windowMode === 'month') return set10days(1);
+		if (windowMode === '10 days') return setMonth(curMonth ?? 0);
+	});
 
 	return (
 		<div>
@@ -94,6 +116,23 @@ function Panel() {
 							{day}-{day > 20 ? 1 : day + 10}
 						</Button>
 					))}
+				</div>
+
+				<div className="flex w-full gap-2 pt-2 text-sm">
+					<Button
+						className="grow min-w-0 flex whitespace-nowrap pl-0 justify-between items-center"
+						variant="default"
+						onClick={() => cycleWindow(-1)}
+					>
+						<ChevronLeft /> Prev (Q)
+					</Button>
+					<Button
+						className="grow min-w-0 flex whitespace-nowrap pr-0 justify-between items-center"
+						variant="default"
+						onClick={() => cycleWindow(1)}
+					>
+						Next (E) <ChevronRight />
+					</Button>
 				</div>
 			</div>
 			<div className="text-dark text-xs text-right w-fit p-1 leading-4">
