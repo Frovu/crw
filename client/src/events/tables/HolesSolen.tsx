@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { useEventsContextMenu } from '../../app';
-import { LayoutContext, openWindow, useNodeExists } from '../../layout';
+import { useEventsContextMenu } from '../../app/app';
+import { LayoutContext, openWindow, useNodeExists } from '../../app/layout';
 import { EventsTable } from './Table';
 import { equalValues, valueToString } from '../core/util';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources, useEntityCursor } from '../core/eventsState';

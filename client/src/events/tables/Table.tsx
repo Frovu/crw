@@ -12,13 +12,13 @@ import {
 } from 'react';
 import { clamp, cn, useEventListener, type Size } from '../../util';
 import { valueToString } from '../core/util';
-import { openContextMenu } from '../../app';
+import { openContextMenu } from '../../app/app';
 import { useEntityCursor, useEventsState } from '../core/eventsState';
 import type { Column, Tables } from '../../api';
 import { makeChange, tableRowAsDict, type EditableTable, type TableValue } from '../core/editableTables';
 import { computeColumnWidth } from '../columns/columns';
 import type { CHEnt, EruptiveEvent, EruptTable } from '../core/sourceActions';
-import { LayoutContext, type LayoutContextType } from '../../layout';
+import { LayoutContext, type LayoutContextType } from '../../app/layout';
 import { type TableAveragesData, TableAverages } from './TableAverages';
 import { TableChangelog } from './Changelog';
 import { TableInput } from './TableInput';

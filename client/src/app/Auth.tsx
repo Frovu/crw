@@ -1,10 +1,10 @@
 import { useContext, useState, useEffect, type ReactNode, type KeyboardEvent } from 'react';
 import { AuthContext, logSuccess } from './app';
-import { useMutationHandler, apiPost, apiGet, useEventListener } from './util';
+import { useMutationHandler, apiPost, apiGet, useEventListener } from '../util';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from './components/Button';
-import { Popup } from './components/Popup';
-import { TextInput } from './components/Input';
+import { Button } from '../components/Button';
+import { Popup } from '../components/Popup';
+import { TextInput } from '../components/Input';
 
 export function AuthPrompt({ closePrompt, type }: { closePrompt: () => void; type: 'login' | 'password' | 'upsert' }) {
 	const { login: currentLogin } = useContext(AuthContext);

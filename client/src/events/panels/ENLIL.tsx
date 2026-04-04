@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext } from 'react';
-import { type ContextMenuProps, LayoutContext, type LayoutContextType } from '../../layout';
+import { type ContextMenuProps, LayoutContext, type LayoutContextType } from '../../app/layout';
 import { apiGet } from '../../util';
 import { equalValues, type EventsPanel } from '../core/util';
 import { useEventsState, useSelectedSource } from '../core/eventsState';

@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../../layout';
+import { LayoutContext, type ContextMenuProps } from '../../app/layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../plotUtil';

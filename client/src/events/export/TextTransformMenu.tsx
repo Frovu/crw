@@ -1,6 +1,6 @@
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { useContext, useState, useMemo, type MouseEvent } from 'react';
-import { AuthContext, closeContextMenu, color, logError, logSuccess } from '../../app';
+import { AuthContext, closeContextMenu, color, logError, logSuccess } from '../../app/app';
 import { apiGet, apiPost, cn, prettyDate } from '../../util';
 import { usePlotExportSate } from './exportablePlots';
 import type { TextTransform, TextTransformsSetsList } from '../../api';

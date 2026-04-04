@@ -1,5 +1,5 @@
 import { useContext, useMemo } from 'react';
-import { LayoutContext, type LayoutContextType } from '../../layout';
+import { LayoutContext, type LayoutContextType } from '../../app/layout';
 import { type Size } from '../../util';
 import { useEventsState } from '../core/eventsState';
 import { applySample, pickEventForSample } from '../sample/sample';

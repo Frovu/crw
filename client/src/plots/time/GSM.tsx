@@ -5,7 +5,7 @@ import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plo
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
 import { usePlot } from '../../events/core/plot';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import type { EventsPanel } from '../../events/core/util';
 
 const defaultParams = {

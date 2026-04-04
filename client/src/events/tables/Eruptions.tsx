@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { EventsTable, type TableColumn } from './Table';
 import { equalValues, valueToString } from '../core/util';
-import { logMessage, useEventsContextMenu } from '../../app';
+import { logMessage, useEventsContextMenu } from '../../app/app';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import {
 	assignCMEToErupt,

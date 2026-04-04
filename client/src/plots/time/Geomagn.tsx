@@ -2,7 +2,7 @@ import uPlot from 'uplot';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color } from '../plotUtil';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import { Checkbox } from '../../components/Checkbox';

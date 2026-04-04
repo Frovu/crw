@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { apiPost, useEventListener, useMutationHandler } from '../../util';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { useTable, type TableValue } from '../core/editableTables';
 import { equalValues, valueToString } from '../core/util';
 import type { StaticColumn } from '../../api';
@@ -82,12 +82,12 @@ export default function ImportMenu() {
 					column: string;
 					before: (typeof rows)[number][number];
 					after: (typeof rows)[number][number];
-				}[]
+				}[],
 			][],
 		};
 		const timeIdx = index.time;
 		const targetData = (currentData as Date[][]).filter(
-			(r) => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1]
+			(r) => interval[0] <= r[timeIdx] && r[timeIdx] <= interval[1],
 		) as any[];
 		const lost = targetData.slice() as ((typeof rows)[number][number][] | null)[];
 		const added = [];
@@ -119,7 +119,7 @@ export default function ImportMenu() {
 						entity === 'forbush_effects' ||
 						before != null ||
 						typeof after != 'number' ||
-						![-999, -99, -99.9, 0, 1, -1].includes(after)
+						![-999, -99, -99.9, 0, 1, -1].includes(after),
 				);
 
 				if (changes.length && notAllNull) diff.changes.push([found[0], time, changes]);
@@ -150,7 +150,7 @@ export default function ImportMenu() {
 	const { report, mutate, isPending } = useMutationHandler(
 		({ columns, add, changes, remove }: NonNullable<NonNullable<typeof parsed>['parsed']>) =>
 			apiPost('events/importTable', { columns, remove, add, changes: changes.map(([id, time, ch]) => [id, ch]) }),
-		['tableData']
+		['tableData'],
 	);
 
 	return !open ? null : (

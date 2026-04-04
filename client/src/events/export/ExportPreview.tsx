@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { Checkbox } from '../../components/Checkbox';
-import { LayoutContext } from '../../layout';
+import { LayoutContext } from '../../app/layout';
 import type { EventsPanel } from '../core/util';
 import { usePlotExportSate, computePlotsLayout, renderPlotsInCanvas } from './exportablePlots';
 

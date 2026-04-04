@@ -4,7 +4,7 @@ import uPlot from 'uplot';
 import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from '../basicPlot';
 import { useFeidSample, useFeidTableView } from '../../events/core/feid';
 import { useTable } from '../../events/core/editableTables';
-import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../../layout';
+import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../../app/layout';
 import { SimpleSelect } from '../../components/Select';
 import { Button } from '../../components/Button';
 import { cn, prettyDate } from '../../util';
@@ -17,7 +17,7 @@ import { applySample } from '../../events/sample/sample';
 import { pointPaths, linePaths } from '../plotPaths';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
 import { Quadtree } from '../quadtree';
-import { color, type Color } from '../../app';
+import { color, type Color } from '../../app/app';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { openContextMenu } from '../../app';
+import { openContextMenu } from '../../app/app';
 import { Input, NumberInput, PlotIntervalInput, TextInput } from '../../components/Input';
 import type { ScaleParams } from '../../plots/basicPlot';
 import { useEventsState } from '../core/eventsState';

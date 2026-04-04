@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useLayoutsStore, setNodeParams, type Panel } from '../../layout';
-import { getApp } from '../../app';
+import { useLayoutsStore, setNodeParams, type Panel } from '../../app/layout';
+import { getApp } from '../../app/app';
 import type { Value } from '../columns/columns';
 import type { Column } from '../../api';
 import { immer } from 'zustand/middleware/immer';

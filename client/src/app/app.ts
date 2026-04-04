@@ -1,12 +1,12 @@
 import React, { type CSSProperties, createContext, type ReactNode } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { dispatchCustomEvent } from './util';
+import { dispatchCustomEvent } from '../util';
 import type { LayoutsMenuDetails } from './layout';
 import { type RgbaColor, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
 import { immer } from 'zustand/middleware/immer';
-import type { TableEntity, TableMenuDetails } from './events/tables/Table';
-import type { TextTransformMenuDetail } from './events/export/TextTransformMenu';
+import type { TableEntity, TableMenuDetails } from '../events/tables/Table';
+import type { TextTransformMenuDetail } from '../events/export/TextTransformMenu';
 
 export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
 

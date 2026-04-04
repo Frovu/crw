@@ -1,6 +1,6 @@
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { basicDataQuery } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { color, superScript } from '../plotUtil';
@@ -48,7 +48,7 @@ function Panel() {
 										dir: 1,
 									},
 								],
-						  }
+							}
 						: {},
 				axes: () => [
 					{

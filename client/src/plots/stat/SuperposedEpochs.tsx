@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import uPlot from 'uplot';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { useFeidInfo } from '../../events/core/query';
 import { useTable } from '../../events/core/editableTables';
 import { PlotIntervalInput } from '../../components/Input';
 import { Button } from '../../components/Button';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { SimpleSelect } from '../../components/Select';
 import { apiPost, cn } from '../../util';
 import { useSampleOptions, type SampleOption } from './statPlotUtils';

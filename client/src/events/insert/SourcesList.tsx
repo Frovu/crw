@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { cn } from '../../util';
 import { sourceLinks } from '../../api';
-import { openContextMenu } from '../../app';
-import { LayoutContext } from '../../layout';
+import { openContextMenu } from '../../app/app';
+import { LayoutContext } from '../../app/layout';
 import { useCurrentFeidSources, useEventsState, type FeidSource } from '../core/eventsState';
 import { getTable, makeChange } from '../core/editableTables';
 import { Button } from '../../components/Button';

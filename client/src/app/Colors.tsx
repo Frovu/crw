@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { color, colorKeys, getDefaultColor, themeOptions, useAppSettings, type Color } from './app';
 import Sketch from '@uiw/react-color-sketch';
 import { hexToHsva, hexToRgba, rgbaToHexa } from '@uiw/color-convert';
-import { SimpleSelect } from './components/Select';
-import { Button } from './components/Button';
-import { cn } from './util';
+import { SimpleSelect } from '../components/Select';
+import { Button } from '../components/Button';
+import { cn } from '../util';
 
 function Panel() {
 	const [picking, setPicking] = useState<Color | null>(null);

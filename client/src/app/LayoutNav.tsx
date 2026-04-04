@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { getApp, KEY_COMB } from './app';
-import { Button, CloseButton } from './components/Button';
+import { Button, CloseButton } from '../components/Button';
 import { defaultLayouts } from './defaultLayouts';
 import { useLayoutsStore } from './layout';
-import { cn, useEventListener } from './util';
-import { TextInput } from './components/Input';
-import { Checkbox } from './components/Checkbox';
-import { SimpleSelect } from './components/Select';
+import { cn, useEventListener } from '../util';
+import { TextInput } from '../components/Input';
+import { Checkbox } from '../components/Checkbox';
+import { SimpleSelect } from '../components/Select';
 
 export function LayoutNav() {
 	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
@@ -68,7 +68,7 @@ export function LayoutNav() {
 									<div
 										className={cn(
 											'cursor-pointer',
-											isActive ? 'text-active' : isDefault ? 'text-text' : null
+											isActive ? 'text-active' : isDefault ? 'text-text' : null,
 										)}
 										onClick={() => selectLayout(layout)}
 									>

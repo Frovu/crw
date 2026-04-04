@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type uPlot from 'uplot';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 import { useTable } from '../../events/core/editableTables';
 import { NumberInput } from '../../components/Input';
@@ -12,7 +12,7 @@ import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
 import { tooltipPlugin, legendPlugin, labelsPlugin } from '../basicPlot';
 import { usePlotOverlay, scaled, measureDigit, axisDefaults, markersPaths } from '../plotUtil';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { Button } from '../../components/Button';
 import { useFeidSample } from '../../events/core/feid';
 

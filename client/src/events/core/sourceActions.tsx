@@ -1,5 +1,5 @@
 import { askConfirmation, withConfirmation } from '../../components/Confirmation';
-import { logError, logMessage } from '../../app';
+import { logError, logMessage } from '../../app/app';
 import { create } from 'zustand';
 import { getTable, linkSource, makeChange, makeSourceChanges } from './editableTables';
 import { sourceLabels, sourceLinks, type Tables } from '../../api';

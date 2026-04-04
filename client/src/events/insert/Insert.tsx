@@ -1,8 +1,8 @@
 import { type MouseEvent } from 'react';
-import { color, logSuccess, useContextMenuStore } from '../../app';
+import { color, logSuccess, useContextMenuStore } from '../../app/app';
 import { cn, prettyDate, useEventListener } from '../../util';
 import CoverageControls from './CoverageControls';
-import { openWindow } from '../../layout';
+import { openWindow } from '../../app/layout';
 import { createFeid, deleteEvent, getTable, linkSource, makeChange, useTable } from '../core/editableTables';
 import { useFeidCursor, useEventsState, useCurrentFeidSources, type FeidSource } from '../core/eventsState';
 import type { StaticColumn } from '../../api';

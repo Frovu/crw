@@ -3,9 +3,9 @@ import { withOverrides } from '../../plots/plotUtil';
 import type { CustomScale } from '../../plots/basicPlot';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
-import { LayoutContext, useNodeExists } from '../../layout';
+import { LayoutContext, useNodeExists } from '../../app/layout';
 import { type Size } from '../../util';
-import { useAppSettings } from '../../app';
+import { useAppSettings } from '../../app/app';
 import { usePlotExportSate } from './exportablePlots';
 
 export function ExportableUplot({

@@ -25,10 +25,10 @@ import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
 import '../../styles/Circles.css';
-import { themeOptions } from '../../app';
+import { themeOptions } from '../../app/app';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { ValidatedInput } from '../../components/ValidatedInput';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { usePlot, type Onset } from '../../events/core/plot';
 import { Input } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';

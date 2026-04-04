@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings } from './util';
-import { LayoutContext, type LayoutContextType } from '../../layout';
+import { LayoutContext, type LayoutContextType } from '../../app/layout';
 import { useEventsDebounced, useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';

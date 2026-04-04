@@ -1,4 +1,4 @@
-import { openWindow } from '../../layout';
+import { openWindow } from '../../app/layout';
 import { valueToString } from '../core/util';
 import { timeInMargin } from '../../util';
 import { EruptiveEntityMenu, EruptiveEntityTable } from './EruptiveEntityCore';

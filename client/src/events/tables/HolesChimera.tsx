@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
-import { color, useContextMenuStore, useEventsContextMenu } from '../../app';
-import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../layout';
+import { color, useContextMenuStore, useEventsContextMenu } from '../../app/app';
+import { LayoutContext, openWindow, useNodeExists, type ContextMenuProps } from '../../app/layout';
 import { EventsTable } from './Table';
 import { type DataRow } from '../columns/columns';
 import { equalValues, valueToString } from '../core/util';

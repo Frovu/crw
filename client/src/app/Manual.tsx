@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { KEY_COMB } from './app';
-import { cn, dispatchCustomEvent, useEventListener } from './util';
+import { cn, dispatchCustomEvent, useEventListener } from '../util';
 import { create } from 'zustand';
-import { Popup } from './components/Popup';
-import { Button, CloseButton } from './components/Button';
-import CompColumnsReference from './events/columns/CompColumnsReference';
+import { Popup } from '../components/Popup';
+import { Button, CloseButton } from '../components/Button';
+import CompColumnsReference from '../events/columns/CompColumnsReference';
 
 export const infoPages = ['manual', 'columns', 'advanced', 'shortcuts', 'credit'] as const;
 

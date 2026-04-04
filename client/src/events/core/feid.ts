@@ -4,7 +4,7 @@ import { useTable } from './editableTables';
 import { useEventsSettings } from './util';
 import { useEventsState } from './eventsState';
 import type { Sample } from '../../api';
-import { AuthContext } from '../../app';
+import { AuthContext } from '../../app/app';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 const DEBOUNCE_COLUMN_SWITCH = 300;

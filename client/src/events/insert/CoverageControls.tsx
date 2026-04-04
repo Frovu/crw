@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
-import { logSuccess, logError, color } from '../../app';
+import { logSuccess, logError, color } from '../../app/app';
 import { type OpState, apiPost, useEventListener, apiGet, dispatchCustomEvent, cn } from '../../util';
 import { Button } from '../../components/Button';
 

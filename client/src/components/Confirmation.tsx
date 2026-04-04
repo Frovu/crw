@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { openConfirmation } from '../app';
+import { openConfirmation } from '../app/app';
 import { useEventListener } from '../util';
 import { Popup } from './Popup';
 import { Button } from './Button';

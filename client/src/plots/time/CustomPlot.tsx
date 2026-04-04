@@ -1,4 +1,4 @@
-import { colorKeys, color, type Color } from '../../app';
+import { colorKeys, color, type Color } from '../../app/app';
 import { Button, CloseButton } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
 import { TextInput } from '../../components/Input';
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '../../componen
 import { useFeidCursor } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { apiPost } from '../../util';
 import BasicPlot from '../BasicPlot';
 import { superScript, type Shape } from '../plotUtil';

@@ -9,11 +9,11 @@ import { usePlot } from '../../events/core/plot';
 import { useEventsSettings } from '../../events/core/util';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { cn } from '../../util';
 import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../basicPlot';
 import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../plotUtil';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { Button } from '../../components/Button';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 

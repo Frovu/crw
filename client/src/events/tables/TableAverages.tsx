@@ -1,8 +1,8 @@
 import { useContext, useMemo } from 'react';
-import { openContextMenu } from '../../app';
+import { openContextMenu } from '../../app/app';
 import type { TableColumn } from './Table';
 import type { TableValue } from '../core/editableTables';
-import { LayoutContext } from '../../layout';
+import { LayoutContext } from '../../app/layout';
 
 export type TableAveragesData = { averages: (number[] | null)[]; label: string; row: number; column: number };
 

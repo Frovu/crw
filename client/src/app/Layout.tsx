@@ -1,5 +1,5 @@
 import { useRef, useState, useContext, useEffect } from 'react';
-import { clamp, useEventListener, useSize, type Size } from './util';
+import { clamp, useEventListener, useSize, type Size } from '../util';
 import { getApp, openContextMenu } from './app';
 import {
 	useLayoutsStore,
@@ -20,11 +20,11 @@ import {
 	type NodeParams,
 	type ContextMenuProps,
 } from './layout';
-import { CatchErrors } from './components/CatchErrors';
+import { CatchErrors } from '../components/CatchErrors';
 import ContextMenu from './ContextMenu';
-import { Checkbox } from './components/Checkbox';
-import { Button, CloseButton } from './components/Button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/Select';
+import { Checkbox } from '../components/Checkbox';
+import { Button, CloseButton } from '../components/Button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/Select';
 
 function Window({ id }: { id: string }) {
 	const { panels } = useContext(AppLayoutContext);

@@ -4,7 +4,7 @@ import { apiGet } from '../../util';
 import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
 import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { useSolarPlot } from '../../events/core/plot';
 import { usePlot } from '../../events/core/plot';
 import { SolarPlotOverlay } from '../BasicPlot';

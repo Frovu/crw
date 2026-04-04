@@ -10,7 +10,7 @@ import { ColumnSettings } from './ColumnSettings';
 import { useColumnsState } from './columns';
 import ComputeController from './ComputeController';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { logError, logSuccess } from '../../app';
+import { logError, logSuccess } from '../../app/app';
 import { useFeidSample } from '../core/feid';
 import { withConfirmation } from '../../components/Confirmation';
 

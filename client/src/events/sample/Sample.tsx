@@ -1,5 +1,5 @@
 import { forwardRef, useContext, useRef, useState } from 'react';
-import { AuthContext, logError, logMessage } from '../../app';
+import { AuthContext, logError, logMessage } from '../../app/app';
 import { apiPost, cn, dispatchCustomEvent, prettyDate, useEventListener } from '../../util';
 import { useSampleState, applySample } from './sample';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

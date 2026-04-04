@@ -27,7 +27,7 @@ import {
 	actionsPlugin,
 } from './basicPlot';
 import { useSunViewState } from '../events/panels/SDO';
-import { LayoutContext } from '../layout';
+import { LayoutContext } from '../app/layout';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 

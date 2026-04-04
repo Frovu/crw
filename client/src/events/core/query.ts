@@ -3,7 +3,7 @@ import { sourceLabels, type Column, type FeidInfoResponse, type TableDataRespons
 import { apiGet } from '../../util';
 import { editableTables, setRawData, tableRowAsDict, type EditableTable, type TableRow } from './editableTables';
 import { compoundTables, type EruptiveEvent } from './sourceActions';
-import { logError, logMessage } from '../../app';
+import { logError, logMessage } from '../../app/app';
 
 const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],

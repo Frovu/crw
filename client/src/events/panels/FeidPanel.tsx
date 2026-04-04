@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef } from 'react';
-import { AuthContext, openContextMenu, useEventsContextMenu } from '../../app';
-import { useLayout, LayoutContext, type ContextMenuProps, AppLayoutContext } from '../../layout';
+import { AuthContext, openContextMenu, useEventsContextMenu } from '../../app/app';
+import { useLayout, LayoutContext, type ContextMenuProps, AppLayoutContext } from '../../app/layout';
 import { clamp, dispatchCustomEvent, useEventListener, useSize } from '../../util';
 import { useEventsSettings, copyAverages, valueToString, setStatColumn, type EventsPanel } from '../core/util';
 import { useSampleState, defaultFilterOp } from '../sample/sample';

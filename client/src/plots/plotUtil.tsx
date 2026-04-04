@@ -3,7 +3,7 @@ import { clamp, useSize } from '../util';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { applyTextTransform, type BasicPlotParams, type ScaleParams } from './basicPlot';
-import * as APP from '../app';
+import * as APP from '../app/app';
 import type { TextTransform } from '../api';
 
 export const color = APP.color;

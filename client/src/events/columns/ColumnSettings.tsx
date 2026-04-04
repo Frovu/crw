@@ -6,7 +6,7 @@ import { apiPost, cn } from '../../util';
 import { useColumnsState, type ColumnInputs } from './columns';
 import { useTable } from '../core/editableTables';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { logSuccess, logError } from '../../app';
+import { logSuccess, logError } from '../../app/app';
 import { useState } from 'react';
 import { useEventsSettings } from '../core/util';
 import { Library } from 'lucide-react';

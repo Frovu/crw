@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { logMessage, logSuccess, logError } from '../../app';
+import { logMessage, logSuccess, logError } from '../../app/app';
 import { apiPost, useEventListener } from '../../util';
 import type { Column, ComputationResponse, ComputedColumn } from '../../api';
 import { useTable } from '../core/editableTables';

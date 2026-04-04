@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { LayoutContext } from '../../layout';
+import { LayoutContext } from '../../app/layout';
 import { prettyDate } from '../../util';
 import { equalValues, type EventsPanel } from '../core/util';
 import { useEventsState, useSelectedSource } from '../core/eventsState';

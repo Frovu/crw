@@ -1,14 +1,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { PlotCirclesStandalone } from './plots/time/Circles';
-import './styles/index.css';
-import TemperatureApp from './data/muon/Temperature';
-import Neutron from './data/neutron/Neutron';
-import MuonApp from './data/muon/Muon';
-import OmniApp from './data/omni/Omni';
+import { PlotCirclesStandalone } from '../plots/time/Circles';
+import '../styles/index.css';
+import TemperatureApp from '../data/muon/Temperature';
+import Neutron from '../data/neutron/Neutron';
+import MuonApp from '../data/muon/Muon';
+import OmniApp from '../data/omni/Omni';
 import { AuthNav, AuthWrapper } from './Auth';
-import EventsApp from './events/EventsApp';
-import { dispatchCustomEvent, useEventListener } from './util';
+import EventsApp from '../events/EventsApp';
+import { dispatchCustomEvent, useEventListener } from '../util';
 import {
 	closeContextMenu,
 	handleGlobalKeydown,
@@ -22,10 +22,10 @@ import {
 } from './app';
 import { LayoutNav } from './LayoutNav';
 import ContextMenu from './ContextMenu';
-import { Button } from './components/Button';
-import { SimpleSelect } from './components/Select';
-import { CatchErrors } from './components/CatchErrors';
-import { Confirmation } from './components/Confirmation';
+import { Button } from '../components/Button';
+import { SimpleSelect } from '../components/Select';
+import { CatchErrors } from '../components/CatchErrors';
+import { Confirmation } from '../components/Confirmation';
 import ManualView from './Manual';
 
 const theQueryClient = new QueryClient();

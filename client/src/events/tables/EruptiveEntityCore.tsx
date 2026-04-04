@@ -1,5 +1,5 @@
 import { sourceLabels, sourceLinks, type Tables } from '../../api';
-import { useEventsContextMenu } from '../../app';
+import { useEventsContextMenu } from '../../app/app';
 import { cn } from '../../util';
 import { type TableValue, useTable } from '../core/editableTables';
 import { equalValues } from '../core/util';

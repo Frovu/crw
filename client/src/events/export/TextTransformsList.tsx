@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { openContextMenu } from '../../app';
+import { openContextMenu } from '../../app/app';
 import { Input } from '../../components/Input';
 import { usePlotExportSate } from './exportablePlots';
 import { Button, CloseButton } from '../../components/Button';

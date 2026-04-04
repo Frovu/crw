@@ -2,7 +2,7 @@ import { usePlot, type FlareOnset } from '../../events/core/plot';
 import { useSolarPlot } from '../../events/core/plot';
 import { serializeCoords } from '../../events/core/sourceActions';
 import type { EventsPanel } from '../../events/core/util';
-import type { ContextMenuProps } from '../../layout';
+import type { ContextMenuProps } from '../../app/layout';
 import { basicDataQuery, type BasicPlotParams } from '../basicPlot';
 import BasicPlot from '../BasicPlot';
 import { axisDefaults, color, font, scaled } from '../plotUtil';

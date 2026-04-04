@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useRef, useState, useEffect, useMemo, type MouseEvent } from 'react';
-import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindow } from '../../layout';
+import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindow } from '../../app/layout';
 import { font } from '../../plots/plotUtil';
 import { apiGet, dispatchCustomEvent, prettyDate } from '../../util';
 import { getSourceLink, serializeCoords } from '../core/sourceActions';
 import { equalValues, type EventsPanel } from '../core/util';
 import { useEventsState, useFeidCursor, useSelectedSource } from '../core/eventsState';
 import { useCompoundTable } from '../core/query';
-import { color } from '../../app';
+import { color } from '../../app/app';
 import { create } from 'zustand';
 import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';

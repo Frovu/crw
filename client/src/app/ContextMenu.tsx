@@ -2,10 +2,10 @@ import { useContext, useState } from 'react';
 import { LayoutContextMenu } from './Layout';
 import { AuthContext, useContextMenuStore } from './app';
 import { useLayoutsStore, type LayoutsMenuDetails } from './layout';
-import { dispatchCustomEvent } from './util';
-import { TextTransformContextMenu, type TextTransformMenuDetail } from './events/export/TextTransformMenu';
-import { ExportMenu } from './events/export/ExportTable';
-import { Button } from './components/Button';
+import { dispatchCustomEvent } from '../util';
+import { TextTransformContextMenu, type TextTransformMenuDetail } from '../events/export/TextTransformMenu';
+import { ExportMenu } from '../events/export/ExportTable';
+import { Button } from '../components/Button';
 
 export default function ContextMenu() {
 	const { resetLayout } = useLayoutsStore();

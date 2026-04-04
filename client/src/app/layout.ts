@@ -3,9 +3,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { closeContextMenu, getApp, logMessage } from './app';
-import type { Size } from './util';
+import type { Size } from '../util';
 import { defaultLayouts } from './defaultLayouts';
-import type { CheckboxProps } from './components/Checkbox';
+import type { CheckboxProps } from '../components/Checkbox';
 import type { LucideProps } from 'lucide-react';
 
 export const gapSize = 2;

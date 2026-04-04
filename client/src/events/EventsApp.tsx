@@ -1,7 +1,7 @@
 import { cn, useEventListener } from '../util';
-import AppLayout from '../Layout';
+import AppLayout from '../app/Layout';
 import { useEventsSettings } from './core/util';
-import type { ContextMenuProps, LayoutsMenuDetails } from '../layout';
+import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
 import type { EventsPanel } from './core/util';
 import { defaultPlotParams } from '../plots/basicPlot';
 
@@ -18,14 +18,14 @@ import { CMEHeightPlot } from '../plots/time/CMEHeight';
 import { SWTypesPlot } from '../plots/time/SWTypes';
 import { XraysPlot } from '../plots/time/XRays';
 import { SunView } from './panels/SDO';
-import { ColorsSettings } from '../Colors';
+import { ColorsSettings } from '../app/Colors';
 import { InsertControls } from './insert/Insert';
 import { CMETable, FlaresTable, ICMETable } from './tables/EruptiveEntity';
 import { EruptionsTable } from './tables/Eruptions';
 import { HolesTable } from './tables/HolesSrc';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
-import { useContextMenuStore } from '../app';
+import { useContextMenuStore } from '../app/app';
 import { Correlation } from '../plots/stat/Correlate';
 import { Histogram } from '../plots/stat/Histogram';
 import { SuperposedEpochs } from '../plots/stat/SuperposedEpochs';

@@ -1,4 +1,4 @@
-import { useEventsContextMenu } from '../../app';
+import { useEventsContextMenu } from '../../app/app';
 import { EventsTable } from './Table';
 import { useFeidCursor, useSelectedSource, useCurrentFeidSources } from '../core/eventsState';
 import { linkSrcToEvent } from '../core/sourceActions';
