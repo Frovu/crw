@@ -18,5 +18,5 @@
 		"jsx": "react-jsx",
 		"types": ["vite/client"]
 	},
-	"include": ["src", "src/data", "src/events", "src/plots", "src/plots/time"]
+	"include": ["src", "src/crow", "src/events", "src/plots", "src/plots/time"]
 }
