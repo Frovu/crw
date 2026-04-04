@@ -39,6 +39,7 @@ import { ENLILView } from './panels/ENLIL';
 import { SFTFlare } from './panels/SFTFlare';
 import { renderPlotInANewTab } from './export/exportablePlots';
 import { CustomPlot } from '../plots/time/CustomPlot';
+import { CrowControls } from '../crow/panels/CrowControls';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -71,6 +72,7 @@ const panels: EventsPanel<any>[] = [
 	ChimeraHoles,
 	SolenHoles,
 	SWPCHint,
+	CrowControls,
 	{
 		name: 'Empty',
 		Panel: () => null,
