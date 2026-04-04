@@ -1,3 +1,5 @@
+import debounce from 'lodash.debounce';
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -45,10 +47,20 @@ function windowEnd(start: number, mode: CrowWindowMode) {
 	return mode;
 }
 
-export const useCrowWindow = () => {
-	const { windowStart, windowMode } = useCrowSettings();
+export const getCrowWindow = () => {
+	const { windowStart, windowMode } = useCrowSettings.getState();
 
 	const margin = HOUR * 24;
 	const end = windowEnd(windowStart, windowMode);
 	return { plotStart: windowStart - margin, plotEnd: end + margin, start: windowStart, end };
+};
+
+export const useCrowWindowDebounced = (delay = 500) => {
+	const [value, setValue] = useState(getCrowWindow());
+
+	useEffect(() => {
+		return useCrowSettings.subscribe(debounce(() => setValue(getCrowWindow()), delay, { leading: true }));
+	}, [delay]);
+
+	return value;
 };

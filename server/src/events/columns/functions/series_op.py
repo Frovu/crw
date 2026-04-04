@@ -113,6 +113,7 @@ class ValueOp(Function):
 		else:
 			res_idx = (t_time - ctx.series_frame[0]) // HOUR
 			res_idx[res_idx < 0] = -1
+			res_idx[~np.isfinite(res_idx)] = -1
 			result = np.where(res_idx >= 0, value[res_idx.astype(int)], np.nan)
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, result)

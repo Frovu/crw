@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { clamp, cn, prettyDate } from '../../util';
-import { useCrowSettings, useCrowWindow } from '../core/crowSettings';
+import { useCrowSettings, useCrowWindowDebounced } from '../core/crowSettings';
 import { Button } from '../../components/Button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { NumberInput } from '../../components/Input';
@@ -14,7 +14,7 @@ function Menu() {
 
 function Panel() {
 	const { windowMode, windowStart } = useCrowSettings();
-	const { start, end } = useCrowWindow();
+	const { start, end } = useCrowWindowDebounced();
 
 	const date = new Date(windowStart * 1e3);
 	const curYear = date.getUTCFullYear();
@@ -49,7 +49,7 @@ function Panel() {
 
 	return (
 		<div>
-			<div className="max-w-[220px] p-[2px]">
+			<div className="max-w-[218px] p-[2px]">
 				<div className="p-[1px] pb-1 flex w-full items-center">
 					<YearButton diff={-10} icon={<ChevronsLeft />} />
 					<YearButton diff={-1} icon={<ChevronLeft />} />
@@ -79,13 +79,16 @@ function Panel() {
 							</Button>
 						))}
 				</div>
-				<div className="flex w-full pt-[2px]">
+				<div className="flex w-full pt-[2px] gap-[2px]">
 					{[1, 11, 21].map((day) => (
 						<Button
 							disabled={curMonth == null}
 							key={day}
 							variant="default"
-							className={cn('grow text-sm', day === curDay && 'font-bold border-cyan')}
+							className={cn(
+								'grow shrink min-w-4 text-sm whitespace-nowrap overflow-clip',
+								day === curDay && 'font-bold border-cyan',
+							)}
 							onMouseDown={() => set10days(day)}
 						>
 							{day}-{day > 20 ? 1 : day + 10}
@@ -93,10 +96,10 @@ function Panel() {
 					))}
 				</div>
 			</div>
-			<div className="text-dark text-sm text-right w-fit p-1 leading-4">
+			<div className="text-dark text-xs text-right w-fit p-1 leading-4">
 				{prettyDate(start)}
 				<br />
-				to {prettyDate(end)}
+				{prettyDate(end)}
 			</div>
 		</div>
 	);

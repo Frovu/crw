@@ -1,12 +1,13 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings } from './util';
-import { LayoutContext, type LayoutContextType } from '../../app/layout';
+import { LayoutContext, useNodeExists, type LayoutContextType } from '../../app/layout';
 import { useEventsDebounced, useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
 import { useCompoundTable } from './query';
 import type { EruptiveEvent } from './sourceActions';
 import type { BasicPlotParams } from '../../plots/basicPlot';
+import { useCrowWindowDebounced } from '../../crow/core/crowSettings';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 
@@ -18,6 +19,8 @@ export function usePlot<T = {}>() {
 	const layout = useContext(LayoutContext) as unknown as LayoutContextType<BasicPlotParams & T>;
 	const settings = useEventsSettings();
 	const { plotUnlistedEvents, plotOffset } = settings;
+	const crowMode = useNodeExists('Crow Controls');
+	const crowWindow = useCrowWindowDebounced();
 
 	const table = useTable('feid');
 	const sample = useFeidSample();
@@ -30,12 +33,14 @@ export function usePlot<T = {}>() {
 	const plotContext = useMemo(() => {
 		const feid = table.getById(plotId);
 
-		if (!feid) return { interval: [new Date('invalid'), new Date('invalid')] as [Date, Date] };
+		if (!feid && !crowMode) return { interval: [new Date('invalid'), new Date('invalid')] as [Date, Date] };
 
-		const plotDate = setStartAt || feid.time;
-		const baseDate = feid.base_period;
-		const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
-		const interval = plotOffset.map((h) => new Date(hour + h * 36e5));
+		const interval = (() => {
+			if (crowMode) return [new Date(crowWindow.plotStart * 1e3), new Date(crowWindow.plotEnd * 1e3)];
+			const plotDate = setStartAt || feid!.time;
+			const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
+			return plotOffset.map((h) => new Date(hour + h * 36e5));
+		})();
 
 		const timeIdx = table.index.time,
 			durIdx = table.index.duration;
@@ -72,12 +77,12 @@ export function usePlot<T = {}>() {
 			.filter((v): v is MagneticCloud => v != null);
 		return {
 			interval: interval as [Date, Date],
-			base: baseDate,
+			base: feid?.base_period,
 			onsets,
 			ends,
 			clouds,
 		};
-	}, [table, plotId, setStartAt, plotOffset, setEndAt, plotUnlistedEvents, sample.data, modifyId]);
+	}, [table, plotId, setStartAt, plotOffset, setEndAt, plotUnlistedEvents, sample.data, modifyId, crowMode, crowWindow]);
 
 	return useMemo(() => {
 		return {

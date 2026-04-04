@@ -150,6 +150,7 @@ function Panel() {
 						}),
 					},
 					{
+						show: !!series.find((s) => s.rightAxis),
 						label: 'c right',
 						fullLabel: rightLabel,
 						side: 1,
