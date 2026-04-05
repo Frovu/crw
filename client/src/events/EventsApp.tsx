@@ -40,6 +40,7 @@ import { SFTFlare } from './panels/SFTFlare';
 import { renderPlotInANewTab } from './export/exportablePlots';
 import { CustomPlot } from '../plots/time/CustomPlot';
 import { CrowControls } from '../crow/panels/CrowControls';
+import { OmniControls } from '../crow/omni/OmniControls';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -73,6 +74,7 @@ const panels: EventsPanel<any>[] = [
 	SolenHoles,
 	SWPCHint,
 	CrowControls,
+	OmniControls,
 	{
 		name: 'Empty',
 		Panel: () => null,

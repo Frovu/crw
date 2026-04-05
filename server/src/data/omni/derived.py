@@ -8,17 +8,17 @@ def _kt_impl(t, v, vc=425):
 	kt[mask] = t[mask] / (0.0964 * np.exp(2.25 * np.log(v[mask])))
 	return kt
 
-def _temperature_index(values, columns):
-	t = values[:,columns.index('sw_temperature')].astype(float)
-	v = values[:,columns.index('sw_speed')].astype(float)
+def _temperature_index(values, col_names):
+	t = values[:,col_names.index('sw_temperature')].astype(float)
+	v = values[:,col_names.index('sw_speed')].astype(float)
 	result = _kt_impl(t, v)
-	return np.where(np.isnan(result), None, np.round(result, 3))
+	return np.where(np.isnan(result), None, np.round(result, 3)) # type: ignore
 
-def compute_derived(data, columns):
-	if 'sw_temperature' not in columns or 'sw_speed' not in columns:
-		return data, columns
+def compute_derived(data, col_names: list[str]):
+	if 'sw_temperature' not in col_names or 'sw_speed' not in col_names:
+		return data, col_names
 	data = np.array(data)
 	time, values = data[:,0], data[:,1:]
-	t_idx = _temperature_index(values, columns)
-	res_cols =  columns + ['temperature_idx']
+	t_idx = _temperature_index(values, col_names)
+	res_cols =  col_names + ['temperature_idx']
 	return np.column_stack((time, values, t_idx)).tolist(), res_cols

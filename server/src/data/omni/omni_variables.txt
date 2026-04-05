@@ -93,7 +93,7 @@
                                                       relevant after 88/306
                                                      (See Flux)
 
-50  I4    999     ap-index              3-hr ap index, nT, from GFZ, Potsdam
+50  I4    999      ap-index              3-hr ap index, nT, from GFZ, Potsdam
 51  F6.1 999.9     f10.7_index           Daily index,(10**-22) Watts/meter sq/hertz
                                                adjusted to 1AU from Canada
 52  F6.1 999.9       PC(N)               DTU,Data Center for Geomagnetism, Copenhagen 

@@ -4,74 +4,24 @@ import numpy as np
 from math import floor, ceil
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
+from typing import cast
 import requests, pymysql
 
 from database import log, pool, upsert_many
 from data.omni.derived import compute_derived
 from data.omni.sw_types import obtain_yermolaev_types, derive_from_sw_type, SW_TYPE_DERIVED_SERIES
 
-import data.omni.variables
+from data.omni.variables import OmniVariable, GROUP, SOURCE, omni_variables, get_vars
+from data.omni.spacecraft import spacecraft_id
 
 proxy = os.environ.get('NASA_PROXY')
-proxies = {
-	"http": proxy,
-	"https": proxy
-} if proxy else { }
-
+omniweb_proxies = { "http": proxy, "https": proxy } if proxy else { }
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
 PERIOD = 3600
-SPACECRAFT_ID = {
-	'ace': 71,
-	'dscovr': 81
-}
 
-omni_mutex = Lock()
-omni_columns = None
-all_column_names = None
-dump_info = None
-dump_info_path = os.path.join(os.path.dirname(__file__), '../../../tmp/omni_dump_info.json')
+omni_fetch_lock = Lock()
 
-class OmniColumn:
-	def __init__(self, name: str, crs_name: str, owid: int, stub: str, is_int: bool=False):
-		self.name = name
-		self.crs_name = crs_name
-		self.omniweb_id = owid
-		self.stub_value = stub
-		self.is_int = is_int
-
-def _init():
-	global omni_columns, all_column_names, dump_info
-	json_path = os.path.join(os.path.dirname(__file__), './database.json')
-	vard_path = os.path.join(os.path.dirname(__file__), './omni_variables.txt')
-	with open(json_path, encoding='utf-8') as file, pool.connection() as conn:
-		columns = json.load(file)
-		cols = [f'{c} {columns[c][0]}' for c in columns]
-		conn.execute(f'CREATE TABLE IF NOT EXISTS omni (\n{",".join(cols)})')
-		for col in cols:
-			conn.execute(f'ALTER TABLE omni ADD COLUMN IF NOT EXISTS {col}')
-	omni_columns = []
-	with open(vard_path, encoding='utf-8') as file:
-		for line in file:
-			if not line.strip(): continue
-			spl = line.strip().split()
-			for column, desc in columns.items():
-				typedef, owid = desc[:2]
-				crs_name = desc[2] if len(desc) > 2 else None
-				if owid is None or spl[0] != str(owid):
-					continue
-				# Note: omniweb variables descriptions ids start with 1 but internally they start with 0, hence -1
-				omni_columns.append(OmniColumn(column, crs_name, owid - 1, spl[2], 'int' in typedef.lower()))
-	all_column_names = [c.name for c in omni_columns] \
-		+ [col for col, desc in columns.items() if desc[1] is None and col != 'time']
-	try:
-		with open(dump_info_path, encoding='utf-8') as file:
-			dump_info = json.load(file)
-	except:
-		dump_info = {}
-		log.warning('Omniweb: Failed to read %s', str(dump_info_path))
-_init()
-
-def _obtain_omniweb(columns, interval):
+def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime]):
 	dstart, dend = [d.strftime('%Y%m%d') for d in interval]
 	log.debug(f'Omniweb: querying {dstart}-{dend}')
 	r = requests.post(omniweb_url, stream=True, data = {
@@ -80,8 +30,8 @@ def _obtain_omniweb(columns, interval):
 		'spacecraft': 'omni2',
 		'start_date': dstart,
 		'end_date': dend,
-		'vars': [c.omniweb_id for c in columns]
-	}, timeout=5, proxies=proxies)
+		'vars': [var.omniweb_id or 0 - 1 for var in vars] # NOTE: ids in def file start with 1, but here they start with 0
+	}, timeout=5, proxies=omniweb_proxies)
 	if r.status_code != 200:
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
 
@@ -93,7 +43,7 @@ def _obtain_omniweb(columns, interval):
 			try:
 				split = line.split()
 				time = datetime(int(split[0]), 1, 1, tzinfo=timezone.utc) + timedelta(days=int(split[1])-1, hours=int(split[2]))
-				row = [time] + [(int(v) if c.is_int else float(v)) if v != c.stub_value else None for v, c in zip(split[3:], columns)]
+				row = [time] + [(int(v) if c.is_int else float(v)) if v != c.omniweb_stub else None for v, c in zip(split[3:], vars)]
 				data.append(row)
 			except:
 				log.error('Omniweb: failed to parse line:\n %s', line)
@@ -106,106 +56,84 @@ def _obtain_omniweb(columns, interval):
 				log.info('Omniweb: out of bounds')
 				return None
 			log.info(f'Omniweb: correcting range to fit {correct_range[0]}:{correct_range[1]}')
-			return _obtain_omniweb(columns, (max(new_range[0], interval[0]), min(new_range[1], interval[1])))
+			return _obtain_omniweb(vars, (max(new_range[0], interval[0]), min(new_range[1], interval[1])))
 	return data
 
-def _obtain_izmiran(source, columns, interval):
+def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[datetime, datetime]):
+	conn = None
+	source_table = str(source.value)
 	try:
+		log.debug(f'Omni: querying {",".join([v.crs_name or '' for v in vars])} from crs {interval[0]} to {interval[1]}')
 		conn = pymysql.connect(
 			host=os.environ.get('CRS_HOST'),
 			port=int(os.environ.get('CRS_PORT', 0)),
 			user=os.environ.get('CRS_USER'),
-			password=os.environ.get('CRS_PASS'),
-			database=source)
+			password=os.environ.get('CRS_PASS', ''),
+			database=source_table)
 		with conn.cursor() as cursor:
-			if source == 'geomag':
+			if source_table == 'geomag':
 				geomag_q = '\nUNION '.join([f'SELECT dt + interval {h} hour as dt, kp{1 + h//3} as kp, ap{1 + h//3} as ap FROM geomag' for h in range(24)])
-				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name for c in columns]) +\
+				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name or '' for c in vars]) +\
 					f' FROM dst JOIN (SELECT * FROM ({geomag_q}) gq WHERE dt > %s - interval 1 day AND dt < %s + interval 1 day) gm ' +\
 					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
-				interval += interval
 			else:
-				# TODO: insert sw_cnt, imf_cnt
-				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in columns]) +\
-					f' FROM {source} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
+				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in vars]) +\
+					f' FROM {source_table} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 			cursor.execute(query, interval)
-			data = list(cursor.fetchall())
-			if source == 'geomag':
-				kp_col = [c.name for c in columns].index('kp_index')
+			data = list(list(row) for row in cursor.fetchall())
+			if source_table == 'geomag':
+				kp_col = [c.name for c in vars].index('kp_index')
 				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
 				parse_kp = lambda s: None if s == '-1' else int(s[:-1]) * 10 + kp_inc[s[-1]]
 				for i in range(len(data)):
-					row = data[i] = list(data[i])
-					row[1 + kp_col] = parse_kp(row[1 + kp_col])
+					data[i][1 + kp_col] = parse_kp(data[i][1 + kp_col])
+
 		return data
-	except BaseException as e:
-		log.error(f'Omni: failed to query izmiran/{source}: {e}')
+	except Exception as e:
+		log.error(f'Omni: failed to query izmiran/{source_table}: {e}')
 	finally:
-		conn.close()
+		if conn: conn.close()
 
 def _obtain_yermolaev(interv):
 	batches = [obtain_yermolaev_types(y) for y in range(interv[0].year, interv[1].year + 1)]
 	return [d for dt in batches for d in dt or []]
 
-def _cols(group, source='omniweb', do_remove=False):
-	if 'yermolaev' in [source, group]:
-		return []
-	if 'geomag' in [source, group]:
-		return [c for c in omni_columns if c.name in ['kp_index', 'ap_index', 'ae_index', 'dst_index']]
-
-	if group not in ['all', 'sw', 'imf']:
-		raise ValueError('Bad param group')
-	if source not in ['omniweb', 'ace', 'dscovr']:
-		raise ValueError('Unknown source')
-	sw_cols = [c for c in omni_columns if c.name in ['sw_speed', 'sw_density', 'sw_temperature']]
-	imf_cols = [c for c in omni_columns if c.name in ['imf_scalar', 'imf_x', 'imf_y', 'imf_z']]
-
-	return {
-		'all': omni_columns if source == 'omniweb' or do_remove else sw_cols + imf_cols,
-		'sw':  ([c for c in omni_columns if c.name == 'spacecraft_id_sw']
-			if source == 'omniweb' or do_remove else []) + sw_cols,
-		'imf': ([c for c in omni_columns if c.name == 'spacecraft_id_imf']
-			if source == 'omniweb' or do_remove else []) + imf_cols
-	}[group]
-
-def obtain(source: str, interval: tuple[int, int], group: str='all', overwrite=False):
-	interval = [
+def obtain(interval: tuple[int, int], groups: tuple[GROUP], source: SOURCE, overwrite=False):
+	interval = (
 		floor(interval[0] / PERIOD) * PERIOD,
-		 ceil(interval[1] / PERIOD) * PERIOD ]
-	dt_interval = [datetime.utcfromtimestamp(t) for t in interval]
-	if source in 'geomag':
-		group = 'geomag'
-	if source in 'yermolaev':
-		group = 'sw_type'
+		 ceil(interval[1] / PERIOD) * PERIOD )
+	dt = lambda t: datetime.fromtimestamp(t, tz=timezone.utc)
+	dt_interval = (dt(interval[0]), dt(interval[1]))
 
-	log.debug(f'Omni: querying *{group} from {source} {dt_interval[0]} to {dt_interval[1]}')
+	vars = get_vars(groups, source)
+	if source in [SOURCE.ACE, SOURCE.DISCOVR]:
+		vars = [v for v in vars if not v.name.startswith('spacecraft_id')]
 
-	query = _cols(group, source) if group != 'sw_type' else []
-	col_names = [c.name for c in query] if group != 'sw_type' else ['sw_type']
-	if source == 'omniweb':
-		res = _obtain_omniweb(query, dt_interval)
-	elif source == 'yermolaev':
+	if source == SOURCE.omniweb:
+		res = _obtain_omniweb(vars, dt_interval)
+	elif source == SOURCE.SWTY:
 		res = _obtain_yermolaev(dt_interval)
 	else:
-		res = _obtain_izmiran(source, query, dt_interval)
+		res = _obtain_crs(source, vars, dt_interval)
 
 	if not res:
 		log.warning('Omni: got no data')
 		return 0
 
-
-	data, fields = compute_derived(res, col_names)
+	col_names = [var.name for var in vars]
+	data, col_names = compute_derived(res, col_names)
 
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
 	with pool.connection() as conn:
-		if source in ['ace', 'dscovr']:
-			cid = SPACECRAFT_ID[source]
-			if group != 'imf':
+		if source in [SOURCE.ACE, SOURCE.DISCOVR]:
+			sc_id = spacecraft_id[str(source.value).upper()]
+			if [GROUP.IMF in groups]:
 				conn.execute('UPDATE omni SET spacecraft_id_sw = %s WHERE %s <= time AND time <= %s' +
-					(' AND imf_scalar IS NULL' if not overwrite else ''), [cid, *dt_interval])
+					(' AND imf_scalar IS NULL' if not overwrite else ''), [sc_id, *dt_interval])
 			if group != 'sw':
 				conn.execute('UPDATE omni SET spacecraft_id_imf = %s WHERE %s <= time AND time <= %s' +
 					(' AND sw_speed IS NULL' if not overwrite else ''), [cid, *dt_interval])
+				
 	upsert_many('omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite, schema='public')
 
 	return len(data)
