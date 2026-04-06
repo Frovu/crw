@@ -1,4 +1,5 @@
 import os, logging
+from datetime import datetime, timezone
 from psycopg_pool import ConnectionPool
 from psycopg.sql import SQL, Identifier, Placeholder
 from dataclasses import dataclass, asdict
@@ -7,6 +8,16 @@ import ts_type
 from typing import LiteralString, Iterable, Sequence, Any
 
 from events.columns.column import Column
+
+@ts_type.gen_type
+@dataclass
+class CovergaeResponse:
+	start: int
+	end: int | None
+	at: int
+	
+	def to_dict(self):
+		return asdict(self)
 
 @ts_type.gen_type
 @dataclass
@@ -37,18 +48,19 @@ def _init():
 			UNIQUE(entity, start))''')
 _init()
 
-def get_coverage(ent):
+def get_coverage(ent: str) -> list[tuple[datetime, datetime | None, datetime]]:
 	with pool.connection() as conn:
 		return conn.execute('SELECT start, i_end, at FROM coverage_info WHERE entity = %s', [ent]).fetchall()
 
-def upsert_coverage(entity, start, end=None, single=False):
+def upsert_coverage(entity: str, start: datetime | int, end: datetime | int | None = None, single=False):
+	dt_start, dt_end = [a if isinstance(a, datetime) or a is None else datetime.fromtimestamp(a, tz=timezone.utc) for a in (start, end)]
 	with pool.connection() as conn:
 		if single:
 			conn.execute('DELETE FROM coverage_info WHERE entity = %s', [entity])
 		conn.execute('INSERT INTO coverage_info (entity, start, i_end, at) VALUES (%s, %s, %s, now()) ' +\
-			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, start, end])
+			('' if single else 'ON CONFLICT(entity, start) DO UPDATE SET at = now(), i_end = EXCLUDED.i_end'), [entity, dt_start, dt_end])
 
-def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: list[Any]=[],  \
+def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], schema='events', constants: dict[str, Any]={},  \
 		conflict_constraint:LiteralString='time', do_nothing=False, write_nulls=False, write_values=True, only_update=False):
 	with pool.connection() as conn, conn.cursor() as cur, conn.transaction():
 		tmpname = Identifier(table.split('.')[-1] + '_tmp')
@@ -57,10 +69,10 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 
 		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
 		cur.execute(SQL('CREATE TEMP TABLE {} ON COMMIT DROP AS SELECT * FROM {} LIMIT 0').format(tmpname, itable))
-		for col in icolumns[:len(constants)]:
-			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(tmpname, col))
+		for col in constants.keys():
+			cur.execute(SQL('ALTER TABLE {} DROP COLUMN {}').format(tmpname, Identifier(col)))
 
-		val_columns = SQL(',').join(icolumns[len(constants):])
+		val_columns = SQL(',').join(icolumns)
 		with cur.copy(SQL('COPY {}({}) FROM STDIN').format(tmpname, val_columns)) as copy:
 			for row in data:
 				copy.write_row(row)
@@ -90,7 +102,7 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 		col_names = SQL(',').join(icolumns)
 		col_values = SQL(',').join([*(Placeholder() * len(constants)), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
-		cur.execute(query, constants)
+		cur.execute(query, list(constants.values()))
 
 def create_table(name: str, columns: list[Column], constraint: LiteralString='', schema='events'):
 	table = SQL('.').join([Identifier(schema), Identifier(name)]) if schema else Identifier(name)

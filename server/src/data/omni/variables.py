@@ -4,6 +4,7 @@ from enum import StrEnum
 
 from database import pool, SQL, Identifier
 
+OMNI_TABLE = 'omni'
 GROUP = StrEnum('GROUP', ['SW', 'IMF', 'MAG', 'SWTY'])
 SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'DISCOVR', 'SWTY'])
 GROUP_SOURCES = {
@@ -72,11 +73,13 @@ def _init_db():
 	with pool.connection() as conn:
 		col_types = [SQL('TEXT' if c.name == 'sw_type' else 'SMALLINT' if c.is_int else 'REAL') for c in omni_variables]
 		col_defs = [SQL('{} {}').format(Identifier(c.name), typ) for c, typ in zip(omni_variables, col_types)]
-		conn.execute(SQL('CREATE TABLE IF NOT EXISTS omni (\ntime TIMESTAMPTZ PRIMARY KEY, {})').format(SQL(',\n').join(col_defs)))
+		conn.execute(SQL(f'CREATE TABLE IF NOT EXISTS {OMNI_TABLE} (\ntime TIMESTAMPTZ PRIMARY KEY, {{}})').format(SQL(',\n').join(col_defs)))
 		for col in col_defs:
-			conn.execute(SQL('ALTER TABLE omni ADD COLUMN IF NOT EXISTS {}').format(col))
+			conn.execute(SQL(f'ALTER TABLE {OMNI_TABLE} ADD COLUMN IF NOT EXISTS {{}}').format(col))
 _init_db()
 
-def get_vars(groups: tuple[GROUP], source: SOURCE):
-	actual_groups = [group for group in groups if source in GROUP_SOURCES[group]]
+def get_vars(groups: list[GROUP], source: SOURCE | None = None):
+	actual_groups = [group for group in groups if source in GROUP_SOURCES[group]] if source else groups
+	if not len(actual_groups):
+		raise Exception(f'Can\'t fetch these from {source and source.value}: ' + ','.join([str(g.value).upper() for g in groups]))
 	return [var for var in omni_variables if var.group in actual_groups]

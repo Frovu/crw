@@ -1,17 +1,14 @@
 from datetime import datetime, timedelta, timezone
-import os, json, re
-import numpy as np
+import os, re
 from math import floor, ceil
-from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from typing import cast
 import requests, pymysql
 
-from database import log, pool, upsert_many
+from database import log, upsert_many
 from data.omni.derived import compute_derived
-from data.omni.sw_types import obtain_yermolaev_types, derive_from_sw_type, SW_TYPE_DERIVED_SERIES
+from data.omni.sw_types import obtain_yermolaev_types
 
-from data.omni.variables import OmniVariable, GROUP, SOURCE, omni_variables, get_vars
+from data.omni.variables import OmniVariable, GROUP, SOURCE, get_vars
 from data.omni.spacecraft import spacecraft_id
 
 proxy = os.environ.get('NASA_PROXY')
@@ -98,7 +95,7 @@ def _obtain_yermolaev(interv):
 	batches = [obtain_yermolaev_types(y) for y in range(interv[0].year, interv[1].year + 1)]
 	return [d for dt in batches for d in dt or []]
 
-def obtain(interval: tuple[int, int], groups: tuple[GROUP], source: SOURCE, overwrite=False):
+def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overwrite=False):
 	interval = (
 		floor(interval[0] / PERIOD) * PERIOD,
 		 ceil(interval[1] / PERIOD) * PERIOD )
@@ -122,71 +119,16 @@ def obtain(interval: tuple[int, int], groups: tuple[GROUP], source: SOURCE, over
 
 	col_names = [var.name for var in vars]
 	data, col_names = compute_derived(res, col_names)
+	constants = {}
 
-	log.info(f'Omni: {"hard " if overwrite else ""}upserting *{group} from {source}: [{len(data)}] rows from {dt_interval[0]} to {dt_interval[1]}')
-	with pool.connection() as conn:
-		if source in [SOURCE.ACE, SOURCE.DISCOVR]:
-			sc_id = spacecraft_id[str(source.value).upper()]
-			if [GROUP.IMF in groups]:
-				conn.execute('UPDATE omni SET spacecraft_id_sw = %s WHERE %s <= time AND time <= %s' +
-					(' AND imf_scalar IS NULL' if not overwrite else ''), [sc_id, *dt_interval])
-			if group != 'sw':
-				conn.execute('UPDATE omni SET spacecraft_id_imf = %s WHERE %s <= time AND time <= %s' +
-					(' AND sw_speed IS NULL' if not overwrite else ''), [cid, *dt_interval])
+	if source in [SOURCE.ACE, SOURCE.DISCOVR]:
+		sc_id = spacecraft_id[str(source.value).upper()]
+		for group in [GROUP.IMF, GROUP.SW]:
+			if not group in groups: continue
+			sc_id_col = 'spacecraft_id_' + str(group.value).lower()
+			constants[sc_id_col] = sc_id
 				
-	upsert_many('omni', ['time', *fields], data, write_nulls=overwrite, write_values=overwrite, schema='public')
+	log.info(f'Omni: {"hard " if overwrite else ""}upserting {",".join([str(g.value).upper() for g in groups])} from {source}: [{len(data)}] from {dt_interval[0]} to {dt_interval[1]}')
+	upsert_many('omni', ['time', *col_names], data, constants=constants, write_nulls=overwrite, write_values=overwrite, schema='public')
 
 	return len(data)
-
-def remove(interval: tuple[int, int], group):
-	cols = [c.name for c in _cols(group, do_remove=True)]
-	with pool.connection() as conn:
-		curs = conn.execute('UPDATE omni SET ' + ', '.join([f'{c} = NULL' for c in cols]) +
-			' WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)', interval)
-		return curs.rowcount
-		
-def insert(var, data):
-	if not var in all_column_names:
-		raise ValueError('Unknown var: '+var)
-	for row in data:
-		row[0] = datetime.utcfromtimestamp(row[0])
-	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
-	upsert_many('omni', ['time', var], data, schema='public')
-
-def select(interval: tuple[int, int], query=None, epoch=True):
-	all_series = all_column_names + SW_TYPE_DERIVED_SERIES
-	columns = [c for c in query if c in all_column_names] if query else all_column_names
-	any_sw_type_dervied = query and next((q for q in query if q in SW_TYPE_DERIVED_SERIES), None)
-	if any_sw_type_dervied and 'sw_type' not in columns:
-		columns.append('sw_type')
-	with pool.connection() as conn:
-		curs = conn.execute(f'SELECT {"EXTRACT(EPOCH FROM time)::integer as" if epoch else ""} time, {",".join(columns)} ' +
-			'FROM omni WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', interval)
-		data, fields = np.array(curs.fetchall(), dtype='object'), [desc[0] for desc in curs.description]
-	return derive_from_sw_type(data, fields, [c for c in query if c in all_series]) if any_sw_type_dervied else (data, fields)
-
-def ensure_prepared(interval: tuple[int, int], trust=False):
-	global dump_info
-	with omni_mutex:
-		if not trust:
-			if dump_info and dump_info.get('from') <= interval[0] and dump_info.get('to') >= interval[1]:
-				return dump_info
-			cov_from, cov_to = dump_info.get('from'), dump_info.get('to', interval[1])
-			res_from = min(cov_from, interval[0]) if cov_from else interval[0]
-			ffrom, fto = cov_to if cov_from and cov_from <= interval[0] else interval[0], interval[1]
-			log.info(f'Omni: beginning bulk fetch {ffrom}:{fto}')
-			batch_size = 3600 * 24 * 1000
-			with ThreadPoolExecutor(max_workers=4) as executor:
-				for start in range(ffrom, fto+1, batch_size):
-					end = start + batch_size
-					interv = [start, end if end < fto else fto]
-					executor.submit(obtain, 'omniweb', interv)
-			log.info('Omni: bulk fetch finished')
-		else:
-			res_from, fto = interval
-			log.info(f'Omni: force setting coverarge to {res_from}:{fto}')
-
-		with open(dump_info_path, 'w', encoding='utf-8') as file:
-			dump_info = { 'from': int(res_from), 'to': int(fto), 'at': int(datetime.now().timestamp()) }
-			json.dump(dump_info, file)
-	return dump_info

@@ -68,7 +68,7 @@ def parse_coords(loc: str, reverse=False):
 	lon = (1 if we == 'W' else -1) * int(alon)
 	return lat, lon
 
-def next_month(m_start):
+def next_month(m_start: datetime):
 	end = m_start + timedelta(days=31)
 	return end - timedelta(days=end.day - 1)
 

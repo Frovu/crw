@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import Literal, Tuple
 import numpy as np
 
-import data.omni.core as omni
+import data.omni.query as omni
 from cream import gsm
 import data.particles_and_xrays as sat
 
