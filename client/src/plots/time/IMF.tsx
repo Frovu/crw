@@ -27,8 +27,7 @@ function Panel() {
 		<BasicPlot
 			{...{
 				queryKey: (interval) => ['IMF', interval],
-				queryFn: (interval) =>
-					basicDataQuery('omni', interval, ['time', 'sw_speed', 'imf_scalar', 'imf_x', 'imf_y', 'imf_z']),
+				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'V', 'B', 'Bx', 'By', 'Bz']),
 				params,
 				axes: () => [
 					{

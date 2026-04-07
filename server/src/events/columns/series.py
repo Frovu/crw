@@ -49,7 +49,7 @@ class Series:
 		return asdict(self)
 
 SERIES = [ # order matters (no it does not)
-	*[Series('omni', var.name, var.name, var.description, dtype='str' if var.name == 'SW_type' else 'real') for var in omni.omni_variables],
+	*[Series('omni', var.name, var.name, var.description, dtype='str' if var.name == 'SWTY' else 'real') for var in omni.omni_variables],
 	Series('gsm', 'a10m', 'A0m'),
 	Series('gsm', 'a10', 'A0'),
 	Series('gsm', 'axy', 'Axy'),

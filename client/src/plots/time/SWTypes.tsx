@@ -16,7 +16,7 @@ function Panel() {
 	const query = useQuery({
 		queryKey: ['SWTypes', interval],
 		queryFn: async () => {
-			const data = await basicDataQuery('omni', interval, ['time', 'sw_type']);
+			const data = await basicDataQuery('omni', interval, ['time', 'SWTY']);
 			if (!data) return null;
 			const swt = (data[1] as any as (string | null)[]).map((t) => t?.split(','));
 			const plotData = [data[0]];

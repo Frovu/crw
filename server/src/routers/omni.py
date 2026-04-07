@@ -58,10 +58,10 @@ def upload():
 	omni.insert(var, data)
 	return msg('OK')
 
-@bp.route('/fetch', methods=['POST'])
+@bp.route('/obtain', methods=['POST'])
 @require_role('operator')
 @route_shielded
-def fetch():
+def obtain():
 	t_from = int(request.json.get('from'))
 	t_to = int(request.json.get('to'))
 	source = omni.SOURCE(str(request.json.get('source')).lower())

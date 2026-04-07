@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-import os, re
+import os, re, traceback
 from math import floor, ceil
 from threading import Lock
 import requests, pymysql
@@ -27,7 +27,7 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 		'spacecraft': 'omni2',
 		'start_date': dstart,
 		'end_date': dend,
-		'vars': [var.omniweb_id or 0 - 1 for var in vars] # NOTE: ids in def file start with 1, but here they start with 0
+		'vars': [(var.omniweb_id or 0) - 1 for var in vars] # NOTE: ids in def file start with 1, but here they start with 0
 	}, timeout=5, proxies=omniweb_proxies)
 	if r.status_code != 200:
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
@@ -43,6 +43,7 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 				row = [time] + [(int(v) if c.is_int else float(v)) if v != c.omniweb_stub else None for v, c in zip(split[3:], vars)]
 				data.append(row)
 			except:
+				traceback.print_exc()
 				log.error('Omniweb: failed to parse line:\n %s', line)
 		elif 'YEAR DOY HR' in line:
 			data = [] # start reading data
@@ -87,6 +88,7 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 
 		return data
 	except Exception as e:
+		traceback.print_exc()
 		log.error(f'Omni: failed to query izmiran/{source_table}: {e}')
 	finally:
 		if conn: conn.close()
@@ -127,8 +129,9 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 			if not group in groups: continue
 			sc_id_col = 'sc_id_' + str(group.value).lower()
 			constants[sc_id_col] = sc_id
-				
-	log.info(f'Omni: {"hard " if overwrite else ""}upserting {",".join([str(g.value).upper() for g in groups])} from {source}: [{len(data)}] from {dt_interval[0]} to {dt_interval[1]}')
+			
+	grps = ','.join([str(g.value).upper() for g in groups if next((v for v in vars if v.group == g), None)])
+	log.info(f'Omni: {"hard " if overwrite else ""}upserting {grps} from {str(source).upper()}: [{len(data)}] from {data[0][0]} to {data[-1][0]}')
 	upsert_many('omni', ['time', *col_names], data, constants=constants, write_nulls=overwrite, write_values=overwrite, schema='public')
 
 	return len(data)

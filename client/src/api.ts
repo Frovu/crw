@@ -284,15 +284,27 @@ export const omniSources = [
     'SWTY'
 ] as const;
 
+export const omniSourceOptions = {
+    'SW': [
+        'OMNIWEB',
+        'ACE',
+        'DISCOVR'
+    ],
+    'IMF': [
+        'OMNIWEB',
+        'ACE',
+        'DISCOVR'
+    ],
+    'MAG': [
+        'OMNIWEB',
+        'GEOMAG'
+    ],
+    'SWTY': [
+        'SWTY'
+    ]
+} as const;
+
 export const omniVariables = [
-    {
-        name: 'KT',
-        group: null
-    },
-    {
-        name: 'SW_type',
-        group: 'SWTY'
-    },
     {
         name: 'sc_id_imf',
         group: 'IMF'
@@ -388,6 +400,14 @@ export const omniVariables = [
     {
         name: 'AU',
         group: 'MAG'
+    },
+    {
+        name: 'SWTY',
+        group: 'SWTY'
+    },
+    {
+        name: 'KT',
+        group: null
     }
 ] as const;
 

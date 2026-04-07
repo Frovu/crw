@@ -28,13 +28,13 @@ function Menu({ Checkbox }: ContextMenuProps<SWParams>) {
 function Panel() {
 	const params = usePlot<SWParams>();
 	const { useTemperatureIndex, showBeta, showDensity } = params;
-	const tColumn = useTemperatureIndex ? 'temperature_idx' : 'sw_temperature';
+	const tColumn = useTemperatureIndex ? 'KT' : 'T';
 	return (
 		<BasicPlot
 			{...{
 				queryKey: (interval) => ['SW', interval, tColumn],
 				queryFn: async (interval) => {
-					const data = await basicDataQuery('omni', interval, ['time', 'sw_density', 'plasma_beta', tColumn]);
+					const data = await basicDataQuery('omni', interval, ['time', 'D', 'beta', tColumn]);
 					return data?.concat([Array(data[0].length).fill(0.5)]) ?? null;
 				},
 				params,

@@ -59,6 +59,7 @@ with open(TARGET, 'w') as f:
 	export_const('filterOperations', FILTER_OPS)
 	export_const('omniGroups', [str(g.value).upper() for g in omni.GROUP])
 	export_const('omniSources', [str(s.value).upper() for s in omni.SOURCE])
+	export_const('omniSourceOptions', { g.value.upper(): [s.value.upper() for s in sc] for g, sc in omni.GROUP_SOURCES.items()}) # type: ignore
 	export_const('omniVariables', [var.as_dict() for var in omni.omni_variables])
 
 	f.write('export type Column = StaticColumn | ComputedColumn;\n\n')

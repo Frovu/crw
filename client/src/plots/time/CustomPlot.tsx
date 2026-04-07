@@ -136,7 +136,7 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['CustomPlot', JSON.stringify(definitions), interval],
+				queryKey: (interval) => ['customPlot', JSON.stringify(definitions), interval],
 				queryFn: (interval) => customPlotDataQuery(interval, definitions, feidId),
 				params,
 				axes: () => [

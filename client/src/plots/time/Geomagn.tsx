@@ -72,8 +72,7 @@ function Panel() {
 		<BasicPlot
 			{...{
 				queryKey: (interval) => ['geomagn', interval],
-				queryFn: (interval) =>
-					basicDataQuery('omni', interval, ['time', 'kp_index', 'ap_index', 'dst_index', 'ae_index']),
+				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'Kp', 'Ap', 'Dst', 'AE']),
 				params,
 				axes: () => [
 					{

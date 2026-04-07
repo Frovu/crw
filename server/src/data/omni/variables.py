@@ -59,8 +59,6 @@ class OmniVariable():
 		return { 'name': self.name, 'group': self.group and str(self.group.value).upper() }
 
 omni_variables = [
-	OmniVariable('KT', description='temperature index'),
-	OmniVariable('SW_type', GROUP.SWTY, description='Yermolayev SW types'),
 	OmniVariable('sc_id_imf', GROUP.IMF, omniweb_name='ID for IMF SC'),
 	OmniVariable('sc_id_sw', GROUP.SW, omniweb_name='ID for SW Plasma SC'),
 	# OmniVariable('count_imf', GROUP.IMF, omniweb_id=7),
@@ -87,12 +85,17 @@ omni_variables = [
 	OmniVariable('PC', GROUP.MAG, omniweb_name='PC(N)'),
 	OmniVariable('AL', GROUP.MAG, omniweb_name='AL-index'),
 	OmniVariable('AU', GROUP.MAG, omniweb_name='AU-index'),
+	OmniVariable('SWTY', GROUP.SWTY, description='Yermolayev SW types'),
+	OmniVariable('KT', description='temperature index'),
 ]
 omni_vars_text = '' # free memory
 
+# for var in omni_variables:
+# 	print
+
 def _init_db():
 	with pool.connection() as conn:
-		col_types = [SQL('TEXT' if c.name == 'sw_type' else 'SMALLINT' if c.is_int else 'REAL') for c in omni_variables]
+		col_types = [SQL('TEXT' if c.name == 'SWTY' else 'SMALLINT' if c.is_int else 'REAL') for c in omni_variables]
 		col_defs = [SQL('{} {}').format(Identifier(c.name), typ) for c, typ in zip(omni_variables, col_types)]
 		conn.execute(SQL(f'CREATE TABLE IF NOT EXISTS {OMNI_TABLE} (\ntime TIMESTAMPTZ PRIMARY KEY, {{}})').format(SQL(',\n').join(col_defs)))
 		for col in col_defs:
