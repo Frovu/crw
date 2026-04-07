@@ -84,7 +84,7 @@ function Menu({ params, set, Checkbox }: ContextMenuProps<CollisionOptions>) {
 					className="w-30"
 					value={params.timeColumn}
 					onChange={(val) => set('timeColumn', val)}
-					options={timeOptions.map((col) => [col.sql_name, col.name])}
+					options={timeOptions.map((col) => [col.sql_name, col.name] as const)}
 				/>
 			</div>
 			<div className="flex gap-3">

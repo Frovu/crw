@@ -16,12 +16,7 @@ function Panel() {
 			<div className="w-[calc(100%-224px)] flex flex-col gap-1 p-1">
 				<div className="flex flex-wrap gap-2">
 					Theme:
-					<SimpleSelect
-						className="w-30"
-						value={theme}
-						onChange={setTheme}
-						options={themeOptions.map((o) => [o, o])}
-					/>
+					<SimpleSelect className="w-30" value={theme} onChange={setTheme} options={themeOptions} />
 					<Button variant="default" className="px-2" onClick={() => resetColors()}>
 						Reset colors
 					</Button>

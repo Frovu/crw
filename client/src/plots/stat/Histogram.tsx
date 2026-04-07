@@ -101,7 +101,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistogramPa
 				Y:
 				<SimpleSelect
 					className="w-16 mr-4"
-					options={yScaleOptions.map((o) => [o, o])}
+					options={yScaleOptions}
 					value={params.yScale}
 					onChange={(val) => set('yScale', val)}
 				/>

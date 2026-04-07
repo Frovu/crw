@@ -37,10 +37,10 @@ export function TableInput({
 					autoFocus
 					className={className}
 					options={[
-						...(!column.not_null ? [[null, '<null>'] as [null, string]] : []),
-						...((options ?? column.enum)?.map((val) => [val, val] as [string, string]) ?? []),
+						...(!column.not_null ? [[null, '<null>'] as const] : []),
+						...((options ?? column.enum)?.map((val) => [val, val] as const) ?? []),
 					]}
-					value={valueToString(value)}
+					value={value == null ? null : valueToString(value)}
 					onChange={(val) => {
 						onChange(val);
 						escapeCursor();

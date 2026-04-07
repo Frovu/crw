@@ -20,11 +20,7 @@ function Menu({ params, setParams }: ContextMenuProps<Params>) {
 	return (
 		<div className="flex gap-1 items-center">
 			Param:
-			<SimpleSelect
-				value={params.variable}
-				onChange={(variable) => setParams({ variable })}
-				options={ENLIL_OPTS.map((v) => [v, v])}
-			/>
+			<SimpleSelect value={params.variable} onChange={(variable) => setParams({ variable })} options={ENLIL_OPTS} />
 		</div>
 	);
 }

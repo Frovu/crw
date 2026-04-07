@@ -103,10 +103,9 @@ function ControlsPanel() {
 					<label className="flex pl-1" title="Approximate resolution when shrinked to specified size">
 						<SimpleSelect
 							value={scale}
-							options={[2, 3, 4, 6, 8, 10, 16].map((scl) => [
-								scl,
-								`${((width * scl) / inches).toFixed()} ppi (x${scl})`,
-							])}
+							options={[2, 3, 4, 6, 8, 10, 16].map(
+								(scl) => [scl, `${((width * scl) / inches).toFixed()} ppi (x${scl})`] as const,
+							)}
 							onChange={(val) => set('scale', val)}
 						/>
 					</label>

@@ -105,12 +105,7 @@ export function LayoutNav() {
 				{open || hovered > 0 ? 'manage' : 'layout'}
 			</div>
 			:
-			<SimpleSelect
-				className="h-5"
-				options={Object.keys(list).map((l) => [l, l])}
-				value={active}
-				onChange={(val) => selectLayout(val)}
-			/>
+			<SimpleSelect className="h-5" options={Object.keys(list)} value={active} onChange={(val) => selectLayout(val)} />
 		</div>
 	);
 }

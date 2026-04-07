@@ -164,7 +164,7 @@ function App() {
 				>
 					<SimpleSelect
 						className="pl-2 h-5 w-21 text-dark"
-						options={APPS.map((a) => [a, '/' + a])}
+						options={APPS.map((a) => [a, '/' + a] as const)}
 						value={app}
 						onChange={(a) => selectApp(a)}
 					/>
@@ -174,7 +174,7 @@ function App() {
 						theme:
 						<SimpleSelect
 							className={theme === 'Monochrome' ? 'h-5 w-30' : 'h-5 w-16'}
-							options={themeOptions.map((t) => [t, t])}
+							options={themeOptions.map((t) => [t, t] as const)}
 							value={theme}
 							onChange={(th) => setTheme(th)}
 						/>

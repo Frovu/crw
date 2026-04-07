@@ -96,7 +96,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<HistoryPara
 				<SimpleSelect
 					className="w-22"
 					value={params.window}
-					options={Object.keys(windowOptions).map((w) => [w, w])}
+					options={Object.keys(windowOptions) as (keyof typeof windowOptions)[]}
 					onChange={(val) => set('window', val as any)}
 				/>
 			</div>

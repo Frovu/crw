@@ -39,7 +39,7 @@ function IncludeCard({ sampleId: id, disabled }: { sampleId: number | null; disa
 				<SimpleSelect
 					className="max-w-42"
 					placeholder="include sample"
-					options={opts.map(({ id: s, name }) => [s, name])}
+					options={opts.map(({ id: s, name }) => [s, name] as const)}
 					onChange={(val) => changeInclude(id, val!)}
 					value={id ?? null}
 				/>

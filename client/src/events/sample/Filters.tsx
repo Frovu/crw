@@ -19,8 +19,8 @@ export function FilterCard({ filter: filterOri, disabled }: { filter: FilterWith
 	const columnOptions =
 		!column || shownColumns.find((col) => col.sql_name === columnId) ? shownColumns : [...shownColumns, column];
 	const colSelectOptions = [
-		...columnOptions.map((col) => [col.sql_name, col.name]),
-		...(!column ? [[columnId, columnId]] : []),
+		...columnOptions.map((col) => [col.sql_name, col.name] as [string, string]),
+		...(!column ? [[columnId, columnId] as [string, string]] : []),
 	];
 
 	const isSelectInput = column && column.dtype === 'enum' && operation !== 'regexp';
@@ -46,7 +46,7 @@ export function FilterCard({ filter: filterOri, disabled }: { filter: FilterWith
 			<SimpleSelect
 				disabled={disabled}
 				className={cn('grow-4 shrink min-w-0 basis-1 text-right', !column && 'ring ring-red')}
-				options={colSelectOptions as [string, string][]}
+				options={colSelectOptions}
 				value={column?.sql_name ?? columnId}
 				onChange={onChange('column')}
 			/>
@@ -57,7 +57,7 @@ export function FilterCard({ filter: filterOri, disabled }: { filter: FilterWith
 					operation.includes('null') ? 'max-w-max' : 'max-w-[6.5ch]',
 					column?.dtype === 'enum' && isInvalid && 'ring ring-red',
 				)}
-				options={filterOperations.map((op) => [op, op])}
+				options={filterOperations}
 				value={operation}
 				onChange={onChange('operation')}
 			/>
@@ -73,7 +73,7 @@ export function FilterCard({ filter: filterOri, disabled }: { filter: FilterWith
 				<SimpleSelect
 					disabled={disabled}
 					className={cn('grow-2 shrink basis-2 min-w-0')}
-					options={column.enum!.map((val) => [val, val])}
+					options={column.enum!}
 					value={value}
 					onChange={onChange('value')}
 				/>

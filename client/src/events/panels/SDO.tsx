@@ -339,7 +339,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<Params>) {
 					className="bg-input-bg"
 					value={src}
 					onChange={(val) => setParams({ src: val })}
-					options={SDO_SRC.map((s) => [s, s])}
+					options={SDO_SRC}
 				/>
 			</div>
 			<div>

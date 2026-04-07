@@ -73,7 +73,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 						className="w-30 bg-input-bg"
 						value={params[key]}
 						onChange={(val) => set(key, val)}
-						options={columnOpts.map((col) => [col.sql_name, col.name])}
+						options={columnOpts.map((col) => [col.sql_name, col.name] as const)}
 					/>
 				</div>
 			))}
@@ -93,7 +93,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 					className="bg-input-bg"
 					value={params.color}
 					onChange={(val) => set('color', val)}
-					options={colors.map((c) => [c, c])}
+					options={colors}
 				/>
 			</div>
 			<div className="flex gap-3">

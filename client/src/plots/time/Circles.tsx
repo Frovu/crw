@@ -860,7 +860,7 @@ function CirclesParamsInput({ params, setParams }: { params: CirclesPlotParams; 
 				Theme:
 				<SimpleSelect
 					className="w-40 bg-input-bg"
-					options={themeOptions.map((o) => [o, o])}
+					options={themeOptions}
 					value={params.theme || 'Dark'}
 					onChange={callback('theme')}
 				/>

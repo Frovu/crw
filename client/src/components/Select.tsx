@@ -132,25 +132,33 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
-type SimpleSelectProps<T> = {
+type SimpleSelectProps<T, O extends (readonly [T, string])[] | readonly T[]> = {
 	placeholder?: string;
-	options: [T, string][];
+	options: O;
 	value?: T;
 	onChange: (val: T) => void;
 } & Omit<React.ComponentProps<'button'>, 'value' | 'onChange'>;
-const SimpleSelect = <T extends any>({ placeholder, options, value, onChange, ...props }: SimpleSelectProps<T>) => {
+const SimpleSelect = <T extends any, O extends (readonly [T, string])[] | readonly T[]>({
+	placeholder,
+	options,
+	value,
+	onChange,
+	...props
+}: SimpleSelectProps<T, O>) => {
+	const val = (opt: (typeof options)[number]) => (Array.isArray(opt) ? opt[0] : opt) as T;
+	const lbl = (opt: (typeof options)[number]) => (Array.isArray(opt) ? opt[1] : opt) as string;
 	return (
 		<Select
-			value={options.find(([val]) => val === value)?.[1] ?? ''}
-			onValueChange={(label) => onChange(options.find(([, lbl]) => lbl === label)![0])}
+			value={lbl(options.find((opt) => val(opt) === value) ?? ('' as T))}
+			onValueChange={(label) => onChange(val(options.find((opt) => lbl(opt) === label)!))}
 		>
 			<SelectTrigger {...props}>
 				<SelectValue placeholder={placeholder} />
 			</SelectTrigger>
 			<SelectContent side="top">
-				{options.map(([val, lbl]) => (
-					<SelectItem key={(val as any)?.toString?.() ?? lbl} value={lbl}>
-						{lbl}
+				{options.map((opt) => (
+					<SelectItem key={(val(opt) as any)?.toString?.() ?? lbl(opt)} value={lbl(opt)}>
+						{lbl(opt)}
 					</SelectItem>
 				))}
 			</SelectContent>

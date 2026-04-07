@@ -88,7 +88,7 @@ function Menu() {
 			.filter((a): a is EruptiveEvent<'cme'> | EruptiveEvent<'flare'> => !!a);
 	});
 
-	const coordsOptions = ['MNL', ...(flrOptions.length ? ['FLR'] : []), ...cmeOptions.map((cme) => cme.src)];
+	const coordsOptions = ['MNL', ...(flrOptions.length ? ['FLR' as const] : []), ...cmeOptions.map((cme) => cme.src)] as const;
 
 	return (
 		eruptId && (
@@ -105,7 +105,7 @@ function Menu() {
 						<SimpleSelect
 							className="w-14 ml-1 bg-input-bg"
 							value={erupt[key]}
-							options={options.map((o) => [o, o])}
+							options={options}
 							onChange={(val) => {
 								if (what === 'flare') switchMainFlare(erupt, flrOptions.find((flr) => flr.src === val) as any);
 								else if (what === 'CME') switchMainCME(erupt, cmeOptions.find((cme) => cme.src === val) as any);
