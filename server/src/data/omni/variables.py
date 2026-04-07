@@ -6,10 +6,10 @@ from database import pool, SQL, Identifier
 
 OMNI_TABLE = 'omni'
 GROUP = StrEnum('GROUP', ['SW', 'IMF', 'MAG', 'SWTY'])
-SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'DISCOVR', 'SWTY'])
+SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'DSCOVR', 'SWTY'])
 GROUP_SOURCES = {
-	GROUP.SW: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DISCOVR],
-	GROUP.IMF: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DISCOVR],
+	GROUP.SW: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DSCOVR],
+	GROUP.IMF: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DSCOVR],
 	GROUP.MAG: [SOURCE.omniweb, SOURCE.geomag],
 	GROUP.SWTY: [SOURCE.SWTY]
 }

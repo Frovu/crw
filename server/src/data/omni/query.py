@@ -1,7 +1,7 @@
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
-from datetime import datetime
+from datetime import datetime, timezone
 
 from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CovergaeResponse
 from data.omni.variables import OMNI_TABLE, GROUP, SOURCE, omni_variables, get_vars
@@ -55,17 +55,18 @@ def ensure_prepared(interval: tuple[int, int], trust=False):
 			else:
 				res_start = fetch_start = t_start
 				fetch_end = t_end
-			log.info(f'Omni: beginning bulk fetch {fetch_start}:{fetch_end}')
+			log.info(f'Omni: beginning bulk fetch {datetime.fromtimestamp(fetch_start, timezone.utc)}:{datetime.fromtimestamp(fetch_end, timezone.utc)}')
 			batch_size = 3600 * 24 * 1000
 			with ThreadPoolExecutor(max_workers=4) as executor:
 				for start in range(fetch_start, fetch_end+1, batch_size):
 					end = start + batch_size
 					interv = (start, end if end < fetch_end else fetch_end)
 					executor.submit(obtain, interv, [g for g in GROUP], SOURCE.omniweb)
+					executor.submit(obtain, interv, [GROUP.SWTY], SOURCE.SWTY)
 			log.info('Omni: bulk fetch finished')
 		else:
 			res_start, fetch_end = interval
 			log.info(f'Omni: force setting coverarge to {res_start}:{fetch_end}')
 
-		upsert_coverage(OMNI_TABLE, res_start, fetch_end)
+		upsert_coverage(OMNI_TABLE, res_start, fetch_end, single=True)
 	return CovergaeResponse(res_start, fetch_end, int(datetime.now().timestamp())).to_dict()

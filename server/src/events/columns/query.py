@@ -48,13 +48,13 @@ def _compute(definition: str, target_ids: list[int] | None = None):
 	return ids, result, None
 			
 def _upsert_data(col: ComputedColumn, ids: np.ndarray, result: Value, whole_column: bool = False):
-	res = result.value
+	res: np.ndarray = result.value # type: ignore
 	if result.dtype == DTYPE.TIME:
 		val = [None if np.isnan(v) else datetime.fromtimestamp(v, timezone.utc) for v in res]
 	elif result.dtype == DTYPE.INT:
-		val = np.where(~np.isfinite(res), None, np.round(res).astype(int))
+		val = np.where(~np.isfinite(res), None, np.round(res).astype(int)) # type: ignore
 	elif result.dtype == DTYPE.REAL:
-		val = np.where(~np.isfinite(res), None, np.round(res, 2))
+		val = np.where(~np.isfinite(res), None, np.round(res, 2)) # type: ignore
 	elif result.dtype == DTYPE.BOOL:
 		val = np.where(~np.isfinite(res), 0, res.astype(int))
 	else:
@@ -74,7 +74,7 @@ def _compute_and_upsert(col: ComputedColumn, target_ids: list[int] | None = None
 	ids, result, err = _compute(col.definition, target_ids)
 	if err: return err
 	assert ids is not None and result
-	_upsert_data(col, ids, result, whole_column=not target_ids)
+	_upsert_data(col, ids, result, whole_column=not target_ids) # type: ignore
 	return None
 
 def upsert_column(user_id: int, json_body, col_id: int | None):
@@ -109,7 +109,7 @@ def upsert_column(user_id: int, json_body, col_id: int | None):
 			column.init_in_table(conn)
 			log.info(f'Column edited by ({user_id}): #{column.id} {column.name}')
 	
-	_upsert_data(column, ids, result, whole_column=True)
+	_upsert_data(column, ids, result, whole_column=True) # type: ignore
 
 	return column
 

@@ -99,7 +99,8 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 			on_conflict = SQL('ON CONFLICT ({}) DO UPDATE SET {}')\
 				.format(SQL(conflict_constraint), SQL(',').join(items))
 			
-		col_names = SQL(',').join(icolumns)
+		iconstants = [Identifier(k) for k in constants.keys()]
+		col_names = SQL(',').join(iconstants + icolumns)
 		col_values = SQL(',').join([*(Placeholder() * len(constants)), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
 		cur.execute(query, list(constants.values()))

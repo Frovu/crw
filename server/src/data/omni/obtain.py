@@ -49,7 +49,7 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 			data = [] # start reading data
 		elif 'INVALID' in line:
 			correct_range = re.findall(r' (\d+)', line)
-			new_range = [datetime.strptime(s, '%Y%m%d') for s in correct_range]
+			new_range = [datetime.strptime(s, '%Y%m%d').replace(tzinfo=timezone.utc) for s in correct_range]
 			if interval[1] < new_range[0] or new_range[1] < interval[0]:
 				log.info('Omniweb: out of bounds')
 				return None
@@ -74,13 +74,14 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name or '' for c in vars]) +\
 					f' FROM dst JOIN (SELECT * FROM ({geomag_q}) gq WHERE dt > %s - interval 1 day AND dt < %s + interval 1 day) gm ' +\
 					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
+				cursor.execute(query, interval + interval)
 			else:
 				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in vars]) +\
 					f' FROM {source_table} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
-			cursor.execute(query, interval)
+				cursor.execute(query, interval)
 			data = list(list(row) for row in cursor.fetchall())
 			if source_table == 'geomag':
-				kp_col = [c.name for c in vars].index('kp_index')
+				kp_col = [c.name for c in vars].index('Kp')
 				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
 				parse_kp = lambda s: None if s == '-1' else int(s[:-1]) * 10 + kp_inc[s[-1]]
 				for i in range(len(data)):
@@ -90,6 +91,7 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 	except Exception as e:
 		traceback.print_exc()
 		log.error(f'Omni: failed to query izmiran/{source_table}: {e}')
+		raise e
 	finally:
 		if conn: conn.close()
 
@@ -105,7 +107,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	dt_interval = (dt(interval[0]), dt(interval[1]))
 
 	vars = get_vars(groups, source)
-	if source in [SOURCE.ACE, SOURCE.DISCOVR]:
+	if source in [SOURCE.ACE, SOURCE.DSCOVR]:
 		vars = [v for v in vars if not v.name.startswith('sc_id')]
 
 	if source == SOURCE.omniweb:
@@ -113,6 +115,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	elif source == SOURCE.SWTY:
 		res = _obtain_yermolaev(dt_interval)
 	else:
+		vars = [v for v in vars if v.crs_name]
 		res = _obtain_crs(source, vars, dt_interval)
 
 	if not res:
@@ -123,7 +126,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	data, col_names = compute_derived(res, col_names)
 	constants = {}
 
-	if source in [SOURCE.ACE, SOURCE.DISCOVR]:
+	if source in [SOURCE.ACE, SOURCE.DSCOVR]:
 		sc_id = spacecraft_id[str(source.value).upper()]
 		for group in [GROUP.IMF, GROUP.SW]:
 			if not group in groups: continue

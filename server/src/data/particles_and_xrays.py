@@ -101,5 +101,6 @@ def select_hourly_averaged(interval: tuple[int, int], ser_db_name: str):
 	'LEFT JOIN {} t ON hour <= t.time AND t.time <= hour + \'1 hour\'::interval ' +\
 	'GROUP BY hour ORDER BY hour').format(Identifier(ser_db_name), Identifier(table))
 
+	print(query.as_string())
 	with pool.connection() as conn:
 		return conn.execute(query, interval).fetchall()
