@@ -76,7 +76,7 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
 				cursor.execute(query, interval + interval)
 			else:
-				query = 'SELECT min(dt) as time,' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in vars]) +\
+				query = 'SELECT DATE_FORMAT(min(dt), \'%%Y-%%m-%%d %%H:00:00\'),' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in vars]) +\
 					f' FROM {source_table} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 				cursor.execute(query, interval)
 			data = list(list(row) for row in cursor.fetchall())
