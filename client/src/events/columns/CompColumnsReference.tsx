@@ -68,10 +68,9 @@ export default function CompColumnsReference({ initialTab }: { initialTab?: (typ
 					{series.map((ser) => (
 						<div key={ser.name}>
 							<div>
-								<span className="text-green" title={ser.db_name}>
-									${ser.name}
-								</span>
+								<span className="text-green">${ser.name}</span>
 								<span> = {ser.display_name}</span>
+								<div className="pl-4">{ser.description}</div>
 							</div>
 						</div>
 					))}

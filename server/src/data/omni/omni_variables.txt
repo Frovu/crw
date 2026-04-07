@@ -39,20 +39,17 @@
                                                    negatively  from zero as the flow direction
                                                    changes from being along
                                                     the -Xgse axis toward the +Ygse/-Ygse axis;
-                                                   see footnote 1)
   
 27  F6.1    999.9        Bulk flow latitude     theta-V, degrees. theta-V increases positively/
                                                 negatively from zero as the flow direction changes
                                                 from being in 
                                                  the Xgse-Ygse plane toward the +Zgse/-Zgse axis;
-                                                see footnote 1)
 
 28  F6.3    9.999        Na/Np               Alpha/Proton ratio 
 29  F6.2    99.99       Flow Pressure       P (nPa) = (1.67/10**6) * Np*V**2 * (1+ 4*Na/Np)
                                            for hours with non-fill Na/Np ratios and
                                             P (nPa) = (2.0/10**6) * Np*V**2
                                             for hours with fill values for Na/Np 
-                                            For details click HERE 
    
 30  F9.0  9999999.      sigma-T   Degrees Kelvin
 31  F6.1    999.9       sigma-n     cm -3

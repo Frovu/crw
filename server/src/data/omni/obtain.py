@@ -104,7 +104,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 
 	vars = get_vars(groups, source)
 	if source in [SOURCE.ACE, SOURCE.DISCOVR]:
-		vars = [v for v in vars if not v.name.startswith('spacecraft_id')]
+		vars = [v for v in vars if not v.name.startswith('sc_id')]
 
 	if source == SOURCE.omniweb:
 		res = _obtain_omniweb(vars, dt_interval)
@@ -125,7 +125,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 		sc_id = spacecraft_id[str(source.value).upper()]
 		for group in [GROUP.IMF, GROUP.SW]:
 			if not group in groups: continue
-			sc_id_col = 'spacecraft_id_' + str(group.value).lower()
+			sc_id_col = 'sc_id_' + str(group.value).lower()
 			constants[sc_id_col] = sc_id
 				
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting {",".join([str(g.value).upper() for g in groups])} from {source}: [{len(data)}] from {dt_interval[0]} to {dt_interval[1]}')

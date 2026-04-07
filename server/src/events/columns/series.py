@@ -16,8 +16,8 @@ SDTYPE = Literal['real', 'str']
 class Series:
 	source: SSOURCE
 	name: str
-	db_name: str
 	display_name: str
+	description: str = ''
 	dtype: SDTYPE = 'real'
 
 	def table_name(self):
@@ -26,19 +26,19 @@ class Series:
 		if self.source == 'gsm':
 			return 'gsm_result'
 		if self.source == 'sat':
-			return sat.sat_table(self.db_name)
+			return sat.sat_table(self.name)
 		return self.source
 
 	def fetch(self, interval: tuple[int, int]) -> np.ndarray[Tuple[int, Literal[2]], np.dtype[np.float64]]:
 
 		if self.source == 'omni':
 			omni.ensure_prepared(interval)
-			res = omni.select(interval, [self.db_name])[0]
+			res = omni.select(interval, [self.name])[0]
 		elif self.source == 'sat':
 			# TODO: sat.ensure_prepared
-			res = sat.select_hourly_averaged(interval, self.db_name)
+			res = sat.select_hourly_averaged(interval, self.name)
 		else:
-			res = gsm.select(interval, [self.db_name])
+			res = gsm.select(interval, [self.name])
 
 		if len(res) < 1:
 			return np.empty((0, 2)) # type: ignore
@@ -49,31 +49,16 @@ class Series:
 		return asdict(self)
 
 SERIES = [ # order matters (no it does not)
-	Series('omni', 'v_sw', 'sw_speed', 'V'),
-	Series('omni', 'd_sw', 'sw_density', 'D'),
-	Series('omni', 't_sw', 'sw_temperature', 'T'),
-	Series('omni', 't_idx', 'temperature_idx', 'Tidx'),
-	Series('omni', 'imf', 'imf_scalar', 'B'),
-	Series('omni', 'bx', 'imf_x', 'Bx'),
-	Series('omni', 'by', 'imf_y', 'By'),
-	Series('omni', 'bz', 'imf_z', 'Bz'),
-	Series('omni', 'by_gsm', 'imf_y_gsm', 'By_gsm'),
-	Series('omni', 'bz_gsm', 'imf_z_gsm', 'Bz_gsm'),
-	Series('omni', 'beta', 'plasma_beta', 'beta'),
-	Series('omni', 'dst', 'dst_index', 'Dst'),
-	Series('omni', 'kp', 'kp_index', 'Kp'),
-	Series('omni', 'ap', 'ap_index', 'Ap'),
-	Series('omni', 'ae', 'ae_index', 'AE'),
-	Series('omni', 'sw_type', 'sw_type', 'SW_type', dtype='str'),
-	Series('gsm', 'a10m', 'a10m', 'A0m'),
-	Series('gsm', 'a10', 'a10', 'A0'),
-	Series('gsm', 'axy', 'axy', 'Axy'),
-	Series('gsm', 'phi_axy', 'phi_axy', 'φ(Axy)'),
-	Series('gsm', 'ax', 'ax', 'Ax'),
-	Series('gsm', 'ay', 'ay', 'Ay'),
-	Series('gsm', 'az', 'az', 'Az'),
-	*[Series('sat', s, s, s[0]+' '+d) for s, d in sat.PARTICLES.items()],
-	*[Series('sat', s, s, 'xra '+d) for s, d in sat.XRAYS.items()]
+	*[Series('omni', var.name, var.name, var.description, dtype='str' if var.name == 'SW_type' else 'real') for var in omni.omni_variables],
+	Series('gsm', 'a10m', 'A0m'),
+	Series('gsm', 'a10', 'A0'),
+	Series('gsm', 'axy', 'Axy'),
+	Series('gsm', 'phi_axy', 'φ(Axy)'),
+	Series('gsm', 'ax', 'Ax'),
+	Series('gsm', 'ay', 'Ay'),
+	Series('gsm', 'az', 'Az'),
+	*[Series('sat', s, s[0]+' '+d) for s, d in sat.PARTICLES.items()],
+	*[Series('sat', s, 'xra '+d) for s, d in sat.XRAYS.items()]
 ]
 
 def find_series(name: str):

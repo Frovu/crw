@@ -284,6 +284,113 @@ export const omniSources = [
     'SWTY'
 ] as const;
 
+export const omniVariables = [
+    {
+        name: 'KT',
+        group: null
+    },
+    {
+        name: 'SW_type',
+        group: 'SWTY'
+    },
+    {
+        name: 'sc_id_imf',
+        group: 'IMF'
+    },
+    {
+        name: 'sc_id_sw',
+        group: 'SW'
+    },
+    {
+        name: 'B',
+        group: 'IMF'
+    },
+    {
+        name: 'Bm',
+        group: 'IMF'
+    },
+    {
+        name: 'Bx',
+        group: 'IMF'
+    },
+    {
+        name: 'By',
+        group: 'IMF'
+    },
+    {
+        name: 'Bz',
+        group: 'IMF'
+    },
+    {
+        name: 'By_gsm',
+        group: 'IMF'
+    },
+    {
+        name: 'Bz_gsm',
+        group: 'IMF'
+    },
+    {
+        name: 'V',
+        group: 'SW'
+    },
+    {
+        name: 'T',
+        group: 'SW'
+    },
+    {
+        name: 'D',
+        group: 'SW'
+    },
+    {
+        name: 'P',
+        group: 'SW'
+    },
+    {
+        name: 'NaNp',
+        group: 'SW'
+    },
+    {
+        name: 'Ef',
+        group: 'SW'
+    },
+    {
+        name: 'Ma',
+        group: 'SW'
+    },
+    {
+        name: 'beta',
+        group: 'SW'
+    },
+    {
+        name: 'Dst',
+        group: 'MAG'
+    },
+    {
+        name: 'AE',
+        group: 'MAG'
+    },
+    {
+        name: 'Kp',
+        group: 'MAG'
+    },
+    {
+        name: 'Ap',
+        group: 'MAG'
+    },
+    {
+        name: 'PC',
+        group: 'MAG'
+    },
+    {
+        name: 'AL',
+        group: 'MAG'
+    },
+    {
+        name: 'AU',
+        group: 'MAG'
+    }
+] as const;
+
 export type Column = StaticColumn | ComputedColumn;
 
 export type StaticColumn = {
@@ -334,8 +441,8 @@ export type ComputedColumn = {
 export type Series = {
     source: 'omni' | 'gsm' | 'sat';
     name: string;
-    db_name: string;
     display_name: string;
+    description: string;
     dtype: 'real' | 'str';
 };
 

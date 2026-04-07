@@ -1,5 +1,5 @@
 import os, re
-from dataclasses import dataclass 
+from dataclasses import dataclass
 from enum import StrEnum
 
 from database import pool, SQL, Identifier
@@ -27,45 +27,66 @@ class OmniVariable():
 	omniweb_stub: str | None = None
 	crs_name: str | None = None
 	is_int: bool = False
+	description: str = ''
 
 	def __post_init__(self):
 		if self.omniweb_name or self.omniweb_id:
-			for line in omni_vars_text.splitlines():
+			lines = omni_vars_text.splitlines()
+			for i, line in enumerate(lines):
 				if not line.strip(): continue
 				spl = line.strip().split()
 				owid = spl[0]
 				if not owid.isdecimal(): continue
 				owid, stub = int(owid), spl[2]
-				name = re.split(r'\s\s+', line[19:].strip())[0]
+				bigspl = re.split(r'\s\s+', line[19:].strip())
+				name = bigspl[0]
 				if self.omniweb_id == owid or name == self.omniweb_name:
 					self.omniweb_id = owid
 					self.omniweb_stub = stub
 					self.is_int = not '.' in stub
+					desc = ' '.join(bigspl[1:])
+					for di in range(i, len(lines)):
+						dline = lines[di].strip()
+						if not dline: continue
+						if dline[:3].strip().isdecimal(): break
+						desc += '\n' + dline.strip()
+					self.description = (self.omniweb_name or '') + ', ' + desc
 					break
 			else:
 				raise Exception(f'Failed to find omni column: {self.omniweb_name}')
 
+	def as_dict(self):
+		return { 'name': self.name, 'group': self.group and str(self.group.value).upper() }
+
 omni_variables = [
-	OmniVariable('temperature_idx'),
-	OmniVariable('sw_type', GROUP.SWTY),
-	OmniVariable('spacecraft_id_imf', GROUP.IMF, omniweb_name='ID for IMF SC'),
-	OmniVariable('spacecraft_id_sw', GROUP.SW, omniweb_name='ID for SW Plasma SC'),
+	OmniVariable('KT', description='temperature index'),
+	OmniVariable('SW_type', GROUP.SWTY, description='Yermolayev SW types'),
+	OmniVariable('sc_id_imf', GROUP.IMF, omniweb_name='ID for IMF SC'),
+	OmniVariable('sc_id_sw', GROUP.SW, omniweb_name='ID for SW Plasma SC'),
 	# OmniVariable('count_imf', GROUP.IMF, omniweb_id=7),
 	# OmniVariable('count_sw', GROUP.SW, omniweb_id=8),
-	OmniVariable('imf_scalar', GROUP.IMF, omniweb_name='Field Magnitude Avg,', crs_name='ibt'),
-	OmniVariable('imf_x', GROUP.IMF, omniweb_name='Bx,GSE', crs_name='ibx'),
-	OmniVariable('imf_y', GROUP.IMF, omniweb_name='By,GSE', crs_name='iby'),
-	OmniVariable('imf_z', GROUP.IMF, omniweb_name='Bz,GSE', crs_name='ibz'),
-	OmniVariable('imf_y_gsm', GROUP.IMF, omniweb_name='By,GSM'),
-	OmniVariable('imf_z_gsm', GROUP.IMF, omniweb_name='Bz,GSM'),
-	OmniVariable('sw_temperature', GROUP.SW, omniweb_name='Proton temperature', crs_name='tsw'),
-	OmniVariable('sw_density', GROUP.SW, omniweb_name='Proton density', crs_name='dsw'),
-	OmniVariable('sw_speed', GROUP.SW, omniweb_name='Bulk speed', crs_name='vsw'),
-	OmniVariable('plasma_beta', GROUP.SW, omniweb_name='Plasma beta'),
-	OmniVariable('dst_index', GROUP.MAG, omniweb_name='DST Index', crs_name='dst'),
-	OmniVariable('ae_index', GROUP.MAG, omniweb_name='AE-index'),
-	OmniVariable('kp_index', GROUP.MAG, omniweb_name='Kp*10', crs_name='kp'),
-	OmniVariable('ap_index', GROUP.MAG, omniweb_name='ap-index', crs_name= 'ap')
+	OmniVariable('B', GROUP.IMF, omniweb_name='Field Magnitude Avg,', crs_name='ibt'),
+	OmniVariable('Bm', GROUP.IMF, omniweb_name='Magnitude of Average'),
+	OmniVariable('Bx', GROUP.IMF, omniweb_name='Bx,GSE', crs_name='ibx'),
+	OmniVariable('By', GROUP.IMF, omniweb_name='By,GSE', crs_name='iby'),
+	OmniVariable('Bz', GROUP.IMF, omniweb_name='Bz,GSE', crs_name='ibz'),
+	OmniVariable('By_gsm', GROUP.IMF, omniweb_name='By,GSM'),
+	OmniVariable('Bz_gsm', GROUP.IMF, omniweb_name='Bz,GSM'),
+	OmniVariable('V', GROUP.SW, omniweb_name='Bulk speed', crs_name='vsw'),
+	OmniVariable('T', GROUP.SW, omniweb_name='Proton temperature', crs_name='tsw'),
+	OmniVariable('D', GROUP.SW, omniweb_name='Proton density', crs_name='dsw'),
+	OmniVariable('P', GROUP.SW, omniweb_name='Flow Pressure'),
+	OmniVariable('NaNp', GROUP.SW, omniweb_name='Na/Np'),
+	OmniVariable('Ef', GROUP.SW, omniweb_name='Electric field'),
+	OmniVariable('Ma', GROUP.SW, omniweb_name='Alfven mach number'),
+	OmniVariable('beta', GROUP.SW, omniweb_name='Plasma beta'),
+	OmniVariable('Dst', GROUP.MAG, omniweb_name='DST Index', crs_name='dst'),
+	OmniVariable('AE', GROUP.MAG, omniweb_name='AE-index'),
+	OmniVariable('Kp', GROUP.MAG, omniweb_name='Kp*10', crs_name='kp'),
+	OmniVariable('Ap', GROUP.MAG, omniweb_name='ap-index', crs_name= 'ap'),
+	OmniVariable('PC', GROUP.MAG, omniweb_name='PC(N)'),
+	OmniVariable('AL', GROUP.MAG, omniweb_name='AL-index'),
+	OmniVariable('AU', GROUP.MAG, omniweb_name='AU-index'),
 ]
 omni_vars_text = '' # free memory
 
