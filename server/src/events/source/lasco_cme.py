@@ -126,7 +126,6 @@ def fetch_height_time(time, width: int, spd: int, mpa: int, retry_with_s=False):
 			'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
 	if len(ht) > 0:
 		return ht
-	return []
 	y, m, d = time.year, time.month, time.day
 	hh, mm, ss = time.hour, time.minute, time.second
 	letter = 'h' if width >= 360 else 'p' if width > 120 else 'n'

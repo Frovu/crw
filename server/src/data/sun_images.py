@@ -31,7 +31,6 @@ def scrape_day_list(tstmp, src):
 	return result
 
 def fetch_list(t_from, t_to, source='AIA 193'):
-	return []
 	if source not in cache:
 		cache[source] = {}
 	t_from = t_from // DAY * DAY

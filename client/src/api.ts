@@ -195,14 +195,7 @@ export const tablesColumns = {
         's_confidence',
         'old_magnitude',
         'gamma',
-        'vmbm',
         'base_period',
-        't_ktl',
-        'd_ktl',
-        'ktl_cnt',
-        't_kth',
-        'd_kth',
-        'kth_cnt',
         'pre_increase',
         'pre_inc_width',
         'pre_inc_direction',
@@ -266,7 +259,30 @@ export const tablesColumns = {
     ]
 } as const;
 
-export const filterOperations = ['>=', '<=', '==', '<>', 'is null', 'not null', 'regexp'] as const;
+export const filterOperations = [
+    '>=',
+    '<=',
+    '==',
+    '<>',
+    'is null',
+    'not null',
+    'regexp'
+] as const;
+
+export const omniGroups = [
+    'SW',
+    'IMF',
+    'MAG',
+    'SWTY'
+] as const;
+
+export const omniSources = [
+    'OMNIWEB',
+    'GEOMAG',
+    'ACE',
+    'DISCOVR',
+    'SWTY'
+] as const;
 
 export type Column = StaticColumn | ComputedColumn;
 
@@ -284,6 +300,12 @@ export type StaticColumn = {
     parse_value: {[key: string]: string | null} | null;
     parse_stub: string | null;
     type: 'static';
+};
+
+export type CovergaeResponse = {
+    start: number;
+    end: number | null;
+    at: number;
 };
 
 export type ComputationResponse = {
@@ -330,12 +352,6 @@ export type Function = {
     args: ArgDef[];
 };
 
-export type FeidInfoResponse = {
-    series: Series[];
-    functions: {[key: string]: Function};
-    helpers: {[key: string]: [string, string]};
-};
-
 export type ChangelogEntry = {
     time: number;
     author: string;
@@ -347,6 +363,12 @@ export type ChangelogEntry = {
 export type ChangelogResponse = {
     fields: string[];
     events: {[key: string]: {[key: string]: (number | null | string)[][]}};
+};
+
+export type FeidInfoResponse = {
+    series: Series[];
+    functions: {[key: string]: Function};
+    helpers: {[key: string]: [string, string]};
 };
 
 export type TableDataResponse = {
@@ -546,14 +568,7 @@ export interface Tables {
 		s_confidence: 'low' | 'avg' | 'high' | null;
 		old_magnitude: number | null;
 		gamma: number | null;
-		vmbm: number | null;
 		base_period: Date | null;
-		t_ktl: number | null;
-		d_ktl: number | null;
-		ktl_cnt: number | null;
-		t_kth: number | null;
-		d_kth: number | null;
-		kth_cnt: number | null;
 		pre_increase: number | null;
 		pre_inc_width: number | null;
 		pre_inc_direction: number | null;
