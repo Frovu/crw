@@ -5,33 +5,33 @@ from datetime import datetime, timedelta, timezone
 
 SW_TYPES = ['HCS', 'HCS?', None, None, None, None, 'CIR', 'CIR?', 'EJE', 'EJE?',
 	'MC', 'MC?', 'SH', 'SH?', 'IS', 'IS?', 'ISa', 'ISa?', 'RARE', 'RARE?']
-PRETTY_SW_TYPES = [t for t in SW_TYPES if t is not None and '?' not in t]
+# PRETTY_SW_TYPES = [t for t in SW_TYPES if t is not None and '?' not in t]
 
-SW_TYPE_DERIVED_SERIES = [
-	'sw_type_present',
-	'sw_is_hcs',
-	'sw_is_cir',
-	'sw_is_ejecta',
-	'sw_is_mc',
-	'sw_is_sheath',
-	'sw_is_shock',
-	'sw_is_shock_reverse',
-	'sw_is_rare'
-]
+# SW_TYPE_DERIVED_SERIES = [
+# 	'sw_type_present',
+# 	'sw_is_hcs',
+# 	'sw_is_cir',
+# 	'sw_is_ejecta',
+# 	'sw_is_mc',
+# 	'sw_is_sheath',
+# 	'sw_is_shock',
+# 	'sw_is_shock_reverse',
+# 	'sw_is_rare'
+# ]
 
-def derive_from_sw_type(data, columns, query):
-	sw_type = data[:,columns.index('sw_type')]
-	data_colunms = [data[:,0]]
-	for q in query:
-		if q in SW_TYPE_DERIVED_SERIES:
-			if q == 'sw_type_present':
-				res = np.array([1 if d is not None else 0 for d in sw_type])
+# def derive_from_sw_type(data, columns, query):
+# 	sw_type = data[:,columns.index('SW_type')]
+# 	data_colunms = [data[:,0]]
+# 	for q in query:
+# 		if q in SW_TYPE_DERIVED_SERIES:
+# 			if q == 'sw_type_present':
+# 				res = np.array([1 if d is not None else 0 for d in sw_type])
 
-			data_colunms.append(res)
-		else:
-			data_colunms.append(data[:,columns.index(q)])
+# 			data_colunms.append(res)
+# 		else:
+# 			data_colunms.append(data[:,columns.index(q)])
 
-	return np.column_stack(data_colunms), ['time'] + query
+# 	return np.column_stack(data_colunms), ['time'] + query
 
 def obtain_yermolaev_types(year: int):
 	if year < 1976:

@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 
 from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CovergaeResponse
 from data.omni.variables import OMNI_TABLE, GROUP, SOURCE, omni_variables, get_vars
-from data.omni.sw_types import derive_from_sw_type, SW_TYPE_DERIVED_SERIES
 from data.omni.obtain import obtain
 
 obtain_lock = Lock()
@@ -29,17 +28,13 @@ def insert(var, data):
 
 def select(interval: tuple[int, int], query: list[str]):
 	all_column_names = [var.name for var in omni_variables]
-	all_series = all_column_names + SW_TYPE_DERIVED_SERIES
 	columns = [c for c in query if c in all_column_names]
-	any_sw_type_dervied = next((q for q in query if q in SW_TYPE_DERIVED_SERIES), None)
-	if any_sw_type_dervied and 'sw_type' not in columns:
-		columns.append('sw_type')
 	with pool.connection() as conn:
 		cols = SQL(',').join([Identifier(c) for c in columns])
 		curs = conn.execute(SQL(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {{}} FROM {OMNI_TABLE} ' +
 			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time').format(cols), interval)
 		data, fields = np.array(curs.fetchall(), dtype='object'), curs.description and [desc[0] for desc in curs.description]
-	return derive_from_sw_type(data, fields, [c for c in query if c in all_series]) if any_sw_type_dervied else (data, fields)
+	return (data, fields)
 
 def ensure_prepared(interval: tuple[int, int], trust=False):
 	t_start, t_end = interval
