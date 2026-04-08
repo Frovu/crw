@@ -66,6 +66,7 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 		tmpname = Identifier(table.split('.')[-1] + '_tmp')
 		itable = SQL('.').join([Identifier(schema), Identifier(table)])
 		icolumns = [Identifier(c) for c in columns]
+		iconstants = [Identifier(k) for k in constants.keys()]
 
 		cur.execute(SQL('DROP TABLE IF EXISTS {}').format(tmpname))
 		cur.execute(SQL('CREATE TEMP TABLE {} ON COMMIT DROP AS SELECT * FROM {} LIMIT 0').format(tmpname, itable))
@@ -77,7 +78,7 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 			for row in data:
 				copy.write_row(row)
 
-		if only_update:
+		if only_update: # TODO: support constants
 			setcols = SQL(',').join([SQL('{} = tmp.{}').format(col, col) for col in icolumns])
 			query = SQL('UPDATE {} AS t SET {} FROM {} AS tmp WHERE t.id = tmp.id').format(itable, setcols, tmpname)
 			return cur.execute(query)
@@ -86,7 +87,7 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 			on_conflict = SQL('ON CONFLICT DO NOTHING')
 		else:
 			items = []
-			for c in icolumns:
+			for c in iconstants + icolumns:
 				if c.as_string() in conflict_constraint:
 					continue
 				if write_nulls:
@@ -99,10 +100,11 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 			on_conflict = SQL('ON CONFLICT ({}) DO UPDATE SET {}')\
 				.format(SQL(conflict_constraint), SQL(',').join(items))
 			
-		iconstants = [Identifier(k) for k in constants.keys()]
 		col_names = SQL(',').join(iconstants + icolumns)
 		col_values = SQL(',').join([*(Placeholder() * len(constants)), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
+		print(query.as_string())
+		print(list(constants.values()))
 		cur.execute(query, list(constants.values()))
 
 def create_table(name: str, columns: list[Column], constraint: LiteralString='', schema='events'):

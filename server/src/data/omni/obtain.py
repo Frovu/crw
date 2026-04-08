@@ -135,6 +135,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 			
 	grps = ','.join([str(g.value).upper() for g in groups if next((v for v in vars if v.group == g), None)])
 	log.info(f'Omni: {"hard " if overwrite else ""}upserting {grps} from {str(source).upper()}: [{len(data)}] from {data[0][0]} to {data[-1][0]}')
+	print(constants)
 	upsert_many('omni', ['time', *col_names], data, constants=constants, write_nulls=overwrite, write_values=overwrite, schema='public')
 
 	return len(data)
