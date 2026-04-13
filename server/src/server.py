@@ -63,9 +63,10 @@ def after_request(response):
 		response.headers['Access-Control-Allow-Credentials'] = 'true'
 	return response
 
-from routers import admin, auth, cream, events, meteo, muon, neutron, omni
+from routers import admin, auth, cream, events, meteo, muon, neutron, omni, crow
 app.register_blueprint(admin.bp)
 app.register_blueprint(auth.bp)
+app.register_blueprint(crow.bp)
 app.register_blueprint(cream.bp)
 app.register_blueprint(events.bp)
 app.register_blueprint(meteo.bp)

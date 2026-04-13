@@ -7,6 +7,7 @@ import events.columns.query
 import events.columns.computed_column
 import events.query
 import events.misc.text_transforms
+import crow.rsm.core
 import data.omni.variables as omni
 from events.columns.context import SRC_COL_ORDERING_OPTIONS
 from events.source import chimera

@@ -103,8 +103,6 @@ def upsert_many(table: str, columns: list[str], data: Iterable[Sequence[Any]], s
 		col_names = SQL(',').join(iconstants + icolumns)
 		col_values = SQL(',').join([*(Placeholder() * len(constants)), val_columns])
 		query = SQL('INSERT INTO {}({}) SELECT {} FROM {} {}').format(itable, col_names, col_values, tmpname, on_conflict)
-		print(query.as_string())
-		print(list(constants.values()))
 		cur.execute(query, list(constants.values()))
 
 def create_table(name: str, columns: list[Column], constraint: LiteralString='', schema='events'):

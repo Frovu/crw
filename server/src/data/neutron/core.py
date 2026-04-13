@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import os
 import numpy as np
 
-from database import log, pool, upsert_many
+from database import log, pool, upsert_many, SQL, Identifier
 from data.neutron.archive import obtain as obtain_from_archive
 from data.neutron.nmdb import obtain as obtain_from_nmdb
 
@@ -118,9 +118,9 @@ def update_result_table(conn, station, dt_interval):
 		f'FROM nm.{station}_1h c WHERE %s <= time AND time <= %s ' +\
 		f'ON CONFLICT(time) DO UPDATE SET {station} = EXCLUDED.{station}', [*dt_interval])
 
-def get_stations(group_partial=False, ids=False):
+def get_stations(group_partial=False):
 	# TODO: another criteria
-	return [(s.id if ids else s) for s in all_stations]
+	return [s for s in all_stations]
 
 def resolve_station(name: str) -> Station:
 	return next((s for s in all_stations if s.id.lower().startswith(name.lower())), None)
@@ -149,9 +149,9 @@ def select(interval, station_ids, description=False):
 	with pool.connection() as conn:
 		curs = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {",".join(station_ids)} ' + \
 			'FROM neutron.result WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time', [*interval])
-		return (curs.fetchall(), ['time', *station_ids]) if description else curs.fetchall()
+		return curs.fetchall()
 
-def fetch(interval: list[int], stations: list[Station]):
+def fetch(interval: tuple[int, int], stations: list[Station]):
 	interval = (
 		floor(max(interval[0], datetime(1957, 1, 1).timestamp()) / HOUR) * HOUR,
 		 ceil(min(interval[1], datetime.now().timestamp() - 2*HOUR) / HOUR) * HOUR

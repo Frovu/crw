@@ -41,6 +41,7 @@ import { renderPlotInANewTab } from './export/exportablePlots';
 import { CustomPlot } from '../plots/time/CustomPlot';
 import { CrowControls } from '../crow/panels/CrowControls';
 import { OmniControls } from '../crow/omni/OmniControls';
+import { RSMPlot as RSMPlot2 } from '../crow/rsm/CirclesPlot';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -49,6 +50,7 @@ const panels: EventsPanel<any>[] = [
 	SWTypesPlot,
 	GeomagnPlot,
 	RSMPlot,
+	RSMPlot2,
 	CustomPlot,
 	Correlation,
 	Histogram,

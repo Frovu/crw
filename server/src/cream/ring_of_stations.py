@@ -106,13 +106,11 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 	if window > 12 or window < 1:
 		window = 3
 
-	stations_q = [s for s in database.get_stations(group_partial=True) if s.id.upper() not in exclude] # FIXME
-	req_stations, directions = zip(*[(s.id, s.drift_longitude) for s in stations_q])
+	stations = [s for s in database.get_stations(group_partial=True) if s.id.upper() not in exclude] # FIXME
+	directions = np.array([s.drift_longitude for s in stations])
 
-	neutron_data, fields = database.fetch((t_from, t_to), stations_q)
-	stations = fields[1:]
+	neutron_data = database.fetch((t_from, t_to), stations)
 	neutron_data = np.array(neutron_data, dtype=np.float64)
-	directions = [directions[i] for i, st in enumerate(req_stations) if st in stations]
 	time, data = neutron_data[:,0].astype(np.int64), neutron_data[:,1:]
 	
 	with warnings.catch_warnings():
@@ -161,7 +159,7 @@ def get(t_from, t_to, exclude, details, window, user_base, auto_filter):
 		'variation': np.where(~np.isfinite(variation), None, np.round(variation, 2)).tolist(),
 		'a0r': np.where(~np.isfinite(a0r), None, np.round(a0r, 2)).tolist(),
 		'a0m': a0m,
-		'shift': directions,
+		'shift': directions.tolist(),
 		'station': list(stations),
 		'filtered': int(filtered),
 		'excluded': exclude + [stations[i] for i in excluded]

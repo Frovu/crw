@@ -420,6 +420,20 @@ export type TextTransformsSetsList = {
 	list: TextTransformsSet[];
 };
 
+export type RSMPlotResponse = {
+	time: number[];
+	variations: (number | null)[][];
+	stations: Station[];
+	base: number | null;
+};
+
+export type Station = {
+	id: string;
+	drift_longitude: number;
+	provides_1min: boolean;
+	prefer_nmdb: boolean;
+};
+
 export type Filter = {
 	operation: '>=' | '<=' | '==' | '<>' | 'is null' | 'not null' | 'regexp';
 	column: string;
