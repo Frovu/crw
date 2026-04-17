@@ -245,6 +245,10 @@ export const omniVariables = [
 		group: 'SW',
 	},
 	{
+		name: 'KT',
+		group: 'SW',
+	},
+	{
 		name: 'D',
 		group: 'SW',
 	},
@@ -299,10 +303,6 @@ export const omniVariables = [
 	{
 		name: 'SWTY',
 		group: 'SWTY',
-	},
-	{
-		name: 'KT',
-		group: null,
 	},
 ] as const;
 

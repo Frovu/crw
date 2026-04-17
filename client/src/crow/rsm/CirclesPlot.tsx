@@ -78,7 +78,7 @@ function Panel() {
 					...axisDefaults(params.showGrid),
 					ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
 					scale: 'y',
-					label: applyTextTransform('effective longitude, deg'),
+					label: applyTextTransform('eff lon, deg'),
 					values: (u, vals) => vals.map((v) => v.toFixed(0)),
 					space: scaled(32),
 					gap: scaled(2),

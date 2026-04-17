@@ -47,7 +47,7 @@ function Panel() {
 			state.windowStart = Date.UTC(curYear, curMonth ?? 0, val) / 1e3;
 		});
 	const cycleWindow = (delta: number) => {
-		if (windowMode === 'year') return setYear(curYear + delta);
+		if (windowMode === 'year') return setYear(clamp(MIN_YEAR, maxYear(), curYear + delta));
 		if (windowMode === 'month') return setMonth(curMonth! + delta);
 		if (windowMode === '10 days') {
 			const days = [1, 11, 21];

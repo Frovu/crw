@@ -54,7 +54,7 @@ function Panel() {
 	const query = useQuery({
 		queryKey: ['omniControls', start, end, JSON.stringify(groups)],
 		queryFn: async () => {
-			const fetchVars = omniVariables.filter(({ group }) => groups.includes(group as any));
+			const fetchVars = omniVariables.filter(({ group }) => groups.includes(group));
 			const { rows } = await apiGet<{ rows: (number | null)[][] }>('omni', {
 				from: start,
 				to: end,

@@ -21,12 +21,13 @@ with open(omni_vars_path, encoding='utf-8') as file:
 @dataclass
 class OmniVariable():
 	name: str
-	group: GROUP | None = None
+	group: GROUP
 	omniweb_name: str | None = None
 	omniweb_id: int | None = None
 	omniweb_stub: str | None = None
 	crs_name: str | None = None
 	is_int: bool = False
+	is_derived: bool = False
 	description: str = ''
 
 	def __post_init__(self):
@@ -72,6 +73,7 @@ omni_variables = [
 	OmniVariable('Bz_gsm', GROUP.IMF, omniweb_name='Bz,GSM'),
 	OmniVariable('V', GROUP.SW, omniweb_name='Bulk speed', crs_name='vsw'),
 	OmniVariable('T', GROUP.SW, omniweb_name='Proton temperature', crs_name='tsw'),
+	OmniVariable('KT', GROUP.SW, description='temperature index', is_derived=True),
 	OmniVariable('D', GROUP.SW, omniweb_name='Proton density', crs_name='dsw'),
 	OmniVariable('P', GROUP.SW, omniweb_name='Flow Pressure'),
 	OmniVariable('NaNp', GROUP.SW, omniweb_name='Na/Np'),
@@ -86,7 +88,6 @@ omni_variables = [
 	OmniVariable('AL', GROUP.MAG, omniweb_name='AL-index'),
 	OmniVariable('AU', GROUP.MAG, omniweb_name='AU-index'),
 	OmniVariable('SWTY', GROUP.SWTY, description='Yermolayev SW types'),
-	OmniVariable('KT', description='temperature index'),
 ]
 omni_vars_text = '' # free memory
 
@@ -102,8 +103,8 @@ def _init_db():
 			conn.execute(SQL(f'ALTER TABLE {OMNI_TABLE} ADD COLUMN IF NOT EXISTS {{}}').format(col))
 _init_db()
 
-def get_vars(groups: list[GROUP], source: SOURCE | None = None):
+def get_vars(groups: list[GROUP], source: SOURCE | None = None, include_derived=True):
 	actual_groups = [group for group in groups if source in GROUP_SOURCES[group]] if source else groups
 	if not len(actual_groups):
 		raise Exception(f'Can\'t fetch these from {source and source.value}: ' + ','.join([str(g.value).upper() for g in groups]))
-	return [var for var in omni_variables if var.group in actual_groups]
+	return [var for var in omni_variables if var.group in actual_groups and (include_derived or not var.is_derived)]

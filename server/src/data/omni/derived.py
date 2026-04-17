@@ -9,16 +9,16 @@ def _kt_impl(t, v, vc=425):
 	return kt
 
 def _temperature_index(values, col_names):
-	t = values[:,col_names.index('sw_temperature')].astype(float)
-	v = values[:,col_names.index('sw_speed')].astype(float)
+	t = values[:,col_names.index('T')].astype(float)
+	v = values[:,col_names.index('V')].astype(float)
 	result = _kt_impl(t, v)
 	return np.where(np.isnan(result), None, np.round(result, 3)) # type: ignore
 
 def compute_derived(data, col_names: list[str]):
-	if 'sw_temperature' not in col_names or 'sw_speed' not in col_names:
+	if 'T' not in col_names or 'V' not in col_names:
 		return data, col_names
 	data = np.array(data)
 	time, values = data[:,0], data[:,1:]
 	t_idx = _temperature_index(values, col_names)
-	res_cols =  col_names + ['temperature_idx']
+	res_cols =  col_names + ['KT']
 	return np.column_stack((time, values, t_idx)).tolist(), res_cols
