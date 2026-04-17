@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { color, logError, logSuccess } from '../../app/app';
 import CoveragePlot from '../../plots/CoveragePlot';
+import { withConfirmation } from '../../components/Confirmation';
 
 const groupOptions = ['*ALL', ...omniGroups] as const;
 const scId = {
@@ -95,6 +96,12 @@ function Panel() {
 		);
 	}, [query.data]);
 
+	const invalidateQueries = () =>
+		queryClient.invalidateQueries({
+			predicate: (q) =>
+				!['tableData', 'compoundTable'].includes(q.queryKey[0] as any) && !(q.queryKey[0] as any)?.includes?.('feid'),
+		});
+
 	const { mutate: obtain } = useMutation({
 		mutationFn: async (source: (typeof omniSources)[number]) => {
 			const { message } = await apiPost('omni/obtain', {
@@ -108,14 +115,26 @@ function Panel() {
 		},
 		onSuccess: (msg) => {
 			logSuccess(msg);
-			queryClient.invalidateQueries({
-				predicate: (q) =>
-					!['tableData', 'compoundTable'].includes(q.queryKey[0] as any) &&
-					!(q.queryKey[0] as any)?.includes?.('feid'),
-			});
+			invalidateQueries();
 		},
 		onError: (err: Error) => logError(err.toString()),
 	});
+
+	const { mutate: bulkObtainMut } = useMutation({
+		mutationFn: async (group: (typeof omniGroups)[number]) => {
+			await apiPost('omni/bulk_obtain', {
+				group,
+			});
+		},
+		onSuccess: (_, group) => {
+			logSuccess(`Bulk obtain finished: ${group}`);
+			invalidateQueries();
+		},
+		onError: (err: Error) => logError(err.toString()),
+	});
+
+	const bulkObtain = () =>
+		withConfirmation(`Re-fetch ${groups[0]} 1957-now`, 'This will take several minutes', () => bulkObtainMut(groups[0]));
 
 	return (
 		<div className="h-full text-sm flex flex-col">
@@ -182,6 +201,11 @@ function Panel() {
 								/>
 							</div>
 						))}
+				{groups.length < 2 && (
+					<Button variant="default" className="m-1" onClick={bulkObtain}>
+						Obtain 1957-now
+					</Button>
+				)}
 			</div>
 		</div>
 	);

@@ -36,6 +36,25 @@ def select(interval: tuple[int, int], query: list[str]):
 		data, fields = np.array(curs.fetchall(), dtype='object'), curs.description and [desc[0] for desc in curs.description]
 	return (data, fields)
 
+def _bulk_obtain_impl(interval: tuple[int, int], groups: list[GROUP]):
+	fetch_start, fetch_end = interval
+	log.info(f'Omni: beginning bulk fetch {datetime.fromtimestamp(fetch_start, timezone.utc)}:{datetime.fromtimestamp(fetch_end, timezone.utc)}')
+	batch_size = 3600 * 24 * 1000
+	with ThreadPoolExecutor(max_workers=4) as executor:
+		for start in range(fetch_start, fetch_end+1, batch_size):
+			end = start + batch_size
+			interv = (start, end if end < fetch_end else fetch_end)
+			executor.submit(obtain, interv, groups, SOURCE.omniweb)
+			if GROUP.SWTY in groups:
+				executor.submit(obtain, interv, [GROUP.SWTY], SOURCE.SWTY)
+	log.info('Omni: bulk fetch finished')
+
+def bulk_obtain(group: GROUP):
+	t_from = datetime(1957, 1, 1, tzinfo=timezone.utc).timestamp()
+	t_to = datetime.now(timezone.utc).timestamp()
+	with obtain_lock:
+		_bulk_obtain_impl((int(t_from), int(t_to)), [group])
+
 def ensure_prepared(interval: tuple[int, int], trust=False):
 	t_start, t_end = interval
 	with obtain_lock:
@@ -50,15 +69,8 @@ def ensure_prepared(interval: tuple[int, int], trust=False):
 			else:
 				res_start = fetch_start = t_start
 				fetch_end = t_end
-			log.info(f'Omni: beginning bulk fetch {datetime.fromtimestamp(fetch_start, timezone.utc)}:{datetime.fromtimestamp(fetch_end, timezone.utc)}')
-			batch_size = 3600 * 24 * 1000
-			with ThreadPoolExecutor(max_workers=4) as executor:
-				for start in range(fetch_start, fetch_end+1, batch_size):
-					end = start + batch_size
-					interv = (start, end if end < fetch_end else fetch_end)
-					executor.submit(obtain, interv, [g for g in GROUP], SOURCE.omniweb)
-					executor.submit(obtain, interv, [GROUP.SWTY], SOURCE.SWTY)
-			log.info('Omni: bulk fetch finished')
+				
+			_bulk_obtain_impl(interval, [g for g in GROUP])
 		else:
 			res_start, fetch_end = interval
 			log.info(f'Omni: force setting coverarge to {res_start}:{fetch_end}')

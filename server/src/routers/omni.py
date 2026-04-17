@@ -72,6 +72,15 @@ def obtain():
 	count = omni.obtain((t_from, t_to), groups, source, overwrite=overwrite)
 	return msg(f'Upserted [{count} h] from {str(source.value).upper()}')
 
+@bp.route('/bulk_obtain', methods=['POST'])
+@require_role('operator')
+@route_shielded
+def bulk_obtain():
+	group = omni.GROUP(request.json.get('group', '').lower())
+
+	omni.bulk_obtain(group)
+	return msg('OK')
+
 @bp.route('/remove', methods=['POST'])
 @require_role('operator')
 @route_shielded
