@@ -31,10 +31,15 @@ function Panel() {
 		</Button>
 	);
 
-	const setYear = (val: number) =>
+	const setYear = (val: number, forceYearMode = false) =>
 		useCrowSettings.setState((state) => {
-			state.windowMode = 'year';
-			state.windowStart = Date.UTC(val, 0, 1) / 1e3;
+			if (forceYearMode || state.windowMode === 'year') {
+				state.windowMode = 'year';
+				state.windowStart = Date.UTC(val, 0, 1) / 1e3;
+			} else {
+				state.windowMode = 'month';
+				state.windowStart = Date.UTC(val, curMonth!, 1) / 1e3;
+			}
 		});
 	const setMonth = (val: number) =>
 		useCrowSettings.setState((state) => {

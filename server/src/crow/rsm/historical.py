@@ -5,7 +5,9 @@ from crow.rsm.core import RSMPlotResponse, fetch_counts, filter_variations
 HOUR = 3600
 BASE_LEN = 24
 
-def fetch_variations(t_from: int, t_to: int, event_starts: list[int]):
+# def fetch_hour_distribution(tstmp: int):
+
+def fetch_variations_data(t_from: int, t_to: int, event_starts: list[int]):
 	data, stations = fetch_counts(t_from, t_to)
 	time, data = data[:,0].astype(int), data[:,1:]
 	
@@ -13,6 +15,9 @@ def fetch_variations(t_from: int, t_to: int, event_starts: list[int]):
 
 	result = np.full_like(data, np.nan)
 	event_idxes = np.array(event_starts) // HOUR - t_from // HOUR
+
+	if len(event_idxes) < 1:
+		event_idxes = [0]
 
 	with warnings.catch_warnings():
 		warnings.filterwarnings(action='ignore', message='Mean of empty slice')
@@ -27,5 +32,10 @@ def fetch_variations(t_from: int, t_to: int, event_starts: list[int]):
 			cur = part_end
 
 	filter_variations(result)
+
+	return time, result, stations
+
+def fetch_variations(t_from: int, t_to: int, event_starts: list[int]):
+	time, result, stations = fetch_variations_data(t_from, t_to, event_starts)
 	result = np.where(~np.isfinite(result.T), None, np.round(result.T, 2)).tolist() # type: ignore
 	return RSMPlotResponse(time.tolist(), result, stations).as_dict()

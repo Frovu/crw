@@ -11,6 +11,6 @@ bp = Blueprint('crow', __name__, url_prefix='/api/crow')
 def get_rsm_plot():
 	t_from = int(request.args.get('from', ''))
 	t_to = int(request.args.get('to', ''))
-	event_starts = [int(a) for a in request.args.get('events', '').split(',')]
+	event_starts = [int(a) for a in request.args.get('events', '').split(',') if a]
 
 	return historical.fetch_variations(t_from, t_to, event_starts)

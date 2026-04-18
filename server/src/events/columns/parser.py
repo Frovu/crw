@@ -2,7 +2,7 @@ from lark import Lark, Transformer, v_args
 import math
 
 from events.columns.context import ComputationContext
-from events.columns.functions import math_op, select_op, series_op, bool_op, interval_op
+from events.columns.functions import math_op, select_op, series_op, bool_op, interval_op, model_op
 from events.columns.functions.common import str_literal, num_literal, Value, TYPE, DTYPE
 
 functions = {
@@ -11,6 +11,7 @@ functions = {
 	**interval_op.functions,
 	**math_op.functions,
 	**bool_op.functions,
+	**model_op.functions
 }
 
 helpers = {

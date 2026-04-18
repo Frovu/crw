@@ -50,11 +50,21 @@ class ComputationContext:
 			cols = SQL(',').join([c.sql_val() for c in to_fetch])
 			
 			ids = self.target_ids
-			select_query = SQL(f'SELECT {{}}\nFROM events.{E_FEID} fe LEFT JOIN events.{DATA_TABLE} cc '+\
-				'ON feid_id = id {} ORDER BY time').format(cols, SQL('WHERE id = ANY(%s) ' if ids else ''))
+			select_tmpl = SQL(f'SELECT {{}}\nFROM events.{E_FEID} fe '+\
+				f' LEFT JOIN events.{DATA_TABLE} cc ON feid_id = id {{}} ORDER BY time')
+			
+			if self.target_ids:
+				condition = SQL('WHERE id = ANY(%s)')
+				vals = [ids]
+			elif self.series_frame:
+				condition = SQL('WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)')
+				vals = [*self.series_frame]
+			else:
+				condition = ''
+				vals = []
 
 			with pool.connection() as conn:
-				curs = conn.execute(select_query, [ids] if ids else [])
+				curs = conn.execute(select_tmpl.format(cols, condition), vals)
 				res = np.array(curs.fetchall())
 			
 			for i, c in enumerate(to_fetch):

@@ -17,7 +17,7 @@ def epoch_collision(times: list[int], interval: list[int], ser_name: str):
 		query = SQL(f'''SELECT array(
 			SELECT {{}} FROM generate_series(to_timestamp(epoch) + %s, to_timestamp(epoch) + %s, '1 hour'::interval) tm
 			LEFT JOIN {{}} ON time = tm {'AND NOT is_gle' if series.source == 'gsm' else ''}
-		) FROM (select unnest(%s)) vals(epoch);''').format(Identifier(series.db_name), Identifier(series.table_name()))
+		) FROM (select unnest(%s)) vals(epoch);''').format(Identifier(series.name), Identifier(series.table_name()))
 		resp = conn.execute(query, [*[timedelta(hours=i) for i in interval], times]).fetchall()
 		windows = np.array([r[0] for r in resp], dtype='f8')
 
@@ -33,7 +33,7 @@ def epoch_collision(times: list[int], interval: list[int], ser_name: str):
 
 def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int):
 	interval = tuple(a // HOUR * HOUR + margin * HOUR for a, margin in zip(interval, [-24, 24])) # type: ignore
-	computer = ColumnComputer(force_frame=interval, target_ids=[feid_id])
+	computer = ColumnComputer(force_frame=interval)#, target_ids=[feid_id])
 	time = [tm for tm in range(interval[0], interval[1]+1, HOUR)]
 	results = [time]
 	for definition in definitions:

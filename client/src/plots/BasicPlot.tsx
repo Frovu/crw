@@ -169,11 +169,11 @@ export default function BasicPlot({
 	}, [query.data, params.interval]);
 
 	if (query.isLoading) return <div className="center">LOADING...</div>;
-	if (query.isError) throw query.error;
+	if (query.isError) return <div className="center text-red">{query.error.toString()}</div>;
 	if (!query.data?.[0]?.length) return <div className="center">NO DATA</div>;
 
 	return (
-		<div className="absolute">
+		<div className="absolute" onDoubleClick={() => query.refetch()}>
 			<ExportableUplot {...{ size: calcSize, options, data: data!, onCreate: setUpl }} />
 			{(layoutContext?.panel as any)?.isSolar && upl && <SolarPlotOverlay upl={upl} />}
 		</div>
