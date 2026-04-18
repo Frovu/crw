@@ -69,6 +69,8 @@ class ColumnComputer(Transformer):
 		return self.fn_call('mul', *args)
 	def div(self, *args):
 		return self.fn_call('div', *args)
+	def pow(self, *args):
+		return self.fn_call('pow', *args)
 	
 	def lt(self, *args):
 		return self.fn_call('lt', *args)

@@ -1,6 +1,6 @@
 
 from operator import abs, add, sub, mul, pow, mod, truediv as div, floordiv
-from numpy import sin, asin, cos, acos, tan, atan, atan2
+from numpy import sin, asin, cos, acos, tan, atan, atan2, log, log10, std, max, min
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 
 class UnaryOperation(Function):
@@ -14,7 +14,13 @@ class UnaryOperation(Function):
 		super().validate(args)
 		arg = args[0]
 		res_value = self.fn(arg.value)
-		return Value(arg.type, arg.dtype, res_value)
+
+		if self.name in ['std', 'amax', 'amin']:
+			type = TYPE.LITERAL
+		else:
+			type = arg.type
+
+		return Value(type, DTYPE.REAL, res_value)
 	
 class Atan2(Function):
 	def __init__(self) -> None:
@@ -75,6 +81,9 @@ functions = {
 	'mod': MathOperation('mod', mod, 'the remainder of integer division: a %% b'),
 	'pow': MathOperation('pow', pow, 'the exponentiation result: a ** b'),
 	'abs': UnaryOperation('abs', abs, 'the absolute value of a number: |a|'),
-	**{ op: UnaryOperation(op, fn, '') for op, fn in [['sin', sin], ['asin', asin], ['cos', cos], ['acos', acos], ['tan', tan], ['atan', atan], ['atan2', atan2]] },
+	'amax': UnaryOperation('amax', max, 'maximum value in an array'),
+	'amin': UnaryOperation('amin', min, 'minimum value in an array'),
+	'std': UnaryOperation('std', std, 'population standard deviation'),
+	**{ op: UnaryOperation(op, fn, '') for op, fn in [['ln', log], ['log10', log10], ['sin', sin], ['asin', asin], ['cos', cos], ['acos', acos], ['tan', tan], ['atan', atan], ['atan2', atan2]] },
 	'atan2': Atan2()
 }

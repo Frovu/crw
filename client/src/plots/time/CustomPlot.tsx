@@ -33,8 +33,8 @@ const defaultParams: CustomPlotParams = {
 	logScale: false,
 	series: [
 		{
-			definition: '($a10m - val($a10m)) * rebase($a10m)',
-			label: 'A0m',
+			definition: '$V',
+			label: '',
 			color: 'cyan',
 		},
 	],

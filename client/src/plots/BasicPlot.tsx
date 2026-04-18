@@ -169,7 +169,12 @@ export default function BasicPlot({
 	}, [query.data, params.interval]);
 
 	if (query.isLoading) return <div className="center">LOADING...</div>;
-	if (query.isError) return <div className="center text-red">{query.error.toString()}</div>;
+	if (query.isError)
+		return (
+			<div className="center text-red" onMouseEnter={() => query.refetch()}>
+				{query.error.toString()}
+			</div>
+		);
 	if (!query.data?.[0]?.length) return <div className="center">NO DATA</div>;
 
 	return (
