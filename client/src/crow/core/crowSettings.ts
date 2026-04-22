@@ -50,9 +50,11 @@ function windowEnd(start: number, mode: CrowWindowMode) {
 export const getCrowWindow = () => {
 	const { windowStart, windowMode } = useCrowSettings.getState();
 
-	const margin = HOUR * 24;
+	const marginBefore = HOUR * 24 * (windowMode === '10 days' ? 1 : 5);
+	const marginAfter = HOUR * 24;
+
 	const end = windowEnd(windowStart, windowMode);
-	return { plotStart: windowStart - margin, plotEnd: end + margin, start: windowStart, end };
+	return { plotStart: windowStart - marginBefore, plotEnd: end + marginAfter, start: windowStart, end };
 };
 
 export const useCrowWindowDebounced = (delay = 500) => {

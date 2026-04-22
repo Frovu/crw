@@ -133,6 +133,21 @@ class RebaseOp(Function):
 
 		return Value(TYPE.COLUMN, DTYPE.REAL, res)
 	
+class BaseMaxOp(Function):
+	def __init__(self):
+		super().__init__('basemax', [
+			ArgDef('base_series', [TYPE.SERIES], [DTYPE.REAL]),
+		], 'rebase so that max value is 0: = (s - max(s)) / (1 + max(s) / 100)')
+	
+	def __call__(self, args: tuple[Value[ValueArray]], ctx: ComputationContext) -> Value:
+		super().validate(args) # type: ignore
+		
+		data = args[0].value
+		base_val = np.nanmax(data)
+		res = (data - base_val) / (1 + base_val / 100)
+
+		return Value(TYPE.SERIES, DTYPE.REAL, res)
+
 class ShiftOp(Function):
 	def __init__(self):
 		super().__init__('shift', [
@@ -179,6 +194,7 @@ functions = {
 	'shift': ShiftOp(),
 	'movavg': MovingAverage(),
 	'rebase': RebaseOp(),
+	'basemax': BaseMaxOp(),
 	'coverage': SeriesOperation('coverage', 'percentage of the inteval, where given value is not null'),
 	'mean': SeriesOperation('mean', 'the mean value of a given series in the [from, to) interval'),
 	'median': SeriesOperation('median', 'the median value of a given series in the [from, to) interval')

@@ -22,6 +22,7 @@ type Series = {
 	color: Color;
 	rightAxis?: boolean;
 	hideMarkers?: boolean;
+	disabled?: boolean;
 };
 
 export type CustomPlotParams = {
@@ -59,8 +60,15 @@ function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<Custo
 
 	return (
 		<>
-			{params.series.map(({ definition, label, color: clr, rightAxis, hideMarkers }, i) => (
+			{params.series.map(({ definition, label, color: clr, rightAxis, hideMarkers, disabled }, i) => (
 				<div key={i + (label ?? '') + clr} className="flex gap-[1px] pt-0.5 items-center">
+					<Checkbox
+						className="pr-1"
+						title="Show series"
+						label=""
+						checked={!disabled}
+						onCheckedChange={(val) => setSer(i, 'disabled', !val)}
+					/>
 					<Select value={clr} onValueChange={(val) => setSer(i, 'color', val as any)}>
 						<SelectTrigger className="w-5 h-5 mr-1 rounded-xl" style={{ background: color(clr) }} />
 						<SelectContent side="top">
@@ -160,7 +168,8 @@ function Panel() {
 				series: () =>
 					series
 						.filter((ser) => ser.definition)
-						.map(({ label, definition, color: clr, rightAxis, hideMarkers }, i) => ({
+						.map(({ label, definition, color: clr, rightAxis, hideMarkers, disabled }, i) => ({
+							show: !disabled,
 							label: label ?? definition,
 							legend: label ?? definition,
 							scale: rightAxis ? 'c right' : 'c left',

@@ -77,7 +77,7 @@ function Panel() {
 	return (
 		<div>
 			<div className="max-w-[218px] p-[2px]">
-				<div className="p-[1px] pb-1 flex w-full items-center">
+				<div className="p-[1px] pb-1 flex w-full items-center" onDoubleClick={() => setYear(curYear, true)}>
 					<YearButton diff={-10} icon={<ChevronsLeft />} />
 					<YearButton diff={-1} icon={<ChevronLeft />} />
 					<NumberInput

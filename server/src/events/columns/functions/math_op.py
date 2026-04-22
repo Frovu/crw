@@ -1,6 +1,6 @@
 
 from operator import abs, add, sub, mul, pow, mod, truediv as div, floordiv
-from numpy import sin, asin, cos, acos, tan, atan, atan2, log, log10, std, max, min
+from numpy import sin, asin, cos, acos, tan, atan, atan2, log, log10, std, nanmax, nanmin
 from events.columns.functions.common import TYPE, DTYPE, Value, ArgDef, Function
 
 class UnaryOperation(Function):
@@ -81,8 +81,8 @@ functions = {
 	'mod': MathOperation('mod', mod, 'the remainder of integer division: a %% b'),
 	'pow': MathOperation('pow', pow, 'the exponentiation result: a ** b'),
 	'abs': UnaryOperation('abs', abs, 'the absolute value of a number: |a|'),
-	'amax': UnaryOperation('amax', max, 'maximum value in an array'),
-	'amin': UnaryOperation('amin', min, 'minimum value in an array'),
+	'amax': UnaryOperation('amax', nanmax, 'maximum value in an array'),
+	'amin': UnaryOperation('amin', nanmin, 'minimum value in an array'),
 	'std': UnaryOperation('std', std, 'population standard deviation'),
 	**{ op: UnaryOperation(op, fn, '') for op, fn in [['ln', log], ['log10', log10], ['sin', sin], ['asin', asin], ['cos', cos], ['acos', acos], ['tan', tan], ['atan', atan], ['atan2', atan2]] },
 	'atan2': Atan2()
