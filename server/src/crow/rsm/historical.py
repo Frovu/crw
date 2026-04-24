@@ -8,9 +8,14 @@ HOUR = 3600
 BASE_LEN = 24
 WINDOW_LEN = 36
 
-# def fetch_hour_distribution(tstmp: int):
+MIN_BASE_GAP = BASE_LEN
+MAX_BASE_GAP_1 = 24 * 7
+MAX_BASE_GAP_2 = 24 * 10
+MAX_BASE_GAP = 24 * 14
+GOOD_BASE_THRESHOLD = 1.5
+DECENT_BASE_THRESHOLD = 1
 
-def _base_rating(data: np.ndarray, vb, ret_rating=False):
+def _base_rating(data: np.ndarray, vb: np.ndarray):
 	result = np.empty(len(data))
 	result[-WINDOW_LEN:] = np.nan
 
@@ -22,7 +27,7 @@ def _base_rating(data: np.ndarray, vb, ret_rating=False):
 	avg_vb_shifted = np.nanmean(sliding_window_view(vb, window_shape=WINDOW_LEN), axis=1)
 	avg_vb_shifted[~np.isfinite(avg_vb_shifted)] = 2
 
-	result[:-WINDOW_LEN+1] = mean_std / avg_vb_shifted if not ret_rating else mean_std
+	result[:-WINDOW_LEN+1] = mean_std / avg_vb_shifted
 
 	return result
 
@@ -30,7 +35,26 @@ def fetch_base_rating(t_from: int, t_to: int, vb: np.ndarray, ret_rating=False):
 	data, stations = fetch_counts(t_from, t_to)
 	time, data = data[:,0].astype(int), data[:,1:]
 
-	return _base_rating(data, vb, ret_rating)
+	rating = _base_rating(data, vb)
+
+	if ret_rating:
+		return rating
+	
+	base = np.full_like(rating, 0)
+
+	idx = 0
+	get_next_max = lambda window: MIN_BASE_GAP + BASE_LEN + np.argmax(rating[idx+MIN_BASE_GAP+BASE_LEN:idx+window-MIN_BASE_GAP-BASE_LEN])
+	while idx < len(rating) - MAX_BASE_GAP_1:
+		next_max = get_next_max(MAX_BASE_GAP_1)
+		if rating[idx+next_max] < GOOD_BASE_THRESHOLD or next_max == MAX_BASE_GAP_1 - BASE_LEN - MIN_BASE_GAP - 1:
+			next_max = get_next_max(MAX_BASE_GAP_2)
+		if rating[idx+next_max] < DECENT_BASE_THRESHOLD or next_max == MAX_BASE_GAP_2 - BASE_LEN - MIN_BASE_GAP - 1:
+			next_max = get_next_max(MAX_BASE_GAP)
+
+		idx += next_max
+		base[idx:idx+BASE_LEN] = .9
+
+	return base
 
 
 def fetch_variations_data(t_from: int, t_to: int, event_starts: list[int]):
