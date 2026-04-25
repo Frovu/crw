@@ -2,9 +2,10 @@ import numpy as np
 
 from events.columns.functions.common import TYPE, DTYPE, ArgDef, Value, ValueArray, Function
 from events.columns.context import ComputationContext
-
-from crow.rsm.historical import fetch_variations_data, fetch_base_rating
 from events.columns.series import find_series
+
+from crow.rsm.core import fetch_counts
+from crow.rsm.variations import place_bases, compute_base_rating, compute_sw_vb, compute_variations, BASE_LEN
 
 RSM_PARAMS = ['a0', 'base', 'basert']
 
@@ -22,20 +23,23 @@ class RSMFunc(Function):
 		if param not in RSM_PARAMS:
 			raise ValueError(f'Unsupported RSM param: {args[0].value} options: '+ ', '.join(RSM_PARAMS))
 
-		starts = ctx.select_columns_by_name(['time'])[0]
-		
+		data, _ = fetch_counts(*ctx.series_frame)
+		counts = data[:,1:]
+		v = ctx.select_series(find_series('V'))
+		b = ctx.select_series(find_series('B'))
+		vb = compute_sw_vb(v, b)
 
-		# for t, r in zip(time, vars):
-		# 	from datetime import datetime
-		# 	print(datetime.utcfromtimestamp(t), *np.round(r, 2))
-		if param == 'a0':
-			time, vars, sta = fetch_variations_data(*ctx.series_frame, starts.astype(int).tolist()[:1])
-			result = np.nanmean(vars, axis=1)
-		else:
-			v = ctx.select_series(find_series('V'))
-			b = ctx.select_series(find_series('B'))
-			vb = v / 400 * b / 5
-			result = fetch_base_rating(*ctx.series_frame, vb, param == 'basert')
+		
+		if param == ' a0':
+			bases, variations = compute_variations(counts, vb)
+			result = np.nanmean(variations, axis=1)
+		elif param == 'base':
+			bases = place_bases(counts, vb)
+			result = np.full_like(v, 0)
+			for base in bases:
+				result[base:base+BASE_LEN] = 1
+		else: # param == 'basert':
+			result = compute_base_rating(counts, vb)
 
 		return Value(TYPE.SERIES, DTYPE.REAL, result)
 

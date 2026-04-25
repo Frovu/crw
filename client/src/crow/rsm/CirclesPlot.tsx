@@ -34,7 +34,7 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesPlotParam
 
 function Panel() {
 	const params = usePlot<CirclesPlotParams>();
-	const { interval, onsets, variationShift } = params;
+	const { interval, variationShift } = params;
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,
@@ -42,12 +42,11 @@ function Panel() {
 	}));
 
 	const query = useQuery({
-		queryKey: ['rsm', interval, onsets],
+		queryKey: ['rsm', interval],
 		queryFn: () =>
-			apiGet<RSMPlotResponse>('crow/rsm/historical', {
+			apiGet<RSMPlotResponse>('crow/rsm/circles', {
 				from: interval[0].getTime() / 1e3,
 				to: interval[1].getTime() / 1e3,
-				events: onsets?.map((ons) => ons.time.getTime() / 1e3),
 			}),
 	});
 
