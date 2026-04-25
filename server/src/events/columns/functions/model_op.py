@@ -5,9 +5,9 @@ from events.columns.context import ComputationContext
 from events.columns.series import find_series
 
 from crow.rsm.core import fetch_counts
-from crow.rsm.variations import place_bases, compute_base_rating, compute_sw_vb, compute_variations, BASE_LEN
+from crow.rsm.variations import place_bases, compute_base_rating, compute_sw_vb, compute_variations, consolidate, BASE_LEN
 
-RSM_PARAMS = ['a0', 'base', 'basert']
+RSM_PARAMS = ['a0', 'a0sb', 'base', 'basert']
 
 class RSMFunc(Function):
 	def __init__(self):
@@ -28,11 +28,16 @@ class RSMFunc(Function):
 		v = ctx.select_series(find_series('V'))
 		b = ctx.select_series(find_series('B'))
 		vb = compute_sw_vb(v, b)
-
 		
-		if param == ' a0':
-			bases, variations = compute_variations(counts, vb)
+		if param in ['a0', 'a0sb']:
+			bases = place_bases(counts, vb)
+			if param == 'a0sb':
+				variations = compute_variations(counts, bases[:1])
+			else:
+				variations = compute_variations(counts, bases)
 			result = np.nanmean(variations, axis=1)
+			if param != 'a0sb':
+				result = consolidate(result, counts, bases)
 		elif param == 'base':
 			bases = place_bases(counts, vb)
 			result = np.full_like(v, 0)

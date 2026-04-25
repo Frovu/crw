@@ -2,8 +2,6 @@ import warnings
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
-from crow.rsm.core import RSMPlotResponse, fetch_counts, filter_variations
-
 HOUR = 3600
 BASE_LEN = 24
 WINDOW_LEN = 36
@@ -41,7 +39,6 @@ def place_bases(counts: np.ndarray, sw_vb: np.ndarray):
 
 	while idx < len(rating) - MAX_BASE_GAP_1:
 		next_max = get_next_max(MAX_BASE_GAP_1)
-		print(idx+next_max, rating[idx+next_max], next_max, MAX_BASE_GAP_1-BASE_LEN - 1)
 		if rating[idx+next_max] < GOOD_BASE_THRESHOLD or next_max == MAX_BASE_GAP_1-BASE_LEN - 1 or next_max == 0:
 			next_max = get_next_max(MAX_BASE_GAP_2)
 		if rating[idx+next_max] < DECENT_BASE_THRESHOLD or next_max == MAX_BASE_GAP_2-BASE_LEN - 1 or next_max == 0:
@@ -55,10 +52,7 @@ def place_bases(counts: np.ndarray, sw_vb: np.ndarray):
 		
 	return np.array(bases)
 
-def compute_variations(counts: np.ndarray, sw_vb: np.ndarray):
-
-	bases = place_bases(counts, sw_vb)
-
+def compute_variations(counts: np.ndarray, bases: np.ndarray):
 	result = np.empty_like(counts)
 
 	cur = 0
@@ -69,6 +63,25 @@ def compute_variations(counts: np.ndarray, sw_vb: np.ndarray):
 		result[cur:part_end] = counts[cur:part_end] / base_value * 100 - 100
 		cur = part_end
 
-	filter_variations(result)
+	return result
 
-	return bases, result
+def consolidate(data: np.ndarray, counts: np.ndarray, bases: np.ndarray):
+	if len(bases) < 2:
+		return data
+	result = np.empty_like(data)
+
+	cur = bases[1]
+	result[:bases[1]] = data[:bases[1]]
+	first_base_value = np.nanmean(counts[bases[0]:bases[0]+BASE_LEN], axis=0)
+
+	for i, base in enumerate(bases):
+		base_value = np.nanmean(counts[base:base+BASE_LEN], axis=0)
+		if i == 0: continue
+
+		part_end = bases[i + 1] if i + 1 < len(bases) else len(result)
+
+		ratio = np.nanmean(base_value / first_base_value)
+		result[cur:part_end] = data[cur:part_end] + (ratio - 1) * 100 
+		cur = part_end
+
+	return result

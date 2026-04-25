@@ -16,20 +16,18 @@ class RSMPlotResponse:
 	def as_dict(self):
 		return asdict(self)
 
-def filter_variations(data):
-	std = np.nanstd(data, axis=1)[:,None]
-	med = np.nanmean(data, axis=1)[:,None]
-	dist = np.abs(med - data) / std
+def filter_counts(data):
+	base = np.nanmean(data, axis=0)
+	variation = data / base
+	std = np.nanstd(variation, axis=1)[:,None]
+	med = np.nanmean(variation, axis=1)[:,None]
+	dist = np.abs(med - variation) / std
 	mask = np.where(dist > 3) # if dist to mean > 3 sigma
 	data[mask] = np.nan
-	
-	fl_ids, fl_counts = np.unique(mask[1], return_counts=True)
-	max_errors = data.shape[0] // 10
-	excluded = fl_ids[fl_counts > max_errors]
-	data[:,excluded] = np.nan
 
 def fetch_counts(t_from: int, t_to: int):
 	stations = database.get_stations(group_partial=True)
 	data = database.fetch((t_from, t_to), stations)
 	data = np.array(data, dtype=np.float64)			
+	filter_counts(data[:,1:])
 	return data, stations
