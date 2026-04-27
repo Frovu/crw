@@ -13,11 +13,13 @@ export function tooltipPlugin({
 	sidx: userSidx,
 	didx: userDidx,
 	onclick,
+	disableFocus,
 }: {
 	didx?: () => number;
 	sidx?: (u: uPlot, sidx: number) => number;
 	onclick?: (u: uPlot, dIdx: number) => void;
 	html?: (u: uPlot, sIdx: number, dIdx: number) => string;
+	disableFocus?: boolean;
 } = {}): uPlot.Plugin {
 	const shiftX = 4;
 	const shiftY = 4;
@@ -42,7 +44,7 @@ export function tooltipPlugin({
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
 		const val = isScatter ? (u.data as any)[sidx][1][dataIdx!] : (u.data[sidx][dataIdx!] as number);
 		const valst = Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString() : val.toExponential();
-		const xval = isScatter ? (u.data as any)[0][0][dataIdx!] : u.data[0][dataIdx!];
+		const xval = isScatter ? (u.data as any)[sidx][0][dataIdx!] : u.data[0][dataIdx!];
 
 		const top = u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(xval, 'x');
@@ -71,14 +73,16 @@ export function tooltipPlugin({
 			cursor: {
 				drag: { x: false, y: false, setScale: false },
 				...opts.cursor,
-				focus: {
-					prox: 32,
-					dist: (u, sidx, didx, valPos, curPos) => {
-						if (isHidden(u, sidx)) return Infinity;
-						return curPos - valPos;
+				...(!disableFocus && {
+					focus: {
+						prox: 32,
+						dist: (u, sidx, didx, valPos, curPos) => {
+							if (isHidden(u, sidx)) return Infinity;
+							return curPos - valPos;
+						},
+						...opts.cursor?.focus,
 					},
-					...opts.cursor?.focus,
-				},
+				}),
 				points: {
 					width: 2,
 					size: 8,

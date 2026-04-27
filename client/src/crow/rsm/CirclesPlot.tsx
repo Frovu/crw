@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { apiGet } from '../../util';
+import { apiGet, prettyDate } from '../../util';
 import { circlePaths } from '../../plots/common/paths/circlePaths';
 import { axisDefaults, color, customTimeSplits, scaled } from '../../plots/common/plotUtil';
 import { drawMagneticClouds } from '../../plots/common/draw/drawMagneticClouds';
@@ -14,6 +14,8 @@ import { usePlot } from '../../events/core/plot';
 import type { RSMPlotResponse } from '../../api';
 import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
 import { usePlotOverlay } from '../../plots/common/plotOverlay';
+import { labelsPlugin, metainfoPlugin, tooltipPlugin } from '../../plots/common/plugins';
+import { Quadtree } from '../../plots/common/quadtree';
 
 const defaultParams = {
 	variationShift: 0,
@@ -29,7 +31,7 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesPlotParam
 
 function Panel() {
 	const params = usePlot<CirclesPlotParams>();
-	const { interval, variationShift } = params;
+	const { interval, variationShift, showLegend } = params;
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,
@@ -52,16 +54,55 @@ function Panel() {
 	}, [query.data, variationShift]);
 
 	const options: (() => Omit<uPlot.Options, 'width' | 'height'>) | null = useMemo(() => {
+		let hoveredRect: any;
+		let qt: Quadtree;
 		return () => ({
 			padding: [scaled(8), scaled(52), 0, 0],
 			mode: 2,
 			legend: { show: false },
 			cursor: {
-				show: false,
+				drag: { x: false, y: false, setScale: false },
+				points: {
+					size: (u, seriesIdx) => {
+						return hoveredRect && seriesIdx === hoveredRect.sidx ? (hoveredRect.w + 1) / devicePixelRatio : 0;
+					},
+				},
+				dataIdx: (u, seriesIdx) => {
+					const cx = u.cursor.left! * devicePixelRatio;
+					const cy = u.cursor.top! * devicePixelRatio;
+					hoveredRect = null;
+					qt.hover(cx, cy, (o: any) => {
+						hoveredRect = o;
+					});
+					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : -1;
+				},
 			},
+			plugins: [
+				metainfoPlugin({ params }),
+				tooltipPlugin({
+					disableFocus: true,
+					sidx: () => hoveredRect?.sidx,
+					didx: () => hoveredRect?.didx,
+					html: (u, sidx, didx) => {
+						const time = (u.data as any)[sidx][0][didx];
+						const alon = (u.data as any)[sidx][1][didx];
+						const vari = (u.data as any)[sidx][2][didx];
+						const staIdx = (u.data as any)[sidx][3][didx];
+						const staName = query.data?.stations[staIdx].id;
+						return `${prettyDate(time)}, ${alon.toFixed(1)}°<div class="text-white">${staName}: ${vari} %</div>`;
+					},
+				}),
+				labelsPlugin({ params: { showLegend } }),
+			],
 			hooks: {
-				draw: [drawMagneticClouds(params), drawOnsets(params), drawCirclesLegend({ params, overlayHandle, plotData })],
+				draw: [drawCirclesLegend({ params, overlayHandle, plotData })],
 				ready: [overlayHandle.onReady],
+				drawClear: [
+					(u) => {
+						qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
+						qt.clear();
+					},
+				],
 			},
 			axes: [
 				{
@@ -102,7 +143,7 @@ function Panel() {
 					],
 					stroke: color('cyan'),
 					fill: color('cyan2'),
-					paths: circlePaths(null, POS_S, params),
+					paths: circlePaths(POS_S, params, (r) => qt.add(r)),
 				},
 				{
 					label: '-',
@@ -112,7 +153,7 @@ function Panel() {
 					],
 					stroke: color('magenta'),
 					fill: color('magenta2'),
-					paths: circlePaths(null, NEG_S, params),
+					paths: circlePaths(NEG_S, params, (r) => qt.add(r)),
 				},
 			],
 		});

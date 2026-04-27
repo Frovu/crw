@@ -3,7 +3,6 @@ import AppLayout from '../app/Layout';
 import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
 import type { EventsPanel } from './core/util';
-import { defaultPlotParams } from '../plots/common/basicPlot';
 
 import { ExportControls } from './export/ExportControls';
 import { ExportPreview } from './export/ExportPreview';
@@ -42,6 +41,7 @@ import { CustomPlot } from '../plots/time/CustomPlot';
 import { CrowControls } from '../crow/panels/CrowControls';
 import { OmniControls } from '../crow/omni/OmniControls';
 import { RSMPlot as RSMPlot2 } from '../crow/rsm/CirclesPlot';
+import { defaultPlotParams } from '../plots/common/types';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,

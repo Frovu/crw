@@ -52,7 +52,7 @@ export type CirclesParams = typeof defaultParams & {
 	base?: Date;
 };
 
-type CirclesPlotParams = BasicPlotParams & CirclesParams;
+export type CirclesPlotParams = BasicPlotParams & CirclesParams;
 
 type CirclesResponse = {
 	base: number;

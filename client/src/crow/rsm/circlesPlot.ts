@@ -1,15 +1,9 @@
 import type { RSMPlotResponse } from '../../api';
-import type { BasicPlotParams } from '../../plots/common/basicPlot';
-import { circlesSizeComputer } from '../../plots/common/paths/plotPaths';
-import {
-	type PlotOverlayHandle,
-	applyOverrides,
-	withOverrides,
-	scaled,
-	font,
-	getFontSize,
-	color,
-} from '../../plots/common/plotUtil';
+import { circlesSizeComputer } from '../../plots/common/paths/circlePaths';
+import type { usePlotOverlay } from '../../plots/common/plotOverlay';
+import { applyOverrides, color, font, getFontSize, scaled, withOverrides } from '../../plots/common/plotUtil';
+import type { BasicPlotParams } from '../../plots/common/types';
+import type { CirclesPlotParams } from './CirclesPlot';
 
 export const [POS_S, NEG_S] = [6, 8];
 
@@ -67,8 +61,8 @@ export function drawCirclesLegend({
 	overlayHandle: { size, position, defaultPos },
 	plotData,
 }: {
-	params: BasicPlotParams;
-	overlayHandle: PlotOverlayHandle;
+	params: CirclesPlotParams & BasicPlotParams;
+	overlayHandle: ReturnType<typeof usePlotOverlay>;
 	plotData: any;
 }) {
 	const captureOverrides = applyOverrides;

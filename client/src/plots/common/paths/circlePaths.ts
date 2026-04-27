@@ -1,9 +1,9 @@
 import uPlot from 'uplot';
 import { clamp } from '../../../util';
 import { scaled } from '../plotUtil';
-import type { CirclesParams } from '../../time/Circles';
+import type { CirclesPlotParams } from '../../../crow/rsm/CirclesPlot';
 
-export function circlesSizeComputer(u: uPlot, params: CirclesParams, data: any, minMaxMagn: number) {
+export function circlesSizeComputer(u: uPlot, params: CirclesPlotParams, data: any, minMaxMagn: number) {
 	const maxSize = u.height / 10 + (params.sizeShift ?? 0);
 	const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, data.map(Math.abs)));
 	return (v: number) => {
@@ -14,7 +14,11 @@ export function circlesSizeComputer(u: uPlot, params: CirclesParams, data: any, 
 	};
 }
 
-export function circlePaths(rectCallback: any, minMaxMagn: number, params: CirclesParams): uPlot.Series.PathBuilder {
+export function circlePaths(
+	minMaxMagn: number,
+	params: CirclesPlotParams,
+	rectCallback?: (a: any) => void,
+): uPlot.Series.PathBuilder {
 	const strokeWidth = clamp(1.5, 8, scaled(devicePixelRatio) / 1.5);
 	return (u, seriesIdx) => {
 		uPlot.orient(u, seriesIdx, (series, dataX, datapeY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim) => {
@@ -50,15 +54,14 @@ export function circlePaths(rectCallback: any, minMaxMagn: number, params: Circl
 					u.ctx.arc(cx, cy, size / 2, 0, deg360);
 					u.ctx.fill();
 					u.ctx.stroke();
-					rectCallback &&
-						rectCallback({
-							x: cx - size / 2 - strokeWidth / 2 - u.bbox.left,
-							y: cy - size / 2 - strokeWidth / 2 - u.bbox.top,
-							w: size + strokeWidth,
-							h: size + strokeWidth,
-							sidx: seriesIdx,
-							didx: i,
-						});
+					rectCallback?.({
+						x: cx - size / 2 - strokeWidth / 2 - u.bbox.left,
+						y: cy - size / 2 - strokeWidth / 2 - u.bbox.top,
+						w: size + strokeWidth,
+						h: size + strokeWidth,
+						sidx: seriesIdx,
+						didx: i,
+					});
 				}
 			}
 			u.ctx.restore();
