@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { basicDataQuery, tooltipPlugin, metainfoPlugin, sliceData, paddedInterval } from '../common/basicPlot';
-import { axisDefaults, color, customTimeSplits, font, scaled } from '../common/plotUtil';
-import { ExportableUplot } from '../../events/export/ExportableUplot';
-import type uPlot from 'uplot';
 import { useCallback } from 'react';
+import type uPlot from 'uplot';
 import { usePlot } from '../../events/core/plot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
+import { basicDataQuery, paddedInterval, sliceData } from '../common/basicPlot';
+import { axisDefaults, color, customTimeSplits, font, scaled } from '../common/plotUtil';
+import { metainfoPlugin, tooltipPlugin } from '../common/plugins';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 

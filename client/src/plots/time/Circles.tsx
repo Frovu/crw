@@ -13,11 +13,9 @@ import {
 	getFontSize,
 	markersPaths,
 	scaled,
-	usePlotOverlay,
 	withOverrides,
-	type PlotOverlayHandle,
 } from '../common/plotUtil';
-import { type BasicPlotParams, applyTextTransform } from '../common/basicPlot';
+import { applyTextTransform } from '../common/basicPlot';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Quadtree } from '../common/quadtree';
 import uPlot from 'uplot';
@@ -32,6 +30,8 @@ import type { ContextMenuProps } from '../../app/layout';
 import { usePlot, type Onset } from '../../events/core/plot';
 import { Input } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
+import { usePlotOverlay } from '../common/plotOverlay';
+import type { BasicPlotParams } from '../common/types';
 
 const defaultParams = {
 	rsmExtended: false,
@@ -86,7 +86,7 @@ function drawCirclesLegend({
 	plotData,
 }: {
 	params: BasicPlotParams;
-	overlayHandle: PlotOverlayHandle;
+	overlayHandle: ReturnType<typeof usePlotOverlay>;
 	plotData: any;
 }) {
 	const captureOverrides = applyOverrides;

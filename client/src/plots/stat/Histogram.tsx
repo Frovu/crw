@@ -1,20 +1,22 @@
 import { useMemo } from 'react';
 import uPlot from 'uplot';
-import { useFeidSample } from '../../events/core/feid';
+import { color } from '../../app/app';
+import type { ContextMenuProps } from '../../app/layout';
+import { Button } from '../../components/Button';
 import { Input, NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 import type { Value } from '../../events/columns/columns';
 import { useTable } from '../../events/core/editableTables';
+import { useFeidSample } from '../../events/core/feid';
 import { usePlot } from '../../events/core/plot';
 import { useEventsSettings } from '../../events/core/util';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
-import type { ContextMenuProps } from '../../app/layout';
 import { cn } from '../../util';
-import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis } from '../common/basicPlot';
-import { scaled, measureDigit, getFontSize, font, usePlotOverlay, axisDefaults } from '../common/plotUtil';
-import { color } from '../../app/app';
-import { Button } from '../../components/Button';
+import { usePlotOverlay } from '../common/plotOverlay';
+import { axisDefaults, font, getFontSize, measureDigit, scaled } from '../common/plotUtil';
+import { labelsPlugin, legendPlugin, tooltipPlugin } from '../common/plugins';
+import type { CustomAxis } from '../common/types';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const colors = ['green', 'purple', 'magenta'] as const;

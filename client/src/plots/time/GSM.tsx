@@ -1,12 +1,14 @@
+import { useRef, type RefObject } from 'react';
 import uPlot from 'uplot';
-import BasicPlot from '../common/BasicPlot';
-import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQuery } from '../common/basicPlot';
-import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../common/plotUtil';
-import { useRef, type MutableRefObject } from 'react';
-import { distToSegment } from '../../util';
-import { usePlot } from '../../events/core/plot';
 import type { ContextMenuProps } from '../../app/layout';
+import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
+import { distToSegment } from '../../util';
+import BasicPlot from '../common/BasicPlot';
+import { applyTextTransform, basicDataQuery } from '../common/basicPlot';
+import { usePlotOverlay } from '../common/plotOverlay';
+import { color, drawArrow } from '../common/plotUtil';
+import type { BasicPlotParams, CustomScale } from '../common/types';
 
 const defaultParams = {
 	maskGLE: true,
@@ -19,11 +21,11 @@ const defaultParams = {
 
 export type GSMParams = typeof defaultParams;
 
-type VectorCache = MutableRefObject<number[][] | undefined>;
+type VectorCache = RefObject<number[][] | undefined>;
 
 function tracePaths(
 	scl: number,
-	{ size, position, defaultPos }: PlotOverlayHandle,
+	{ size, position, defaultPos }: ReturnType<typeof usePlotOverlay>,
 	params: GSMParams & BasicPlotParams,
 	posCache: VectorCache,
 ): uPlot.Series.PathBuilder {

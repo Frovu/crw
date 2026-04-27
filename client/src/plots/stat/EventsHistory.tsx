@@ -1,20 +1,21 @@
 import { useMemo } from 'react';
 import type uPlot from 'uplot';
+import { color } from '../../app/app';
 import type { ContextMenuProps } from '../../app/layout';
-import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
-import { useTable } from '../../events/core/editableTables';
+import { Button } from '../../components/Button';
 import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
+import { useTable } from '../../events/core/editableTables';
+import { useFeidSample } from '../../events/core/feid';
 import { usePlot } from '../../events/core/plot';
 import { useEventsSettings } from '../../events/core/util';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
-import { tooltipPlugin, legendPlugin, labelsPlugin } from '../common/basicPlot';
-import { usePlotOverlay, scaled, measureDigit, axisDefaults, markersPaths } from '../common/plotUtil';
-import { color } from '../../app/app';
-import { Button } from '../../components/Button';
-import { useFeidSample } from '../../events/core/feid';
+import { usePlotOverlay } from '../common/plotOverlay';
+import { axisDefaults, markersPaths, measureDigit, scaled } from '../common/plotUtil';
+import { labelsPlugin, legendPlugin, tooltipPlugin } from '../common/plugins';
+import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 
 const windowOptions = {
 	'2 years': 24,

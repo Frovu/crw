@@ -1,15 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { apiGet, useSize } from '../../util';
 import { circlePaths, linePaths } from '../../plots/common/plotPaths';
-import {
-	axisDefaults,
-	color,
-	customTimeSplits,
-	drawMagneticClouds,
-	drawOnsets,
-	scaled,
-	usePlotOverlay,
-} from '../../plots/common/plotUtil';
+import { axisDefaults, color, customTimeSplits, drawMagneticClouds, drawOnsets, scaled } from '../../plots/common/plotUtil';
 import { applyTextTransform } from '../../plots/common/basicPlot';
 import { useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';
@@ -19,6 +11,7 @@ import type { ContextMenuProps } from '../../app/layout';
 import { usePlot } from '../../events/core/plot';
 import type { RSMPlotResponse } from '../../api';
 import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
+import { usePlotOverlay } from '../../plots/common/plotOverlay';
 
 const defaultParams = {
 	variationShift: 0,

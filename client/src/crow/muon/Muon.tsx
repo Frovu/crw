@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { apiGet, apiPost, prettyDate, useMonthInput } from '../../util';
-import { axisDefaults, seriesDefaults, color, ScatterPlot, customTimeSplits } from '../../plots/common/plotUtil';
+import { axisDefaults, seriesDefaults, color, customTimeSplits } from '../../plots/common/plotUtil';
+import { ScatterPlot } from '../../plots/ScatterPlot';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import regression from 'regression';
 import uPlot from 'uplot';

@@ -1,15 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { apiGet, useSize } from '../../util';
 import { circlePaths, linePaths } from '../../plots/common/plotPaths';
-import {
-	axisDefaults,
-	color,
-	customTimeSplits,
-	drawMagneticClouds,
-	drawOnsets,
-	scaled,
-	usePlotOverlay,
-} from '../../plots/common/plotUtil';
+import { axisDefaults, color, customTimeSplits, drawMagneticClouds, drawOnsets, scaled } from '../../plots/common/plotUtil';
 import { applyTextTransform } from '../../plots/common/basicPlot';
 import { useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';

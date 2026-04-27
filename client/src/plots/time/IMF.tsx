@@ -1,9 +1,10 @@
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../app/layout';
-import { type CustomSeries, basicDataQuery } from '../common/basicPlot';
+import { basicDataQuery } from '../common/basicPlot';
 import BasicPlot from '../common/BasicPlot';
 import { color } from '../common/plotUtil';
+import type { CustomSeries } from '../common/types';
 
 const defaultParams = {
 	showBz: true,
