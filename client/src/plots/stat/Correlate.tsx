@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo } from 'react';
 import regression from 'regression';
 import uPlot from 'uplot';
-import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from '../basicPlot';
+import { legendPlugin, titlePlugin, tooltipPlugin, type CustomAxis, labelsPlugin } from '../common/basicPlot';
 import { useFeidSample, useFeidTableView } from '../../events/core/feid';
 import { useTable } from '../../events/core/editableTables';
 import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../../app/layout';
@@ -14,9 +14,9 @@ import { usePlot } from '../../events/core/plot';
 import { useEventsSettings, equalValues, valueToString } from '../../events/core/util';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
-import { pointPaths, linePaths } from '../plotPaths';
-import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../plotUtil';
-import { Quadtree } from '../quadtree';
+import { pointPaths, linePaths } from '../common/plotPaths';
+import { usePlotOverlay, scaled, measureDigit, axisDefaults, getFontSize } from '../common/plotUtil';
+import { Quadtree } from '../common/quadtree';
 import { color, type Color } from '../../app/app';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 

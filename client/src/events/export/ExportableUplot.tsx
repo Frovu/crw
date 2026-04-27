@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
-import { withOverrides } from '../../plots/plotUtil';
-import type { CustomScale } from '../../plots/basicPlot';
+import { withOverrides } from '../../plots/common/plotUtil';
+import type { CustomScale } from '../../plots/common/basicPlot';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { LayoutContext, useNodeExists } from '../../app/layout';

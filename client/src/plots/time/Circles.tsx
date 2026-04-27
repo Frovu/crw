@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { apiGet, useEventListener, useSize } from '../../util';
-import { circlesSizeComputer, circlePaths, linePaths, pointPaths } from '../plotPaths';
+import { circlesSizeComputer, circlePaths, linePaths, pointPaths } from '../common/plotPaths';
 import {
 	applyOverrides,
 	axisDefaults,
@@ -16,10 +16,10 @@ import {
 	usePlotOverlay,
 	withOverrides,
 	type PlotOverlayHandle,
-} from '../plotUtil';
-import { type BasicPlotParams, applyTextTransform } from '../basicPlot';
+} from '../common/plotUtil';
+import { type BasicPlotParams, applyTextTransform } from '../common/basicPlot';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Quadtree } from '../quadtree';
+import { Quadtree } from '../common/quadtree';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 

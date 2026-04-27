@@ -15,8 +15,8 @@ import { useEventsSettings } from '../../events/core/util';
 import { usePlot } from '../../events/core/plot';
 import { applySample } from '../../events/sample/sample';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis, type CustomScale } from '../basicPlot';
-import { usePlotOverlay, scaled, getParam, measureDigit, axisDefaults } from '../plotUtil';
+import { tooltipPlugin, legendPlugin, labelsPlugin, type CustomAxis, type CustomScale } from '../common/basicPlot';
+import { usePlotOverlay, scaled, getParam, measureDigit, axisDefaults } from '../common/plotUtil';
 
 const colors = ['green', 'purple', 'magenta'] as const;
 const seriesKeys = ['series0', 'series1', 'series2'] as const;

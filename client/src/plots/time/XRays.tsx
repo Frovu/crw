@@ -3,9 +3,9 @@ import { useSolarPlot } from '../../events/core/plot';
 import { serializeCoords } from '../../events/core/sourceActions';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../app/layout';
-import { basicDataQuery, type BasicPlotParams } from '../basicPlot';
-import BasicPlot from '../BasicPlot';
-import { axisDefaults, color, font, scaled } from '../plotUtil';
+import { basicDataQuery, type BasicPlotParams } from '../common/basicPlot';
+import BasicPlot from '../common/BasicPlot';
+import { axisDefaults, color, font, scaled } from '../common/plotUtil';
 import uPlot from 'uplot';
 
 const defaultParams = {

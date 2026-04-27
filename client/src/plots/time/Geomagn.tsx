@@ -1,7 +1,7 @@
 import uPlot from 'uplot';
-import { basicDataQuery } from '../basicPlot';
-import BasicPlot from '../BasicPlot';
-import { color } from '../plotUtil';
+import { basicDataQuery } from '../common/basicPlot';
+import BasicPlot from '../common/BasicPlot';
+import { color } from '../common/plotUtil';
 import type { ContextMenuProps } from '../../app/layout';
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';

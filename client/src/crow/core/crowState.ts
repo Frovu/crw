@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
-export type CrowCursor = { time: number; sticky: boolean };
+export type CrowCursor = { time: number; locked: boolean };
 
 const defaultSate = {
 	cursor: null as CrowCursor | null,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { openContextMenu } from '../../app/app';
 import { Input, NumberInput, PlotIntervalInput, TextInput } from '../../components/Input';
-import type { ScaleParams } from '../../plots/basicPlot';
+import type { ScaleParams } from '../../plots/common/basicPlot';
 import { useEventsState } from '../core/eventsState';
 import type { EventsPanel } from '../core/util';
 import { usePlotExportSate, computePlotsLayout, renderPlotsInCanvas } from './exportablePlots';

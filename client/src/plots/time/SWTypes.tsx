@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { basicDataQuery, tooltipPlugin, metainfoPlugin, sliceData, paddedInterval } from '../basicPlot';
-import { axisDefaults, color, customTimeSplits, font, scaled } from '../plotUtil';
+import { basicDataQuery, tooltipPlugin, metainfoPlugin, sliceData, paddedInterval } from '../common/basicPlot';
+import { axisDefaults, color, customTimeSplits, font, scaled } from '../common/plotUtil';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import type uPlot from 'uplot';
 import { useCallback } from 'react';

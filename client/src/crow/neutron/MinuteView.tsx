@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';
-import { color, font } from '../../plots/plotUtil';
+import { color, font } from '../../plots/common/plotUtil';
 import UplotReact from 'uplot-react';
 import { apiGet, prettyDate, useEventListener } from '../../util';
 import { useContext, useEffect, useState } from 'react';

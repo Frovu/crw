@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { LayoutContext, type ContextMenuProps } from '../../app/layout';
-import { basicDataQuery } from '../basicPlot';
-import BasicPlot from '../BasicPlot';
-import { axisDefaults, color, scaled, superScript } from '../plotUtil';
+import { basicDataQuery } from '../common/basicPlot';
+import BasicPlot from '../common/BasicPlot';
+import { axisDefaults, color, scaled, superScript } from '../common/plotUtil';
 import { usePlot, useSolarPlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import { Checkbox } from '../../components/Checkbox';

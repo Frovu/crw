@@ -1,12 +1,14 @@
 import uPlot from 'uplot';
 import { scaled } from './plotUtil';
-import { clamp } from '../util';
+import { clamp } from '../../util';
 
 export function circlesSizeComputer(u, params, data, minMaxMagn) {
 	const maxSize = u.height / 10 + (params.sizeShift ?? 0);
 	const maxMagn = Math.max(minMaxMagn, Math.max.apply(null, data.map(Math.abs)));
 	return (v) => {
-		const sz = params.linearSize ? (Math.abs(v) / maxMagn) * maxSize : (maxSize * (10 - Math.pow((Math.abs(v) + 38.7) / 50, -9))) / 10;
+		const sz = params.linearSize
+			? (Math.abs(v) / maxMagn) * maxSize
+			: (maxSize * (10 - Math.pow((Math.abs(v) + 38.7) / 50, -9))) / 10;
 		return Math.max(scaled(1.5), sz) * devicePixelRatio;
 	};
 }
@@ -93,32 +95,36 @@ export function linePaths(width = 1) {
 export function pointPaths(sizePx, rectCallback) {
 	return (u, seriesIdx) => {
 		const size = sizePx * devicePixelRatio;
-		uPlot.orient(u, seriesIdx, (series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
-			const d = u.data[seriesIdx];
-			u.ctx.fillStyle = series.stroke();
-			const deg360 = 2 * Math.PI;
-			const p = new Path2D();
-			for (let i = 0; i < d[0].length; i++) {
-				const xVal = d[0][i];
-				const yVal = d[1][i];
-				if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
-					const cx = valToPosX(xVal, scaleX, xDim, xOff);
-					const cy = valToPosY(yVal, scaleY, yDim, yOff);
-					rectCallback &&
-						rectCallback({
-							x: cx - size / 2 - 2 - u.bbox.left,
-							y: cy - size / 2 - 2 - u.bbox.top,
-							w: size + 4,
-							h: size + 4,
-							sidx: seriesIdx,
-							didx: i,
-						});
-					p.moveTo(cx + size / 2, cy);
-					arc(p, cx, cy, size / 2, 0, deg360);
+		uPlot.orient(
+			u,
+			seriesIdx,
+			(series, dataX, dataY, scaleX, scaleY, valToPosX, valToPosY, xOff, yOff, xDim, yDim, moveTo, lineTo, rect, arc) => {
+				const d = u.data[seriesIdx];
+				u.ctx.fillStyle = series.stroke();
+				const deg360 = 2 * Math.PI;
+				const p = new Path2D();
+				for (let i = 0; i < d[0].length; i++) {
+					const xVal = d[0][i];
+					const yVal = d[1][i];
+					if (xVal >= scaleX.min && xVal <= scaleX.max && yVal >= scaleY.min && yVal <= scaleY.max) {
+						const cx = valToPosX(xVal, scaleX, xDim, xOff);
+						const cy = valToPosY(yVal, scaleY, yDim, yOff);
+						rectCallback &&
+							rectCallback({
+								x: cx - size / 2 - 2 - u.bbox.left,
+								y: cy - size / 2 - 2 - u.bbox.top,
+								w: size + 4,
+								h: size + 4,
+								sidx: seriesIdx,
+								didx: i,
+							});
+						p.moveTo(cx + size / 2, cy);
+						arc(p, cx, cy, size / 2, 0, deg360);
+					}
 				}
-			}
-			u.ctx.fill(p);
-		});
+				u.ctx.fill(p);
+			},
+		);
 		return null;
 	};
 }

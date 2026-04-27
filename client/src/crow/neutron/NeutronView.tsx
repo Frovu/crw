@@ -1,5 +1,5 @@
 import uPlot from 'uplot';
-import { color, font } from '../../plots/plotUtil';
+import { color, font } from '../../plots/common/plotUtil';
 import { useCallback, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import MinuteView from './MinuteView';
@@ -13,8 +13,8 @@ function plotOptions(stations: string[], levels: number[]) {
 				? color('gold')
 				: color('green')
 			: u.series[idx]._focus
-			? color('orange')
-			: color('cyan');
+				? color('orange')
+				: color('cyan');
 	};
 	const levelSize = levels[0] - levels[1];
 	let mouseSelection = false;
@@ -107,8 +107,8 @@ function plotOptions(stations: string[], levels: number[]) {
 							width: 1,
 							stroke: color('purple', 0.9),
 							points: { show: true, size: 4, fill: color('purple', 0.5), stroke: color('purple', 0.4) },
-						} as Partial<uPlot.Series>)
-				)
+						}) as Partial<uPlot.Series>,
+				),
 			)
 			.concat(
 				stations.map(
@@ -118,8 +118,8 @@ function plotOptions(stations: string[], levels: number[]) {
 							stroke: serColor,
 							grid: { stroke: color('grid'), width: 1 },
 							points: { fill: color('bg'), stroke: serColor },
-						} as Partial<uPlot.Series>)
-				)
+						}) as Partial<uPlot.Series>,
+				),
 			)
 			.concat([
 				{
@@ -192,7 +192,7 @@ export function ManyStationsView({
 							</div>
 						)}
 					</>,
-					legendContainer
+					legendContainer,
 				)}
 			{showMinutes &&
 				chosenOrFocused &&
@@ -202,7 +202,7 @@ export function ManyStationsView({
 					<div style={{ position: 'relative', border: '2px var(--color-border) solid', width: 356, height: 240 }}>
 						<MinuteView {...{ station: chosenOrFocused, timestamp: data[0][cursor.idx] }} />
 					</div>,
-					detailsContainer
+					detailsContainer,
 				)}
 		</>
 	);

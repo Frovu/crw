@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useRef, useState, useEffect, useMemo, type MouseEvent } from 'react';
 import { type ContextMenuProps, LayoutContext, type LayoutContextType, openWindow } from '../../app/layout';
-import { font } from '../../plots/plotUtil';
+import { font } from '../../plots/common/plotUtil';
 import { apiGet, dispatchCustomEvent, prettyDate } from '../../util';
 import { getSourceLink, serializeCoords } from '../core/sourceActions';
 import { equalValues, type EventsPanel } from '../core/util';

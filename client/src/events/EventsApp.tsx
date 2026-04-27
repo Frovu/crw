@@ -3,7 +3,7 @@ import AppLayout from '../app/Layout';
 import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
 import type { EventsPanel } from './core/util';
-import { defaultPlotParams } from '../plots/basicPlot';
+import { defaultPlotParams } from '../plots/common/basicPlot';
 
 import { ExportControls } from './export/ExportControls';
 import { ExportPreview } from './export/ExportPreview';

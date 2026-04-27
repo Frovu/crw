@@ -8,8 +8,8 @@ import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../app/layout';
 import { apiPost } from '../../util';
-import BasicPlot from '../BasicPlot';
-import { superScript, type Shape } from '../plotUtil';
+import BasicPlot from '../common/BasicPlot';
+import { superScript, type Shape } from '../common/plotUtil';
 import { DefinitionInput } from '../../events/columns/Autocomplete';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
@@ -144,7 +144,7 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['customPlot', JSON.stringify(definitions), interval],
+				queryKey: (interval) => ['customPlot', JSON.stringify(definitions), interval, feidId],
 				queryFn: (interval) => customPlotDataQuery(interval, definitions, feidId),
 				params,
 				axes: () => [

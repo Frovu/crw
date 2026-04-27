@@ -1,9 +1,9 @@
 import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import type { ContextMenuProps } from '../../app/layout';
-import { basicDataQuery } from '../basicPlot';
-import BasicPlot from '../BasicPlot';
-import { color, superScript } from '../plotUtil';
+import { basicDataQuery } from '../common/basicPlot';
+import BasicPlot from '../common/BasicPlot';
+import { color, superScript } from '../common/plotUtil';
 
 const defaultParams = {
 	useTemperatureIndex: true,

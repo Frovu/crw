@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { color, axisDefaults, seriesDefaults, customTimeSplits } from '../../plots/plotUtil';
+import { color, axisDefaults, seriesDefaults, customTimeSplits } from '../../plots/common/plotUtil';
 import { apiGet, clamp, useMonthInput, useSize } from '../../util';
 import { useEffect, useMemo, useState } from 'react';
 import UplotReact from 'uplot-react';
@@ -43,7 +43,7 @@ function plotOptions(): Omit<uPlot.Options, 'width' | 'height'> {
 					({
 						...seriesDefaults(`t_${lvl}mb`, 'purple', 't'),
 						value: (u, val) => val?.toFixed(1) ?? '--',
-					} as uPlot.Series)
+					}) as uPlot.Series,
 			),
 		],
 	};
@@ -114,11 +114,11 @@ export default function TemperatureApp() {
 							rows: query.data.rows?.map((row) => [new Date(row[0] * 1e3), ...row.slice(1)]),
 						},
 						null,
-						2
+						2,
 					),
 				],
-				{ type: 'application/json' }
-			)
+				{ type: 'application/json' },
+			),
 		);
 		a.download = 'air_temperature.json';
 		a.click();
@@ -152,7 +152,7 @@ export default function TemperatureApp() {
 												: {
 														...c,
 														[coord]: coord === 'lat' ? clamp(-90, 90, val) : clamp(-180, 180, val),
-												  };
+													};
 										})
 									}
 								/>

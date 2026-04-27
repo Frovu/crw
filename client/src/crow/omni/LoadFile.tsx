@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiPost, prettyDate, useEventListener } from '../../util';
 import UplotReact from 'uplot-react';
-import { axisDefaults, color, seriesDefaults } from '../../plots/plotUtil';
+import { axisDefaults, color, seriesDefaults } from '../../plots/common/plotUtil';
 
 const fileFormats = ['w0'] as const;
 const omniVariables = [

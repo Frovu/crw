@@ -6,7 +6,7 @@ import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
 import { useCompoundTable } from './query';
 import type { EruptiveEvent } from './sourceActions';
-import type { BasicPlotParams } from '../../plots/basicPlot';
+import type { BasicPlotParams } from '../../plots/common/basicPlot';
 import { useCrowWindowDebounced } from '../../crow/core/crowSettings';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };

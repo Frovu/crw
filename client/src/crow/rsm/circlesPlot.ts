@@ -1,7 +1,15 @@
 import type { RSMPlotResponse } from '../../api';
-import type { BasicPlotParams } from '../../plots/basicPlot';
-import { circlesSizeComputer } from '../../plots/plotPaths';
-import { type PlotOverlayHandle, applyOverrides, withOverrides, scaled, font, getFontSize, color } from '../../plots/plotUtil';
+import type { BasicPlotParams } from '../../plots/common/basicPlot';
+import { circlesSizeComputer } from '../../plots/common/plotPaths';
+import {
+	type PlotOverlayHandle,
+	applyOverrides,
+	withOverrides,
+	scaled,
+	font,
+	getFontSize,
+	color,
+} from '../../plots/common/plotUtil';
 
 export const [POS_S, NEG_S] = [6, 8];
 

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { apiGet, useSize } from '../../util';
-import { circlePaths, linePaths } from '../../plots/plotPaths';
+import { circlePaths, linePaths } from '../../plots/common/plotPaths';
 import {
 	axisDefaults,
 	color,
@@ -9,8 +9,8 @@ import {
 	drawOnsets,
 	scaled,
 	usePlotOverlay,
-} from '../../plots/plotUtil';
-import { applyTextTransform } from '../../plots/basicPlot';
+} from '../../plots/common/plotUtil';
+import { applyTextTransform } from '../../plots/common/basicPlot';
 import { useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';
 
@@ -58,7 +58,7 @@ function Panel() {
 
 	const options: (() => Omit<uPlot.Options, 'width' | 'height'>) | null = useMemo(() => {
 		return () => ({
-			padding: [scaled(8), scaled(48), 0, 0],
+			padding: [scaled(8), scaled(52), 0, 0],
 			mode: 2,
 			legend: { show: false },
 			cursor: {

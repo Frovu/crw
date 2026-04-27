@@ -4,7 +4,7 @@ import uPlot from 'uplot';
 import { useEffect, useMemo, useState, type SetStateAction } from 'react';
 import LoadFile from './LoadFile';
 import { useNavigationState, NavigationContext, NavigatedPlot } from '../../plots/NavigatedPlot';
-import { axisDefaults, color, customTimeSplits, font, seriesDefaults } from '../../plots/plotUtil';
+import { axisDefaults, color, customTimeSplits, font, seriesDefaults } from '../../plots/common/plotUtil';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MonthInput } from '../../components/MonthInput';

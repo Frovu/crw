@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '../../util';
-import { scaled, axisDefaults, customTimeSplits, font } from '../plotUtil';
+import { scaled, axisDefaults, customTimeSplits, font } from '../common/plotUtil';
 import type uPlot from 'uplot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { color } from '../../app/app';
 import { useSolarPlot } from '../../events/core/plot';
 import { usePlot } from '../../events/core/plot';
-import { SolarPlotOverlay } from '../BasicPlot';
+import { SolarPlotOverlay } from '../common/BasicPlot';
 import type { EventsPanel } from '../../events/core/util';
 
 const colors = {

@@ -2,7 +2,7 @@ import { createContext, type SetStateAction, useState, useContext, useCallback, 
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { useSize, useEventListener } from '../util';
-import { color } from './plotUtil';
+import { color } from './common/plotUtil';
 
 export type NavigationState = {
 	cursor: { idx: number; lock: boolean } | null;
@@ -11,7 +11,10 @@ export type NavigationState = {
 	chosen: { idx: number; label: string } | null;
 	view: { min: number; max: number };
 };
-export const NavigationContext = createContext<{ state: NavigationState; setState: (a: SetStateAction<NavigationState>) => void }>({} as any);
+export const NavigationContext = createContext<{
+	state: NavigationState;
+	setState: (a: SetStateAction<NavigationState>) => void;
+}>({} as any);
 export function useNavigationState() {
 	const [state, setState] = useState<NavigationState>({
 		cursor: null,
@@ -58,7 +61,10 @@ export function NavigatedPlot({
 			u.setCursor(
 				{
 					left: u.valToPos(u.data[0][cursor.idx], 'x'),
-					top: val == null || !cof ? (u.cursor.top ?? -1) : u.valToPos(u.data[cof.idx][cursor.idx]!, u.series[cof.idx].scale!),
+					top:
+						val == null || !cof
+							? (u.cursor.top ?? -1)
+							: u.valToPos(u.data[cof.idx][cursor.idx]!, u.series[cof.idx].scale!),
 				},
 				false,
 			);
@@ -135,7 +141,10 @@ export function NavigatedPlot({
 					const sel = st.selection,
 						min = sel?.min,
 						max = sel?.max;
-					const vals = !sel || !((cur !== min) !== (cur !== max)) ? [cur, cur + move] : [cur + move, cur !== min ? min! : max!];
+					const vals =
+						!sel || !((cur !== min) !== (cur !== max))
+							? [cur, cur + move]
+							: [cur + move, cur !== min ? min! : max!];
 					return vals[0] === vals[1]
 						? null
 						: {
@@ -196,7 +205,12 @@ export function NavigatedPlot({
 							handler(e);
 							upl.cursor.drag.setScale = true;
 							if (upl.select?.width <= 0) {
-								set({ cursor: upl.cursor.idx == null ? null : { idx: upl.cursor.idx, lock: (upl as any).cursor._lock } });
+								set({
+									cursor:
+										upl.cursor.idx == null
+											? null
+											: { idx: upl.cursor.idx, lock: (upl as any).cursor._lock },
+								});
 							} else {
 								upl.cursor._lock = false;
 							}
@@ -218,7 +232,10 @@ export function NavigatedPlot({
 					(upl: any) =>
 						setState((st) =>
 							upl.cursor.idx !== st.cursor?.idx || upl.cursor._lock !== st.cursor?.lock
-								? { ...st, cursor: upl.cursor.idx == null ? null : { idx: upl.cursor.idx, lock: upl.cursor._lock } }
+								? {
+										...st,
+										cursor: upl.cursor.idx == null ? null : { idx: upl.cursor.idx, lock: upl.cursor._lock },
+									}
 								: st,
 						),
 				],
@@ -243,7 +260,10 @@ export function NavigatedPlot({
 									: null,
 						}),
 				],
-				setSeries: [(upl: any, si) => si != null && upl.series[si]?._focus && set({ focused: { idx: si, label: upl.series[si].label } })],
+				setSeries: [
+					(upl: any, si) =>
+						si != null && upl.series[si]?._focus && set({ focused: { idx: si, label: upl.series[si].label } }),
+				],
 				ready: [
 					(upl) => upl.setCursor({ left: -1, top: -1 }), // ??
 				],

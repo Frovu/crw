@@ -4,8 +4,8 @@ import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { color, getApp } from '../../app/app';
 import { useLayoutsStore, gapSize } from '../../app/layout';
-import type { ScaleParams } from '../../plots/basicPlot';
-import { type PlotsOverrides, withOverrides } from '../../plots/plotUtil';
+import type { ScaleParams } from '../../plots/common/basicPlot';
+import { type PlotsOverrides, withOverrides } from '../../plots/common/plotUtil';
 import type { EventsPanel } from '../core/util';
 import type { TextTransform } from '../../api';
 

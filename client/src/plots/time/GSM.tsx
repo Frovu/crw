@@ -1,7 +1,7 @@
 import uPlot from 'uplot';
-import BasicPlot from '../BasicPlot';
-import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQuery } from '../basicPlot';
-import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../plotUtil';
+import BasicPlot from '../common/BasicPlot';
+import { type CustomScale, type BasicPlotParams, applyTextTransform, basicDataQuery } from '../common/basicPlot';
+import { color, drawArrow, usePlotOverlay, type PlotOverlayHandle } from '../common/plotUtil';
 import { useRef, type MutableRefObject } from 'react';
 import { distToSegment } from '../../util';
 import { usePlot } from '../../events/core/plot';

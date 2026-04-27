@@ -12,7 +12,7 @@ import {
 	getFontSize,
 } from './plotUtil';
 import uPlot from 'uplot';
-import { ExportableUplot } from '../events/export/ExportableUplot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
 import {
 	type BasicPlotParams,
 	type CustomAxis,
@@ -26,8 +26,8 @@ import {
 	sliceData,
 	actionsPlugin,
 } from './basicPlot';
-import { useSunViewState } from '../events/panels/SDO';
-import { LayoutContext } from '../app/layout';
+import { useSunViewState } from '../../events/panels/SDO';
+import { LayoutContext } from '../../app/layout';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 

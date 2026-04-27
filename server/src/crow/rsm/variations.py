@@ -1,13 +1,13 @@
-import warnings
 import numpy as np
 from numpy.lib.stride_tricks import sliding_window_view
 
 HOUR = 3600
 BASE_LEN = 24
 WINDOW_LEN = 36
+MIN_BASE_GAP = 24
 
 MAX_BASE_GAP_1 = 24 * 7
-MAX_BASE_GAP_2 = 24 * 9
+MAX_BASE_GAP_2 = 24 * 10
 MAX_BASE_GAP = 24 * 14
 GOOD_BASE_THRESHOLD = 1.5
 DECENT_BASE_THRESHOLD = 1
@@ -35,19 +35,19 @@ def place_bases(counts: np.ndarray, sw_vb: np.ndarray):
 	rating = compute_base_rating(counts, sw_vb)
 	bases = []
 	idx = 0
-	get_next_max = lambda window: np.argmax(rating[idx:idx+window-BASE_LEN])
+	get_next_max = lambda window: np.argmax(rating[idx:idx+window-BASE_LEN-MIN_BASE_GAP])
 
 	while idx < len(rating) - MAX_BASE_GAP_1:
 		next_max = get_next_max(MAX_BASE_GAP_1)
-		if rating[idx+next_max] < GOOD_BASE_THRESHOLD or next_max == MAX_BASE_GAP_1-BASE_LEN - 1 or next_max == 0:
+		if rating[idx+next_max] < GOOD_BASE_THRESHOLD or next_max == MAX_BASE_GAP_1 - BASE_LEN - MIN_BASE_GAP - 1:
 			next_max = get_next_max(MAX_BASE_GAP_2)
-		if rating[idx+next_max] < DECENT_BASE_THRESHOLD or next_max == MAX_BASE_GAP_2-BASE_LEN - 1 or next_max == 0:
+		if rating[idx+next_max] < DECENT_BASE_THRESHOLD or next_max == MAX_BASE_GAP_2 - BASE_LEN - MIN_BASE_GAP - 1:
 			next_max = get_next_max(MAX_BASE_GAP)
 
 		base = idx + next_max
 
 		if base >= len(counts) - WINDOW_LEN: break
-		idx = base + BASE_LEN 
+		idx = base + BASE_LEN + MIN_BASE_GAP
 		bases.append(base)
 		
 	return np.array(bases)
