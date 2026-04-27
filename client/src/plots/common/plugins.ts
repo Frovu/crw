@@ -1,7 +1,11 @@
 import { color, type Color } from '../../app/app';
 import { prettyDate, clamp, dispatchCustomEvent } from '../../util';
-import { applyTextTransform, measureStyled, applyStyles, drawCustomLegend, drawCustomLabels } from './basicPlot';
-import { getFontSize, scaled, applyOverrides, withOverrides, drawMagneticClouds, drawOnsets } from './plotUtil';
+import { applyTextTransform, measureStyled, applyStyles } from './basicPlot';
+import { drawCustomLabels } from './draw/drawCustomLabels';
+import { drawCustomLegend } from './draw/drawCustomLegend';
+import { getFontSize, scaled, applyOverrides, withOverrides } from './plotUtil';
+import { drawMagneticClouds } from './draw/drawMagneticClouds';
+import { drawOnsets } from './draw/drawOnsets';
 import type { BasicPlotParams, CustomScale, TextNode } from './types';
 
 export function tooltipPlugin({

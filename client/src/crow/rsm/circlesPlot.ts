@@ -1,6 +1,6 @@
 import type { RSMPlotResponse } from '../../api';
 import type { BasicPlotParams } from '../../plots/common/basicPlot';
-import { circlesSizeComputer } from '../../plots/common/plotPaths';
+import { circlesSizeComputer } from '../../plots/common/paths/plotPaths';
 import {
 	type PlotOverlayHandle,
 	applyOverrides,

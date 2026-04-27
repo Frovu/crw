@@ -6,8 +6,9 @@ import type { EventsPanel } from '../../events/core/util';
 import { distToSegment } from '../../util';
 import BasicPlot from '../common/BasicPlot';
 import { applyTextTransform, basicDataQuery } from '../common/basicPlot';
+import { drawArrow } from '../common/paths/markersPaths';
 import { usePlotOverlay } from '../common/plotOverlay';
-import { color, drawArrow } from '../common/plotUtil';
+import { color } from '../common/plotUtil';
 import type { BasicPlotParams, CustomScale } from '../common/types';
 
 const defaultParams = {

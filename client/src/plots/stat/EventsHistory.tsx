@@ -13,9 +13,10 @@ import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
 import { usePlotOverlay } from '../common/plotOverlay';
-import { axisDefaults, markersPaths, measureDigit, scaled } from '../common/plotUtil';
+import { axisDefaults, measureDigit, scaled } from '../common/plotUtil';
 import { labelsPlugin, legendPlugin, tooltipPlugin } from '../common/plugins';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
+import { markersPaths } from '../common/paths/markersPaths';
 
 const windowOptions = {
 	'2 years': 24,

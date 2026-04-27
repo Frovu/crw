@@ -10,7 +10,8 @@ import { usePlot } from '../../events/core/plot';
 import type { EventsPanel } from '../../events/core/util';
 import { apiPost } from '../../util';
 import BasicPlot from '../common/BasicPlot';
-import { superScript, type Shape } from '../common/plotUtil';
+import { superScript } from '../common/plotUtil';
+import type { Shape } from '../common/types';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
 const defaultColors: Color[] = ['cyan', 'green', 'peach', 'magenta'];

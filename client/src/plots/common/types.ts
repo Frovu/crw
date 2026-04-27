@@ -1,6 +1,7 @@
 import type { Onset, MagneticCloud } from '../../events/core/plot';
 import type { EventsSettings } from '../../events/core/util';
-import type { Shape } from './plotUtil';
+
+export type Shape = 'square' | 'circle' | 'arrow' | 'triangleUp' | 'triangleDown' | 'diamond';
 
 export type ScaleParams = {
 	min: number;

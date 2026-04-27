@@ -2,7 +2,7 @@ import { useCallback, useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import type { Size } from '../../util';
 import { useQuery } from '@tanstack/react-query';
-import { axisDefaults, customTimeSplits, markersPaths, color, scaled, getParam, getFontSize } from './plotUtil';
+import { axisDefaults, customTimeSplits, color, scaled, getParam, getFontSize } from './plotUtil';
 import { usePlotOverlay } from './plotOverlay';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { paddedInterval, sliceData } from './basicPlot';
@@ -10,6 +10,7 @@ import { useSunViewState } from '../../events/panels/SDO';
 import { LayoutContext } from '../../app/layout';
 import { metainfoPlugin, tooltipPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins';
 import type { BasicPlotParams, CustomAxis, CustomSeries, CustomScale } from './types';
+import { markersPaths } from './paths/markersPaths';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
 

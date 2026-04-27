@@ -1,35 +1,36 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import uPlot from 'uplot';
+import UplotReact from 'uplot-react';
 import { apiGet, useEventListener, useSize } from '../../util';
-import { circlesSizeComputer, circlePaths, linePaths, pointPaths } from '../common/plotPaths';
+import { applyTextTransform } from '../common/basicPlot';
+import { drawMagneticClouds } from '../common/draw/drawMagneticClouds';
+import { drawOnsets } from '../common/draw/drawOnsets';
+import { drawShape, markersPaths } from '../common/paths/markersPaths';
+import { pointPaths } from '../common/paths/pointPaths';
+import { linePaths } from '../common/paths/linePaths';
 import {
 	applyOverrides,
 	axisDefaults,
 	color,
 	customTimeSplits,
-	drawMagneticClouds,
-	drawOnsets,
-	drawShape,
 	font,
 	getFontSize,
-	markersPaths,
 	scaled,
 	withOverrides,
 } from '../common/plotUtil';
-import { applyTextTransform } from '../common/basicPlot';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Quadtree } from '../common/quadtree';
-import uPlot from 'uplot';
-import UplotReact from 'uplot-react';
 
 import 'uplot/dist/uPlot.min.css';
-import '../../styles/Circles.css';
 import { themeOptions } from '../../app/app';
-import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { ValidatedInput } from '../../components/ValidatedInput';
 import type { ContextMenuProps } from '../../app/layout';
-import { usePlot, type Onset } from '../../events/core/plot';
 import { Input } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
+import { ValidatedInput } from '../../components/ValidatedInput';
+import { usePlot, type Onset } from '../../events/core/plot';
+import { ExportableUplot } from '../../events/export/ExportableUplot';
+import '../../styles/Circles.css';
+import { circlePaths, circlesSizeComputer } from '../common/paths/circlePaths';
 import { usePlotOverlay } from '../common/plotOverlay';
 import type { BasicPlotParams } from '../common/types';
 
@@ -85,7 +86,7 @@ function drawCirclesLegend({
 	overlayHandle: { size, position, defaultPos },
 	plotData,
 }: {
-	params: BasicPlotParams;
+	params: CirclesPlotParams;
 	overlayHandle: ReturnType<typeof usePlotOverlay>;
 	plotData: any;
 }) {
