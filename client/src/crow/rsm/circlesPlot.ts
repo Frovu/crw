@@ -2,22 +2,26 @@ import type { RSMPlotResponse } from '../../api';
 import { circlesSizeComputer } from '../../plots/common/paths/circlePaths';
 import type { usePlotOverlay } from '../../plots/common/plotOverlay';
 import { applyOverrides, color, font, getFontSize, scaled, withOverrides } from '../../plots/common/plotUtil';
-import type { BasicPlotParams } from '../../plots/common/types';
+import type { BasicPlotParams, Interval } from '../../plots/common/types';
 import type { CirclesPlotParams } from './CirclesPlot';
 
 export const [POS_S, NEG_S] = [6, 8];
 
-export function renderCirclesData(resp: RSMPlotResponse, shiftVariation?: number) {
-	const slen = resp.stations.length,
-		tlen = resp.time.length;
+export function renderCirclesData(resp: RSMPlotResponse, interval: Interval, shiftVariation?: number) {
+	const sliceLft = resp.time.findIndex((t) => t != null && t >= interval.start);
+	const sliceRgt = resp.time.findLastIndex((t) => t != null && t <= interval.end);
+	const slen = resp.stations.length;
+	const times = resp.time.slice(sliceLft, sliceRgt);
+	const variations = resp.variations.map((sta) => sta.slice(sliceLft, sliceRgt));
+	const tlen = times.length;
 	if (tlen < 10) return;
 	const data = Array.from(Array(4), () => new Array(slen * tlen));
 	let posCount = 0,
 		nullCount = 0;
 	for (let ti = 0; ti < tlen; ++ti) {
 		for (let si = 0; si < slen; ++si) {
-			const time = resp.time[ti];
-			const rawv = resp.variations[si][ti];
+			const time = times[ti] + 1800;
+			const rawv = variations[si][ti];
 			const vv = rawv != null ? rawv + (shiftVariation ?? 0) : null;
 			const idx = ti * slen + si;
 			const lonShift = resp.stations[si].drift_longitude;

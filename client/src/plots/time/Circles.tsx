@@ -454,7 +454,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 					stroke: color('cyan'),
 					fill: color('cyan2'),
 					value: legendValue(1),
-					paths: circlePaths((rect: any) => qt.add(rect), POS_S, params),
+					paths: circlePaths(POS_S, params, (rect: any) => qt.add(rect)),
 				},
 				{
 					label: '-',
@@ -465,7 +465,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 					stroke: color('magenta'),
 					fill: color('magenta2'),
 					value: legendValue(2),
-					paths: circlePaths((rect: any) => qt.add(rect), NEG_S, params),
+					paths: circlePaths(NEG_S, params, (rect: any) => qt.add(rect)),
 				},
 				...(!twoPlots
 					? [
