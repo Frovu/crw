@@ -48,7 +48,7 @@ function Panel() {
 	});
 
 	const plotData = useMemo(() => {
-		if (!query.data) return null;
+		if (!query.data || !interval) return null;
 		return renderCirclesData(query.data, interval, variationShift);
 	}, [query.data, interval, variationShift]);
 
@@ -56,7 +56,7 @@ function Panel() {
 		let hoveredRect: any;
 		let qt: Quadtree;
 		return () => ({
-			padding: [scaled(8), scaled(52), 0, 0],
+			padding: [scaled(8), scaled(48), 0, 0],
 			mode: 2,
 			legend: { show: false },
 			cursor: {
