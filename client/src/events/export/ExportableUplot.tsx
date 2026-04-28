@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { withOverrides } from '../../plots/common/plotUtil';
-import type { CustomScale } from '../../plots/common/basicPlot';
+import type { CustomScale } from '../../plots/common/types';
 import uPlot from 'uplot';
 import UplotReact from 'uplot-react';
 import { LayoutContext, useNodeExists } from '../../app/layout';
@@ -31,7 +31,7 @@ export function ExportableUplot({
 	const sz = size ? size(borderSize, !layout?.size) : borderSize;
 
 	useEffect(() => {
-		upl && upl.setSize(sz);
+		if (upl) upl.setSize(sz);
 	}, [upl, sz.height, sz.width]); // eslint-disable-line
 
 	const plot = useMemo(() => {

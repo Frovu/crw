@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { openContextMenu } from '../../app/app';
 import { Input, NumberInput, PlotIntervalInput, TextInput } from '../../components/Input';
-import type { ScaleParams } from '../../plots/common/basicPlot';
+import type { ScaleParams } from '../../plots/common/types';
 import { useEventsState } from '../core/eventsState';
 import type { EventsPanel } from '../core/util';
 import { usePlotExportSate, computePlotsLayout, renderPlotsInCanvas } from './exportablePlots';
@@ -197,7 +197,7 @@ function ControlsMenu() {
 	);
 }
 
-export const ExportControls: EventsPanel<{}> = {
+export const ExportControls: EventsPanel<unknown> = {
 	name: 'Export Controls',
 	Panel: ControlsPanel,
 	Menu: ControlsMenu,

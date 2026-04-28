@@ -38,8 +38,8 @@ const defaultParams = {
 	rsmExtended: false,
 	exclude: [] as string[],
 	window: 3,
-	variationShift: undefined as undefined | number,
-	sizeShift: undefined as undefined | number,
+	variationShift: 0 as number,
+	sizeShift: 0 as number,
 	autoFilter: true,
 	fixAmplitudeScale: true,
 	linearSize: false,
@@ -62,7 +62,7 @@ type CirclesResponse = {
 	station: string[];
 	a0r: number[];
 	a0m: null | number[];
-	precursor_idx: number[]; // eslint-disable-line camelcase
+	precursor_idx: number[];
 	filtered: number;
 	excluded: string[];
 };
@@ -211,6 +211,7 @@ const LEGEND_H = 32;
 function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlotParams; settingsOpen?: boolean }) {
 	// const [container, setContainer] = useState<HTMLDivElement | null>(null);
 	const container = useRef<HTMLDivElement>(null);
+	// eslint-disable-next-line react-hooks/refs
 	const size = useSize(container.current?.parentElement);
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
@@ -221,20 +222,20 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 	const params = useMemo(() => ({ ...initParams }), [initParams]) as CirclesPlotParams;
 	const { rsmExtended: twoPlots, interactive } = params;
 	let padRight = 64;
-	if (params.stretch && size.width) {
-		// tweak interval so that time axis would align with other (shorter) plots
-		const initialInterval = initParams.interval;
-		const even = initialInterval[1].getTime() % 36e5 === 0 ? 1 : 0;
-		const len = Math.ceil((initialInterval[1].getTime() - initialInterval[0].getTime()) / 36e5) + even;
-		const pwidth = size.width - 64;
-		const targetHourWidth = (pwidth - padRight) / len;
-		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
-		padRight = padRight % targetHourWidth;
-		params.interval = [
-			new Date(initialInterval[0].getTime() + 36e5 * (1 - even)),
-			new Date(initialInterval[1].getTime() + 36e5 * addHoursRight),
-		];
-	}
+	// if (params.stretch && size.width) {
+	// 	// tweak interval so that time axis would align with other (shorter) plots
+	// 	const initialInterval = initParams.interval;
+	// 	const even = initialInterval.end.getTime() % 36e5 === 0 ? 1 : 0;
+	// 	const len = Math.ceil((initialInterval.end.getTime() - initialInterval.start.getTime()) / 36e5) + even;
+	// 	const pwidth = size.width - 64;
+	// 	const targetHourWidth = (pwidth - padRight) / len;
+	// 	const addHoursRight = Math.floor(padRight / targetHourWidth) - 1 + even;
+	// 	padRight = padRight % targetHourWidth;
+	// 	params.interval = [
+	// 		new Date(initialInterval.start.getTime() + 36e5 * (1 - even)),
+	// 		new Date(initialInterval.end.getTime() + 36e5 * addHoursRight),
+	// 	];
+	// }
 
 	const [idxEnabled, setIdxEnabled] = useState(true);
 	const [base, setBase] = useState(params.base);
@@ -258,8 +259,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 		return renderPlotData(query.data, params.variationShift);
 	}, [query.data, params.variationShift]);
 
-	const [iis, iie] = params.interval.map((d) => d.getTime());
-	useEffect(() => setMoment(null), [iis, iie]);
+	useEffect(() => setMoment(null), [params.interval]);
 
 	const plotSize = useCallback(
 		(i: 0 | 1) => (sz: typeof size, unknown?: boolean) => ({
@@ -280,7 +280,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 		if (e.code === 'Escape') setMoment(() => null);
 		const move = { ArrowLeft: -3600, ArrowRight: 3600 }[e.code];
 		if (!move) return;
-		const [min, max] = params.interval.map((d) => Math.ceil(d.getTime() / 36e5) * 3600);
+		const { start: min, end: max } = params.interval!;
 		setMoment((mm) => mm && Math.min(Math.max(mm + move, min), max));
 	});
 
@@ -570,7 +570,7 @@ function PlotCircles({ params: initParams, settingsOpen }: { params: CirclesPlot
 				)}
 			</>
 		);
-	}, [twoPlots, interactive, plotData, moment, container, size.height <= 0, initParams, padRight, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+	}, [twoPlots, interactive, plotData, moment, container, size.height <= 0, initParams, idxEnabled, setIdxEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<div ref={container}>
@@ -669,8 +669,8 @@ async function fetchCircles<T extends CirclesMomentResponse | CirclesResponse>(
 ) {
 	try {
 		const res = await apiGet('cream/ros', {
-			from: (params.interval[0].getTime() / 1000).toFixed(0),
-			to: (params.interval[1].getTime() / 1000).toFixed(0),
+			from: params.interval!.start.toFixed(0),
+			to: params.interval!.end.toFixed(0),
 			...(moment && { details: moment.toFixed(0) }),
 			...(base && { base: (base.getTime() / 1000).toFixed(0) }),
 			...(params.exclude && { exclude: params.exclude.join() }),
@@ -766,7 +766,7 @@ function PlotCirclesMoment({
 	}, [params, allData, query.data]);
 
 	if (!query.data) return null;
-	const middle = params.interval.map((d) => d.getTime() / 1000).reduce((a, b) => a + b, 0) / 2;
+	const middle = (params.interval!.start + params.interval!.end) / 2;
 	const pos = !settingsOpen && moment >= middle ? { left: 40 } : { right: 0 };
 	return (
 		<div
@@ -788,14 +788,12 @@ function PlotCirclesMoment({
 function CirclesParamsInput({ params, setParams }: { params: CirclesPlotParams; setParams: (p: CirclesPlotParams) => void }) {
 	const callback = (what: string) => (value: any) => {
 		if (what === 'days') {
-			const from = new Date(+params.interval[1] - value * 86400000);
-			if (params.interval[0] === from) return;
-			setParams({ ...params, interval: [from, params.interval[1]] });
+			const start = params.interval!.end - value * 86400;
+			setParams({ ...params, interval: { start, end: params.interval!.end } });
 		} else if (what === 'date') {
-			const val = value || new Date(Math.floor(Date.now() / 36e5) * 36e5);
-			if (params.interval[1].getTime() === val.getTime()) return;
-			const len = params.interval[1].getTime() - params.interval[0].getTime();
-			setParams({ ...params, interval: [new Date(val - len), val], realtime: !value });
+			const val = value ? value.getTime() / 1e3 : Math.floor(Date.now() / 36e5) * 3600;
+			const len = params.interval!.end - params.interval!.start;
+			setParams({ ...params, interval: { start: val - len, end: val }, realtime: !value });
 		} else if (what === 'exclude') {
 			setParams({ ...params, exclude: value?.replace(/\s+/g, '').split(',') });
 		} else if (what === 'onset') {
@@ -830,15 +828,15 @@ function CirclesParamsInput({ params, setParams }: { params: CirclesPlotParams; 
 			Ending date:
 			<ValidatedInput
 				type="time"
-				value={!params.realtime && showDate(params.interval[1])}
+				value={!params.realtime && showDate(new Date(params.interval!.end * 1e3))}
 				callback={callback('date')}
-				placeholder={showDate(params.interval[1])}
+				placeholder={showDate(new Date(params.interval!.end * 1e3))}
 				allowEmpty={true}
 			/>
 			<br /> Days count:
 			<ValidatedInput
 				type="number"
-				value={Math.round((+params.interval[1] - +params.interval[0]) / 86400000)}
+				value={Math.round((+params.interval!.end - +params.interval!.start) / 86400)}
 				callback={callback('days')}
 			/>
 			<br /> Exclude stations:
@@ -891,7 +889,7 @@ export function PlotCirclesStandalone() {
 			showMetaLabels: referred?.showMetaLabels,
 			showEventsEnds: referred?.showEventsEnds,
 		};
-		if (referred) filtered.interval = referred.interval.map((d: any) => new Date(d));
+		if (referred) filtered.interval = referred.interval;
 		if (referred?.onsets) filtered.onsets = referred.onsets.map((o: any) => ({ ...o, time: new Date(o.time) }));
 		if (referred?.clouds)
 			filtered.clouds = referred.clouds.map((c: any) => ({ start: new Date(c.start), end: new Date(c.end) }));
@@ -904,10 +902,10 @@ export function PlotCirclesStandalone() {
 			...(referred
 				? filtered
 				: {
-						interval: [
-							new Date(Math.floor(Date.now() / 36e5) * 36e5 - 5 * 864e5),
-							new Date(Math.floor(Date.now() / 36e5) * 36e5),
-						],
+						interval: {
+							start: Math.floor(Date.now() / 36e5) * 3600 - 5 * 86400,
+							end: Math.floor(Date.now() / 36e5) * 3600,
+						},
 						realtime: true,
 						window: 3,
 					}),
@@ -926,9 +924,9 @@ export function PlotCirclesStandalone() {
 		if (document.hidden) return;
 		setParams((para) => {
 			if (!para.realtime) return para;
-			const diff = para.interval[1].getTime() - para.interval[0].getTime();
-			const now = Math.floor(Date.now() / 36e5) * 36e5;
-			return { ...para, interval: [new Date(now - diff), new Date(now)] };
+			const diff = para.interval!.end - para.interval!.start;
+			const now = Math.floor(Date.now() / 36e5) * 3600;
+			return { ...para, interval: { start: now - diff, end: now } };
 		});
 	});
 	return (
@@ -956,7 +954,7 @@ export function PlotCirclesStandalone() {
 					setParams((para) => ({
 						...para,
 						variationShift:
-							isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber,
+							isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? 0 : e.target.valueAsNumber,
 					}))
 				}
 			></input>
@@ -971,8 +969,7 @@ export function PlotCirclesStandalone() {
 				onChange={(e) =>
 					setParams((para) => ({
 						...para,
-						sizeShift:
-							isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? undefined : e.target.valueAsNumber,
+						sizeShift: isNaN(e.target.valueAsNumber) || e.target.valueAsNumber === 0 ? 0 : e.target.valueAsNumber,
 					}))
 				}
 			></input>
