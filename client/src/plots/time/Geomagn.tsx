@@ -15,7 +15,7 @@ const defaultParams = {
 
 export type GeomagnParams = typeof defaultParams;
 
-const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
+const myBars = (params: GeomagnParams) => () => (upl: uPlot, seriesIdx: number, i0: number, i1: number) => {
 	const colors = [color('green'), color('yellow'), color('orange'), color('red')];
 	const lastColor = color('crimson');
 	const range = params.showAp ? [18, 39, 67, 179] : [36, 46, 56, 76];
@@ -30,7 +30,7 @@ const myBars = (params: GeomagnParams) => (scl: number) => (upl: uPlot, seriesId
 		disp: {
 			y0: {
 				unit: 1,
-				values: (u) => u.data[seriesIdx].map((v) => 0) as any,
+				values: (u) => u.data[seriesIdx].map(() => 0) as any,
 			},
 			y1: {
 				unit: 1,
@@ -71,8 +71,8 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['geomagn', interval],
-				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'Kp', 'Ap', 'Dst', 'AE']),
+				queryKey: ['geomagn'],
+				queryFn: basicDataQuery('omni', ['time', 'Kp', 'Ap', 'Dst', 'AE']),
 				params,
 				axes: () => [
 					{

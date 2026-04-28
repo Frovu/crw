@@ -56,15 +56,15 @@ export function usePlotOverlay(defaultPos: DefaultPosition): PlotOverlayHandle {
 						dragRef.current = { saved: { ...pos }, click: { x, y } };
 					}
 				});
-				u.root.addEventListener('mouseleave', (e) => {
+				u.root.addEventListener('mouseleave', () => {
 					dragRef.current = null;
 				});
-				u.root.addEventListener('mouseup', (e) => {
+				u.root.addEventListener('mouseup', () => {
 					dragRef.current = null;
 				});
 			},
-			// eslint-disable-next-line react-hooks/exhaustive-deps
 		}),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[],
 	);
 

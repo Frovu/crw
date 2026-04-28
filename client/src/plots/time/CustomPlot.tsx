@@ -11,7 +11,7 @@ import type { EventsPanel } from '../../events/core/util';
 import { apiPost } from '../../util';
 import BasicPlot from '../common/BasicPlot';
 import { superScript } from '../common/plotUtil';
-import type { Shape } from '../common/types';
+import type { Interval, Shape } from '../common/types';
 
 const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
 const defaultColors: Color[] = ['cyan', 'green', 'peach', 'magenta'];
@@ -42,10 +42,10 @@ const defaultParams: CustomPlotParams = {
 	],
 };
 
-async function customPlotDataQuery(interval: [number, number], definitions: string[], feidId: number | null) {
+async function customPlotDataQuery(interval: Interval, definitions: string[], feidId: number | null) {
 	if (feidId == null) return null;
 	const body = await apiPost<{ data: (number | null)[][] }>('events/plot', {
-		interval,
+		interval: [interval.start, interval.end],
 		definitions,
 		feidId,
 	});
@@ -145,7 +145,7 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['customPlot', JSON.stringify(definitions), interval, feidId],
+				queryKey: ['customPlot', JSON.stringify(definitions), feidId],
 				queryFn: (interval) => customPlotDataQuery(interval, definitions, feidId),
 				params,
 				axes: () => [

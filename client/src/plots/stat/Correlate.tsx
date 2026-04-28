@@ -200,7 +200,7 @@ function Panel() {
 							stroke: (u, sidx) => (sidx === 1 ? color('red') : 'transparent'),
 							fill: 'transparent',
 						},
-						dataIdx: (u, sidx) => {
+						dataIdx: (u) => {
 							const cx = u.cursor.left! * devicePixelRatio;
 							const cy = u.cursor.top! * devicePixelRatio;
 							hoveredRect = null;

@@ -5,6 +5,7 @@
 	"homepage": "/w",
 	"type": "module",
 	"dependencies": {
+		"@babel/runtime": "^7.29.2",
 		"@radix-ui/react-select": "^2.2.6",
 		"@tailwindcss/vite": "^4.2.4",
 		"@tanstack/react-query": "^5.100.6",
@@ -60,6 +61,7 @@
 		"@types/textarea-caret": "^3.0.4",
 		"eslint": "^10.2.1",
 		"eslint-plugin-react": "^7.37.5",
+		"eslint-plugin-react-hooks": "^7.1.1",
 		"globals": "^17.5.0",
 		"typescript-eslint": "^8.59.1",
 		"zustand": "^5.0.12"

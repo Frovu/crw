@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import type uPlot from 'uplot';
 import { usePlot } from '../../events/core/plot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { basicDataQuery, paddedInterval, sliceData } from '../common/basicPlot';
+import { basicDataQuery, sliceData } from '../common/basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../common/plotUtil';
 import { metainfoPlugin, tooltipPlugin } from '../common/plugins';
 
@@ -13,11 +13,12 @@ const COLORS = ['magenta', 'magenta', 'acid', 'cyan', 'purple', 'green', 'peach'
 
 function Panel() {
 	const params = usePlot();
-	const interval = paddedInterval(params.interval);
+
 	const query = useQuery({
-		queryKey: ['SWTypes', interval],
+		queryKey: ['SWTypes', params.fetchInterval],
 		queryFn: async () => {
-			const data = await basicDataQuery('omni', interval, ['time', 'SWTY']);
+			if (!params.fetchInterval) return null;
+			const data = await basicDataQuery('omni', ['time', 'SWTY'])(params.fetchInterval);
 			if (!data) return null;
 			const swt = (data[1] as any as (string | null)[]).map((t) => t?.split(','));
 			const plotData = [data[0]];
@@ -86,7 +87,7 @@ function Panel() {
 
 	return (
 		<div style={{ position: 'absolute' }}>
-			<ExportableUplot {...{ options, data: sliceData(query.data, params.interval) }} />
+			<ExportableUplot {...{ options, data: sliceData(query.data, params.interval!) }} />
 		</div>
 	);
 }

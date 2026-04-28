@@ -97,11 +97,12 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interv) => ['satxrays', interv],
-				queryFn: (interv) => basicDataQuery('omni/xrays', interv, ['time', 'l', 's']),
+				queryKey: ['satxrays'],
+				queryFn: basicDataQuery('omni/xrays', ['time', 'l', 's']),
 				params: {
 					...params,
 					interval,
+					fetchInterval: interval,
 					onsets: [],
 					clouds: [],
 				},

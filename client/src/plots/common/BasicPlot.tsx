@@ -2,14 +2,14 @@ import { useCallback, useContext, useMemo, useState } from 'react';
 import uPlot from 'uplot';
 import type { Size } from '../../util';
 import { useQuery } from '@tanstack/react-query';
-import { axisDefaults, customTimeSplits, color, scaled, getParam, getFontSize } from './plotUtil';
+import { axisDefaults, customTimeSplits, scaled, getParam, getFontSize } from './plotUtil';
 import { usePlotOverlay } from './plotOverlay';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { paddedInterval, sliceData } from './basicPlot';
+import { sliceData } from './basicPlot';
 import { useSunViewState } from '../../events/panels/SDO';
 import { LayoutContext } from '../../app/layout';
 import { metainfoPlugin, tooltipPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins';
-import type { BasicPlotParams, CustomAxis, CustomSeries, CustomScale } from './types';
+import type { BasicPlotParams, CustomAxis, CustomSeries, CustomScale, Interval } from './types';
 import { markersPaths } from './paths/markersPaths';
 
 const calcSize = (panel: Size) => ({ width: panel.width - 2, height: panel.height - 2 });
@@ -24,8 +24,8 @@ export default function BasicPlot({
 	metaParams,
 	tooltipParams,
 }: {
-	queryKey: (interval: [number, number]) => any[];
-	queryFn: (interval: [number, number]) => Promise<any[][] | null>;
+	queryKey: unknown[];
+	queryFn: (interv: Interval) => Promise<any[][] | null>;
 	params: BasicPlotParams;
 	metaParams?: Partial<Parameters<typeof metainfoPlugin>[0]>;
 	tooltipParams?: Partial<Parameters<typeof tooltipPlugin>[0]>;
@@ -36,9 +36,11 @@ export default function BasicPlot({
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	const layoutContext = useContext(LayoutContext);
 
+	console.log(params.fetchInterval);
+	// eslint-disable-next-line @tanstack/query/exhaustive-deps
 	const query = useQuery({
-		queryKey: queryKey(paddedInterval(params.interval)),
-		queryFn: () => queryFn(paddedInterval(params.interval)),
+		queryKey: [params.fetchInterval, ...queryKey],
+		queryFn: () => (params.fetchInterval ? queryFn(params.fetchInterval) : null),
 		retry: 1,
 	});
 
@@ -144,10 +146,11 @@ export default function BasicPlot({
 				...(uopts?.plugins ?? []),
 			],
 		} as uPlot.Options;
-	}, [params, query.data]); // eslint-disable-line
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params, query.data]);
 
 	const data = useMemo(() => {
-		if (!query.data) return null;
+		if (!query.data || !params.interval) return null;
 		return sliceData(query.data, params.interval);
 	}, [query.data, params.interval]);
 

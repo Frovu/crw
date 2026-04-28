@@ -1,11 +1,10 @@
-import { useContext } from 'react';
-import { LayoutContext, type ContextMenuProps } from '../../app/layout';
+import { type ContextMenuProps } from '../../app/layout';
+import { Checkbox } from '../../components/Checkbox';
+import { usePlot, useSolarPlot } from '../../events/core/plot';
+import type { EventsPanel } from '../../events/core/util';
 import { basicDataQuery } from '../common/basicPlot';
 import BasicPlot from '../common/BasicPlot';
 import { axisDefaults, color, scaled, superScript } from '../common/plotUtil';
-import { usePlot, useSolarPlot } from '../../events/core/plot';
-import type { EventsPanel } from '../../events/core/util';
-import { Checkbox } from '../../components/Checkbox';
 
 const PARTICLES = {
 	p1: '>1 MeV',
@@ -69,35 +68,32 @@ function Menu({ params, setParams }: ContextMenuProps<Partial<SatPartParams>>) {
 function Panel() {
 	const params = usePlot<SatPartParams>();
 	const { showParticles, showGrid, showTimeAxis, solarTime } = params;
-	const para = { ...params };
 	const { interval: sInterv } = useSolarPlot();
-	const size = useContext(LayoutContext)?.size;
-	if (solarTime) para.interval = sInterv;
 
-	if (!solarTime && params.stretch && size?.width) {
-		const padRight = 30;
-		const inter = params.interval;
-		const len = Math.ceil((inter[1].getTime() - inter[0].getTime()) / 36e5);
-		const targetHourWidth = (size.width - 30) / len;
-		const addHoursRight = Math.floor(padRight / targetHourWidth) - 1;
-		para.interval = [inter[0], new Date(inter[1].getTime() + 36e5 * addHoursRight)];
-	}
+	// TODO: stretch
+	// const size = useContext(LayoutContext)?.size;
+	// if (!solarTime && params.stretch && size?.width) {
+	// 	const padRight = 30;
+	// 	const inter = params.interval;
+	// 	const len = Math.ceil((inter[1].getTime() - inter[0].getTime()) / 36e5);
+	// 	const targetHourWidth = (size.width - 30) / len;
+	// 	const addHoursRight = Math.floor(padRight / targetHourWidth) - 1;
+	// 	para.interval = [inter[0], new Date(inter[1].getTime() + 36e5 * addHoursRight)];
+	// }
+
+	const fetchInterval = solarTime ? sInterv : params.fetchInterval;
+	const interval = !showParticles.length ? null : solarTime ? sInterv : params.interval;
 
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['satparticles', interval, showParticles],
-				queryFn: (interval) =>
-					showParticles.length
-						? basicDataQuery('omni/particles', interval, ['time', ...showParticles])
-						: (null as any),
-				params: solarTime
-					? {
-							...para,
-							onsets: [],
-							clouds: [],
-						}
-					: para,
+				queryKey: ['satparticles', showParticles],
+				queryFn: basicDataQuery('omni/particles', ['time', ...showParticles]),
+				params: {
+					...params,
+					interval,
+					fetchInterval,
+				},
 				options: () => ({
 					padding: [scaled(8), scaled(solarTime ? 6 : 36), scaled(showTimeAxis ? 0 : 6), 0],
 				}),

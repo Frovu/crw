@@ -20,7 +20,7 @@ export default function CoveragePlot({
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	useEffect(() => {
-		upl && upl.setSize(size);
+		if (upl) upl.setSize(size);
 	}, [upl, size.height, size.width]); // eslint-disable-line
 
 	const options: uPlot.Options = useMemo(
@@ -46,11 +46,11 @@ export default function CoveragePlot({
 						disp: {
 							y0: {
 								unit: 1,
-								values: (u, sidx) => u.data[sidx].map((v) => 0) as any,
+								values: (u, sidx) => u.data[sidx].map(() => 0) as any,
 							},
 							y1: {
 								unit: 1,
-								values: (u, sidx) => u.data[sidx].map((v) => 1) as any,
+								values: (u, sidx) => u.data[sidx].map(() => 1) as any,
 							},
 							stroke: {
 								unit: 3,
@@ -65,6 +65,7 @@ export default function CoveragePlot({
 				},
 			],
 		}),
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[],
 	);
 

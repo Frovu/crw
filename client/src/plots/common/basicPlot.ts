@@ -1,13 +1,13 @@
 import { apiGet } from '../../util';
 import { font, getParam, scaled } from './plotUtil';
-import { type TextNode, textStyleTags } from './types';
+import { type Interval, type TextNode, textStyleTags } from './types';
 
 export const applyTextTransform = (text: string) => {
 	return (
 		getParam('textTransform')?.reduce((txt, { search, replace }) => {
 			try {
 				return txt.replace(new RegExp(search, 'ug'), replace);
-			} catch (e) {
+			} catch {
 				return txt;
 			}
 		}, text) ?? text
@@ -59,36 +59,39 @@ export const measureStyled = (ctx: CanvasRenderingContext2D, parts: TextNode[]) 
 	return textWidth;
 };
 
-export function paddedInterval(interv: [Date, Date]): [number, number] {
-	return [Math.floor(interv[0].getTime() / 864e5) * 86400, Math.ceil((interv[1].getTime() + 36e5) / 864e5) * 86400];
+export function paddedInterval(interv: Interval): Interval {
+	return {
+		start: Math.floor(interv.start / 86400) * 86400,
+		end: Math.ceil((interv.end + 3600) / 86400) * 86400,
+	};
 }
 
-export function sliceData(data: (number | null)[][], interval: [Date, Date]) {
-	const sliceLft = data[0].findIndex((t) => t != null && t >= interval[0].getTime() / 1000);
-	const sliceRgt = data[0].findLastIndex((t) => t != null && t <= interval[1].getTime() / 1000);
+export function sliceData(data: (number | null)[][], interval: Interval) {
+	const sliceLft = data[0].findIndex((t) => t != null && t >= interval.start);
+	const sliceRgt = data[0].findLastIndex((t) => t != null && t <= interval.end);
 	return data.map((col) => col.slice(sliceLft, sliceRgt));
 }
 
-export async function basicDataQuery(path: string, interval: [number, number], query: string[], params?: {}) {
-	for (const val of interval) if (isNaN(val)) return null;
-
-	const body = await apiGet<{ rows: (number | null)[][]; fields: string[] }>(path, {
-		from: interval[0].toFixed(0),
-		to: interval[1].toFixed(0),
-		query: query.join(),
-		...params,
-	});
-	if (!body?.fields.length) return null;
-	const fieldsIdxs = query.map((f) => body.fields.indexOf(f));
-	const ordered = fieldsIdxs.map((i) => body.rows.map((row) => row[i]));
-	console.log(path, '=>', ordered, query);
-	const timeIdx = query.indexOf('time');
-	const period = timeIdx >= 0 && ordered[timeIdx].length > 1 && ordered[timeIdx][1]! - ordered[timeIdx][0]!;
-	if (period)
-		ordered.splice(
-			timeIdx,
-			1,
-			ordered[timeIdx].map((t) => (t == null ? null : t + period / 2)),
-		);
-	return ordered;
+export function basicDataQuery(path: string, query: string[], params?: object) {
+	return async (interval: Interval) => {
+		const body = await apiGet<{ rows: (number | null)[][]; fields: string[] }>(path, {
+			from: interval.start.toFixed(0),
+			to: interval.end.toFixed(0),
+			query: query.join(),
+			...params,
+		});
+		if (!body?.fields.length) return null;
+		const fieldsIdxs = query.map((f) => body.fields.indexOf(f));
+		const ordered = fieldsIdxs.map((i) => body.rows.map((row) => row[i]));
+		console.log(path, '=>', ordered, query);
+		const timeIdx = query.indexOf('time');
+		const period = timeIdx >= 0 && ordered[timeIdx].length > 1 && ordered[timeIdx][1]! - ordered[timeIdx][0]!;
+		if (period)
+			ordered.splice(
+				timeIdx,
+				1,
+				ordered[timeIdx].map((t) => (t == null ? null : t + period / 2)),
+			);
+		return ordered;
+	};
 }

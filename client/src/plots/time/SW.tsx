@@ -32,9 +32,9 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['SW', interval, tColumn],
+				queryKey: ['SW', tColumn],
 				queryFn: async (interval) => {
-					const data = await basicDataQuery('omni', interval, ['time', 'D', 'beta', tColumn]);
+					const data = await basicDataQuery('omni', ['time', 'D', 'beta', tColumn])(interval);
 					return data?.concat([Array(data[0].length).fill(0.5)]) ?? null;
 				},
 				params,

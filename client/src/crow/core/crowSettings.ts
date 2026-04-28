@@ -34,27 +34,28 @@ export const useCrowSettings = create<CrowSettings>()(
 	),
 );
 
-function windowEnd(start: number, mode: CrowWindowMode) {
+export const getCrowWindow = () => {
+	const { windowStart: start, windowMode: mode } = useCrowSettings.getState();
+
 	const date = new Date(start * 1e3);
 	const year = date.getUTCFullYear();
-	if (mode === 'year') return Date.UTC(year + 1) / 1e3;
-	if (mode === 'month') return Date.UTC(year, date.getUTCMonth() + 1) / 1e3;
-	if (mode === '10 days') {
-		const day = date.getUTCDate();
-		if (day > 20) return Date.UTC(year, date.getUTCMonth() + 1) / 1e3;
-		return Date.UTC(year, date.getUTCMonth(), day + 10) / 1e3;
-	}
-	return mode;
-}
+	const month = date.getUTCMonth();
+	const day = date.getUTCDate();
 
-export const getCrowWindow = () => {
-	const { windowStart, windowMode } = useCrowSettings.getState();
+	const monthStart = Date.UTC(year, month) / 1e3;
+	const monthEnd = (mode === 'year' ? Date.UTC(year + 1) : Date.UTC(year, month + 1)) / 1e3;
 
-	const marginBefore = HOUR * 24 * (windowMode === '10 days' ? 1 : 5);
+	const end = mode !== '10 days' ? monthEnd : (day > 20 ? Date.UTC(year, month + 1) : Date.UTC(year, month, day + 10)) / 1e3;
+
+	const marginBefore = HOUR * 24 * (mode === '10 days' ? 1 : 5);
 	const marginAfter = HOUR * 24;
 
-	const end = windowEnd(windowStart, windowMode);
-	return { plotStart: windowStart - marginBefore, plotEnd: end + marginAfter, start: windowStart, end };
+	return {
+		start,
+		end,
+		plot: { start: start - marginBefore, end: end + marginAfter },
+		fetch: { start: monthStart - HOUR * 24 * 14, end: monthEnd + marginAfter },
+	};
 };
 
 export const useCrowWindowDebounced = (delay = 500) => {

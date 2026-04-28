@@ -309,7 +309,7 @@ function Panel() {
 
 		// const maxLength = Math.max.apply(null, samples.map(s => s?.length || 0));
 		const transformed = samplesBins
-			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length)! : bins!))
+			.map((bins, i) => (yScale === '%' ? bins?.map((b) => b / samples[i].length) : bins) ?? [])
 			.filter((b) => b);
 		const binsValues = transformed[0]?.map((v, i) => min + (i + (colEnum ? 0 : 0.5)) * binSize) || [];
 

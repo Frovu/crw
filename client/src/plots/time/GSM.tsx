@@ -190,17 +190,12 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['GSMani', interval, maskGLE, subtractTrend, useA0m],
+				queryKey: ['GSMani', maskGLE, subtractTrend, useA0m],
 				queryFn: async (interval) => {
-					const data = await basicDataQuery(
-						'cream/gsm',
-						interval,
-						['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'],
-						{
-							mask_gle: maskGLE ? 'true' : 'false',
-							subtract_trend: subtractTrend ? 'true' : 'false',
-						},
-					);
+					const data = await basicDataQuery('cream/gsm', ['time', 'axy', 'az', useA0m ? 'a10m' : 'a10', 'ax', 'ay'], {
+						mask_gle: maskGLE ? 'true' : 'false',
+						subtract_trend: subtractTrend ? 'true' : 'false',
+					})(interval);
 					if (data) data[2] = data[2].map((d, i) => data[3][i]! + d!);
 					return data;
 				},

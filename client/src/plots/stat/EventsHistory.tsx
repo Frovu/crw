@@ -154,7 +154,7 @@ function Panel() {
 			: Math.floor(((firstEvent.getUTCFullYear() - 1970) * 12 + firstEvent.getUTCMonth()) / window) * window;
 
 		const time = [];
-		const values = params.historySeries.map((s) => [] as number[]);
+		const values = params.historySeries.map(() => [] as number[]);
 		const samples = params.historySeries.map(({ sample }) =>
 			sample === '<none>'
 				? allData

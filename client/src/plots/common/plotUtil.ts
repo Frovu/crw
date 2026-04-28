@@ -20,7 +20,7 @@ const defaultPlotsState: PlotsOverrides = {
 };
 
 export let applyOverrides: Partial<PlotsOverrides> | null = null;
-export const withOverrides = <T extends any>(foo: () => T, overrides?: null | Partial<PlotsOverrides>): T => {
+export const withOverrides = <T>(foo: () => T, overrides?: null | Partial<PlotsOverrides>): T => {
 	applyOverrides = overrides ?? null;
 	const res = foo();
 	applyOverrides = null;
@@ -103,7 +103,7 @@ export function customTimeSplits(params?: BasicPlotParams): Partial<uPlot.Axis> 
 		values: (u, splits) =>
 			withOverrides(
 				() =>
-					splits.map((v, i) => {
+					splits.map((v) => {
 						const w = Math.ceil(((splits.at(-1) ?? 0) - splits[0]) / 3600);
 						if (!show || v % ((w > 40 ? 24 : 12) * 3600) !== 0) return null;
 						const d = new Date(v * 1e3);

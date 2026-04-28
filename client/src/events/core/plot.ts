@@ -1,6 +1,6 @@
 import { useContext, useMemo } from 'react';
 import { useEventsSettings } from './util';
-import { LayoutContext, useNodeExists, type LayoutContextType } from '../../app/layout';
+import { LayoutContext, useNodeExists, type LayoutContextType, type NodeParams } from '../../app/layout';
 import { useEventsDebounced, useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
 import { useTable } from './editableTables';
 import { useFeidSample } from './feid';
@@ -8,6 +8,7 @@ import { useCompoundTable } from './query';
 import type { EruptiveEvent } from './sourceActions';
 import type { BasicPlotParams } from '../../plots/common/types';
 import { useCrowWindowDebounced } from '../../crow/core/crowSettings';
+import { paddedInterval } from '../../plots/common/basicPlot';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 
@@ -15,7 +16,7 @@ export type MagneticCloud = { start: Date; end: Date };
 
 export type FlareOnset = { time: Date; sources: string[]; flare: EruptiveEvent<'flare'> };
 
-export function usePlot<T = {}>() {
+export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 	const layout = useContext(LayoutContext) as unknown as LayoutContextType<BasicPlotParams & T>;
 	const settings = useEventsSettings();
 	const { plotUnlistedEvents, plotOffset } = settings;
@@ -30,23 +31,29 @@ export function usePlot<T = {}>() {
 	const setStartAt = useEventsState((state) => state.setStartAt);
 	const setEndAt = useEventsState((state) => state.setEndAt);
 
-	const plotContext = useMemo(() => {
+	const plotContext: Partial<BasicPlotParams> = useMemo(() => {
 		const feid = table.getById(plotId);
 
-		if (!feid && !crowMode) return { interval: [new Date('invalid'), new Date('invalid')] as [Date, Date] };
+		if (!feid && !crowMode) return {};
 
 		const interval = (() => {
-			if (crowMode) return [new Date(crowWindow.plotStart * 1e3), new Date(crowWindow.plotEnd * 1e3)];
+			if (crowMode) return crowWindow.plot;
 			const plotDate = setStartAt || feid!.time;
-			const hour = Math.floor(plotDate.getTime() / 36e5) * 36e5;
-			return plotOffset.map((h) => new Date(hour + h * 36e5));
+			const hour = Math.floor(plotDate.getTime() / 36e5) * 3600;
+			return {
+				start: hour + plotOffset[0] * 3600,
+				end: hour + plotOffset[1] * 3600,
+			};
 		})();
 
-		const timeIdx = table.index.time,
-			durIdx = table.index.duration;
-		const end = (row: (typeof table.data)[number]) => (row[timeIdx] as Date).getTime() + (row[durIdx] as number) * 36e5;
+		const fetchInterval = crowMode ? crowWindow.fetch : paddedInterval(interval);
+
+		const timeIdx = table.index.time;
+		const durIdx = table.index.duration;
+		const start = (row: (typeof table.data)[number]) => (row[timeIdx] as Date).getTime() / 1e3;
+		const end = (row: (typeof table.data)[number]) => start(row) + (row[durIdx] as number) * 3600;
 		const events = table.data
-			.filter((row) => interval[0].getTime() <= end(row) && (row[timeIdx] as Date) <= interval[1])
+			.filter((row) => interval.start <= end(row) && start(row) <= interval.end)
 			.filter((row) => plotUnlistedEvents || sample.data.find((sr) => sr[0] === row[0]))
 			.filter((row) => (!setStartAt && !setEndAt) || row[0] !== modifyId);
 
@@ -76,7 +83,8 @@ export function usePlot<T = {}>() {
 			})
 			.filter((v): v is MagneticCloud => v != null);
 		return {
-			interval: interval as [Date, Date],
+			interval,
+			fetchInterval,
 			base: feid?.base_period,
 			onsets,
 			ends,
@@ -84,11 +92,13 @@ export function usePlot<T = {}>() {
 		};
 	}, [table, plotId, setStartAt, plotOffset, setEndAt, plotUnlistedEvents, sample.data, modifyId, crowMode, crowWindow]);
 
+	console.log(layout?.params);
+
 	return useMemo(() => {
 		return {
 			...settings,
-			...plotContext,
 			...layout?.params,
+			...plotContext,
 			...(!settings.showMagneticClouds && { clouds: [] }),
 			stretch: true,
 		};
@@ -110,12 +120,12 @@ export function useSolarPlot() {
 				: cursor?.entity === 'cme'
 					? cme?.entry(cme.data[cursor.row]).time
 					: (erupt?.flr_start ?? erupt?.cme_time)) ?? new Date((feidTime.getTime() ?? 0) - 3 * 864e5);
-		const interval = plotOffsetSolar.map((o) => new Date(focusTime.getTime() + o * 36e5)) as [Date, Date];
+		const [start, end] = plotOffsetSolar.map((o) => focusTime.getTime() / 1e3 + o * 3600);
+		const interval = { start, end };
 
 		const flrTidx = flr?.columns.findIndex((col) => col.sql_name === 'start_time');
-		const flares = flr?.data
-			.filter((row) => interval[0] <= row[flrTidx!]! && row[flrTidx!]! <= interval[1])
-			.map((row) => flr.entry(row));
+		const flrStart = (row: any) => row[flrTidx!].getTime() / 1e3;
+		const flares = flr?.data.filter((row) => start <= flrStart(row) && flrStart(row) <= end).map((row) => flr.entry(row));
 
 		const flrs = new Map();
 		for (const flare of flares ?? []) {

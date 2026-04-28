@@ -10,23 +10,29 @@ export type ScaleParams = {
 	top: number;
 };
 
+export type Interval = { start: number; end: number };
+
 export type BasicPlotParams = {
-	interval: [Date, Date];
+	interval: Interval | null;
+	fetchInterval: Interval | null;
 	onsets?: Onset[];
 	ends?: Onset[];
 	clouds?: MagneticCloud[];
 	interactive?: boolean;
 	stretch?: boolean;
 	showTimeAxis: boolean;
-	showEventsEnds: boolean;
 	showMetaLabels: boolean;
 	showMetaInfo: boolean;
+
+	showEventsEnds: boolean;
 	showGrid: boolean;
 	showMarkers: boolean;
 	showLegend: boolean;
 };
 
-export const defaultPlotParams: Omit<BasicPlotParams, keyof EventsSettings | 'interval'> = {
+export const defaultPlotParams: Omit<BasicPlotParams, keyof EventsSettings> = {
+	interval: null,
+	fetchInterval: null,
 	showMetaInfo: true,
 	showMetaLabels: true,
 	showTimeAxis: true,

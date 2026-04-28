@@ -1,9 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { apiGet, prettyDate } from '../../util';
 import { circlePaths } from '../../plots/common/paths/circlePaths';
 import { axisDefaults, color, customTimeSplits, scaled } from '../../plots/common/plotUtil';
-import { drawMagneticClouds } from '../../plots/common/draw/drawMagneticClouds';
-import { drawOnsets } from '../../plots/common/draw/drawOnsets';
 import { applyTextTransform } from '../../plots/common/basicPlot';
 import { useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';
@@ -31,7 +29,7 @@ function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesPlotParam
 
 function Panel() {
 	const params = usePlot<CirclesPlotParams>();
-	const { interval, variationShift, showLegend } = params;
+	const { interval, fetchInterval, variationShift, showLegend } = params;
 
 	const overlayHandle = usePlotOverlay((u, { width }) => ({
 		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,
@@ -39,19 +37,20 @@ function Panel() {
 	}));
 
 	const query = useQuery({
-		queryKey: ['rsm', interval],
+		queryKey: ['rsm', fetchInterval],
 		queryFn: () =>
-			apiGet<RSMPlotResponse>('crow/rsm/circles', {
-				from: interval[0].getTime() / 1e3,
-				to: interval[1].getTime() / 1e3,
-			}),
+			fetchInterval
+				? apiGet<RSMPlotResponse>('crow/rsm/circles', {
+						from: fetchInterval.start,
+						to: fetchInterval.end,
+					})
+				: null,
 	});
 
-	const [uplot, setUplot] = useState<uPlot>();
 	const plotData = useMemo(() => {
 		if (!query.data) return null;
-		return renderCirclesData(query.data, variationShift);
-	}, [query.data, variationShift]);
+		return renderCirclesData(query.data, interval, variationShift);
+	}, [query.data, interval, variationShift]);
 
 	const options: (() => Omit<uPlot.Options, 'width' | 'height'>) | null = useMemo(() => {
 		let hoveredRect: any;
@@ -99,6 +98,7 @@ function Panel() {
 				ready: [overlayHandle.onReady],
 				drawClear: [
 					(u) => {
+						// eslint-disable-next-line react-hooks/immutability
 						qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 						qt.clear();
 					},
@@ -162,7 +162,7 @@ function Panel() {
 	if (query.isError) throw query.error;
 	if (query.isLoading || !plotData) return <div className="center">LOADING...</div>;
 
-	return <ExportableUplot {...{ options, data: plotData as any, onCreate: setUplot }} />;
+	return <ExportableUplot {...{ options, data: plotData as any }} />;
 }
 
 export const RSMPlot = {

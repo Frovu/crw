@@ -24,7 +24,7 @@ export function drawOnsets(params: BasicPlotParams, truncateY?: (u: uPlot) => nu
 				const lineY = Math.max(truncateY?.(u) ?? 0, minTop);
 				u.ctx.moveTo(x, lineY);
 				u.ctx.lineTo(x, u.bbox.top + u.bbox.height + scaled(4));
-				label && u.ctx.fillText(insert ? 'Ins' : type || 'ons', x + scaled(2), lineY);
+				if (label) u.ctx.fillText(insert ? 'Ins' : type || 'ons', x + scaled(2), lineY);
 				u.ctx.stroke();
 				u.ctx.restore();
 			}

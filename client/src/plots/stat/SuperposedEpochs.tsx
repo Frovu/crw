@@ -155,18 +155,21 @@ function Panel() {
 	const queries = useQueries({
 		queries: [
 			// yes, query keys are cursed
+			// eslint-disable-next-line @tanstack/query/exhaustive-deps
 			{
 				enabled: !!series[0] && !!samples[0]?.length,
 				queryKey: [...qk, samples[0]?.length, samples[0]?.at(0), samples[0]?.at(-1), series[0], timeColIdx],
 				queryFn: () => queryHandler(0, timeColIdx),
 				staleTime: Infinity,
 			},
+			// eslint-disable-next-line @tanstack/query/exhaustive-deps
 			{
 				enabled: !!series[1] && !!samples[1]?.length,
 				queryKey: [...qk, samples[1]?.length, samples[1]?.at(0), samples[1]?.at(-1), series[1], timeColIdx],
 				queryFn: () => queryHandler(1, timeColIdx),
 				staleTime: Infinity,
 			},
+			// eslint-disable-next-line @tanstack/query/exhaustive-deps
 			{
 				enabled: !!series[2] && !!samples[2]?.length,
 				queryKey: [...qk, samples[2]?.length, samples[2]?.at(0), samples[2]?.at(-1), series[2], timeColIdx],
@@ -236,7 +239,7 @@ function Panel() {
 							scale: axScale(idx),
 							fullLabel: filtered
 								.filter((id) => axScale(id) === axScale(idx))
-								.map((id) => seriesNames[idx])
+								.map(() => seriesNames[idx])
 								.join(', '),
 							label: '',
 						})) as CustomAxis[]),
@@ -244,7 +247,7 @@ function Panel() {
 					scales: {
 						x: { time: false },
 						...Object.fromEntries(
-							filtered.map((idx, i) => [
+							filtered.map((idx) => [
 								axScale(idx),
 								{
 									distr: params.logScale ? 3 : 1,
@@ -274,7 +277,7 @@ function Panel() {
 						{},
 						...filtered
 							.map(
-								(idx, i) =>
+								(idx) =>
 									[
 										{
 											show: params.showEpochMedian,
@@ -316,6 +319,7 @@ function Panel() {
 				} as Omit<uPlot.Options, 'width' | 'height'>;
 			},
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [
 		params.showEpochMedian,
 		params.showEpochStd,

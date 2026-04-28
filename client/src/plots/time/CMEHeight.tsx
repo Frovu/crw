@@ -18,21 +18,20 @@ const colors = {
 } as const;
 
 function Panel() {
-	const params = usePlot<{}>();
+	const params = usePlot();
 	const { showGrid } = params;
 	const { interval } = useSolarPlot();
-	const [from, to] = interval.map((d) => Math.floor(d.getTime() / 1e3));
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
 
 	const query = useQuery({
-		queryKey: ['CMEHT', from, to],
+		queryKey: ['CMEHT', interval.start, interval.end],
 		queryFn: () =>
 			apiGet<{ time: number; speed: number; width: number; mpa: number; ht: [number, number][] }[]>(
 				'events/cme_heighttime',
 				{
-					from: from - 7200,
-					to,
+					from: interval.start - 7200,
+					to: interval.end,
 				},
 			),
 	});
@@ -98,7 +97,7 @@ function Panel() {
 					},
 				],
 				scales: {
-					x: { range: [from, to] },
+					x: { range: [interval.start, interval.end] },
 					y: { range: (u, min, max) => [2, max] },
 				},
 				series: [
@@ -112,7 +111,7 @@ function Panel() {
 			} as Omit<uPlot.Options, 'width' | 'height'>;
 		};
 		return <ExportableUplot {...{ options, data: null as any, onCreate: setUpl }} />;
-	}, [query.isLoading, query.data, showGrid, params, from, to]);
+	}, [query.isLoading, query.data, showGrid, params, interval.start, interval.end]);
 
 	if (query.isError)
 		return (
@@ -130,7 +129,7 @@ function Panel() {
 	);
 }
 
-export const CMEHeightPlot: EventsPanel<{}> = {
+export const CMEHeightPlot: EventsPanel<unknown> = {
 	name: 'CME Height',
 	Panel,
 	isPlot: true,

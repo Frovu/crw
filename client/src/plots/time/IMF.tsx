@@ -24,11 +24,12 @@ function Menu({ Checkbox }: ContextMenuProps<IMFParams>) {
 
 function Panel() {
 	const params = usePlot<IMFParams>();
+
 	return (
 		<BasicPlot
 			{...{
-				queryKey: (interval) => ['IMF', interval],
-				queryFn: (interval) => basicDataQuery('omni', interval, ['time', 'V', 'B', 'Bx', 'By', 'Bz']),
+				queryKey: ['IMF'],
+				queryFn: basicDataQuery('omni', ['time', 'V', 'B', 'Bx', 'By', 'Bz']),
 				params,
 				axes: () => [
 					{
