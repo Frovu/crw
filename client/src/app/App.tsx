@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { PlotCirclesStandalone } from '../plots/time/Circles';
 import '../styles/index.css';
+import 'uplot/dist/uPlot.min.css';
 import TemperatureApp from '../crow/muon/Temperature';
 import Neutron from '../crow/neutron/Neutron';
 import MuonApp from '../crow/muon/Muon';
@@ -19,25 +19,17 @@ import {
 	APPS,
 	useContextMenuStore,
 	closeConfirmation,
+	APP_NAME,
 } from './app';
 import { LayoutNav } from './LayoutNav';
-import ContextMenu from './ContextMenu';
 import { Button } from '../components/Button';
 import { SimpleSelect } from '../components/Select';
 import { CatchErrors } from '../components/CatchErrors';
 import { Confirmation } from '../components/Confirmation';
 import ManualView from './Manual';
+import RealtimeApp from '../crow/RealtimeApp';
 
 const theQueryClient = new QueryClient();
-
-const APP_NAME = {
-	feid: 'Forbush Effects and Interplanetary Disturbances catalogue',
-	ros: 'Ring of Stations method',
-	meteo: 'Atmospheric temperature',
-	neutron: 'Neutron monitors',
-	muon: 'Muon telescopes',
-	omni: 'Interplanetary medium (omni)',
-} as const;
 
 // Tanstack Query dev tools
 // This code is only for TypeScript
@@ -57,7 +49,7 @@ function Logs() {
 	const last = log.findLast((l) => l.type !== 'debug');
 
 	useEffect(() => {
-		setShow(true);
+		queueMicrotask(() => setShow(true));
 		const interval = setInterval(() => setShow(false), ['error', 'success'].includes(last?.type as any) ? 20000 : 5000);
 		return () => clearInterval(interval);
 	}, [last]);
@@ -136,27 +128,27 @@ function App() {
 					content="A set of publicly available data applications used for research in IZMIRAN cosmic rays department"
 				/>
 				<h2 className="text-xl p-4 font-bold">Select an application:</h2>
-				{Object.entries(APP_NAME).map(([ap, aname]) => (
-					<Button key={ap} className="block p-1 ml-8 text-lg" onClick={() => selectApp(ap as keyof typeof APP_NAME)}>
-						- {aname}
+				{APPS.map((ap) => (
+					<Button key={ap} className="block p-1 ml-8 text-lg" onClick={() => selectApp(ap)}>
+						- {APP_NAME[ap]}
 					</Button>
 				))}
 			</div>
 		);
 
-	const showNav = !['ros', 'help'].includes(app);
+	const showNav = app !== 'realtime';
 	return (
 		<div className="w-screen h-screen flex flex-col gap-[1px]">
-			<CatchErrors>
-				<div className="grow shrink min-h-0">
-					{app === 'ros' && <PlotCirclesStandalone />}
+			<div className="grow shrink min-h-0">
+				<CatchErrors>
+					{app === 'realtime' && <RealtimeApp />}
 					{app === 'feid' && <EventsApp />}
 					{app === 'meteo' && <TemperatureApp />}
 					{app === 'neutron' && <Neutron />}
 					{app === 'muon' && <MuonApp />}
 					{app === 'omni' && <OmniApp />}
-				</div>
-			</CatchErrors>
+				</CatchErrors>
+			</div>
 			{showNav && (
 				<div
 					className="flex z-10 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
@@ -165,7 +157,7 @@ function App() {
 					<SimpleSelect
 						className="pl-2 h-5 w-21 text-dark"
 						options={APPS.map((a) => [a, '/' + a] as const)}
-						value={app}
+						value={app as any}
 						onChange={(a) => selectApp(a)}
 					/>
 					<AuthNav />
@@ -191,11 +183,6 @@ function App() {
 					<Confirmation closeSelf={closeConfirmation} callback={confirmation.callback}>
 						{confirmation.content}
 					</Confirmation>
-				</CatchErrors>
-			)}
-			{app !== 'feid' && (
-				<CatchErrors>
-					<ContextMenu />
 				</CatchErrors>
 			)}
 			<ManualView />

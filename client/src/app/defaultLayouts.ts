@@ -371,6 +371,21 @@ const feidDefaultLayouts: LayoutPreset = {
 	},
 };
 
+const realtimeDefaultLayouts: LayoutPreset = {
+	active: 'rsm',
+	list: {
+		rsm: {
+			tree: {},
+			items: {
+				root: {
+					type: 'Ring of Stations',
+				},
+			},
+		},
+	},
+};
+
 export const defaultLayouts = {
 	feid: feidDefaultLayouts,
+	realtime: realtimeDefaultLayouts,
 };

@@ -30,7 +30,7 @@ function Window({ id }: { id: string }) {
 	const { panels } = useContext(AppLayoutContext);
 	const { params: rawParams, ...pos } = useLayoutsStore((st) => st.windows[id]) ?? {};
 	const size = { height: pos.h, width: pos.w };
-	const panel: Panel<{}> | undefined = panels[rawParams.type ?? ''];
+	const panel: Panel<object> | undefined = panels[rawParams.type ?? ''];
 
 	const drag = useRef<null | { pos: typeof pos; x: number; y: number; resize?: string }>(null);
 
@@ -128,7 +128,7 @@ function Item({ id, size }: { id: string; size: Size }) {
 	const { startDrag, dragOver, finishDrag } = useLayoutsStore.getState();
 	const { items } = useLayout();
 	const item = items[id];
-	const panel: Panel<{}> | undefined = panels[item?.type ?? ''];
+	const panel: Panel<object> | undefined = panels[item?.type ?? ''];
 	if (!item || (item.type && !panel)) {
 		console.log('uknown item type: ', item?.type, id);
 		relinquishNode(id);

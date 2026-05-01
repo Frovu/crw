@@ -1,47 +1,46 @@
-import { cn, useEventListener } from '../util';
 import AppLayout from '../app/Layout';
-import { useEventsSettings } from './core/util';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
+import { cn, useEventListener } from '../util';
 import type { EventsPanel } from './core/util';
+import { useEventsSettings } from './core/util';
 
-import { ExportControls } from './export/ExportControls';
-import { ExportPreview } from './export/ExportPreview';
-import { FeidTable } from './panels/FeidPanel';
+import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
+import { useContextMenuStore } from '../app/app';
+import { ColorsSettings } from '../app/Colors';
+import { Button } from '../components/Button';
+import { EventsCheckbox } from '../components/Checkbox';
+import { PlotIntervalInput } from '../components/Input';
+import { OmniControls } from '../crow/omni/OmniControls';
+import { CrowControls } from '../crow/panels/CrowControls';
+import { RSMPlot } from '../crow/rsm/CirclesPlot';
+import { defaultPlotParams } from '../plots/common/types';
+import { Correlation } from '../plots/stat/Correlate';
+import { EventsHistory } from '../plots/stat/EventsHistory';
+import { Histogram } from '../plots/stat/Histogram';
+import { SuperposedEpochs } from '../plots/stat/SuperposedEpochs';
+import { CMEHeightPlot } from '../plots/time/CMEHeight';
+import { CustomPlot } from '../plots/time/CustomPlot';
 import { GeomagnPlot } from '../plots/time/Geomagn';
 import { GSMPlot } from '../plots/time/GSM';
-import { RSMPlot } from '../plots/time/Circles';
 import { IMFPlot } from '../plots/time/IMF';
 import { SatParticlesPlot } from '../plots/time/Particles';
 import { SWPlasmaPlot } from '../plots/time/SW';
-import { CMEHeightPlot } from '../plots/time/CMEHeight';
 import { SWTypesPlot } from '../plots/time/SWTypes';
 import { XraysPlot } from '../plots/time/XRays';
-import { SunView } from './panels/SDO';
-import { ColorsSettings } from '../app/Colors';
+import { renderPlotInANewTab } from './export/exportablePlots';
+import { ExportControls } from './export/ExportControls';
+import { ExportPreview } from './export/ExportPreview';
 import { InsertControls } from './insert/Insert';
-import { CMETable, FlaresTable, ICMETable } from './tables/EruptiveEntity';
+import { ENLILView } from './panels/ENLIL';
+import { FeidTable } from './panels/FeidPanel';
+import { SunView } from './panels/SDO';
+import { SFTFlare } from './panels/SFTFlare';
+import { SWPCHint } from './panels/SWPC';
 import { EruptionsTable } from './tables/Eruptions';
-import { HolesTable } from './tables/HolesSrc';
+import { CMETable, FlaresTable, ICMETable } from './tables/EruptiveEntity';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
-import { useContextMenuStore } from '../app/app';
-import { Correlation } from '../plots/stat/Correlate';
-import { Histogram } from '../plots/stat/Histogram';
-import { SuperposedEpochs } from '../plots/stat/SuperposedEpochs';
-import { EventsHistory } from '../plots/stat/EventsHistory';
-import { SWPCHint } from './panels/SWPC';
-import { EventsCheckbox } from '../components/Checkbox';
-import { Bolt, ChartLine, ChartNoAxesColumn, ChartSpline, Sun, Table } from 'lucide-react';
-import { Button } from '../components/Button';
-import { PlotIntervalInput } from '../components/Input';
-import { ENLILView } from './panels/ENLIL';
-import { SFTFlare } from './panels/SFTFlare';
-import { renderPlotInANewTab } from './export/exportablePlots';
-import { CustomPlot } from '../plots/time/CustomPlot';
-import { CrowControls } from '../crow/panels/CrowControls';
-import { OmniControls } from '../crow/omni/OmniControls';
-import { RSMPlot as RSMPlot2 } from '../crow/rsm/CirclesPlot';
-import { defaultPlotParams } from '../plots/common/types';
+import { HolesTable } from './tables/HolesSrc';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -50,7 +49,6 @@ const panels: EventsPanel<any>[] = [
 	SWTypesPlot,
 	GeomagnPlot,
 	RSMPlot,
-	RSMPlot2,
 	CustomPlot,
 	Correlation,
 	Histogram,

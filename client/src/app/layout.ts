@@ -34,7 +34,7 @@ export type Panel<T> = {
 	isDuplicatable?: boolean;
 };
 
-export type LayoutsMenuDetails = { nodeId: string; window?: NodeParams<{}> };
+export type LayoutsMenuDetails = { nodeId: string; window?: NodeParams<object> };
 
 export type ContextMenuProps<T> = {
 	params: NodeParams<T>;
@@ -50,14 +50,14 @@ export type AppLayoutProps<T> = {
 export type LayoutContextType<T> = {
 	id: string;
 	size: Size;
-	panel: Panel<{}>;
+	panel: Panel<object>;
 	isWindow?: boolean;
 	params: NodeParams<T>;
 	setParams: ParamsSetter<T>;
 };
-export const LayoutContext = createContext<LayoutContextType<{}> | null>(null);
+export const LayoutContext = createContext<LayoutContextType<object> | null>(null);
 
-export const AppLayoutContext = createContext<AppLayoutProps<{}>>({} as any);
+export const AppLayoutContext = createContext<AppLayoutProps<object>>({} as any);
 
 type LayoutsState = {
 	dragFrom: null | string;
@@ -65,7 +65,7 @@ type LayoutsState = {
 	apps: {
 		[app: string]: {
 			active: string;
-			list: { [name: string]: Layout<{}> };
+			list: { [name: string]: Layout<object> };
 		};
 	};
 	windows: {
@@ -74,7 +74,7 @@ type LayoutsState = {
 			y: number;
 			w: number;
 			h: number;
-			params: NodeParams<{}>;
+			params: NodeParams<object>;
 			unique?: string;
 		};
 	};
@@ -103,7 +103,7 @@ const defaultState = {
 
 export const useLayoutsStore = create<LayoutsState>()(
 	persist(
-		immer((set, get) => ({
+		immer((set) => ({
 			...defaultState,
 			startDrag: (nodeId) =>
 				set((state) =>
@@ -178,6 +178,14 @@ export const useLayoutsStore = create<LayoutsState>()(
 			version: 2,
 			name: 'crwAppLayouts',
 			partialize: ({ apps }) => ({ apps }),
+			merge: (persisted, current) => ({
+				...current,
+				...(persisted as object),
+				apps: {
+					...current.apps,
+					...(persisted as any)?.apps,
+				},
+			}),
 		},
 	),
 );

@@ -8,7 +8,15 @@ import { immer } from 'zustand/middleware/immer';
 import type { TableEntity, TableMenuDetails } from '../events/tables/Table';
 import type { TextTransformMenuDetail } from '../events/export/TextTransformMenu';
 
-export const APPS = ['feid', 'meteo', 'muon', 'neutron', 'omni', 'ros'] as const;
+export const APP_NAME = {
+	feid: 'Forbush Effects and Interplanetary Disturbances catalogue',
+	realtime: 'Realtime view of FEID parameters',
+	meteo: 'Atmospheric temperature',
+	neutron: 'Neutron monitors',
+	muon: 'Muon telescopes',
+	omni: 'Interplanetary medium (omni)',
+} as const;
+export const APPS = Object.keys(APP_NAME) as (keyof typeof APP_NAME)[];
 
 export const KEY_COMB = {
 	openColumnsSelector: 'C',
@@ -145,10 +153,10 @@ export const logMessage = (text: string, type: LogMessage['type'] = 'info') =>
 		useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })),
 	);
 export const logError = (txt?: any) => {
-	txt && logMessage(txt.toString(), 'error');
+	if (txt) logMessage(txt.toString(), 'error');
 };
 export const logSuccess = (txt?: any) => {
-	txt && logMessage(txt.toString(), 'success');
+	if (txt) logMessage(txt.toString(), 'success');
 };
 
 export const logColor = {
@@ -180,7 +188,7 @@ type ContextMenu = {
 	};
 };
 
-export const useContextMenuStore = create<ContextMenu>()((set) => ({
+export const useContextMenuStore = create<ContextMenu>()(() => ({
 	menu: null,
 	confirmation: null,
 }));

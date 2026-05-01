@@ -199,7 +199,7 @@ function Panel() {
 }
 
 export const RSMPlot = {
-	name: 'Ring of Stations 2',
+	name: 'Ring of Stations',
 	Panel,
 	Menu,
 	defaultParams,
