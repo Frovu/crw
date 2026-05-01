@@ -12,8 +12,11 @@ import { usePlot } from '../../events/core/plot';
 import type { RSMPlotResponse } from '../../api';
 import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
 import { usePlotOverlay } from '../../plots/common/plotOverlay';
-import { labelsPlugin, metainfoPlugin, tooltipPlugin } from '../../plots/common/plugins';
+import { labelsPlugin, metainfoPlugin } from '../../plots/common/plugins';
+import { tooltipPlugin } from '../../plots/common/tooltipPlugin';
 import { Quadtree } from '../../plots/common/quadtree';
+import { TextInput } from '../../components/Input';
+import { Button } from '../../components/Button';
 
 const defaultParams = {
 	variationShift: 0,
@@ -23,8 +26,40 @@ const defaultParams = {
 
 export type CirclesPlotParams = typeof defaultParams;
 
-function Menu({ params, Checkbox, setParams }: ContextMenuProps<CirclesPlotParams>) {
-	return <></>;
+function Menu({ params, Checkbox, set }: ContextMenuProps<CirclesPlotParams>) {
+	return (
+		<>
+			<Checkbox k="linearSize" label="Linear size" />
+			<div>
+				<Button title="reset" onClick={() => set('variationShift', 0)}>
+					Variation shift:
+				</Button>
+				<TextInput
+					className="w-20 ml-1"
+					type="number"
+					min="-99"
+					max="99"
+					step=".05"
+					value={params.variationShift?.toFixed(2) ?? ''}
+					onChange={(e) => set('variationShift', isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)}
+				/>
+			</div>
+			<div>
+				<Button title="reset" onClick={() => set('sizeShift', 0)}>
+					Size shift, px:
+				</Button>
+				<TextInput
+					className="w-20 ml-1"
+					type="number"
+					min="-200"
+					max="200"
+					step="2"
+					value={params.sizeShift?.toFixed(0) ?? ''}
+					onChange={(e) => set('sizeShift', isNaN(e.target.valueAsNumber) ? 0 : e.target.valueAsNumber)}
+				/>
+			</div>
+		</>
+	);
 }
 
 function Panel() {
@@ -73,7 +108,7 @@ function Panel() {
 					qt.hover(cx, cy, (o: any) => {
 						hoveredRect = o;
 					});
-					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : -1;
+					return hoveredRect && seriesIdx === hoveredRect.sidx ? hoveredRect.didx : null;
 				},
 			},
 			plugins: [
@@ -81,7 +116,6 @@ function Panel() {
 				tooltipPlugin({
 					disableFocus: true,
 					sidx: () => hoveredRect?.sidx,
-					didx: () => hoveredRect?.didx,
 					html: (u, sidx, didx) => {
 						const time = (u.data as any)[sidx][0][didx];
 						const alon = (u.data as any)[sidx][1][didx];
@@ -98,7 +132,6 @@ function Panel() {
 				ready: [overlayHandle.onReady],
 				drawClear: [
 					(u) => {
-						// eslint-disable-next-line react-hooks/immutability
 						qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
 						qt.clear();
 					},
@@ -113,7 +146,7 @@ function Panel() {
 					...axisDefaults(params.showGrid),
 					ticks: { ...axisDefaults(params.showGrid).ticks, size: 4 },
 					scale: 'y',
-					label: applyTextTransform('eff lon, deg'),
+					label: applyTextTransform('eff. lon, deg'),
 					values: (u, vals) => vals.map((v) => v.toFixed(0)),
 					space: scaled(32),
 					gap: scaled(2),
@@ -157,7 +190,7 @@ function Panel() {
 				},
 			],
 		});
-	}, [params, plotData]);
+	}, [overlayHandle, params, plotData, query.data?.stations, showLegend]);
 
 	if (query.isError) throw query.error;
 	if (query.isLoading || !plotData) return <div className="center">LOADING...</div>;
