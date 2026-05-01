@@ -15,7 +15,8 @@ import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
 import { usePlotOverlay } from '../common/plotOverlay';
 import { axisDefaults, font, getFontSize, measureDigit, scaled } from '../common/plotUtil';
-import { labelsPlugin, legendPlugin, tooltipPlugin } from '../common/plugins';
+import { labelsPlugin, legendPlugin } from '../common/plugins';
+import { tooltipPlugin } from '../common/tooltipPlugin';
 import type { CustomAxis } from '../common/types';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 

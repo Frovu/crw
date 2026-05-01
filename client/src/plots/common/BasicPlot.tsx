@@ -8,7 +8,8 @@ import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { sliceData } from './basicPlot';
 import { useSunViewState } from '../../events/panels/SDO';
 import { LayoutContext } from '../../app/layout';
-import { metainfoPlugin, tooltipPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins';
+import { metainfoPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins';
+import { tooltipPlugin } from './tooltipPlugin';
 import type { BasicPlotParams, CustomAxis, CustomSeries, CustomScale, Interval } from './types';
 import { markersPaths } from './paths/markersPaths';
 
@@ -36,7 +37,6 @@ export default function BasicPlot({
 	const [upl, setUpl] = useState<uPlot | null>(null);
 	const layoutContext = useContext(LayoutContext);
 
-	console.log(params.fetchInterval);
 	// eslint-disable-next-line @tanstack/query/exhaustive-deps
 	const query = useQuery({
 		queryKey: [params.fetchInterval, ...queryKey],

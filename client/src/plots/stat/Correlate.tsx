@@ -18,7 +18,8 @@ import { usePlotOverlay } from '../common/plotOverlay';
 import { pointPaths } from '../common/paths/pointPaths';
 import { linePaths } from '../common/paths/linePaths';
 import { axisDefaults, getFontSize, measureDigit, scaled } from '../common/plotUtil';
-import { labelsPlugin, legendPlugin, titlePlugin, tooltipPlugin } from '../common/plugins';
+import { labelsPlugin, legendPlugin, titlePlugin } from '../common/plugins';
+import { tooltipPlugin } from '../common/tooltipPlugin';
 import { Quadtree } from '../common/quadtree';
 import { type CustomAxis } from '../common/types';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
@@ -212,7 +213,6 @@ function Panel() {
 					},
 					plugins: [
 						tooltipPlugin({
-							didx: () => hoveredRect?.didx,
 							onclick: (u, didx) => {
 								const row = findRow(didx);
 								if (!row) return;

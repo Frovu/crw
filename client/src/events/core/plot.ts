@@ -92,8 +92,6 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 		};
 	}, [table, plotId, setStartAt, plotOffset, setEndAt, plotUnlistedEvents, sample.data, modifyId, crowMode, crowWindow]);
 
-	console.log(layout?.params);
-
 	return useMemo(() => {
 		return {
 			...settings,
