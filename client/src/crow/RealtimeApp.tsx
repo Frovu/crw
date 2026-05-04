@@ -1,8 +1,11 @@
+import { useContextMenuStore } from '../app/app';
 import AppLayout from '../app/Layout';
-import type { ContextMenuProps } from '../app/layout';
+import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
+import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { RSMPlot } from '../crow/rsm/CirclesPlot';
 import type { EventsPanel } from '../events/core/util';
+import { renderPlotInANewTab } from '../events/export/exportablePlots';
 import { defaultPlotParams } from '../plots/common/types';
 import { CustomPlot } from '../plots/time/CustomPlot';
 import { SatParticlesPlot } from '../plots/time/Particles';
@@ -28,8 +31,9 @@ function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 }
 
 function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
+	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { realtimeWindow, set: setSetting } = useCrowSettings();
-	const { Menu } = panel;
+	const { Menu, isPlot } = panel;
 	return (
 		<div className="flex flex-col gap-1 items-end select-none [&>*]:w-full [&>*]:text-right [&>*]:justify-end">
 			<div>
@@ -46,6 +50,16 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 			</div>
 			<div className="separator" />
 			{Menu && <Menu {...{ params, set, setParams, Checkbox }} />}
+			{isPlot && (
+				<>
+					<div className="separator" />
+					{details && (
+						<Button className="h-7" onClick={() => renderPlotInANewTab(details.nodeId)}>
+							Open image in new tab
+						</Button>
+					)}
+				</>
+			)}
 		</div>
 	);
 }

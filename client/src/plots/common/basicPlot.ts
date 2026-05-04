@@ -69,7 +69,7 @@ export function paddedInterval(interv: Interval): Interval {
 export function sliceData(data: (number | null)[][], interval: Interval) {
 	const sliceLft = data[0].findIndex((t) => t != null && t >= interval.start);
 	const sliceRgt = data[0].findLastIndex((t) => t != null && t <= interval.end);
-	return data.map((col) => col.slice(sliceLft, sliceRgt));
+	return data.map((col) => col.slice(sliceLft, sliceRgt + 1));
 }
 
 export function basicDataQuery(path: string, query: string[], params?: object) {

@@ -16,4 +16,4 @@ def fetch_circles(t_from: int, t_to: int):
 	bases = place_bases(counts, sw_vb)
 	variations = compute_variations(counts, bases)
 	variations = np.where(~np.isfinite(variations.T), None, np.round(variations.T, 2)).tolist() # type: ignore
-	return RSMPlotResponse(time.tolist(), variations, stations).as_dict()
+	return RSMPlotResponse(time.tolist(), variations, stations, bases.tolist()).as_dict()

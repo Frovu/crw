@@ -24,8 +24,12 @@ def compute_base_rating(counts: np.ndarray, sw_vb: np.ndarray):
 	std = np.std(windows, axis=2)
 	mean_std = 1 / np.nanmean(std, axis=2)[:,0]
 
-	avg_vb_shifted = np.nanmean(sliding_window_view(sw_vb, window_shape=WINDOW_LEN), axis=1)
-	avg_vb_shifted[~np.isfinite(avg_vb_shifted)] = 2
+	# FIXME: workaround for partially fetched sw
+	if len(counts) != len(sw_vb):
+		avg_vb_shifted = np.full_like(mean_std, 2)
+	else:
+		avg_vb_shifted = np.nanmean(sliding_window_view(sw_vb, window_shape=WINDOW_LEN), axis=1)
+		avg_vb_shifted[~np.isfinite(avg_vb_shifted)] = 2
 
 	result[:-WINDOW_LEN+1] = mean_std / avg_vb_shifted
 
@@ -49,6 +53,9 @@ def place_bases(counts: np.ndarray, sw_vb: np.ndarray):
 		if base >= len(counts) - WINDOW_LEN: break
 		idx = base + BASE_LEN + MIN_BASE_GAP
 		bases.append(base)
+
+	if not len(bases):
+		bases = [0]
 		
 	return np.array(bases)
 

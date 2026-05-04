@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 import ts_type
 
-from database import pool, SQL, Identifier
+from database import pool, log, SQL, Identifier
 from cream.gsm import normalize_variation
 from events.columns.series import find_series
 from events.columns.parser import columnParser, ColumnComputer, TYPE
@@ -47,7 +47,10 @@ def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int 
 			continue
 	
 		if len(res) != len(time):
-			raise Exception(f'Length mismatch for {definition}: {len(res)} != {len(time)}')
+			extended = np.full(len(time), np.nan)
+			extended[:len(res)] = res
+			res = extended
+			log.info(f'Length mismatch for {definition}: {len(res)} != {len(time)}, correcting')
 		
 		val = np.where(~np.isfinite(res), None, res).tolist() # type: ignore
 		results.append(val)

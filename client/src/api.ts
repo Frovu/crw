@@ -374,6 +374,20 @@ export type Function = {
 	args: ArgDef[];
 };
 
+export type RSMPlotResponse = {
+	time: number[];
+	variations: (number | null)[][];
+	stations: Station[];
+	bases: number[];
+};
+
+export type Station = {
+	id: string;
+	drift_longitude: number;
+	provides_1min: boolean;
+	prefer_nmdb: boolean;
+};
+
 export type ChangelogEntry = {
 	time: number;
 	author: string;
@@ -418,20 +432,6 @@ export type TextTransformsSet = {
 
 export type TextTransformsSetsList = {
 	list: TextTransformsSet[];
-};
-
-export type RSMPlotResponse = {
-	time: number[];
-	variations: (number | null)[][];
-	stations: Station[];
-	base: number | null;
-};
-
-export type Station = {
-	id: string;
-	drift_longitude: number;
-	provides_1min: boolean;
-	prefer_nmdb: boolean;
 };
 
 export type Filter = {

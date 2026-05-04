@@ -136,6 +136,24 @@ function Panel() {
 						qt.clear();
 					},
 				],
+				drawAxes: [
+					(u) => {
+						const bases = query.data?.bases ?? [];
+						for (const base of bases) {
+							u.ctx.save();
+							u.ctx.fillStyle = u.ctx.strokeStyle = color('purple', 0.9);
+							u.ctx.lineWidth = scaled(4 * devicePixelRatio);
+							u.ctx.beginPath();
+							const time = u.data[0][base];
+							const x = Math.max(u.bbox.left, u.valToPos(time, 'x', true));
+							const x2 = Math.max(u.bbox.left, u.valToPos(time + 86400, 'x', true));
+							u.ctx.moveTo(x, u.bbox.top + u.bbox.height + scaled(3));
+							u.ctx.lineTo(x2, u.bbox.top + u.bbox.height + scaled(3));
+							u.ctx.stroke();
+							u.ctx.restore();
+						}
+					},
+				],
 			},
 			axes: [
 				{
@@ -160,7 +178,7 @@ function Panel() {
 			scales: {
 				x: {
 					time: false,
-					range: (u, min, max) => [min, max],
+					range: () => [params.interval!.start + 1800, params.interval!.end - 1800],
 				},
 				y: {
 					range: [-5, 365],
@@ -190,7 +208,7 @@ function Panel() {
 				},
 			],
 		});
-	}, [overlayHandle, params, plotData, query.data?.stations, showLegend]);
+	}, [overlayHandle, params, plotData, query.data?.bases, query.data?.stations, showLegend]);
 
 	if (query.isError) throw query.error;
 	if (query.isLoading || !plotData) return <div className="center">LOADING...</div>;

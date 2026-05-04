@@ -62,34 +62,43 @@ export default function BasicPlot({
 			legend: { show: params.interactive },
 			focus: { alpha: 0.6 },
 			...uopts,
-			scales: Object.fromEntries(
-				axes?.map((ax) => [
-					ax.label,
-					{
-						distr: ax.distr ?? 1,
-						range: (u, dmin, dmax) => {
-							const override = scaleOverrides?.[ax.label];
-							const [fmin, fmax] = ax.minMax ?? [null, null];
-							const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin);
-							const min =
-								ax.distr !== 3 ? pmin : Math.max(1e-10, pmin < 1 ? parseFloat(pmin.toPrecision(1)) : pmin);
-							const max = override?.max ?? Math.max(dmax, fmax ?? dmax, min + 0.001);
-							const [bottom, top] =
-								override && ax.distr !== 3 ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
-							const scale: CustomScale = u.scales[ax.label];
-							scale.scaleValue = { min, max };
-							scale.positionValue = { bottom, top };
-							const h = max - min;
-							const resultingH = h / (top - bottom);
-							const margin = ax.distr !== 3 ? h / 20 : 0;
-							return [
-								min - resultingH * bottom - (!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
-								max + resultingH * (1 - top) + (!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
-							];
-						},
-					} as uPlot.Scale,
-				]) ?? [],
-			),
+			scales: {
+				x: {
+					range: () => [params.interval!.start + 1800, params.interval!.end - 1800],
+				},
+				...Object.fromEntries(
+					axes?.map((ax) => [
+						ax.label,
+						{
+							distr: ax.distr ?? 1,
+							range: (u, dmin, dmax) => {
+								const override = scaleOverrides?.[ax.label];
+								const [fmin, fmax] = ax.minMax ?? [null, null];
+								const pmin = override?.min ?? Math.min(dmin, fmin ?? dmin);
+								const min =
+									ax.distr !== 3 ? pmin : Math.max(1e-10, pmin < 1 ? parseFloat(pmin.toPrecision(1)) : pmin);
+								const max = override?.max ?? Math.max(dmax, fmax ?? dmax, min + 0.001);
+								const [bottom, top] =
+									override && ax.distr !== 3 ? [override.bottom, override.top] : (ax.position ?? [0, 1]);
+								const scale: CustomScale = u.scales[ax.label];
+								scale.scaleValue = { min, max };
+								scale.positionValue = { bottom, top };
+								const h = max - min;
+								const resultingH = h / (top - bottom);
+								const margin = ax.distr !== 3 ? h / 20 : 0;
+								return [
+									min -
+										resultingH * bottom -
+										(!override && dmin <= (fmin ?? dmin) && bottom === 0 ? margin : 0),
+									max +
+										resultingH * (1 - top) +
+										(!override && dmax >= (fmax ?? dmax) && top === 1 ? margin : 0),
+								];
+							},
+						} as uPlot.Scale,
+					]) ?? [],
+				),
+			},
 			axes: [
 				{
 					...axisDefaults(params.showGrid),

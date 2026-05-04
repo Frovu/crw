@@ -11,7 +11,7 @@ class RSMPlotResponse:
 	time: list[int]
 	variations: list[list[float | None]]
 	stations: list[database.Station]
-	base: int | None = None
+	bases: list[int]
 
 	def as_dict(self):
 		return asdict(self)

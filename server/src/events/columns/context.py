@@ -29,6 +29,7 @@ class ComputationContext:
 		self.target_ids = target_ids
 		self.cache: dict[str, np.ndarray] = {}
 		self.series_frame: tuple[int, int] = force_frame # type: ignore
+		self.forced_frame = bool(force_frame)
 	
 	def get_slices(self, t_1: np.ndarray, t_2: np.ndarray):
 		if not self.series_frame:
@@ -78,6 +79,7 @@ class ComputationContext:
 			t_data = time()
 			res = series.fetch(frame)
 			res_time = res[:,0]
+			res_value = res[:,1]
 
 			holes = np.where(res_time[1:] - res_time[:-1] != 3600)[0]
 			if len(holes):
@@ -86,14 +88,25 @@ class ComputationContext:
 				raise Exception(f'Data is not continous for {series.name} at {hole_tm}')
 			
 			if self.series_frame:
-				if self.series_frame[0] != res_time[0] or self.series_frame[-1] != res_time[-1]:
-					log.error('Series frame mismatch for %s', series.name)
-					raise Exception(f'Series frame mismatch for {series.name}')
+				if not len(res_time) or self.series_frame[0] != res_time[0] or self.series_frame[1] != res_time[-1]:
+					if self.forced_frame:
+						if not len(res_time):
+							gap_before = int((self.series_frame[1] - self.series_frame[0]) / HOUR) + 1
+							gap_after = 0
+							log.info('Empty series %s, returning nans [+%s]', series.name, gap_before)
+						else:
+							gap_before = int((res_time[0] - self.series_frame[0]) / HOUR)
+							gap_after = int((self.series_frame[-1] - res_time[-1]) / HOUR)
+							log.info('Series frame mismatch for %s, correcting [+%s, +%s]', series.name, gap_before, gap_after)
+						res_value = np.concatenate((np.full(gap_before, np.nan), res_value, np.full(gap_after, np.nan)))
+					else:
+						log.error('Series frame mismatch for %s', series.name)
+						raise Exception(f'Series frame mismatch for {series.name}')
 			elif len(res) > 0:
 				self.series_frame = (res_time[0], res_time[-1])
 
 			log.debug(f'Got {series.display_name} [{len(res)}] in {round(time()-t_data, 3)}s')
-			self.cache[series.name] = res[:,1]
+			self.cache[series.name] = res_value
 
 		return self.cache[series.name]
 	
