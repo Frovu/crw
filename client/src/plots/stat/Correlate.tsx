@@ -183,10 +183,10 @@ function Panel() {
 		const findRow = (i: number) =>
 			sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
 
-		let hoveredRect: any;
-		let qt: Quadtree;
 		return {
 			options: () => {
+				let hoveredRect: any;
+				let qt: Quadtree;
 				const ch = measureDigit().width,
 					scale = scaled(1);
 				return {
