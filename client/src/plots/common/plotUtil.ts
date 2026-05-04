@@ -27,6 +27,11 @@ export const withOverrides = <T>(foo: () => T, overrides?: null | Partial<PlotsO
 	return res;
 };
 
+export const withCapturedOverrides = <A extends any[], R>(foo: (...args: A) => R) => {
+	const capturedOverrides = applyOverrides;
+	return (...args: A) => withOverrides(() => foo(...args), capturedOverrides);
+};
+
 const poorCanvasCtx = document.createElement('canvas').getContext('2d')!;
 
 export const measureDigit = () => {

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { apiGet, prettyDate } from '../../util';
 import { circlePaths } from '../../plots/common/paths/circlePaths';
-import { axisDefaults, color, customTimeSplits, scaled } from '../../plots/common/plotUtil';
+import { axisDefaults, color, customTimeSplits, scaled, withCapturedOverrides } from '../../plots/common/plotUtil';
 import { applyTextTransform } from '../../plots/common/basicPlot';
 import { useQuery } from '@tanstack/react-query';
 import uPlot from 'uplot';
@@ -137,12 +137,12 @@ function Panel() {
 					},
 				],
 				drawAxes: [
-					(u) => {
+					withCapturedOverrides((u) => {
 						const bases = query.data?.bases ?? [];
 						for (const base of bases) {
 							u.ctx.save();
-							u.ctx.fillStyle = u.ctx.strokeStyle = color('purple', 0.9);
-							u.ctx.lineWidth = scaled(4 * devicePixelRatio);
+							u.ctx.fillStyle = u.ctx.strokeStyle = color('text', 0.6);
+							u.ctx.lineWidth = scaled(3 * devicePixelRatio);
 							u.ctx.beginPath();
 							const time = u.data[0][base];
 							const x = Math.max(u.bbox.left, u.valToPos(time, 'x', true));
@@ -152,7 +152,7 @@ function Panel() {
 							u.ctx.stroke();
 							u.ctx.restore();
 						}
-					},
+					}),
 				],
 			},
 			axes: [

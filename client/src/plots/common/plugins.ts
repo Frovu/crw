@@ -3,7 +3,7 @@ import { clamp, dispatchCustomEvent } from '../../util';
 import { applyTextTransform, measureStyled, applyStyles } from './basicPlot';
 import { drawCustomLabels } from './draw/drawCustomLabels';
 import { drawCustomLegend } from './draw/drawCustomLegend';
-import { getFontSize, scaled, applyOverrides, withOverrides } from './plotUtil';
+import { getFontSize, scaled, withCapturedOverrides } from './plotUtil';
 import { drawMagneticClouds } from './draw/drawMagneticClouds';
 import { drawOnsets } from './draw/drawOnsets';
 import type { BasicPlotParams, CustomScale, TextNode } from './types';
@@ -16,7 +16,6 @@ export function titlePlugin({
 	params: { showTitle: boolean };
 }): uPlot.Plugin {
 	const pad = getFontSize() + scaled(2);
-	const captureOverrides = { fontSize: 16, ...applyOverrides };
 	return {
 		opts: (u, opts) =>
 			!showTitle
@@ -52,28 +51,27 @@ export function titlePlugin({
 						},
 					],
 					drawClear: [
-						(u) =>
-							withOverrides(() => {
+						withCapturedOverrides((u) => {
+							u.ctx.save();
+							u.ctx.textAlign = 'left';
+							u.ctx.textBaseline = 'top';
+							const parts = textParts.map((t) => ({
+								...t,
+								styles: t.styles ?? [],
+								text: applyTextTransform(t.text),
+							}));
+							const width = measureStyled(u.ctx, parts);
+							let x = clamp(4, u.width * devicePixelRatio - width, (u.width * devicePixelRatio - width) / 2);
+							for (const { text, styles, color: c } of parts) {
 								u.ctx.save();
-								u.ctx.textAlign = 'left';
-								u.ctx.textBaseline = 'top';
-								const parts = textParts.map((t) => ({
-									...t,
-									styles: t.styles ?? [],
-									text: applyTextTransform(t.text),
-								}));
-								const width = measureStyled(u.ctx, parts);
-								let x = clamp(4, u.width * devicePixelRatio - width, (u.width * devicePixelRatio - width) / 2);
-								for (const { text, styles, color: c } of parts) {
-									u.ctx.save();
-									applyStyles(u.ctx, styles);
-									u.ctx.fillStyle = color(c);
-									u.ctx.fillText(text, x, scaled(4));
-									x += u.ctx.measureText(text).width;
-									u.ctx.restore();
-								}
+								applyStyles(u.ctx, styles);
+								u.ctx.fillStyle = color(c);
+								u.ctx.fillText(text, x, scaled(4));
+								x += u.ctx.measureText(text).width;
 								u.ctx.restore();
-							}, captureOverrides),
+							}
+							u.ctx.restore();
+						}),
 					],
 				},
 	};
