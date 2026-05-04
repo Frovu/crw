@@ -173,7 +173,7 @@ function Panel() {
 							{Object.entries(counts)
 								.toSorted((a, b) => b[1] - a[1])
 								.map(([sc, count]) => (
-									<div style={{ color: scColor[sc as keyof typeof scColor] }}>
+									<div key={sc} style={{ color: scColor[sc as keyof typeof scColor] }}>
 										{Math.floor((count / query.data.time.length) * 100) || 1}% {sc.toUpperCase()}
 									</div>
 								))}

@@ -3,12 +3,19 @@ import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { clamp } from '../../util';
 
 const HOUR = 3600;
 export const crowWindowModes = ['year', 'month', '10 days'] as const;
 export type CrowWindowMode = (typeof crowWindowModes)[number];
 
+export const MIN_CROW_YEAR = 1957;
+export const maxCrowYear = () => new Date().getUTCFullYear();
+const clampStart = (val: number) =>
+	clamp(Date.UTC(MIN_CROW_YEAR) / 1e3, Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth()) / 1e3, val);
+
 const defaultSettings = {
+	realtimeWindow: 24 * 5,
 	windowStart: new Date('2024-05-01').getTime() / 1e3,
 	windowMode: 'month' as CrowWindowMode,
 };
@@ -33,6 +40,55 @@ export const useCrowSettings = create<CrowSettings>()(
 		},
 	),
 );
+
+export const setCrowYear = (val: number, forceYearMode = false) =>
+	useCrowSettings.setState((state) => {
+		const curMonth = new Date(state.windowStart * 1e3).getUTCMonth();
+		if (forceYearMode || state.windowMode === 'year') {
+			state.windowMode = 'year';
+			state.windowStart = clampStart(Date.UTC(val, 0, 1) / 1e3);
+		} else {
+			state.windowMode = 'month';
+			state.windowStart = clampStart(Date.UTC(val, curMonth, 1) / 1e3);
+		}
+	});
+
+export const setCrowMonth = (val: number) =>
+	useCrowSettings.setState((state) => {
+		const curYear = new Date(state.windowStart * 1e3).getUTCFullYear();
+		state.windowMode = 'month';
+		state.windowStart = clampStart(Date.UTC(curYear, val, 1) / 1e3);
+	});
+
+export const setCrow10days = (val: number) =>
+	useCrowSettings.setState((state) => {
+		const date = new Date(state.windowStart * 1e3);
+		const curMonth = date.getUTCMonth();
+		const curYear = date.getUTCFullYear();
+		state.windowMode = '10 days';
+		state.windowStart = clampStart(Date.UTC(curYear, curMonth ?? 0, val) / 1e3);
+	});
+
+export const cycleCrowWindow = (delta: number) => {
+	const { windowMode, windowStart } = useCrowSettings.getState();
+	const date = new Date(windowStart * 1e3);
+	const curMonth = date.getUTCMonth();
+	const curYear = date.getUTCFullYear();
+	const curDay = date.getUTCDate();
+
+	if (windowMode === 'year') return setCrowYear(curYear + delta);
+	if (windowMode === 'month') return setCrowMonth(curMonth! + delta);
+	if (windowMode === '10 days') {
+		const days = [1, 11, 21];
+		const idx = days.indexOf(curDay!);
+		const newDay = days[(idx + delta + days.length) % days.length];
+		const monthDelta = idx + delta < 0 ? -1 : idx + delta >= days.length ? 1 : 0;
+		const newDate = Date.UTC(curYear, curMonth! + monthDelta, newDay) / 1e3;
+		useCrowSettings.setState((state) => {
+			state.windowStart = clampStart(newDate);
+		});
+	}
+};
 
 export const getCrowWindow = () => {
 	const { windowStart: start, windowMode: mode } = useCrowSettings.getState();
