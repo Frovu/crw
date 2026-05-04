@@ -1,6 +1,7 @@
 import numpy as np
 
 from events.columns.series import find_series
+from events.columns.context import ComputationContext
 
 from crow.rsm.core import fetch_counts, RSMPlotResponse
 from crow.rsm.variations import compute_variations, compute_sw_vb, place_bases
@@ -9,8 +10,9 @@ def fetch_circles(t_from: int, t_to: int):
 	counts, stations = fetch_counts(t_from, t_to)
 	time, counts = counts[:,0].astype(int), counts[:,1:]
 
-	v = find_series('V').fetch((t_from, t_to))[:,1]
-	b = find_series('B').fetch((t_from, t_to))[:,1]
+	ctx = ComputationContext(None, (t_from, t_to))
+	v = ctx.select_series(find_series('V'))
+	b = ctx.select_series(find_series('B'))
 	sw_vb = compute_sw_vb(v, b)
 
 	bases = place_bases(counts, sw_vb)

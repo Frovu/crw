@@ -93,11 +93,11 @@ class ComputationContext:
 						if not len(res_time):
 							gap_before = int((self.series_frame[1] - self.series_frame[0]) / HOUR) + 1
 							gap_after = 0
-							log.info('Empty series %s, returning nans [+%s]', series.name, gap_before)
+							log.debug('Empty series %s, returning nans [+%s]', series.name, gap_before)
 						else:
 							gap_before = int((res_time[0] - self.series_frame[0]) / HOUR)
 							gap_after = int((self.series_frame[-1] - res_time[-1]) / HOUR)
-							log.info('Series frame mismatch for %s, correcting [+%s, +%s]', series.name, gap_before, gap_after)
+							log.debug('Series frame mismatch for %s, correcting [+%s, +%s]', series.name, gap_before, gap_after)
 						res_value = np.concatenate((np.full(gap_before, np.nan), res_value, np.full(gap_after, np.nan)))
 					else:
 						log.error('Series frame mismatch for %s', series.name)

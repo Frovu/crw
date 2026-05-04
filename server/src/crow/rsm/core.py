@@ -30,4 +30,10 @@ def fetch_counts(t_from: int, t_to: int):
 	data = database.fetch((t_from, t_to), stations)
 	data = np.array(data, dtype=np.float64)			
 	filter_counts(data[:,1:])
+
+	required_len = int((t_to - t_from) / 3600)
+	if len(data) < required_len:
+		add_len = required_len - len(data) + 1
+		data = np.concatenate((data, np.full((add_len, data.shape[1]), np.nan)))
+
 	return data, stations

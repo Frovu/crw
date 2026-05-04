@@ -24,12 +24,8 @@ def compute_base_rating(counts: np.ndarray, sw_vb: np.ndarray):
 	std = np.std(windows, axis=2)
 	mean_std = 1 / np.nanmean(std, axis=2)[:,0]
 
-	# FIXME: workaround for partially fetched sw
-	if len(counts) != len(sw_vb):
-		avg_vb_shifted = np.full_like(mean_std, 2)
-	else:
-		avg_vb_shifted = np.nanmean(sliding_window_view(sw_vb, window_shape=WINDOW_LEN), axis=1)
-		avg_vb_shifted[~np.isfinite(avg_vb_shifted)] = 2
+	avg_vb_shifted = np.nanmean(sliding_window_view(sw_vb, window_shape=WINDOW_LEN), axis=1)
+	avg_vb_shifted[~np.isfinite(avg_vb_shifted)] = 2
 
 	result[:-WINDOW_LEN+1] = mean_std / avg_vb_shifted
 
@@ -39,9 +35,11 @@ def place_bases(counts: np.ndarray, sw_vb: np.ndarray):
 	rating = compute_base_rating(counts, sw_vb)
 	bases = []
 	idx = 0
-	get_next_max = lambda window: np.argmax(rating[idx:idx+window-BASE_LEN-MIN_BASE_GAP])
+	get_next_max = lambda window: np.nanargmax(rating[idx:idx+window-BASE_LEN-MIN_BASE_GAP])
 
 	while idx < len(rating) - MAX_BASE_GAP_1:
+		if not np.isfinite(rating[idx]): break
+		
 		next_max = get_next_max(MAX_BASE_GAP_1)
 		if rating[idx+next_max] < GOOD_BASE_THRESHOLD or next_max == MAX_BASE_GAP_1 - BASE_LEN - MIN_BASE_GAP - 1:
 			next_max = get_next_max(MAX_BASE_GAP_2)
