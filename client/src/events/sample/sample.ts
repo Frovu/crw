@@ -39,7 +39,7 @@ export const useSampleState = create<SampleState>()(
 		filters: [],
 		set: (arg) =>
 			set((state) => {
-				state.current && Object.assign(state.current, arg);
+				if (state.current) Object.assign(state.current, arg);
 			}),
 		setPicking: (arg) => set((st) => ({ ...st, isPicking: arg })),
 		setShow: (arg) => set((st) => ({ ...st, isPicking: false, showDetails: arg, filters: arg ? [] : st.filters })),
@@ -141,7 +141,7 @@ export function isFilterInvalid({ operation, value }: Filter, column?: Column) {
 	if ('regexp' === operation) {
 		try {
 			new RegExp(value);
-		} catch (e) {
+		} catch {
 			return true;
 		}
 		return false;
@@ -182,8 +182,9 @@ export function sampleEditingMarkers(data: TableRow[], sample: Sample, columns: 
 	});
 }
 
-export function useSampleQuery() {
+export function useSampleQuery(soft = false) {
 	return useQuery({
+		enabled: !soft,
 		queryKey: ['samples'],
 		queryFn: async () => {
 			const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');

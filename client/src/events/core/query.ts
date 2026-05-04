@@ -56,8 +56,9 @@ async function fetchTable(entity: keyof Tables, chlog?: boolean) {
 	}
 }
 
-export function useCompoundTable<T extends keyof typeof compoundTables>(which: T) {
+export function useCompoundTable<T extends keyof typeof compoundTables>(which: T, soft = false) {
 	return useQuery({
+		enabled: !soft,
 		queryKey: ['compoundTable', which],
 		staleTime: Infinity,
 		placeholderData: keepPreviousData,
@@ -97,8 +98,9 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 	}).data;
 }
 
-export function useTableDataQuery(tbl: keyof Tables) {
+export function useTableDataQuery(tbl: keyof Tables, soft = false) {
 	return useQuery({
+		enabled: !soft,
 		staleTime: Infinity,
 		placeholderData: keepPreviousData,
 		structuralSharing: false,

@@ -112,8 +112,8 @@ export const getPlottedFeid = () => {
 	return getById(plotId);
 };
 
-export const useFeidCursor = () => {
-	const { data, getById, entry } = useTable('feid');
+export const useFeidCursor = (soft = false) => {
+	const { data, getById, entry } = useTable('feid', soft);
 	const plotId = useEventsDebounced('plotId');
 
 	return useMemo(() => {
@@ -126,11 +126,11 @@ export const useFeidCursor = () => {
 	}, [data, entry, getById, plotId]);
 };
 
-export const useCurrentFeidSources = () => {
+export const useCurrentFeidSources = (soft = false) => {
 	const plotId = useEventsDebounced('plotId');
-	const src = useTable('feid_sources');
-	const erupt = useTable('sources_erupt');
-	const ch = useTable('sources_ch');
+	const src = useTable('feid_sources', soft);
+	const erupt = useTable('sources_erupt', soft);
+	const ch = useTable('sources_ch', soft);
 	return useMemo(() => {
 		return src.data
 			.filter((row) => row[src.index.feid_id] === plotId)
@@ -147,7 +147,7 @@ export const useCurrentFeidSources = () => {
 };
 
 export const useSelectedSource = <T extends 'sources_ch' | 'sources_erupt'>(tbl: T, soft = false): Tables[T] | null => {
-	const sources = useCurrentFeidSources();
+	const sources = useCurrentFeidSources(soft);
 	const modifySourceId = useEventsState((st) => st.modifySourceId);
 	const what = tbl === 'sources_ch' ? 'ch' : 'erupt';
 	if (modifySourceId) return (sources.find((src) => src.source.id === modifySourceId)?.[what] as Tables[T]) ?? null;

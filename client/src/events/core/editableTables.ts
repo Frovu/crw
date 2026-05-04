@@ -52,7 +52,7 @@ const defaultSate = Object.fromEntries(
 ) as TablesState;
 
 export const useTablesStore = create<TablesState>()(
-	immer((set) => ({
+	immer(() => ({
 		...defaultSate,
 	})),
 );
@@ -111,8 +111,8 @@ const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableS
 
 export const getTable = <T extends EditableTable>(tbl: T) => tableApi(useTablesStore.getState()[tbl]);
 
-export const useTable = <T extends EditableTable>(tbl: T) => {
-	const query = useTableDataQuery(tbl);
+export const useTable = <T extends EditableTable>(tbl: T, soft = false) => {
+	const query = useTableDataQuery(tbl, soft);
 	const columns = useTablesStore((st) => st[tbl].columns);
 	const data = useTablesStore((st) => st[tbl].data);
 	const index = useTablesStore((st) => st[tbl].index);

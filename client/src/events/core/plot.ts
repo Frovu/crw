@@ -23,8 +23,8 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 	const crowMode = useNodeExists('Crow Controls');
 	const crowWindow = useCrowWindowDebounced();
 
-	const table = useTable('feid');
-	const sample = useFeidSample();
+	const table = useTable('feid', true);
+	const sample = useFeidSample(true);
 
 	const plotId = useEventsDebounced('plotId');
 	const modifyId = useEventsState((state) => state.modifyId);
@@ -105,11 +105,11 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 
 export function useSolarPlot() {
 	const cursor = useEventsDebounced('cursor', 1500);
-	const { start: feidTime } = useFeidCursor();
+	const { start: feidTime } = useFeidCursor(true);
 	const plotOffsetSolar = useEventsSettings((st) => st.plotOffsetSolar);
 	const erupt = useSelectedSource('sources_erupt', true);
-	const flr = useCompoundTable('flare');
-	const cme = useCompoundTable('cme');
+	const flr = useCompoundTable('flare', true);
+	const cme = useCompoundTable('cme', true);
 
 	return useMemo(() => {
 		const focusTime =
@@ -144,3 +144,5 @@ export function useSolarPlot() {
 		};
 	}, [cme, flr, erupt, cursor, feidTime, plotOffsetSolar]);
 }
+
+export function usePlotContextValue() {}

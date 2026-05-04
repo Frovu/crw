@@ -11,10 +11,10 @@ const DEBOUNCE_COLUMN_SWITCH = 300;
 let cols_last_updated_at = 0;
 let cols_update_timeout: number | null = null;
 
-export function useFeidSample() {
+export function useFeidSample(soft = false) {
 	const { login } = useContext(AuthContext);
-	const samplesQuery = useSampleQuery();
-	const { columns, data: tableData, updatedAt } = useTable('feid');
+	const samplesQuery = useSampleQuery(soft);
+	const { columns, data: tableData, updatedAt } = useTable('feid', soft);
 	const { filters, current: sample, isPicking } = useSampleState();
 
 	const computeSample = () => {
@@ -54,7 +54,6 @@ export function useFeidTableView() {
 	useEffect(() => {
 		return useEventsSettings.subscribe((st) => {
 			if (Date.now() - cols_last_updated_at > DEBOUNCE_COLUMN_SWITCH) {
-				console.log(shownColumns['c_77']);
 				setShownColumns(st.shownColumns);
 			} else {
 				if (cols_update_timeout != null) clearTimeout(cols_update_timeout);
