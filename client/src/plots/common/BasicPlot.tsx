@@ -39,7 +39,7 @@ export default function BasicPlot({
 
 	// eslint-disable-next-line @tanstack/query/exhaustive-deps
 	const query = useQuery({
-		queryKey: [params.fetchInterval, ...queryKey],
+		queryKey: ['plot', params.fetchInterval, ...queryKey],
 		queryFn: () => (params.fetchInterval ? queryFn(params.fetchInterval) : null),
 		retry: 1,
 	});

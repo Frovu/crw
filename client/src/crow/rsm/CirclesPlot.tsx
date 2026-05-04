@@ -72,7 +72,7 @@ function Panel() {
 	}));
 
 	const query = useQuery({
-		queryKey: ['rsm', fetchInterval],
+		queryKey: ['plot', fetchInterval, 'rsm'],
 		queryFn: () =>
 			fetchInterval
 				? apiGet<RSMPlotResponse>('crow/rsm/circles', {
@@ -142,14 +142,14 @@ function Panel() {
 							const bases = query.data?.bases ?? [];
 							for (const base of bases) {
 								u.ctx.save();
-								u.ctx.fillStyle = u.ctx.strokeStyle = color('text', 0.6);
+								u.ctx.fillStyle = u.ctx.strokeStyle = color('skyblue', 0.8);
 								u.ctx.lineWidth = scaled(3 * devicePixelRatio);
 								u.ctx.beginPath();
 								const time = u.data[0][base];
 								const x = Math.max(u.bbox.left, u.valToPos(time, 'x', true));
 								const x2 = Math.max(u.bbox.left, u.valToPos(time + 86400, 'x', true));
-								u.ctx.moveTo(x, u.bbox.top + u.bbox.height + scaled(3));
-								u.ctx.lineTo(x2, u.bbox.top + u.bbox.height + scaled(3));
+								u.ctx.moveTo(x, u.bbox.top - scaled(3));
+								u.ctx.lineTo(x2, u.bbox.top - scaled(3));
 								u.ctx.stroke();
 								u.ctx.restore();
 							}

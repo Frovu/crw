@@ -11,6 +11,7 @@ import { CustomPlot } from '../plots/time/CustomPlot';
 import { SatParticlesPlot } from '../plots/time/Particles';
 import { cn } from '../util';
 import { useCrowSettings } from './core/crowSettings';
+import { useRealtimeUpdater } from './core/realtime';
 
 const panels: EventsPanel<any>[] = [
 	RSMPlot,
@@ -41,7 +42,7 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 				<Input
 					className="w-15 ml-1"
 					type="number"
-					min="24"
+					min="48"
 					max="2400"
 					step={12}
 					defaultValue={realtimeWindow}
@@ -77,6 +78,8 @@ const eventsPanels = Object.fromEntries(
 );
 
 export default function RealtimeApp() {
+	useRealtimeUpdater();
+
 	return (
 		<>
 			<title>Realtime view</title>
