@@ -36,14 +36,13 @@ const defaultParams: CustomPlotParams = {
 	series: [
 		{
 			definition: '$V',
-			label: '',
+			label: null,
 			color: 'cyan',
 		},
 	],
 };
 
 async function customPlotDataQuery(interval: Interval, definitions: string[], feidId: number | null) {
-	if (feidId == null) return null;
 	const body = await apiPost<{ data: (number | null)[][] }>('events/plot', {
 		interval: [interval.start, interval.end],
 		definitions,
@@ -128,7 +127,7 @@ function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<Custo
 }
 
 function Panel() {
-	const { id: feidId } = useFeidCursor();
+	const { id: feidId } = useFeidCursor(true);
 	const params = usePlot<CustomPlotParams>();
 	const { series, logScale } = params;
 	const definitions = series.map((ser) => ser.definition).filter((def) => !!def);

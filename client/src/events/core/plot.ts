@@ -7,8 +7,9 @@ import { useFeidSample } from './feid';
 import { useCompoundTable } from './query';
 import type { EruptiveEvent } from './sourceActions';
 import type { BasicPlotParams } from '../../plots/common/types';
-import { useCrowWindowDebounced } from '../../crow/core/crowSettings';
+import { useCrowWindowDebounced, useRealtimeWindow } from '../../crow/core/crowSettings';
 import { paddedInterval } from '../../plots/common/basicPlot';
+import { getApp } from '../../app/app';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 
@@ -22,6 +23,8 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 	const { plotUnlistedEvents, plotOffset } = settings;
 	const crowMode = useNodeExists('Crow Controls');
 	const crowWindow = useCrowWindowDebounced();
+	const realtimeMode = getApp() === 'realtime';
+	const realtimeWindow = useRealtimeWindow();
 
 	const table = useTable('feid', true);
 	const sample = useFeidSample(true);
@@ -34,9 +37,10 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 	const plotContext: Partial<BasicPlotParams> = useMemo(() => {
 		const feid = table.getById(plotId);
 
-		if (!feid && !crowMode) return {};
+		if (!feid && !crowMode && !realtimeMode) return {};
 
 		const interval = (() => {
+			if (realtimeMode) return realtimeWindow;
 			if (crowMode) return crowWindow.plot;
 			const plotDate = setStartAt || feid!.time;
 			const hour = Math.floor(plotDate.getTime() / 36e5) * 3600;
@@ -46,7 +50,7 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 			};
 		})();
 
-		const fetchInterval = crowMode ? crowWindow.fetch : paddedInterval(interval);
+		const fetchInterval = realtimeMode ? interval : crowMode ? crowWindow.fetch : paddedInterval(interval);
 
 		const timeIdx = table.index.time;
 		const durIdx = table.index.duration;
@@ -90,7 +94,21 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 			ends,
 			clouds,
 		};
-	}, [table, plotId, setStartAt, plotOffset, setEndAt, plotUnlistedEvents, sample.data, modifyId, crowMode, crowWindow]);
+	}, [
+		table,
+		plotId,
+		crowMode,
+		realtimeMode,
+		crowWindow.fetch,
+		crowWindow.plot,
+		setStartAt,
+		setEndAt,
+		realtimeWindow,
+		plotOffset,
+		plotUnlistedEvents,
+		sample.data,
+		modifyId,
+	]);
 
 	return useMemo(() => {
 		return {

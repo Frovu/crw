@@ -31,8 +31,8 @@ def epoch_collision(times: list[int], interval: list[int], ser_name: str):
 
 	return offset, median, mean, std
 
-def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int):
-	computer = ColumnComputer(force_frame=interval)#, target_ids=[feid_id])
+def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int | None):
+	computer = ColumnComputer(force_frame=interval, target_ids=feid_id and [feid_id])
 	time = [tm for tm in range(interval[0], interval[1]+1, HOUR)]
 	results = [time]
 	for definition in definitions:

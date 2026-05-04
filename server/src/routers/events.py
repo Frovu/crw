@@ -27,8 +27,8 @@ bp = Blueprint('events', __name__, url_prefix='/api/events')
 def _custom_plot():
 	interval = request.json.get('interval')
 	definitions = request.json.get('definitions')
-	feid_id = request.json.get('feidId')
-	if not interval or not definitions or len(interval) < 2 or (not feid_id and feid_id != 0):
+	feid_id = request.json.get('feidId', None)
+	if not interval or not definitions or len(interval) < 2:
 		raise ValueError('malformed request')
 	if interval[1] - interval[0] <= 0 or int(interval[1]) - int(interval[0]) > 3600 * 24 * 380:
 		raise ValueError('bad interval')

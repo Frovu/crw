@@ -30,7 +30,7 @@ const PARTICLES = {
 export const particlesOptions = Object.keys(PARTICLES);
 
 const defaultParams = {
-	solarTime: true,
+	solarTime: false,
 	showParticles: ['p3', 'p5', 'p7'],
 };
 

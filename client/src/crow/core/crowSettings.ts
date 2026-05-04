@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { clamp } from '../../util';
+import { useCrowState } from './crowState';
 
 const HOUR = 3600;
 export const crowWindowModes = ['year', 'month', '10 days'] as const;
@@ -112,6 +113,15 @@ export const getCrowWindow = () => {
 		plot: { start: start - marginBefore, end: end + marginAfter },
 		fetch: { start: monthStart - HOUR * 24 * 14, end: monthEnd + marginAfter },
 	};
+};
+
+export const useRealtimeWindow = () => {
+	const realtimeWindow = useCrowSettings((st) => st.realtimeWindow);
+	const realtimeHour = useCrowState((st) => st.realtimeHour);
+
+	const end = realtimeHour;
+	const start = end - realtimeWindow * 3600;
+	return { start, end };
 };
 
 export const useCrowWindowDebounced = (delay = 500) => {
