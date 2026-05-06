@@ -8,8 +8,8 @@ import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { sliceData } from './basicPlot';
 import { useSunViewState } from '../../events/panels/SDO';
 import { LayoutContext } from '../../app/layout';
-import { metainfoPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins';
-import { tooltipPlugin } from './tooltipPlugin';
+import { metainfoPlugin, legendPlugin, labelsPlugin, actionsPlugin } from './plugins/plugins';
+import { tooltipPlugin } from './plugins/tooltipPlugin';
 import type { BasicPlotParams, CustomAxis, CustomSeries, CustomScale, Interval } from './types';
 import { markersPaths } from './paths/markersPaths';
 

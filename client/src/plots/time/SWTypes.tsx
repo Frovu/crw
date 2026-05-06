@@ -5,8 +5,8 @@ import { usePlot } from '../../events/core/plot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { basicDataQuery, sliceData } from '../common/basicPlot';
 import { axisDefaults, color, customTimeSplits, font, scaled } from '../common/plotUtil';
-import { metainfoPlugin } from '../common/plugins';
-import { tooltipPlugin } from '../common/tooltipPlugin';
+import { metainfoPlugin } from '../common/plugins/plugins';
+import { tooltipPlugin } from '../common/plugins/tooltipPlugin';
 
 export const SW_TYPES = ['IS', 'ISa', 'SH', 'MC', 'EJE', 'CIR', 'HCS', 'RARE'] as const;
 

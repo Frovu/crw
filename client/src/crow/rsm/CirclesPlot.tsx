@@ -13,9 +13,9 @@ import { TextInput } from '../../components/Input';
 import { usePlot } from '../../events/core/plot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { usePlotOverlay } from '../../plots/common/plotOverlay';
-import { labelsPlugin, metainfoPlugin } from '../../plots/common/plugins';
+import { labelsPlugin, metainfoPlugin } from '../../plots/common/plugins/plugins';
 import { Quadtree } from '../../plots/common/quadtree';
-import { tooltipPlugin } from '../../plots/common/tooltipPlugin';
+import { tooltipPlugin } from '../../plots/common/plugins/tooltipPlugin';
 import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
 
 const defaultParams = {

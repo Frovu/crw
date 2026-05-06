@@ -1,5 +1,5 @@
-import { color } from '../../app/app';
-import { prettyDate } from '../../util';
+import { color } from '../../../app/app';
+import { prettyDate } from '../../../util';
 
 export function tooltipPlugin({
 	html,
