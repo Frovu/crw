@@ -13,6 +13,7 @@ import {
 import { Button } from '../../components/Button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { NumberInput } from '../../components/Input';
+import { useCrowState } from '../core/crowState';
 
 function YearButton({ diff, icon }: { diff: number; icon: ReactNode }) {
 	const { windowStart } = useCrowSettings();
@@ -36,6 +37,7 @@ function Menu() {
 function Panel() {
 	const { windowMode, windowStart } = useCrowSettings();
 	const { start, end } = useCrowWindowDebounced();
+	const { cursor } = useCrowState();
 
 	const date = new Date(windowStart * 1e3);
 	const curYear = date.getUTCFullYear();
@@ -114,10 +116,10 @@ function Panel() {
 					</Button>
 				</div>
 			</div>
-			<div className="text-dark text-xs text-right w-fit p-1 leading-4">
-				{prettyDate(start)}
+			<div className="text-dark text-xs w-fit p-1 leading-4">
+				{prettyDate(start)} curs:
 				<br />
-				{prettyDate(end)}
+				{prettyDate(end)} {cursor && prettyDate(cursor.time)}
 			</div>
 		</div>
 	);

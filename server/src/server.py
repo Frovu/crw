@@ -1,7 +1,10 @@
+import warnings
 import gzip
 import os
 import logging
 import logging.handlers
+
+warnings.filterwarnings('ignore', message='Mean of empty slice')
 
 if not os.path.exists('logs'):
 	os.makedirs('logs')

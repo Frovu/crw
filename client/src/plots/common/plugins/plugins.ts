@@ -1,4 +1,3 @@
-import { dispatchCustomEvent } from '../../../util';
 import { drawCustomLabels } from '../draw/drawCustomLabels';
 import { drawCustomLegend } from '../draw/drawCustomLegend';
 import { drawMagneticClouds } from '../draw/drawMagneticClouds';
@@ -35,21 +34,6 @@ export function labelsPlugin(para: Parameters<typeof drawCustomLabels>[0]): uPlo
 	return {
 		hooks: {
 			draw: [drawCustomLabels(para)],
-		},
-	};
-}
-
-export function actionsPlugin(): uPlot.Plugin {
-	return {
-		hooks: {
-			ready: [
-				(u) => {
-					u.over.addEventListener('mousedown', (e) => {
-						if (e.button !== 0) return;
-						if (u.cursor?.left) dispatchCustomEvent('plotClick', { timestamp: u.posToVal(u.cursor.left, 'x') });
-					});
-				},
-			],
 		},
 	};
 }

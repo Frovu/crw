@@ -111,6 +111,7 @@ function Panel() {
 
 	useEventListener('escape', escape);
 
+	// FIXME: use setCursor event
 	useEventListener('plotClick', (e: CustomEvent<{ timestamp: number }>) => {
 		const hour = new Date(roundHour(e.detail.timestamp * 1000));
 
