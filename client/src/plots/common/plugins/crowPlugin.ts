@@ -77,8 +77,6 @@ export function crowPlugin(): uPlot.Plugin {
 				(u) => {
 					if (u.cursor.left == null || u.cursor.left < 0) return;
 					const val = u.posToVal(u.cursor.left, 'x');
-					const idx = Math.min(u.data[0].length - 1, u.posToIdx(u.cursor.left));
-					console.log(u.posToIdx(u.cursor.left), idx);
 					const time = Math.floor(val / 3600) * 3600;
 					setCrowCursor((curs) => (curs?.lock ? curs : { time, lock: false }));
 				},

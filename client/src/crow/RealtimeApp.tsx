@@ -10,6 +10,7 @@ import { defaultPlotParams } from '../plots/common/types';
 import { CustomPlot } from '../plots/time/CustomPlot';
 import { SatParticlesPlot } from '../plots/time/Particles';
 import { cn } from '../util';
+import CrowController from './core/CrowController';
 import { useCrowSettings } from './core/crowSettings';
 import { useRealtimeUpdater } from './core/realtime';
 
@@ -83,6 +84,7 @@ export default function RealtimeApp() {
 	return (
 		<>
 			<title>Realtime view</title>
+			<CrowController />
 			<AppLayout panels={eventsPanels} />
 		</>
 	);

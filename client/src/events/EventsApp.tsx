@@ -41,6 +41,7 @@ import { CMETable, FlaresTable, ICMETable } from './tables/EruptiveEntity';
 import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
 import { HolesTable } from './tables/HolesSrc';
+import CrowController from '../crow/core/CrowController';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -177,6 +178,7 @@ export default function EventsApp() {
 				name="description"
 				content="Multifunctional online interface to the Forbush Effects and Interplanetary Disturbances database"
 			/>
+			<CrowController />
 			<AppLayout panels={eventsPanels} />
 		</>
 	);
