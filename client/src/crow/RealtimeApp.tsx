@@ -13,11 +13,13 @@ import { cn } from '../util';
 import CrowController from './core/CrowController';
 import { useCrowSettings } from './core/crowSettings';
 import { useRealtimeUpdater } from './core/realtime';
+import { RSMHourPlot } from './rsm/RSMHourPlot';
 
 const panels: EventsPanel<any>[] = [
 	RSMPlot,
 	CustomPlot,
 	SatParticlesPlot,
+	RSMHourPlot,
 	{
 		name: 'Empty',
 		Panel: () => null,

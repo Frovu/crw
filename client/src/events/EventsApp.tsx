@@ -42,6 +42,7 @@ import { ChimeraHoles } from './tables/HolesChimera';
 import { SolenHoles } from './tables/HolesSolen';
 import { HolesTable } from './tables/HolesSrc';
 import CrowController from '../crow/core/CrowController';
+import { RSMHourPlot } from '../crow/rsm/RSMHourPlot';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -58,6 +59,7 @@ const panels: EventsPanel<any>[] = [
 	SatParticlesPlot,
 	CMEHeightPlot,
 	XraysPlot,
+	RSMHourPlot,
 	SunView,
 	ENLILView,
 	SFTFlare,
@@ -151,17 +153,18 @@ const eventsPanels = Object.fromEntries(
 			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
 			Panel: () => <PanelWrapper panel={p as any} />,
 			Menu: (props: ContextMenuProps<any>) => <MenuWrapper panel={p as any} {...props} />,
-			Icon: p.name.includes('View')
-				? Sun
-				: p.isSolar
-					? ChartSpline
-					: p.isStat
-						? ChartNoAxesColumn
-						: p.isPlot
-							? ChartLine
-							: p.name.includes('Table') || p.name.includes('Holes')
-								? Table
-								: Bolt,
+			Icon:
+				p.name.includes('View') && !p.isPlot
+					? Sun
+					: p.isSolar
+						? ChartSpline
+						: p.isStat
+							? ChartNoAxesColumn
+							: p.isPlot
+								? ChartLine
+								: p.name.includes('Table') || p.name.includes('Holes')
+									? Table
+									: Bolt,
 		},
 	]),
 );

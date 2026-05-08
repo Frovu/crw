@@ -133,7 +133,12 @@ def obtain_many(interval, stations: list[Station]):
 
 	nmdb_stations = [s.id for s in stations if s.prefer_nmdb] if interval[0] >= NMDB_SINCE else []
 	if nmdb_stations:
-		_obtain_similar(interval, nmdb_stations, 'nmdb')
+		try:
+			_obtain_similar(interval, nmdb_stations, 'nmdb')
+		except:
+			import traceback
+			traceback.print_exc()
+			log.error('Failed to obtain nmdb')
 	
 	try:
 		other_stations = [s.id for s in stations if s.id not in nmdb_stations]

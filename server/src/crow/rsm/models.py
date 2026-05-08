@@ -84,9 +84,9 @@ def fit_model(time: np.ndarray, variations: np.ndarray, bases: np.ndarray, stati
 
 	return result
 
-def plot_model_result(popt: np.ndarray, model=MODELS['harmonic']) -> np.ndarray:
+def plot_model_result(popt: np.ndarray, model=MODELS['harmonic']) -> np.ndarray | None:
 	x_range = np.arange(0, 360, 1)
 	if np.any(~np.isfinite(popt)):
-		return np.full_like(x_range, np.nan)
+		return None
 
-	return model.fn(x_range, *popt)
+	return model.fn(x_range, *popt).round(3)

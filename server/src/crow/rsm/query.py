@@ -5,7 +5,7 @@ from events.columns.context import ComputationContext
 
 from crow.rsm.core import fetch_counts, RSMPlotResponse
 from crow.rsm.variations import compute_variations, compute_sw_vb, place_bases
-from crow.rsm.models import fit_model
+from crow.rsm.models import fit_model, plot_model_result
 
 def fetch_circles(t_from: int, t_to: int, include_models=False):
 	counts, stations = fetch_counts(t_from, t_to)
@@ -20,7 +20,11 @@ def fetch_circles(t_from: int, t_to: int, include_models=False):
 	variations = compute_variations(counts, bases)
 
 	if include_models:
-		fit_model(time, variations, bases, stations)
+		popts = fit_model(time, variations, bases, stations)
+		curves = [plot_model_result(popt) for popt in popts]
+		model = [cur if cur is None else cur.tolist() for cur in curves]
+	else:
+		model = None
 
 	variations = np.where(~np.isfinite(variations.T), None, np.round(variations.T, 2)).tolist() # type: ignore
-	return RSMPlotResponse(time.tolist(), variations, stations, bases.tolist()).as_dict()
+	return RSMPlotResponse(time.tolist(), variations, stations, bases.tolist(), model).as_dict() # type: ignore

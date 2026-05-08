@@ -12,6 +12,7 @@ class RSMPlotResponse:
 	variations: list[list[float | None]]
 	stations: list[database.Station]
 	bases: list[int]
+	model: list[list[float] | None] | None = None
 
 	def as_dict(self):
 		return asdict(self)
@@ -28,7 +29,12 @@ def filter_counts(data):
 def fetch_counts(t_from: int, t_to: int):
 	stations = database.get_stations(group_partial=True)
 	data = database.fetch((t_from, t_to), stations)
-	data = np.array(data, dtype=np.float64)			
+	data = np.array(data, dtype=np.float64)
+
+	empty = np.isnan(data).all(axis=0)
+	data = data[:,~empty]
+	stations = [s for s, ok in zip(stations, ~empty[1:]) if ok] # type: ignore
+
 	filter_counts(data[:,1:])
 
 	required_len = int((t_to - t_from) / 3600)

@@ -379,6 +379,7 @@ export type RSMPlotResponse = {
 	variations: (number | null)[][];
 	stations: Station[];
 	bases: number[];
+	model: (number[] | null)[] | null;
 };
 
 export type Station = {
