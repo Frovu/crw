@@ -17,6 +17,7 @@ import { labelsPlugin, metainfoPlugin } from '../../plots/common/plugins/plugins
 import { Quadtree } from '../../plots/common/quadtree';
 import { tooltipPlugin } from '../../plots/common/plugins/tooltipPlugin';
 import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
+import { crowPlugin } from '../../plots/common/plugins/crowPlugin';
 
 const defaultParams = {
 	variationShift: 0,
@@ -92,7 +93,7 @@ function Panel() {
 			let hoveredRect: any;
 			let qt: Quadtree;
 			return {
-				padding: [scaled(8), scaled(48), 0, 0],
+				padding: [scaled(8), scaled(54), 0, 0],
 				mode: 2,
 				legend: { show: false },
 				cursor: {
@@ -127,6 +128,7 @@ function Panel() {
 						},
 					}),
 					labelsPlugin({ params: { showLegend } }),
+					crowPlugin(),
 				],
 				hooks: {
 					draw: [drawCirclesLegend({ params, overlayHandle, plotData })],

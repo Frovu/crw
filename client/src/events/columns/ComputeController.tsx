@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { logMessage, logSuccess, logError } from '../../app/app';
 import { apiPost, useEventListener } from '../../util';
-import type { Column, ComputationResponse, ComputedColumn } from '../../api';
+import type { Column, ComputationResponse } from '../../api';
 import { useTable } from '../core/editableTables';
 
 const COMPUTE_ROWS_MARGIN = 2;

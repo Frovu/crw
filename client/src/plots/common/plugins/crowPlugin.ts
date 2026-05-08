@@ -24,8 +24,9 @@ export function crowPlugin(): uPlot.Plugin {
 					},
 					mousedown: (u, _, handler) => (e) => {
 						opts.cursor?.bind?.mousedown?.(u, _, handler)?.(e);
-						if (u.cursor.idx != null) {
-							const time = Math.floor(u.data[0][u.cursor.idx] / 3600) * 3600;
+						if (u.cursor.left != null) {
+							const val = u.posToVal(u.cursor.left, 'x');
+							const time = Math.floor(val / 3600) * 3600;
 							setCrowCursor(() => ({ time, lock: true }));
 						}
 						handler(e);
@@ -74,8 +75,11 @@ export function crowPlugin(): uPlot.Plugin {
 			],
 			setCursor: [
 				(u) => {
-					if (u.cursor.idx == null) return;
-					const time = Math.floor(u.data[0][u.cursor.idx] / 3600) * 3600;
+					if (u.cursor.left == null || u.cursor.left < 0) return;
+					const val = u.posToVal(u.cursor.left, 'x');
+					const idx = Math.min(u.data[0].length - 1, u.posToIdx(u.cursor.left));
+					console.log(u.posToIdx(u.cursor.left), idx);
+					const time = Math.floor(val / 3600) * 3600;
 					setCrowCursor((curs) => (curs?.lock ? curs : { time, lock: false }));
 				},
 			],
