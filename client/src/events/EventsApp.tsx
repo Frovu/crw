@@ -12,7 +12,7 @@ import { EventsCheckbox } from '../components/Checkbox';
 import { PlotIntervalInput } from '../components/Input';
 import { OmniControls } from '../crow/omni/OmniControls';
 import { CrowControls } from '../crow/panels/CrowControls';
-import { RSMPlot } from '../crow/rsm/CirclesPlot';
+import { RSMPlot } from '../plots/time/CirclesPlot';
 import { defaultPlotParams } from '../plots/common/types';
 import { Correlation } from '../plots/stat/Correlate';
 import { EventsHistory } from '../plots/stat/EventsHistory';

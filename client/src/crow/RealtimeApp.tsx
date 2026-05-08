@@ -3,7 +3,7 @@ import AppLayout from '../app/Layout';
 import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { RSMPlot } from '../crow/rsm/CirclesPlot';
+import { RSMPlot } from '../plots/time/CirclesPlot';
 import type { EventsPanel } from '../events/core/util';
 import { renderPlotInANewTab } from '../events/export/exportablePlots';
 import { defaultPlotParams } from '../plots/common/types';

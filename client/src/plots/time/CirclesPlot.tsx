@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import uPlot from 'uplot';
-import { applyTextTransform } from '../../plots/common/basicPlot';
-import { circlePaths } from '../../plots/common/paths/circlePaths';
-import { axisDefaults, color, customTimeSplits, scaled, withCapturedOverrides } from '../../plots/common/plotUtil';
+import { applyTextTransform } from '../common/basicPlot';
+import { circlePaths } from '../common/paths/circlePaths';
+import { axisDefaults, color, customTimeSplits, scaled, withCapturedOverrides } from '../common/plotUtil';
 import { apiGet, prettyDate } from '../../util';
 
 import type { RSMPlotResponse } from '../../api';
@@ -12,12 +12,12 @@ import { Button } from '../../components/Button';
 import { TextInput } from '../../components/Input';
 import { usePlot } from '../../events/core/plot';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
-import { usePlotOverlay } from '../../plots/common/plotOverlay';
-import { labelsPlugin, metainfoPlugin } from '../../plots/common/plugins/plugins';
-import { Quadtree } from '../../plots/common/quadtree';
-import { tooltipPlugin } from '../../plots/common/plugins/tooltipPlugin';
-import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from './circlesPlot';
-import { crowPlugin } from '../../plots/common/plugins/crowPlugin';
+import { usePlotOverlay } from '../common/plotOverlay';
+import { labelsPlugin, metainfoPlugin } from '../common/plugins/plugins';
+import { Quadtree } from '../common/quadtree';
+import { tooltipPlugin } from '../common/plugins/tooltipPlugin';
+import { drawCirclesLegend, NEG_S, POS_S, renderCirclesData } from '../../crow/rsm/circlesPlot';
+import { crowPlugin } from '../common/plugins/crowPlugin';
 
 const defaultParams = {
 	variationShift: 0,
@@ -218,7 +218,11 @@ function Panel() {
 	if (query.isError) throw query.error;
 	if (query.isLoading || !plotData) return <div className="center">LOADING...</div>;
 
-	return <ExportableUplot {...{ options, data: plotData as any }} />;
+	return (
+		<div onDoubleClick={() => query.refetch()}>
+			<ExportableUplot {...{ options, data: plotData as any }} />
+		</div>
+	);
 }
 
 export const RSMPlot = {

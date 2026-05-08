@@ -3,7 +3,7 @@ import { circlesSizeComputer } from '../../plots/common/paths/circlePaths';
 import type { usePlotOverlay } from '../../plots/common/plotOverlay';
 import { applyOverrides, color, font, getFontSize, scaled, withCapturedOverrides } from '../../plots/common/plotUtil';
 import type { BasicPlotParams, Interval } from '../../plots/common/types';
-import type { CirclesPlotParams } from './CirclesPlot';
+import type { CirclesPlotParams } from '../../plots/time/CirclesPlot';
 
 export const [POS_S, NEG_S] = [6, 8];
 

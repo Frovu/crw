@@ -1,7 +1,7 @@
 import uPlot from 'uplot';
 import { clamp } from '../../../util';
 import { scaled } from '../plotUtil';
-import type { CirclesPlotParams } from '../../../crow/rsm/CirclesPlot';
+import type { CirclesPlotParams } from '../../time/CirclesPlot';
 
 export function circlesSizeComputer(u: uPlot, params: CirclesPlotParams, data: any, minMaxMagn: number) {
 	const maxSize = u.height / 10 + (params.sizeShift ?? 0);
