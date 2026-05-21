@@ -104,7 +104,7 @@ def submit_changes(user_id, entities):
 
 					cols_sql = SQL(',').join([Identifier(c) for c in cols])
 					placeholders = SQL(',').join(Placeholder() * len(cols))
-					query = SQL('INSERT INTO events.{} ({}) VALUES ({}) RETURNING id').format(Identifier(entities), cols_sql, placeholders)
+					query = SQL('INSERT INTO events.{} ({}) VALUES ({}) RETURNING id').format(Identifier(entity), cols_sql, placeholders)
 					res = conn.execute(query, list(created.values())).fetchone()
 					inserted_id = res and res[0]
 
