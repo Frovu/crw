@@ -97,7 +97,7 @@ function Panel() {
 					},
 				],
 				scales: {
-					x: { range: [interval.start, interval.end] },
+					x: { range: [interval.start + 1800, interval.end - 1800] },
 					y: { range: (u, min, max) => [2, max] },
 				},
 				series: [

@@ -136,7 +136,7 @@ export function useSolarPlot() {
 				: cursor?.entity === 'cme'
 					? cme?.entry(cme.data[cursor.row]).time
 					: (erupt?.flr_start ?? erupt?.cme_time)) ?? new Date((feidTime.getTime() ?? 0) - 3 * 864e5);
-		const [start, end] = plotOffsetSolar.map((o) => focusTime.getTime() / 1e3 + o * 3600);
+		const [start, end] = plotOffsetSolar.map((o) => Math.floor(focusTime.getTime() / 36e5 + o) * 3600);
 		const interval = { start, end };
 
 		const flrTidx = flr?.columns.findIndex((col) => col.sql_name === 'start_time');

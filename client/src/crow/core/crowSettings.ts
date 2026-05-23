@@ -1,5 +1,5 @@
 import debounce from 'lodash.debounce';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
@@ -121,7 +121,7 @@ export const useRealtimeWindow = () => {
 
 	const end = realtimeHour;
 	const start = end - realtimeWindow * 3600;
-	return { start, end };
+	return useMemo(() => ({ start, end }), [start, end]);
 };
 
 export const useCrowWindowDebounced = (delay = 500) => {
