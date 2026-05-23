@@ -1,0 +1,2 @@
+ALTER TABLE events.donki_flares ALTER COLUMN linked_events TYPE TEXT USING array_to_string(linked_events, ',');
+ALTER TABLE events.donki_cmes ALTER COLUMN linked_events TYPE TEXT USING array_to_string(linked_events, ',');
