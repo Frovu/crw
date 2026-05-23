@@ -86,6 +86,7 @@ type LayoutsState = {
 	dragOver: (nodeId: string) => void;
 	finishDrag: () => void;
 	resetLayout: () => void;
+	createLayout: () => void;
 	copyLayout: (la: string) => void;
 	deleteLayout: (la: string) => void;
 	selectLayout: (la: string) => void;
@@ -139,6 +140,22 @@ export const useLayoutsStore = create<LayoutsState>()(
 					delete apps[app].list[layout];
 					if (apps[app].active === layout)
 						apps[app].active = defaultLayouts[app as keyof typeof defaultLayouts].active;
+				}),
+			createLayout: () =>
+				set(({ apps }) => {
+					const app = getApp();
+					const { list } = apps[app];
+					const name = (i: number) => 'layout ' + (i + 1);
+					const newName = name([...Array(Object.keys(list).length).keys()].find((i) => !list[name(i)])!);
+					list[newName] = {
+						tree: {},
+						items: {
+							root: {
+								type: 'Empty',
+							},
+						},
+					};
+					apps[app].active = newName;
 				}),
 			copyLayout: (layout) =>
 				set(({ apps }) => {

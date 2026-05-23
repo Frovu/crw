@@ -9,7 +9,7 @@ import { Checkbox } from '../components/Checkbox';
 import { SimpleSelect } from '../components/Select';
 
 export function LayoutNav() {
-	const { apps, selectLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
+	const { apps, selectLayout, createLayout, copyLayout, renameLayout, deleteLayout, toggleCycling } = useLayoutsStore();
 	const { list, active } = apps[getApp()] ?? { list: {}, active: '' };
 	const [hovered, setHovered] = useState<0 | 1 | 2>(0);
 	const [renaming, setRenaming] = useState<string | null>(null);
@@ -44,7 +44,7 @@ export function LayoutNav() {
 		>
 			{open && (
 				<div
-					className="absolute flex flex-col items-end -left-1 bottom-[calc(100%-2px)] bg-bg p-1 border"
+					className="absolute flex flex-col items-end -left-1 bottom-[calc(100%-2px)] bg-bg p-1 border gap-0.5"
 					onClick={(e) => e.stopPropagation()}
 				>
 					{layouts.map((layout) => {
@@ -67,7 +67,7 @@ export function LayoutNav() {
 								) : (
 									<div
 										className={cn(
-											'cursor-pointer',
+											'cursor-pointer leading-3.5 w-20 text-right',
 											isActive ? 'text-active' : isDefault ? 'text-text' : null,
 										)}
 										onClick={() => selectLayout(layout)}
@@ -91,6 +91,9 @@ export function LayoutNav() {
 							</div>
 						);
 					})}
+					<Button className="text-text w-full text-right pr-6 py-1" onClick={createLayout}>
+						create layout
+					</Button>
 				</div>
 			)}
 			<div

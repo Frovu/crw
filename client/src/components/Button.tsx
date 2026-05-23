@@ -14,7 +14,7 @@ export function Button(props: ComponentProps<'button'> & { variant?: keyof typeo
 
 export function CloseButton(props: ComponentProps<'button'>) {
 	const cls =
-		'relative text-red h-4 w-4 overflow-clip cursor-pointer hover:text-active hover:active:text-active/80 focus:outline-none focus:text-active';
+		'relative text-red min-h-4 min-w-4 overflow-clip cursor-pointer hover:text-active hover:active:text-active/80 focus:outline-none focus:text-active';
 	return (
 		<button {...props} className={cn(cls, props.className)}>
 			<div className="absolute text-2xl -top-[10px]">×</div>
