@@ -149,7 +149,7 @@ function useAssociated<W extends 'flare' | 'cme'>(what: W) {
 		const srcTimes = srcTable?.data.map((row) => (row[srcTimeColIdx] as Date)?.getTime());
 
 		const res = data.map((eruptRow) => {
-			const { id, ...erupt } = entry(eruptRow);
+			const erupt = entry(eruptRow);
 			const src = erupt[what === 'cme' ? 'cme_source' : 'flr_source'];
 			if (src === 'MNL' || !src || !srcTable || !srcTimes) return null;
 			const lnk = getSourceLink(what, src as EruptSrcLabel<W>);
@@ -177,7 +177,7 @@ function Panel() {
 	const { start: cursorTime, id: feidId } = useFeidCursor();
 
 	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {
-		feidId && inputEruptionManually({ lat, lon, time }, feidId, selectedErupt?.id ?? null);
+		if (feidId) inputEruptionManually({ lat, lon, time }, feidId, selectedErupt?.id ?? null);
 	});
 
 	const associatedFlares = useAssociated('flare');

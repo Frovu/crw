@@ -13,7 +13,7 @@ export function Confirmation({
 	closeSelf: (positive?: boolean) => void;
 	callback: () => void;
 }) {
-	useEventListener('click', () => closeSelf());
+	useEventListener('mousedown', () => closeSelf());
 	useEventListener('escape', () => closeSelf());
 	useEventListener('keydown', (e) => {
 		if (e.code === 'KeyY') callback();

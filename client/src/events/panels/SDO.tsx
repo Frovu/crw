@@ -283,6 +283,7 @@ export function Panel() {
 			lat: round(nlat),
 			lon: round(nlon),
 		});
+		e.stopPropagation();
 	};
 
 	return (
@@ -322,7 +323,7 @@ export function Panel() {
 					{frame} / {query.data.length}
 				</div>
 			)}
-			<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }} onClick={onClick} />
+			<canvas ref={canvasRef} style={{ position: 'absolute', cursor: 'pointer', zIndex: 3 }} onMouseDown={onClick} />
 			{isLoaded && <img alt="" src={query.data[frame]?.url} style={{ minWidth: size, maxWidth: size }}></img>}
 		</div>
 	);
