@@ -18,6 +18,7 @@ export default function CrowController() {
 
 	useEventListener('escape', () => setCrowCursor(() => null));
 	useEventListener('keydown', (e: KeyboardEvent) => {
+		if (e.target instanceof HTMLInputElement) return;
 		const delta = { ArrowLeft: -1, ArrowRight: 1, Home: -9999, End: 9999 }[e.key];
 		if (delta && interval) moveCrowCursor(delta, interval, e.ctrlKey);
 	});

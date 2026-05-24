@@ -20,7 +20,7 @@ class Model:
 MODELS = {
 	'harmonic': Model(lambda x, a0, a1, p1, a2, p2:
 		a0 + a1 * np.cos(x * pi / 180 + p1) + a2 * np.sin(x * pi / 90 + p2),
-		[2, 4]),
+		[2, 4], ([-np.inf, 0, -np.inf, 0, -np.inf], [np.inf] * 5)), # type: ignore
 	'simple_precursor_cos': Model(lambda x, freq, a1, p1, a0: 
 		np.cos(x * freq * pi / 180 + p1) * a1 + a0,
 		[2]),
