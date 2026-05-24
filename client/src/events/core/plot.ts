@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { useEventsSettings } from './util';
 import { LayoutContext, useNodeExists, type LayoutContextType, type NodeParams } from '../../app/layout';
 import { useEventsDebounced, useEventsState, useFeidCursor, useSelectedSource } from './eventsState';
@@ -10,6 +10,7 @@ import type { BasicPlotParams } from '../../plots/common/types';
 import { useCrowWindowDebounced, useRealtimeWindow } from '../../crow/core/crowSettings';
 import { paddedInterval } from '../../plots/common/basicPlot';
 import { getApp } from '../../app/app';
+import { setCrowCursor } from '../../crow/core/crowState';
 
 export type Onset = { time: Date; type: string | null; secondary?: boolean; insert?: boolean };
 
@@ -109,6 +110,12 @@ export function usePlot<T = unknown>(): NodeParams<BasicPlotParams & T> {
 		sample.data,
 		modifyId,
 	]);
+
+	useEffect(() => {
+		if (!plotContext.interval) return;
+		const { start, end } = plotContext.interval;
+		setCrowCursor((curs) => (!curs?.lock || (start <= curs.time && curs.time <= end) ? curs : null));
+	}, [plotContext.interval]);
 
 	return useMemo(() => {
 		return {

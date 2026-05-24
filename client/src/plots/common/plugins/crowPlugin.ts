@@ -24,7 +24,7 @@ export function crowPlugin(): uPlot.Plugin {
 					},
 					mousedown: (u, _, handler) => (e) => {
 						opts.cursor?.bind?.mousedown?.(u, _, handler)?.(e);
-						if (u.cursor.left != null) {
+						if (u.cursor.left != null && e.button == 0) {
 							const val = u.posToVal(u.cursor.left, 'x');
 							const time = Math.floor(val / 3600) * 3600;
 							setCrowCursor(() => ({ time, lock: true }));

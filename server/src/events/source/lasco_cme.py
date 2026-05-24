@@ -120,7 +120,7 @@ def fetch(progr, month):
 	progr[0] = 1
 	scrape_month(prev_month)
 
-def fetch_height_time(time, width: int, spd: int, mpa: int, retry_with_s=False):
+def fetch_height_time(time: datetime, width: int, spd: int, mpa: int, retry_with_s=False):
 	with pool.connection() as conn:
 		ht = conn.execute(f'SELECT EXTRACT(EPOCH FROM time)::integer, height FROM events.{TABLE_HT} '+\
 			'WHERE cme_time = %s AND cme_mpa = %s ORDER BY time', [time, mpa]).fetchall()
@@ -147,7 +147,7 @@ def fetch_height_time(time, width: int, spd: int, mpa: int, retry_with_s=False):
 			tstmp = datetime.strptime(dt+tm, '%Y/%m/%d%H:%M:%S').replace(tzinfo=timezone.utc)
 			result.append((tstmp, float(h)))
 		
-		upsert_many(TABLE_HT, ['cme_time', 'cme_mpa', 'time', 'height'], result, constants=[time, mpa], do_nothing=True)
+		upsert_many(TABLE_HT, ['time', 'height'], result, constants={ 'cme_time': time, 'cme_mpa': mpa }, do_nothing=True)
 		return [(t.timestamp(), h) for t, h in result]
 	except Exception as e:
 		log.error('Failed to obtain LASCO CME HT: %s', str(e))
