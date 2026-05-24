@@ -72,7 +72,10 @@ export function ChangesGadget() {
 					<h4 className="m-0 text-base text-text">
 						About to commit {totalChanges} change{totalChanges > 1 ? 's' : ''}
 					</h4>
-					<div className="text-left text-text p-1 max-h-96 overflow-y-scroll" onClick={(e) => e.stopPropagation()}>
+					<div
+						className="text-left text-text p-1 max-h-96 overflow-y-scroll w-100"
+						onClick={(e) => e.stopPropagation()}
+					>
 						{editableTables.map((tbl) => (
 							<div key={tbl}>
 								{state[tbl].changes.length + state[tbl].deleted.length + state[tbl].created.length > 0 && (
@@ -116,7 +119,9 @@ export function ChangesGadget() {
 							</div>
 						))}
 					</div>
-					{(error as any) && <div className="text-red">{(error as any).toString()}</div>}
+					{(error as any) && (
+						<div className="text-red break-words text-wrap text-left text-xs">{(error as any).toString()}</div>
+					)}
 				</Confirmation>
 			)}
 		</>

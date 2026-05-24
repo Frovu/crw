@@ -168,7 +168,7 @@ ALL_TABLES: dict[str, list[Col]] = {
 	E_SOURCE_ERUPT: SOURCE_ERUPT
 }
 
-EDITABLE_TABLE_NAMES = [solen_info.TABLE, E_FEID, E_FEID_SOURCE, E_SOURCE_CH, E_SOURCE_ERUPT]
+EDITABLE_TABLE_NAMES = [solen_info.TABLE, E_FEID, E_SOURCE_CH, E_SOURCE_ERUPT, E_FEID_SOURCE] # order matters for sources insertion
 EDITABLE_TABLES = {
 	table: { c.sql_name: c for c in ALL_TABLES[table] } for table in EDITABLE_TABLE_NAMES
 }
