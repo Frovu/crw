@@ -19,5 +19,6 @@ def get_circles_plot():
 def get_rsm_all():
 	t_from = int(request.args.get('from', ''))
 	t_to = int(request.args.get('to', ''))
+	window = int(request.args.get('window', ''))
 
-	return rsm.fetch_circles(t_from, t_to, True)
+	return rsm.fetch_circles(t_from, t_to, True, window=window)

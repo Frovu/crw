@@ -49,6 +49,7 @@ export function crowPlugin(): uPlot.Plugin {
 						if (!state.cursor) return;
 
 						const left = u.valToPos(state.cursor.time, 'x', true);
+						marker.hidden = left < u.bbox.left || left > u.bbox.width + u.bbox.left;
 						marker.style.left = left + 'px';
 					};
 					const h = u.bbox.top + u.bbox.height;

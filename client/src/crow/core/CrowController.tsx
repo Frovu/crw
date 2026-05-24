@@ -8,8 +8,8 @@ function moveCrowCursor(delta: number, { start, end }: Interval, ctrl: boolean) 
 		if (!cursor?.lock) return;
 		const hours = (end - start) / 3600;
 		const move = ctrl ? delta * Math.round(hours / 20) : delta;
-		console.log(start, cursor.time + move * 3600);
 		cursor.time = clamp(start, end - 3600, cursor.time + move * 3600);
+		console.log('set crow cursor', new Date(cursor.time * 1e3).toISOString());
 	});
 }
 

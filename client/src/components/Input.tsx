@@ -68,6 +68,7 @@ export function NumberInput<NULL extends boolean | undefined = true>({
 	const [valid, setValid] = useState(true);
 	const [text, setText] = useState(value?.toString() ?? '');
 
+	// eslint-disable-next-line react-hooks/set-state-in-effect
 	useEffect(() => setText(value?.toString() ?? ''), [value]);
 
 	const change = (e: ChangeEvent<HTMLInputElement>) => {
@@ -83,8 +84,8 @@ export function NumberInput<NULL extends boolean | undefined = true>({
 
 	return (
 		<Input
-			{...props}
 			type="text"
+			{...props}
 			className={cn(!valid && 'ring-red text-red', props.className)}
 			value={text}
 			onChange={change}
