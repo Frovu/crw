@@ -33,11 +33,12 @@ export function tooltipPlugin({
 
 		const isScatter = (u as any).mode === 2;
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
-		const val = isScatter ? (u.data as any)[sidx][1][dataIdx!] : (u.data[sidx][dataIdx!] as number);
-		const valst = Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString() : val.toExponential();
+		const val: number | null = isScatter ? (u.data as any)[sidx][1][dataIdx!] : u.data[sidx][dataIdx!];
+		const valst =
+			val == null ? 'N/A' : Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString() : val.toExponential();
 		const xval = isScatter ? (u.data as any)[sidx][0][dataIdx!] : u.data[0][dataIdx!];
 
-		const top = u.valToPos(val, series.scale ?? 'y');
+		const top = val == null ? u.cursor.top! : u.valToPos(val, series.scale ?? 'y');
 		const lft = u.valToPos(xval, 'x');
 		const flip = tooltipLeftOffset + lft + tooltip.clientWidth + 10 >= u.width;
 		const flipY = tooltipTopOffset + top + tooltip.clientHeight + 5 >= u.height;

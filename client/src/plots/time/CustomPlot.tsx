@@ -133,11 +133,11 @@ function Panel() {
 	const definitions = series.map((ser) => ser.definition).filter((def) => !!def);
 
 	const leftLabel = series
-		.filter((s) => !s.rightAxis)
+		.filter((s) => !s.rightAxis && !s.disabled)
 		.map((s) => s.label ?? s.definition)
 		.join(', ');
 	const rightLabel = series
-		.filter((s) => s.rightAxis)
+		.filter((s) => s.rightAxis && !s.disabled)
 		.map((s) => s.label ?? s.definition)
 		.join(', ');
 
