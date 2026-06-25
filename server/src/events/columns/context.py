@@ -61,7 +61,7 @@ class ComputationContext:
 				condition = SQL('WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)')
 				vals = [*self.series_frame]
 			else:
-				condition = ''
+				condition = SQL('')
 				vals = []
 
 			with pool.connection() as conn:
