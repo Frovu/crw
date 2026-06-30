@@ -101,7 +101,7 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 				<>
 					<div className="flex gap-2">
 						<PlotIntervalInput solar={isSolar && (type !== 'Particles' || params.solarTime)} />
-						{type === 'Particles' && <Checkbox label="solar" k="solarTime" />}
+						{['Particles', 'X-Rays'].includes(type) && <Checkbox label="solar" k="solarTime" />}
 					</div>
 					<div className="separator" />
 					<div className="flex gap-3">

@@ -10,6 +10,7 @@ import uPlot from 'uplot';
 import type { BasicPlotParams } from '../common/types';
 
 const defaultParams = {
+	solarTime: true,
 	showShortXrays: true,
 };
 
@@ -91,8 +92,11 @@ export function flaresOnsetsPlugin({
 
 function Panel() {
 	const params = usePlot<SatXraysParams>();
-	const { showGrid, showShortXrays } = params;
-	const { interval, flares, focusTime } = useSolarPlot();
+	const { showGrid, showShortXrays, solarTime } = params;
+	const { interval: sInterv, flares, focusTime } = useSolarPlot();
+
+	const fetchInterval = solarTime ? sInterv : params.fetchInterval;
+	const interval = solarTime ? sInterv : params.interval;
 
 	return (
 		<BasicPlot
@@ -102,12 +106,12 @@ function Panel() {
 				params: {
 					...params,
 					interval,
-					fetchInterval: interval,
+					fetchInterval,
 					onsets: [],
 					clouds: [],
 				},
 				options: () => ({
-					padding: [scaled(8), scaled(6), 0, 0],
+					padding: [scaled(8), scaled(solarTime ? 6 : 36), 0, 0],
 					plugins: [flaresOnsetsPlugin({ params, flares, focusTime })],
 				}),
 				axes: () => [
