@@ -43,6 +43,7 @@ import { SolenHoles } from './tables/HolesSolen';
 import { HolesTable } from './tables/HolesSrc';
 import CrowController from '../crow/core/CrowController';
 import { RSMHourPlot } from '../crow/rsm/RSMHourPlot';
+import { CorrelationCrow } from '../plots/stat/CorrelateCrow';
 
 const panels: EventsPanel<any>[] = [
 	GSMPlot,
@@ -53,6 +54,7 @@ const panels: EventsPanel<any>[] = [
 	RSMPlot,
 	CustomPlot,
 	Correlation,
+	CorrelationCrow,
 	Histogram,
 	SuperposedEpochs,
 	EventsHistory,

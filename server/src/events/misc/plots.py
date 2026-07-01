@@ -1,7 +1,7 @@
 from datetime import timedelta
 from dataclasses import dataclass
 import numpy as np
-import ts_type
+from time import time as ctime
 
 from database import pool, log, SQL, Identifier
 from cream.gsm import normalize_variation
@@ -36,6 +36,7 @@ def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int 
 	time = [tm for tm in range(interval[0], interval[1]+1, HOUR)]
 	results = [time]
 	for definition in definitions:
+		stime = ctime()
 		parsed = columnParser.parse(definition)
 		result = computer.transform(parsed)
 		res: np.ndarray = result.value
@@ -52,7 +53,8 @@ def custom_plot(interval: tuple[int, int], definitions: list[str], feid_id: int 
 			res = extended
 			log.info(f'Length mismatch for {definition}: {len(res)} != {len(time)}, correcting')
 		
-		val = np.where(~np.isfinite(res), None, res).tolist() # type: ignore
+		val = np.where(~np.isfinite(res), None, np.round(res, 3)).tolist() # type: ignore
 		results.append(val)
+		log.debug('Computed %s [%s] in %ss', definition, len(time), round(ctime() - stime, 2))
 
 	return results
