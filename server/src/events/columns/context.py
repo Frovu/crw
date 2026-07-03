@@ -57,7 +57,7 @@ class ComputationContext:
 			if self.target_ids:
 				condition = SQL('WHERE id = ANY(%s)')
 				vals = [ids]
-			elif self.series_frame:
+			elif self.forced_frame:
 				condition = SQL('WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s)')
 				vals = [*self.series_frame]
 			else:
