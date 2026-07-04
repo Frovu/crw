@@ -108,7 +108,7 @@ const feidDefaultLayouts: LayoutPreset = {
 			tree: {
 				root: {
 					split: 'row',
-					ratio: 0.7,
+					ratio: 0.6,
 					children: ['column0', 'column1'],
 				},
 				sources0: {
@@ -133,23 +133,13 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 				column1: {
 					split: 'column',
-					ratio: 0.6,
+					ratio: 0.43,
 					children: ['sdoSquare', 'sunParams'],
 				},
 				sdoSquare: {
 					split: 'row',
 					ratio: 0.5,
-					children: ['sdoCol0', 'sdoCol1'],
-				},
-				sdoCol0: {
-					split: 'column',
-					ratio: 0.5,
 					children: ['sdo0', 'sdo1'],
-				},
-				sdoCol1: {
-					split: 'column',
-					ratio: 0.5,
-					children: ['sdo2', 'sdo3'],
 				},
 				sunParams: {
 					split: 'column',
@@ -214,21 +204,8 @@ const feidDefaultLayouts: LayoutPreset = {
 				},
 				sdo1: {
 					type: 'Sun View',
-					src: 'AIA 094',
-					slave: true,
-					frameTime: 50,
-					cadence: 8,
-				},
-				sdo2: {
-					type: 'Sun View',
 					src: 'LASCO C2',
 					slave: true,
-				},
-				sdo3: {
-					type: 'Sun View',
-					src: 'AIA 171',
-					slave: true,
-					cadence: 8,
 				},
 				sunParams0: {
 					type: 'Particles',

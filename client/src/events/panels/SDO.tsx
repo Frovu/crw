@@ -256,7 +256,7 @@ export function Panel() {
 	const isLoaded = query.data && query.data.length > 0;
 
 	const onClick = (e: MouseEvent<HTMLCanvasElement>) => {
-		if (!e.ctrlKey && !isWindow) {
+		if (!e.ctrlKey && !isWindow && e.buttons === 1) {
 			return openWindow({
 				x: e.clientX - 256,
 				y: e.clientY - 256,
