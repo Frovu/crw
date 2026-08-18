@@ -29,11 +29,14 @@ def filter_counts(data):
 def fetch_counts(t_from: int, t_to: int):
 	stations = database.get_stations(group_partial=True)
 	data = database.fetch((t_from, t_to), stations)
-	data = np.array(data, dtype=np.float64)
 
-	empty = np.isnan(data).all(axis=0)
-	data = data[:,~empty]
-	stations = [s for s, ok in zip(stations, ~empty[1:]) if ok] # type: ignore
+	if len(data):
+		data = np.array(data, dtype=np.float64)
+		empty = np.isnan(data).all(axis=0)
+		data = data[:,~empty]
+		stations = [s for s, ok in zip(stations, ~empty[1:]) if ok] # type: ignore
+	else:
+		data = np.empty((0, 1))
 
 	filter_counts(data[:,1:])
 

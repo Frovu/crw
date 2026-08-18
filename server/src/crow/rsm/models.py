@@ -70,6 +70,8 @@ def fit_model(time: np.ndarray, variations: np.ndarray, bases: np.ndarray, stati
 
 	result = np.full((len(time), nparams), np.nan)
 
+	if nstations <= 0: return result
+
 	for i in range(window-1, len(time)):
 		x = alons[i-window+1:i+1].reshape(nstations * window)
 		y = variations[i-window+1:i+1].reshape(nstations * window)
