@@ -14,8 +14,19 @@ import CrowController from './core/CrowController';
 import { useCrowSettings } from './core/crowSettings';
 import { useRealtimeUpdater } from './core/realtime';
 import { RSMHourPlot } from './rsm/RSMHourPlot';
+import { LayoutNav } from '../app/LayoutNav';
+import { IMFPlot } from '../plots/time/IMF';
+import { SWPlasmaPlot } from '../plots/time/SW';
+import { XraysPlot } from '../plots/time/XRays';
+import { GeomagnPlot } from '../plots/time/Geomagn';
+import { EventsCheckbox } from '../components/Checkbox';
 
 const panels: EventsPanel<any>[] = [
+	IMFPlot,
+	SWPlasmaPlot,
+	GeomagnPlot,
+	XraysPlot,
+	SatParticlesPlot,
 	RSMPlot,
 	CustomPlot,
 	SatParticlesPlot,
@@ -52,7 +63,12 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 					onChange={(e) => !isNaN(e.target.valueAsNumber) && setSetting('realtimeWindow', e.target.valueAsNumber)}
 				/>
 			</div>
-			<div className="separator" />
+			<div className="flex gap-3">
+				<EventsCheckbox label="grid" k="showGrid" />
+				<EventsCheckbox label="markers" k="showMarkers" />
+				<EventsCheckbox label="legend" k="showLegend" />
+			</div>
+			{Menu && <div className="separator" />}
 			{Menu && <Menu {...{ params, set, setParams, Checkbox }} />}
 			{isPlot && (
 				<>
@@ -64,6 +80,8 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 					)}
 				</>
 			)}
+			<div className="separator" />
+			<LayoutNav />
 		</div>
 	);
 }
@@ -73,7 +91,7 @@ const eventsPanels = Object.fromEntries(
 		p.name,
 		{
 			...p,
-			defaultParams: { ...defaultPlotParams, ...p.defaultParams },
+			defaultParams: { ...defaultPlotParams, ...p.defaultParams, solarTime: false },
 			Panel: () => <PanelWrapper panel={p as any} />,
 			Menu: (props: any) => <MenuWrapper panel={p as any} {...props} />,
 		},

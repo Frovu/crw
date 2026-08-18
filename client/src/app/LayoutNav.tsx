@@ -37,11 +37,7 @@ export function LayoutNav() {
 	const defaultL = defaultLayouts[getApp() as keyof typeof defaultLayouts]?.list;
 
 	return (
-		<div
-			className="relative flex items-center text-dark p-1"
-			onMouseEnter={() => setHovered(1)}
-			onMouseLeave={() => setHovered(0)}
-		>
+		<div className="relative flex items-center p-1" onMouseEnter={() => setHovered(1)} onMouseLeave={() => setHovered(0)}>
 			{open && (
 				<div
 					className="absolute flex flex-col items-end -left-1 bottom-[calc(100%-2px)] bg-bg p-1 border gap-0.5"

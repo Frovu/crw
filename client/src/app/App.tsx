@@ -151,7 +151,7 @@ function App() {
 			</div>
 			{showNav && (
 				<div
-					className="flex z-10 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full select-none"
+					className="flex z-10 h-6 px-[2px] gap-[1px] items-center text-sm border-t [&>*:nth-child(n+2)]:border-l [&>*:nth-child(n+2)]:h-full text-dark select-none"
 					onContextMenu={openContextMenu('app')}
 				>
 					<SimpleSelect

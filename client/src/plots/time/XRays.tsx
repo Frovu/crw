@@ -111,7 +111,7 @@ function Panel() {
 					clouds: [],
 				},
 				options: () => ({
-					padding: [scaled(8), scaled(solarTime ? 6 : 36), 0, 0],
+					padding: [scaled(8), scaled(solarTime ? 6 : 48), 0, 0],
 					plugins: [flaresOnsetsPlugin({ params, flares, focusTime })],
 				}),
 				axes: () => [
