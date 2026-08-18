@@ -74,7 +74,7 @@ def _obtain_goes(which, t_from, t_to):
 
 def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 	xra = which == 'xrays'
-	expected_count = (t_to - t_from) // 300
+	expected_count = (t_to - t_from) // 60
 	query = ['s', 'l'] if xra else [f for f in (query or []) if f in PARTICLES]
 	if len(query) < 1:
 		raise ValueError('Empty query')
@@ -85,9 +85,10 @@ def fetch(which, t_from, t_to, query=['p1', 'p5', 'p7'], obtain=True):
 			'WHERE to_timestamp(%s) <= time AND time <= to_timestamp(%s) ORDER BY time').format(cl, tbl)
 		curs = conn.execute(qq, [t_from, t_to])
 		res, cols = curs.fetchall(), [desc[0] for desc in curs.description] # type: ignore
+		
 	if (len(res) > 0 and len(res) >= expected_count - 3) or not obtain:
 		return res, cols
-
+	
 	_obtain_goes(which, t_from, t_to)
 	return fetch(which, t_from, t_to, query, obtain=False)
 
