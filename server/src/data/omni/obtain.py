@@ -9,11 +9,12 @@ from data.omni.derived import compute_derived
 from data.omni.sw_types import obtain_yermolaev_types
 
 from data.omni.variables import OmniVariable, GROUP, SOURCE, get_vars
-from data.omni.spacecraft import spacecraft_id
+from data.omni.spacecraft import spacecraft_id, noaa_hapi_spacecraft_id
 
 proxy = os.environ.get('NASA_PROXY')
 omniweb_proxies = { "http": proxy, "https": proxy } if proxy else { }
 omniweb_url = 'https://omniweb.gsfc.nasa.gov/cgi/nx1.cgi'
+noaa_hapi_url = 'https://tlv-swpc.woc.noaa.gov/hapi/data'
 PERIOD = 3600
 
 omni_fetch_lock = Lock()
@@ -33,7 +34,8 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
 
 	data = None
-	for line in r.iter_lines(decode_unicode=True):
+	line: str
+	for line in r.iter_lines(decode_unicode=True): # type: ignore
 		if data is not None:
 			if not line or '</pre>' in line:
 				break
@@ -95,6 +97,41 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 	finally:
 		if conn: conn.close()
 
+def _obtain_noaa_hapi(vars: list[OmniVariable], interval: tuple[datetime, datetime]):
+	dstart, dend = [d.isoformat()[:19] + 'Z' for d in interval]
+	log.debug(f'NOAA/hapi: querying {dstart}-{dend}')
+	r = requests.get(noaa_hapi_url, stream=True, params = {
+		'id': 'active-mag-pt1h' if vars[0].group == GROUP.IMF else 'active-plasma-pt1h',
+		'parameters': ','.join([var.noaa_name for var in vars]), # type: ignore
+		'time.min': dstart,
+		'time.max': dend
+	}, timeout=5, proxies=omniweb_proxies)
+
+	if r.status_code != 200:
+		log.error('NOAA/hapi: query failed - HTTP %s', r.status_code)
+		return vars, None
+
+	data = []
+	ordered_vars: list[OmniVariable] = []
+	sc_id_idx = None
+
+	line: str
+	for line in r.iter_lines(decode_unicode=True): # type: ignore
+		if not line: continue
+		split = line.split(',')
+		if not ordered_vars or sc_id_idx is None:
+			ordered_vars = [next((v for v in vars if v.noaa_name == name)) for name in split[1:]]
+			sc_id_idx = next((i for i, v in enumerate(ordered_vars) if v.name.startswith('sc_id')))
+			continue
+
+		date = datetime.strptime(split[0], '%Y-%m-%dT%H:%M:%SZ')
+		row = [date] + [None if s == 'null' else float(s) for s in split[1:]]
+		sc_name = noaa_hapi_spacecraft_id.get(int(split[sc_id_idx+1]))
+		row[sc_id_idx+1] = spacecraft_id[sc_name] if sc_name else 99
+		data.append(row)
+
+	return ordered_vars, data
+	
 def _obtain_yermolaev(interv):
 	batches = [obtain_yermolaev_types(y) for y in range(interv[0].year, interv[1].year + 1)]
 	return [d for dt in batches for d in dt or []]
@@ -106,17 +143,24 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	dt = lambda t: datetime.fromtimestamp(t, tz=timezone.utc)
 	dt_interval = (dt(interval[0]), dt(interval[1]))
 
+	if source == SOURCE.NOAA:
+		if len(groups) > 1:
+			return max([obtain(interval, [gr], source, overwrite) for gr in groups if gr in [GROUP.IMF, GROUP.SW]])
+
 	vars = get_vars(groups, source, include_derived=False)
-	if source in [SOURCE.ACE, SOURCE.DSCOVR]:
-		vars = [v for v in vars if not v.name.startswith('sc_id')]
 
 	if source == SOURCE.omniweb:
 		res = _obtain_omniweb(vars, dt_interval)
 	elif source == SOURCE.SWTY:
 		res = _obtain_yermolaev(dt_interval)
-	else:
-		vars = [v for v in vars if v.crs_name]
+	elif source == SOURCE.NOAA:
+		vars = [v for v in vars if v.noaa_name]
+		vars, res = _obtain_noaa_hapi(vars, dt_interval)
+	elif source in [SOURCE.ACE, SOURCE.geomag]:
+		vars = [v for v in vars if v.crs_name and not v.name.startswith('sc_id')]
 		res = _obtain_crs(source, vars, dt_interval)
+	else:
+		assert not 'reached'
 
 	if not res:
 		log.warning('Omni: got no data')
@@ -126,7 +170,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	data, col_names = compute_derived(res, col_names)
 	constants = {}
 
-	if source in [SOURCE.ACE, SOURCE.DSCOVR]:
+	if source in [SOURCE.ACE]:
 		sc_id = spacecraft_id[str(source.value).upper()]
 		for group in [GROUP.IMF, GROUP.SW]:
 			if not group in groups: continue

@@ -24,6 +24,8 @@ const scId = {
 	81: 'DSCOVR',
 	99: 'other',
 	0: 'none',
+	104: 'SOLAR-1',
+	108: 'IMAP',
 } as const;
 const scColor = {
 	HEOS: color('yellow'),
@@ -37,6 +39,8 @@ const scColor = {
 	ACE: color('cyan'),
 	DSCOVR: color('blue'),
 	other: color('text'),
+	'SOLAR-1': color('green'),
+	IMAP: color('skyblue'),
 	none: color('red'),
 } as const;
 
@@ -68,7 +72,7 @@ function Panel() {
 					if (name.startsWith('sc_id'))
 						return [
 							name.split('_').at(-1)!.toUpperCase(),
-							rows.map((r) => (r[1] == null ? 0 : scId[r[1] as 0] ? r[1] : 99)),
+							rows.map((r) => (r[i] == null ? 0 : scId[r[i] as 0] ? r[i] : 99)),
 						];
 					return [name, rows.map((r) => (r[i] == null ? 0 : 1))];
 				}),
@@ -80,19 +84,18 @@ function Panel() {
 
 	const scCounts = useMemo(() => {
 		if (!query.data) return null;
+		const groups = (['IMF', 'SW'] as const).filter((g) => query.data[g]);
 		return Object.fromEntries(
-			(['IMF', 'SW'] as const)
-				.filter((g) => query.data[g])
-				.map((group) => [
-					group,
-					query.data[group].reduce(
-						(acc, val) => {
-							acc[scId[val as 0]] = (acc[scId[val as 0]] ?? 0) + 1;
-							return acc;
-						},
-						{} as { [k: string]: number },
-					),
-				]),
+			groups.map((group) => [
+				group,
+				query.data[group].reduce(
+					(acc, val) => {
+						acc[scId[val as 0]] = (acc[scId[val as 0]] ?? 0) + 1;
+						return acc;
+					},
+					{} as { [k: string]: number },
+				),
+			]),
 		);
 	}, [query.data]);
 

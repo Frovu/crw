@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime, timezone
 
-from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CovergaeResponse
+from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CoverageResponse
 from data.omni.variables import OMNI_TABLE, GROUP, SOURCE, omni_variables, get_vars
 from data.omni.obtain import obtain
 
@@ -63,7 +63,7 @@ def ensure_prepared(interval: tuple[int, int], trust=False):
 			cov_start, cov_end, cov_at = [dt and int(dt.timestamp()) for dt in coverage[0]] if coverage else [None, None, None]
 			if cov_start and cov_end and cov_at:
 				if cov_start <= t_start and cov_end >= t_end:
-					return CovergaeResponse(cov_start, cov_end, cov_at).to_dict()
+					return CoverageResponse(cov_start, cov_end, cov_at).to_dict()
 				res_start = min(cov_start, t_start)
 				fetch_start, fetch_end = cov_end if cov_start <= t_start else t_start, t_end
 			else:
@@ -76,4 +76,4 @@ def ensure_prepared(interval: tuple[int, int], trust=False):
 			log.info(f'Omni: force setting coverarge to {res_start}:{fetch_end}')
 
 		upsert_coverage(OMNI_TABLE, res_start, fetch_end, single=True)
-	return CovergaeResponse(res_start, fetch_end, int(datetime.now().timestamp())).to_dict()
+	return CoverageResponse(res_start, fetch_end, int(datetime.now().timestamp())).to_dict()

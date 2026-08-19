@@ -11,7 +11,7 @@ from events.columns.column import Column
 
 @ts_type.gen_type
 @dataclass
-class CovergaeResponse:
+class CoverageResponse:
 	start: int
 	end: int | None
 	at: int

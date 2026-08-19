@@ -23,7 +23,19 @@ spacecraft_id = {
 	'ACE': 71,
 	'Geotail': 60 ,
 	'No spacecraft': 99,
-	'DSCOVR': 81
+	'DSCOVR': 81,
+	'SOLAR-1': 104,
+	'IMAP': 108,
+}
+
+noaa_hapi_spacecraft_id = {
+	1: "ACE",
+	2: "DSCOVR",
+	3: "ACE",  # DSCOVR + ACE
+	4: "SOLAR-1",
+	5: "SOLAR-1", # SOLAR-1 + ACE
+	6: "SOLAR-1", # SOLAR-1 + DSCOVR
+	8: "IMAP",
 }
 
 spacecraft_name = {

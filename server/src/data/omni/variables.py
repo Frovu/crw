@@ -6,10 +6,10 @@ from database import pool, SQL, Identifier
 
 OMNI_TABLE = 'omni'
 GROUP = StrEnum('GROUP', ['SW', 'IMF', 'MAG', 'SWTY'])
-SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'DSCOVR', 'SWTY'])
+SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'SWTY', 'NOAA'])
 GROUP_SOURCES = {
-	GROUP.SW: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DSCOVR],
-	GROUP.IMF: [SOURCE.omniweb, SOURCE.ACE, SOURCE.DSCOVR],
+	GROUP.SW: [SOURCE.omniweb, SOURCE.ACE, SOURCE.NOAA],
+	GROUP.IMF: [SOURCE.omniweb, SOURCE.ACE, SOURCE.NOAA],
 	GROUP.MAG: [SOURCE.omniweb, SOURCE.geomag],
 	GROUP.SWTY: [SOURCE.SWTY]
 }
@@ -26,6 +26,7 @@ class OmniVariable():
 	omniweb_id: int | None = None
 	omniweb_stub: str | None = None
 	crs_name: str | None = None
+	noaa_name: str | None = None
 	is_int: bool = False
 	is_derived: bool = False
 	description: str = ''
@@ -60,21 +61,21 @@ class OmniVariable():
 		return { 'name': self.name, 'group': self.group and str(self.group.value).upper() }
 
 omni_variables = [
-	OmniVariable('sc_id_imf', GROUP.IMF, omniweb_name='ID for IMF SC'),
-	OmniVariable('sc_id_sw', GROUP.SW, omniweb_name='ID for SW Plasma SC'),
+	OmniVariable('sc_id_imf', GROUP.IMF, omniweb_name='ID for IMF SC', noaa_name='source'),
+	OmniVariable('sc_id_sw', GROUP.SW, omniweb_name='ID for SW Plasma SC', noaa_name='source'),
 	# OmniVariable('count_imf', GROUP.IMF, omniweb_id=7),
 	# OmniVariable('count_sw', GROUP.SW, omniweb_id=8),
-	OmniVariable('B', GROUP.IMF, omniweb_name='Field Magnitude Avg,', crs_name='ibt'),
+	OmniVariable('B', GROUP.IMF, omniweb_name='Field Magnitude Avg,', crs_name='ibt', noaa_name='bt'),
 	OmniVariable('Bm', GROUP.IMF, omniweb_name='Magnitude of Average'),
-	OmniVariable('Bx', GROUP.IMF, omniweb_name='Bx,GSE', crs_name='ibx'),
-	OmniVariable('By', GROUP.IMF, omniweb_name='By,GSE', crs_name='iby'),
-	OmniVariable('Bz', GROUP.IMF, omniweb_name='Bz,GSE', crs_name='ibz'),
+	OmniVariable('Bx', GROUP.IMF, omniweb_name='Bx,GSE', crs_name='ibx', noaa_name='bx_gse'),
+	OmniVariable('By', GROUP.IMF, omniweb_name='By,GSE', crs_name='iby', noaa_name='by_gse'),
+	OmniVariable('Bz', GROUP.IMF, omniweb_name='Bz,GSE', crs_name='ibz', noaa_name='bz_gse'),
 	OmniVariable('By_gsm', GROUP.IMF, omniweb_name='By,GSM'),
 	OmniVariable('Bz_gsm', GROUP.IMF, omniweb_name='Bz,GSM'),
-	OmniVariable('V', GROUP.SW, omniweb_name='Bulk speed', crs_name='vsw'),
-	OmniVariable('T', GROUP.SW, omniweb_name='Proton temperature', crs_name='tsw'),
+	OmniVariable('V', GROUP.SW, omniweb_name='Bulk speed', crs_name='vsw', noaa_name='speed'),
+	OmniVariable('T', GROUP.SW, omniweb_name='Proton temperature', crs_name='tsw', noaa_name='temperature'),
 	OmniVariable('KT', GROUP.SW, description='temperature index', is_derived=True),
-	OmniVariable('D', GROUP.SW, omniweb_name='Proton density', crs_name='dsw'),
+	OmniVariable('D', GROUP.SW, omniweb_name='Proton density', crs_name='dsw', noaa_name='density'),
 	OmniVariable('P', GROUP.SW, omniweb_name='Flow Pressure'),
 	OmniVariable('NaNp', GROUP.SW, omniweb_name='Na/Np'),
 	OmniVariable('Ef', GROUP.SW, omniweb_name='Electric field'),
