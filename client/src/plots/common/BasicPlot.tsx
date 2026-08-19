@@ -55,11 +55,12 @@ export default function BasicPlot({
 			series = getSeries();
 		const axSize = (axisDefaults(false).size as number) + axisDefaults(false).labelSize!;
 		const padRight = axes.find((ax) => ax.show === false && ax.side === 1) ? axSize : 0;
+		const padLeft = !axes.find((ax) => (ax.show ?? true) === true && (ax.side ?? 3) === 3) ? scaled(52) : 0;
 		const scaleOverrides = getParam('scalesParams');
 		const uopts = userOptions?.();
 		return {
 			pxAlign: true,
-			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), 0],
+			padding: [getFontSize() / 2, padRight, params.showTimeAxis ? 0 : getFontSize() / 2 - scaled(2), padLeft],
 			legend: { show: params.interactive },
 			focus: { alpha: 0.6 },
 			...uopts,

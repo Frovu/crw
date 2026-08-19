@@ -12,7 +12,7 @@ def get_result():
 	t_from = int(request.args.get('from', 0))
 	t_to = int(request.args.get('to', 86400))
 	query = request.args.get('query', 'sw_speed,imf_scalar')
-	res, fields = omni.select((t_from, t_to), query.split(','))
+	res, fields = omni.select((t_from, t_to), query.split(','), realtime=True)
 	return { 'fields': fields, 'rows': res.tolist() }
 
 @bp.route('/particles', methods=['GET'])

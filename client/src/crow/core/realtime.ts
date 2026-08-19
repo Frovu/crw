@@ -12,7 +12,7 @@ export const useRealtimeUpdater = () => {
 			useCrowState.setState((state) => {
 				state.realtimeHour = Math.ceil(new Date().getTime() / 36e5) * 3600;
 			});
-		}, 300 * 1000);
+		}, 301 * 1000);
 		return () => clearInterval(interv);
 	}, [queryClient]);
 };

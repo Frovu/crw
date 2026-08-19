@@ -1,6 +1,6 @@
 import { useContextMenuStore } from '../app/app';
 import AppLayout from '../app/Layout';
-import type { ContextMenuProps, LayoutsMenuDetails } from '../app/layout';
+import { useLayoutsStore, type ContextMenuProps, type LayoutsMenuDetails } from '../app/layout';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { RSMPlot } from '../plots/time/CirclesPlot';
@@ -46,6 +46,7 @@ function PanelWrapper<T>({ panel }: { panel: EventsPanel<T> }) {
 }
 
 function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: EventsPanel<T> } & ContextMenuProps<any>) {
+	const { resetLayout } = useLayoutsStore();
 	const details = (useContextMenuStore((state) => state.menu?.detail) as LayoutsMenuDetails | null) ?? null;
 	const { realtimeWindow, set: setSetting } = useCrowSettings();
 	const { Menu, isPlot } = panel;
@@ -82,6 +83,7 @@ function MenuWrapper<T>({ panel, params, set, setParams, Checkbox }: { panel: Ev
 			)}
 			<div className="separator" />
 			<LayoutNav />
+			<Button onClick={() => resetLayout()}>Reset layout</Button>
 		</div>
 	);
 }

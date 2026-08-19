@@ -349,13 +349,43 @@ const feidDefaultLayouts: LayoutPreset = {
 };
 
 const realtimeDefaultLayouts: LayoutPreset = {
-	active: 'rsm',
+	active: 'swpc',
 	list: {
-		rsm: {
-			tree: {},
-			items: {
+		swpc: {
+			tree: {
 				root: {
-					type: 'Ring of Stations',
+					split: 'column',
+					ratio: 0.55,
+					children: ['top', 'bottom'],
+				},
+				top: {
+					split: 'column',
+					ratio: 0.5,
+					children: ['imf', 'sw'],
+				},
+				bottom: {
+					split: 'column',
+					ratio: 0.6,
+					children: ['plasma', 'geomag'],
+				},
+			},
+			items: {
+				imf: {
+					type: 'IMF + Speed',
+					showTimeAxis: false,
+					showSpeed: false,
+				},
+				sw: {
+					type: 'IMF + Speed',
+					showBt: false,
+					showBz: false,
+				},
+				plasma: {
+					type: 'SW Plasma',
+					showTimeAxis: false,
+				},
+				geomag: {
+					type: 'Geomagn',
 				},
 			},
 		},
