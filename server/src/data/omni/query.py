@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 
 from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CoverageResponse
 from data.omni.variables import OMNI_TABLE, GROUP, SOURCE, omni_variables, get_vars
+from data.omni.realtime import fetch_realtime
 from data.omni.obtain import obtain
 
 obtain_lock = Lock()
@@ -26,9 +27,13 @@ def insert(var, data):
 	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
 	upsert_many('omni', ['time', var], data, schema='public')
 
-def select(interval: tuple[int, int], query: list[str]):
+def select(interval: tuple[int, int], query: list[str], realtime=False):
 	all_column_names = [var.name for var in omni_variables]
 	columns = [c for c in query if c in all_column_names]
+
+	if realtime and interval[1] > datetime.now(timezone.utc).timestamp():
+		fetch_realtime()
+
 	with pool.connection() as conn:
 		cols = SQL(',').join([Identifier(c) for c in columns])
 		curs = conn.execute(SQL(f'SELECT EXTRACT(EPOCH FROM time)::integer as time, {{}} FROM {OMNI_TABLE} ' +

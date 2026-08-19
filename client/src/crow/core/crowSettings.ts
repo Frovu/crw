@@ -13,7 +13,11 @@ export type CrowWindowMode = (typeof crowWindowModes)[number];
 export const MIN_CROW_YEAR = 1957;
 export const maxCrowYear = () => new Date().getUTCFullYear();
 const clampStart = (val: number) =>
-	clamp(Date.UTC(MIN_CROW_YEAR) / 1e3, Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth()) / 1e3, val);
+	clamp(
+		Date.UTC(MIN_CROW_YEAR) / 1e3,
+		Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()) / 1e3,
+		val,
+	);
 
 const defaultSettings = {
 	realtimeWindow: 24 * 5,
@@ -119,7 +123,7 @@ export const useRealtimeWindow = () => {
 	const realtimeWindow = useCrowSettings((st) => st.realtimeWindow);
 	const realtimeHour = useCrowState((st) => st.realtimeHour);
 
-	const end = realtimeHour;
+	const end = realtimeHour + 3600;
 	const start = end - realtimeWindow * 3600;
 	return useMemo(() => ({ start, end }), [start, end]);
 };

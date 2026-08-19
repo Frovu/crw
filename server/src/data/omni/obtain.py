@@ -99,7 +99,7 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 
 def _obtain_noaa_hapi(vars: list[OmniVariable], interval: tuple[datetime, datetime]):
 	dstart, dend = [d.isoformat()[:19] + 'Z' for d in interval]
-	log.debug(f'NOAA/hapi: querying {dstart}-{dend}')
+	log.debug(f'NOAA/hapi: querying {dstart} to {dend}')
 	r = requests.get(noaa_hapi_url, stream=True, params = {
 		'id': 'active-mag-pt1h' if vars[0].group == GROUP.IMF else 'active-plasma-pt1h',
 		'parameters': ','.join([var.noaa_name for var in vars]), # type: ignore
