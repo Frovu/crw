@@ -50,10 +50,10 @@ export function crowPlugin(): uPlot.Plugin {
 
 						const left = u.valToPos(state.cursor.time, 'x', true);
 						marker.hidden = left < u.bbox.left || left > u.bbox.width + u.bbox.left;
-						marker.style.left = left + 'px';
+						marker.style.left = left / devicePixelRatio + 'px';
 					};
 					const h = u.bbox.top + u.bbox.height;
-					marker.style.height = h + 'px';
+					marker.style.height = h / devicePixelRatio + 'px';
 					marker.height = h;
 					const ctx = marker.getContext('2d')!;
 					ctx.setLineDash([4, 4]);
