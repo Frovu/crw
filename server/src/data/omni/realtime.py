@@ -63,6 +63,11 @@ def obtain_noaa_sw():
 	interval = (now - NOAA_REFETCH_WINDOW, now)
 	obtain(interval, [GROUP.IMF, GROUP.SW], SOURCE.NOAA, True)
 
+def obtain_f107():
+	now = int(datetime.now(timezone.utc).timestamp())
+	interval = (now - NOAA_REFETCH_WINDOW, now)
+	obtain(interval, [GROUP.IDX], SOURCE.F107, True)
+
 def fetch_realtime():
 	global last_fetch_time
 	with lock:
@@ -71,4 +76,4 @@ def fetch_realtime():
 			return
 		last_fetch_time = now
 		with ThreadPoolExecutor() as executor:
-			list(executor.map(lambda f: f(), [obtain_kyoto, obtain_gfz, obtain_noaa_sw]))
+			list(executor.map(lambda f: f(), [obtain_kyoto, obtain_gfz, obtain_noaa_sw, obtain_f107]))

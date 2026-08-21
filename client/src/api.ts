@@ -272,13 +272,14 @@ export const filterOperations = [
 export const omniGroups = [
     'SW',
     'IMF',
-    'MAG',
+    'IDX',
     'SWTY'
 ] as const;
 
 export const omniSources = [
     'OMNIWEB',
     'GEOMAG',
+    'F107',
     'ACE',
     'SWTY',
     'NOAA'
@@ -295,9 +296,10 @@ export const omniSourceOptions = {
         'ACE',
         'NOAA'
     ],
-    'MAG': [
+    'IDX': [
         'OMNIWEB',
-        'GEOMAG'
+        'GEOMAG',
+        'F107'
     ],
     'SWTY': [
         'SWTY'
@@ -379,31 +381,35 @@ export const omniVariables = [
     },
     {
         name: 'Dst',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'AE',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'Kp',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'Ap',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'PC',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'AL',
-        group: 'MAG'
+        group: 'IDX'
     },
     {
         name: 'AU',
-        group: 'MAG'
+        group: 'IDX'
+    },
+    {
+        name: 'F107',
+        group: 'IDX'
     },
     {
         name: 'SWTY',

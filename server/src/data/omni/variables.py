@@ -5,12 +5,12 @@ from enum import StrEnum
 from database import pool, SQL, Identifier
 
 OMNI_TABLE = 'omni'
-GROUP = StrEnum('GROUP', ['SW', 'IMF', 'MAG', 'SWTY'])
-SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'ACE', 'SWTY', 'NOAA'])
+GROUP = StrEnum('GROUP', ['SW', 'IMF', 'IDX', 'SWTY'])
+SOURCE = StrEnum('SOURCE', ['omniweb', 'geomag', 'F107', 'ACE', 'SWTY', 'NOAA'])
 GROUP_SOURCES = {
 	GROUP.SW: [SOURCE.omniweb, SOURCE.ACE, SOURCE.NOAA],
 	GROUP.IMF: [SOURCE.omniweb, SOURCE.ACE, SOURCE.NOAA],
-	GROUP.MAG: [SOURCE.omniweb, SOURCE.geomag],
+	GROUP.IDX: [SOURCE.omniweb, SOURCE.geomag, SOURCE.F107],
 	GROUP.SWTY: [SOURCE.SWTY]
 }
 
@@ -81,13 +81,14 @@ omni_variables = [
 	OmniVariable('Ef', GROUP.SW, omniweb_name='Electric field'),
 	OmniVariable('Ma', GROUP.SW, omniweb_name='Alfven mach number'),
 	OmniVariable('beta', GROUP.SW, omniweb_name='Plasma beta'),
-	OmniVariable('Dst', GROUP.MAG, omniweb_name='DST Index', crs_name='dst'),
-	OmniVariable('AE', GROUP.MAG, omniweb_name='AE-index'),
-	OmniVariable('Kp', GROUP.MAG, omniweb_name='Kp*10', crs_name='kp'),
-	OmniVariable('Ap', GROUP.MAG, omniweb_name='ap-index', crs_name= 'ap'),
-	OmniVariable('PC', GROUP.MAG, omniweb_name='PC(N)'),
-	OmniVariable('AL', GROUP.MAG, omniweb_name='AL-index'),
-	OmniVariable('AU', GROUP.MAG, omniweb_name='AU-index'),
+	OmniVariable('Dst', GROUP.IDX, omniweb_name='DST Index', crs_name='dst'),
+	OmniVariable('AE', GROUP.IDX, omniweb_name='AE-index'),
+	OmniVariable('Kp', GROUP.IDX, omniweb_name='Kp*10', crs_name='kp'),
+	OmniVariable('Ap', GROUP.IDX, omniweb_name='ap-index', crs_name= 'ap'),
+	OmniVariable('PC', GROUP.IDX, omniweb_name='PC(N)'),
+	OmniVariable('AL', GROUP.IDX, omniweb_name='AL-index'),
+	OmniVariable('AU', GROUP.IDX, omniweb_name='AU-index'),
+	OmniVariable('F107', GROUP.IDX, crs_name='f107', description='Observed (!) F10.7 at noon'),
 	OmniVariable('SWTY', GROUP.SWTY, description='Yermolayev SW types'),
 ]
 omni_vars_text = '' # free memory
@@ -105,6 +106,8 @@ def _init_db():
 _init_db()
 
 def get_vars(groups: list[GROUP], source: SOURCE | None = None, include_derived=True):
+	if source == SOURCE.F107:
+		return [var for var in omni_variables if var.name == 'F107']
 	actual_groups = [group for group in groups if source in GROUP_SOURCES[group]] if source else groups
 	if not len(actual_groups):
 		raise Exception(f'Can\'t fetch these from {source and source.value}: ' + ','.join([str(g.value).upper() for g in groups]))

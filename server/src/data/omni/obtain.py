@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 import os, re, traceback
 from math import floor, ceil
 from threading import Lock
@@ -62,6 +62,7 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[datetime, datetime]):
 	conn = None
 	source_table = str(source.value)
+	if source_table == 'f107': source_table = 'solar'
 	try:
 		log.debug(f'Omni: querying {",".join([v.crs_name or '' for v in vars])} from crs {interval[0]} to {interval[1]}')
 		conn = pymysql.connect(
@@ -71,23 +72,30 @@ def _obtain_crs(source: SOURCE, vars: list[OmniVariable], interval: tuple[dateti
 			password=os.environ.get('CRS_PASS', ''),
 			database=source_table)
 		with conn.cursor() as cursor:
-			if source_table == 'geomag':
+			if source == SOURCE.geomag:
 				geomag_q = '\nUNION '.join([f'SELECT dt + interval {h} hour as dt, kp{1 + h//3} as kp, ap{1 + h//3} as ap FROM geomag' for h in range(24)])
 				query = 'SELECT dst.dt, ' + ', '.join([c.crs_name or '' for c in vars]) +\
 					f' FROM dst JOIN (SELECT * FROM ({geomag_q}) gq WHERE dt > %s - interval 1 day AND dt < %s + interval 1 day) gm ' +\
 					'ON dst.dt = gm.dt WHERE dst.dt >= %s AND dst.dt <= %s'
 				cursor.execute(query, interval + interval)
+			elif source == SOURCE.F107:
+				query = 'SELECT dt, f107 FROM radio_f107 WHERE dt >= %s AND dt < %s'''
+				cursor.execute(query, interval)
 			else:
 				query = 'SELECT DATE_FORMAT(min(dt), \'%%Y-%%m-%%d %%H:00:00\'),' + ', '.join([f'round(avg(if({c.crs_name} > -999, {c.crs_name}, NULL)), 2)' for c in vars]) +\
 					f' FROM {source_table} WHERE dt >= %s AND dt < %s + interval 1 hour GROUP BY date(dt), extract(hour from dt)'''
 				cursor.execute(query, interval)
+
 			data = list(list(row) for row in cursor.fetchall())
-			if source_table == 'geomag':
+
+			if source == SOURCE.geomag:
 				kp_col = [c.name for c in vars].index('Kp')
 				kp_inc = { 'M': -3, 'Z': 0, 'P': 3 }
 				parse_kp = lambda s: None if s == '-1' else int(s[:-1]) * 10 + kp_inc[s[-1]]
 				for i in range(len(data)):
 					data[i][1 + kp_col] = parse_kp(data[i][1 + kp_col])
+			elif source == SOURCE.F107:
+				data = [[datetime.combine(dt, time(hr)), val] for dt, val in data for hr in range(24)]
 
 		return data
 	except Exception as e:
@@ -156,7 +164,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	elif source == SOURCE.NOAA:
 		vars = [v for v in vars if v.noaa_name]
 		vars, res = _obtain_noaa_hapi(vars, dt_interval)
-	elif source in [SOURCE.ACE, SOURCE.geomag]:
+	elif source in [SOURCE.ACE, SOURCE.geomag, SOURCE.F107]:
 		vars = [v for v in vars if v.crs_name and not v.name.startswith('sc_id')]
 		res = _obtain_crs(source, vars, dt_interval)
 	else:
