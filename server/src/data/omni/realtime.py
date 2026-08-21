@@ -7,7 +7,7 @@ from database import log, upsert_many
 from data.omni.obtain import obtain
 
 kyoto_url = 'https://wdc.kugi.kyoto-u.ac.jp/dst_realtime'
-gfz_url = 'https://kp.gfz.de/fileadmin/files_for_gfz_cms/qlyymm.tab'
+gfz_url = 'https://kp.gfz.de/app/files/Kp_ap_nowcast.txt'
 
 NOAA_REFETCH_WINDOW = 7 * 24 * 3600
 REALTIME_FETCH_DELAY = 10 * 60
@@ -44,20 +44,19 @@ def obtain_gfz():
 		return log.error('realtime/gfz: HTTP %s', str(res.status_code))
 
 	data = []
-	for line in res.text.splitlines():
+	for line in res.text.splitlines()[30:]:
 		if not line: break
 		split = line.split()
-		date = datetime.strptime(split[0], '%y%m%d').replace(tzinfo=timezone.utc)
+		date = datetime(*[int(float(i)) for i in split[:4]], tzinfo=timezone.utc)
+		kp, ap = round(float(split[-3]) * 10), int(split[-2])
+		if kp < 0: continue
 
-		for h3i, val in enumerate(split[1:8]):
-			for hour in range(h3i*3, h3i*3+3):
-				tst = date.replace(hour=hour)
-				if tst > datetime.now(timezone.utc): break
-				value = int(val[0]) * 10 + {'-': -3, 'o': 0, '+': 3}[val[1]]
-				data.append((tst, value))
+		for hour_i in range(3):
+			tst = date.replace(hour=date.hour + hour_i)
+			data.append((tst, kp, ap))
 
-	log.info('realtime/gfz: fetched [%s] Kp values up to %s', len(data), str(data[-1][0]) if data else '')
-	upsert_many('omni', ['time', 'Kp'], data, write_values=True, schema='public')
+	log.info('realtime/gfz: fetched [%s] kp,ap values up to %s', len(data), str(data[-1][0]) if data else '')
+	upsert_many('omni', ['time', 'Kp', 'Ap'], data, write_values=True, schema='public')
 
 def obtain_noaa_sw():
 	now = int(datetime.now(timezone.utc).timestamp())
