@@ -5,23 +5,37 @@ import { basicDataQuery } from '../common/basicPlot';
 import BasicPlot from '../common/BasicPlot';
 import { color } from '../common/plotUtil';
 import type { CustomSeries } from '../common/types';
+import { SimpleSelect } from '../../components/Select';
 
 const defaultParams = {
 	showBz: true,
 	showBxBy: false,
 	showSpeed: true,
 	showBt: true,
+	useGSM: false,
 };
 
 export type IMFParams = typeof defaultParams;
 
-function Menu({ Checkbox }: ContextMenuProps<IMFParams>) {
+function Menu({ Checkbox, params, set }: ContextMenuProps<IMFParams>) {
 	return (
 		<div className="flex flex-wrap max-w-60 gap-x-4">
 			<Checkbox label="Show Vsw" k="showSpeed" />
 			<Checkbox label="Show |B|" k="showBt" />
 			<Checkbox label="Show Bx, By" k="showBxBy" />
 			<Checkbox label="Show Bz" k="showBz" />
+			<div className="flex pt-2 items-center">
+				coordinates:
+				<SimpleSelect
+					className="w-14"
+					value={params.useGSM}
+					options={[
+						[true, 'GSM'],
+						[false, 'GSE'],
+					]}
+					onChange={(v) => set('useGSM', v)}
+				/>
+			</div>
 		</div>
 	);
 }
@@ -33,8 +47,8 @@ function Panel() {
 	return (
 		<BasicPlot
 			{...{
-				queryKey: ['IMF'],
-				queryFn: basicDataQuery('omni', ['time', 'V', 'B', 'Bx', 'By', 'Bz']),
+				queryKey: ['IMF', params.useGSM],
+				queryFn: basicDataQuery('omni', ['time', 'V', 'B', 'Bx'].concat(params.useGSM ? ['By_gsm', 'Bz_gsm'] : ['By', 'Bz'])),
 				params,
 				axes: () => [
 					{

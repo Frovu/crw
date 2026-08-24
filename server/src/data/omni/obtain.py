@@ -32,7 +32,7 @@ def _obtain_omniweb(vars: list[OmniVariable], interval: tuple[datetime, datetime
 	}, timeout=5, proxies=omniweb_proxies)
 	if r.status_code != 200:
 		log.warning('Omniweb: query failed - HTTP %s', r.status_code)
-
+		
 	data = None
 	line: str
 	for line in r.iter_lines(decode_unicode=True): # type: ignore
@@ -158,6 +158,7 @@ def obtain(interval: tuple[int, int], groups: list[GROUP], source: SOURCE, overw
 	vars = get_vars(groups, source, include_derived=False)
 
 	if source == SOURCE.omniweb:
+		vars = [v for v in vars if v.omniweb_name or v.omniweb_id]
 		res = _obtain_omniweb(vars, dt_interval)
 	elif source == SOURCE.SWTY:
 		res = _obtain_yermolaev(dt_interval)
