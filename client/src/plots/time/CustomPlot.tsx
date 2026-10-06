@@ -1,9 +1,9 @@
-import { color, colorKeys, type Color } from '../../app/app';
+import { color, type Color } from '../../app/app';
 import type { ContextMenuProps } from '../../app/layout';
 import { Button, CloseButton } from '../../components/Button';
 import { Checkbox } from '../../components/Checkbox';
+import ColorSelect from '../../components/ColorSelect';
 import { TextInput } from '../../components/Input';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '../../components/Select';
 import { DefinitionInput } from '../../events/columns/Autocomplete';
 import { useFeidCursor } from '../../events/core/eventsState';
 import { usePlot } from '../../events/core/plot';
@@ -13,7 +13,6 @@ import BasicPlot from '../common/BasicPlot';
 import { superScript } from '../common/plotUtil';
 import type { Interval, Shape } from '../common/types';
 
-const plotColors = colorKeys.slice(0, colorKeys.indexOf('crimson') + 1).filter((col) => !col.endsWith('2'));
 const defaultColors: Color[] = ['cyan', 'green', 'peach', 'magenta'];
 const markers: Shape[] = ['circle', 'diamond', 'square', 'triangleDown', 'triangleUp'];
 
@@ -69,19 +68,7 @@ function Menu({ params, setParams, Checkbox: PCheckbox }: ContextMenuProps<Custo
 						checked={!disabled}
 						onCheckedChange={(val) => setSer(i, 'disabled', !val)}
 					/>
-					<Select value={clr} onValueChange={(val) => setSer(i, 'color', val as any)}>
-						<SelectTrigger className="w-5 h-5 mr-1 rounded-xl" style={{ background: color(clr) }} />
-						<SelectContent side="top">
-							{plotColors.map((col) => (
-								<SelectItem key={col} value={col}>
-									<div className="flex items-center gap-1">
-										<div className="w-4 h-4" style={{ background: color(col) }} />
-										{col}
-									</div>
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
+					<ColorSelect value={clr} onChange={(val) => setSer(i, 'color', val)} />
 					<TextInput className="w-12 h-6" value={label ?? ''} onSubmit={(val) => setSer(i, 'label', val || null)} />=
 					<DefinitionInput
 						submitMode={true}
@@ -153,8 +140,7 @@ function Panel() {
 						label: 'c left',
 						fullLabel: leftLabel,
 						...(logScale && {
-							values: (u, vals) =>
-								vals.map((v) => (Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
+							values: (u, vals) => vals.map((v) => (Math.log10(v) % 1 === 0 ? '10' + superScript(Math.log10(v)) : '')),
 						}),
 					},
 					{
