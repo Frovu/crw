@@ -24,28 +24,28 @@ import { tooltipPlugin } from '../common/plugins/tooltipPlugin';
 import { Quadtree } from '../common/quadtree';
 import { type CustomAxis } from '../common/types';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
+import ColorSelect from '../../components/ColorSelect';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
-
-const columnKeys = [
-	['column0', 'X'],
-	['column1', 'Y'],
-] as const;
 
 const limitKeys = [
 	['X', 'forceMin', 'forceMax'],
 	['Y', 'forceMinY', 'forceMaxY'],
 ] as const;
 
+type CorrY = {
+	color: Color;
+	sample: SampleOption;
+	column: string;
+};
+
 const defaultParams = {
-	sample0: '<current>' as SampleOption,
-	column0: null as string | null,
-	column1: null as string | null,
+	correlationX: [] as string[],
+	correlationY: [] as CorrY[],
 	forceMin: null as number | null,
 	forceMax: null as number | null,
 	forceMinY: null as number | null,
 	forceMaxY: null as number | null,
-	color: 'green' as Color,
 	showRegression: true,
 	loglog: false,
 	logx: true,
@@ -55,33 +55,72 @@ export type CorrelationParams = typeof defaultParams;
 
 function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<CorrelationParams>) {
 	const sampleOpts = useSampleOptions();
-	const columnOpts = useColumnOptions(['integer', 'real'], [params.column0, params.column1]);
+	const columnOpts = useColumnOptions(['integer', 'real'], [...params.correlationX, ...params.correlationY.map((c) => c.column)]);
+	const { correlationX: corrX, correlationY: corrY } = params;
+
+	const setX = (prev: string | null, val: string | null) =>
+		set(
+			'correlationX',
+			prev ? (val ? corrX.map((c) => (c === prev ? val : c)) : corrX.filter((c) => c !== prev)) : val ? [...corrX, val] : corrX,
+		);
+
+	const setY = <K extends keyof CorrY>(col: CorrY, key: K, val: CorrY[K]) =>
+		set(
+			'correlationY',
+			corrY.map((c) => (c.column === col.column ? { ...c, [key]: val } : c)),
+		);
+
+	const addY = (column: string) =>
+		set('correlationY', [
+			...corrY,
+			{ color: colors.find((clr) => !corrY.find((c) => c.color === clr)) ?? 'white', column, sample: '<current>' },
+		]);
+
+	const rmY = (col: CorrY) =>
+		set(
+			'correlationY',
+			corrY.filter((c) => c.column !== col.column),
+		);
 
 	return (
 		<>
-			<div className="flex gap-1">
-				<Button title="Reset" onClick={() => set('sample0', '<current>')}>
-					Sample:
-				</Button>
-				<SimpleSelect
-					title="Sample (none = all events)"
-					className={cn('bg-input-bg w-30', params.sample0 === '<current>' && 'text-dark')}
-					value={params.sample0}
-					onChange={(val) => set('sample0', val)}
-					options={sampleOpts}
-				/>
-			</div>
-			{columnKeys.map(([key, label]) => (
-				<div key={key} className="flex gap-1">
-					{label}:
+			{[...corrX, null].map((colName, i) => (
+				<div key={colName} className="flex gap-1">
+					<Button title="Remove" className={!colName ? 'text-dark' : ''} onClick={() => setX(colName, null)}>
+						X{i + 1}:
+					</Button>
 					<SimpleSelect
 						className="w-30 bg-input-bg"
-						value={params[key]}
-						onChange={(val) => set(key, val)}
-						options={columnOpts.map((col) => [col.sql_name, col.name] as const)}
+						value={colName}
+						onChange={(val) => setX(colName, val)}
+						options={[...(colName ? [[null, '<clear>'] as const] : []), ...columnOpts.map((col) => [col.sql_name, col.name] as const)]}
 					/>
 				</div>
 			))}
+			{[...corrY, null].map((col, i) => (
+				<div className="flex gap-1 items-center">
+					<ColorSelect disabled={!col} value={col?.color ?? 'dark'} onChange={(val) => setY(col!, 'color', val)} />
+					<SimpleSelect
+						title="Sample (none = all events)"
+						className={cn('bg-input-bg w-30', col?.sample === '<current>' && 'text-dark')}
+						value={col?.sample ?? '<current>'}
+						onChange={(val) => setY(col!, 'sample', val)}
+						disabled={!col}
+						options={sampleOpts}
+					/>
+					<Button title="Remove" className={!col ? 'text-dark' : ''} onClick={() => col && rmY(col)}>
+						Y{i + 1}:
+					</Button>
+					<SimpleSelect
+						className="w-30 bg-input-bg"
+						value={col?.column ?? null}
+						onChange={(val) => (!col ? addY(val!) : val ? setY(col, 'column', val) : rmY(col))}
+						options={[...(col ? [[null, '<clear>'] as const] : []), ...columnOpts.map((col) => [col.sql_name, col.name] as const)]}
+					/>
+				</div>
+			))}
+
+			<div className="flex gap-1"></div>
 			{limitKeys.map(([label, kmin, kmax]) => (
 				<div key={label} className="flex gap-1 h-6">
 					<Button title="Reset limits" onClick={() => setParams({ [kmin]: null, [kmax]: null })}>
@@ -92,15 +131,6 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 					<NumberInput className="w-12" value={params[kmax]} onChange={(val) => set(kmax, val)} allowNull={true} />
 				</div>
 			))}
-			<div className="flex gap-3">
-				color:
-				<SimpleSelect
-					className="bg-input-bg"
-					value={params.color}
-					onChange={(val) => set('color', val)}
-					options={colors}
-				/>
-			</div>
 			<div className="flex gap-3">
 				<Checkbox label="regression" k="showRegression" />
 				<Checkbox label="loglog" k="loglog" />
@@ -126,8 +156,7 @@ function Panel() {
 
 	useEffect(() => {
 		for (const k of ['column0', 'column1'] as (keyof CorrelationParams)[]) {
-			if (params[k] == null)
-				setParams({ [k]: columns.find((col) => col.name === (k === 'column0' ? 'VmBm' : 'magnitude'))?.sql_name });
+			if (params[k] == null) setParams({ [k]: columns.find((col) => col.name === (k === 'column0' ? 'VmBm' : 'magnitude'))?.sql_name });
 		}
 	}, [params, columns]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -142,9 +171,7 @@ function Panel() {
 					: applySample(allData, samplesList?.find((s) => s.id === sample0) ?? null, columns, samplesList ?? []);
 
 		if (!sampleData.length) return null;
-		const colIdx = ['column0', 'column1'].map((c) =>
-			columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams]),
-		);
+		const colIdx = ['column0', 'column1'].map((c) => columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams]));
 		if (colIdx.includes(-1)) return null;
 		const [colX, colY] = colIdx.map((c) => columns[c]);
 		if (!['integer', 'real'].includes(colX.dtype) || !['integer', 'real'].includes(colY.dtype)) return null;
@@ -176,13 +203,10 @@ function Panel() {
 		const regrPoints = Array(128)
 			.fill(0)
 			.map((_, i) => minx + (i * (maxx - minx)) / 128);
-		const regrPredicts = regrPoints.map((x) =>
-			loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1],
-		);
+		const regrPredicts = regrPoints.map((x) => (loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]));
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
-		const findRow = (i: number) =>
-			sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
+		const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
 
 		return {
 			options: () => {
@@ -228,9 +252,7 @@ function Panel() {
 							html: (u, sidx, didx) => {
 								const row = findRow(didx);
 								return row
-									? `${prettyDate(row[index.time] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(
-											row[colIdx[1]],
-										)}`
+									? `${prettyDate(row[index.time] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}`
 									: '??';
 							},
 						}),
@@ -269,9 +291,7 @@ function Panel() {
 							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
 							values: (u, vals) =>
 								vals.map((v) =>
-									loglog && logx
-										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
-										: v?.toString(),
+									loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
 								),
 						},
 						{
@@ -290,9 +310,7 @@ function Panel() {
 							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
 							values: (u, vals) =>
 								vals.map((v) =>
-									loglog
-										? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length)
-										: v?.toString(),
+									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
 								),
 						} as CustomAxis,
 					],
