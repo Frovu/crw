@@ -1,8 +1,8 @@
-import { useContext, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import regression from 'regression';
 import uPlot from 'uplot';
 import { color, type Color } from '../../app/app';
-import { LayoutContext, type ContextMenuProps, type LayoutContextType } from '../../app/layout';
+import { type ContextMenuProps } from '../../app/layout';
 import { Button } from '../../components/Button';
 import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
@@ -25,6 +25,8 @@ import { Quadtree } from '../common/quadtree';
 import { type CustomAxis } from '../common/types';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 import ColorSelect from '../../components/ColorSelect';
+import { computeR2Score, LinearRegression } from './regression';
+import CorrelationMatrix from './CorrelationMatrix';
 
 const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
 
@@ -32,6 +34,8 @@ const limitKeys = [
 	['X', 'forceMin', 'forceMax'],
 	['Y', 'forceMinY', 'forceMaxY'],
 ] as const;
+
+const corrModes = ['plot', 'matrix'] as const;
 
 type CorrY = {
 	color: Color;
@@ -42,6 +46,7 @@ type CorrY = {
 const defaultParams = {
 	correlationX: [] as string[],
 	correlationY: [] as CorrY[],
+	correlationMode: 'plot' as (typeof corrModes)[number],
 	forceMin: null as number | null,
 	forceMax: null as number | null,
 	forceMinY: null as number | null,
@@ -119,7 +124,6 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 					/>
 				</div>
 			))}
-
 			<div className="flex gap-1"></div>
 			{limitKeys.map(([label, kmin, kmax]) => (
 				<div key={label} className="flex gap-1 h-6">
@@ -131,6 +135,15 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 					<NumberInput className="w-12" value={params[kmax]} onChange={(val) => set(kmax, val)} allowNull={true} />
 				</div>
 			))}
+			<div className="flex items-center">
+				Display mode:
+				<SimpleSelect
+					className="w-24"
+					value={params.correlationMode}
+					onChange={(val) => set('correlationMode', val)}
+					options={corrModes.map((m) => [m, m] as const)}
+				/>
+			</div>
 			<div className="flex gap-3">
 				<Checkbox label="regression" k="showRegression" />
 				<Checkbox label="loglog" k="loglog" />
@@ -143,7 +156,6 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 function Panel() {
 	const { showGrid, showLegend, showTitle } = useEventsSettings();
 	const { setCursor, setPlotId } = useEventsState();
-	const { setParams } = useContext(LayoutContext)! as LayoutContextType<CorrelationParams>;
 	const { data: shownData } = useFeidTableView();
 	const { data: allData, columns, index } = useTable('feid');
 	const { data: currentData, samples: samplesList } = useFeidSample();
@@ -154,60 +166,60 @@ function Panel() {
 		y: 3,
 	}));
 
-	useEffect(() => {
-		for (const k of ['column0', 'column1'] as (keyof CorrelationParams)[]) {
-			if (params[k] == null) setParams({ [k]: columns.find((col) => col.name === (k === 'column0' ? 'VmBm' : 'magnitude'))?.sql_name });
-		}
-	}, [params, columns]); // eslint-disable-line react-hooks/exhaustive-deps
+	const sets = useMemo(() => {
+		return params.correlationY
+			.map(({ column, sample }) => {
+				const sd = sample === '<current>' ? currentData : sample === '<none>' ? allData : null;
+				const sampleData = (sd ??
+					applySample(allData, samplesList?.find((s) => s.id === sample) ?? null, columns, samplesList ?? [])) as number[][];
+
+				if (!sampleData.length) return null;
+				const colIdx = [column, ...params.correlationX].map((c) => columns.findIndex((cc) => cc.sql_name === c));
+				if (colIdx.includes(-1)) throw new Error('Column not found');
+				const cols = colIdx.map((c) => columns[c]);
+
+				// const filter = loglog ? (r: number[]) => r.every((v) => v > 1) : (r: number[]) => r.every((v) => v != null);
+				const filtered = sampleData.filter((row) => colIdx.every((i) => row[i] != null));
+				const Y = filtered.map((row) => row[colIdx[0]]);
+				const X = filtered.map((row) => colIdx.slice(1).map((i) => row[i]));
+				// .sort((a, b) => a[0] - b[0]);
+				// const plotData = [0, 1].map((i) => data.map((r) => r[i]));
+
+				if (filtered.length < 8) return null;
+
+				// const minx = data[0][0];
+				// const maxx = data[data.length - 1][0];
+				// const miny = Math.min.apply(null, plotData[1]);
+				// const maxy = Math.max.apply(null, plotData[1]);
+
+				console.log(1);
+				const regr = new LinearRegression();
+				regr.fit(X, Y);
+
+				console.log(2);
+				console.log('Intercept:', regr.weights[0]);
+				console.log('Coefficients:', regr.weights.slice(1));
+				// console.log(regr.predict([[15, 700]]));
+
+				const errors = regr.computeStandardErrors(X, Y);
+				console.log(3);
+				const predictions = regr.predict(X);
+				console.log(4);
+				const R2 = computeR2Score(Y, predictions);
+				console.log(5);
+
+				return { X, Y, predictions, errors, R2, cols };
+			})
+			.filter((y) => !!y);
+	}, [allData, columns, currentData, params.correlationX, params.correlationY, samplesList]);
 
 	const memo = useMemo(() => {
-		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY, sample0 } = params;
+		const { correlationX, correlationY, loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY } = params;
 
-		const sampleData =
-			sample0 === '<current>'
-				? currentData
-				: sample0 === '<none>'
-					? allData
-					: applySample(allData, samplesList?.find((s) => s.id === sample0) ?? null, columns, samplesList ?? []);
-
-		if (!sampleData.length) return null;
-		const colIdx = ['column0', 'column1'].map((c) => columns.findIndex((cc) => cc.sql_name === params[c as keyof CorrelationParams]));
-		if (colIdx.includes(-1)) return null;
-		const [colX, colY] = colIdx.map((c) => columns[c]);
-		if (!['integer', 'real'].includes(colX.dtype) || !['integer', 'real'].includes(colY.dtype)) return null;
-
-		const filter = loglog ? (r: number[]) => r[0] > 1 && r[1] > 1 : (r: number[]) => r[0] != null && r[1] != null;
-		const data = (sampleData as number[][])
-			.map((row) => colIdx.map((i) => row[i]))
-			.filter(filter)
-			.sort((a, b) => a[0] - b[0]);
-		const plotData = [0, 1].map((i) => data.map((r) => r[i]));
-
-		if (data.length < 8) return null;
-
-		const minx = data[0][0];
-		const maxx = data[data.length - 1][0];
-		const miny = Math.min.apply(null, plotData[1]);
-		const maxy = Math.max.apply(null, plotData[1]);
-
-		const regrData = loglog ? data.map((r) => [Math.log(r[0]), Math.log(r[1])]) : data;
-		const regr = regression.linear(regrData as any, { precision: 8 });
-		const [gradient, intercept] = regr.equation;
-
-		// standard error: https://en.wikipedia.org/wiki/Simple_linear_regression#Normality_assumption
-		const meanX = regrData.reduce((a, b) => a + b[0], 0) / data.length;
-		const sumE = regr.points.reduce((a, b) => a + b[1] * b[1], 0);
-		const sdmX = regrData.reduce((a, b) => a + Math.pow(b[0] - meanX, 2), 0);
-		const err = Math.sqrt(sumE / sdmX / (data.length - 2));
-
-		const regrPoints = Array(128)
-			.fill(0)
-			.map((_, i) => minx + (i * (maxx - minx)) / 128);
-		const regrPredicts = regrPoints.map((x) => (loglog ? Math.pow(Math.E, regr.predict(Math.log(x))[1]) : regr.predict(x)[1]));
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
-		const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
-
+		// const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
+		return;
 		return {
 			options: () => {
 				let hoveredRect: any;
@@ -374,6 +386,8 @@ function Panel() {
 		setPlotId,
 		index.time,
 	]);
+
+	if (params.correlationMode === 'matrix') return <CorrelationMatrix sets={sets} />;
 
 	if (!memo) return <div className="center">NOT ENOUGH DATA</div>;
 	const { options, data } = memo;
