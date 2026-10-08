@@ -12,6 +12,7 @@ type Set = {
 	X: number[][];
 	Y: number[];
 	predictions: number[];
+	weights: number[];
 	errors: number[];
 	R2: number;
 	cols: Column[];
@@ -30,42 +31,78 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 
 	const cycleView = () => setViewIdx((v) => (v + 1) % sets.length);
 
+	const setPara = params.correlationY[view];
+	const { cols, R2, weights, errors } = sets[view];
+
 	return (
-		<table className="-m-[1px] w-[calc(100%+1px)] [&_td]:w-100 [&_td]:h-8 [&_td]:border [&_td]:break-all [&_td]:text-center">
-			<tbody>
-				<tr>
-					{sets[view].cols.slice(1).map((col) => (
-						<td>{col.name}</td>
-					))}
-					<td className="text-dark">
-						<Button onClick={cycleView}>
-							{samples?.find((s) => s.id === params.correlationY[view].sample)?.name ?? params.correlationY[view].sample}
-						</Button>
-					</td>
-				</tr>
-				{matrixes[view].slice(0, -1).map((row, ri) => (
-					<tr key={JSON.stringify(row)}>
-						{row.slice(1).map((val, ci) => (
-							<td
-								className={cn([0, 1].includes(val) && 'border-none bg-bg! text-bg', val >= 0.9 && 'text-bg')}
-								style={{ backgroundColor: color('cyan', val ** 1.7) }}
-								key={`${ci}:${val}`}
-							>
-								{val.toFixed(2).replace('0.', '.').replace('1.00', '1')}
-							</td>
+		<>
+			<table className="-m-[1px] w-[calc(100%+1px)] [&_td]:w-100 [&_td]:h-8 [&_td]:border [&_td]:break-all [&_td]:text-center">
+				<tbody>
+					<tr>
+						{cols.slice(1).map((col) => (
+							<td key={col.name}>{col.name}</td>
 						))}
-						<td>
-							{ri === 0 ? (
-								<Button style={{ color: color(params.correlationY[view].color) }} onClick={cycleView}>
-									{sets[view].cols[ri].name}
-								</Button>
-							) : (
-								sets[view].cols[ri].name
-							)}
+						<td className="text-dark">
+							<Button className="w-full" onClick={cycleView}>
+								{samples?.find((s) => s.id === setPara.sample)?.name ?? setPara.sample}
+							</Button>
 						</td>
 					</tr>
-				))}
-			</tbody>
-		</table>
+					{matrixes[view].slice(0, -1).map((row, ri) => (
+						<tr key={JSON.stringify(row)}>
+							{row.slice(1).map((val, ci) => (
+								<td
+									className={cn([0, 1].includes(val) && 'border-none bg-bg! text-bg', val >= 0.8 && 'text-bg')}
+									style={{ backgroundColor: color('cyan', val ** 1.7) }}
+									key={`${ci}:${val}`}
+								>
+									{val.toFixed(2).replace('0.', '.').replace('1.00', '1')}
+								</td>
+							))}
+							<td>
+								{ri === 0 ? (
+									<Button className="w-full" style={{ color: color(setPara.color) }} onClick={cycleView}>
+										{cols[ri].name}
+									</Button>
+								) : (
+									cols[ri].name
+								)}
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+			<div className="px-2">
+				<table className="mt-2 [&_td]:w-22 [&_td]:h-8 [&_td]:border [&_td]:break-all [&_td]:text-center">
+					<tbody>
+						<tr>
+							<td className="border-none">
+								<span className="text-dark">
+									R<sup>2</sup>
+								</span>{' '}
+								{R2.toFixed(2)}
+							</td>
+							{/* <td className="text-dark">intpt</td> */}
+							{cols.slice(1).map((col) => (
+								<td key={col.name}>{col.name}</td>
+							))}
+						</tr>
+						{(
+							[
+								['coef', weights],
+								['err', errors],
+							] as const
+						).map(([label, arr]) => (
+							<tr key={label}>
+								<td className="text-dark">{label}</td>
+								{arr.slice(1).map((val) => (
+									<td key={val}>{val.toFixed(3).replace('0.', '.')}</td>
+								))}
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</>
 	);
 }
