@@ -1,28 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { computeCorrelationMatrix } from './regression';
-import type { Column } from '../../api';
 import { color } from '../../app/app';
 import { cn } from '../../util';
 import { Button } from '../../components/Button';
-import type { CorrelationParams } from './Correlate';
-import { usePlot } from '../../events/core/plot';
-import { useFeidSample } from '../../events/core/feid';
+import type { CorrelationSeries } from './Correlate';
 
-type Set = {
-	X: number[][];
-	Y: number[];
-	predictions: number[];
-	weights: number[];
-	errors: number[];
-	R2: number;
-	cols: Column[];
-};
-
-export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
+export default function CorrelationMatrix({ series: sets }: { series: CorrelationSeries[] }) {
 	const [view, setViewIdx] = useState(0);
-	const params = usePlot<CorrelationParams>();
-	const { samples } = useFeidSample();
-
 	const matrixes = useMemo(() => sets.map(({ X, Y }) => computeCorrelationMatrix(X.map((r, i) => [Y[i], ...r]))), [sets]);
 
 	useEffect(() => {
@@ -31,8 +15,7 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 
 	const cycleView = () => setViewIdx((v) => (v + 1) % sets.length);
 
-	const setPara = params.correlationY[view];
-	const { cols, R2, weights, errors } = sets[view];
+	const { X, cols, R2, weights, errors } = sets[view];
 
 	return (
 		<>
@@ -44,7 +27,7 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 						))}
 						<td className="text-dark">
 							<Button className="w-full" onClick={cycleView}>
-								{samples?.find((s) => s.id === setPara.sample)?.name ?? setPara.sample}
+								{}
 							</Button>
 						</td>
 					</tr>
@@ -61,7 +44,7 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 							))}
 							<td>
 								{ri === 0 ? (
-									<Button className="w-full" style={{ color: color(setPara.color) }} onClick={cycleView}>
+									<Button className="w-full" style={{ color: color(sets[view].color) }} onClick={cycleView}>
 										{cols[ri].name}
 									</Button>
 								) : (
@@ -76,20 +59,19 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 				<table className="mt-2 [&_td]:w-22 [&_td]:h-8 [&_td]:border [&_td]:break-all [&_td]:text-center">
 					<tbody>
 						<tr>
-							<td className="border-none">
+							<td className="border-none text-white">
+								{R2.toFixed(2)}{' '}
 								<span className="text-dark">
 									R<sup>2</sup>
 								</span>{' '}
-								{R2.toFixed(2)}
 							</td>
-							{/* <td className="text-dark">intpt</td> */}
 							{cols.slice(1).map((col) => (
 								<td key={col.name}>{col.name}</td>
 							))}
 						</tr>
 						{(
 							[
-								['coef', weights],
+								['wgt', weights],
 								['err', errors],
 							] as const
 						).map(([label, arr]) => (
@@ -102,6 +84,7 @@ export default function CorrelationMatrix({ sets }: { sets: Set[] }) {
 						))}
 					</tbody>
 				</table>
+				<div className="pt-1 text-dark">[{X.length}]</div>
 			</div>
 		</>
 	);

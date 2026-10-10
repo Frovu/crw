@@ -1,14 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { equalValues } from './util';
-import {
-	sourceLinks,
-	type ChangelogEntry,
-	type ChangelogResponse,
-	type Column,
-	type StaticColumn,
-	type Tables,
-} from '../../api';
+import { sourceLinks, type ChangelogEntry, type ChangelogResponse, type Column, type StaticColumn, type Tables } from '../../api';
 import { useTableDataQuery } from './query';
 import { useEventsState } from './eventsState';
 import { useMemo } from 'react';
@@ -72,9 +65,7 @@ type Uhhhh = Parameters<Extract<Parameters<typeof useTablesStore.setState>[0], (
 const renderTableData = (state: Uhhhh, tbl: EditableTable) => {
 	const { columns, rawData, deleted, created, changes } = state[tbl];
 
-	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter(
-		(r) => !deleted.includes(r[0] as number),
-	) as typeof rawData;
+	const data = [...rawData.map((r) => [...r]), ...created.map((r) => [...r])].filter((r) => !deleted.includes(r[0] as number)) as typeof rawData;
 
 	for (const { id, column, value } of changes) {
 		const row = data.find((r) => r[0] === id);
@@ -101,7 +92,7 @@ const tableApi = <T extends EditableTable>({ columns, data, index }: Pick<TableS
 	columns,
 	data,
 	index,
-	entry: (row: TableValue[]) => tableRowAsDict<T>(row, columns),
+	entry: <V extends TableValue[] | undefined>(row: V): V extends undefined ? undefined : Tables[T] => row && tableRowAsDict(row, columns),
 	getById: (id: number | null) => {
 		if (id === null) return null;
 		const row = data.find((r) => r[0] === id);

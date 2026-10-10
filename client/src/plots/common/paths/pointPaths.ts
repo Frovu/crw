@@ -17,7 +17,7 @@ export function pointPaths(sizePx: number, rectCallback?: any): uPlot.Series.Pat
 					if (xVal >= scaleX.min! && xVal <= scaleX.max! && yVal >= scaleY.min! && yVal <= scaleY.max!) {
 						const cx = valToPosX(xVal, scaleX, xDim, xOff);
 						const cy = valToPosY(yVal, scaleY, yDim, yOff);
-						rectCallback &&
+						if (rectCallback)
 							rectCallback({
 								x: cx - size / 2 - 2 - u.bbox.left,
 								y: cy - size / 2 - 2 - u.bbox.top,

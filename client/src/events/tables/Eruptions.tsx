@@ -50,11 +50,7 @@ function switchMainCME(erupt: Tables['sources_erupt'], cme: EruptiveEvent<'cme'>
 	makeSourceChanges('sources_erupt', erupt);
 }
 
-function switchCoordsSrc(
-	erupt: Tables['sources_erupt'],
-	opt: Tables['sources_erupt']['coords_source'],
-	sth?: EruptiveEvent<'cme' | 'flare'>,
-) {
+function switchCoordsSrc(erupt: Tables['sources_erupt'], opt: Tables['sources_erupt']['coords_source'], sth?: EruptiveEvent<'cme' | 'flare'>) {
 	if (opt !== 'MNL') {
 		erupt.lat = sth?.lat ?? erupt.lat;
 		erupt.lon = sth?.lon ?? erupt.lon;
@@ -160,7 +156,7 @@ function useAssociated<W extends 'flare' | 'cme'>(what: W) {
 			const approxIdx = binarySearch(srcTimes, time, 32);
 			const sliced = srcTable.data.slice(Math.max(0, approxIdx - 100), approxIdx + 100);
 			const found = sliced.find((row) => equalValues(row[idColIdx], linkVal) && row[0] === src);
-			return found ? srcTable.entry(found) : null;
+			return srcTable.entry(found);
 		});
 		console.timeEnd('erupt assoc ' + what);
 

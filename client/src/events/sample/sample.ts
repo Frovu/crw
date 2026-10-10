@@ -69,8 +69,7 @@ export const useSampleState = create<SampleState>()(
 			set((state) => {
 				const inc = state.current?.includes;
 				if (!state.current || !inc) return;
-				state.current.includes =
-					id == null || !inc.includes(id) ? inc.concat(newId) : inc.map((i) => (i === id ? newId : i));
+				state.current.includes = id == null || !inc.includes(id) ? inc.concat(newId) : inc.map((i) => (i === id ? newId : i));
 			}),
 		removeInclude: (id) =>
 			set((state) => {
@@ -186,6 +185,7 @@ export function useSampleQuery(soft = false) {
 	return useQuery({
 		enabled: !soft,
 		queryKey: ['samples'],
+		staleTime: 60_000,
 		queryFn: async () => {
 			const { samples } = await apiGet<{ samples: Sample[] }>('events/samples');
 			console.log('%cfetched samples:', 'color: #0f0', samples);

@@ -17,18 +17,7 @@ const T_AFTER = 6 * 3600;
 
 const IMG_URL = 'https://cdaw.gsfc.nasa.gov/images/';
 
-const SDO_SRC = [
-	'AIA 193',
-	'AIA 193 diff',
-	'LASCO C2',
-	'LASCO C3',
-	'AIA 094',
-	'AIA 131',
-	'AIA 171',
-	'AIA 211',
-	'AIA 304',
-	'AIA 335',
-] as const;
+const SDO_SRC = ['AIA 193', 'AIA 193 diff', 'LASCO C2', 'LASCO C3', 'AIA 094', 'AIA 131', 'AIA 171', 'AIA 211', 'AIA 304', 'AIA 335'] as const;
 
 const defaultParams = {
 	src: 'AIA 193' as (typeof SDO_SRC)[number],
@@ -77,7 +66,7 @@ export function useSunViewParams() {
 			const link = getSourceLink('cme', 'LSC');
 			const idColIdx = cmes.index[link.id]!;
 			const found = cmes.data.find((row) => row[0] === 'LSC' && equalValues(row[idColIdx], erupt[link.link]));
-			return found ? cmes.entry(found) : null;
+			return cmes.entry(found);
 		})();
 
 		if (flares && cursor?.entity === 'flare') {
@@ -130,11 +119,8 @@ export function Panel() {
 			return res.timestamps
 				.filter((tst, i) => i % cadence === 0 && tst >= start && tst <= end)
 				.map((timestamp) => {
-					const aiadir =
-						1730408400 <= timestamp && timestamp <= 1738357200 ? 'sdo/aia_synoptic/' : 'sdo/aia_synoptic_nrt/';
-					const dir = isLsc
-						? 'soho/lasco'
-						: (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : aiadir) + source.split(' ')[1];
+					const aiadir = 1730408400 <= timestamp && timestamp <= 1738357200 ? 'sdo/aia_synoptic/' : 'sdo/aia_synoptic_nrt/';
+					const dir = isLsc ? 'soho/lasco' : (source.endsWith('diff') ? 'sdo/aia_synoptic_rdf/' : aiadir) + source.split(' ')[1];
 
 					const time = new Date(timestamp * 1000);
 					const year = time.getUTCFullYear();
@@ -145,9 +131,7 @@ export function Panel() {
 					const sec = time.getUTCSeconds().toString().padStart(2, '0');
 					const fname =
 						`${year}${mon}${day}_${hour}${min}${sec}_` +
-						(isLsc
-							? `lasc${source.at(-1)}rdf.png`
-							: `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
+						(isLsc ? `lasc${source.at(-1)}rdf.png` : `sdo_a${source.split(' ')[1]}${source.endsWith('diff') ? 'rdf' : ''}.jpg`);
 					const url = IMG_URL + `${dir}/${year}/${mon}/${day}/${fname}`;
 
 					const img = new Image();
@@ -336,12 +320,7 @@ function Menu({ params, setParams, Checkbox }: ContextMenuProps<Params>) {
 		<>
 			<div className="flex gap-1 items-center pr-0.5">
 				Src:
-				<SimpleSelect
-					className="bg-input-bg"
-					value={src}
-					onChange={(val) => setParams({ src: val })}
-					options={SDO_SRC}
-				/>
+				<SimpleSelect className="bg-input-bg" value={src} onChange={(val) => setParams({ src: val })} options={SDO_SRC} />
 			</div>
 			<div>
 				Frame time:

@@ -1,34 +1,27 @@
 import { useMemo } from 'react';
-import regression from 'regression';
-import uPlot from 'uplot';
-import { color, type Color } from '../../app/app';
+import { type Color } from '../../app/app';
 import { type ContextMenuProps } from '../../app/layout';
 import { Button } from '../../components/Button';
 import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
-import { useTable } from '../../events/core/editableTables';
+import { useTable, type TableRow } from '../../events/core/editableTables';
 import { useEventsState } from '../../events/core/eventsState';
 import { useFeidSample, useFeidTableView } from '../../events/core/feid';
 import { usePlot } from '../../events/core/plot';
-import { equalValues, useEventsSettings, valueToString } from '../../events/core/util';
+import { useEventsSettings } from '../../events/core/util';
 import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
-import { cn, prettyDate } from '../../util';
+import { cn } from '../../util';
 import { usePlotOverlay } from '../common/plotOverlay';
-import { pointPaths } from '../common/paths/pointPaths';
-import { linePaths } from '../common/paths/linePaths';
-import { axisDefaults, getFontSize, measureDigit, scaled } from '../common/plotUtil';
-import { labelsPlugin, legendPlugin } from '../common/plugins/plugins';
-import { titlePlugin } from '../common/plugins/titlePlugin';
-import { tooltipPlugin } from '../common/plugins/tooltipPlugin';
-import { Quadtree } from '../common/quadtree';
-import { type CustomAxis } from '../common/types';
+import { scaled } from '../common/plotUtil';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 import ColorSelect from '../../components/ColorSelect';
 import { computeR2Score, LinearRegression } from './regression';
 import CorrelationMatrix from './CorrelationMatrix';
+import type { Column } from '../../api';
+import CorrelationPlot from './CorrelationPlot';
 
-const colors = ['magenta', 'gold', 'cyan', 'green'] as const;
+const colors = ['green', 'magenta', 'gold', 'cyan'] as const;
 
 const limitKeys = [
 	['X', 'forceMin', 'forceMax'],
@@ -41,6 +34,20 @@ type CorrY = {
 	color: Color;
 	sample: SampleOption;
 	column: string;
+};
+
+export type CorrelationSeries = {
+	X: number[][];
+	Y: number[];
+	ids: number[];
+	predictions: number[];
+	weights: number[];
+	errors: number[];
+	R2: number;
+	cols: Column[];
+	sampleName: string;
+	sampleData: TableRow[];
+	color: Color;
 };
 
 const defaultParams = {
@@ -84,7 +91,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 	const rmY = (col: CorrY) =>
 		set(
 			'correlationY',
-			corrY.filter((c) => c.column !== col.column),
+			corrY.filter((c) => c.column !== col.column || c.sample !== col.sample),
 		);
 
 	return (
@@ -154,24 +161,17 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 }
 
 function Panel() {
-	const { showGrid, showLegend, showTitle } = useEventsSettings();
-	const { setCursor, setPlotId } = useEventsState();
 	const { data: shownData } = useFeidTableView();
 	const { data: allData, columns, index } = useTable('feid');
 	const { data: currentData, samples: samplesList } = useFeidSample();
 	const params = usePlot<CorrelationParams>();
 
-	const overlayHandle = usePlotOverlay((u, { width }) => ({
-		x: (u.bbox.left + u.bbox.width - scaled(width)) / scaled(1) + 6,
-		y: 3,
-	}));
-
-	const sets = useMemo(() => {
+	const series: CorrelationSeries[] = useMemo(() => {
 		return params.correlationY
-			.map(({ column, sample }) => {
+			.map(({ column, sample, color }) => {
 				const sd = sample === '<current>' ? currentData : sample === '<none>' ? allData : null;
-				const sampleData = (sd ??
-					applySample(allData, samplesList?.find((s) => s.id === sample) ?? null, columns, samplesList ?? [])) as number[][];
+				const sampleData = sd ?? applySample(allData, samplesList?.find((s) => s.id === sample) ?? null, columns, samplesList ?? []);
+				const sampleName = samplesList?.find((s) => s.id === sample)?.name ?? sample.toString();
 
 				if (!sampleData.length) return null;
 				const colIdx = [column, ...params.correlationX].map((c) => columns.findIndex((cc) => cc.sql_name === c));
@@ -179,223 +179,35 @@ function Panel() {
 				const cols = colIdx.map((c) => columns[c]);
 
 				// const filter = loglog ? (r: number[]) => r.every((v) => v > 1) : (r: number[]) => r.every((v) => v != null);
-				const filtered = sampleData.filter((row) => colIdx.every((i) => row[i] != null));
+				const filtered = sampleData.filter((row) => colIdx.every((i) => row[i] != null)) as number[][];
 				const Y = filtered.map((row) => row[colIdx[0]]);
 				const X = filtered.map((row) => colIdx.slice(1).map((i) => row[i]));
-				// .sort((a, b) => a[0] - b[0]);
-				// const plotData = [0, 1].map((i) => data.map((r) => r[i]));
+				const ids = filtered.map((row) => row[0]);
 
 				if (filtered.length < 8) return null;
 
-				// const minx = data[0][0];
-				// const maxx = data[data.length - 1][0];
-				// const miny = Math.min.apply(null, plotData[1]);
-				// const maxy = Math.max.apply(null, plotData[1]);
-
-				console.log(1);
+				console.time('regression');
 				const regr = new LinearRegression();
 				regr.fit(X, Y);
-
-				console.log(2);
-				console.log('Intercept:', regr.weights[0]);
-				console.log('Coefficients:', regr.weights.slice(1));
-				// console.log(regr.predict([[15, 700]]));
+				const { weights } = regr;
 
 				const errors = regr.computeStandardErrors(X, Y);
-				console.log(3);
 				const predictions = regr.predict(X);
-				console.log(4);
 				const R2 = computeR2Score(Y, predictions);
-				console.log(5);
+				console.timeEnd('regression');
 
-				return { X, Y, predictions, errors, R2, cols };
+				console.log('weights:', regr.weights);
+				console.log('errors:', errors);
+
+				return { X, Y, predictions, errors, weights, R2, cols, color, sampleName, sampleData, ids };
 			})
 			.filter((y) => !!y);
 	}, [allData, columns, currentData, params.correlationX, params.correlationY, samplesList]);
 
-	const memo = useMemo(() => {
-		const { correlationX, correlationY, loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY } = params;
+	if (!series.length) return <div className="center">NOT ENOUGH DATA</div>;
+	if (params.correlationMode === 'matrix') return <CorrelationMatrix series={series} />;
 
-		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
-
-		// const findRow = (i: number) => sampleData.find((row) => equalValues(row[colIdx[0]], data[i][0]) && equalValues(row[colIdx[1]], data[i][1]));
-		return;
-		return {
-			options: () => {
-				let hoveredRect: any;
-				let qt: Quadtree;
-				const ch = measureDigit().width,
-					scale = scaled(1);
-				return {
-					mode: 2,
-					padding: [8, 12, 0, 0].map((p) => scaled(p)) as any,
-					focus: { alpha: 1 },
-					cursor: {
-						drag: { x: false, y: false, setScale: false },
-						points: {
-							width: 2,
-							size: 6,
-							stroke: (u, sidx) => (sidx === 1 ? color('red') : 'transparent'),
-							fill: 'transparent',
-						},
-						dataIdx: (u) => {
-							const cx = u.cursor.left! * devicePixelRatio;
-							const cy = u.cursor.top! * devicePixelRatio;
-							hoveredRect = null;
-							qt.hover(cx, cy, (o: any) => {
-								hoveredRect = o;
-							});
-							return hoveredRect?.didx ?? -1;
-						},
-					},
-					plugins: [
-						tooltipPlugin({
-							onclick: (u, didx) => {
-								const row = findRow(didx);
-								if (!row) return;
-								setCursor({
-									row: shownData.findIndex((r) => r[0] === row[0]),
-									column: 1,
-									entity: 'feid',
-									id: row[0],
-								});
-								setPlotId(() => row[0]);
-							},
-							html: (u, sidx, didx) => {
-								const row = findRow(didx);
-								return row
-									? `${prettyDate(row[index.time] as any)}; ${valueToString(row[colIdx[0]])}, ${valueToString(row[colIdx[1]])}`
-									: '??';
-							},
-						}),
-						titlePlugin({
-							text: [
-								{ text: `α=${intercept.toFixed(2)}; `, color: 'dark' },
-								{
-									text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`,
-									color: 'text',
-								},
-							],
-							params: { showTitle: showTitle && !!regr },
-						}),
-						legendPlugin({
-							params: { showLegend },
-							overlayHandle,
-						}),
-						labelsPlugin({ params: { showLegend } }),
-					],
-					hooks: {
-						drawClear: [
-							(u) => {
-								qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
-								qt.clear();
-							},
-						],
-					},
-					axes: [
-						{
-							...axisDefaults(showGrid),
-							space: getFontSize() * 2.5,
-							fullLabel: colX.name,
-							label: '',
-							size: getFontSize() + scaled(12),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
-							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
-							values: (u, vals) =>
-								vals.map((v) =>
-									loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
-								),
-						},
-						{
-							...axisDefaults(showGrid),
-							fullLabel: colY.name,
-							label: '',
-							size: (u, values) =>
-								scale * 12 +
-								ch *
-									(values
-										? Math.max.apply(
-												null,
-												values.map((v) => v?.toString().length ?? 0),
-											)
-										: 4),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
-							values: (u, vals) =>
-								vals.map((v) =>
-									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
-								),
-						} as CustomAxis,
-					],
-					scales: {
-						x: {
-							time: false,
-							distr: logx && loglog ? 3 : 1,
-							range: [forceMin ?? minx, forceMax ?? maxx],
-						},
-						y: {
-							distr: loglog ? 3 : 1,
-							range: [forceMinY ?? miny, forceMaxY ?? maxy],
-						},
-					},
-					series: [
-						{ facets: [{ scale: 'x', auto: true }] },
-						{
-							facets: [
-								{ scale: 'x', auto: true },
-								{ scale: 'y', auto: true },
-							],
-							label: 'scatter',
-							legend:
-								sample0 === '<current>'
-									? undefined
-									: sample0 === '<none>'
-										? 'all events'
-										: samplesList?.find((s) => s.id === sample0)?.name,
-							marker: 'circle',
-							bars: true,
-							stroke: color(params.color),
-							paths: pointPaths(scaled(4), (r: any) => qt.add(r)),
-						},
-						{
-							label: '',
-							facets: [
-								{ scale: 'x', auto: true },
-								{ scale: 'y', auto: true },
-							],
-							show: showRegression,
-							stroke: color('white'),
-							paths: linePaths(scaled(1.5)),
-						},
-					],
-				} as Omit<uPlot.Options, 'width' | 'height'>;
-			},
-			data: [plotData, plotData, [regrPoints, regrPredicts]] as any, // UplotReact seems to not be aware of faceted plot mode
-		};
-	}, [
-		params,
-		currentData,
-		allData,
-		samplesList,
-		columns,
-		showTitle,
-		showLegend,
-		overlayHandle,
-		showGrid,
-		setCursor,
-		shownData,
-		setPlotId,
-		index.time,
-	]);
-
-	if (params.correlationMode === 'matrix') return <CorrelationMatrix sets={sets} />;
-
-	if (!memo) return <div className="center">NOT ENOUGH DATA</div>;
-	const { options, data } = memo;
-	return (
-		<>
-			<ExportableUplot {...{ options, data }} />
-		</>
-	);
+	return <CorrelationPlot series={series} />;
 }
 
 export const Correlation = {

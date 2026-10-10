@@ -8,7 +8,7 @@ export function tooltipPlugin({
 	disableFocus,
 }: {
 	sidx?: (u: uPlot, sidx: number) => number;
-	onclick?: (u: uPlot, dIdx: number) => void;
+	onclick?: (u: uPlot, sIdx: number, dIdx: number) => void;
 	html?: (u: uPlot, sIdx: number, dIdx: number) => string;
 	disableFocus?: boolean;
 } = {}): uPlot.Plugin {
@@ -34,8 +34,7 @@ export function tooltipPlugin({
 		const isScatter = (u as any).mode === 2;
 		const stroke = typeof series.stroke == 'function' ? series.stroke(u, sidx) : series.stroke;
 		const val: number | null = isScatter ? (u.data as any)[sidx][1][dataIdx!] : u.data[sidx][dataIdx!];
-		const valst =
-			val == null ? 'N/A' : Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString() : val.toExponential();
+		const valst = val == null ? 'N/A' : Math.abs(val) >= 0.01 ? (Math.round(val * 100) / 100).toString() : val.toExponential();
 		const xval = isScatter ? (u.data as any)[sidx][0][dataIdx!] : u.data[0][dataIdx!];
 
 		const top = val == null ? u.cursor.top! : u.valToPos(val, series.scale ?? 'y');
@@ -45,14 +44,10 @@ export function tooltipPlugin({
 
 		const left = tooltipLeftOffset + lft + shiftX * (flip ? -1 : 1);
 		tooltip.style.top = tooltipTopOffset + top + shiftY + 'px';
-		tooltip.style.left =
-			(flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
-		tooltip.style.transform =
-			flip && flipY ? 'translate(-100%,-100%)' : flip ? 'translateX(-100%)' : flipY ? 'translateY(-100%)' : 'unset';
+		tooltip.style.left = (flip ? Math.max(left, tooltip.clientWidth) : Math.min(left, u.width - tooltip.clientWidth)) + 'px';
+		tooltip.style.transform = flip && flipY ? 'translate(-100%,-100%)' : flip ? 'translateX(-100%)' : flipY ? 'translateY(-100%)' : 'unset';
 		const xlbl = u.scales.x.time ? prettyDate(xval) : xval.toString();
-		tooltip.innerHTML = html
-			? html(u, sidx, dataIdx!)
-			: `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
+		tooltip.innerHTML = html ? html(u, sidx, dataIdx!) : `${xlbl}, <span style="color: ${stroke};">${series.label}</span> = ${valst}`;
 	}
 
 	const tooltip = document.createElement('div');
@@ -102,7 +97,7 @@ export function tooltipPlugin({
 						});
 						u.over.addEventListener('mouseup', (e) => {
 							if (e.clientX === clientX && e.clientY === clientY) {
-								if (dataIdx != null) onclick(u, dataIdx);
+								if (dataIdx != null && seriesIdx != null) onclick(u, dataIdx, seriesIdx);
 							}
 						});
 					}

@@ -9,17 +9,7 @@ const tablesColumnOrder = {
 	flare: ['class', 'lat', 'lon', 'start_time', 'active_region', 'peak_time', 'end_time'],
 	cme: ['time', 'speed', 'lat', 'lon', 'angular_width', 'central_angle', 'enlil_id', 'note'],
 	icme: ['time'],
-	sources_erupt: [
-		'flr_start',
-		'cme_time',
-		'lat',
-		'lon',
-		'active_region',
-		'coords_source',
-		'cme_speed',
-		'flr_source',
-		'cme_source',
-	],
+	sources_erupt: ['flr_start', 'cme_time', 'lat', 'lon', 'active_region', 'coords_source', 'cme_speed', 'flr_source', 'cme_source'],
 	sources_ch: ['time', 'tag', 'lat', 'b', 'phi', 'area', 'width'],
 } as const;
 
@@ -68,12 +58,8 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 			const sCols = results.map((q) => q.columns);
 			const sData = results.map((q) => q.data);
 			const pairs = Object.values(sCols).flatMap((cols) => cols.map((col) => [col.sql_name, col]));
-			const cols = [
-				...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values(),
-			] as Column[];
-			const indexes = tables.map((_, ti) =>
-				cols.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name)),
-			);
+			const cols = [...new Map([...(tablesColumnOrder[which].map((cn) => [cn, null]) as any), ...pairs]).values()] as Column[];
+			const indexes = tables.map((_, ti) => cols.map((col) => sCols[ti].findIndex((scol) => scol.sql_name === col.sql_name)));
 			const data = sData.flatMap((rows, ti) =>
 				rows.map((row) => [sourceLabels[tables[ti]], ...indexes[ti].map((idx) => (idx < 0 ? null : row[idx]))]),
 			);
@@ -91,7 +77,8 @@ export function useCompoundTable<T extends keyof typeof compoundTables>(which: T
 				data,
 				columns,
 				index,
-				entry: (row: (typeof data)[number]) => tableRowAsDict(row, columns) as EruptiveEvent<T>,
+				entry: <V extends (typeof data)[number] | undefined>(row: V): V extends undefined ? undefined : EruptiveEvent<T> =>
+					row && tableRowAsDict(row, columns),
 			};
 		},
 		throwOnError: true,

@@ -37,7 +37,7 @@ function Panel() {
 		const link = getSourceLink('cme', 'DKI');
 		const idColIdx = cmes.index[link.id]!;
 		const found = erupt && cmes.data.find((row) => row[0] === 'DKI' && equalValues(row[idColIdx], erupt[link.link]));
-		return found ? cmes.entry(found).enlil_id : null;
+		return cmes.entry(found)?.enlil_id;
 	})();
 
 	const query = useQuery({
