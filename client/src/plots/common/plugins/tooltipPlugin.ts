@@ -97,7 +97,7 @@ export function tooltipPlugin({
 						});
 						u.over.addEventListener('mouseup', (e) => {
 							if (e.clientX === clientX && e.clientY === clientY) {
-								if (dataIdx != null && seriesIdx != null) onclick(u, dataIdx, seriesIdx);
+								if (dataIdx != null && seriesIdx != null) onclick(u, seriesIdx, dataIdx);
 							}
 						});
 					}

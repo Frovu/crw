@@ -15,7 +15,7 @@ export default function CorrelationMatrix({ series: sets }: { series: Correlatio
 
 	const cycleView = () => setViewIdx((v) => (v + 1) % sets.length);
 
-	const { X, cols, R2, weights, errors } = sets[view];
+	const { X, cols, R2, weights, errors, sampleName } = sets[view];
 
 	return (
 		<>
@@ -27,7 +27,7 @@ export default function CorrelationMatrix({ series: sets }: { series: Correlatio
 						))}
 						<td className="text-dark">
 							<Button className="w-full" onClick={cycleView}>
-								{}
+								{sampleName}
 							</Button>
 						</td>
 					</tr>

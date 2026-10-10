@@ -5,15 +5,10 @@ import { Button } from '../../components/Button';
 import { NumberInput } from '../../components/Input';
 import { SimpleSelect } from '../../components/Select';
 import { useTable, type TableRow } from '../../events/core/editableTables';
-import { useEventsState } from '../../events/core/eventsState';
-import { useFeidSample, useFeidTableView } from '../../events/core/feid';
+import { useFeidSample } from '../../events/core/feid';
 import { usePlot } from '../../events/core/plot';
-import { useEventsSettings } from '../../events/core/util';
-import { ExportableUplot } from '../../events/export/ExportableUplot';
 import { applySample } from '../../events/sample/sample';
 import { cn } from '../../util';
-import { usePlotOverlay } from '../common/plotOverlay';
-import { scaled } from '../common/plotUtil';
 import { useColumnOptions, useSampleOptions, type SampleOption } from './statPlotUtils';
 import ColorSelect from '../../components/ColorSelect';
 import { computeR2Score, LinearRegression } from './regression';
@@ -79,7 +74,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 	const setY = <K extends keyof CorrY>(col: CorrY, key: K, val: CorrY[K]) =>
 		set(
 			'correlationY',
-			corrY.map((c) => (c.column === col.column ? { ...c, [key]: val } : c)),
+			corrY.map((c) => (c.column === col.column && c.color === col.color ? { ...c, [key]: val } : c)),
 		);
 
 	const addY = (column: string) =>
@@ -143,7 +138,9 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 				</div>
 			))}
 			<div className="flex items-center">
-				Display mode:
+				<Button onClick={() => set('correlationMode', corrModes[(corrModes.indexOf(params.correlationMode) + 1) % corrModes.length])}>
+					Display mode:
+				</Button>
 				<SimpleSelect
 					className="w-24"
 					value={params.correlationMode}
@@ -161,8 +158,7 @@ function Menu({ params, set, setParams, Checkbox }: ContextMenuProps<Correlation
 }
 
 function Panel() {
-	const { data: shownData } = useFeidTableView();
-	const { data: allData, columns, index } = useTable('feid');
+	const { data: allData, columns } = useTable('feid');
 	const { data: currentData, samples: samplesList } = useFeidSample();
 	const params = usePlot<CorrelationParams>();
 

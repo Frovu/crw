@@ -28,19 +28,18 @@ export default function CorrelationPlot({ series }: { series: CorrelationSeries[
 		y: 3,
 	}));
 
-	const memo = useMemo(() => {
+	const plot = useMemo(() => {
 		const { loglog, logx, showRegression, forceMax, forceMaxY, forceMin, forceMinY } = params;
 
+		const plotPredicted = !!series.find((s) => s.cols.length > 2);
+
 		const pdata = series.map(({ X, Y, ids, predictions }) => {
-			const data = [X.map((r) => r[0]), Y, ids, predictions];
+			const data = plotPredicted ? [predictions, Y, ids, predictions] : [X.map((r) => r[0]), Y, ids, predictions];
 			const idx = [...data[0].keys()].toSorted((a, b) => data[0][a] - data[0][b]);
 			return data.map((col) => idx.map((i) => col[i]));
 		});
 
 		const regrData = pdata.map((d) => [d[0], d[3]]);
-
-		console.log(regrData);
-
 		// const maxWidthY = loglog ? 3 : Math.max(...[miny, maxy].map(Math.abs).map(v => v.toFixed(0).length));
 
 		const minx = Math.min.apply(
@@ -49,7 +48,7 @@ export default function CorrelationPlot({ series }: { series: CorrelationSeries[
 		);
 		const maxx = Math.max.apply(
 			null,
-			pdata.map((d) => d[d.length - 1][0]),
+			pdata.map((d) => d[0][d[0].length - 1]),
 		);
 		const miny = Math.min.apply(
 			null,
@@ -60,156 +59,165 @@ export default function CorrelationPlot({ series }: { series: CorrelationSeries[
 			pdata.flatMap((d) => d[1]),
 		);
 
-		const findRow = (si: number, i: number) => series[si].sampleData.find((row) => row[0] === pdata[si][3][i]);
+		const findRow = (si: number, i: number) => series[si - 1].sampleData.find((row) => row[0] === pdata[si - 1][2][i]);
 
-		return {
-			options: () => {
-				let hoveredRect: any;
-				let qt: Quadtree;
-				const ch = measureDigit().width,
-					scale = scaled(1);
-				return {
-					mode: 2,
-					padding: [8, 12, 0, 0].map((p) => scaled(p)) as any,
-					focus: { alpha: 1 },
-					cursor: {
-						drag: { x: false, y: false, setScale: false },
-						points: {
-							width: 2,
-							size: 6,
-							stroke: (u, sidx) => (sidx === 1 ? color('red') : 'transparent'),
-							fill: 'transparent',
-						},
-						dataIdx: (u) => {
-							const cx = u.cursor.left! * devicePixelRatio;
-							const cy = u.cursor.top! * devicePixelRatio;
-							hoveredRect = null;
-							qt.hover(cx, cy, (o: any) => {
-								hoveredRect = o;
+		const options = () => {
+			let hoveredRect: any;
+			let qt: Quadtree;
+			const ch = measureDigit().width,
+				scale = scaled(1);
+			return {
+				mode: 2,
+				padding: [8, 12, 0, 0].map((p) => scaled(p)) as any,
+				focus: { alpha: 1 },
+				cursor: {
+					drag: { x: false, y: false, setScale: false },
+					points: {
+						width: 2,
+						size: 6,
+						stroke: (u, sidx) => (sidx === 1 ? color('red') : 'transparent'),
+						fill: 'transparent',
+					},
+					dataIdx: (u) => {
+						const cx = u.cursor.left! * devicePixelRatio;
+						const cy = u.cursor.top! * devicePixelRatio;
+						hoveredRect = null;
+						qt.hover(cx, cy, (o: any) => {
+							hoveredRect = o;
+						});
+						return hoveredRect?.didx ?? -1;
+					},
+				},
+				plugins: [
+					tooltipPlugin({
+						onclick: (u, sidx, didx) => {
+							console.log(sidx);
+							const row = findRow(sidx, didx);
+							if (!row) return;
+							setCursor({
+								row: shownData.findIndex((r) => r[0] === row[0]),
+								column: 1,
+								entity: 'feid',
+								id: row[0],
 							});
-							return hoveredRect?.didx ?? -1;
+							setPlotId(() => row[0]);
 						},
-					},
-					plugins: [
-						tooltipPlugin({
-							onclick: (u, sidx, didx) => {
-								const row = findRow(sidx, didx);
-								if (!row) return;
-								setCursor({
-									row: shownData.findIndex((r) => r[0] === row[0]),
-									column: 1,
-									entity: 'feid',
-									id: row[0],
-								});
-								setPlotId(() => row[0]);
-							},
-							html: (u, sidx, didx) => {
-								const row = entry(findRow(sidx, didx));
-								if (!row) return '??';
-								const vals = series[sidx].cols.map((c) => row[c.sql_name as keyof typeof row]);
-								return `${prettyDate(row.time)}; ${vals.map(valueToString).join(', ')}`;
-							},
-						}),
-						// titlePlugin({
-						// 	text: [
-						// 		{ text: `α=${intercept.toFixed(2)}; `, color: 'dark' },
-						// 		{
-						// 			text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`,
-						// 			color: 'text',
-						// 		},
-						// 	],
-						// 	params: { showTitle: showTitle && !!regr },
-						// }),
-						legendPlugin({
-							params: { showLegend },
-							overlayHandle,
-						}),
-						labelsPlugin({ params: { showLegend } }),
+						html: (u, sidx, didx) => {
+							const row = entry(findRow(sidx, didx));
+							if (!row) return '??';
+							const vals = series[sidx - 1].cols.map((c) => row[c.sql_name as keyof typeof row]);
+							return `${prettyDate(row.time)}; ${vals.map(valueToString).join(', ')}`;
+						},
+					}),
+					// titlePlugin({
+					// 	text: [
+					// 		{ text: `α=${intercept.toFixed(2)}; `, color: 'dark' },
+					// 		{
+					// 			text: `β=${gradient.toFixed(3)} ± ${err.toFixed(3)}; r=${Math.sqrt(regr.r2).toFixed(2)}`,
+					// 			color: 'text',
+					// 		},
+					// 	],
+					// 	params: { showTitle: showTitle && !!regr },
+					// }),
+					legendPlugin({
+						params: { showLegend },
+						overlayHandle,
+					}),
+					labelsPlugin({ params: { showLegend } }),
+				],
+				hooks: {
+					drawClear: [
+						(u) => {
+							qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
+							qt.clear();
+						},
 					],
-					hooks: {
-						drawClear: [
-							(u) => {
-								qt = new Quadtree(0, 0, u.bbox.width, u.bbox.height);
-								qt.clear();
-							},
+				},
+				axes: [
+					{
+						...axisDefaults(showGrid),
+						space: getFontSize() * 2.5,
+						fullLabel:
+							(plotPredicted ? 'pd by: ' : '') +
+							series[0].cols
+								.slice(1)
+								.map((c) => c.name)
+								.join(', '),
+						label: '',
+						size: getFontSize() + scaled(12),
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
+						...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
+						values: (u, vals) =>
+							vals.map((v) =>
+								loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
+							),
+					},
+					{
+						...axisDefaults(showGrid),
+						fullLabel: series.map((s) => s.cols[0].name).join(', '),
+						label: '',
+						size: (u, values) =>
+							scale * 12 +
+							ch *
+								(values
+									? Math.max.apply(
+											null,
+											values.map((v) => v?.toString().length ?? 0),
+										)
+									: 4),
+						incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
+						values: (u, vals) =>
+							vals.map((v) => (loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString())),
+					} as CustomAxis,
+				],
+				scales: {
+					x: {
+						time: false,
+						distr: logx && loglog ? 3 : 1,
+						range: [forceMin ?? minx, forceMax ?? maxx],
+					},
+					y: {
+						distr: loglog ? 3 : 1,
+						range: [forceMinY ?? miny, forceMaxY ?? maxy],
+					},
+				},
+				series: [
+					{ facets: [{ scale: 'x', auto: true }] },
+					...series.map(({ sampleName, color: clr, cols }) => ({
+						facets: [
+							{ scale: 'x', auto: true },
+							{ scale: 'y', auto: true },
 						],
-					},
-					axes: [
-						{
-							...axisDefaults(showGrid),
-							space: getFontSize() * 2.5,
-							fullLabel: 'XXX',
-							label: '',
-							size: getFontSize() + scaled(12),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500],
-							...(logx && minx > 10 && maxx - minx < 1000 && { filter: (u, splits) => splits }),
-							values: (u, vals) =>
-								vals.map((v) =>
-									loglog && logx ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
-								),
-						},
-						{
-							...axisDefaults(showGrid),
-							fullLabel: 'YYY',
-							label: '',
-							size: (u, values) =>
-								scale * 12 +
-								ch *
-									(values
-										? Math.max.apply(
-												null,
-												values.map((v) => v?.toString().length ?? 0),
-											)
-										: 4),
-							incrs: [1, 2, 3, 4, 5, 10, 15, 20, 30, 50, 100, 200, 500, 1000, 10000, 100000, 1000000],
-							values: (u, vals) =>
-								vals.map((v) =>
-									loglog ? v?.toString().replace(/00+/, 'e' + v.toString().match(/00+/)?.[0].length) : v?.toString(),
-								),
-						} as CustomAxis,
-					],
-					scales: {
-						x: {
-							time: false,
-							distr: logx && loglog ? 3 : 1,
-							range: [forceMin ?? minx, forceMax ?? maxx],
-						},
-						y: {
-							distr: loglog ? 3 : 1,
-							range: [forceMinY ?? miny, forceMaxY ?? maxy],
-						},
-					},
-					series: [
-						{ facets: [{ scale: 'x', auto: true }] },
-						...series.map(({ sampleName, color: clr }) => ({
-							facets: [
-								{ scale: 'x', auto: true },
-								{ scale: 'y', auto: true },
-							],
-							label: 'scatter',
-							legend: sampleName,
-							marker: 'circle',
-							bars: true,
-							stroke: color(clr),
-							paths: pointPaths(scaled(4), (r: any) => qt.add(r)),
-						})),
-						...series.map(() => ({
-							label: '',
-							facets: [
-								{ scale: 'x', auto: true },
-								{ scale: 'y', auto: true },
-							],
-							show: showRegression,
-							stroke: color('white'),
-							paths: linePaths(scaled(1.5)),
-						})),
-					],
-				} as Omit<uPlot.Options, 'width' | 'height'>;
-			},
-			data: [pdata[0], ...pdata, ...regrData] as any, // UplotReact seems to not be aware of faceted plot mode
+						label: cols[0].name,
+						legend: sampleName,
+						marker: 'circle',
+						bars: true,
+						stroke: color(clr),
+						paths: pointPaths(scaled(4), (r: any) => qt.add(r)),
+					})),
+					...series.map(() => ({
+						label: '',
+						facets: [
+							{ scale: 'x', auto: true },
+							{ scale: 'y', auto: true },
+						],
+						show: showRegression,
+						stroke: color('white'),
+						paths: linePaths(scaled(1.5)),
+					})),
+				],
+			} as Omit<uPlot.Options, 'width' | 'height'>;
 		};
+
+		return <ExportableUplot options={options} data={[pdata[0], ...pdata, ...regrData, [[]], [[]]] as any} />;
 	}, [params, series, showLegend, overlayHandle, showGrid, setCursor, shownData, setPlotId, entry]);
 
-	const { options, data } = memo;
-	return <ExportableUplot {...{ options, data }} />;
+	return (
+		<>
+			<div className="absolute bottom-1 left-1 text-xs">
+				R<sup>2</sup>= {series.map((s) => s.R2.toFixed(2).replace('0.', '.')).join(', ')}
+			</div>
+			{plot}
+		</>
+	);
 }

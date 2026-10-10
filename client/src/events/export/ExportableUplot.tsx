@@ -25,9 +25,7 @@ export function ExportableUplot({
 	const controlsPresent = useNodeExists('Export Controls');
 
 	const [upl, setUpl] = useState<uPlot | null>(null);
-	const borderSize = layout?.size
-		? { width: layout?.size.width - 2, height: layout?.size.height - 2 }
-		: { width: 600, height: 400 };
+	const borderSize = layout?.size ? { width: layout?.size.width - 2, height: layout?.size.height - 2 } : { width: 600, height: 400 };
 	const sz = size ? size(borderSize, !layout?.size) : borderSize;
 
 	useEffect(() => {
@@ -38,6 +36,7 @@ export function ExportableUplot({
 		const opts = !controlsPresent
 			? options()
 			: withOverrides(options, { scalesParams, textTransform: textTransform?.filter((tr) => tr.enabled) });
+
 		return (
 			<UplotReact
 				{...{
@@ -50,8 +49,7 @@ export function ExportableUplot({
 									state.plots[layout.id] = { options, data, scales: {} };
 									for (const scl in u.scales) {
 										const { positionValue, scaleValue }: CustomScale = u.scales[scl];
-										if (positionValue && scaleValue)
-											state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
+										if (positionValue && scaleValue) state.plots[layout.id].scales[scl] = { ...positionValue, ...scaleValue };
 									}
 								}),
 							);
