@@ -226,7 +226,6 @@ export const AuthContext = createContext<{
 }>({} as any);
 
 export function handleGlobalKeydown(e: KeyboardEvent) {
-	console.log(e.code);
 	if (e.code === 'Escape') return dispatchCustomEvent('escape');
 	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement) return;
 
