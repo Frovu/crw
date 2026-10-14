@@ -12,7 +12,7 @@ proxies = {
 	"https": proxy
 } if proxy else { }
 
-URL = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/'
+URL = 'https://ccmc.gsfc.nasa.gov/DONKI-API/'
 CME_TABLE = T1 = 'donki_cmes'
 FLR_TABLE = T2 = 'donki_flares'
 
@@ -82,7 +82,7 @@ def _obtain_month(what: Literal['CME', 'FLR'], month_start: datetime):
 	s_str = month_start.strftime('%Y-%m-%d')
 	e_str = (month_next - timedelta(days=1)).strftime('%Y-%m-%d')
 
-	url = f'{URL}WS/get/{what}?startDate={s_str}&endDate={e_str}'
+	url = f'{URL}get/{what}?startDate={s_str}&endDate={e_str}'
 	log.debug('Loading DONKI %ss for %s', what, s_str)
 	res = requests.get(url, timeout=10, proxies=proxies)
 

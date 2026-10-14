@@ -67,9 +67,9 @@ def fetch():
 			else:
 				pts = (*cur.split('/'), part[:2], part[2:])
 				dtm = datetime(*[int(p) for p in pts], tzinfo=timezone.utc)
-				cmes.append(dtm.isoformat().split('.')[0]+'Z')
+				cmes.append(dtm.isoformat().split('+')[0]+'Z')
 			
-		data.append((ons, start, end, qual, mc, ','.join(cmes)))
+		data.append((ons, start, end, qual, mc, cmes))
 
 	log.info('Upserting [%s] R&C ICMEs', len(data))
 	upsert_many(TABLE, [c.sql_name for c in COLS], data)
