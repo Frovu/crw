@@ -75,9 +75,11 @@ export function useSunViewParams() {
 		}
 
 		if (cme) {
-			const { time, lat, lon, src } = cme;
+			const { time, src } = cme;
+			const cmeCoords = erupt == null || (cme.lat != null && cme.lon != null);
+			const { lat, lon } = cmeCoords ? cme : erupt;
 			const angle = cme.central_angle ?? cme.measurement_angle;
-			return { time, lat, lon, src, ent: 'CME', angle, width: cme.angular_width };
+			return { time, lat, lon, src, ent: cmeCoords ? 'CME' : erupt.coords_source, angle, width: cme.angular_width };
 		}
 
 		if (erupt) {
@@ -87,7 +89,7 @@ export function useSunViewParams() {
 		}
 
 		return {
-			time: feidTime,
+			time: new Date(feidTime.getTime() - 4 * 24 * 36e5),
 		};
 	}, [cmes, cursor, erupt, feidTime, flares]);
 }
@@ -109,7 +111,7 @@ export function Panel() {
 
 	const query = useQuery({
 		staleTime: Infinity,
-		queryKey: ['sdo', source, start, end, cadence],
+		queryKey: ['sdo', source, start, end, cadence, setFrame, isLsc],
 		queryFn: async () => {
 			if (!start || !end) return [];
 			const res = await apiGet<{ timestamps: number[] }>('events/sun_images', { from: start, to: end, source });
@@ -162,6 +164,7 @@ export function Panel() {
 	useEffect(() => {
 		if (!query.data || !slave) return;
 		const foundIdx = query.data.findIndex((e) => e.timestamp > masterTime);
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		if (foundIdx < 0) setFrame(0);
 		else setFrame(foundIdx);
 	}, [masterTime, query.data, slave]);

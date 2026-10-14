@@ -26,6 +26,9 @@ export const KEY_COMB = {
 	setY: '2',
 	plot: 'P',
 	cycleSource: 'S',
+	createSource: 'A',
+	addValue: 'Equal',
+	subValue: 'Minus',
 	plotPrev: 'BracketLeft%[',
 	plotNext: 'BracketRight%]',
 	plotPrevShown: 'Comma%<',
@@ -112,12 +115,7 @@ export const useAppSettings = create<AppSettings>()(
 						colors[theme] = {};
 					}),
 				renderColors: () =>
-					Object.fromEntries(
-						Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => [
-							'--color-' + name,
-							rgbaToHexa(val),
-						]),
-					),
+					Object.fromEntries(Object.entries(get().colors[get().theme] ?? {}).map(([name, val]) => ['--color-' + name, rgbaToHexa(val)])),
 			}),
 			{
 				name: 'crwAppSettings',
@@ -149,9 +147,7 @@ export function getDefaultColor(name: string): RgbaColor {
 }
 
 export const logMessage = (text: string, type: LogMessage['type'] = 'info') =>
-	queueMicrotask(() =>
-		useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })),
-	);
+	queueMicrotask(() => useAppSettings.setState((state) => ({ ...state, log: state.log.concat({ text, type, time: new Date() }) })));
 export const logError = (txt?: any) => {
 	if (txt) logMessage(txt.toString(), 'error');
 };
@@ -193,8 +189,7 @@ export const useContextMenuStore = create<ContextMenu>()(() => ({
 	confirmation: null,
 }));
 
-export const useContextMenu = <T extends keyof menuDetails>() =>
-	useContextMenuStore((state) => state.menu?.detail) as menuDetails[T] | undefined;
+export const useContextMenu = <T extends keyof menuDetails>() => useContextMenuStore((state) => state.menu?.detail) as menuDetails[T] | undefined;
 
 export const useEventsContextMenu = <T extends TableEntity>() => useContextMenu() as LayoutsMenuDetails & TableMenuDetails<T>;
 
@@ -231,6 +226,7 @@ export const AuthContext = createContext<{
 }>({} as any);
 
 export function handleGlobalKeydown(e: KeyboardEvent) {
+	console.log(e.code);
 	if (e.code === 'Escape') return dispatchCustomEvent('escape');
 	if ((e.target instanceof HTMLInputElement && e.target.type !== 'checkbox') || e.target instanceof HTMLSelectElement) return;
 

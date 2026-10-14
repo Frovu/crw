@@ -9,6 +9,7 @@ import type { StaticColumn } from '../../api';
 import { Button } from '../../components/Button';
 import { NumberInput, TextInput } from '../../components/Input';
 import SourcesList from './SourcesList';
+import { useSunViewParams } from '../panels/SDO';
 
 const roundHour = (t: number) => Math.floor(t / 36e5) * 36e5;
 
@@ -57,9 +58,9 @@ function Menu() {
 }
 
 function Panel() {
-	const { modifyId, setStartAt, setEndAt, plotId, modifySourceId, setStart, setEnd, setModify, setModifySource, setPlotId } =
-		useEventsState();
+	const { modifyId, setStartAt, setEndAt, plotId, modifySourceId, setStart, setEnd, setModify, setModifySource, setPlotId } = useEventsState();
 	const { start, end, duration, id: feidId, row: feid } = useFeidCursor();
+	const { time: sunTime } = useSunViewParams();
 	const { columns } = useTable('feid');
 	const sources = useCurrentFeidSources();
 
@@ -78,7 +79,7 @@ function Panel() {
 	const toggle = (what: 'insert' | 'move' | 'link') => (e?: MouseEvent) => {
 		if (e) (e.target as HTMLButtonElement)?.blur();
 		if (!isIdle || !start) return escape();
-		if (what === 'move' || what === 'link') feidId && setModify(feidId);
+		if ((what === 'move' || what === 'link') && feidId != null) setModify(feidId);
 		if (what === 'link') return;
 		const at = what === 'insert' ? roundHour(end?.getTime() ?? start.getTime()) : start.getTime();
 		setStart(new Date(at));
@@ -139,6 +140,20 @@ function Panel() {
 		if (idx < 0) return setModifySource(sources.at(0)?.source.id || null);
 		const nxt = sources[(idx + 1) % sources.length];
 		setModifySource(nxt.source.id);
+	});
+
+	useEventListener('action+createSource', () => {
+		if (!feidId) return;
+		const srcId = linkSource('sources_erupt', feidId);
+		makeChange('sources_erupt', { id: srcId, column: 'cme_time', value: sunTime });
+		setTimeout(() => {
+			useEventsState.getState().setCursor({
+				entity: 'sources_erupt',
+				column: 2,
+				row: getTable('sources_erupt').data.findIndex((row) => row[0] === srcId),
+				id: srcId,
+			});
+		}, 100);
 	});
 
 	if (plotId == null || feidId == null || !start) return <div className="center">NO FEID EVENT</div>;
@@ -235,9 +250,7 @@ function Panel() {
 								<span
 									className={cn(
 										'pl-2',
-										{ low: 'text-orange', avg: 'text-text', high: 'text-green', none: 'text-red' }[
-											feid.s_confidence ?? 'none'
-										],
+										{ low: 'text-orange', avg: 'text-text', high: 'text-green', none: 'text-red' }[feid.s_confidence ?? 'none'],
 									)}
 								>
 									{feid.s_confidence ?? 'N/A'}
@@ -250,14 +263,10 @@ function Panel() {
 							<td colSpan={4}>
 								<div className="flex justify-evenly">
 									{feid.flr_time && (
-										<div className={cn(foundFlr ? 'text-green' : 'text-red')}>
-											flr {prettyDate(feid.flr_time).slice(5, 16)}
-										</div>
+										<div className={cn(foundFlr ? 'text-green' : 'text-red')}>flr {prettyDate(feid.flr_time).slice(5, 16)}</div>
 									)}
 									{feid.cme_time && (
-										<div className={cn(foundCme ? 'text-green' : 'text-red')}>
-											cme {prettyDate(feid.cme_time).slice(5, 16)}
-										</div>
+										<div className={cn(foundCme ? 'text-green' : 'text-red')}>cme {prettyDate(feid.cme_time).slice(5, 16)}</div>
 									)}
 								</div>
 							</td>
@@ -283,9 +292,7 @@ function Panel() {
 							<TextInput
 								className="w-full"
 								value={feid.comment ?? ''}
-								onSubmit={(value) =>
-									makeChange('feid', { id: feidId, column: 'comment', value: value || null })
-								}
+								onSubmit={(value) => makeChange('feid', { id: feidId, column: 'comment', value: value || null })}
 							/>
 						</td>
 					</tr>

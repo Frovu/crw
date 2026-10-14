@@ -15,7 +15,7 @@ import {
 	type EruptSrcLabel,
 } from '../core/sourceActions';
 import { binarySearch, prettyDate, useEventListener } from '../../util';
-import { deleteEvent, makeSourceChanges, useTable, type TableValue } from '../core/editableTables';
+import { deleteEvent, makeChange, makeSourceChanges, useTable, type TableValue } from '../core/editableTables';
 import { sourceLabels, sourceLinks, type Tables } from '../../api';
 import { useCompoundTable } from '../core/query';
 import { Button } from '../../components/Button';
@@ -175,6 +175,18 @@ function Panel() {
 	useEventListener('setSolarCoordinates', ({ detail: { lat, lon, time } }) => {
 		if (feidId) inputEruptionManually({ lat, lon, time }, feidId, selectedErupt?.id ?? null);
 	});
+
+	const moveCme = (delta: number) => () => {
+		if (!selectedErupt?.cme_time) return;
+		const step = 12e5;
+		const cur = selectedErupt.cme_time.getTime();
+		const value = new Date(Math.round(cur / step + delta) * step);
+
+		makeChange(ENT, { id: selectedErupt.id, column: 'cme_time', value });
+	};
+
+	useEventListener('action+addValue', moveCme(1));
+	useEventListener('action+subValue', moveCme(-1));
 
 	const associatedFlares = useAssociated('flare');
 
