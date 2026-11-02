@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiPost, prettyDate } from '../../util';
+import { apiPost, dispatchCustomEvent, prettyDate } from '../../util';
 import UplotReact from 'uplot-react';
 import { axisDefaults, color, seriesDefaults } from '../../plots/common/plotUtil';
 import { SimpleSelect } from '../../components/Select';
 import { Button } from '../../components/Button';
 import { omniVariables } from '../../api';
 import { Input } from '../../components/Input';
+import { logSuccess } from '../../app/app';
 
 const fileFormats = ['w0'] as const;
 
@@ -52,7 +53,10 @@ export default function LoadFile({ path }: { path: string }) {
 		},
 		onError: (e: Error) => setReport(e.toString()),
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ['omni'] });
+			queryClient.invalidateQueries({ queryKey: ['plot'] });
+			queryClient.invalidateQueries({ queryKey: ['omniControls'] });
+			logSuccess(`Upserted ${targetVar}!`);
+			dispatchCustomEvent('escape');
 			setReport('');
 		},
 	});
@@ -115,7 +119,7 @@ export default function LoadFile({ path }: { path: string }) {
 					/>
 				</div>
 			)}
-			{data && data[0].length > 0 && <Button onClick={() => mutation.mutate()}>Upload {targetVar} to server (overwrite)</Button>}
+			{data && data[0].length > 0 && <Button onClick={() => mutation.mutate()}>Upload {targetVar} to server</Button>}
 			<div className="text-red">{report}</div>
 		</>
 	);

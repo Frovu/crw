@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from datetime import datetime, timezone
 
-from database import pool, log, get_coverage, upsert_coverage, SQL, Identifier, CoverageResponse
+from database import pool, log, get_coverage, upsert_coverage, upsert_many, SQL, Identifier, CoverageResponse
 from data.omni.variables import OMNI_TABLE, GROUP, SOURCE, omni_variables, get_vars
 from data.omni.realtime import fetch_realtime
 from data.omni.obtain import obtain
@@ -18,14 +18,14 @@ def remove(interval: tuple[int, int], groups: list[GROUP]):
 		curs = conn.execute(query, interval)
 		return curs.rowcount
 		
-def insert(var, data):
-	raise NotImplementedError()
-	if not var in all_column_names:
-		raise ValueError('Unknown variable: '+var)
+def insert(var_name, data):
+	var = next((v for v in omni_variables if v.name == var_name), None)
+	if not var:
+		raise ValueError('Unknown variable: '+var_name)
 	for row in data:
-		row[0] = datetime.utcfromtimestamp(row[0])
-	log.info(f'Omni: upserting from ui: [{len(data)}] rows from {data[0][0]} to {data[-1][0]}')
-	upsert_many('omni', ['time', var], data, schema='public')
+		row[0] = datetime.fromtimestamp(row[0], timezone.utc)
+	log.info(f'Omni: upserting from ui: {var.name} [{len(data)}] from {data[0][0]} to {data[-1][0]}')
+	upsert_many('omni', ['time', var.name], data, schema='public', write_values=False)
 
 def select(interval: tuple[int, int], query: list[str], realtime=False):
 	all_column_names = [var.name for var in omni_variables]
