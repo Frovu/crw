@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { color, logError, logSuccess } from '../../app/app';
 import CoveragePlot from '../../plots/CoveragePlot';
 import { withConfirmation } from '../../components/Confirmation';
+import LoadFile from './LoadFile';
 
 const groupOptions = ['*ALL', ...omniGroups] as const;
 const scId = {
@@ -45,7 +46,11 @@ const scColor = {
 } as const;
 
 function Menu() {
-	return <></>;
+	return (
+		<>
+			<LoadFile path="omni/upload" />
+		</>
+	);
 }
 
 function Panel() {
@@ -70,10 +75,7 @@ function Panel() {
 				cols.map((name, i) => {
 					if (name === 'time') return [name, rows.map((r) => r[i])];
 					if (name.startsWith('sc_id'))
-						return [
-							name.split('_').at(-1)!.toUpperCase(),
-							rows.map((r) => (r[i] == null ? 0 : scId[r[i] as 0] ? r[i] : 99)),
-						];
+						return [name.split('_').at(-1)!.toUpperCase(), rows.map((r) => (r[i] == null ? 0 : scId[r[i] as 0] ? r[i] : 99))];
 					return [name, rows.map((r) => (r[i] == null ? 0 : 1))];
 				}),
 			);
@@ -101,8 +103,7 @@ function Panel() {
 
 	const invalidateQueries = () =>
 		queryClient.invalidateQueries({
-			predicate: (q) =>
-				!['tableData', 'compoundTable'].includes(q.queryKey[0] as any) && !(q.queryKey[0] as any)?.includes?.('feid'),
+			predicate: (q) => !['tableData', 'compoundTable'].includes(q.queryKey[0] as any) && !(q.queryKey[0] as any)?.includes?.('feid'),
 		});
 
 	const { mutate: obtain } = useMutation({
@@ -136,8 +137,7 @@ function Panel() {
 		onError: (err: Error) => logError(err.toString()),
 	});
 
-	const bulkObtain = () =>
-		withConfirmation(`Re-fetch ${groups[0]} 1957-now`, 'This will take several minutes', () => bulkObtainMut(groups[0]));
+	const bulkObtain = () => withConfirmation(`Re-fetch ${groups[0]} 1957-now`, 'This will take several minutes', () => bulkObtainMut(groups[0]));
 
 	return (
 		<div className="h-full text-sm flex flex-col">
